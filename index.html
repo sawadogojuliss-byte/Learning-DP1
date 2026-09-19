@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<!-- Study Plan IB - Fichier complet avec Pages 1, 2, 3, 4, 5, 6, 7 et 7b -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Plan IB - Planificateur intelligent pour le Baccalauréat International</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style_v1.css">
+    <link rel="stylesheet" href="style_v2.css">
+    <link rel="stylesheet" href="style_v3.css">
+</head>
+<body>
+    <div class="bg-shapes">
+        <div class="shape shape-1 animate-float"></div>
+        <div class="shape shape-2 animate-float-reverse"></div>
+        <div class="shape shape-3 animate-float-subtle"></div>
+    </div>
+
+    <div class="context-modal" id="contextModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse"></div>
+        
+        <div class="context-center">
+            <div class="context-card animate-fade-in-up">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">1</div>
+                    <div class="progress-line progress-line-active"></div>
+                    <div class="progress-step progress-step-inactive">2</div>
+                    <div class="progress-line progress-line-inactive"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon animate-glow">
+                    <span>🎓</span>
+                </div>
+
+                <h1 class="context-title">Bienvenue sur StudyPlan IB</h1>
+                <p class="context-subtitle">Commençons par faire connaissance. Comment t'appelles-tu ?</p>
+
+                <div>
+                    <input type="text" id="nameInput" class="context-input" placeholder="Ton prénom...">
+                    <p class="context-error" id="nameError">Merci d'entrer ton prénom</p>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="handleContinue()">Continuer →</button>
+                    <button class="btn-back" onclick="closeContextModal()">Retour à l'accueil</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Objectives Modal (Page 2) -->
+    <div class="context-modal" id="objectivesModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 42rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active"></div>
+                    <div class="progress-step progress-step-active">2</div>
+                    <div class="progress-line progress-line-inactive"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <p id="welcomeName" style="color: #10b981; font-weight: 500; text-align: center; margin-bottom: 1rem;">Super, ! 🎉</p>
+
+                <div class="context-icon" style="background: linear-gradient(to bottom right, #34d399, #14b8a6);">
+                    <span>🎯</span>
+                </div>
+
+                <h1 class="context-title">Quel est ton objectif ?</h1>
+                <p class="context-subtitle">Définis le score IB que tu vises pour personnaliser ton plan</p>
+
+                <!-- Score Selection -->
+                <div style="background: linear-gradient(to bottom right, #f9fafb, #ecfdf5); border: 1px solid #e5e7eb; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 2rem;">
+                        <button onclick="adjustScore(-1)" style="width: 3.5rem; height: 3.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1.5rem; color: #9ca3af; cursor: pointer; transition: all 0.2s;">−</button>
+                        <div style="text-align: center;">
+                            <input type="number" id="scoreValue" value="40" min="24" max="45" onchange="handleScoreInput(event)" style="width: 6rem; text-align: center; font-size: 3.5rem; font-weight: 700; color: #111827; background: transparent; border: none; outline: none;">
+                            <p style="color: #9ca3af; font-size: 0.875rem;">sur 45 points</p>
+                        </div>
+                        <button onclick="adjustScore(1)" style="width: 3.5rem; height: 3.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1.5rem; color: #9ca3af; cursor: pointer; transition: all 0.2s;">+</button>
+                    </div>
+                </div>
+
+                <!-- Feedback Badge -->
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <span id="feedbackBadge" class="feedback-badge bg-emerald">Excellent objectif ! ⭐</span>
+                </div>
+                <p id="feedbackNote" style="color: #6b7280; font-size: 0.875rem; text-align: center; margin-bottom: 1.5rem;">Top 15% mondial</p>
+
+                <!-- Motivation -->
+                <div style="background: linear-gradient(to bottom right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <p id="motivationText" style="color: #374151; text-align: center; line-height: 1.6;">✨ 36+ points est un objectif vraiment excellent !</p>
+                </div>
+
+                <!-- Section probabilité supprimée -->
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="validateObjective()">Valider mon objectif →</button>
+                    <button class="btn-back" onclick="hideObjectivesPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Subjects Modal (Page 4) -->
+    <div class="context-modal" id="subjectsModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 64rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                    <div class="progress-step progress-step-active">4</div>
+                    <div class="progress-line progress-line-inactive" style="width: 2.5rem;"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">📚</span>
+                </div>
+
+                <h1 class="context-title">Tes matières IB</h1>
+                <p class="context-subtitle">Configure tes 6 matières avec exactement 3 HL et 3 SL</p>
+
+                <!-- HL/SL Counters -->
+                <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+                    <span id="hlCounter" class="counter-badge invalid-hl">HL: 2/3</span>
+                    <span id="slCounter" class="counter-badge invalid-sl">SL: 1/3</span>
+                </div>
+
+                <!-- Required Subjects -->
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; display: flex; align-items: center;"><span style="width: 0.5rem; height: 0.5rem; background: #10b981; border-radius: 50%; margin-right: 0.5rem;"></span>Matières obligatoires</h3>
+                    <div id="requiredSubjects" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+                </div>
+
+                <!-- Optional Subjects -->
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem; display: flex; align-items: center;"><span style="width: 0.5rem; height: 0.5rem; background: #14b8a6; border-radius: 50%; margin-right: 0.5rem;"></span>Matières optionnelles (<span id="optionalCount">0</span>/3)</h3>
+                    <div id="optionalSubjects" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+                    <div style="margin-top: 1rem;">
+                        <select id="addSubjectSelect" onchange="handleAddSubject(this)" style="width: 100%; padding: 1rem; border: 2px dashed #d1d5db; border-radius: 1rem; background: #f9fafb; color: #6b7280; cursor: pointer; font-size: 1rem;"></select>
+                    </div>
+                </div>
+
+                <!-- Validation Message -->
+                <div id="validationMsg" class="validation-box invalid">⚠️ Configuration incomplète. Il te faut exactement 6 matières (3 HL et 3 SL)</div>
+
+                <div class="context-buttons">
+                    <button id="subjectsContinueBtn" class="btn-continue" onclick="validateSubjects()" disabled>Continuer →</button>
+                    <button class="btn-back" onclick="hideSubjectsPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transport Modal (Page 5) -->
+    <div class="context-modal" id="transportModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 48rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">5</div>
+                    <div class="progress-line progress-line-inactive" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">🚗</span>
+                </div>
+
+                <h1 class="context-title">Comment vas-tu à l'école ?</h1>
+                <p class="context-subtitle">Cela nous aidera à optimiser ton planning de révisions</p>
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0; align-items: center;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center;">
+                        <!-- Voiture Card -->
+                        <button onclick="selectTransport('voiture')" class="transport-card" style="background: white; border: 2px solid #fef3c7; border-radius: 1.5rem; padding: 2rem; width: 12rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <div style="width: 5rem; height: 5rem; margin: 0 auto 1rem; background: linear-gradient(to bottom right, #fbbf24, #f97316); border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">🚗</div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;">Voiture</h3>
+                            <p style="color: #6b7280; font-size: 0.875rem;">On vient te chercher</p>
+                        </button>
+
+                        <!-- Moto Card -->
+                        <button onclick="selectTransport('moto')" class="transport-card" style="background: white; border: 2px solid #d1fae5; border-radius: 1.5rem; padding: 2rem; width: 12rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <div style="width: 5rem; height: 5rem; margin: 0 auto 1rem; background: linear-gradient(to bottom right, #34d399, #059669); border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">🏍️</div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin-bottom: 0.5rem;">Moto</h3>
+                            <p style="color: #6b7280; font-size: 0.875rem;">Tu conduis toi-même</p>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-back" onclick="hideTransportPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Car Configuration Modal (Page 6a) -->
+    <div class="context-modal" id="carConfigModal">
+        <div class="context-shape context-shape-1 animate-float" style="background: linear-gradient(to bottom right, rgba(251, 191, 36, 0.3), rgba(251, 191, 36, 0.2)); right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="background: linear-gradient(to bottom right, rgba(249, 115, 22, 0.3), rgba(249, 115, 22, 0.2)); left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 42rem; background: linear-gradient(to bottom right, #fffbeb, white, #fff7ed);">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line" style="width: 1.5rem; background: #f59e0b;"></div>
+                    <div class="progress-step" style="background: #f59e0b; color: white;">6</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem; background: linear-gradient(to bottom right, #fbbf24, #f97316);">
+                    <span style="font-size: 2.5rem;">🚗</span>
+                </div>
+
+                <h1 class="context-title">Configuration Voiture</h1>
+                <p class="context-subtitle">Détails de tes trajets quotidiens</p>
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0;">
+                    <!-- Departure Time -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🌅</span>
+                            Heure de départ le matin
+                        </label>
+                        <input type="time" id="carDepartureInput" value="07:30" onchange="carDeparture=this.value; updateCarPrepTime();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                        <div style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #eff6ff; border-radius: 0.5rem;">
+                            <p style="font-size: 0.875rem; color: #2563eb;">📋 Préparation dès <span id="carPrepTime" style="font-weight: 700;">07:00</span></p>
+                        </div>
+                    </div>
+
+                    <!-- To School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #cffafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏫</span>
+                            Durée du trajet aller
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="carToSchoolInput" value="30" min="5" max="120" onchange="carToSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                    </div>
+
+                    <!-- From School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #fef3c7; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏠</span>
+                            Durée du trajet retour
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="carFromSchoolInput" value="40" min="5" max="120" onchange="carFromSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                        <p style="font-size: 0.875rem; color: #d97706; margin-top: 0.5rem;">💡 Souvent plus long (embouteillages)</p>
+                    </div>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" style="background: linear-gradient(to right, #f59e0b, #f97316);" onclick="saveCarConfig()">Continuer →</button>
+                    <button class="btn-back" onclick="hideCarConfig()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Moto Configuration Modal (Page 6b) -->
+    <div class="context-modal" id="motoConfigModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 42rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">6</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">🏍️</span>
+                </div>
+
+                <h1 class="context-title">Configuration Moto</h1>
+                <p class="context-subtitle">Détails de tes trajets quotidiens</p>
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0;">
+                    <!-- Departure Time -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🌅</span>
+                            Heure de départ le matin
+                        </label>
+                        <input type="time" id="motoDepartureInput" value="07:30" onchange="motoDeparture=this.value; updateMotoPrepTime();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                        <div style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #eff6ff; border-radius: 0.5rem;">
+                            <p style="font-size: 0.875rem; color: #2563eb;">📋 Préparation dès <span id="motoPrepTime" style="font-weight: 700;">07:00</span></p>
+                        </div>
+                    </div>
+
+                    <!-- To School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #cffafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏫</span>
+                            Durée du trajet aller
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="motoToSchoolInput" value="25" min="5" max="120" onchange="motoToSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                    </div>
+
+                    <!-- Return Time from School -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #a7f3d0; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏠</span>
+                            Heure de départ de l'école
+                        </label>
+                        <input type="time" id="motoReturnInput" value="17:00" onchange="motoReturn=this.value;" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                    </div>
+
+                    <!-- From School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #fef3c7; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏠</span>
+                            Durée du trajet retour
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="motoFromSchoolInput" value="25" min="5" max="120" onchange="motoFromSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="saveMotoConfig()">Continuer →</button>
+                    <button class="btn-back" onclick="hideMotoConfig()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sleep Modal (Page 3) -->
+    <div class="context-modal" id="sleepModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 56rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-active">3</div>
+                    <div class="progress-line progress-line-inactive" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">😴</span>
+                </div>
+
+                <h1 class="context-title">Ton rythme de sommeil</h1>
+                <p class="context-subtitle">Un bon sommeil = de meilleures révisions ! Nous garantissons 8h minimum.</p>
+
+                <!-- Sleep Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Weekday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #3b82f6, #06b6d4); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">🏫</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Semaine (Lun - Ven)</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Jours de cours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="weekdayWakeupInput" value="06:00" onchange="weekdayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; color: #9ca3af; padding: 0.5rem;">↓ 8h ↓</div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <div id="weekdayBedtime" style="width: 100%; padding: 0.75rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #1d4ed8; text-align: center;">22:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Saturday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #e9d5ff; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #a855f7, #ec4899); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">📅</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Samedi</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Week-end</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="saturdayWakeupInput" value="07:00" onchange="saturdayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; color: #9ca3af; padding: 0.5rem;">↓ 8h ↓</div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <div id="saturdayBedtime" style="width: 100%; padding: 0.75rem; background: #faf5ff; border: 2px solid #d8b4fe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #7c3aed; text-align: center;">23:00</div>
+                        </div>
+                    </div>
+
+                    <!-- Sunday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #a7f3d0; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #10b981, #14b8a6); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">😴</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Dimanche</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Récupération</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="sundayWakeupInput" value="08:00" onchange="sundayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; color: #9ca3af; padding: 0.5rem;">↓ 8h ↓</div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <div id="sundayBedtime" style="width: 100%; padding: 0.75rem; background: #ecfdf5; border: 2px solid #6ee7b7; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #047857; text-align: center;">00:00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational Box -->
+                <div style="background: linear-gradient(to right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <h4 style="font-weight: 700; color: #064e3b; margin-bottom: 0.5rem;">💡 Pourquoi 8 heures ?</h4>
+                    <p style="color: #047857; font-size: 0.875rem; line-height: 1.6;">Les étudiants ont besoin de 8 à 10 heures de sommeil pour une performance cognitive optimale. Un bon sommeil améliore la mémorisation de 40% et réduit le stress de manière significative.</p>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="validateSleep()">Continuer →</button>
+                    <button class="btn-back" onclick="hideSleepPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <nav>
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="nav-logo">📚</div>
+                <span class="nav-title">Study Plan IB</span>
+            </div>
+            <button class="btn-primary" onclick="openContextModal()">Commencer</button>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-container">
+            <div class="welcome-badge animate-fade-in-up">
+                <span class="animate-wave">👋</span>
+                <span>Bienvenue, futur diplômé IB !</span>
+            </div>
+
+            <h1 class="hero-title animate-fade-in-up animation-delay-100">
+                Transformez votre façon de <span class="highlight">réviser pour l'IB</span>
+            </h1>
+
+            <p class="hero-subtitle animate-fade-in-up animation-delay-200">
+                L'outil de planification intelligent conçu spécialement pour les <span class="green">étudiants du Baccalauréat International</span>. Organisez, planifiez et réussissez.
+            </p>
+
+            <div class="hero-buttons animate-fade-in-up animation-delay-300">
+                <button class="btn-hero btn-hero-primary" onclick="openContextModal()">🚀 Créer mon planning gratuitement</button>
+                <button class="btn-hero btn-hero-secondary">En savoir plus</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="before-after" id="beforeAfter">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">✨ LA TRANSFORMATION</span>
+                <h2 class="section-title">Avant vs Après <span class="green">Study Plan IB</span></h2>
+                <p class="section-desc">Découvrez comment notre outil transforme l'expérience des étudiants IB</p>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card card-before animate-shake-subtle" id="beforeCard">
+                    <div class="card-decoration"></div>
+                    
+                    <div class="card-header">
+                        <div class="card-icon">😰</div>
+                        <div>
+                            <span class="card-label">AVANT</span>
+                            <h3 class="card-name">Le Chaos Total</h3>
+                        </div>
+                    </div>
+
+                    <ul class="card-list">
+                        <li><div class="card-list-icon">✗</div><span>Notes éparpillées partout</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Deadlines oubliées constamment</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Révisions de dernière minute</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Stress permanent et anxiété</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Résultats en dessous du potentiel</span></li>
+                    </ul>
+
+                    <div class="meter-box meter-box-clickable" onclick="increaseStress()">
+                        <div class="meter-header">
+                            <span class="meter-label">Niveau de stress</span>
+                            <span class="meter-value meter-value-red" id="stressValue">30%</span>
+                        </div>
+                        <div class="meter-bar">
+                            <div class="meter-fill meter-fill-red" id="stressFill" style="width: 30%"></div>
+                        </div>
+                        <p class="meter-hint">Cliquez pour augmenter le stress (max 90%)</p>
+                    </div>
+                </div>
+
+                <div class="card card-after" id="afterCard">
+                    <div class="card-decoration"></div>
+                    
+                    <div class="card-header">
+                        <div class="card-icon animate-glow">😌</div>
+                        <div>
+                            <span class="card-label">APRÈS</span>
+                            <h3 class="card-name">L'Harmonie Totale</h3>
+                        </div>
+                    </div>
+
+                    <ul class="card-list">
+                        <li><div class="card-list-icon">✓</div><span>Planning centralisé et clair</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Rappels automatiques intelligents</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Révisions espacées et efficaces</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Confiance et sérénité retrouvées</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Notes en constante amélioration</span></li>
+                    </ul>
+
+                    <div class="meter-box">
+                        <div class="meter-header">
+                            <span class="meter-label">Productivité</span>
+                            <span class="meter-value meter-value-green" id="prodValue">20%</span>
+                        </div>
+                        <div class="meter-bar">
+                            <div class="meter-fill meter-fill-green" id="prodFill" style="width: 20%"></div>
+                        </div>
+                        <p class="meter-hint">Niveau optimal de productivité</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="carousel-section">
+        <div class="carousel-container">
+            <div class="section-header">
+                <span class="section-badge section-badge-teal">🔄 PROCESSUS SIMPLE</span>
+                <h2 class="section-title">Comment ça <span class="green">marche</span> ?</h2>
+                <p class="section-desc">En 4 étapes simples, transformez votre façon de réviser</p>
+            </div>
+
+            <div class="carousel-wrapper">
+                <div class="carousel-slides">
+                    <div class="carousel-slide active" data-index="0">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #34d399, #059669);">
+                            📝
+                            <div class="slide-step" style="background: #10b981;">1</div>
+                        </div>
+                        <h3 class="slide-title">Créez votre profil</h3>
+                        <p class="slide-desc">Indiquez vos matières IB, votre niveau (SL/HL) et vos objectifs personnels pour une expérience sur mesure.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="1">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #2dd4bf, #0d9488);">
+                            📊
+                            <div class="slide-step" style="background: #14b8a6;">2</div>
+                        </div>
+                        <h3 class="slide-title">Planifiez intelligemment</h3>
+                        <p class="slide-desc">Notre algorithme crée un emploi du temps optimisé selon vos échéances, examens et temps disponible.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="2">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #22d3ee, #0891b2);">
+                            🎯
+                            <div class="slide-step" style="background: #06b6d4;">3</div>
+                        </div>
+                        <h3 class="slide-title">Suivez vos progrès</h3>
+                        <p class="slide-desc">Visualisez votre avancement avec des statistiques détaillées et des rappels motivants.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="3">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #10b981, #0d9488);">
+                            🏆
+                            <div class="slide-step" style="background: #059669;">4</div>
+                        </div>
+                        <h3 class="slide-title">Atteignez l'excellence</h3>
+                        <p class="slide-desc">Obtenez votre diplôme IB avec confiance grâce à une préparation structurée et efficace.</p>
+                    </div>
+                </div>
+
+                <button class="carousel-nav carousel-nav-prev" onclick="prevSlide()">←</button>
+                <button class="carousel-nav carousel-nav-next" onclick="nextSlide()">→</button>
+
+                <div class="carousel-dots">
+                    <button class="carousel-dot active" data-index="0" onclick="goToSlide(0)"></button>
+                    <button class="carousel-dot" data-index="1" onclick="goToSlide(1)"></button>
+                    <button class="carousel-dot" data-index="2" onclick="goToSlide(2)"></button>
+                    <button class="carousel-dot" data-index="3" onclick="goToSlide(3)"></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="section-header">
+            <span class="section-badge">💎 FONCTIONNALITÉS</span>
+            <h2 class="section-title">Tout ce dont vous avez <span class="green">besoin</span></h2>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-emerald">📅</div>
+                <h3 class="feature-title">Planning Intelligent</h3>
+                <p class="feature-desc">Un emploi du temps qui s'adapte à votre rythme et vos objectifs</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-teal">🔔</div>
+                <h3 class="feature-title">Rappels Personnalisés</h3>
+                <p class="feature-desc">Ne manquez plus jamais une deadline importante</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-cyan">📈</div>
+                <h3 class="feature-title">Suivi des Progrès</h3>
+                <p class="feature-desc">Visualisez votre évolution et restez motivé</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="cta-shape cta-shape-1 animate-float"></div>
+        <div class="cta-shape cta-shape-2 animate-float-reverse"></div>
+        
+        <div class="cta-container">
+            <div class="cta-box">
+                <h2 class="cta-title">Prêt à transformer vos révisions ?</h2>
+                <p class="cta-desc">Rejoignez des milliers d'étudiants IB qui ont déjà amélioré leurs résultats grâce à Study Plan IB</p>
+                <button class="btn-cta" onclick="openContextModal()">🎯 Commencer maintenant — C'est gratuit !</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-brand">
+            <div class="footer-logo">📚</div>
+            <span class="footer-title">Study Plan IB</span>
+        </div>
+        <p class="footer-desc">L'outil de planification intelligent pour les étudiants du Baccalauréat International</p>
+        <p class="footer-copy">© 2026 Study Plan IB. Tous droits réservés.</p>
+    </footer>
+
+
+    <!-- Activities Modal (Page 7) -->
+    <div class="context-modal" id="activitiesModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+        
+        <!-- School Hours Warning -->
+        <div id="schoolWarning" style="display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 100; background: #fef2f2; border: 2px solid #fecaca; color: #991b1b; padding: 1rem 1.5rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-width: 90%;">
+            <p style="font-weight: 600;">⚠️ Tu ne peux pas planifier d'activités pendant les heures de cours (8h00 - 16h35, lundi au vendredi).</p>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem;">Ces créneaux sont réservés à tes cours au lycée. Choisis un horaire en dehors des heures scolaires.</p>
+        </div>
+        
+        <div class="context-center" style="padding: 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 56rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">7</div>
+                </div>
+
+                <div class="context-icon" style="width: 4rem; height: 4rem;">
+                    <span style="font-size: 2rem;">🎯</span>
+                </div>
+
+                <h1 class="context-title" style="font-size: 1.5rem;">Tes activités extra-scolaires</h1>
+                <p class="context-subtitle" style="font-size: 0.875rem;">Sélectionne tes activités pour qu'on les intègre à ton planning</p>
+
+                <!-- Info Box -->
+                <div style="background: linear-gradient(to right, #fef3c7, #fff7ed); border: 1px solid #fcd34d; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;">
+                    <p style="color: #92400e; font-size: 0.875rem;">💡 <strong>Important :</strong> Les activités ne peuvent pas être programmées pendant les heures de cours (8h00 - 16h35, lundi au vendredi).</p>
+                </div>
+
+                <!-- Activities Grid -->
+                <div style="background: white; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 1rem;">
+                    <div id="activitiesGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;"></div>
+                    
+                    <!-- Custom Activity -->
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                        <input type="text" id="customActivityInput" placeholder="Autre activité..." style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.875rem;">
+                        <button onclick="addCustomActivity()" style="padding: 0.75rem 1rem; background: #10b981; color: white; font-weight: 600; border: none; border-radius: 0.75rem; cursor: pointer;">+ Ajouter</button>
+                    </div>
+                </div>
+
+                <!-- Selected Activities Config -->
+                <div id="activitiesConfig"></div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="goToScreenTime()">Continuer →</button>
+                    <button class="btn-back" onclick="goBackFromActivities()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen Time Modal (Page 7b) -->
+    <div class="context-modal" id="screenTimeModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 40rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 0.75rem;"></div>
+                    <div class="progress-step progress-step-active" style="animation: pulse 2s infinite;">8</div>
+                </div>
+
+                <div class="context-icon" style="width: 4rem; height: 4rem;">
+                    <span style="font-size: 2rem; animation: pulse 2s infinite;">📱</span>
+                </div>
+
+                <h1 class="context-title" style="font-size: 1.5rem;">Temps d'écran quotidien</h1>
+                <p class="context-subtitle" style="font-size: 0.875rem;">Limite ton temps sur le téléphone pour mieux te concentrer</p>
+
+                <!-- Explanatory Box -->
+                <div style="background: linear-gradient(to right, #eff6ff, #ecfeff); border: 1px solid #bfdbfe; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                        <div style="width: 2.5rem; height: 2.5rem; background: #dbeafe; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">💡</div>
+                        <div>
+                            <h4 style="font-weight: 700; color: #1e40af; margin-bottom: 0.25rem; font-size: 0.875rem;">Comment ça marche ?</h4>
+                            <p style="color: #1d4ed8; font-size: 0.75rem;">Définis combien de temps tu t'autorises sur ton téléphone chaque jour.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Days Selection -->
+                <div style="background: white; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 1rem;">
+                    <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: block; margin-bottom: 0.75rem;">Jours concernés</label>
+                    <div id="phoneDaysGrid" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;"></div>
+                </div>
+
+                <!-- Same Duration Toggle -->
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" checked onchange="samePhoneDuration = this.checked; renderScreenTime();" style="width: 1.25rem; height: 1.25rem;">
+                        <span style="font-size: 0.875rem; color: #4b5563;">Même durée pour tous les jours</span>
+                    </label>
+                </div>
+
+                <!-- Duration Selection -->
+                <div id="durationSelection" style="background: white; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 1rem;"></div>
+
+                <!-- Weekly Summary -->
+                <div id="weeklySummary" style="background: linear-gradient(to right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;"></div>
+
+                <!-- Tips -->
+                <div style="background: #f9fafb; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;">
+                    <h4 style="font-weight: 700; color: #1f2937; margin-bottom: 0.5rem; font-size: 0.875rem;">💡 Conseils pratiques</h4>
+                    <ul style="font-size: 0.75rem; color: #4b5563; list-style: none; padding: 0; margin: 0;">
+                        <li style="margin-bottom: 0.25rem;">✓ Désactive les notifications non essentielles</li>
+                        <li style="margin-bottom: 0.25rem;">✓ Utilise le mode 'Ne pas déranger' pendant les révisions</li>
+                        <li style="margin-bottom: 0.25rem;">✓ Place ton téléphone dans une autre pièce quand tu étudies</li>
+                        <li>✓ Fixe-toi des créneaux 'téléphone' dans ta journée</li>
+                    </ul>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="generatePlanning()" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <span>Générer mon planning</span>
+                        <span style="font-size: 1.25rem;">🚀</span>
+                    </button>
+                    <button class="btn-back" onclick="goBackToActivities()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Planning Modal (Page 8) -->
+    <div class="context-modal" id="planningModal">
+        <!-- Sticky Header -->
+        <header style="position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 1px solid #f3f4f6;">
+            <div style="max-width: 56rem; margin: 0 auto; padding: 0.75rem 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 2.5rem; height: 2.5rem; background: linear-gradient(to bottom right, #10b981, #14b8a6); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);"><span style="font-size: 1.25rem;">📚</span></div>
+                        <div>
+                            <span style="font-size: 1.125rem; font-weight: 700; background: linear-gradient(to right, #059669, #0d9488); -webkit-background-clip: text; background-clip: text; color: transparent;">Study Plan IB</span>
+                            <p id="greetingText" style="font-size: 0.875rem; color: #6b7280;">Bonjour !</p>
+                        </div>
+                    </div>
+                    <button onclick="openSideMenu()" style="width:2.5rem;height:2.5rem;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.28rem;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='linear-gradient(135deg,#ecfdf5,#f0fdf4)'">
+                        <span style="display:block;width:1.1rem;height:2px;background:#059669;border-radius:2px;"></span>
+                        <span style="display:block;width:1.1rem;height:2px;background:#059669;border-radius:2px;"></span>
+                        <span style="display:block;width:0.75rem;height:2px;background:#059669;border-radius:2px;align-self:flex-start;margin-left:0.175rem;"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ═══════════ SIDEBAR MENU ═══════════ -->
+        <div id="sideMenuOverlay" onclick="closeSideMenu()" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);"></div>
+        <div id="sideMenu" style="position:fixed;top:0;right:-320px;width:300px;height:100%;z-index:91;background:white;box-shadow:-8px 0 32px rgba(0,0,0,0.15);transition:right 0.35s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Menu Header -->
+            <div style="background:linear-gradient(135deg,#059669,#10b981);padding:1.5rem 1.25rem 1.25rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <div style="width:2.5rem;height:2.5rem;background:rgba(255,255,255,0.2);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">📚</div>
+                        <div><p style="font-weight:800;color:white;font-size:1rem;">Study Plan IB</p><p style="font-size:0.75rem;color:rgba(255,255,255,0.8);">DP1 · Enko Ouaga</p></div>
+                    </div>
+                    <button onclick="closeSideMenu()" style="width:2rem;height:2rem;background:rgba(255,255,255,0.2);border:none;border-radius:50%;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+                <div id="menuUserGreeting" style="background:rgba(255,255,255,0.15);border-radius:0.75rem;padding:0.75rem;font-size:0.875rem;color:rgba(255,255,255,0.95);"></div>
+            </div>
+            <!-- Menu Items -->
+            <div style="flex:1;overflow-y:auto;padding:1rem 0.75rem;">
+                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.5rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Navigation</p>
+                <button onclick="navigateTo('planning');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);cursor:pointer;margin-bottom:0.5rem;text-align:left;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">📅</span>
+                    <div><p style="font-weight:700;color:#064e3b;font-size:0.9rem;">Mon Planning</p><p style="font-size:0.75rem;color:#6b7280;">Emploi du temps hebdomadaire</p></div>
+                </button>
+                <button onclick="navigateTo('soutien');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">💚</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Soutien & Humeur</p><p style="font-size:0.75rem;color:#6b7280;">Messages d'encouragement</p></div>
+                </button>
+                <button onclick="navigateTo('exercices');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">✏️</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Mes Exercices</p><p style="font-size:0.75rem;color:#6b7280;">Upload & planifie tes devoirs</p></div>
+                </button>
+
+                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>
+                <div style="background:#f9fafb;border-radius:0.875rem;padding:0.875rem;border:1.5px solid #f3f4f6;">
+                    <div id="menuStatsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;"></div>
+                </div>
+            </div>
+            <div style="padding:0.75rem;border-top:1px solid #f3f4f6;">
+                <button onclick="goBackFromPlanning();closeSideMenu();" style="width:100%;padding:0.75rem;background:#f3f4f6;color:#6b7280;font-weight:600;border:none;border-radius:0.75rem;cursor:pointer;font-size:0.875rem;">⚙️ Modifier mes paramètres</button>
+            </div>
+        </div>
+
+        <style>
+        .menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
+        /* ─── PAGE PANELS ─── */
+        .app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;animation:slideInRight 0.3s ease-out; }
+        .app-panel.active { display:block; }
+        @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+        /* ─── MOOD BUTTONS ─── */
+        .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
+        .mood-btn:hover { transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.12); }
+        .mood-btn.selected { border-color:#10b981;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);transform:scale(1.04); }
+        /* ─── EXERCISE CARDS ─── */
+        .exo-card { background:white;border:2px solid #e5e7eb;border-radius:1rem;padding:1rem;transition:all 0.2s;position:relative;overflow:hidden; }
+        .exo-card::before { content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,#10b981,#059669); }
+        .exo-card:hover { border-color:#a7f3d0;box-shadow:0 8px 24px rgba(16,185,129,0.1); }
+        /* ─── TIME SLOT CHIPS ─── */
+        .slot-chip { padding:0.5rem 0.875rem;border-radius:9999px;border:2px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:600;font-size:0.8rem;cursor:pointer;transition:all 0.2s; }
+        .slot-chip:hover,.slot-chip.selected { background:#10b981;color:white;border-color:#10b981;transform:scale(1.04); }
+        .slot-chip.conflict { border-color:#fca5a5;background:#fef2f2;color:#dc2626; }
+        /* ─── ENCOURAGEMENT CARD ─── */
+        .encour-card { border-radius:1.25rem;padding:1.5rem;margin-bottom:1rem;animation:fadeInUp 0.4s ease-out; }
+        /* ─── DRAG AREA ─── */
+        .drag-area { border:2.5px dashed #a7f3d0;border-radius:1rem;padding:2rem;text-align:center;transition:all 0.3s;cursor:pointer;background:linear-gradient(135deg,#f0fdf4,#ecfdf5); }
+        .drag-area.dragging { border-color:#10b981;background:#d1fae5;transform:scale(1.01); }
+        /* ─── PROGRESS BAR ─── */
+        .prog-bar { height:8px;background:#e5e7eb;border-radius:9999px;overflow:hidden; }
+        .prog-bar-fill { height:100%;background:linear-gradient(to right,#10b981,#059669);border-radius:9999px;transition:width 0.6s ease; }
+        </style>
+
+        <!-- Next Activity Banner -->
+        <div id="nextActivityBanner" style="background: linear-gradient(to right, #10b981, #14b8a6); color: white; padding: 0.75rem 1rem; display: none;">
+        </div>
+
+        <!-- Day Navigation -->
+        <div style="position: sticky; top: 4rem; z-index: 10; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #f3f4f6; padding: 0.75rem 1rem;">
+            <div style="max-width: 56rem; margin: 0 auto;">
+                <div id="dayNavigation" style="display: flex; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning Content -->
+        <div style="max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem;">
+            <div id="eventsContainer" style="margin-bottom: 1.5rem;">
+            </div>
+
+            <!-- Add to Planning Button -->
+            <button onclick="openAddModal()" style="width: 100%; padding: 1rem; background: linear-gradient(to right, #10b981, #14b8a6); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 2rem;">
+                <span style="font-size: 1.25rem;">+</span>
+                <span>Ajouter au planning</span>
+            </button>
+
+            <!-- Color Legend -->
+            <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="font-weight: 700; color: #111827; margin-bottom: 1rem;">📊 Légende des couleurs</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #818cf8; background: #eef2ff;"><span style="font-size: 0.875rem; color: #374151;">😴 Sommeil</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #60a5fa; background: #eff6ff;"><span style="font-size: 0.875rem; color: #374151;">🏫 Cours</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #ef4444; background: #fef2f2;"><span style="font-size: 0.875rem; color: #374151;">🔴 Révision critique (≤2/7)</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f59e0b; background: #fffbeb;"><span style="font-size: 0.875rem; color: #374151;">🟠 Révision à améliorer (≤4/7)</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #fb923c; background: #fff7ed;"><span style="font-size: 0.875rem; color: #374151;">📚 Révision normale</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #a78bfa; background: #faf5ff;"><span style="font-size: 0.875rem; color: #374151;">🎯 Activités</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #22d3ee; background: #ecfeff;"><span style="font-size: 0.875rem; color: #374151;">🚗 Transport</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #9ca3af; background: #f9fafb;"><span style="font-size: 0.875rem; color: #374151;">🍽️ Repas</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f472b6; background: #fdf2f8;"><span style="font-size: 0.875rem; color: #374151;">📱 Téléphone</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #4ade80; background: #f0fdf4;"><span style="font-size: 0.875rem; color: #374151;">🎮 Temps libre</span></div>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">🎯</div>
+                    <p id="statScore" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">40</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Objectif IB</p>
+                </div>
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">📚</div>
+                    <p id="statSubjects" style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">6</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Matières</p>
+                </div>
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">🎭</div>
+                    <p id="statActivities" style="font-size: 1.5rem; font-weight: 700; color: #a855f7;">0</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Activités</p>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div style="text-align: center;">
+                <button onclick="goBackFromPlanning()" style="color: #6b7280; font-weight: 500; background: none; border: none; cursor: pointer;">← Modifier les paramètres</button>
+            </div>
+        </div>
+
+        <!-- Add Modal — Étape 1 : Choix du type -->
+        <div id="addEventModal" style="display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;">
+            <div style="background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); max-width: 30rem; width: 100%; padding: 1.75rem; animation: fadeInUp 0.25s ease-out;">
+                <!-- Header -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827;">Ajouter au planning</h3>
+                        <p id="addModalDayLabel" style="font-size: 0.875rem; color: #6b7280; margin-top: 0.2rem;"></p>
+                    </div>
+                    <button onclick="closeAddModal()" style="width: 2rem; height: 2rem; background: #f3f4f6; border: none; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #6b7280; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+
+                <!-- Étape 1 : Choix du type -->
+                <div id="addStep1">
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Que veux-tu ajouter ?</p>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.875rem; margin-bottom: 1rem;">
+                        <button onclick="selectAddType('matiere')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 2px solid #fed7aa; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📚</span>
+                            <span style="font-size: 0.9rem; font-weight: 700; color: #92400e; display: block;">Matière</span>
+                            <span style="font-size: 0.75rem; color: #b45309;">Révisions / Exercices</span>
+                        </button>
+                        <button onclick="selectAddType('activite')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #faf5ff, #f0fdf4); border: 2px solid #d8b4fe; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🎯</span>
+                            <span style="font-size: 0.9rem; font-weight: 700; color: #6b21a8; display: block;">Activité</span>
+                            <span style="font-size: 0.75rem; color: #7c3aed;">Sport / Loisir / Autre</span>
+                        </button>
+                    </div>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.75rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+
+                <!-- Étape 2 : Config Matière -->
+                <div id="addStep2Matiere" style="display: none;">
+                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Choix de la matière</p>
+                    <div id="subjectPickerGrid" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 220px; overflow-y: auto;"></div>
+
+                    <div id="studyTypeRow" style="display: none; margin-bottom: 1rem;">
+                        <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Type de session</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                            <button id="btnRevision" onclick="setStudyType('revision')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #fb923c; background: #fff7ed; color: #c2410c; font-weight: 600; font-size: 0.8rem; cursor: pointer;">📖 Révision</button>
+                            <button id="btnExercices" onclick="setStudyType('exercices')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #e5e7eb; background: white; color: #374151; font-weight: 600; font-size: 0.8rem; cursor: pointer;">✏️ Exercices</button>
+                        </div>
+                    </div>
+
+                    <div id="studyTimeRow" style="display: none; margin-bottom: 1rem;">
+                        <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Horaires</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div>
+                                <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Début</label>
+                                <input type="time" id="studyStartInput" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Fin</label>
+                                <input type="time" id="studyEndInput" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                            </div>
+                        </div>
+                        <p id="studyTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.4rem; display: none;"></p>
+                    </div>
+
+                    <button id="btnConfirmStudy" onclick="confirmAddStudy()" style="display: none; width: 100%; padding: 0.875rem; background: linear-gradient(to right, #f59e0b, #d97706); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+
+                <!-- Étape 2 : Config Activité -->
+                <div id="addStep2Activite" style="display: none;">
+                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Nom de l'activité</p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                        <button onclick="pickActivityPreset('Football','⚽')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⚽ Football</button>
+                        <button onclick="pickActivityPreset('Basketball','🏀')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏀 Basketball</button>
+                        <button onclick="pickActivityPreset('Natation','🏊')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏊 Natation</button>
+                        <button onclick="pickActivityPreset('Danse','💃')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">💃 Danse</button>
+                        <button onclick="pickActivityPreset('Gym','🏋️')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏋️ Gym</button>
+                        <button onclick="pickActivityPreset('Église','⛪')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⛪ Église</button>
+                        <button onclick="pickActivityPreset('Mosquée','🕌')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🕌 Mosquée</button>
+                        <button onclick="pickActivityPreset('Arts','🎨')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🎨 Arts</button>
+                        <button onclick="pickActivityPreset('Bénévolat','🤝')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🤝 Bénévolat</button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="activityNameInput" placeholder="Ou écris ton activité..." style="flex: 1; padding: 0.625rem 0.875rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem;">
+                        <div id="activityIconPreview" style="width: 2.5rem; height: 2.5rem; background: #f0fdf4; border: 2px solid #a7f3d0; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">✨</div>
+                    </div>
+
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Horaires</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Début</label>
+                            <input type="time" id="activityStartInput" value="17:00" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Fin</label>
+                            <input type="time" id="activityEndInput" value="18:00" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                        </div>
+                    </div>
+                    <p id="activityTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></p>
+
+                    <button onclick="confirmAddActivity()" style="width: 100%; padding: 0.875rem; background: linear-gradient(to right, #8b5cf6, #6d28d9); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ EDIT MODAL — avec +/- durée et réajustement ═══════ -->
+        <div id="editEventModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:1rem;">
+            <div style="background:white;border-radius:1.25rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);max-width:28rem;width:100%;padding:1.5rem;animation:fadeInUp 0.2s ease-out;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                    <h3 style="font-size:1.125rem;font-weight:700;color:#111827;" id="editModalTitle">Modifier l'activité</h3>
+                    <button onclick="closeEditModal()" style="width:2rem;height:2rem;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;color:#6b7280;font-size:0.875rem;">✕</button>
+                </div>
+                <!-- Titre -->
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Nom de l'activité</label>
+                    <input type="text" id="editEventTitle" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                </div>
+                <!-- Contrôle durée -->
+                <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:1rem;margin-bottom:1rem;">
+                    <p style="font-size:0.8rem;font-weight:600;color:#047857;margin-bottom:0.75rem;">⏱️ Durée de l'activité</p>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;">
+                        <button onclick="adjustEditDuration(-15)" style="width:2.5rem;height:2.5rem;background:white;border:2px solid #a7f3d0;border-radius:0.75rem;font-size:1.125rem;font-weight:700;color:#059669;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='white'">−</button>
+                        <div style="text-align:center;min-width:5rem;">
+                            <span id="editDurationDisplay" style="font-size:1.5rem;font-weight:800;color:#059669;">60 min</span>
+                        </div>
+                        <button onclick="adjustEditDuration(15)" style="width:2.5rem;height:2.5rem;background:white;border:2px solid #a7f3d0;border-radius:0.75rem;font-size:1.125rem;font-weight:700;color:#059669;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='white'">+</button>
+                    </div>
+                    <p style="font-size:0.75rem;color:#6b7280;text-align:center;margin-top:0.5rem;">Par pas de 15 minutes</p>
+                </div>
+                <!-- Horaires précis -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                    <div>
+                        <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Début</label>
+                        <input type="time" id="editEventStart" onchange="syncEditEndFromStart()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Fin</label>
+                        <input type="time" id="editEventEnd" onchange="syncEditDurationFromTimes()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    </div>
+                </div>
+                <!-- Cascade info -->
+                <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:0.75rem;padding:0.75rem;margin-bottom:1rem;font-size:0.8rem;color:#92400e;">
+                    🔗 <strong>Réajustement automatique :</strong> les activités suivantes seront décalées en conséquence.
+                </div>
+                <p id="editTimeError" style="color:#ef4444;font-size:0.8rem;margin-bottom:0.75rem;display:none;"></p>
+                <div style="display:flex;flex-direction:column;gap:0.625rem;">
+                    <button onclick="saveEditedEventCascade()" style="width:100%;padding:0.875rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:700;border-radius:0.875rem;border:none;cursor:pointer;font-size:0.95rem;">✅ Enregistrer & réajuster</button>
+                    <button onclick="deleteEditedEvent()" style="width:100%;padding:0.75rem;background:#fef2f2;color:#dc2626;font-weight:600;border-radius:0.875rem;border:none;cursor:pointer;">🗑️ Supprimer</button>
+                    <button onclick="closeEditModal()" style="width:100%;padding:0.625rem;background:#f3f4f6;color:#6b7280;font-weight:500;border-radius:0.875rem;border:none;cursor:pointer;">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div><!-- fin planningModal -->
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE SOUTIEN & HUMEUR
+    ═══════════════════════════════════════════════════════ -->
+    <div class="app-panel" id="panelSoutien">
+        <div style="max-width:480px;margin:0 auto;padding:0 1rem 4rem;">
+            <!-- Header -->
+            <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                    <div><h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Soutien & Humeur</h2><p style="font-size:0.75rem;color:#6b7280;">Comment tu te sens aujourd'hui ?</p></div>
+                </div>
+            </div>
+
+            <!-- Date + nom -->
+            <div style="background:linear-gradient(135deg,#059669,#10b981,#34d399);border-radius:1.25rem;padding:1.5rem;margin-bottom:1.5rem;color:white;position:relative;overflow:hidden;">
+                <div style="position:absolute;top:-20px;right:-20px;width:100px;height:100px;background:rgba(255,255,255,0.1);border-radius:50%;"></div>
+                <div style="position:absolute;bottom:-30px;left:50%;width:80px;height:80px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
+                <p style="font-size:0.85rem;opacity:0.85;margin-bottom:0.25rem;" id="soutienDate"></p>
+                <h3 style="font-size:1.4rem;font-weight:800;margin-bottom:0.25rem;" id="soutienGreet"></h3>
+                <p style="font-size:0.9rem;opacity:0.9;">Prends soin de toi autant que de tes révisions 💚</p>
+            </div>
+
+            <!-- Choix humeur -->
+            <div style="margin-bottom:1.5rem;">
+                <h3 style="font-size:1rem;font-weight:700;color:#111827;margin-bottom:1rem;text-align:center;">Comment tu te sens en ce moment ?</h3>
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.625rem;" id="moodGrid">
+                    <button class="mood-btn" onclick="selectMood('motive')" data-mood="motive">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">🔥</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#059669;">Super motivé</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('bien')" data-mood="bien">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😊</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#374151;">Je vais bien</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('fatigue')" data-mood="fatigue">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😴</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#d97706;">Fatigué(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('stresse')" data-mood="stresse">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😰</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#dc2626;">Stressé(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('mauvaisnote')" data-mood="mauvaisnote">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">📉</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#dc2626;">Mauvaise note</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('perdu')" data-mood="perdu">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😕</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#6b7280;">Perdu(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('anxieux')" data-mood="anxieux">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😟</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#7c3aed;">Anxieux(se)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('decourage')" data-mood="decourage">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😞</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#6b7280;">Découragé(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('depasse')" data-mood="depasse">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">🤯</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#dc2626;">Dépassé(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('fier')" data-mood="fier">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">🏆</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#059669;">Fier/Fière</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('ennuye')" data-mood="ennuye">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😑</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#6b7280;">Ennuyé(e)</div>
+                    </button>
+                    <button class="mood-btn" onclick="selectMood('neutre')" data-mood="neutre">
+                        <div style="font-size:1.75rem;margin-bottom:0.25rem;">😐</div>
+                        <div style="font-size:0.7rem;font-weight:700;color:#374151;">Neutre</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Message d'encouragement -->
+            <div id="encouragementSection" style="display:none;">
+                <div id="encouragementCard" class="encour-card"></div>
+
+                <!-- Tips personnalisés -->
+                <div id="moodTips" style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <h4 style="font-weight:700;color:#111827;margin-bottom:0.75rem;font-size:0.9rem;">💡 Conseils pour toi</h4>
+                    <div id="moodTipsList" style="display:flex;flex-direction:column;gap:0.625rem;"></div>
+                </div>
+
+                <!-- Quote du jour -->
+                <div id="quoteCard" style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;text-align:center;">
+                    <p style="font-size:1.05rem;font-weight:600;color:#064e3b;line-height:1.6;font-style:italic;" id="quoteText"></p>
+                    <p style="font-size:0.75rem;color:#6b7280;margin-top:0.5rem;" id="quoteAuthor"></p>
+                </div>
+
+                <!-- Action boutons -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
+                    <button onclick="selectMood(null);document.getElementById('encouragementSection').style.display='none';" style="padding:0.875rem;background:#f3f4f6;color:#374151;font-weight:600;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.85rem;">🔄 Changer d'humeur</button>
+                    <button onclick="navigateTo('planning')" style="padding:0.875rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:700;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.85rem;">📅 Mon planning</button>
+                </div>
+
+                <!-- Streak -->
+                <div style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fcd34d;border-radius:1rem;padding:1.25rem;text-align:center;">
+                    <div style="font-size:1.75rem;margin-bottom:0.25rem;">🔥</div>
+                    <p style="font-weight:800;color:#92400e;font-size:1.1rem;" id="streakCount">1 jour</p>
+                    <p style="font-size:0.8rem;color:#b45309;">de connexion consécutive — continue comme ça !</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         PAGE EXERCICES
+    ═══════════════════════════════════════════════════════ -->
+    <div class="app-panel" id="panelExercices">
+        <div style="max-width:520px;margin:0 auto;padding:0 1rem 5rem;">
+            <!-- Header -->
+            <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                        <div><h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Mes Exercices</h2><p style="font-size:0.75rem;color:#6b7280;">Planifie intelligemment tes devoirs</p></div>
+                    </div>
+                    <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.75rem;padding:0.375rem 0.75rem;">
+                        <span id="exoCountBadge" style="font-size:0.8rem;font-weight:700;color:#059669;">0 exercice</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets -->
+            <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1.5rem;">
+                <button id="tabAjouter" onclick="switchExoTab('ajouter')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:white;color:#059669;box-shadow:0 1px 3px rgba(0,0,0,0.1);">➕ Ajouter</button>
+                <button id="tabListe" onclick="switchExoTab('liste')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📋 Ma liste</button>
+                <button id="tabPlanifier" onclick="switchExoTab('planifier')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📅 Planifier</button>
+            </div>
+
+            <!-- Tab: Ajouter -->
+            <div id="tabContentAjouter">
+                <!-- Sélection matière -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📚 Matière concernée</label>
+                    <div id="exoSubjectGrid" style="display:flex;flex-wrap:wrap;gap:0.5rem;"></div>
+                </div>
+
+                <!-- Type d'exercice -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📝 Ajoute ton exercice</label>
+                    <!-- Zone drag & drop -->
+                    <div id="dragArea" class="drag-area" onclick="document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" style="margin-bottom:0.875rem;">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;">📂</div>
+                        <p style="font-weight:700;color:#059669;font-size:0.9rem;">Glisse ton fichier ici</p>
+                        <p style="font-size:0.75rem;color:#6b7280;margin-top:0.25rem;">PDF, image, Word — ou clique pour choisir</p>
+                        <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
+                    </div>
+                    <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;display:flex;align-items:center;gap:0.5rem;"></div>
+
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
+                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                        <span style="font-size:0.75rem;color:#9ca3af;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
+                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                    </div>
+                    <textarea id="exoTextInput" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;outline:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                </div>
+
+                <!-- Estimation temps + difficulté -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">⏰ Durée estimée</label>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.75rem;" id="durationPresets">
+                        <button onclick="setExoDuration(30)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">30 min</button>
+                        <button onclick="setExoDuration(45)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">45 min</button>
+                        <button onclick="setExoDuration(60)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #10b981;background:#ecfdf5;font-weight:700;font-size:0.8rem;cursor:pointer;color:#059669;transition:all 0.2s;">1h</button>
+                        <button onclick="setExoDuration(90)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">1h30</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <input type="range" id="exoDurationSlider" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)" style="flex:1;accent-color:#10b981;">
+                        <span id="exoDurationLabel" style="font-weight:800;color:#059669;font-size:1rem;min-width:3.5rem;text-align:right;">60 min</span>
+                    </div>
+                </div>
+
+                <!-- Deadline -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📆 Date limite (deadline)</label>
+                    <input type="date" id="exoDeadline" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                </div>
+
+                <button onclick="addExercice()" style="width:100%;padding:1rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:800;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.95rem;box-shadow:0 8px 20px rgba(16,185,129,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    ➕ Ajouter cet exercice
+                </button>
+            </div>
+
+            <!-- Tab: Liste -->
+            <div id="tabContentListe" style="display:none;">
+                <div id="exoListContainer">
+                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
+                        <p style="font-weight:600;">Aucun exercice pour l'instant</p>
+                        <p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l'onglet ➕</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Planifier -->
+            <div id="tabContentPlanifier" style="display:none;">
+                <div id="planifierContent">
+                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">📅</div>
+                        <p style="font-weight:600;">Ajoute d'abord des exercices</p>
+                        <p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l'onglet ➕ pour commencer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="index_v1.js"></script>
+    <script src="index_v2.js"></script>
+   </body>
+</html>
