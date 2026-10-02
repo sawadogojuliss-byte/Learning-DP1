@@ -106,7 +106,12 @@ def start_tunnel():
             break
     if not url:
         raise RuntimeError(pathlib.Path("/tmp/cf.log").read_text(encoding="utf-8", errors="replace")[-800:])
-    ok, meta = verify(url + "/")
+    ok, meta = False, ""
+    for _ in range(8):
+        ok, meta = verify(url + "/")
+        if ok:
+            break
+        time.sleep(3)
     return url + "/", ok, meta
 
 
@@ -123,9 +128,8 @@ def main():
     try:
         tunnel, ok, meta = start_tunnel()
         notes.append(f"tunnel {tunnel} ok={ok} {meta}")
-        if ok:
-            url = tunnel
-            keep = True
+        url = tunnel
+        keep = True
     except Exception as exc:
         notes.append("tunnel error " + str(exc))
     summary = (url or "aucun") + "\n\n" + "\n".join(notes)
