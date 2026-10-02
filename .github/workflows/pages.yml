@@ -1,4 +1,4 @@
-name: Verifier le lien public
+name: Publier le lien public
 
 on:
   push:
@@ -12,54 +12,74 @@ permissions:
   checks: write
 
 jobs:
-  lien:
+  publier:
     runs-on: ubuntu-latest
     steps:
-      - name: Trouver un lien qui affiche le site
+      - uses: actions/checkout@v4
+
+      - name: Construire et envoyer le site
         env:
-          SHA: ${{ github.sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
         run: |
-          sha="${{ github.sha }}"
-          python3 - << PY
-          import json, os, subprocess
-          sha = os.environ["SHA"]
-          candidates = [
-            f"https://cdn.statically.io/gh/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
-            f"https://media.githubusercontent.com/media/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
-            f"https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
-            f"https://raw.githack.com/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
-            f"https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@{sha}/index.html",
-          ]
-          lines = []
-          chosen = ""
-          for url in candidates:
-              proc = subprocess.run(
-                  ["curl", "-sL", "--max-time", "40", "-o", "/tmp/body.html", "-w", "%{http_code} %{content_type}", url],
-                  capture_output=True, text=True)
+          python3 tools/bundle-site.py
+          python3 - << 'PY'
+          import json, os, subprocess, pathlib
+          site = pathlib.Path("dist/study-plan.html")
+          attempts = []
+
+          def curl(args):
+              return subprocess.run(args, capture_output=True, text=True)
+
+          def verify(url):
+              proc = curl(["curl", "-sL", "--max-time", "40", "-D", "/tmp/headers.txt", "-o", "/tmp/got.html", "-w", "%{http_code} %{content_type}", url])
               meta = (proc.stdout or "").strip()
-              body = open("/tmp/body.html", encoding="utf-8", errors="replace").read(180)
-              html = "Study Plan IB" in body
-              lines.append(f"- {meta} html={html} {url}")
-              code, _, ctype = (meta + "  ").partition(" ")
-              if not chosen and code == "200" and "text/html" in ctype and html:
+              headers = pathlib.Path("/tmp/headers.txt").read_text(encoding="utf-8", errors="replace").lower()
+              body = pathlib.Path("/tmp/got.html").read_text(encoding="utf-8", errors="replace")
+              ok = (
+                  meta.startswith("200")
+                  and "text/html" in meta
+                  and "studyplan-public-bundle" in body
+                  and "content-disposition: attachment" not in headers
+              )
+              return ok, meta
+
+          uploads = [
+              ["curl", "-sS", "--max-time", "90", "-F", "reqtype=fileupload", "-F", "fileToUpload=@dist/study-plan.html;type=text/html;filename=study-plan.html", "https://catbox.moe/user/api.php"],
+              ["curl", "-sS", "--max-time", "90", "-F", "file=@dist/study-plan.html;type=text/html", "https://0x0.st"],
+              ["curl", "-sS", "--max-time", "90", "-F", "reqtype=fileupload", "-F", "time=72h", "-F", "fileToUpload=@dist/study-plan.html;type=text/html;filename=study-plan.html", "https://litterbox.catbox.moe/resources/internals/api.php"],
+          ]
+          chosen = ""
+          for cmd in uploads:
+              proc = curl(cmd)
+              url = (proc.stdout or "").strip().splitlines()[-1].strip() if proc.stdout else ""
+              err = (proc.stderr or "").strip()[:300]
+              ok, meta = (False, "")
+              if url.startswith("http"):
+                  ok, meta = verify(url)
+              attempts.append(f"- {url or '(vide)'} ok={ok} {meta} err={err}")
+              print(attempts[-1])
+              if ok and not chosen:
                   chosen = url
-          summary = (chosen or "aucun") + "\n\n" + "\n".join(lines)
-          open("/tmp/check.json","w").write(json.dumps({
-            "name": "lien public",
-            "head_sha": sha,
-            "status": "completed",
-            "conclusion": "success" if chosen else "failure",
-            "details_url": chosen or candidates[0],
-            "output": {"title": "Lien a envoyer", "summary": summary[:60000]}
-          }))
-          open("/tmp/chosen.txt","w").write(chosen)
-          print(summary)
+
+          summary = (chosen or "aucun lien") + "\n\n" + "\n".join(attempts)
+          pathlib.Path("/tmp/chosen.txt").write_text(chosen, encoding="utf-8")
+          pathlib.Path("/tmp/check.json").write_text(json.dumps({
+              "name": "lien public",
+              "head_sha": os.environ["SHA"],
+              "status": "completed",
+              "conclusion": "success" if chosen else "failure",
+              "details_url": chosen or "https://github.com/sawadogojuliss-byte/Learning-DP1",
+              "output": {"title": "Lien a envoyer", "summary": summary[:60000]},
+          }), encoding="utf-8")
+          print("CHOSEN", chosen)
+          if not chosen:
+              raise SystemExit(1)
           PY
           chosen=$(cat /tmp/chosen.txt)
-          if [ -n "$chosen" ]; then
-            gh api --method POST "repos/${{ github.repository }}/statuses/${sha}" \
-              -f state=success -f context="lien public" \
-              -f description="Lien a envoyer aux amis" -f target_url="$chosen"
-          fi
+          gh api --method POST "repos/${{ github.repository }}/statuses/${SHA}" \
+            -f state=success \
+            -f context="lien public" \
+            -f description="Lien a envoyer aux amis" \
+            -f target_url="$chosen"
           gh api --method POST "repos/${{ github.repository }}/check-runs" --input /tmp/check.json
