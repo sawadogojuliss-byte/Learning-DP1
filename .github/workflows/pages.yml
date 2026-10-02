@@ -10,6 +10,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  statuses: write
 
 concurrency:
   group: pages
@@ -25,6 +26,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Activer GitHub Pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          gh api --method POST "repos/${{ github.repository }}/pages" -f build_type=workflow
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            gh api "repos/${{ github.repository }}/pages"
+          fi
+
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
@@ -33,3 +46,44 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Noter le lien public
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          url="${{ steps.deployment.outputs.page_url }}"
+          if [ -z "$url" ]; then url="https://sawadogojuliss-byte.github.io/Learning-DP1/"; fi
+          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -f state=success \
+            -f context="site public" \
+            -f description="Lien a envoyer aux amis" \
+            -f target_url="$url"
+
+  lien-cdn:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verifier un lien sans Pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          sha="${{ github.sha }}"
+          js="https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@${sha}/index.html"
+          ghack="https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/${sha}/index.html"
+          js_code=$(curl -s -o /tmp/js.html -w "%{http_code}" --max-time 40 "$js" || echo 000)
+          gh_code=$(curl -s -o /tmp/gh.html -w "%{http_code}" --max-time 40 "$ghack" || echo 000)
+          if [ "$js_code" = "200" ]; then
+            url="$js"
+            desc="jsDelivr ${js_code}"
+          elif [ "$gh_code" = "200" ]; then
+            url="$ghack"
+            desc="githack ${gh_code}"
+          else
+            url="$js"
+            desc="js ${js_code} githack ${gh_code}"
+          fi
+          gh api --method POST "repos/${{ github.repository }}/statuses/${sha}" \
+            -f state=success \
+            -f context="lien cdn" \
+            -f description="$desc" \
+            -f target_url="$url"
