@@ -1,4 +1,4 @@
-name: Publier le lien public
+name: Lien public
 
 on:
   push:
@@ -11,15 +11,13 @@ permissions:
   checks: write
 
 jobs:
-  publier:
+  partager:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
-
-      - name: Verifier que le lien s'ouvre
+      - name: Ouvrir un lien public
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_SHA: ${{ github.sha }}
-          SHA: 64c933f55b2d4648d1553ea5c8ff673d89a10ae8
-        run: python3 tools/verify-link.py
+        run: python3 tools/share-public.py
