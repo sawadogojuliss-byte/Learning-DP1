@@ -1,4 +1,4 @@
-name: Publier le site
+name: Verifier le lien public
 
 on:
   push:
@@ -8,125 +8,58 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
   statuses: write
   checks: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  lien:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Activer GitHub Pages
+      - name: Trouver un lien qui affiche le site
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set +e
-          gh api --method POST "repos/${{ github.repository }}/pages" -f build_type=workflow > /tmp/pages-post.json 2> /tmp/pages-post.err
-          post=$?
-          gh api "repos/${{ github.repository }}/pages" > /tmp/pages-get.json 2> /tmp/pages-get.err
-          set -e
-          python3 - << 'PY'
-          import json
-          def read(path):
-              try:
-                  return open(path, encoding="utf-8", errors="replace").read()[:1500]
-              except FileNotFoundError:
-                  return ""
-          summary = "POST\n" + read("/tmp/pages-post.json") + "\n" + read("/tmp/pages-post.err") + "\nGET\n" + read("/tmp/pages-get.json") + "\n" + read("/tmp/pages-get.err")
-          open("/tmp/pages-check.json","w").write(json.dumps({
-            "name": "pages api",
-            "head_sha": "${{ github.sha }}",
-            "status": "completed",
-            "conclusion": "neutral",
-            "output": {"title": "Reponse Pages", "summary": summary or "vide"}
-          }))
-          PY
-          gh api --method POST "repos/${{ github.repository }}/check-runs" --input /tmp/pages-check.json || true
-          test "$post" -eq 0 || test -s /tmp/pages-get.json
-
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: .
-
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-      - name: Noter le lien public
-        if: always()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          url="${{ steps.deployment.outputs.page_url }}"
-          if [ -z "$url" ]; then url="https://sawadogojuliss-byte.github.io/Learning-DP1/"; fi
-          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            -f state=success \
-            -f context="site public" \
-            -f description="Lien a envoyer aux amis" \
-            -f target_url="$url"
-
-  lien-cdn:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Verifier un lien sans Pages
-        env:
+          SHA: ${{ github.sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           sha="${{ github.sha }}"
-          report=""
-          url=""
-          for candidate in \
-            "https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/${sha}/index.html" \
-            "https://cdn.statically.io/gh/sawadogojuliss-byte/Learning-DP1/${sha}/index.html" \
-            "https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@${sha}/index.html"
-          do
-            headers=$(curl -sI -L --max-time 40 "$candidate" | tr -d '\r')
-            code=$(printf '%s\n' "$headers" | awk '/^HTTP/{c=$2} END{print c}')
-            type=$(printf '%s\n' "$headers" | awk 'tolower($1)=="content-type:"{print $2}')
-            nosniff=$(printf '%s\n' "$headers" | awk 'tolower($0) ~ /nosniff/{print "nosniff"}')
-            report="${report}- ${candidate} => ${code} ${type} ${nosniff}"$'\n'
-            echo "$code $type $nosniff $candidate"
-            if [ -z "$url" ] && [ "$code" = "200" ] && printf '%s' "$type" | grep -qi 'text/html'; then
-              url="$candidate"
-            fi
-          done
-          if [ -n "$url" ]; then
-            root="${url%/index.html}"
-            for path in js/boot.js pages/planning.html style_v1.css; do
-              line=$(curl -sI -L --max-time 40 "$root/$path" | tr -d '\r' | awk 'BEGIN{c="";t=""} /^HTTP/{c=$2} tolower($1)=="content-type:"{t=$2} END{print c" "t}')
-              report="${report}- ${path}: ${line}"$'\n'
-            done
-          fi
-          if [ -z "$url" ]; then url="https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/${sha}/index.html"; ok=0; else ok=1; fi
-          export REPORT="$report" SHA="$sha" OK="$ok" URL="$url"
           python3 - << PY
-          import json, os
-          summary = os.environ["REPORT"]
-          payload = {
+          import json, os, subprocess
+          sha = os.environ["SHA"]
+          candidates = [
+            f"https://cdn.statically.io/gh/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
+            f"https://media.githubusercontent.com/media/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
+            f"https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
+            f"https://raw.githack.com/sawadogojuliss-byte/Learning-DP1/{sha}/index.html",
+            f"https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@{sha}/index.html",
+          ]
+          lines = []
+          chosen = ""
+          for url in candidates:
+              proc = subprocess.run(
+                  ["curl", "-sL", "--max-time", "40", "-o", "/tmp/body.html", "-w", "%{http_code} %{content_type}", url],
+                  capture_output=True, text=True)
+              meta = (proc.stdout or "").strip()
+              body = open("/tmp/body.html", encoding="utf-8", errors="replace").read(180)
+              html = "Study Plan IB" in body
+              lines.append(f"- {meta} html={html} {url}")
+              code, _, ctype = (meta + "  ").partition(" ")
+              if not chosen and code == "200" and "text/html" in ctype and html:
+                  chosen = url
+          summary = (chosen or "aucun") + "\n\n" + "\n".join(lines)
+          open("/tmp/check.json","w").write(json.dumps({
             "name": "lien public",
-            "head_sha": os.environ["SHA"],
+            "head_sha": sha,
             "status": "completed",
-            "conclusion": "success" if os.environ["OK"] == "1" else "failure",
-            "details_url": os.environ["URL"],
-            "output": {"title": "Lien a envoyer", "summary": os.environ["URL"] + "\n\n" + summary}
-          }
-          open("/tmp/check.json","w").write(json.dumps(payload))
+            "conclusion": "success" if chosen else "failure",
+            "details_url": chosen or candidates[0],
+            "output": {"title": "Lien a envoyer", "summary": summary[:60000]}
+          }))
+          open("/tmp/chosen.txt","w").write(chosen)
+          print(summary)
           PY
-          gh api --method POST "repos/${{ github.repository }}/check-runs" --input /tmp/check.json || true
-          gh api --method POST "repos/${{ github.repository }}/statuses/${sha}" \
-            -f state="$([ "$ok" = 1 ] && echo success || echo failure)" \
-            -f context="lien cdn" \
-            -f description="fichiers jsDelivr" \
-            -f target_url="$url"
+          chosen=$(cat /tmp/chosen.txt)
+          if [ -n "$chosen" ]; then
+            gh api --method POST "repos/${{ github.repository }}/statuses/${sha}" \
+              -f state=success -f context="lien public" \
+              -f description="Lien a envoyer aux amis" -f target_url="$chosen"
+          fi
+          gh api --method POST "repos/${{ github.repository }}/check-runs" --input /tmp/check.json
