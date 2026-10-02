@@ -8,7 +8,6 @@ on:
 
 permissions:
   contents: read
-  statuses: write
   checks: write
 
 jobs:
@@ -18,8 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Construire et publier
+      - name: Verifier que le lien s'ouvre
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SHA: ${{ github.sha }}
-        run: python3 tools/publish-public.py
+          GITHUB_SHA: ${{ github.sha }}
+          SHA: 64c933f55b2d4648d1553ea5c8ff673d89a10ae8
+        run: python3 tools/verify-link.py
