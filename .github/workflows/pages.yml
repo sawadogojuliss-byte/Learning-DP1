@@ -11,6 +11,7 @@ permissions:
   pages: write
   id-token: write
   statuses: write
+  checks: write
 
 concurrency:
   group: pages
@@ -68,22 +69,39 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           sha="${{ github.sha }}"
-          js="https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@${sha}/index.html"
-          ghack="https://rawcdn.githack.com/sawadogojuliss-byte/Learning-DP1/${sha}/index.html"
-          js_code=$(curl -s -o /tmp/js.html -w "%{http_code}" --max-time 40 "$js" || echo 000)
-          gh_code=$(curl -s -o /tmp/gh.html -w "%{http_code}" --max-time 40 "$ghack" || echo 000)
-          if [ "$js_code" = "200" ]; then
-            url="$js"
-            desc="jsDelivr ${js_code}"
-          elif [ "$gh_code" = "200" ]; then
-            url="$ghack"
-            desc="githack ${gh_code}"
-          else
-            url="$js"
-            desc="js ${js_code} githack ${gh_code}"
-          fi
+          base="https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@${sha}"
+          report=""
+          ok=1
+          for path in index.html js/boot.js js/registre.js style_v1.css pages/planning.html css/compte.css; do
+            line=$(curl -sI -L --max-time 40 "$base/$path" | tr -d '\r' | awk 'BEGIN{c="";t=""} /^HTTP/{c=$2} tolower($1)=="content-type:"{t=$2} END{print c" "t}')
+            report="${report}- ${path}: ${line}"$'\n'
+            echo "$path $line"
+            case "$line" in
+              200*) ;;
+              *) ok=0 ;;
+            esac
+          done
+          pages=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://sawadogojuliss-byte.github.io/Learning-DP1/" || echo 000)
+          branch=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "https://cdn.jsdelivr.net/gh/sawadogojuliss-byte/Learning-DP1@arena/01a0bac7-learning-dp1/index.html" || echo 000)
+          report="${report}- github.io: ${pages}"$'\n'"- branche jsDelivr: ${branch}"$'\n'
+          url="$base/index.html"
+          export REPORT="$report" SHA="$sha" OK="$ok" URL="$url"
+          python3 - << PY
+          import json, os
+          summary = os.environ["REPORT"]
+          payload = {
+            "name": "lien public",
+            "head_sha": os.environ["SHA"],
+            "status": "completed",
+            "conclusion": "success" if os.environ["OK"] == "1" else "failure",
+            "details_url": os.environ["URL"],
+            "output": {"title": "Lien a envoyer", "summary": os.environ["URL"] + "\n\n" + summary}
+          }
+          open("/tmp/check.json","w").write(json.dumps(payload))
+          PY
+          gh api --method POST "repos/${{ github.repository }}/check-runs" --input /tmp/check.json || true
           gh api --method POST "repos/${{ github.repository }}/statuses/${sha}" \
-            -f state=success \
+            -f state="$([ "$ok" = 1 ] && echo success || echo failure)" \
             -f context="lien cdn" \
-            -f description="$desc" \
+            -f description="fichiers jsDelivr" \
             -f target_url="$url"
