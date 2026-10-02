@@ -1,0 +1,38 @@
+<!-- ============================================================
+     PAGE : Prénom
+     Première étape : comment tu t'appelles.
+     Script : js/pages/onboarding-prenom.js
+     ============================================================ -->
+<div class="context-modal" id="contextModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse"></div>
+        
+        <div class="context-center">
+            <div class="context-card animate-fade-in-up">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">1</div>
+                    <div class="progress-line progress-line-active"></div>
+                    <div class="progress-step progress-step-inactive">2</div>
+                    <div class="progress-line progress-line-inactive"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon animate-glow">
+                    <span>🎓</span>
+                </div>
+
+                <h1 class="context-title">Bienvenue sur StudyPlan IB</h1>
+                <p class="context-subtitle">Commençons par faire connaissance. Comment t'appelles-tu ?</p>
+
+                <div>
+                    <input type="text" id="nameInput" class="context-input" placeholder="Ton prénom...">
+                    <p class="context-error" id="nameError">Merci d'entrer ton prénom</p>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="handleContinue()">Continuer →</button>
+                    <button class="btn-back" onclick="closeContextModal()">Retour à l'accueil</button>
+                </div>
+            </div>
+        </div>
+    </div>

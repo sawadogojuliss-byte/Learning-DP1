@@ -1,0 +1,132 @@
+<!-- ============================================================
+     PAGE : Sommeil
+     Réveil en semaine et le week-end.
+     Script : js/pages/onboarding-sommeil.js
+     ============================================================ -->
+<!-- Sleep Modal (Page 3) -->
+    <div class="context-modal" id="sleepModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 56rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-active">3</div>
+                    <div class="progress-line progress-line-inactive" style="width: 3rem;"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">😴</span>
+                </div>
+
+                <h1 class="context-title">Ton rythme de sommeil</h1>
+                <p class="context-subtitle">Choisis ton réveil et ta durée de sommeil. Elle ne peut pas être inférieure à 5 h.</p>
+
+                <!-- Sleep Cards -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Weekday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #3b82f6, #06b6d4); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">🏫</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Semaine (Lun - Ven)</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Jours de cours</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="weekdayWakeupInput" value="06:00" onchange="weekdayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; padding: 0.65rem 0;">
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem;">Durée de sommeil</p>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <button type="button" onclick="adjustSleepHours('weekday', -1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">−</button>
+                                    <span id="weekdaySleepLabel" style="font-weight: 800; min-width: 3.2rem; color: #1d4ed8;">8 h</span>
+                                    <button type="button" onclick="adjustSleepHours('weekday', 1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">+</button>
+                                </div>
+                                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">minimum 5 h</p>
+                            </div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <input type="time" id="weekdayBedtimeInput" value="22:00" onchange="setBedtimeFromInput('weekday', this.value)" style="width: 100%; padding: 0.75rem; background: #eff6ff; border: 2px solid #bfdbfe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #1d4ed8; text-align: center;">
+                            <p id="weekdaySleepError" style="display: none; color: #ef4444; font-size: 0.75rem; margin-top: 0.4rem;"></p>
+                        </div>
+                    </div>
+
+                    <!-- Saturday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #e9d5ff; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #a855f7, #ec4899); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">📅</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Samedi</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Week-end</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="saturdayWakeupInput" value="07:00" onchange="saturdayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; padding: 0.65rem 0;">
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem;">Durée de sommeil</p>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <button type="button" onclick="adjustSleepHours('saturday', -1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #e9d5ff; background: white; cursor: pointer; font-weight: 700;">−</button>
+                                    <span id="saturdaySleepLabel" style="font-weight: 800; min-width: 3.2rem; color: #7c3aed;">8 h</span>
+                                    <button type="button" onclick="adjustSleepHours('saturday', 1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #e9d5ff; background: white; cursor: pointer; font-weight: 700;">+</button>
+                                </div>
+                                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">minimum 5 h</p>
+                            </div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <input type="time" id="saturdayBedtimeInput" value="23:00" onchange="setBedtimeFromInput('saturday', this.value)" style="width: 100%; padding: 0.75rem; background: #faf5ff; border: 2px solid #d8b4fe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #7c3aed; text-align: center;">
+                            <p id="saturdaySleepError" style="display: none; color: #ef4444; font-size: 0.75rem; margin-top: 0.4rem;"></p>
+                        </div>
+                    </div>
+
+                    <!-- Sunday -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #a7f3d0; overflow: hidden;">
+                        <div style="background: linear-gradient(to right, #10b981, #14b8a6); padding: 1rem; color: white;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <span style="font-size: 1.5rem;">😴</span>
+                                <div>
+                                    <h3 style="font-weight: 700; font-size: 0.875rem;">Dimanche</h3>
+                                    <p style="font-size: 0.75rem; opacity: 0.8;">Récupération</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Réveil</label>
+                            <input type="time" id="sundayWakeupInput" value="08:00" onchange="sundayWakeup=this.value; updateBedtimes();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                            <div style="text-align: center; padding: 0.65rem 0;">
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem;">Durée de sommeil</p>
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <button type="button" onclick="adjustSleepHours('sunday', -1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #a7f3d0; background: white; cursor: pointer; font-weight: 700;">−</button>
+                                    <span id="sundaySleepLabel" style="font-weight: 800; min-width: 3.2rem; color: #047857;">8 h</span>
+                                    <button type="button" onclick="adjustSleepHours('sunday', 1)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #a7f3d0; background: white; cursor: pointer; font-weight: 700;">+</button>
+                                </div>
+                                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">minimum 5 h</p>
+                            </div>
+                            <label style="font-size: 0.875rem; color: #4b5563; display: block; margin-bottom: 0.5rem;">Coucher</label>
+                            <input type="time" id="sundayBedtimeInput" value="00:00" onchange="setBedtimeFromInput('sunday', this.value)" style="width: 100%; padding: 0.75rem; background: #ecfdf5; border: 2px solid #6ee7b7; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; color: #047857; text-align: center;">
+                            <p id="sundaySleepError" style="display: none; color: #ef4444; font-size: 0.75rem; margin-top: 0.4rem;"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Educational Box -->
+                <div style="background: linear-gradient(to right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <h4 style="font-weight: 700; color: #064e3b; margin-bottom: 0.5rem;">💡 À toi de choisir</h4>
+                    <p style="color: #047857; font-size: 0.875rem; line-height: 1.6;">8 h est un bon point de départ, mais tu peux dormir plus ou moins. La seule limite : au moins 5 h, pour que le planning reste tenable.</p>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="validateSleep()">Continuer →</button>
+                    <button class="btn-back" onclick="hideSleepPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>

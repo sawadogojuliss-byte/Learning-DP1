@@ -1,0 +1,26 @@
+/* Styles des panneaux Planning, Soutien et Exercices */
+.menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
+/* ─── PAGE PANELS ─── */
+.app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;animation:slideInRight 0.3s ease-out; }
+.app-panel.active { display:block; }
+@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+/* ─── MOOD BUTTONS ─── */
+.mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
+.mood-btn:hover { transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.12); }
+.mood-btn.selected { border-color:#10b981;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);transform:scale(1.04); }
+/* ─── EXERCISE CARDS ─── */
+.exo-card { background:white;border:2px solid #e5e7eb;border-radius:1rem;padding:1rem;transition:all 0.2s;position:relative;overflow:hidden; }
+.exo-card::before { content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,#10b981,#059669); }
+.exo-card:hover { border-color:#a7f3d0;box-shadow:0 8px 24px rgba(16,185,129,0.1); }
+/* ─── TIME SLOT CHIPS ─── */
+.slot-chip { padding:0.5rem 0.875rem;border-radius:9999px;border:2px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:600;font-size:0.8rem;cursor:pointer;transition:all 0.2s; }
+.slot-chip:hover,.slot-chip.selected { background:#10b981;color:white;border-color:#10b981;transform:scale(1.04); }
+.slot-chip.conflict { border-color:#fca5a5;background:#fef2f2;color:#dc2626; }
+/* ─── ENCOURAGEMENT CARD ─── */
+.encour-card { border-radius:1.25rem;padding:1.5rem;margin-bottom:1rem;animation:fadeInUp 0.4s ease-out; }
+/* ─── DRAG AREA ─── */
+.drag-area { border:2.5px dashed #a7f3d0;border-radius:1rem;padding:2rem;text-align:center;transition:all 0.3s;cursor:pointer;background:linear-gradient(135deg,#f0fdf4,#ecfdf5); }
+.drag-area.dragging { border-color:#10b981;background:#d1fae5;transform:scale(1.01); }
+/* ─── PROGRESS BAR ─── */
+.prog-bar { height:8px;background:#e5e7eb;border-radius:9999px;overflow:hidden; }
+.prog-bar-fill { height:100%;background:linear-gradient(to right,#10b981,#059669);border-radius:9999px;transition:width 0.6s ease; }

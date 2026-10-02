@@ -1,0 +1,61 @@
+<!-- ============================================================
+     PAGE : Objectif
+     Score IB visé et position mondiale.
+     Script : js/pages/onboarding-objectif.js
+     ============================================================ -->
+<!-- Objectives Modal (Page 2) -->
+    <div class="context-modal" id="objectivesModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 42rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active"></div>
+                    <div class="progress-step progress-step-active">2</div>
+                    <div class="progress-line progress-line-inactive"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <p id="welcomeName" style="color: #10b981; font-weight: 500; text-align: center; margin-bottom: 1rem;">Super, ! 🎉</p>
+
+                <div class="context-icon" style="background: linear-gradient(to bottom right, #34d399, #14b8a6);">
+                    <span>🎯</span>
+                </div>
+
+                <h1 class="context-title">Quel est ton objectif ?</h1>
+                <p class="context-subtitle">Définis le score IB que tu vises pour personnaliser ton plan</p>
+
+                <!-- Score Selection -->
+                <div style="background: linear-gradient(to bottom right, #f9fafb, #ecfdf5); border: 1px solid #e5e7eb; border-radius: 1.5rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 2rem;">
+                        <button onclick="adjustScore(-1)" style="width: 3.5rem; height: 3.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1.5rem; color: #9ca3af; cursor: pointer; transition: all 0.2s;">−</button>
+                        <div style="text-align: center;">
+                            <input type="number" id="scoreValue" value="40" min="24" max="45" onchange="handleScoreInput(event)" style="width: 6rem; text-align: center; font-size: 3.5rem; font-weight: 700; color: #111827; background: transparent; border: none; outline: none;">
+                            <p style="color: #9ca3af; font-size: 0.875rem;">sur 45 points</p>
+                        </div>
+                        <button onclick="adjustScore(1)" style="width: 3.5rem; height: 3.5rem; background: white; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1.5rem; color: #9ca3af; cursor: pointer; transition: all 0.2s;">+</button>
+                    </div>
+                </div>
+
+                <!-- Feedback Badge -->
+                <div style="text-align: center; margin-bottom: 1rem;">
+                    <span id="feedbackBadge" class="feedback-badge bg-emerald">Excellent objectif ! ⭐</span>
+                </div>
+                <p id="feedbackNote" style="color: #6b7280; font-size: 0.875rem; text-align: center; margin-bottom: 1.5rem;">Top 10% mondial</p>
+
+                <!-- Motivation -->
+                <div style="background: linear-gradient(to bottom right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <p id="motivationText" style="color: #374151; text-align: center; line-height: 1.6;">🌟 40+ points te place dans le Top 10% mondial ! C'est le score qui fait briller les yeux des recruteurs universitaires.</p>
+                </div>
+
+                <!-- Section probabilité supprimée -->
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="validateObjective()">Valider mon objectif →</button>
+                    <button class="btn-back" onclick="hideObjectivesPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>

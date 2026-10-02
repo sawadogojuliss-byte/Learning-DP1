@@ -1,0 +1,332 @@
+<!-- ============================================================
+     PAGE : Planning
+     Emploi du temps, édition et Pomodoro.
+     Script : js/pages/planning-base.js
+     ============================================================ -->
+<!-- Planning Modal (Page 8) -->
+    <div class="context-modal" id="planningModal">
+        <!-- Sticky Header -->
+        <header style="position: sticky; top: 0; z-index: 20; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-bottom: 1px solid #f3f4f6;">
+            <div style="max-width: 56rem; margin: 0 auto; padding: 0.75rem 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 2.5rem; height: 2.5rem; background: linear-gradient(to bottom right, #10b981, #14b8a6); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);"><span style="font-size: 1.25rem;">📚</span></div>
+                        <div>
+                            <span style="font-size: 1.125rem; font-weight: 700; background: linear-gradient(to right, #059669, #0d9488); -webkit-background-clip: text; background-clip: text; color: transparent;">Study Plan IB</span>
+                            <p id="greetingText" style="font-size: 0.875rem; color: #6b7280;">Bonjour !</p>
+                        </div>
+                    </div>
+                    <span id="memoireChip" class="memoire-chip" hidden>✓ Enregistré</span>
+                    <button onclick="openSideMenu()" style="width:2.5rem;height:2.5rem;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.28rem;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='linear-gradient(135deg,#ecfdf5,#f0fdf4)'">
+                        <span style="display:block;width:1.1rem;height:2px;background:#059669;border-radius:2px;"></span>
+                        <span style="display:block;width:1.1rem;height:2px;background:#059669;border-radius:2px;"></span>
+                        <span style="display:block;width:0.75rem;height:2px;background:#059669;border-radius:2px;align-self:flex-start;margin-left:0.175rem;"></span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ═══════════ SIDEBAR MENU ═══════════ -->
+        <div id="sideMenuOverlay" onclick="closeSideMenu()" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(0,0,0,0.4);backdrop-filter:blur(2px);"></div>
+        <div id="sideMenu" style="position:fixed;top:0;right:-320px;width:300px;height:100%;z-index:91;background:white;box-shadow:-8px 0 32px rgba(0,0,0,0.15);transition:right 0.35s cubic-bezier(0.4,0,0.2,1);display:flex;flex-direction:column;overflow:hidden;">
+            <!-- Menu Header -->
+            <div style="background:linear-gradient(135deg,#059669,#10b981);padding:1.5rem 1.25rem 1.25rem;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <div style="width:2.5rem;height:2.5rem;background:rgba(255,255,255,0.2);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">📚</div>
+                        <div><p style="font-weight:800;color:white;font-size:1rem;">Study Plan IB</p><p style="font-size:0.75rem;color:rgba(255,255,255,0.8);">DP1 · Enko Ouaga</p></div>
+                    </div>
+                    <button onclick="closeSideMenu()" style="width:2rem;height:2rem;background:rgba(255,255,255,0.2);border:none;border-radius:50%;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
+                </div>
+                <div id="menuUserGreeting" style="background:rgba(255,255,255,0.15);border-radius:0.75rem;padding:0.75rem;font-size:0.875rem;color:rgba(255,255,255,0.95);"></div>
+            </div>
+            <!-- Menu Items -->
+            <div style="flex:1;overflow-y:auto;padding:1rem 0.75rem;">
+                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.5rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Navigation</p>
+                <button onclick="navigateTo('planning');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);cursor:pointer;margin-bottom:0.5rem;text-align:left;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">📅</span>
+                    <div><p style="font-weight:700;color:#064e3b;font-size:0.9rem;">Mon Planning</p><p style="font-size:0.75rem;color:#6b7280;">Emploi du temps hebdomadaire</p></div>
+                </button>
+                <button onclick="navigateTo('soutien');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">💚</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Soutien & Humeur</p><p style="font-size:0.75rem;color:#6b7280;">Messages d'encouragement</p></div>
+                </button>
+                <button onclick="navigateTo('exercices');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">✏️</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Mes Exercices</p><p style="font-size:0.75rem;color:#6b7280;">Upload & planifie tes devoirs</p></div>
+                </button>
+
+                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>
+                <div style="background:#f9fafb;border-radius:0.875rem;padding:0.875rem;border:1.5px solid #f3f4f6;">
+                    <div id="menuStatsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;"></div>
+                </div>
+            </div>
+            <div style="padding:0.75rem;border-top:1px solid #f3f4f6;display:flex;flex-direction:column;gap:0.5rem;">
+                <button type="button" onclick="ouvrirCompte();closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;text-align:left;">
+                    <span style="font-size:1.375rem;">👤</span>
+                    <div><p id="menuCompteNom" style="font-weight:700;color:#111827;font-size:0.9rem;">Mon compte</p><p id="menuCompteDetail" style="font-size:0.75rem;color:#6b7280;">Mémoire active · Google en option</p></div>
+                </button>
+                <button onclick="goBackFromPlanning();closeSideMenu();" style="width:100%;padding:0.75rem;background:#f3f4f6;color:#6b7280;font-weight:600;border:none;border-radius:0.75rem;cursor:pointer;font-size:0.875rem;">⚙️ Modifier mes paramètres</button>
+            </div>
+        </div>
+
+        
+
+        <!-- Next Activity Banner -->
+        <div id="nextActivityBanner" style="background: linear-gradient(to right, #10b981, #14b8a6); color: white; padding: 0.75rem 1rem; display: none;">
+        </div>
+
+        <!-- Day Navigation -->
+        <div style="position: sticky; top: 4rem; z-index: 10; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #f3f4f6; padding: 0.75rem 1rem;">
+            <div style="max-width: 56rem; margin: 0 auto;">
+                <div id="dayNavigation" style="display: flex; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Planning Content -->
+        <div style="max-width: 56rem; margin: 0 auto; padding: 1.5rem 1rem;">
+            <div id="eventsContainer" style="margin-bottom: 1.5rem;">
+            </div>
+
+            <!-- Add to Planning Button -->
+            <button id="addPlanningBtn" onclick="openAddModal()" style="width: 100%; padding: 1rem; background: linear-gradient(to right, #10b981, #14b8a6); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 2rem;">
+                <span style="font-size: 1.25rem;">+</span>
+                <span>Ajouter au planning</span>
+            </button>
+
+            <!-- Color Legend -->
+            <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;">
+                <h3 style="font-weight: 700; color: #111827; margin-bottom: 1rem;">📊 Légende des couleurs</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #818cf8; background: #eef2ff;"><span style="font-size: 0.875rem; color: #374151;">😴 Sommeil</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #60a5fa; background: #eff6ff;"><span style="font-size: 0.875rem; color: #374151;">🏫 Cours</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #ef4444; background: #fef2f2;"><span style="font-size: 0.875rem; color: #374151;">🔴 Révision critique (≤2/7)</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f59e0b; background: #fffbeb;"><span style="font-size: 0.875rem; color: #374151;">🟠 Révision à améliorer (≤4/7)</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #fb923c; background: #fff7ed;"><span style="font-size: 0.875rem; color: #374151;">📚 Révision normale</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #a78bfa; background: #faf5ff;"><span style="font-size: 0.875rem; color: #374151;">🎯 Activités</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #22d3ee; background: #ecfeff;"><span style="font-size: 0.875rem; color: #374151;">🚗 Transport</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #9ca3af; background: #f9fafb;"><span style="font-size: 0.875rem; color: #374151;">🍽️ Repas</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f472b6; background: #fdf2f8;"><span style="font-size: 0.875rem; color: #374151;">📱 Téléphone</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #4ade80; background: #f0fdf4;"><span style="font-size: 0.875rem; color: #374151;">🎮 Temps libre</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #fb7185; background: #fff1f2;"><span style="font-size: 0.875rem; color: #374151;">📋 Évaluation interne</span></div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #a78bfa; background: #f5f3ff;"><span style="font-size: 0.875rem; color: #374151;">📖 Mémoire</span></div>
+                </div>
+            </div>
+
+            <!-- Stats Summary -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">🎯</div>
+                    <p id="statScore" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">40</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Objectif IB</p>
+                </div>
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">📚</div>
+                    <p id="statSubjects" style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">6</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Matières</p>
+                </div>
+                <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
+                    <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">🎭</div>
+                    <p id="statActivities" style="font-size: 1.5rem; font-weight: 700; color: #a855f7;">0</p>
+                    <p style="font-size: 0.75rem; color: #6b7280;">Activités</p>
+                </div>
+            </div>
+
+            <!-- Back Button -->
+            <div style="text-align: center;">
+                <button onclick="goBackFromPlanning()" style="color: #6b7280; font-weight: 500; background: none; border: none; cursor: pointer;">← Modifier les paramètres</button>
+            </div>
+        </div>
+
+        <!-- Add Modal — Étape 1 : Choix du type -->
+        <div id="addEventModal" style="display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;">
+            <div style="background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); max-width: 30rem; width: 100%; padding: 1.75rem; animation: fadeInUp 0.25s ease-out;">
+                <!-- Header -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827;">Ajouter au planning</h3>
+                        <p id="addModalDayLabel" style="font-size: 0.875rem; color: #6b7280; margin-top: 0.2rem;"></p>
+                    </div>
+                    <button onclick="closeAddModal()" style="width: 2rem; height: 2rem; background: #f3f4f6; border: none; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #6b7280; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+
+                <!-- Étape 1 : Choix du type -->
+                <div id="addStep1">
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Que veux-tu ajouter ?</p>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.875rem; margin-bottom: 1rem;">
+                        <button onclick="selectAddType('matiere')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 2px solid #fed7aa; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📚</span>
+                            <span style="font-size: 0.9rem; font-weight: 700; color: #92400e; display: block;">Matière</span>
+                            <span style="font-size: 0.75rem; color: #b45309;">Révisions / Exercices</span>
+                        </button>
+                        <button onclick="selectAddType('activite')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #faf5ff, #f0fdf4); border: 2px solid #d8b4fe; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
+                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🎯</span>
+                            <span style="font-size: 0.9rem; font-weight: 700; color: #6b21a8; display: block;">Activité</span>
+                            <span style="font-size: 0.75rem; color: #7c3aed;">Sport / Loisir / Autre</span>
+                        </button>
+                    </div>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.75rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+
+                <!-- Étape 2 : Config Matière -->
+                <div id="addStep2Matiere" style="display: none;">
+                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Choix de la matière</p>
+                    <div id="subjectPickerGrid" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 220px; overflow-y: auto;"></div>
+
+                    <div id="studyTypeRow" style="display: none; margin-bottom: 1rem;">
+                        <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Type de session</p>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
+                            <button id="btnRevision" onclick="setStudyType('revision')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #fb923c; background: #fff7ed; color: #c2410c; font-weight: 600; font-size: 0.8rem; cursor: pointer;">📖 Révision</button>
+                            <button id="btnExercices" onclick="setStudyType('exercices')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #e5e7eb; background: white; color: #374151; font-weight: 600; font-size: 0.8rem; cursor: pointer;">✏️ Exercices</button>
+                        </div>
+                    </div>
+
+                    <div id="studyTimeRow" style="display: none; margin-bottom: 1rem;">
+                        <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Horaires</p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div>
+                                <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Début</label>
+                                <input type="time" id="studyStartInput" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                            </div>
+                            <div>
+                                <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Fin</label>
+                                <input type="time" id="studyEndInput" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                            </div>
+                        </div>
+                        <p id="studyTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: 0.4rem; display: none;"></p>
+                        <p id="studyPomodoroHint" style="display: none; margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: #fef2f2; border: 1px solid #fecaca; border-radius: 0.625rem; font-size: 0.75rem; color: #b91c1c; font-weight: 600;"></p>
+                    </div>
+
+                    <div id="studyDupWarning" class="v3-warn-box"></div>
+                    <button id="btnConfirmStudy" onclick="confirmAddStudy()" style="display: none; width: 100%; padding: 0.875rem; background: linear-gradient(to right, #f59e0b, #d97706); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+
+                <!-- Étape 2 : Config Activité -->
+                <div id="addStep2Activite" style="display: none;">
+                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Nom de l'activité</p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                        <button onclick="pickActivityPreset('Football','⚽')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⚽ Football</button>
+                        <button onclick="pickActivityPreset('Basketball','🏀')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏀 Basketball</button>
+                        <button onclick="pickActivityPreset('Natation','🏊')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏊 Natation</button>
+                        <button onclick="pickActivityPreset('Danse','💃')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">💃 Danse</button>
+                        <button onclick="pickActivityPreset('Gym','🏋️')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏋️ Gym</button>
+                        <button onclick="pickActivityPreset('Église','⛪')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⛪ Église</button>
+                        <button onclick="pickActivityPreset('Mosquée','🕌')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🕌 Mosquée</button>
+                        <button onclick="pickActivityPreset('Arts','🎨')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🎨 Arts</button>
+                        <button onclick="pickActivityPreset('Bénévolat','🤝')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🤝 Bénévolat</button>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="activityNameInput" placeholder="Ou écris ton activité..." style="flex: 1; padding: 0.625rem 0.875rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem;">
+                        <div id="activityIconPreview" style="width: 2.5rem; height: 2.5rem; background: #f0fdf4; border: 2px solid #a7f3d0; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">✨</div>
+                    </div>
+
+                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Horaires</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Début</label>
+                            <input type="time" id="activityStartInput" value="17:00" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.75rem; color: #6b7280; display: block; margin-bottom: 0.25rem;">Fin</label>
+                            <input type="time" id="activityEndInput" value="18:00" style="width: 100%; padding: 0.625rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                        </div>
+                    </div>
+                    <p id="activityTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></p>
+
+                    <div id="activityDupWarning" class="v3-warn-box"></div>
+                    <button onclick="confirmAddActivity()" style="width: 100%; padding: 0.875rem; background: linear-gradient(to right, #8b5cf6, #6d28d9); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
+                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ EDIT MODAL — avec +/- durée et réajustement ═══════ -->
+        <div id="editEventModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:1rem;">
+            <div style="background:white;border-radius:1.25rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);max-width:28rem;width:100%;padding:1.5rem;animation:fadeInUp 0.2s ease-out;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+                    <h3 style="font-size:1.125rem;font-weight:700;color:#111827;" id="editModalTitle">Modifier l'activité</h3>
+                    <button onclick="closeEditModal()" style="width:2rem;height:2rem;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;color:#6b7280;font-size:0.875rem;">✕</button>
+                </div>
+                <!-- Titre -->
+                <div style="margin-bottom:1rem;">
+                    <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Nom de l'activité</label>
+                    <input type="text" id="editEventTitle" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                </div>
+                <!-- Méthode Pomodoro (sessions d'étude uniquement) -->
+                <button id="editPomodoroBtn" onclick="v3OpenPomodoroFromEdit()" style="display:none;width:100%;padding:0.75rem;background:linear-gradient(135deg,#fef2f2,#fff7ed);color:#b91c1c;font-weight:700;border-radius:0.875rem;border:1.5px solid #fecaca;cursor:pointer;margin-bottom:1rem;font-size:0.875rem;">🍅 Lancer un Pomodoro pour cette session</button>
+                <!-- Contrôle durée -->
+                <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:1rem;margin-bottom:1rem;">
+                    <p style="font-size:0.8rem;font-weight:600;color:#047857;margin-bottom:0.75rem;">⏱️ Durée de l'activité</p>
+                    <div style="display:flex;align-items:center;justify-content:center;gap:1rem;">
+                        <button onclick="adjustEditDuration(-15)" style="width:2.5rem;height:2.5rem;background:white;border:2px solid #a7f3d0;border-radius:0.75rem;font-size:1.125rem;font-weight:700;color:#059669;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='white'">−</button>
+                        <div style="text-align:center;min-width:5rem;">
+                            <span id="editDurationDisplay" style="font-size:1.5rem;font-weight:800;color:#059669;">60 min</span>
+                        </div>
+                        <button onclick="adjustEditDuration(15)" style="width:2.5rem;height:2.5rem;background:white;border:2px solid #a7f3d0;border-radius:0.75rem;font-size:1.125rem;font-weight:700;color:#059669;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='white'">+</button>
+                    </div>
+                    <p style="font-size:0.75rem;color:#6b7280;text-align:center;margin-top:0.5rem;">Par pas de 15 minutes</p>
+                </div>
+                <!-- Horaires précis -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+                    <div>
+                        <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Début</label>
+                        <input type="time" id="editEventStart" onchange="syncEditEndFromStart()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    </div>
+                    <div>
+                        <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Fin</label>
+                        <input type="time" id="editEventEnd" onchange="syncEditDurationFromTimes()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    </div>
+                </div>
+                <p id="editPinHint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.75rem;padding:0.625rem 0.75rem;margin-bottom:0.75rem;font-size:0.78rem;color:#1e40af;"></p>
+                <!-- Cascade info -->
+                <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:0.75rem;padding:0.75rem;margin-bottom:1rem;font-size:0.8rem;color:#92400e;">
+                    🔗 <strong>Réajustement automatique :</strong> les activités suivantes seront décalées en conséquence.
+                </div>
+                <p id="editTimeError" style="color:#ef4444;font-size:0.8rem;margin-bottom:0.75rem;display:none;"></p>
+                <div style="display:flex;flex-direction:column;gap:0.625rem;">
+                    <button onclick="saveEditedEventCascade()" style="width:100%;padding:0.875rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:700;border-radius:0.875rem;border:none;cursor:pointer;font-size:0.95rem;">✅ Enregistrer & réajuster</button>
+                    <button onclick="deleteEditedEvent()" style="width:100%;padding:0.75rem;background:#fef2f2;color:#dc2626;font-weight:600;border-radius:0.875rem;border:none;cursor:pointer;">🗑️ Supprimer</button>
+                    <button onclick="closeEditModal()" style="width:100%;padding:0.625rem;background:#f3f4f6;color:#6b7280;font-weight:500;border-radius:0.875rem;border:none;cursor:pointer;">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════ POMODORO MODAL — méthode Pomodoro pour les sessions d'étude ═══════ -->
+        <div id="pomodoroModal" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem;">
+            <div class="pomo-card">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:0.75rem;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;">
+                        <div style="width:2.75rem;height:2.75rem;background:linear-gradient(135deg,#fee2e2,#fecaca);border-radius:0.875rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🍅</div>
+                        <div style="min-width:0;">
+                            <h3 style="font-size:1.05rem;font-weight:800;color:#111827;">Méthode Pomodoro</h3>
+                            <p id="pomoTitle" style="font-size:0.78rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
+                        </div>
+                    </div>
+                    <button onclick="v3ClosePomodoro()" style="width:2rem;height:2rem;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;color:#6b7280;font-size:0.875rem;flex-shrink:0;">✕</button>
+                </div>
+                <div id="pomoPhaseCard" class="pomo-phase focus">
+                    <span id="pomoPhase" class="pomo-phase-label">Focus 1/1</span>
+                    <div id="pomoTime" class="pomo-time">25:00</div>
+                    <div class="pomo-bar"><div id="pomoBar" class="pomo-bar-fill"></div></div>
+                    <div id="pomoDots" class="pomo-dots"></div>
+                </div>
+                <p id="pomoSummary" style="font-size:0.8rem;color:#4b5563;text-align:center;margin:0.875rem 0 0.75rem;line-height:1.4;"></p>
+                <div style="display:flex;justify-content:center;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+                    <span style="font-size:0.75rem;color:#9ca3af;">Rythme :</span>
+                    <button id="pomoPresetClassic" onclick="v3PomoSetPreset('classic')" class="pomo-preset selected">25 / 5</button>
+                    <button id="pomoPresetLong" onclick="v3PomoSetPreset('long')" class="pomo-preset">50 / 10</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;">
+                    <button id="pomoToggleBtn" onclick="v3PomoToggle()" class="pomo-btn primary" style="grid-column:span 3;">▶ Démarrer</button>
+                    <button id="pomoSkipBtn" onclick="v3PomoSkip()" class="pomo-btn">⏭ Passer</button>
+                    <button onclick="v3PomoReset()" class="pomo-btn">↺ Recommencer</button>
+                    <button onclick="v3ClosePomodoro()" class="pomo-btn">Fermer</button>
+                </div>
+                <p id="pomoTip" style="font-size:0.75rem;color:#6b7280;text-align:center;margin-top:0.875rem;line-height:1.45;"></p>
+            </div>
+        </div>
+    </div><!-- fin planningModal -->

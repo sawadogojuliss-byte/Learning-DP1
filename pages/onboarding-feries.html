@@ -1,0 +1,54 @@
+<!-- ============================================================
+     PAGE : Jours fériés
+     Après le temps libre. Étape facultative.
+     Script : js/pages/onboarding-feries.js
+     ============================================================ -->
+<div class="context-modal" id="holidaysModal">
+    <div class="context-shape context-shape-1 animate-float"></div>
+    <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+
+    <div class="context-center" style="padding: 2rem 1rem;">
+        <div class="context-card animate-fade-in-up" style="max-width: 42rem;">
+            <div class="progress-indicator">
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                <div class="progress-step progress-step-active">10</div>
+            </div>
+
+            <div class="context-icon" style="width: 5rem; height: 5rem;">
+                <span style="font-size: 2.5rem;">🎉</span>
+            </div>
+
+            <h1 class="context-title">Jours fériés</h1>
+            <p class="context-subtitle">S'il y a un jour férié cette semaine, sélectionne-le. Sinon, tu peux passer sans rien choisir.</p>
+
+            <div style="margin: 1.5rem 0 1rem;">
+                <p style="font-size: 0.875rem; font-weight: 600; color: #4b5563; text-align: center; margin-bottom: 0.75rem;">Jours fériés de la semaine</p>
+                <div id="holidayDaysGrid" style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap;"></div>
+            </div>
+
+            <div id="holidayModes" style="margin-bottom: 1.5rem;"></div>
+
+            <div class="context-buttons">
+                <button id="holidayContinueBtn" class="btn-continue" onclick="generatePlanning()">Passer →</button>
+                <button class="btn-back" onclick="goBackFromHolidays()">← Retour</button>
+            </div>
+        </div>
+    </div>
+</div>

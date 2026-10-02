@@ -4,3 +4,92 @@
             50% { opacity: 0.5; }
         }
     
+        /* ═══════════════════════════════════════════════════════════
+           v3 — Méthode Pomodoro, alertes de doublons, modification du planning
+           ═══════════════════════════════════════════════════════════ */
+
+        /* Toast (avec bouton Annuler) */
+        .v3-toast {
+            position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+            color: white; padding: 0.8rem 1.25rem; border-radius: 0.875rem;
+            font-weight: 700; font-size: 0.85rem; z-index: 300;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25); animation: fadeInUp 0.3s ease-out;
+            max-width: 92%; text-align: center; display: flex; align-items: center; gap: 0.75rem;
+        }
+        .v3-toast-btn {
+            background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.55); color: white;
+            border-radius: 9999px; padding: 0.3rem 0.75rem; font-weight: 700; font-size: 0.8rem;
+            cursor: pointer; white-space: nowrap; font-family: inherit;
+        }
+        .v3-toast-btn:hover { background: rgba(255,255,255,0.35); }
+
+        /* Avertissement doublon dans la fenêtre « Ajouter au planning » */
+        .v3-warn-box {
+            display: none; background: #fffbeb; border: 1.5px solid #fcd34d; color: #92400e;
+            border-radius: 0.75rem; padding: 0.75rem 0.875rem; font-size: 0.8rem;
+            margin-bottom: 0.75rem; line-height: 1.45; animation: fadeInUp 0.2s ease-out;
+        }
+
+        /* Badge 🍅 sur les sessions d'étude du planning */
+        .v3-pomo-chip {
+            width: 2rem; height: 2rem; border-radius: 50%; border: 1.5px solid #fecaca; background: #fef2f2;
+            font-size: 1rem; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; padding: 0;
+        }
+        .v3-pomo-chip:hover { transform: scale(1.1); background: #fee2e2; box-shadow: 0 4px 10px rgba(239,68,68,0.25); }
+        .v3-pomo-chip.running { border-color: #ef4444; background: #fee2e2; animation: pomoPulse 1.6s ease-in-out infinite; }
+
+        /* Fenêtre Pomodoro */
+        .pomo-card {
+            background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+            max-width: 26rem; width: 100%; padding: 1.5rem; animation: fadeInUp 0.2s ease-out;
+        }
+        .pomo-phase {
+            border-radius: 1.25rem; padding: 1.5rem 1.25rem 1.25rem; text-align: center;
+            border: 2px solid #fecaca; background: linear-gradient(135deg, #fef2f2, #fff7ed); transition: all 0.3s;
+        }
+        .pomo-phase.short { border-color: #a7f3d0; background: linear-gradient(135deg, #ecfdf5, #f0fdf4); }
+        .pomo-phase.long { border-color: #bfdbfe; background: linear-gradient(135deg, #eff6ff, #f0f9ff); }
+        .pomo-phase.finished { border-color: #fcd34d; background: linear-gradient(135deg, #fffbeb, #fef3c7); }
+        .pomo-phase.running .pomo-time { animation: pomoPulse 2s ease-in-out infinite; }
+        .pomo-phase-label {
+            display: inline-block; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase;
+            color: #b91c1c; background: white; border-radius: 9999px; padding: 0.3rem 0.875rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .pomo-phase.short .pomo-phase-label { color: #047857; }
+        .pomo-phase.long .pomo-phase-label { color: #1d4ed8; }
+        .pomo-phase.finished .pomo-phase-label { color: #92400e; }
+        .pomo-time {
+            font-size: 3.5rem; font-weight: 800; color: #111827; letter-spacing: 0.02em; line-height: 1.1; margin: 0.75rem 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .pomo-bar { height: 8px; background: rgba(255,255,255,0.8); border-radius: 9999px; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
+        .pomo-bar-fill { height: 100%; width: 0; border-radius: 9999px; background: linear-gradient(to right, #ef4444, #f97316); transition: width 0.5s linear; }
+        .pomo-phase.short .pomo-bar-fill { background: linear-gradient(to right, #10b981, #34d399); }
+        .pomo-phase.long .pomo-bar-fill { background: linear-gradient(to right, #3b82f6, #60a5fa); }
+        .pomo-phase.finished .pomo-bar-fill { background: linear-gradient(to right, #f59e0b, #fbbf24); }
+        .pomo-dots { display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.875rem; flex-wrap: wrap; }
+        .pomo-dot { width: 0.875rem; height: 0.875rem; border-radius: 50%; background: white; border: 2px solid #fca5a5; transition: all 0.3s; }
+        .pomo-dot.done { background: #ef4444; border-color: #ef4444; }
+        .pomo-dot.current { border-color: #ef4444; box-shadow: 0 0 0 4px rgba(239,68,68,0.2); animation: pomoPulse 1.6s ease-in-out infinite; }
+        .pomo-preset {
+            padding: 0.3rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white;
+            font-size: 0.75rem; font-weight: 700; color: #6b7280; cursor: pointer; font-family: inherit; transition: all 0.2s;
+        }
+        .pomo-preset.selected { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+        .pomo-btn {
+            padding: 0.7rem 0.5rem; border-radius: 0.875rem; border: none; background: #f3f4f6; color: #374151;
+            font-weight: 700; font-size: 0.82rem; cursor: pointer; font-family: inherit; transition: all 0.2s;
+        }
+        .pomo-btn:hover { background: #e5e7eb; }
+        .pomo-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .pomo-btn.primary {
+            background: linear-gradient(to right, #ef4444, #dc2626); color: white; font-size: 0.95rem; padding: 0.875rem;
+            box-shadow: 0 8px 20px rgba(239,68,68,0.3);
+        }
+        .pomo-btn.primary:hover { background: linear-gradient(to right, #dc2626, #b91c1c); }
+
+        @keyframes pomoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }

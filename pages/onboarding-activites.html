@@ -1,0 +1,67 @@
+<!-- ============================================================
+     PAGE : Activités
+     Activités extrascolaires.
+     Script : js/pages/onboarding-activites.js
+     ============================================================ -->
+<!-- Activities Modal (Page 7) -->
+    <div class="context-modal" id="activitiesModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+        
+        <!-- School Hours Warning -->
+        <div id="schoolWarning" style="display: none; position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 100; background: #fef2f2; border: 2px solid #fecaca; color: #991b1b; padding: 1rem 1.5rem; border-radius: 1rem; box-shadow: 0 10px 25px rgba(0,0,0,0.15); max-width: 90%;">
+            <p style="font-weight: 600;">⚠️ Tu ne peux pas planifier d'activités pendant les heures de cours (8h00 - 16h35, lundi au vendredi).</p>
+            <p style="font-size: 0.875rem; margin-top: 0.5rem;">Ces créneaux sont réservés à tes cours au lycée. Choisis un horaire en dehors des heures scolaires.</p>
+        </div>
+        
+        <div class="context-center" style="padding: 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 56rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1rem;"></div>
+                    <div class="progress-step progress-step-active">7</div>
+                </div>
+
+                <div class="context-icon" style="width: 4rem; height: 4rem;">
+                    <span style="font-size: 2rem;">🎯</span>
+                </div>
+
+                <h1 class="context-title" style="font-size: 1.5rem;">Tes activités extra-scolaires</h1>
+                <p class="context-subtitle" style="font-size: 0.875rem;">Sélectionne tes activités pour qu'on les intègre à ton planning</p>
+
+                <!-- Info Box -->
+                <div style="background: linear-gradient(to right, #fef3c7, #fff7ed); border: 1px solid #fcd34d; border-radius: 1rem; padding: 1rem; margin-bottom: 1rem;">
+                    <p style="color: #92400e; font-size: 0.875rem;">💡 <strong>Important :</strong> Les activités ne peuvent pas être programmées pendant les heures de cours (8h00 - 16h35, lundi au vendredi).</p>
+                </div>
+
+                <!-- Activities Grid -->
+                <div style="background: white; border-radius: 1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 1rem; margin-bottom: 1rem;">
+                    <div id="activitiesGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;"></div>
+                    
+                    <!-- Custom Activity -->
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+                        <input type="text" id="customActivityInput" placeholder="Autre activité..." style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.875rem;">
+                        <button onclick="addCustomActivity()" style="padding: 0.75rem 1rem; background: #10b981; color: white; font-weight: 600; border: none; border-radius: 0.75rem; cursor: pointer;">+ Ajouter</button>
+                    </div>
+                </div>
+
+                <!-- Selected Activities Config -->
+                <div id="activitiesConfig"></div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="goToScreenTime()">Continuer →</button>
+                    <button class="btn-back" onclick="goBackFromActivities()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>

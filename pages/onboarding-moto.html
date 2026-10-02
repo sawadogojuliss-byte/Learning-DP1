@@ -1,0 +1,87 @@
+<!-- ============================================================
+     PAGE : Moto
+     Horaires et durées en moto.
+     Script : js/pages/onboarding-transport.js
+     ============================================================ -->
+<!-- Moto Configuration Modal (Page 6b) -->
+    <div class="context-modal" id="motoConfigModal">
+        <div class="context-shape context-shape-1 animate-float" style="right: -5rem; left: auto;"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="left: -2.5rem; right: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 42rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 1.5rem;"></div>
+                    <div class="progress-step progress-step-active">6</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">🏍️</span>
+                </div>
+
+                <h1 class="context-title">Configuration Moto</h1>
+                <p class="context-subtitle">Détails de tes trajets quotidiens</p>
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0;">
+                    <!-- Departure Time -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🌅</span>
+                            Heure de départ le matin
+                        </label>
+                        <input type="time" id="motoDepartureInput" value="07:30" onchange="motoDeparture=this.value; updateMotoPrepTime();" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                        <div style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #eff6ff; border-radius: 0.5rem;">
+                            <p style="font-size: 0.875rem; color: #2563eb;">📋 Préparation dès <span id="motoPrepTime" style="font-weight: 700;">07:00</span></p>
+                        </div>
+                    </div>
+
+                    <!-- To School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #cffafe; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏫</span>
+                            Durée du trajet aller
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="motoToSchoolInput" value="25" min="5" max="120" onchange="motoToSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                    </div>
+
+                    <!-- Return Time from School -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #a7f3d0; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏠</span>
+                            Heure de départ de l'école
+                        </label>
+                        <input type="time" id="motoReturnInput" value="17:00" onchange="motoReturn=this.value;" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
+                    </div>
+
+                    <!-- From School Duration -->
+                    <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #fef3c7; padding: 1.25rem;">
+                        <label style="font-size: 0.875rem; font-weight: 500; color: #4b5563; display: flex; align-items: center; margin-bottom: 0.75rem;">
+                            <span style="font-size: 1.25rem; margin-right: 0.5rem;">🏠</span>
+                            Durée du trajet retour
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="number" id="motoFromSchoolInput" value="25" min="5" max="120" onchange="motoFromSchool=parseInt(this.value)||5;" style="width: 6rem; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; text-align: center;">
+                            <span style="color: #6b7280; font-weight: 500;">minutes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-continue" onclick="saveMotoConfig()">Continuer →</button>
+                    <button class="btn-back" onclick="hideMotoConfig()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>

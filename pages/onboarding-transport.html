@@ -1,0 +1,55 @@
+<!-- ============================================================
+     PAGE : Transport
+     Choix voiture ou moto.
+     Script : js/pages/onboarding-transport.js
+     ============================================================ -->
+<!-- Transport Modal (Page 5) -->
+    <div class="context-modal" id="transportModal">
+        <div class="context-shape context-shape-1 animate-float"></div>
+        <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+        
+        <div class="context-center" style="padding: 2rem 1rem;">
+            <div class="context-card animate-fade-in-up" style="max-width: 48rem;">
+                <div class="progress-indicator">
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">✓</div>
+                    <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-active">5</div>
+                    <div class="progress-line progress-line-inactive" style="width: 2rem;"></div>
+                    <div class="progress-step progress-step-inactive">...</div>
+                </div>
+
+                <div class="context-icon" style="width: 5rem; height: 5rem;">
+                    <span style="font-size: 2.5rem;">🚗</span>
+                </div>
+
+                <h1 class="context-title">Comment vas-tu à l'école ?</h1>
+                <p class="context-subtitle">Cela nous aidera à optimiser ton planning de révisions</p>
+
+                <div style="display: flex; flex-direction: column; gap: 1.5rem; margin: 2rem 0; align-items: center;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center;">
+                        <!-- Voiture Card -->
+                        <button onclick="selectTransport('voiture')" class="transport-card" style="background: white; border: 2px solid #fef3c7; border-radius: 1.5rem; padding: 2rem; width: 12rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <div style="width: 5rem; height: 5rem; margin: 0 auto 1rem; background: linear-gradient(to bottom right, #fbbf24, #f97316); border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">🚗</div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">Voiture</h3>
+                        </button>
+
+                        <!-- Moto Card -->
+                        <button onclick="selectTransport('moto')" class="transport-card" style="background: white; border: 2px solid #d1fae5; border-radius: 1.5rem; padding: 2rem; width: 12rem; cursor: pointer; transition: all 0.3s; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <div style="width: 5rem; height: 5rem; margin: 0 auto 1rem; background: linear-gradient(to bottom right, #34d399, #059669); border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">🏍️</div>
+                            <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827; margin: 0;">Moto</h3>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="context-buttons">
+                    <button class="btn-back" onclick="hideTransportPage()">← Retour</button>
+                </div>
+            </div>
+        </div>
+    </div>

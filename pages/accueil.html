@@ -1,0 +1,217 @@
+<!-- ============================================================
+     PAGE : Accueil
+     Présentation de Study Plan IB.
+     Script : js/pages/accueil.js
+     ============================================================ -->
+<nav>
+        <div class="nav-container">
+            <div class="nav-brand">
+                <div class="nav-logo">📚</div>
+                <span class="nav-title">Study Plan IB</span>
+            </div>
+            <div class="nav-actions">
+                <span id="memoireNav" class="memoire-nav" hidden>Enregistré</span>
+                <button type="button" id="navCompteBtn" class="btn-compte" onclick="ouvrirCompte()">Se connecter</button>
+                <button type="button" id="btnCommencer" class="btn-primary" onclick="openContextModal()">Commencer</button>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="hero-container">
+            <div class="welcome-badge animate-fade-in-up">
+                <span class="animate-wave">👋</span>
+                <span>Bienvenue, futur diplômé IB !</span>
+            </div>
+
+            <h1 class="hero-title animate-fade-in-up animation-delay-100">
+                Transformez votre façon de <span class="highlight">réviser pour l'IB</span>
+            </h1>
+
+            <p class="hero-subtitle animate-fade-in-up animation-delay-200">
+                L'outil de planification intelligent conçu spécialement pour les <span class="green">étudiants du Baccalauréat International</span>. Organisez, planifiez et réussissez.
+            </p>
+
+            <div class="hero-buttons animate-fade-in-up animation-delay-300">
+                <button class="btn-hero btn-hero-primary" onclick="openContextModal()">🚀 Créer mon planning gratuitement</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="before-after" id="beforeAfter">
+        <div class="section-container">
+            <div class="section-header">
+                <span class="section-badge">✨ LA TRANSFORMATION</span>
+                <h2 class="section-title">Avant vs Après <span class="green">Study Plan IB</span></h2>
+                <p class="section-desc">Découvrez comment notre outil transforme l'expérience des étudiants IB</p>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card card-before animate-shake-subtle" id="beforeCard">
+                    <div class="card-decoration"></div>
+                    
+                    <div class="card-header">
+                        <div class="card-icon">😰</div>
+                        <div>
+                            <span class="card-label">AVANT</span>
+                            <h3 class="card-name">Le Chaos Total</h3>
+                        </div>
+                    </div>
+
+                    <ul class="card-list">
+                        <li><div class="card-list-icon">✗</div><span>Notes éparpillées partout</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Deadlines oubliées constamment</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Révisions de dernière minute</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Stress permanent et anxiété</span></li>
+                        <li><div class="card-list-icon">✗</div><span>Résultats en dessous du potentiel</span></li>
+                    </ul>
+
+                    <div class="meter-box meter-box-clickable" onclick="increaseStress()">
+                        <div class="meter-header">
+                            <span class="meter-label">Niveau de stress</span>
+                            <span class="meter-value meter-value-red" id="stressValue">30%</span>
+                        </div>
+                        <div class="meter-bar">
+                            <div class="meter-fill meter-fill-red" id="stressFill" style="width: 30%"></div>
+                        </div>
+                        <p class="meter-hint">Cliquez pour augmenter le stress (max 90%)</p>
+                    </div>
+                </div>
+
+                <div class="card card-after" id="afterCard">
+                    <div class="card-decoration"></div>
+                    
+                    <div class="card-header">
+                        <div class="card-icon animate-glow">😌</div>
+                        <div>
+                            <span class="card-label">APRÈS</span>
+                            <h3 class="card-name">L'Harmonie Totale</h3>
+                        </div>
+                    </div>
+
+                    <ul class="card-list">
+                        <li><div class="card-list-icon">✓</div><span>Planning centralisé et clair</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Rappels automatiques intelligents</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Révisions espacées et efficaces</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Confiance et sérénité retrouvées</span></li>
+                        <li><div class="card-list-icon">✓</div><span>Notes en constante amélioration</span></li>
+                    </ul>
+
+                    <div class="meter-box">
+                        <div class="meter-header">
+                            <span class="meter-label">Productivité</span>
+                            <span class="meter-value meter-value-green" id="prodValue">20%</span>
+                        </div>
+                        <div class="meter-bar">
+                            <div class="meter-fill meter-fill-green" id="prodFill" style="width: 20%"></div>
+                        </div>
+                        <p class="meter-hint">Niveau optimal de productivité</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="carousel-section">
+        <div class="carousel-container">
+            <div class="section-header">
+                <span class="section-badge section-badge-teal">🔄 PROCESSUS SIMPLE</span>
+                <h2 class="section-title">Comment ça <span class="green">marche</span> ?</h2>
+                <p class="section-desc">En 4 étapes simples, transformez votre façon de réviser</p>
+            </div>
+
+            <div class="carousel-wrapper">
+                <div class="carousel-slides">
+                    <div class="carousel-slide active" data-index="0">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #34d399, #059669);">
+                            📝
+                            <div class="slide-step" style="background: #10b981;">1</div>
+                        </div>
+                        <h3 class="slide-title">Créez votre profil</h3>
+                        <p class="slide-desc">Indiquez vos matières IB, votre niveau (SL/HL) et vos objectifs personnels pour une expérience sur mesure.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="1">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #2dd4bf, #0d9488);">
+                            📊
+                            <div class="slide-step" style="background: #14b8a6;">2</div>
+                        </div>
+                        <h3 class="slide-title">Planifiez intelligemment</h3>
+                        <p class="slide-desc">Notre algorithme crée un emploi du temps optimisé selon vos échéances, examens et temps disponible.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="2">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #22d3ee, #0891b2);">
+                            🎯
+                            <div class="slide-step" style="background: #06b6d4;">3</div>
+                        </div>
+                        <h3 class="slide-title">Suivez vos progrès</h3>
+                        <p class="slide-desc">Visualisez votre avancement avec des statistiques détaillées et des rappels motivants.</p>
+                    </div>
+                    <div class="carousel-slide" data-index="3">
+                        <div class="slide-icon" style="background: linear-gradient(to bottom right, #10b981, #0d9488);">
+                            🏆
+                            <div class="slide-step" style="background: #059669;">4</div>
+                        </div>
+                        <h3 class="slide-title">Atteignez l'excellence</h3>
+                        <p class="slide-desc">Obtenez votre diplôme IB avec confiance grâce à une préparation structurée et efficace.</p>
+                    </div>
+                </div>
+
+                <button class="carousel-nav carousel-nav-prev" onclick="prevSlide()">←</button>
+                <button class="carousel-nav carousel-nav-next" onclick="nextSlide()">→</button>
+
+                <div class="carousel-dots">
+                    <button class="carousel-dot active" data-index="0" onclick="goToSlide(0)"></button>
+                    <button class="carousel-dot" data-index="1" onclick="goToSlide(1)"></button>
+                    <button class="carousel-dot" data-index="2" onclick="goToSlide(2)"></button>
+                    <button class="carousel-dot" data-index="3" onclick="goToSlide(3)"></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="section-header">
+            <span class="section-badge">💎 FONCTIONNALITÉS</span>
+            <h2 class="section-title">Tout ce dont vous avez <span class="green">besoin</span></h2>
+        </div>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-emerald">📅</div>
+                <h3 class="feature-title">Planning Intelligent</h3>
+                <p class="feature-desc">Un emploi du temps qui s'adapte à votre rythme et vos objectifs</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-teal">🔔</div>
+                <h3 class="feature-title">Rappels Personnalisés</h3>
+                <p class="feature-desc">Ne manquez plus jamais une deadline importante</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon feature-icon-cyan">📈</div>
+                <h3 class="feature-title">Suivi des Progrès</h3>
+                <p class="feature-desc">Visualisez votre évolution et restez motivé</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="cta">
+        <div class="cta-shape cta-shape-1 animate-float"></div>
+        <div class="cta-shape cta-shape-2 animate-float-reverse"></div>
+        
+        <div class="cta-container">
+            <div class="cta-box">
+                <h2 class="cta-title">Prêt à transformer vos révisions ?</h2>
+                <p class="cta-desc">Rejoignez des milliers d'étudiants IB qui ont déjà amélioré leurs résultats grâce à Study Plan IB</p>
+                <button class="btn-cta" onclick="openContextModal()">🎯 Commencer maintenant — C'est gratuit !</button>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="footer-brand">
+            <div class="footer-logo">📚</div>
+            <span class="footer-title">Study Plan IB</span>
+        </div>
+        <p class="footer-desc">L'outil de planification intelligent pour les étudiants du Baccalauréat International</p>
+        <p class="footer-copy">© 2026 Study Plan IB. Tous droits réservés.</p>
+    </footer>

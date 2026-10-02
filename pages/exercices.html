@@ -1,0 +1,104 @@
+<!-- ============================================================
+     PAGE : Exercices
+     Devoirs à ajouter et à planifier.
+     Script : js/pages/exercices.js
+     ============================================================ -->
+<div class="app-panel" id="panelExercices">
+        <div style="max-width:520px;margin:0 auto;padding:0 1rem 5rem;">
+            <!-- Header -->
+            <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;">
+                <div style="display:flex;align-items:center;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                        <div><h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Mes Exercices</h2><p style="font-size:0.75rem;color:#6b7280;">Planifie intelligemment tes devoirs</p></div>
+                    </div>
+                    <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.75rem;padding:0.375rem 0.75rem;">
+                        <span id="exoCountBadge" style="font-size:0.8rem;font-weight:700;color:#059669;">0 exercice</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Onglets -->
+            <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1.5rem;">
+                <button id="tabAjouter" onclick="switchExoTab('ajouter')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:white;color:#059669;box-shadow:0 1px 3px rgba(0,0,0,0.1);">➕ Ajouter</button>
+                <button id="tabListe" onclick="switchExoTab('liste')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📋 Ma liste</button>
+                <button id="tabPlanifier" onclick="switchExoTab('planifier')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📅 Planifier</button>
+            </div>
+
+            <!-- Tab: Ajouter -->
+            <div id="tabContentAjouter">
+                <!-- Sélection matière -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📚 Matière concernée</label>
+                    <div id="exoSubjectGrid" style="display:flex;flex-wrap:wrap;gap:0.5rem;"></div>
+                </div>
+
+                <!-- Type d'exercice -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📝 Ajoute ton exercice</label>
+                    <!-- Zone drag & drop -->
+                    <div id="dragArea" class="drag-area" onclick="document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" style="margin-bottom:0.875rem;">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;">📂</div>
+                        <p style="font-weight:700;color:#059669;font-size:0.9rem;">Glisse ton fichier ici</p>
+                        <p style="font-size:0.75rem;color:#6b7280;margin-top:0.25rem;">PDF, image, Word — ou clique pour choisir</p>
+                        <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
+                    </div>
+                    <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;display:flex;align-items:center;gap:0.5rem;"></div>
+
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
+                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                        <span style="font-size:0.75rem;color:#9ca3af;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
+                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                    </div>
+                    <textarea id="exoTextInput" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;outline:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                </div>
+
+                <!-- Estimation temps + difficulté -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">⏰ Durée estimée</label>
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.75rem;" id="durationPresets">
+                        <button onclick="setExoDuration(30)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">30 min</button>
+                        <button onclick="setExoDuration(45)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">45 min</button>
+                        <button onclick="setExoDuration(60)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #10b981;background:#ecfdf5;font-weight:700;font-size:0.8rem;cursor:pointer;color:#059669;transition:all 0.2s;">1h</button>
+                        <button onclick="setExoDuration(90)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">1h30</button>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <input type="range" id="exoDurationSlider" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)" style="flex:1;accent-color:#10b981;">
+                        <span id="exoDurationLabel" style="font-weight:800;color:#059669;font-size:1rem;min-width:3.5rem;text-align:right;">60 min</span>
+                    </div>
+                </div>
+
+                <!-- Deadline -->
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📆 Date limite (deadline)</label>
+                    <input type="date" id="exoDeadline" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                </div>
+
+                <button onclick="addExercice()" style="width:100%;padding:1rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:800;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.95rem;box-shadow:0 8px 20px rgba(16,185,129,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                    ➕ Ajouter cet exercice
+                </button>
+            </div>
+
+            <!-- Tab: Liste -->
+            <div id="tabContentListe" style="display:none;">
+                <div id="exoListContainer">
+                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
+                        <p style="font-weight:600;">Aucun exercice pour l'instant</p>
+                        <p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l'onglet ➕</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Planifier -->
+            <div id="tabContentPlanifier" style="display:none;">
+                <div id="planifierContent">
+                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                        <div style="font-size:3rem;margin-bottom:1rem;">📅</div>
+                        <p style="font-weight:600;">Ajoute d'abord des exercices</p>
+                        <p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l'onglet ➕ pour commencer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
