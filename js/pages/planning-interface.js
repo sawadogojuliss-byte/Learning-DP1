@@ -86,7 +86,7 @@ function renderPlanning() {
                 '<p style="font-size:0.7rem;color:#9ca3af;">→ ' + event.endTime + '</p>' +
                 (durLabel ? '<p style="font-size:0.68rem;color:' + bColor + ';font-weight:600;margin-top:0.1rem;">' + durLabel + '</p>' : '') +
             '</div>' +
-            (event.editable ? '<div style="color:#d1d5db;flex-shrink:0;margin-left:0.25rem;"><span style="font-size:0.8rem;">✏️</span></div>' : '') +
+            '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;text-align:center;color:#d1d5db;' + (event.editable ? '' : 'visibility:hidden;') + '"><span style="font-size:0.8rem;">✏️</span></div>' +
         '</div>' + chainLine;
     });
 
@@ -103,12 +103,13 @@ function renderPlanning() {
 }
 
 function v3LibreVertical() {
-    const letters = 'LIBRE'.split('').map(function (ch) {
-        return '<span style="display:block;line-height:0.86;">' + ch + '</span>';
-    }).join('');
-    return '<div style="min-height:72vh;display:flex;justify-content:center;align-items:flex-start;padding:0.35rem 0.5rem 2rem;">'
-        + '<div style="font-family:Georgia,\'Iowan Old Style\',\'Palatino Linotype\',Palatino,serif;font-weight:500;font-size:clamp(4.6rem,18vw,6.6rem);color:#be123c;text-align:center;letter-spacing:0.02em;">' + letters + '</div>'
-        + '</div>';
+    return '<div style="min-height:72vh;display:flex;align-items:center;justify-content:center;padding:1.25rem 0.5rem;">'
+        + '<div style="position:relative;width:min(100%,18.5rem);min-height:32rem;border-radius:2rem;background:radial-gradient(circle at 50% 18%,rgba(254,205,211,0.55),transparent 58%),linear-gradient(180deg,#fff 0%,#fff1f2 100%);border:1px solid rgba(190,18,60,0.12);box-shadow:0 28px 70px rgba(136,19,55,0.10);display:flex;align-items:center;justify-content:center;overflow:hidden;">'
+        + '<div style="position:absolute;inset:0.9rem;border-radius:1.45rem;border:1px solid rgba(190,18,60,0.16);pointer-events:none;"></div>'
+        + '<div style="position:absolute;top:1.7rem;left:50%;transform:translateX(-50%);font-size:0.68rem;letter-spacing:0.28em;text-transform:uppercase;color:#9f1239;font-weight:700;">Jour férié</div>'
+        + '<div style="writing-mode:vertical-rl;transform:rotate(180deg);font-family:Georgia,\'Iowan Old Style\',\'Palatino Linotype\',Palatino,serif;font-weight:500;font-size:clamp(4.4rem,18vw,6.4rem);letter-spacing:0.22em;line-height:1;color:#be123c;">libre</div>'
+        + '<div style="position:absolute;bottom:1.6rem;width:2.4rem;height:1px;background:linear-gradient(90deg,transparent,#e11d48,transparent);"></div>'
+        + '</div></div>';
 }
 
 function v3OpenEditByIndex(idx) {
