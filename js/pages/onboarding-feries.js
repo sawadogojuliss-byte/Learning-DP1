@@ -101,7 +101,7 @@ function renderHolidays() {
     const box = document.getElementById('holidayModes');
     const btn = document.getElementById('holidayContinueBtn');
     if (!holidayDays.length) {
-        if (box) box.innerHTML = '<div style="background: #f9fafb; border: 1px dashed #d1d5db; border-radius: 1rem; padding: 1rem; text-align: center; color: #6b7280; font-size: 0.9rem;">Aucun jour férié cette semaine. Tu peux passer.</div>';
+        if (box) box.innerHTML = '<p style="margin:0;text-align:center;color:#6b7280;font-size:0.9rem;">Aucun jour férié cette semaine. Tu peux passer.</p>';
         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Passer →'; }
         return;
     }
@@ -109,7 +109,7 @@ function renderHolidays() {
     const choices = [
         ['keep', '📅', 'Garder mon emploi du temps', 'Cours, révisions et activités restent comme prévus.'],
         ['light', '🌿', 'Diminuer les activités', 'Tu vois les activités prévues ce jour. Décoche celles que tu ne veux pas.'],
-        ['free', '🎮', 'Temps libre toute la journée', 'Rien dans l\'emploi du temps. Le jour s\'affiche « libre », en rouge, à la verticale.']
+        ['free', '🎮', 'Temps libre toute la journée', 'Rien ne sera prévu dans votre emploi du temps.']
     ];
     const sorted = holidayDays.slice().sort(function (a, b) { return a - b; });
     const missing = sorted.some(function (day) { return !holidayMode(day); });

@@ -9,7 +9,7 @@
 // ═══════════════════════════════════════════════════════════════════
 const V3_POMO_PRESETS = {
     classic: { key: 'classic', label: '25 / 5', focus: 25, short: 5, long: 15, cycles: 4 },
-    long:    { key: 'long',    label: '50 / 10', focus: 50, short: 10, long: 20, cycles: 2 }
+    long:    { key: 'long',    label: '50 / 15', focus: 50, short: 15, long: 15, cycles: 4 }
 };
 let v3PomoPresetKey = localStorage.getItem('studyPlanIB_pomodoroPreset') || 'classic';
 let v3Pomo = null;          // état du minuteur en cours
@@ -27,14 +27,14 @@ function v3BuildPomodoroPlan(totalMins, preset) {
     while (remaining > 0) {
         i++;
         const f = Math.min(p.focus, remaining);
-        remaining -= f;
-        if (remaining <= 0) { plan.push({ type: 'focus', mins: f, n: i }); break; }
-        const isLong = i % p.cycles === 0;
-        const b = Math.min(isLong ? p.long : p.short, remaining);
-        if (remaining - b < 10) { plan.push({ type: 'focus', mins: f + remaining, n: i }); break; }
         plan.push({ type: 'focus', mins: f, n: i });
-        plan.push({ type: isLong ? 'long' : 'short', mins: b });
-        remaining -= b;
+        remaining -= f;
+        if (remaining <= 0) break;
+        const isLong = i % p.cycles === 0;
+        const breakLen = isLong ? p.long : p.short;
+        if (remaining < breakLen) break;
+        plan.push({ type: isLong ? 'long' : 'short', mins: breakLen });
+        remaining -= breakLen;
     }
     return plan;
 }

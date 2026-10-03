@@ -6,13 +6,17 @@
 
 // Page 5 - Transport
 function showTransportPage() {
-    document.getElementById('subjectsModal').classList.remove('active');
+    ['subjectsModal', 'travauxModal'].forEach(function (id) {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
     document.getElementById('transportModal').classList.add('active');
 }
 
 function hideTransportPage() {
     document.getElementById('transportModal').classList.remove('active');
-    document.getElementById('subjectsModal').classList.add('active');
+    if (typeof showTravauxPage === 'function') showTravauxPage();
+    else document.getElementById('subjectsModal').classList.add('active');
 }
 
 let transportMode = '';

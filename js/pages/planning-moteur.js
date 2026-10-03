@@ -164,7 +164,7 @@ function generateDayEvents(dayIndex) {
         cursor = end;
     }
 
-    const allSubj = [...subjects, ...optionalSubjects].sort((a, b) => a.grade - b.grade);
+    const allSubj = [...subjects, ...optionalSubjects];
     const phoneTime = phoneDays.includes(dayIndex) ? (samePhoneDuration ? phoneDuration : phoneDayDurations[dayIndex] || 60) : 0;
 
     // ── RÉVEIL ──
@@ -184,13 +184,16 @@ function generateDayEvents(dayIndex) {
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else if (isSaturday) {
+        const saturdayClass = !(typeof studentTakesEconomics === 'function' && studentTakesEconomics());
         const commuteToSchool = (typeof transportMode !== 'undefined' && transportMode === 'moto') ? (motoToSchool || 25) : (carToSchool || 30);
         const commuteFromSchool = (typeof transportMode !== 'undefined' && transportMode === 'moto') ? (motoFromSchool || 25) : (carFromSchool || 40);
         const commuteIcon = (typeof transportMode !== 'undefined' && transportMode === 'moto') ? '🏍️' : '🚗';
         chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
-        chain('commute1', 'Trajet école', commuteToSchool + ' min', commuteToSchool, 'transport', commuteIcon, true);
-        fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
-        chain('commute2', 'Trajet maison', commuteFromSchool + ' min', commuteFromSchool, 'transport', commuteIcon, true);
+        if (saturdayClass) {
+            chain('commute1', 'Trajet école', commuteToSchool + ' min', commuteToSchool, 'transport', commuteIcon, true);
+            fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
+            chain('commute2', 'Trajet maison', commuteFromSchool + ' min', commuteFromSchool, 'transport', commuteIcon, true);
+        }
         const s1 = allSubj[0];
         if (s1) chain('study1', 'Révisions ' + s1.name, s1.level + ' · ' + s1.grade + '/7', s1.level === 'HL' ? 90 : 60, getStudyColor(s1.grade), s1.icon, true);
         chain('lunch', 'Déjeuner', '', 60, 'meal', '🍽️', true);
@@ -274,7 +277,7 @@ function closeProgramGaps(events, bedtime, dayIndex) {
     const phoneIdx = items.findIndex(function (ev) { return ev.id === 'phone' || ev.type === 'phone'; });
     let budget = slotWasRemoved(dayIndex, 'freetime') ? 0 : (typeof freeMinutesForDay === 'function' ? freeMinutesForDay(dayIndex) : 60);
     let freePlaced = false;
-    const academicSeq = { n: dayIndex % 2 };
+    const academicSeq = { n: dayIndex % 2, memoir: 0, ia: 0, rev: 0 };
     const out = [];
 
     function clock(mins) {
@@ -333,37 +336,61 @@ function academicGapBlocks(start, end, dayIndex, seq) {
     const all = [];
     if (typeof subjects !== 'undefined' && subjects) all.push.apply(all, subjects);
     if (typeof optionalSubjects !== 'undefined' && optionalSubjects) all.push.apply(all, optionalSubjects);
-    const turn = seq || { n: 0 };
+    const turn = seq || { n: 0, memoir: 0, ia: 0, rev: 0 };
+    const weekend = dayIndex === 5 || dayIndex === 6;
     const blocks = [];
     let cursor = start;
+    function clock(mins) {
+        return addMinutes('00:00', ((mins % 1440) + 1440) % 1440);
+    }
     while (end - cursor >= 15) {
-        let dur = Math.min(75, end - cursor);
+        const cap = weekend ? 90 : 75;
+        let dur = Math.min(cap, end - cursor);
         const remain = end - (cursor + dur);
         if (remain > 0 && remain < 20) dur += remain;
-        const memoir = all.length === 0 || turn.n % 2 === 1;
-        const subjectSlot = Math.floor(turn.n / 2);
-        if (memoir) {
+        let kind = (all.length === 0 || turn.n % 2 === 1) ? 'memoir' : 'ia';
+        if (weekend) {
+            if (dur >= 45 && turn.memoir < 1) kind = 'memoir';
+            else if (dur >= 45 && turn.ia < 1) kind = 'ia';
+            else kind = 'revision';
+        }
+        const subj = all.length ? all[(dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) % all.length] : null;
+        if (kind === 'memoir') {
+            turn.memoir++;
             blocks.push({
                 id: 'memoir-' + cursor,
                 title: 'Mémoire',
-                subtitle: 'Recherche et rédaction',
-                startTime: addMinutes('00:00', ((cursor % 1440) + 1440) % 1440),
-                endTime: addMinutes('00:00', (((cursor + dur) % 1440) + 1440) % 1440),
+                subtitle: typeof memoirLevelLabel === 'function' ? memoirLevelLabel() : 'Recherche et rédaction',
+                startTime: clock(cursor),
+                endTime: clock(cursor + dur),
                 type: 'memoir',
                 icon: '📖',
                 editable: true,
                 kind: 'flex'
             });
-        } else {
-            const subj = all[(dayIndex + subjectSlot) % all.length];
+        } else if (kind === 'ia' && subj) {
+            turn.ia++;
             blocks.push({
                 id: 'ia-' + cursor,
                 title: 'Évaluation interne · ' + subj.name,
-                subtitle: (subj.level || 'IA') + ' · critères et brouillon',
-                startTime: addMinutes('00:00', ((cursor % 1440) + 1440) % 1440),
-                endTime: addMinutes('00:00', (((cursor + dur) % 1440) + 1440) % 1440),
+                subtitle: (typeof iaLevelLabel === 'function' ? iaLevelLabel() : 'critères et brouillon'),
+                startTime: clock(cursor),
+                endTime: clock(cursor + dur),
                 type: 'ia',
                 icon: subj.icon || '📋',
+                editable: true,
+                kind: 'flex'
+            });
+        } else {
+            turn.rev++;
+            blocks.push({
+                id: 'revgap-' + cursor,
+                title: subj ? 'Révisions · ' + subj.name : 'Révisions',
+                subtitle: subj && subj.level ? subj.level + ' · cours et exercices' : 'Cours et exercices',
+                startTime: clock(cursor),
+                endTime: clock(cursor + dur),
+                type: subj && typeof getStudyColor === 'function' ? getStudyColor(subj.grade) : 'study',
+                icon: subj && subj.icon ? subj.icon : '📚',
                 editable: true,
                 kind: 'flex'
             });

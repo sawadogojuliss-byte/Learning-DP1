@@ -117,7 +117,7 @@ function generateDayEvents(dayIndex) {
     }
 
     // Subjects sorted weakest → strongest
-    const allSubj = [...subjects, ...optionalSubjects].sort((a, b) => a.grade - b.grade);
+    const allSubj = [...subjects, ...optionalSubjects];
 
     // Check if a custom override exists for an event id on this day
     function getCustomOverride(id) {
@@ -154,10 +154,11 @@ function generateDayEvents(dayIndex) {
         const commuteToSchool = (carToSchool || motoToSchool || 30);
         const commuteFromSchool = (carFromSchool || motoFromSchool || 40);
         chain('prep', 'Préparation', '', getDuration('prep', 30), 'prep', '🚿', true);
-        chain('commute1', 'Trajet école', commuteToSchool + ' min', getDuration('commute1', commuteToSchool), 'transport', '🚗', true);
-        // Cours ECO fixe
-        fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
-        chain('commute2', 'Trajet maison', commuteFromSchool + ' min', getDuration('commute2', commuteFromSchool), 'transport', '🚗', true);
+        if (!(typeof studentTakesEconomics === 'function' && studentTakesEconomics())) {
+            chain('commute1', 'Trajet école', commuteToSchool + ' min', getDuration('commute1', commuteToSchool), 'transport', '🚗', true);
+            fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
+            chain('commute2', 'Trajet maison', commuteFromSchool + ' min', getDuration('commute2', commuteFromSchool), 'transport', '🚗', true);
+        }
         const s1 = allSubj[0];
         if (s1) chain('study1', 'Révisions ' + s1.name, s1.level + ' · ' + s1.grade + '/7', getDuration('study1', s1.level === 'HL' ? 90 : 60), getStudyColor(s1.grade), s1.icon, true);
         chain('lunch', 'Déjeuner', '', getDuration('lunch', 60), 'meal', '🍽️', true);
@@ -446,8 +447,7 @@ function getSuggestedStartTime() {
 
 function buildSubjectPicker() {
     const allSubj = [...subjects, ...optionalSubjects];
-    // Sort by grade ascending (weakest first = highest priority)
-    const sorted = [...allSubj].sort((a, b) => a.grade - b.grade);
+    const sorted = [...allSubj];
     const suggested = getSuggestedStartTime();
 
     let html = '';
@@ -455,7 +455,7 @@ function buildSubjectPicker() {
         const gradeColor = s.grade <= 2 ? '#dc2626' : s.grade <= 4 ? '#d97706' : '#059669';
         const gradeBg = s.grade <= 2 ? '#fef2f2' : s.grade <= 4 ? '#fff7ed' : '#ecfdf5';
         const gradeBorder = s.grade <= 2 ? '#fecaca' : s.grade <= 4 ? '#fed7aa' : '#a7f3d0';
-        const priorityBadge = i === 0 ? '<span style="font-size: 0.7rem; background: #fef2f2; color: #dc2626; border-radius: 9999px; padding: 0.2rem 0.5rem; margin-left: 0.5rem;">🔥 Prioritaire</span>' : '';
+        const priorityBadge = ''
         html += '<button onclick="pickSubject(' + i + ')" data-subj-idx="' + i + '" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: ' + gradeBg + '; border: 2px solid ' + gradeBorder + '; border-radius: 0.75rem; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s;">'
             + '<div style="display: flex; align-items: center; gap: 0.75rem;">'
             + '<span style="font-size: 1.5rem;">' + s.icon + '</span>'
@@ -473,7 +473,7 @@ function buildSubjectPicker() {
 
 function pickSubject(idx) {
     const allSubj = [...subjects, ...optionalSubjects];
-    const sorted = [...allSubj].sort((a, b) => a.grade - b.grade);
+    const sorted = [...allSubj];
     newEventSelectedSubject = sorted[idx];
 
     // Highlight selected

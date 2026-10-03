@@ -26,6 +26,7 @@ function memoireEtapeActive() {
         ['objectivesModal', 'objectif'],
         ['sleepModal', 'sommeil'],
         ['subjectsModal', 'matieres'],
+        ['travauxModal', 'travaux'],
         ['transportModal', 'transport'],
         ['carConfigModal', 'voiture'],
         ['motoConfigModal', 'moto'],
@@ -66,6 +67,8 @@ function memoireLireEtat() {
         sundayWakeup: sundayWakeup,
         subjects: subjects,
         optionalSubjects: optionalSubjects,
+        memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
+        iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
         transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
         carDeparture: carDeparture,
         carToSchool: carToSchool,
@@ -121,6 +124,12 @@ function memoireSyncChamps() {
     }
 }
 
+function memoireSujetsImposes(list) {
+    if (!Array.isArray(list) || list.length !== 3) return false;
+    var names = list.map(function (s) { return s && s.name; }).sort().join('|');
+    return names === 'Anglais B|Français A|Mathématiques AA';
+}
+
 function memoireAppliquer(data) {
     if (!data || typeof data !== 'object') return;
     if (typeof data.userName === 'string') userName = data.userName;
@@ -128,8 +137,13 @@ function memoireAppliquer(data) {
     if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
     if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
     if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
-    if (Array.isArray(data.subjects) && data.subjects.length) subjects = data.subjects;
-    if (Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
+    var optionnelsSauves = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    var anciensImposes = memoireSujetsImposes(data.subjects) && optionnelsSauves.length === 0;
+    if (!anciensImposes && Array.isArray(data.subjects)) subjects = data.subjects;
+    if (!anciensImposes && Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
+    if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
+    if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
+    if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
     if (typeof transportMode !== 'undefined' && typeof data.transportMode === 'string') transportMode = data.transportMode;
     if (data.carDeparture) carDeparture = data.carDeparture;
     if (data.carToSchool) carToSchool = data.carToSchool;
@@ -201,6 +215,7 @@ function memoireAller(etape) {
         objectif: 'objectivesModal',
         sommeil: 'sleepModal',
         matieres: 'subjectsModal',
+        travaux: 'travauxModal',
         transport: 'transportModal',
         voiture: 'carConfigModal',
         moto: 'motoConfigModal',
@@ -215,6 +230,7 @@ function memoireAller(etape) {
         if (etape === 'objectif') updateScoreUI();
         if (etape === 'sommeil') updateBedtimes();
         if (etape === 'matieres') updateSubjectsUI();
+        if (etape === 'travaux' && typeof renderTravaux === 'function') renderTravaux();
         if (etape === 'voiture') updateCarPrepTime();
         if (etape === 'moto') updateMotoPrepTime();
         if (etape === 'activites') renderActivities();
@@ -314,6 +330,7 @@ function memoireDemarrer() {
         'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
         'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',
         'addOptionalSubject', 'removeOptionalSubject', 'updateSubjectLevel', 'updateSubjectGrade',
+        'setMemoirLevel', 'setIaLevel', 'validateTravaux',
         'adjustScore', 'handleScoreInput', 'navigateTo', 'selectDay',
         'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
         'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',

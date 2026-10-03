@@ -1,0 +1,38 @@
+<!-- ============================================================
+     PAGE : Mémoire et évaluations internes
+     Après les matières. Niveau de l'élève.
+     Script : js/pages/onboarding-travaux.js
+     ============================================================ -->
+<div class="context-modal" id="travauxModal">
+    <div class="context-shape context-shape-1 animate-float"></div>
+    <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+
+    <div class="context-center" style="padding: 2rem 1rem;">
+        <div class="context-card animate-fade-in-up" style="max-width: 46rem;">
+            <div class="progress-indicator">
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2rem;"></div>
+                <div class="progress-step progress-step-active">5</div>
+                <div class="progress-line progress-line-inactive" style="width: 2rem;"></div>
+                <div class="progress-step progress-step-inactive">...</div>
+            </div>
+
+            <p style="margin: 0 0 0.4rem; text-align: center; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.72rem; font-weight: 700; color: #9f1239;">Ton avancement</p>
+            <h1 class="context-title" style="margin-bottom: 0.4rem;">Mémoire et évaluations internes</h1>
+            <p class="context-subtitle">Choisis ton niveau. Rien n'est imposé : le planning suivra là où tu en es.</p>
+
+            <div id="travauxBody" style="margin: 1.5rem 0 1.25rem;"></div>
+
+            <div class="context-buttons">
+                <button id="travauxContinueBtn" class="btn-continue" onclick="validateTravaux()" disabled>Continuer →</button>
+                <button class="btn-back" onclick="hideTravauxPage()">← Retour</button>
+            </div>
+        </div>
+    </div>
+</div>
