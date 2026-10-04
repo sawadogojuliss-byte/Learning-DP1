@@ -55,6 +55,10 @@
                     <span style="font-size:1.375rem;">✏️</span>
                     <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Mes Exercices</p><p style="font-size:0.75rem;color:#6b7280;">Upload & planifie tes devoirs</p></div>
                 </button>
+                <button type="button" onclick="navigateTo('legende');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
+                    <span style="font-size:1.375rem;">📊</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Légende des couleurs</p><p style="font-size:0.75rem;color:#6b7280;">Le sens de chaque couleur</p></div>
+                </button>
 
                 <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>
                 <div style="background:#f9fafb;border-radius:0.875rem;padding:0.875rem;border:1.5px solid #f3f4f6;">
@@ -95,25 +99,6 @@
                 <span style="font-size: 1.25rem;">+</span>
                 <span>Ajouter au planning</span>
             </button>
-
-            <!-- Color Legend -->
-            <div id="planningLegend" style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;">
-                <h3 style="font-weight: 700; color: #111827; margin-bottom: 1rem;">📊 Légende des couleurs</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #818cf8; background: #eef2ff;"><span style="font-size: 0.875rem; color: #374151;">😴 Sommeil</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #60a5fa; background: #eff6ff;"><span style="font-size: 0.875rem; color: #374151;">🏫 Cours</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #ef4444; background: #fef2f2;"><span style="font-size: 0.875rem; color: #374151;">🔴 Révision critique (≤2/7)</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f59e0b; background: #fffbeb;"><span style="font-size: 0.875rem; color: #374151;">🟠 Révision à améliorer (≤4/7)</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #fb923c; background: #fff7ed;"><span style="font-size: 0.875rem; color: #374151;">📚 Révision normale</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #a78bfa; background: #faf5ff;"><span style="font-size: 0.875rem; color: #374151;">🎯 Activités</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #22d3ee; background: #ecfeff;"><span style="font-size: 0.875rem; color: #374151;">🚗 Transport</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #9ca3af; background: #f9fafb;"><span style="font-size: 0.875rem; color: #374151;">🍽️ Repas</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #f472b6; background: #fdf2f8;"><span style="font-size: 0.875rem; color: #374151;">📱 Téléphone</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #4ade80; background: #f0fdf4;"><span style="font-size: 0.875rem; color: #374151;">🎮 Temps libre</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #fb7185; background: #fff1f2;"><span style="font-size: 0.875rem; color: #374151;">📋 Évaluation interne</span></div>
-                    <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #a78bfa; background: #f5f3ff;"><span style="font-size: 0.875rem; color: #374151;">📖 Mémoire</span></div>
-                </div>
-            </div>
 
             <!-- Stats Summary -->
             <div id="planningStats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">

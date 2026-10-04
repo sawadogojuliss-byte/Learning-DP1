@@ -19,7 +19,8 @@ function memoireJson(key) {
 function memoireEtapeActive() {
     var panneaux = [
         ['panelSoutien', 'soutien'],
-        ['panelExercices', 'exercices']
+        ['panelExercices', 'exercices'],
+        ['panelLegende', 'legende']
     ];
     var modales = [
         ['contextModal', 'prenom'],
@@ -194,10 +195,7 @@ function memoireAppliquer(data) {
 
 function memoireFermerVues() {
     document.querySelectorAll('.context-modal').forEach(function (el) { el.classList.remove('active'); });
-    var soutien = document.getElementById('panelSoutien');
-    var exos = document.getElementById('panelExercices');
-    if (soutien) soutien.classList.remove('active');
-    if (exos) exos.classList.remove('active');
+    document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
 }
 
 function memoireAller(etape) {
@@ -205,12 +203,13 @@ function memoireAller(etape) {
         memoireFermerVues();
         return;
     }
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices') {
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active')) generatePlanning();
         if (etape === 'soutien') navigateTo('soutien');
         else if (etape === 'exercices') navigateTo('exercices');
+        else if (etape === 'legende') navigateTo('legende');
         else navigateTo('planning');
         return;
     }

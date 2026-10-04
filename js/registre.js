@@ -22,6 +22,7 @@ window.STUDYPLAN_HTML = [
     'pages/planning.html',
     'pages/soutien.html',
     'pages/exercices.html',
+    'pages/legende.html',
     'pages/compte.html'
 ];
 

@@ -22,16 +22,17 @@ function closeSideMenu() {
     document.getElementById('sideMenuOverlay').style.display = 'none';
 }
 function navigateTo(page) {
-    var soutien = document.getElementById('panelSoutien');
-    var exercices = document.getElementById('panelExercices');
-    if (soutien) soutien.classList.remove('active');
-    if (exercices) exercices.classList.remove('active');
-    if (page === 'soutien' && soutien) {
-        initSoutien();
-        soutien.classList.add('active');
-    } else if (page === 'exercices' && exercices) {
-        initExercices();
-        exercices.classList.add('active');
+    document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+    if (page === 'soutien') {
+        var soutien = document.getElementById('panelSoutien');
+        if (typeof initSoutien === 'function') initSoutien();
+        if (soutien) soutien.classList.add('active');
+    } else if (page === 'exercices') {
+        var exercices = document.getElementById('panelExercices');
+        if (typeof initExercices === 'function') initExercices();
+        if (exercices) exercices.classList.add('active');
+    } else if (page === 'legende') {
+        var legende = document.getElementById('panelLegende');
+        if (legende) legende.classList.add('active');
     }
-    // 'planning' = fermer les autres panneaux
 }
