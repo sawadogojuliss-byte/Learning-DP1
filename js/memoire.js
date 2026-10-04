@@ -52,6 +52,7 @@ function memoireEtapeActive() {
 }
 
 function memoireLireEtat() {
+    if (typeof eeNettoyerSuivi === 'function') eeNettoyerSuivi();
     var champNom = document.getElementById('nameInput');
     if (champNom && champNom.value.trim()) userName = champNom.value.trim();
 
@@ -74,6 +75,10 @@ function memoireLireEtat() {
         memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
         iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
         iaLevels: typeof iaLevels !== 'undefined' ? iaLevels : {},
+        memoirPlan: typeof memoirPlan !== 'undefined' ? memoirPlan : [],
+        iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
+        eeVus: typeof eeVus !== 'undefined' ? eeVus : {},
+        eeDemandes: typeof eeDemandes !== 'undefined' ? eeDemandes : {},
         transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
         carDeparture: carDeparture,
         carToSchool: carToSchool,
@@ -152,6 +157,10 @@ function memoireAppliquer(data) {
     if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
     if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
     if (typeof iaLevels !== 'undefined' && data.iaLevels && typeof data.iaLevels === 'object') iaLevels = data.iaLevels;
+    if (typeof memoirPlan !== 'undefined' && Array.isArray(data.memoirPlan)) memoirPlan = typeof eeNormaliserPlan === 'function' ? eeNormaliserPlan(data.memoirPlan) : data.memoirPlan;
+    if (typeof iaPlans !== 'undefined' && data.iaPlans && typeof data.iaPlans === 'object') iaPlans = typeof eeNormaliserPlans === 'function' ? eeNormaliserPlans(data.iaPlans) : data.iaPlans;
+    if (typeof eeVus !== 'undefined' && data.eeVus && typeof data.eeVus === 'object') eeVus = data.eeVus;
+    if (typeof eeDemandes !== 'undefined' && data.eeDemandes && typeof data.eeDemandes === 'object') eeDemandes = data.eeDemandes;
     if (typeof transportMode !== 'undefined' && typeof data.transportMode === 'string') transportMode = data.transportMode;
     if (data.carDeparture) carDeparture = data.carDeparture;
     if (data.carToSchool) carToSchool = data.carToSchool;
@@ -357,7 +366,8 @@ function memoireDemarrer() {
         'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
         'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',
         'addOptionalSubject', 'removeOptionalSubject', 'updateSubjectLevel', 'updateSubjectGrade',
-        'setMemoirLevel', 'setIaStage',
+        'setMemoirLevel', 'setIaStage', 'eeChoisirDebut', 'eeChoisirPlan', 'eeChoisirFinal',
+        'eeAjouterPartie', 'eeBasculerPartie', 'eeRetirerPartie', 'eeRepondreValidation',
         'adjustScore', 'handleScoreInput', 'navigateTo', 'selectDay',
         'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
         'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',

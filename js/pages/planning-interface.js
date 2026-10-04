@@ -38,6 +38,7 @@ function renderPlanning() {
         document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
         document.getElementById('statActivities').textContent = selectedActivities.length;
         if (typeof majClasseAffichage === 'function') majClasseAffichage();
+        if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
         return;
     }
     if (addBtn) addBtn.style.display = 'flex';
@@ -102,6 +103,7 @@ function renderPlanning() {
     document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
     document.getElementById('statActivities').textContent = selectedActivities.length;
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
+    if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
 }
 
 function v3LibreVertical() {

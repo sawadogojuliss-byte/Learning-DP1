@@ -355,7 +355,13 @@ function academicGapBlocks(start, end, dayIndex, seq) {
             else kind = 'revision';
         }
         const subj = all.length ? all[(dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) % all.length] : null;
-        if (kind === 'memoir') {
+        var tachePlan = null;
+        if ((kind === 'memoir' || kind === 'ia') && typeof eeProchaineTache === 'function') tachePlan = eeProchaineTache(dayIndex, turn);
+        if (tachePlan && typeof eeBlocTache === 'function') {
+            if (tachePlan.kind === 'memoir') turn.memoir++;
+            else turn.ia++;
+            blocks.push(eeBlocTache(tachePlan, cursor, dur, clock));
+        } else if (kind === 'memoir') {
             turn.memoir++;
             blocks.push({
                 id: 'memoir-' + cursor,

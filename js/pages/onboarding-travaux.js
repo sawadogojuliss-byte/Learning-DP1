@@ -1,51 +1,123 @@
 /* ============================================================
    EE & IA
-   Avancement du mémoire et de chaque évaluation interne.
-   La page d'onboarding n'est plus affichée.
+   Le pourcentage suit les parties du plan, pas les anciennes étapes.
+   Les parties non cochées vont dans l'emploi du temps.
    ============================================================ */
 
 let memoirLevel = '';
 let iaLevel = '';
 let iaLevels = {};
+let memoirPlan = [];
+let iaPlans = {};
+let eeVus = {};
+let eeDemandes = {};
+let eeQuestionCourante = null;
+let eeModalOuvert = false;
 
-const MEMOIR_STAGES = [
-    { id: 'debut', name: 'Pas commencé', hint: 'Le sujet n’est pas encore choisi.' },
-    { id: 'recherche', name: 'Recherche', hint: 'Tu rassembles des sources.' },
-    { id: 'plan', name: 'Plan', hint: 'La question et le plan sont posés.' },
-    { id: 'brouillon', name: 'Brouillon', hint: 'Tu es en train d’écrire.' },
-    { id: 'final', name: 'Finalisation', hint: 'Tu relis et tu corriges.' }
-];
-
-const IA_STAGES = [
-    { id: 'debut', name: 'Pas commencées', hint: 'Les critères ne sont pas encore lancés.' },
-    { id: 'criteres', name: 'Critères', hint: 'Tu comprends ce qui est demandé.' },
-    { id: 'collecte', name: 'Collecte', hint: 'Tu rassembles données et exemples.' },
-    { id: 'brouillon', name: 'Brouillon', hint: 'Le travail est en cours d’écriture.' },
-    { id: 'final', name: 'Finalisation', hint: 'Tu peaufines avant de rendre.' }
+var EE_SOLUTIONS_FIXES = [
+    'Aller voir ton professeur pour trouver un thème',
+    'Faire des recherches en ligne',
+    'Relire des exemples de travaux déjà acceptés',
+    'Noter deux ou trois idées, puis en choisir une avec ton professeur'
 ];
 
 function eeEchap(str) {
     return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function stagePourcentage(stageId, stages) {
-    var index = -1;
+function eePourcents(n) {
+    var out = [];
     var i;
-    for (i = 0; i < stages.length; i++) {
-        if (stages[i].id === stageId) index = i;
-    }
-    if (index < 0 || !stages.length) return 0;
-    return Math.round(((index + 1) * 100) / stages.length);
+    if (!n) return out;
+    var base = Math.floor(100 / n);
+    var extra = 100 - base * n;
+    for (i = 0; i < n; i++) out.push(base + (i < extra ? 1 : 0));
+    return out;
 }
 
-function partEtape(stages) {
-    if (!stages.length) return 0;
-    return Math.round(100 / stages.length);
+function eeIdPartie() {
+    return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function eeTextePartie(valeur) {
+    return String(valeur || '').replace(/\s+/g, ' ').trim().slice(0, 80);
+}
+
+function eeNormaliserPlan(list) {
+    if (!Array.isArray(list)) return [];
+    return list.map(function (p) {
+        if (!p) return null;
+        var id = String(p.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24);
+        var text = eeTextePartie(p.text);
+        if (!id || !text) return null;
+        return { id: id, text: text, done: !!p.done };
+    }).filter(Boolean).slice(0, 20);
+}
+
+function eeNormaliserPlans(obj) {
+    var out = {};
+    if (!obj || typeof obj !== 'object') return out;
+    Object.keys(obj).forEach(function (nom) {
+        if (!nom || nom.length > 80) return;
+        out[nom] = eeNormaliserPlan(obj[nom]);
+    });
+    return out;
+}
+
+function eeDateCle(date) {
+    var n = date || new Date();
+    return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+}
+
+function eeDateLimite(jours) {
+    var n = new Date();
+    n.setDate(n.getDate() + jours);
+    return eeDateCle(n);
+}
+
+function eeNettoyerSuivi() {
+    var garde = eeDateLimite(-14);
+    Object.keys(eeVus || {}).forEach(function (cle) {
+        var item = eeVus[cle];
+        var date = item && item.date ? item.date : cle.slice(0, 10);
+        if (date < garde) delete eeVus[cle];
+    });
+    Object.keys(eeDemandes || {}).forEach(function (cle) {
+        if (cle.slice(0, 10) < garde) delete eeDemandes[cle];
+    });
+}
+
+function eeJourIndex() {
+    var jour = new Date().getDay();
+    return jour === 0 ? 6 : jour - 1;
+}
+
+function eeMinutesMaintenant() {
+    var n = new Date();
+    return n.getHours() * 60 + n.getMinutes();
+}
+
+function eeMomentFini(startTime, endTime, maintenant) {
+    if (typeof timeToMinutes !== 'function') return false;
+    var debut = timeToMinutes(startTime);
+    var fin = timeToMinutes(endTime);
+    var now = maintenant;
+    if (fin <= debut) fin += 1440;
+    if (now < debut && fin > 1440) now += 1440;
+    return now >= fin;
+}
+
+function eeCleSuivi(date, partId, endTime) {
+    return date + '|' + partId + '|' + endTime;
 }
 
 function memoirLevelLabel() {
-    var found = MEMOIR_STAGES.find(function (s) { return s.id === memoirLevel; });
-    return found ? found.name : 'Recherche et rédaction';
+    if (memoirLevel === 'debut') return 'Pas commencé';
+    if (memoirLevel === 'plan') return 'Plan';
+    if (memoirLevel === 'final') return 'Finalisation';
+    if (memoirLevel === 'recherche') return 'Recherche';
+    if (memoirLevel === 'brouillon') return 'Brouillon';
+    return 'Recherche et rédaction';
 }
 
 function iaStageId(name) {
@@ -55,8 +127,13 @@ function iaStageId(name) {
 
 function iaLevelLabel(name) {
     var id = name ? iaStageId(name) : iaLevel;
-    var found = IA_STAGES.find(function (s) { return s.id === id; });
-    return found ? found.name : 'critères et brouillon';
+    if (id === 'debut') return 'Pas commencé';
+    if (id === 'plan') return 'Plan';
+    if (id === 'final') return 'Finalisation';
+    if (id === 'criteres') return 'Critères';
+    if (id === 'collecte') return 'Collecte';
+    if (id === 'brouillon') return 'Brouillon';
+    return 'critères et brouillon';
 }
 
 function eeSujets() {
@@ -66,39 +143,110 @@ function eeSujets() {
     return list.filter(function (s) { return s && s.name; });
 }
 
-function setMemoirLevel(id) {
-    memoirLevel = id;
-    renderEEia();
-    if (typeof renderPlanning === 'function') {
-        try { renderPlanning(); } catch (e) {}
+function eePlanDe(kind, index) {
+    if (kind === 'memoir') {
+        memoirPlan = eeNormaliserPlan(memoirPlan);
+        return memoirPlan;
     }
+    var sujet = eeSujets()[index];
+    if (!sujet) return [];
+    if (!iaPlans || typeof iaPlans !== 'object') iaPlans = {};
+    iaPlans[sujet.name] = eeNormaliserPlan(iaPlans[sujet.name]);
+    return iaPlans[sujet.name];
 }
 
-function setIaStage(index, id) {
+function eeNiveauDe(kind, index) {
+    if (kind === 'memoir') return memoirLevel;
     var sujet = eeSujets()[index];
-    if (!sujet) return;
+    return sujet ? iaStageId(sujet.name) : '';
+}
+
+function eeDefinirNiveau(kind, index, id) {
+    if (kind === 'memoir') {
+        memoirLevel = id;
+        return true;
+    }
+    var sujet = eeSujets()[index];
+    if (!sujet) return false;
     if (!iaLevels || typeof iaLevels !== 'object') iaLevels = {};
     iaLevels[sujet.name] = id;
-    renderEEia();
-    if (typeof renderPlanning === 'function') {
-        try { renderPlanning(); } catch (e) {}
-    }
+    return true;
 }
 
-function eeCarteEtape(stage, index, selectedId, stages, action) {
-    var selectedIndex = -1;
+function eeAvancement(plan) {
+    var parts = eePourcents(plan.length);
+    var fait = 0;
+    var nFait = 0;
     var i;
-    for (i = 0; i < stages.length; i++) {
-        if (stages[i].id === selectedId) selectedIndex = i;
+    for (i = 0; i < plan.length; i++) {
+        if (plan[i].done) {
+            fait += parts[i];
+            nFait++;
+        }
     }
-    var on = index <= selectedIndex;
-    var current = stage.id === selectedId;
-    var accent = action.indexOf('setMemoirLevel') === 0 ? '#9f1239' : '#1d4ed8';
-    var wash = action.indexOf('setMemoirLevel') === 0 ? '#fff1f2' : '#eff6ff';
-    return '<button type="button" onclick="' + action + '" style="text-align:left;width:100%;border:1.5px solid ' + (current ? accent : '#e7e5e4') + ';background:' + (on ? wash : 'white') + ';border-radius:1rem;padding:0.8rem 0.9rem;cursor:pointer;display:flex;gap:0.75rem;align-items:flex-start;">'
-        + '<span style="width:1.55rem;height:1.55rem;border-radius:999px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.72rem;font-weight:800;color:' + (on ? 'white' : '#78716c') + ';background:' + (on ? accent : '#f5f5f4') + ';">' + (on ? '✓' : (index + 1)) + '</span>'
-        + '<span><span style="display:block;font-weight:750;color:#1c1917;font-size:0.9rem;">' + eeEchap(stage.name) + '</span><span style="display:block;margin-top:0.12rem;color:#78716c;font-size:0.76rem;line-height:1.35;">' + eeEchap(stage.hint) + '</span></span>'
-        + '</button>';
+    return { n: plan.length, nFait: nFait, pourcent: fait, parts: parts };
+}
+
+function eePartiesOuvertes() {
+    var list = [];
+    eeNormaliserPlan(memoirPlan).forEach(function (p) {
+        if (!p.done) list.push({ kind: 'memoir', subject: '', partId: p.id, text: p.text, icon: '📖' });
+    });
+    eeSujets().forEach(function (sujet) {
+        eeNormaliserPlan(iaPlans && iaPlans[sujet.name]).forEach(function (p) {
+            if (!p.done) list.push({ kind: 'ia', subject: sujet.name, partId: p.id, text: p.text, icon: sujet.icon || '📋' });
+        });
+    });
+    return list;
+}
+
+function eeProchaineTache(dayIndex, turn) {
+    var ouvertes = eePartiesOuvertes();
+    if (!ouvertes.length) return null;
+    if (!turn || typeof turn.tacheN !== 'number') {
+        if (turn) turn.tacheN = 0;
+        else turn = { tacheN: 0 };
+    }
+    var tache = ouvertes[(Number(dayIndex) + turn.tacheN) % ouvertes.length];
+    turn.tacheN++;
+    return tache;
+}
+
+function eeBlocTache(tache, cursor, dur, clock) {
+    return {
+        id: 'plantask-' + tache.partId + '-' + cursor,
+        title: 'tâche (' + tache.text + ')',
+        subtitle: tache.kind === 'memoir' ? 'Mémoire' : ('Évaluation interne · ' + tache.subject),
+        startTime: clock(cursor),
+        endTime: clock(cursor + dur),
+        type: tache.kind === 'memoir' ? 'memoir' : 'ia',
+        icon: tache.icon || (tache.kind === 'memoir' ? '📖' : '📋'),
+        editable: true,
+        kind: 'flex',
+        planTask: {
+            kind: tache.kind,
+            subject: tache.subject || '',
+            partId: tache.partId,
+            text: tache.text
+        }
+    };
+}
+
+function eePartieFaite(kind, subject, partId) {
+    var plan = kind === 'memoir' ? eeNormaliserPlan(memoirPlan) : eeNormaliserPlan(iaPlans && iaPlans[subject]);
+    var i;
+    for (i = 0; i < plan.length; i++) {
+        if (plan[i].id === partId) return !!plan[i].done;
+    }
+    return true;
+}
+
+function eeMarquerFaite(kind, subject, partId) {
+    var plan = kind === 'memoir' ? memoirPlan : (iaPlans && iaPlans[subject]);
+    if (!Array.isArray(plan)) return;
+    plan.forEach(function (p) {
+        if (p && p.id === partId) p.done = true;
+    });
 }
 
 function eeBarre(pourcent, accent) {
@@ -107,46 +255,331 @@ function eeBarre(pourcent, accent) {
         + '</div>';
 }
 
+function eeBoutonChoix(label, actif, accent, wash, action) {
+    return '<button type="button" onclick="' + action + '" style="text-align:left;width:100%;border:1.5px solid ' + (actif ? accent : '#e7e5e4') + ';background:' + (actif ? wash : 'white') + ';border-radius:1rem;padding:0.8rem 0.9rem;cursor:pointer;font-weight:750;color:#1c1917;font-size:0.9rem;">'
+        + (actif ? '✓ ' : '') + eeEchap(label) + '</button>';
+}
+
+function eePanneauSolutions() {
+    return '<div style="margin-top:0.85rem;padding:0.9rem;border-radius:1rem;background:#fffbeb;border:1px solid #fde68a;">'
+        + '<p style="margin:0 0 0.55rem;font-weight:800;color:#92400e;font-size:0.82rem;">Pour commencer, toujours les mêmes pistes</p>'
+        + '<ol style="margin:0;padding-left:1.15rem;color:#44403c;font-size:0.86rem;line-height:1.45;">'
+        + EE_SOLUTIONS_FIXES.map(function (texte) { return '<li style="margin:0.28rem 0;">' + eeEchap(texte) + '</li>'; }).join('')
+        + '</ol>'
+        + '<p style="margin:0.8rem 0 0;padding:0.7rem 0.75rem;border-radius:0.8rem;background:white;color:#1c1917;font-size:0.84rem;line-height:1.45;">Une fois cette étape finie, fais des recherches pour comprendre les critères d’évaluation.</p>'
+        + '</div>';
+}
+
+function eePanneauPlan(kind, index, plan, accent) {
+    var av = eeAvancement(plan);
+    var egal = av.n > 0 && av.parts.every(function (p) { return p === av.parts[0]; });
+    var html = '<div style="margin-top:0.85rem;">'
+        + '<p style="margin:0 0 0.65rem;color:#57534e;font-size:0.82rem;line-height:1.4;">Saisis les parties de ton plan. Chaque partie reçoit la même part, et le total fait 100 %.</p>'
+        + '<div style="display:flex;gap:0.45rem;">'
+        + '<input id="eeIn-' + kind + '-' + index + '" maxlength="80" placeholder="Ex. : Introduction" onkeydown="if(event.key===\'Enter\'){event.preventDefault();eeAjouterPartie(\'' + kind + '\',' + index + ');}" style="flex:1;min-width:0;border:1.5px solid #e7e5e4;border-radius:0.8rem;padding:0.7rem 0.75rem;font-size:0.9rem;">'
+        + '<button type="button" onclick="eeAjouterPartie(\'' + kind + '\',' + index + ')" style="border:none;background:' + accent + ';color:white;border-radius:0.8rem;padding:0.7rem 0.85rem;font-weight:800;cursor:pointer;">Ajouter</button>'
+        + '</div>';
+    if (!av.n) {
+        html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.8rem;">Ajoute au moins une partie. Quatre parties font 25 % chacune.</p></div>';
+        return html;
+    }
+    html += '<p style="margin:0.75rem 0 0.45rem;color:#44403c;font-size:0.8rem;">' + (egal ? ('Chaque partie vaut ' + av.parts[0] + ' %. ') : 'Les parts se répartissent pour faire 100 %. ') + 'Total : 100 %.</p>';
+    plan.forEach(function (partie, i) {
+        html += '<div style="display:flex;align-items:center;gap:0.45rem;margin-top:0.4rem;">'
+            + '<button type="button" onclick="eeBasculerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" style="flex:1;min-width:0;text-align:left;border:1.5px solid ' + (partie.done ? '#86efac' : '#e7e5e4') + ';background:' + (partie.done ? '#f0fdf4' : 'white') + ';border-radius:0.85rem;padding:0.7rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.55rem;">'
+            + '<span style="width:1.35rem;height:1.35rem;border-radius:0.4rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.75rem;font-weight:800;color:' + (partie.done ? 'white' : '#a8a29e') + ';background:' + (partie.done ? '#16a34a' : '#f5f5f4') + ';">' + (partie.done ? '✓' : '') + '</span>'
+            + '<span style="flex:1;min-width:0;color:#1c1917;font-size:0.88rem;">' + eeEchap(partie.text) + '</span>'
+            + '<strong style="color:' + accent + ';font-size:0.85rem;">' + av.parts[i] + ' %</strong>'
+            + '</button>'
+            + '<button type="button" onclick="eeRetirerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" title="Retirer" style="border:none;background:transparent;color:#a8a29e;cursor:pointer;font-size:1rem;padding:0.35rem;">×</button>'
+            + '</div>';
+    });
+    html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.78rem;line-height:1.4;">Les parties non cochées sont placées dans l’emploi du temps : tâche (nom de la partie).</p></div>';
+    return html;
+}
+
+function eeCarteTravail(opts) {
+    var plan = eePlanDe(opts.kind, opts.index);
+    var av = eeAvancement(plan);
+    var niveau = eeNiveauDe(opts.kind, opts.index);
+    var html = '<article style="margin-bottom:0.9rem;padding:0.95rem;border-radius:1.1rem;background:white;border:1px solid #e7e5e4;">'
+        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">'
+        + '<div style="min-width:0;"><p style="margin:0 0 0.15rem;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:' + opts.accent + ';">' + eeEchap(opts.kicker) + '</p>'
+        + '<h3 style="margin:0;font-size:1.02rem;color:#1c1917;">' + (opts.icon ? '<span style="margin-right:0.35rem;">' + eeEchap(opts.icon) + '</span>' : '') + eeEchap(opts.titre) + '</h3></div>'
+        + '<span style="font-size:1.35rem;font-weight:800;color:' + opts.accent + ';white-space:nowrap;">' + av.pourcent + ' %</span>'
+        + '</div>'
+        + eeBarre(av.pourcent, opts.accent)
+        + '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + (av.n ? (av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n) : '0 % tant que le plan n’a pas de partie') + '</p>'
+        + '<div style="display:flex;flex-direction:column;gap:0.4rem;">'
+        + eeBoutonChoix('Pas commencé', niveau === 'debut', opts.accent, opts.wash, 'eeChoisirDebut(\'' + opts.kind + '\',' + opts.index + ')')
+        + eeBoutonChoix('Plan', niveau === 'plan', opts.accent, opts.wash, 'eeChoisirPlan(\'' + opts.kind + '\',' + opts.index + ')')
+        + eeBoutonChoix('Finalisation', niveau === 'final', opts.accent, opts.wash, 'eeChoisirFinal(\'' + opts.kind + '\',' + opts.index + ')')
+        + '</div>';
+    if (niveau === 'debut') html += eePanneauSolutions();
+    if (niveau === 'plan') html += eePanneauPlan(opts.kind, opts.index, plan, opts.accent);
+    html += '</article>';
+    return html;
+}
+
 function renderEEia() {
     var body = document.getElementById('eeiaBody');
     if (!body) return;
-    var partIa = partEtape(IA_STAGES);
-    var html = '<section style="margin-bottom:1.25rem;padding:1.1rem;border-radius:1.35rem;background:linear-gradient(180deg,#fff7f7,#fff);border:1px solid #f1f0ee;">'
-        + '<p style="margin:0 0 0.2rem;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;font-weight:800;color:#9f1239;">EE</p>'
-        + '<h2 style="margin:0 0 0.35rem;font-size:1.15rem;color:#1c1917;">Mémoire</h2>'
-        + '<p style="margin:0 0 0.85rem;color:#78716c;font-size:0.8rem;">Indique où tu en es.</p>'
-        + '<div style="display:flex;flex-direction:column;gap:0.45rem;">'
-        + MEMOIR_STAGES.map(function (stage, i) {
-            return eeCarteEtape(stage, i, memoirLevel, MEMOIR_STAGES, 'setMemoirLevel(\'' + stage.id + '\')');
-        }).join('')
-        + '</div></section>';
-
-    html += '<section style="padding:1.1rem;border-radius:1.35rem;background:linear-gradient(180deg,#f8fafc,#fff);border:1px solid #f1f0ee;">'
+    var html = '<p style="margin:0 0 1rem;color:#57534e;font-size:0.86rem;line-height:1.45;">Le pourcentage suit les parties de ton plan. Appuie sur Pas commencé pour les pistes de départ, puis sur Plan pour saisir tes parties.</p>';
+    html += eeCarteTravail({
+        kind: 'memoir',
+        index: -1,
+        kicker: 'EE',
+        titre: 'Mémoire',
+        icon: '',
+        accent: '#9f1239',
+        wash: '#fff1f2'
+    });
+    html += '<section style="margin-top:0.4rem;">'
         + '<p style="margin:0 0 0.2rem;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;font-weight:800;color:#1d4ed8;">IA</p>'
-        + '<h2 style="margin:0 0 0.35rem;font-size:1.15rem;color:#1c1917;">Évaluations internes</h2>'
-        + '<p style="margin:0 0 0.9rem;color:#78716c;font-size:0.8rem;">Chaque étape vaut ' + partIa + ' %. Le pourcentage avance quand tu coches une étape.</p>';
-
+        + '<h2 style="margin:0 0 0.75rem;font-size:1.15rem;color:#1c1917;">Évaluations internes</h2>';
     var sujets = eeSujets();
     if (!sujets.length) {
         html += '<p style="margin:0;color:#6b7280;font-size:0.88rem;">Choisis d’abord tes matières pour suivre chaque évaluation interne.</p>';
     }
     sujets.forEach(function (sujet, index) {
-        var stade = iaStageId(sujet.name);
-        var pourcent = stagePourcentage(stade, IA_STAGES);
-        html += '<article style="margin-bottom:0.9rem;padding:0.95rem;border-radius:1.1rem;background:white;border:1px solid #e7e5e4;">'
-            + '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">'
-            + '<div style="display:flex;align-items:center;gap:0.55rem;min-width:0;"><span style="font-size:1.25rem;">' + eeEchap(sujet.icon || '📋') + '</span><strong style="color:#1c1917;font-size:0.95rem;">' + eeEchap(sujet.name) + '</strong></div>'
-            + '<span style="font-size:1.15rem;font-weight:800;color:#1d4ed8;">' + pourcent + ' %</span>'
-            + '</div>'
-            + eeBarre(pourcent, '#1d4ed8')
-            + '<div style="display:flex;flex-direction:column;gap:0.4rem;margin-top:0.75rem;">'
-            + IA_STAGES.map(function (stage, i) {
-                return eeCarteEtape(stage, i, stade, IA_STAGES, 'setIaStage(' + index + ',\'' + stage.id + '\')');
-            }).join('')
-            + '</div></article>';
+        html += eeCarteTravail({
+            kind: 'ia',
+            index: index,
+            kicker: 'IA',
+            titre: sujet.name,
+            icon: sujet.icon || '📋',
+            accent: '#1d4ed8',
+            wash: '#eff6ff'
+        });
     });
     html += '</section>';
     body.innerHTML = html;
+    eeSuiviPlanning();
+}
+
+function eeApresChangement() {
+    renderEEia();
+    var planning = document.getElementById('planningModal');
+    if (planning && planning.classList.contains('active') && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    if (typeof memoireSauvegarder === 'function') {
+        try { memoireSauvegarder(); } catch (e) {}
+    }
+}
+
+function eeChoisirDebut(kind, index) {
+    if (!eeDefinirNiveau(kind, index, 'debut')) return;
+    eeApresChangement();
+}
+
+function eeChoisirPlan(kind, index) {
+    if (!eeDefinirNiveau(kind, index, 'plan')) return;
+    eeApresChangement();
+}
+
+function eeChoisirFinal(kind, index) {
+    if (!eeDefinirNiveau(kind, index, 'final')) return;
+    var nom = 'ton mémoire';
+    if (kind !== 'memoir') {
+        var sujet = eeSujets()[index];
+        nom = sujet ? ('l’évaluation interne de ' + sujet.name) : 'cette évaluation interne';
+    }
+    eeOuvrirMessage(eeHtmlFinal(nom));
+    eeApresChangement();
+}
+
+function eeAjouterPartie(kind, index) {
+    var champ = document.getElementById('eeIn-' + kind + '-' + index);
+    var texte = eeTextePartie(champ ? champ.value : '');
+    if (!texte) return;
+    var plan = eePlanDe(kind, index);
+    if (plan.length >= 20) return;
+    plan.push({ id: eeIdPartie(), text: texte, done: false });
+    eeDefinirNiveau(kind, index, 'plan');
+    eeApresChangement();
+}
+
+function eeBasculerPartie(kind, index, partId) {
+    var plan = eePlanDe(kind, index);
+    plan.forEach(function (p) {
+        if (p.id === partId) p.done = !p.done;
+    });
+    eeApresChangement();
+}
+
+function eeRetirerPartie(kind, index, partId) {
+    if (kind === 'memoir') memoirPlan = eePlanDe(kind, index).filter(function (p) { return p.id !== partId; });
+    else {
+        var sujet = eeSujets()[index];
+        if (sujet) iaPlans[sujet.name] = eePlanDe(kind, index).filter(function (p) { return p.id !== partId; });
+    }
+    eeApresChangement();
+}
+
+function eeAssurerModal() {
+    if (document.getElementById('eeRetourModal')) return;
+    var el = document.createElement('div');
+    el.id = 'eeRetourModal';
+    el.style.cssText = 'display:none;position:fixed;inset:0;z-index:120;background:rgba(17,24,39,0.55);align-items:center;justify-content:center;padding:1rem;';
+    el.innerHTML = '<div id="eeRetourCarte" style="max-width:26rem;width:100%;background:white;border-radius:1.25rem;padding:1.35rem 1.2rem;box-shadow:0 24px 60px rgba(0,0,0,0.18);"></div>';
+    document.body.appendChild(el);
+}
+
+function eeOuvrirMessage(html) {
+    if (typeof document === 'undefined') return;
+    eeQuestionCourante = null;
+    eeAssurerModal();
+    document.getElementById('eeRetourCarte').innerHTML = html;
+    document.getElementById('eeRetourModal').style.display = 'flex';
+    eeModalOuvert = true;
+}
+
+function eeFermerMessage() {
+    var modal = document.getElementById('eeRetourModal');
+    if (modal) modal.style.display = 'none';
+    eeModalOuvert = false;
+    eeQuestionCourante = null;
+    eeVerifierRetours();
+}
+
+function eeHtmlFinal(nom) {
+    return '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Félicitations</p>'
+        + '<h3 style="margin:0 0 0.55rem;font-size:1.28rem;color:#1c1917;line-height:1.3;">Tu passes à la finalisation de ' + eeEchap(nom) + '.</h3>'
+        + '<p style="margin:0 0 1.1rem;color:#44403c;font-size:0.95rem;line-height:1.45;">C’est un pas de plus vers l’obtention de l’IB.</p>'
+        + '<button type="button" onclick="eeFermerMessage()" style="width:100%;border:none;background:#059669;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Continuer</button>';
+}
+
+function eeHtmlBravo(texte) {
+    return '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Bravo</p>'
+        + '<h3 style="margin:0 0 0.55rem;font-size:1.28rem;color:#1c1917;line-height:1.3;">Tu as terminé « ' + eeEchap(texte) + ' ».</h3>'
+        + '<p style="margin:0 0 1.1rem;color:#44403c;font-size:0.95rem;line-height:1.45;">C’est un pas de plus vers l’obtention de l’IB.</p>'
+        + '<button type="button" onclick="eeFermerMessage()" style="width:100%;border:none;background:#059669;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Continuer</button>';
+}
+
+function eeHtmlQuestion(q) {
+    var ou = q.kind === 'memoir' ? 'Mémoire' : ('Évaluation interne · ' + (q.subject || ''));
+    return '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#9f1239;">Après le créneau</p>'
+        + '<h3 style="margin:0 0 0.55rem;font-size:1.22rem;color:#1c1917;line-height:1.3;">As-tu validé cette partie de ton plan ?</h3>'
+        + '<p style="margin:0 0 0.3rem;font-size:1.02rem;font-weight:800;color:#1c1917;">tâche (' + eeEchap(q.text) + ')</p>'
+        + '<p style="margin:0 0 1.1rem;color:#78716c;font-size:0.84rem;">' + eeEchap(ou) + ' · ' + eeEchap(q.startTime || '') + ' → ' + eeEchap(q.endTime || '') + '</p>'
+        + '<div style="display:flex;flex-direction:column;gap:0.5rem;">'
+        + '<button type="button" onclick="eeRepondreValidation(true)" style="width:100%;border:none;background:#9f1239;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Oui, c’est fait</button>'
+        + '<button type="button" onclick="eeRepondreValidation(false)" style="width:100%;border:1.5px solid #e7e5e4;background:white;color:#44403c;border-radius:0.85rem;padding:0.75rem 1rem;font-weight:700;cursor:pointer;">Pas encore</button>'
+        + '</div>';
+}
+
+function eeClorePartie(partId, valeur) {
+    Object.keys(eeVus || {}).forEach(function (cle) {
+        var item = eeVus[cle];
+        if (!item || item.partId !== partId || eeDemandes[cle]) return;
+        if (eeCreneauPasse(item)) eeDemandes[cle] = valeur;
+    });
+}
+
+function eeRepondreValidation(oui) {
+    var q = eeQuestionCourante;
+    if (!q) {
+        eeFermerMessage();
+        return;
+    }
+    eeDemandes[q.key] = oui ? 'oui' : 'non';
+    eeClorePartie(q.partId, oui ? 'oui' : 'non');
+    if (oui) eeMarquerFaite(q.kind, q.subject, q.partId);
+    eeQuestionCourante = null;
+    if (oui) {
+        eeOuvrirMessage(eeHtmlBravo(q.text));
+        eeApresChangement();
+        return;
+    }
+    eeFermerMessage();
+    eeApresChangement();
+}
+
+function eeProfilPret() {
+    if (window.__profilComplet) return true;
+    var planning = typeof document !== 'undefined' ? document.getElementById('planningModal') : null;
+    return !!(planning && planning.classList.contains('active'));
+}
+
+function eeNoterCreneauxVus() {
+    if (!eeProfilPret() || typeof generateDayEvents !== 'function' || typeof timeToMinutes !== 'function') return;
+    var events;
+    try { events = generateDayEvents(eeJourIndex()); } catch (e) { return; }
+    var date = eeDateCle();
+    (events || []).forEach(function (ev) {
+        if (!ev || !ev.planTask || !ev.planTask.partId) return;
+        var cle = eeCleSuivi(date, ev.planTask.partId, ev.endTime);
+        if (eeDemandes[cle] || eeVus[cle]) return;
+        eeVus[cle] = {
+            date: date,
+            kind: ev.planTask.kind,
+            subject: ev.planTask.subject || '',
+            partId: ev.planTask.partId,
+            text: ev.planTask.text,
+            startTime: ev.startTime,
+            endTime: ev.endTime
+        };
+    });
+}
+
+function eeCreneauPasse(item) {
+    if (!item || !item.date) return false;
+    var aujourdhui = eeDateCle();
+    if (item.date < aujourdhui) return true;
+    if (item.date > aujourdhui) return false;
+    return eeMomentFini(item.startTime, item.endTime, eeMinutesMaintenant());
+}
+
+function eeVerifierRetours() {
+    if (eeModalOuvert || typeof document === 'undefined' || document.visibilityState === 'hidden') return;
+    if (!eeProfilPret() || typeof timeToMinutes !== 'function') return;
+    var limite = eeDateLimite(-1);
+    var due = null;
+    Object.keys(eeVus || {}).forEach(function (cle) {
+        if (due) return;
+        var item = eeVus[cle];
+        if (!item || eeDemandes[cle] || !item.date || item.date < limite) return;
+        if (!eeCreneauPasse(item)) return;
+        if (eePartieFaite(item.kind, item.subject, item.partId)) {
+            eeDemandes[cle] = 'oui';
+            return;
+        }
+        due = {
+            key: cle,
+            kind: item.kind,
+            subject: item.subject || '',
+            partId: item.partId,
+            text: item.text,
+            startTime: item.startTime,
+            endTime: item.endTime
+        };
+    });
+    if (!due) return;
+    eeQuestionCourante = due;
+    eeAssurerModal();
+    document.getElementById('eeRetourCarte').innerHTML = eeHtmlQuestion(due);
+    document.getElementById('eeRetourModal').style.display = 'flex';
+    eeModalOuvert = true;
+}
+
+function eeSuiviPlanning() {
+    eeNoterCreneauxVus();
+    eeVerifierRetours();
+}
+
+function setMemoirLevel(id) {
+    memoirLevel = id;
+    renderEEia();
+}
+
+function setIaStage(index, id) {
+    eeDefinirNiveau('ia', index, id);
+    renderEEia();
+}
+
+function setIaLevel(id) {
+    iaLevel = id;
 }
 
 function showTravauxPage() {
@@ -164,6 +597,11 @@ function validateTravaux() {
     if (typeof showTransportPage === 'function') showTransportPage();
 }
 
-function setIaLevel(id) {
-    iaLevel = id;
+if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') eeSuiviPlanning();
+    });
+    setInterval(function () {
+        eeSuiviPlanning();
+    }, 20000);
 }
