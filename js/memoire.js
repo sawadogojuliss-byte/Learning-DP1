@@ -304,15 +304,26 @@ function memoireSauvegarder() {
 
 function memoireEffacer() {
     if (!confirm('Effacer toute la progression enregistrée sur cet appareil ?')) return;
-    var client = localStorage.getItem('studyPlanIB_googleClientId');
+    memoirePret = false;
+    window.__profilComplet = false;
+    window.compteSession = null;
+    if (window.google && google.accounts && google.accounts.id) {
+        try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    }
+    var client = '';
+    try { client = localStorage.getItem('studyPlanIB_googleClientId') || ''; } catch (e) {}
     var cles = [];
     var i;
-    for (i = 0; i < localStorage.length; i++) cles.push(localStorage.key(i));
-    cles.forEach(function (cle) {
-        if (cle && cle.indexOf('studyPlanIB_') === 0) localStorage.removeItem(cle);
-    });
-    if (client) localStorage.setItem('studyPlanIB_googleClientId', client);
-    location.reload();
+    try {
+        for (i = 0; i < localStorage.length; i++) cles.push(localStorage.key(i));
+        cles.forEach(function (cle) {
+            if (cle && cle.indexOf('studyPlanIB_') === 0) localStorage.removeItem(cle);
+        });
+        if (client) localStorage.setItem('studyPlanIB_googleClientId', client);
+    } catch (e) {}
+    try { sessionStorage.clear(); } catch (e) {}
+    var propre = location.pathname.replace(/index\.html$/, '');
+    location.replace(propre + location.search);
 }
 
 function memoireBrancher(nom) {

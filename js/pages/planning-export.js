@@ -467,7 +467,7 @@ function telechargerEmploiDuTemps() {
     }).then(function () {
         if (btn) {
             btn.disabled = false;
-            btn.textContent = 'Télécharger';
+            btn.textContent = 'Télécharger mon emploi du temps';
         }
     });
 }
