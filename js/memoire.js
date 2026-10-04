@@ -21,7 +21,8 @@ function memoireEtapeActive() {
         ['panelSoutien', 'soutien'],
         ['panelExercices', 'exercices'],
         ['panelLegende', 'legende'],
-        ['panelEEia', 'eeia']
+        ['panelEEia', 'eeia'],
+        ['panelFeries', 'feries']
     ];
     var modales = [
         ['contextModal', 'prenom'],
@@ -57,7 +58,7 @@ function memoireLireEtat() {
     if (champNom && champNom.value.trim()) userName = champNom.value.trim();
 
     var etape = memoireEtapeActive();
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices') window.__profilComplet = true;
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
 
     return {
         v: 1,
@@ -216,7 +217,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia') {
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active')) generatePlanning();
@@ -224,6 +225,7 @@ function memoireAller(etape) {
         else if (etape === 'exercices') navigateTo('exercices');
         else if (etape === 'legende') navigateTo('legende');
         else if (etape === 'eeia') navigateTo('eeia');
+        else if (etape === 'feries') navigateTo('feries');
         else navigateTo('planning');
         return;
     }
@@ -274,16 +276,6 @@ function memoirePoserHash(etape) {
 }
 
 function memoireMajIndicateur() {
-    var chip = document.getElementById('memoireChip');
-    if (chip) {
-        chip.hidden = false;
-        chip.textContent = '✓ Enregistré';
-    }
-    var nav = document.getElementById('memoireNav');
-    if (nav) {
-        nav.hidden = false;
-        nav.textContent = 'Enregistré';
-    }
     var btn = document.getElementById('btnCommencer');
     if (btn && window.__profilComplet) {
         btn.textContent = 'Reprendre';

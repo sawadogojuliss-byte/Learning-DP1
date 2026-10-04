@@ -38,5 +38,9 @@ function navigateTo(page) {
         var eeia = document.getElementById('panelEEia');
         if (typeof renderEEia === 'function') renderEEia();
         if (eeia) eeia.classList.add('active');
+    } else if (page === 'feries') {
+        var feries = document.getElementById('panelFeries');
+        if (typeof renderHolidays === 'function') renderHolidays();
+        if (feries) feries.classList.add('active');
     }
 }

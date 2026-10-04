@@ -710,13 +710,15 @@ function deleteEditedEvent() {
 
 function goBackFromPlanning() {
     document.getElementById('planningModal').classList.remove('active');
-    const holidays = document.getElementById('holidaysModal');
-    if (holidays) {
-        holidays.classList.add('active');
-        if (typeof renderHolidays === 'function') renderHolidays();
+    document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+    const libre = document.getElementById('freeTimeModal');
+    if (libre) {
+        libre.classList.add('active');
+        if (typeof renderFreeTime === 'function') renderFreeTime();
         return;
     }
-    document.getElementById('screenTimeModal').classList.add('active');
+    const screen = document.getElementById('screenTimeModal');
+    if (screen) screen.classList.add('active');
 }
 
 function goBackToActivities() {

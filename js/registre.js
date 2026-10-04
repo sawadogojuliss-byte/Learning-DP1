@@ -17,12 +17,12 @@ window.STUDYPLAN_HTML = [
     'pages/onboarding-activites.html',
     'pages/onboarding-ecran.html',
     'pages/onboarding-libre.html',
-    'pages/onboarding-feries.html',
     'pages/planning.html',
     'pages/soutien.html',
     'pages/exercices.html',
     'pages/legende.html',
     'pages/ee-ia.html',
+    'pages/feries.html',
     'pages/compte.html'
 ];
 

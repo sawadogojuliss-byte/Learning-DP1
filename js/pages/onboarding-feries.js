@@ -24,27 +24,23 @@ function holidayDroppedIds(dayIndex) {
     return Array.isArray(list) ? list : [];
 }
 
-function goToHolidays() {
-    const screen = document.getElementById('screenTimeModal');
-    const activities = document.getElementById('activitiesModal');
-    const libre = document.getElementById('freeTimeModal');
-    if (screen) screen.classList.remove('active');
-    if (activities) activities.classList.remove('active');
-    if (libre) libre.classList.remove('active');
-    document.getElementById('holidaysModal').classList.add('active');
+function holidayApresChangement() {
     renderHolidays();
+    var planning = document.getElementById('planningModal');
+    if (planning && planning.classList.contains('active') && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+}
+
+function goToHolidays() {
+    var planning = document.getElementById('planningModal');
+    if (planning && !planning.classList.contains('active') && typeof generatePlanning === 'function') generatePlanning();
+    if (typeof navigateTo === 'function') navigateTo('feries');
+    else renderHolidays();
 }
 
 function goBackFromHolidays() {
-    document.getElementById('holidaysModal').classList.remove('active');
-    const libre = document.getElementById('freeTimeModal');
-    if (libre) {
-        libre.classList.add('active');
-        if (typeof renderFreeTime === 'function') renderFreeTime();
-        return;
-    }
-    document.getElementById('screenTimeModal').classList.add('active');
-    if (typeof renderScreenTime === 'function') renderScreenTime();
+    if (typeof navigateTo === 'function') navigateTo('planning');
 }
 
 function toggleHolidayDay(dayIndex) {
@@ -58,12 +54,12 @@ function toggleHolidayDay(dayIndex) {
     } else {
         holidayDays.push(dayIndex);
     }
-    renderHolidays();
+    holidayApresChangement();
 }
 
 function setHolidayMode(dayIndex, mode) {
     holidayModes[String(dayIndex)] = mode;
-    renderHolidays();
+    holidayApresChangement();
 }
 
 function toggleHolidayDrop(dayIndex, id) {
@@ -73,7 +69,7 @@ function toggleHolidayDrop(dayIndex, id) {
     if (at === -1) list.push(id);
     else list.splice(at, 1);
     holidayDropped[key] = list;
-    renderHolidays();
+    holidayApresChangement();
 }
 
 function holidayEscape(value) {
@@ -101,7 +97,7 @@ function renderHolidays() {
     const box = document.getElementById('holidayModes');
     const btn = document.getElementById('holidayContinueBtn');
     if (!holidayDays.length) {
-        if (box) box.innerHTML = '<p style="margin:0;text-align:center;color:#6b7280;font-size:0.9rem;">Aucun jour férié cette semaine. Tu peux passer.</p>';
+        if (box) box.innerHTML = '<p style="margin:0;text-align:center;color:#6b7280;font-size:0.9rem;">Aucun jour férié cette semaine. Le planning reste comme d’habitude.</p>';
         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Passer →'; }
         return;
     }

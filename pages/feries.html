@@ -1,0 +1,30 @@
+<!-- ============================================================
+     PAGE : Jours fériés
+     Ouverte depuis la navigation, sous Mon Planning.
+     Script : js/pages/onboarding-feries.js
+     ============================================================ -->
+<div class="app-panel" id="panelFeries">
+    <div style="max-width:42rem;margin:0 auto;padding:0 1rem 4rem;">
+        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                <div>
+                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;margin:0;">Jours fériés</h2>
+                    <p style="font-size:0.75rem;color:#6b7280;margin:0.15rem 0 0;">Cette semaine</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align:center;margin-bottom:1.25rem;">
+            <div style="width:4.5rem;height:4.5rem;margin:0 auto 0.75rem;border-radius:1.25rem;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:2.2rem;">🎉</div>
+            <p style="margin:0;color:#4b5563;font-size:0.95rem;line-height:1.45;">S'il y a un jour férié cette semaine, sélectionne-le. Sinon, tu peux laisser cette page sans rien choisir. Le planning se met à jour tout de suite.</p>
+        </div>
+
+        <div style="margin:0 0 1rem;">
+            <p style="font-size:0.875rem;font-weight:600;color:#4b5563;text-align:center;margin-bottom:0.75rem;">Jours fériés de la semaine</p>
+            <div id="holidayDaysGrid" style="display:flex;justify-content:center;gap:0.5rem;flex-wrap:wrap;"></div>
+        </div>
+
+        <div id="holidayModes" style="margin-bottom:1.5rem;"></div>
+    </div>
+</div>
