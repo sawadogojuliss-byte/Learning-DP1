@@ -7,12 +7,18 @@
 // Page 4 - Subjects
 function showSubjectsPage() {
     document.getElementById('sleepModal').classList.remove('active');
+    var classe = document.getElementById('classeModal');
+    if (classe) classe.classList.remove('active');
     document.getElementById('subjectsModal').classList.add('active');
     updateSubjectsUI();
 }
 
 function hideSubjectsPage() {
     document.getElementById('subjectsModal').classList.remove('active');
+    if (typeof showClassePage === 'function') {
+        showClassePage();
+        return;
+    }
     document.getElementById('sleepModal').classList.add('active');
 }
 

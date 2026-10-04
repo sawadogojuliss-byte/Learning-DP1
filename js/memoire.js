@@ -25,6 +25,7 @@ function memoireEtapeActive() {
         ['contextModal', 'prenom'],
         ['objectivesModal', 'objectif'],
         ['sleepModal', 'sommeil'],
+        ['classeModal', 'classe'],
         ['subjectsModal', 'matieres'],
         ['travauxModal', 'travaux'],
         ['transportModal', 'transport'],
@@ -67,6 +68,7 @@ function memoireLireEtat() {
         sundayWakeup: sundayWakeup,
         subjects: subjects,
         optionalSubjects: optionalSubjects,
+        ibYear: typeof ibYear !== 'undefined' ? ibYear : '',
         memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
         iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
         transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
@@ -142,6 +144,8 @@ function memoireAppliquer(data) {
     if (!anciensImposes && Array.isArray(data.subjects)) subjects = data.subjects;
     if (!anciensImposes && Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
     if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
+    if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear;
+    if (typeof majClasseAffichage === 'function') majClasseAffichage();
     if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
     if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
     if (typeof transportMode !== 'undefined' && typeof data.transportMode === 'string') transportMode = data.transportMode;
@@ -214,6 +218,7 @@ function memoireAller(etape) {
         prenom: 'contextModal',
         objectif: 'objectivesModal',
         sommeil: 'sleepModal',
+        classe: 'classeModal',
         matieres: 'subjectsModal',
         travaux: 'travauxModal',
         transport: 'transportModal',
@@ -229,6 +234,7 @@ function memoireAller(etape) {
     try {
         if (etape === 'objectif') updateScoreUI();
         if (etape === 'sommeil') updateBedtimes();
+        if (etape === 'classe' && typeof renderClasse === 'function') renderClasse();
         if (etape === 'matieres') updateSubjectsUI();
         if (etape === 'travaux' && typeof renderTravaux === 'function') renderTravaux();
         if (etape === 'voiture') updateCarPrepTime();
@@ -325,7 +331,7 @@ function memoireDemarrer() {
         try { memoireAller(etape); } catch (e) { console.error(e); }
     }
     [
-        'handleContinue', 'validateObjective', 'validateSleep', 'validateSubjects',
+        'handleContinue', 'validateObjective', 'validateSleep', 'setIbYear', 'validateClasse', 'validateSubjects',
         'selectTransport', 'saveCarConfig', 'saveMotoConfig', 'goToScreenTime',
         'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
         'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',

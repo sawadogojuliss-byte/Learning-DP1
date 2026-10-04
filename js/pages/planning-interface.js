@@ -37,6 +37,7 @@ function renderPlanning() {
         document.getElementById('statScore').textContent = targetScore;
         document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
         document.getElementById('statActivities').textContent = selectedActivities.length;
+        if (typeof majClasseAffichage === 'function') majClasseAffichage();
         return;
     }
     if (addBtn) addBtn.style.display = 'flex';
@@ -100,6 +101,7 @@ function renderPlanning() {
     document.getElementById('statScore').textContent = targetScore;
     document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
     document.getElementById('statActivities').textContent = selectedActivities.length;
+    if (typeof majClasseAffichage === 'function') majClasseAffichage();
 }
 
 function v3LibreVertical() {

@@ -139,5 +139,6 @@ function validateSleep() {
         if (sleepHoursOf(which) < SLEEP_MIN_HOURS) setSleepHours(which, SLEEP_MIN_HOURS);
     });
     updateBedtimes();
-    showSubjectsPage();
+    if (typeof showClassePage === 'function') showClassePage();
+    else showSubjectsPage();
 }

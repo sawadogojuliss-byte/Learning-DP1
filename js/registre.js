@@ -7,6 +7,7 @@
 window.STUDYPLAN_HTML = [
     'pages/onboarding-prenom.html',
     'pages/onboarding-objectif.html',
+    'pages/onboarding-classe.html',
     'pages/onboarding-matieres.html',
     'pages/onboarding-travaux.html',
     'pages/onboarding-transport.html',
@@ -30,6 +31,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/onboarding-prenom.js',
     'js/pages/onboarding-objectif.js',
     'js/pages/onboarding-sommeil.js',
+    'js/pages/onboarding-classe.js',
     'js/pages/onboarding-matieres.js',
     'js/pages/onboarding-travaux.js',
     'js/pages/onboarding-transport.js',
@@ -45,6 +47,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/planning-moteur.js',
     'js/pages/pomodoro.js',
     'js/pages/planning-interface.js',
+    'js/pages/planning-export.js',
     'js/memoire.js',
     'js/compte.js'
 ];

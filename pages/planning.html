@@ -34,7 +34,7 @@
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
                     <div style="display:flex;align-items:center;gap:0.75rem;">
                         <div style="width:2.5rem;height:2.5rem;background:rgba(255,255,255,0.2);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1.25rem;">📚</div>
-                        <div><p style="font-weight:800;color:white;font-size:1rem;">Study Plan IB</p><p style="font-size:0.75rem;color:rgba(255,255,255,0.8);">DP1 · Enko Ouaga</p></div>
+                        <div><p style="font-weight:800;color:white;font-size:1rem;">Study Plan IB</p><p id="menuClasseLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.8);">Enko Ouaga</p></div>
                     </div>
                     <button onclick="closeSideMenu()" style="width:2rem;height:2rem;background:rgba(255,255,255,0.2);border:none;border-radius:50%;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
                 </div>
@@ -81,6 +81,7 @@
             <div style="max-width: 56rem; margin: 0 auto;">
                 <div id="dayNavigation" style="display: flex; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.5rem;">
                 </div>
+                <button type="button" id="downloadWeekBtn" onclick="telechargerEmploiDuTemps()" style="width:100%;margin-top:0.35rem;padding:0.8rem 1rem;background:white;color:#047857;font-weight:700;border-radius:0.75rem;border:1.5px solid #a7f3d0;cursor:pointer;font-family:inherit;font-size:0.92rem;">Télécharger mon emploi du temps</button>
             </div>
         </div>
 
@@ -96,7 +97,7 @@
             </button>
 
             <!-- Color Legend -->
-            <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;">
+            <div id="planningLegend" style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 2rem;">
                 <h3 style="font-weight: 700; color: #111827; margin-bottom: 1rem;">📊 Légende des couleurs</h3>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border-left: 4px solid #818cf8; background: #eef2ff;"><span style="font-size: 0.875rem; color: #374151;">😴 Sommeil</span></div>
@@ -115,7 +116,7 @@
             </div>
 
             <!-- Stats Summary -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+            <div id="planningStats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
                 <div style="background: white; border-radius: 0.75rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); padding: 1rem; text-align: center;">
                     <div style="font-size: 1.875rem; margin-bottom: 0.25rem;">🎯</div>
                     <p id="statScore" style="font-size: 1.5rem; font-weight: 700; color: #10b981;">40</p>

@@ -12,9 +12,6 @@
             </div>
             <button type="button" onclick="fermerCompte()" style="width:2rem;height:2rem;border:none;border-radius:50%;background:#f3f4f6;cursor:pointer;font-size:1rem;">✕</button>
         </div>
-        <p class="compte-lead">Ta progression est enregistrée sur cet appareil. Tu peux actualiser la page sans tout recommencer.</p>
-        <div class="compte-ok">✓ Mémoire active — prénom, objectif, matières, sommeil, transport, activités, planning, exercices et Pomodoro sont conservés.</div>
-
         <div id="compteProfil" class="compte-profil" hidden>
             <img id="compteAvatar" alt="" hidden>
             <div>
@@ -23,7 +20,7 @@
             </div>
         </div>
 
-        <div id="compteInvite">
+        <div id="compteInvite" style="margin-top:1rem;">
             <div id="googleBtnSlot" style="display:flex;justify-content:center;min-height:2.6rem;margin-bottom:0.75rem;"></div>
             <p style="font-size:0.8rem;color:#6b7280;text-align:center;margin:0 0 0.75rem;">La connexion Google associe ce profil à ton compte sur ce navigateur.</p>
         </div>
@@ -31,7 +28,6 @@
         <div class="compte-actions">
             <button type="button" class="primary" onclick="fermerCompte()">Continuer</button>
             <button type="button" id="compteDeconnectBtn" onclick="compteDeconnecter()" hidden>Se déconnecter de Google</button>
-            <button type="button" onclick="compteExporter()">Télécharger ma progression</button>
             <label class="compte-file">Restaurer un fichier
                 <input type="file" accept="application/json,.json" onchange="compteImporterFichier(this)" style="display:none;">
             </label>

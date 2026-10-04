@@ -1,0 +1,39 @@
+<!-- ============================================================
+     PAGE : Classe
+     Choix DP1 ou DP2, avant les matières.
+     Script : js/pages/onboarding-classe.js
+     ============================================================ -->
+<div class="context-modal" id="classeModal">
+    <div class="context-shape context-shape-1 animate-float"></div>
+    <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+
+    <div class="context-center" style="padding: 2rem 1rem;">
+        <div class="context-card animate-fade-in-up" style="max-width: 44rem;">
+            <div class="progress-indicator">
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                <div class="progress-step progress-step-active">✓</div>
+                <div class="progress-line progress-line-active" style="width: 2.5rem;"></div>
+                <div class="progress-step progress-step-active">4</div>
+                <div class="progress-line progress-line-inactive" style="width: 2.5rem;"></div>
+                <div class="progress-step progress-step-inactive">...</div>
+            </div>
+
+            <p style="margin: 0 0 0.35rem; text-align: center; letter-spacing: 0.22em; text-transform: uppercase; font-size: 0.72rem; font-weight: 700; color: #047857;">Baccalauréat International</p>
+            <div class="context-icon" style="width: 5rem; height: 5rem; background: linear-gradient(to bottom right, #34d399, #0d9488);">
+                <span style="font-size: 2.5rem;">🎓</span>
+            </div>
+            <h1 class="context-title" style="margin-bottom: 0.35rem;">Ta classe</h1>
+            <p class="context-subtitle">Choisis DP1 ou DP2. Rien n’est imposé.</p>
+
+            <div id="classeChoices" style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin: 1.75rem 0 0.25rem;"></div>
+
+            <div class="context-buttons">
+                <button id="classeContinueBtn" class="btn-continue" onclick="validateClasse()" disabled>Continuer →</button>
+                <button class="btn-back" onclick="hideClassePage()">← Retour</button>
+            </div>
+        </div>
+    </div>
+</div>
