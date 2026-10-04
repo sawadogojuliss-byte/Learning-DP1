@@ -156,7 +156,8 @@ function compteRestaurerLocal() {
     return true;
 }
 
-var COMPTE_DRIVE_SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_IDENTITE_SCOPE = 'openid email profile';
+var COMPTE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 var COMPTE_DRIVE_NOM = 'study-plan-ib-profil.json';
 var compteJeton = '';
 var compteJetonFin = 0;
@@ -167,7 +168,7 @@ function compteCleDrive() {
     return window.compteSession && window.compteSession.sub ? 'studyPlanIB_driveFileId:' + window.compteSession.sub : '';
 }
 
-function compteDemanderJeton(prompt) {
+function compteDemanderJeton(prompt, scope) {
     return new Promise(function (resolve, reject) {
         if (!window.google || !google.accounts || !google.accounts.oauth2) {
             reject(new Error('google'));
@@ -178,7 +179,8 @@ function compteDemanderJeton(prompt) {
         function ko(err) { if (fini) return; fini = true; reject(err || new Error('jeton')); }
         var client = google.accounts.oauth2.initTokenClient({
             client_id: compteClientId(),
-            scope: COMPTE_DRIVE_SCOPE,
+            scope: scope || COMPTE_IDENTITE_SCOPE,
+            include_granted_scopes: false,
             callback: function (resp) {
                 if (resp && resp.access_token) {
                     compteJeton = resp.access_token;
@@ -188,17 +190,14 @@ function compteDemanderJeton(prompt) {
             },
             error_callback: function (err) { ko(err); }
         });
-        try { client.requestAccessToken({ prompt: prompt || '' }); }
+        try { client.requestAccessToken({ prompt: prompt || 'none' }); }
         catch (e) { ko(e); }
     });
 }
 
-function compteObtenirJeton(interactif) {
+function compteObtenirJeton() {
     if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
-    return compteDemanderJeton('').catch(function () {
-        if (!interactif) throw new Error('silence');
-        return compteDemanderJeton('consent');
-    });
+    return Promise.reject(new Error('silence'));
 }
 
 function compteDriveTrouver(token) {
@@ -331,7 +330,7 @@ function compteNuageEffacer() {
         });
     }
     return compteChargerGIS().then(function () {
-        return compteObtenirJeton(false).catch(function () { return compteDemanderJeton('consent'); });
+        return compteObtenirJeton();
     }).then(supprimer).catch(function () { return null; });
 }
 
@@ -378,20 +377,7 @@ function compteChargerCopieGoogle(bouton) {
         bouton.textContent = 'Récupération…';
     }
     compteMessage('');
-    compteChargerGIS().then(function () {
-        return compteDemanderJeton('consent');
-    }).then(function (token) {
-        return compteNuageFusionner(token);
-    }).then(function (etat) {
-        compteCopieEnAttente = false;
-        var profil = compteProfilActuel();
-        if (etat === 'restored' || (profil && profil.profilComplet)) {
-            if (profil && profil.profilComplet) compteOuvrirPlanning();
-            fermerCompte();
-            return;
-        }
-        compteMessage('Aucune progression enregistrée pour ce compte Google.');
-    }).catch(function () {
+    compteConnexionGoogle({ currentTarget: bouton }).catch(function () {
         compteMessage('La récupération n’a pas abouti. Réessaie.');
     }).then(function () {
         if (bouton && document.body.contains(bouton)) {
@@ -442,9 +428,6 @@ function compteTerminerConnexion(session) {
 
 function compteRelierNuage() {
     return compteNuageSynchroniser(false).then(function (etat) {
-        if (etat !== 'failed') return etat;
-        return compteNuageSynchroniser(true);
-    }).then(function (etat) {
         if (etat === 'restored') {
             compteCopieEnAttente = false;
             fermerCompte();
@@ -541,30 +524,15 @@ function compteConnexionGoogle(origine) {
         }
     }
     function lancer() {
-        compteDemanderJeton('select_account').then(function (token) {
-            return fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: 'Bearer ' + token }
-            }).then(function (res) {
-                if (!res.ok) throw new Error('profil');
-                return res.json();
-            }).then(function (profil) {
-                if (!profil || !profil.sub) throw new Error('profil');
-                return compteRestaurerTout(compteSessionDepuis(profil), token);
-            });
-        }).catch(function (err) {
-            var type = String((err && (err.type || err.error || err.message)) || '');
-            if (type.indexOf('popup_closed') !== -1 || type.indexOf('access_denied') !== -1) {
-                compteMessage('Connexion annulée.');
-                return;
-            }
-            compteMessage('Ouverture de la connexion Google…');
-            return comptePreparerGoogle().then(function (ok) {
-                if (ok && window.google && google.accounts.id && google.accounts.id.prompt) google.accounts.id.prompt();
-            });
-        }).then(fin, fin);
+        return comptePreparerGoogle().then(function () {
+            fin();
+        }).catch(function (e) {
+            compteMessage((e && e.message) || 'La connexion Google n’a pas abouti. Réessaie.');
+            fin();
+        });
     }
-    if (window.google && google.accounts && google.accounts.oauth2) lancer();
-    else compteChargerGIS().then(lancer, function (e) {
+    if (window.google && google.accounts && google.accounts.oauth2) return lancer();
+    return compteChargerGIS().then(lancer, function (e) {
         compteMessage((e && e.message) || 'Google est indisponible pour le moment.');
         fin();
     });
@@ -580,15 +548,11 @@ function compteOnCredential(resp) {
         return;
     }
     var session = compteSessionDepuis(payload);
-    compteRestaurerTout(session, null).then(function () {
-        return compteNuageSynchroniser(true);
-    }).then(function (etat) {
-        if (etat === 'restored') {
-            var profil = compteProfilActuel();
-            if (profil) compteMontrerProgression(profil, true);
-            if (typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
-        }
-    });
+    if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
+        var instant = sauvegardeCapturer();
+        if (instant) sauvegardeEcrireLocal('locale', instant, false);
+    }
+    compteRestaurerTout(session, null);
 }
 
 function comptePreparerGoogle() {
@@ -608,8 +572,8 @@ function comptePreparerGoogle() {
         }
         var texteInvite = document.getElementById('compteInviteTexte');
         if (texteInvite && !compteCopieEnAttente) texteInvite.textContent = COMPTE_INVITE;
-        var host = document.getElementById('googleBtnSlot');
-        if (host && !document.getElementById('compteGoogleBtn') && !compteCopieEnAttente) {
+        function poserBouton(host) {
+            if (!host || host.querySelector('iframe')) return;
             host.innerHTML = '';
             google.accounts.id.renderButton(host, {
                 type: 'standard',
@@ -622,6 +586,8 @@ function comptePreparerGoogle() {
                 locale: 'fr'
             });
         }
+        if (!compteCopieEnAttente) poserBouton(document.getElementById('googleBtnSlot'));
+        poserBouton(document.getElementById('googleBtnRestore'));
         return true;
     });
 }
@@ -779,7 +745,7 @@ function compteOuvrirOnglet() {
     try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
     compteRafraichir();
-    compteChargerGIS().catch(function () {});
+    comptePreparerGoogle().catch(function () {});
     if (window.compteSession && window.compteSession.sub) {
         var sub = window.compteSession.sub;
         var appliquer = function (data) {
