@@ -5,6 +5,7 @@
    ============================================================ */
 
 let ibYear = '';
+let classeRetour = '';
 
 function showClassePage() {
     ['sleepModal', 'subjectsModal'].forEach(function (id) {
@@ -17,6 +18,11 @@ function showClassePage() {
 
 function hideClassePage() {
     document.getElementById('classeModal').classList.remove('active');
+    if (classeRetour === 'planning' && window.__profilComplet && typeof generatePlanning === 'function') {
+        classeRetour = '';
+        generatePlanning();
+        return;
+    }
     document.getElementById('sleepModal').classList.add('active');
     if (typeof updateBedtimes === 'function') updateBedtimes();
 }
@@ -30,7 +36,21 @@ function setIbYear(year) {
 
 function validateClasse() {
     if (ibYear !== 'DP1' && ibYear !== 'DP2') return;
+    var versPlanning = classeRetour === 'planning' || (window.__profilComplet && classeRetour !== 'sujets');
+    classeRetour = '';
+    if (versPlanning && typeof generatePlanning === 'function') {
+        document.getElementById('classeModal').classList.remove('active');
+        generatePlanning();
+        return;
+    }
     showSubjectsPage();
+}
+
+function demanderClasseSiBesoin() {
+    if (ibYear === 'DP1' || ibYear === 'DP2') return false;
+    classeRetour = 'planning';
+    showClassePage();
+    return true;
 }
 
 function majClasseAffichage() {

@@ -16,6 +16,7 @@ function showSubjectsPage() {
 function hideSubjectsPage() {
     document.getElementById('subjectsModal').classList.remove('active');
     if (typeof showClassePage === 'function') {
+        classeRetour = 'sujets';
         showClassePage();
         return;
     }

@@ -206,6 +206,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'planning' || etape === 'soutien' || etape === 'exercices') {
+        if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active')) generatePlanning();
         if (etape === 'soutien') navigateTo('soutien');
