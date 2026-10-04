@@ -262,7 +262,6 @@ function eeBoutonChoix(label, actif, accent, wash, action) {
 
 function eePanneauSolutions() {
     return '<div style="margin-top:0.85rem;padding:0.9rem;border-radius:1rem;background:#fffbeb;border:1px solid #fde68a;">'
-        + '<p style="margin:0 0 0.55rem;font-weight:800;color:#92400e;font-size:0.82rem;">Pour commencer, toujours les mêmes pistes</p>'
         + '<ol style="margin:0;padding-left:1.15rem;color:#44403c;font-size:0.86rem;line-height:1.45;">'
         + EE_SOLUTIONS_FIXES.map(function (texte) { return '<li style="margin:0.28rem 0;">' + eeEchap(texte) + '</li>'; }).join('')
         + '</ol>'
@@ -272,18 +271,15 @@ function eePanneauSolutions() {
 
 function eePanneauPlan(kind, index, plan, accent) {
     var av = eeAvancement(plan);
-    var egal = av.n > 0 && av.parts.every(function (p) { return p === av.parts[0]; });
     var html = '<div style="margin-top:0.85rem;">'
-        + '<p style="margin:0 0 0.65rem;color:#57534e;font-size:0.82rem;line-height:1.4;">Saisis les parties de ton plan. Chaque partie reçoit la même part, et le total fait 100 %.</p>'
         + '<div style="display:flex;gap:0.45rem;">'
         + '<input id="eeIn-' + kind + '-' + index + '" maxlength="80" placeholder="Ex. : Introduction" onkeydown="if(event.key===\'Enter\'){event.preventDefault();eeAjouterPartie(\'' + kind + '\',' + index + ');}" style="flex:1;min-width:0;border:1.5px solid #e7e5e4;border-radius:0.8rem;padding:0.7rem 0.75rem;font-size:0.9rem;">'
         + '<button type="button" onclick="eeAjouterPartie(\'' + kind + '\',' + index + ')" style="border:none;background:' + accent + ';color:white;border-radius:0.8rem;padding:0.7rem 0.85rem;font-weight:800;cursor:pointer;">Ajouter</button>'
         + '</div>';
     if (!av.n) {
-        html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.8rem;">Ajoute au moins une partie. Quatre parties font 25 % chacune.</p></div>';
+        html += '</div>';
         return html;
     }
-    html += '<p style="margin:0.75rem 0 0.45rem;color:#44403c;font-size:0.8rem;">' + (egal ? ('Chaque partie vaut ' + av.parts[0] + ' %. ') : 'Les parts se répartissent pour faire 100 %. ') + 'Total : 100 %.</p>';
     plan.forEach(function (partie, i) {
         html += '<div style="display:flex;align-items:center;gap:0.45rem;margin-top:0.4rem;">'
             + '<button type="button" onclick="eeBasculerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" style="flex:1;min-width:0;text-align:left;border:1.5px solid ' + (partie.done ? '#86efac' : '#e7e5e4') + ';background:' + (partie.done ? '#f0fdf4' : 'white') + ';border-radius:0.85rem;padding:0.7rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.55rem;">'
@@ -294,7 +290,7 @@ function eePanneauPlan(kind, index, plan, accent) {
             + '<button type="button" onclick="eeRetirerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" title="Retirer" style="border:none;background:transparent;color:#a8a29e;cursor:pointer;font-size:1rem;padding:0.35rem;">×</button>'
             + '</div>';
     });
-    html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.78rem;line-height:1.4;">Les parties non cochées sont placées dans l’emploi du temps : tâche (nom de la partie).</p></div>';
+    html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.78rem;line-height:1.4;">Les parties non cochées de ton plan seront mises dans ton emploi du temps pour que tu puisses avancer dans tes travaux.</p></div>';
     return html;
 }
 
@@ -309,8 +305,8 @@ function eeCarteTravail(opts) {
         + '<span style="font-size:1.35rem;font-weight:800;color:' + opts.accent + ';white-space:nowrap;">' + av.pourcent + ' %</span>'
         + '</div>'
         + eeBarre(av.pourcent, opts.accent)
-        + '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + (av.n ? (av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n) : '0 % tant que le plan n’a pas de partie') + '</p>'
-        + '<div style="display:flex;flex-direction:column;gap:0.4rem;">'
+        + (av.n ? '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n + '</p>' : '')
+        + '<div style="display:flex;flex-direction:column;gap:0.4rem;' + (av.n ? '' : 'margin-top:0.8rem;') + '">'
         + eeBoutonChoix('Pas commencé', niveau === 'debut', opts.accent, opts.wash, 'eeChoisirDebut(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Plan', niveau === 'plan', opts.accent, opts.wash, 'eeChoisirPlan(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Finalisation', niveau === 'final', opts.accent, opts.wash, 'eeChoisirFinal(\'' + opts.kind + '\',' + opts.index + ')')

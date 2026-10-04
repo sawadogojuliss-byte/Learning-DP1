@@ -97,7 +97,7 @@ function renderHolidays() {
     const box = document.getElementById('holidayModes');
     const btn = document.getElementById('holidayContinueBtn');
     if (!holidayDays.length) {
-        if (box) box.innerHTML = '<p style="margin:0;text-align:center;color:#6b7280;font-size:0.9rem;">Aucun jour férié cette semaine. Le planning reste comme d’habitude.</p>';
+        if (box) box.innerHTML = '<p style="margin:0;text-align:center;color:#6b7280;font-size:0.9rem;">Aucun jour férié cette semaine.</p>';
         if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Passer →'; }
         return;
     }
