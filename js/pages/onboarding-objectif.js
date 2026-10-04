@@ -59,6 +59,6 @@ function updateScoreUI() {
 
 function validateObjective() {
     if (targetScore >= 24 && targetScore <= 45) {
-        showSleepPage();
+        showSubjectsPage();
     }
 }

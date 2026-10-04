@@ -5,14 +5,18 @@
    ============================================================ */
 
 function showSleepPage() {
-    document.getElementById('objectivesModal').classList.remove('active');
+    ['objectivesModal', 'subjectsModal', 'classeModal'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
     document.getElementById('sleepModal').classList.add('active');
     updateBedtimes();
 }
 
 function hideSleepPage() {
     document.getElementById('sleepModal').classList.remove('active');
-    document.getElementById('objectivesModal').classList.add('active');
+    document.getElementById('subjectsModal').classList.add('active');
+    if (typeof updateSubjectsUI === 'function') updateSubjectsUI();
 }
 
 let weekdayWakeup = '06:00';
@@ -139,8 +143,5 @@ function validateSleep() {
         if (sleepHoursOf(which) < SLEEP_MIN_HOURS) setSleepHours(which, SLEEP_MIN_HOURS);
     });
     updateBedtimes();
-    if (typeof showClassePage === 'function') {
-        classeRetour = '';
-        showClassePage();
-    } else showSubjectsPage();
+    if (typeof showTransportPage === 'function') showTransportPage();
 }

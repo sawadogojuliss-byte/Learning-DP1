@@ -12,6 +12,8 @@ function showSubjectsPage() {
         return;
     }
     document.getElementById('sleepModal').classList.remove('active');
+    var objectif = document.getElementById('objectivesModal');
+    if (objectif) objectif.classList.remove('active');
     var classe = document.getElementById('classeModal');
     if (classe) classe.classList.remove('active');
     document.getElementById('subjectsModal').classList.add('active');
@@ -20,12 +22,11 @@ function showSubjectsPage() {
 
 function hideSubjectsPage() {
     document.getElementById('subjectsModal').classList.remove('active');
-    if (typeof showClassePage === 'function') {
-        classeRetour = 'sujets';
-        showClassePage();
+    if (typeof showObjectivesPage === 'function') {
+        showObjectivesPage();
         return;
     }
-    document.getElementById('sleepModal').classList.add('active');
+    document.getElementById('classeModal').classList.add('active');
 }
 
 let subjects = [];
@@ -199,5 +200,5 @@ function handleAddSubject(select) {
 }
 
 function validateSubjects() {
-    if (isSubjectsValid() && typeof showTransportPage === 'function') showTransportPage();
+    if (isSubjectsValid() && typeof showSleepPage === 'function') showSleepPage();
 }

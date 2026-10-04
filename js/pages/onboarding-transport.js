@@ -6,7 +6,7 @@
 
 // Page 5 - Transport
 function showTransportPage() {
-    ['subjectsModal', 'travauxModal'].forEach(function (id) {
+    ['subjectsModal', 'travauxModal', 'sleepModal'].forEach(function (id) {
         const el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
@@ -15,8 +15,8 @@ function showTransportPage() {
 
 function hideTransportPage() {
     document.getElementById('transportModal').classList.remove('active');
-    document.getElementById('subjectsModal').classList.add('active');
-    if (typeof updateSubjectsUI === 'function') updateSubjectsUI();
+    document.getElementById('sleepModal').classList.add('active');
+    if (typeof updateBedtimes === 'function') updateBedtimes();
 }
 
 let transportMode = '';

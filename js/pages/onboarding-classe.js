@@ -8,7 +8,7 @@ let ibYear = '';
 let classeRetour = '';
 
 function showClassePage() {
-    ['sleepModal', 'subjectsModal'].forEach(function (id) {
+    ['contextModal', 'objectivesModal', 'subjectsModal', 'sleepModal'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
@@ -23,8 +23,7 @@ function hideClassePage() {
         generatePlanning();
         return;
     }
-    document.getElementById('sleepModal').classList.add('active');
-    if (typeof updateBedtimes === 'function') updateBedtimes();
+    document.getElementById('contextModal').classList.add('active');
 }
 
 function setIbYear(year) {
@@ -43,7 +42,7 @@ function validateClasse() {
         generatePlanning();
         return;
     }
-    showSubjectsPage();
+    showObjectivesPage();
 }
 
 function demanderClasseSiBesoin() {
