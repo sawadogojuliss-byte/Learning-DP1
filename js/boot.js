@@ -14,10 +14,12 @@
         }
     }
 
+var version = '20261004c';
+
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.src = src;
+            s.src = src + '?v=' + version;
             s.onload = function () { resolve(); };
             s.onerror = function () { reject(new Error('Script introuvable : ' + src)); };
             document.body.appendChild(s);
@@ -28,7 +30,7 @@
     var scripts = window.STUDYPLAN_SCRIPTS || [];
 
     Promise.all(pages.map(function (url) {
-        return fetch(url).then(function (res) {
+        return fetch(url + '?v=' + version, { cache: 'no-store' }).then(function (res) {
             if (!res.ok) throw new Error('Page introuvable : ' + url);
             return res.text();
         });
