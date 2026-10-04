@@ -28,23 +28,9 @@
         <div class="compte-actions">
             <button type="button" class="primary" onclick="fermerCompte()">Continuer</button>
             <button type="button" id="compteDeconnectBtn" onclick="compteDeconnecter()" hidden>Se déconnecter de Google</button>
-            <label class="compte-file">Restaurer un fichier
-                <input type="file" accept="application/json,.json" onchange="compteImporterFichier(this)" style="display:none;">
-            </label>
-            <button type="button" onclick="compteOuvrirOnglet()">Ouvrir dans un onglet (pour Google)</button>
             <button type="button" onclick="memoireEffacer()" style="color:#b91c1c;border-color:#fecaca;">Effacer ma progression</button>
         </div>
 
-        <details class="compte-setup" id="compteSetup">
-            <summary>Si le bouton Google ne s’ouvre pas</summary>
-            <ol>
-                <li>Dans Google Cloud, ouvre l’ID client de type « Application Web ».</li>
-                <li>Ajoute cette origine JavaScript autorisée, sans chemin après le domaine :</li>
-            </ol>
-            <p id="compteOrigine" class="compte-origine"></p>
-            <input id="compteClientIdInput" type="text" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off">
-            <button type="button" class="primary" onclick="compteEnregistrerClientId()">Enregistrer et connecter</button>
-        </details>
         <p id="compteMessage" class="compte-msg" hidden></p>
     </div>
 </div>
