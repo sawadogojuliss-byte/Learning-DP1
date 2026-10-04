@@ -44,6 +44,415 @@ function compteChargerGIS() {
     return window.__gisPromise;
 }
 
+function compteUtile(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (data.profilComplet) return true;
+    if (data.userName) return true;
+    if (data.etape && data.etape !== 'accueil') return true;
+    if (Array.isArray(data.subjects) && data.subjects.length) return true;
+    return false;
+}
+
+function compteRichesse(data) {
+    if (!compteUtile(data)) return 0;
+    var n = data.profilComplet ? 40 : 0;
+    if (data.userName) n += 4;
+    if (data.ibYear) n += 2;
+    if (Array.isArray(data.subjects)) n += data.subjects.length * 3;
+    if (Array.isArray(data.optionalSubjects)) n += data.optionalSubjects.length * 2;
+    if (Array.isArray(data.selectedActivities)) n += data.selectedActivities.length;
+    if (Array.isArray(data.customEvents)) n += Math.min(data.customEvents.length, 12);
+    if (Array.isArray(data.exercices)) n += Math.min(data.exercices.length, 8);
+    if (Array.isArray(data.memoirPlan) && data.memoirPlan.length) n += 2;
+    return n;
+}
+
+function compteChoisirProfil(a, b) {
+    var ua = compteUtile(a);
+    var ub = compteUtile(b);
+    if (ua && !ub) return a;
+    if (ub && !ua) return b;
+    if (!ua && !ub) return null;
+    var ca = !!(a && a.profilComplet);
+    var cb = !!(b && b.profilComplet);
+    if (ca && !cb) return a;
+    if (cb && !ca) return b;
+    var ta = Date.parse(a && a.savedAt) || 0;
+    var tb = Date.parse(b && b.savedAt) || 0;
+    if (ta !== tb) return ta > tb ? a : b;
+    return compteRichesse(a) >= compteRichesse(b) ? a : b;
+}
+
+function compteAfficherProfil(data) {
+    if (!data || typeof memoireAppliquer !== 'function') return;
+    memoireAppliquer(data, { compte: true });
+    if (data.profilComplet) window.__profilComplet = true;
+    var etape = data.profilComplet ? 'planning' : (data.etape || 'accueil');
+    if (typeof memoireAller === 'function') memoireAller(etape);
+    if (data.profilComplet && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    if (typeof majClasseAffichage === 'function') {
+        try { majClasseAffichage(); } catch (e) {}
+    }
+    if (typeof memoireMajIndicateur === 'function') memoireMajIndicateur();
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+}
+
+function compteEquivalent(a, b) {
+    if (!a || !b) return false;
+    function norm(d) {
+        var c = JSON.parse(JSON.stringify(d));
+        delete c.savedAt;
+        delete c.google;
+        delete c.etape;
+        return JSON.stringify(c);
+    }
+    try { return norm(a) === norm(b); } catch (e) { return false; }
+}
+
+function compteDoitGarderLie(ancien, courant) {
+    if (!compteUtile(ancien)) return false;
+    if (!compteUtile(courant)) return true;
+    if (ancien.profilComplet && !courant.profilComplet) return true;
+    if (!courant.profilComplet && compteRichesse(ancien) > compteRichesse(courant)) return true;
+    return false;
+}
+
+function compteProfilActuel() {
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var lie = null;
+    if (window.compteSession && window.compteSession.sub && typeof memoireJson === 'function') {
+        lie = memoireJson(MEMOIRE_KEY + ':' + window.compteSession.sub);
+    }
+    var choisi = compteChoisirProfil(lie, stocke);
+    if (choisi) return choisi;
+    if (typeof memoireLireEtat !== 'function') return null;
+    var vivant = memoireLireEtat();
+    if (!compteUtile(vivant)) return null;
+    vivant.savedAt = stocke && stocke.savedAt ? stocke.savedAt : '';
+    return vivant;
+}
+
+function compteSourceNuage() {
+    var actuel = compteProfilActuel();
+    if (typeof memoireLireEtat !== 'function') return actuel;
+    var vivant = memoireLireEtat();
+    if (!compteUtile(vivant)) return actuel;
+    if (!compteUtile(actuel) || !compteDoitGarderLie(actuel, vivant)) return vivant;
+    return actuel;
+}
+
+function compteRestaurerLocal() {
+    if (!window.compteSession || !window.compteSession.sub || typeof memoireJson !== 'function') return false;
+    var lie = memoireJson(MEMOIRE_KEY + ':' + window.compteSession.sub);
+    var stocke = memoireJson(MEMOIRE_KEY);
+    var choisi = compteChoisirProfil(lie, stocke);
+    if (!choisi || choisi !== lie || compteEquivalent(lie, stocke)) return false;
+    compteAfficherProfil(lie);
+    return true;
+}
+
+var COMPTE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_DRIVE_NOM = 'study-plan-ib-profil.json';
+var compteJeton = '';
+var compteJetonFin = 0;
+var compteNuageTimer = null;
+var compteNuageEnCours = false;
+
+function compteCleDrive() {
+    return window.compteSession && window.compteSession.sub ? 'studyPlanIB_driveFileId:' + window.compteSession.sub : '';
+}
+
+function compteDemanderJeton(prompt) {
+    return new Promise(function (resolve, reject) {
+        if (!window.google || !google.accounts || !google.accounts.oauth2) {
+            reject(new Error('google'));
+            return;
+        }
+        var fini = false;
+        function ok(token) { if (fini) return; fini = true; resolve(token); }
+        function ko(err) { if (fini) return; fini = true; reject(err || new Error('jeton')); }
+        var client = google.accounts.oauth2.initTokenClient({
+            client_id: compteClientId(),
+            scope: COMPTE_DRIVE_SCOPE,
+            callback: function (resp) {
+                if (resp && resp.access_token) {
+                    compteJeton = resp.access_token;
+                    compteJetonFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+                    ok(compteJeton);
+                } else ko(resp || new Error('jeton'));
+            },
+            error_callback: function (err) { ko(err); }
+        });
+        try { client.requestAccessToken({ prompt: prompt || '' }); }
+        catch (e) { ko(e); }
+    });
+}
+
+function compteObtenirJeton(interactif) {
+    if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
+    return compteDemanderJeton('').catch(function () {
+        if (!interactif) throw new Error('silence');
+        return compteDemanderJeton('consent');
+    });
+}
+
+function compteDriveTrouver(token) {
+    var cle = compteCleDrive();
+    var connu = '';
+    try { connu = cle ? localStorage.getItem(cle) || '' : ''; } catch (e) {}
+    if (connu) return Promise.resolve(connu);
+    var q = encodeURIComponent("name='" + COMPTE_DRIVE_NOM + "' and trashed=false");
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=' + q, {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('drive');
+        return res.json();
+    }).then(function (data) {
+        var id = data && data.files && data.files[0] && data.files[0].id;
+        if (id && cle) {
+            try { localStorage.setItem(cle, id); } catch (e) {}
+        }
+        return id || '';
+    });
+}
+
+function compteDriveLire(token, id) {
+    if (!id) return Promise.resolve(null);
+    return fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?alt=media', {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error('lecture');
+        return res.json();
+    });
+}
+
+function compteDriveEcrire(token, id, json) {
+    var boundary = 'studyplan' + Date.now();
+    var meta = { name: COMPTE_DRIVE_NOM, mimeType: 'application/json' };
+    if (!id) meta.parents = ['appDataFolder'];
+    var rn = '\r\n';
+    var body = '--' + boundary + rn + 'Content-Type: application/json; charset=UTF-8' + rn + rn
+        + JSON.stringify(meta) + rn + '--' + boundary + rn + 'Content-Type: application/json' + rn + rn
+        + json + rn + '--' + boundary + '--';
+    var url = id
+        ? 'https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(id) + '?uploadType=multipart'
+        : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    return fetch(url, {
+        method: id ? 'PATCH' : 'POST',
+        headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'multipart/related; boundary=' + boundary
+        },
+        body: body
+    }).then(function (res) {
+        if (res.status === 404 && id) {
+            var cle = compteCleDrive();
+            if (cle) {
+                try { localStorage.removeItem(cle); } catch (e) {}
+            }
+            return compteDriveEcrire(token, '', json);
+        }
+        if (!res.ok) throw new Error('ecriture');
+        return res.json();
+    }).then(function (fichier) {
+        if (fichier && fichier.id && compteCleDrive()) {
+            try { localStorage.setItem(compteCleDrive(), fichier.id); } catch (e) {}
+        }
+        return fichier;
+    });
+}
+
+function compteNuageFusionner(token) {
+    return compteDriveTrouver(token).then(function (id) {
+        return compteDriveLire(token, id).then(function (nuage) {
+            var local = compteSourceNuage();
+            var choisi = compteChoisirProfil(nuage, local);
+            if (choisi && choisi === nuage && !compteEquivalent(nuage, local)) {
+                compteAfficherProfil(nuage);
+                if (typeof v3Toast === 'function') v3Toast('Emploi du temps restauré.', 'success');
+                return 'restored';
+            }
+            if (!compteUtile(local)) return 'empty';
+            if (nuage && compteEquivalent(nuage, local)) return 'same';
+            return compteDriveEcrire(token, id, JSON.stringify(local)).then(function () { return 'uploaded'; });
+        });
+    });
+}
+
+function compteNuageSynchroniser(interactif) {
+    if (!window.compteSession || !window.compteSession.sub || !compteClientId()) return Promise.resolve('skip');
+    if (compteNuageEnCours) return Promise.resolve('busy');
+    compteNuageEnCours = true;
+    var etat = 'failed';
+    return compteChargerGIS().then(function () {
+        return compteObtenirJeton(!!interactif);
+    }).then(function (token) {
+        return compteNuageFusionner(token);
+    }).then(function (resultat) {
+        etat = resultat || 'ok';
+    }).catch(function () {
+        etat = 'failed';
+    }).then(function () {
+        compteNuageEnCours = false;
+        return etat;
+    });
+}
+
+function compteNuagePlanifier() {
+    if (compteNuageTimer) clearTimeout(compteNuageTimer);
+    compteNuageTimer = setTimeout(function () {
+        compteNuageTimer = null;
+        compteNuageSynchroniser(false);
+    }, 6000);
+}
+
+function compteNuageEffacer() {
+    if (!window.compteSession || !window.compteSession.sub) return Promise.resolve();
+    function supprimer(token) {
+        return compteDriveTrouver(token).then(function (id) {
+            if (!id) return null;
+            return fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id), {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + token }
+            }).then(function () {
+                var cle = compteCleDrive();
+                if (cle) {
+                    try { localStorage.removeItem(cle); } catch (e) {}
+                }
+            });
+        });
+    }
+    return compteChargerGIS().then(function () {
+        return compteObtenirJeton(false).catch(function () { return compteDemanderJeton('consent'); });
+    }).then(supprimer).catch(function () { return null; });
+}
+
+var compteCopieEnAttente = false;
+var COMPTE_INVITE = 'Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.';
+
+function compteSessionDepuis(payload) {
+    return {
+        sub: payload.sub,
+        name: payload.name || '',
+        email: payload.email || '',
+        picture: payload.picture || '',
+        given_name: payload.given_name || payload.name || ''
+    };
+}
+
+function comptePoserBoutonCopie() {
+    var texte = document.getElementById('compteInviteTexte');
+    if (texte) texte.textContent = 'Confirme Google pour ouvrir ton emploi du temps et tes informations.';
+    var invite = document.getElementById('compteInvite');
+    if (invite) invite.hidden = false;
+    var slot = document.getElementById('googleBtnSlot');
+    if (!slot) return;
+    slot.innerHTML = '';
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.id = 'compteCopieBtn';
+    bouton.className = 'compte-google';
+    bouton.textContent = 'Retrouver ma progression';
+    bouton.onclick = function () { compteChargerCopieGoogle(bouton); };
+    slot.appendChild(bouton);
+}
+
+function compteAfficherBoutonCopie() {
+    compteCopieEnAttente = true;
+    var modal = document.getElementById('compteModal');
+    if (modal) modal.classList.add('active');
+    comptePoserBoutonCopie();
+}
+
+function compteChargerCopieGoogle(bouton) {
+    if (bouton) {
+        bouton.disabled = true;
+        bouton.textContent = 'Récupération…';
+    }
+    compteMessage('');
+    compteChargerGIS().then(function () {
+        return compteDemanderJeton('consent');
+    }).then(function (token) {
+        return compteNuageFusionner(token);
+    }).then(function (etat) {
+        compteCopieEnAttente = false;
+        var profil = compteProfilActuel();
+        if (etat === 'restored' || (profil && profil.profilComplet)) {
+            if (profil && profil.profilComplet) compteOuvrirPlanning();
+            fermerCompte();
+            return;
+        }
+        compteMessage('Aucune progression enregistrée pour ce compte Google.');
+    }).catch(function () {
+        compteMessage('La récupération n’a pas abouti. Réessaie.');
+    }).then(function () {
+        if (bouton && document.body.contains(bouton)) {
+            bouton.disabled = false;
+            bouton.textContent = 'Retrouver ma progression';
+        }
+    });
+}
+
+function compteOuvrirPlanning() {
+    if (typeof memoireAller === 'function') memoireAller('planning');
+    if (typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    if (typeof renderEEia === 'function') {
+        try { renderEEia(); } catch (e) {}
+    }
+}
+
+function compteTerminerConnexion(session) {
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var avait = !!(stocke && stocke.profilComplet);
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    window.compteSession = session;
+    var restaure = false;
+    try { restaure = compteRestaurerLocal(); } catch (e) {}
+    if (!restaure) {
+        var actuel = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (actuel && actuel.profilComplet) {
+            compteOuvrirPlanning();
+            restaure = true;
+        } else if (typeof userName !== 'undefined' && !userName && session.given_name) {
+            userName = session.given_name;
+            if (typeof memoireSet === 'function') memoireSet('nameInput', session.given_name);
+        }
+    }
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    compteRafraichir();
+    if (restaure) {
+        compteCopieEnAttente = false;
+        fermerCompte();
+    }
+    if (typeof v3Toast === 'function') {
+        v3Toast(restaure && !avait ? 'Progression retrouvée.' : ('Connecté avec Google : ' + (session.email || session.name)), 'success');
+    }
+    return restaure;
+}
+
+function compteRelierNuage() {
+    return compteNuageSynchroniser(false).then(function (etat) {
+        if (etat !== 'failed') return etat;
+        return compteNuageSynchroniser(true);
+    }).then(function (etat) {
+        if (etat === 'restored') {
+            compteCopieEnAttente = false;
+            fermerCompte();
+            return etat;
+        }
+        if (etat === 'failed') {
+            var profil = compteProfilActuel();
+            if (!profil || !profil.profilComplet) compteAfficherBoutonCopie();
+        }
+        return etat;
+    });
+}
+
 function compteOnCredential(resp) {
     if (!resp || !resp.credential) return;
     var payload;
@@ -53,28 +462,8 @@ function compteOnCredential(resp) {
         compteMessage('Réponse Google illisible.');
         return;
     }
-    var session = {
-        sub: payload.sub,
-        name: payload.name || '',
-        email: payload.email || '',
-        picture: payload.picture || '',
-        given_name: payload.given_name || payload.name || ''
-    };
-    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
-    window.compteSession = session;
-    if (!userName && session.given_name) {
-        userName = session.given_name;
-        if (typeof memoireSet === 'function') memoireSet('nameInput', userName);
-    }
-    var lie = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY + ':' + session.sub) : null;
-    if (lie && lie.userName && !userName) {
-        memoireAppliquer(lie);
-        memoireAller(lie.profilComplet ? (lie.etape && lie.etape !== 'accueil' ? lie.etape : 'planning') : (lie.etape || 'accueil'));
-    }
-    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
-    compteRafraichir();
-    fermerCompte();
-    if (typeof v3Toast === 'function') v3Toast('Connecté avec Google : ' + (session.email || session.name), 'success');
+    compteTerminerConnexion(compteSessionDepuis(payload));
+    compteRelierNuage();
 }
 
 function comptePreparerGoogle() {
@@ -92,8 +481,10 @@ function comptePreparerGoogle() {
             });
             compteGisPret = true;
         }
+        var texteInvite = document.getElementById('compteInviteTexte');
+        if (texteInvite && !compteCopieEnAttente) texteInvite.textContent = COMPTE_INVITE;
         var host = document.getElementById('googleBtnSlot');
-        if (host) {
+        if (host && !compteCopieEnAttente) {
             host.innerHTML = '';
             google.accounts.id.renderButton(host, {
                 type: 'standard',
@@ -128,7 +519,7 @@ function compteRafraichir() {
     var invite = document.getElementById('compteInvite');
     var deconnect = document.getElementById('compteDeconnectBtn');
     if (profil) profil.hidden = !session;
-    if (invite) invite.hidden = !!session;
+    if (invite) invite.hidden = !!session && !compteCopieEnAttente;
     if (deconnect) deconnect.hidden = !session;
     if (session) {
         var nom = document.getElementById('compteNom');
@@ -162,6 +553,10 @@ function ouvrirCompte() {
     modal.classList.add('active');
     compteMessage('');
     compteRafraichir();
+    if (compteCopieEnAttente) {
+        comptePoserBoutonCopie();
+        return;
+    }
     comptePreparerGoogle().catch(function (e) {
         compteMessage(e.message || 'Connexion Google indisponible pour le moment.');
     });
@@ -194,6 +589,9 @@ function compteEnregistrerClientId() {
 
 function compteDeconnecter() {
     window.compteSession = null;
+    compteCopieEnAttente = false;
+    compteJeton = '';
+    compteJetonFin = 0;
     localStorage.removeItem(COMPTE_SESSION_KEY);
     if (window.google && google.accounts && google.accounts.id) {
         try { google.accounts.id.disableAutoSelect(); } catch (e) {}
@@ -251,6 +649,12 @@ function compteOuvrirOnglet() {
     try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
     compteRafraichir();
+    if (window.compteSession && window.compteSession.sub) {
+        var restaureLocal = false;
+        try { restaureLocal = compteRestaurerLocal(); } catch (e) {}
+        if (restaureLocal && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+        setTimeout(function () { compteNuageSynchroniser(false); }, 400);
+    }
     if (typeof openSideMenu === 'function' && !openSideMenu.__compte) {
         var original = openSideMenu;
         var wrapped = function () {

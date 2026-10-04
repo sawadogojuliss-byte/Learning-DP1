@@ -141,15 +141,16 @@ function memoireSujetsImposes(list) {
     return names === 'Anglais B|Français A|Mathématiques AA';
 }
 
-function memoireAppliquer(data) {
+function memoireAppliquer(data, opts) {
     if (!data || typeof data !== 'object') return;
+    var depuisCompte = !!(opts && opts.compte);
     if (typeof data.userName === 'string') userName = data.userName;
     if (typeof data.targetScore === 'number') targetScore = data.targetScore;
     if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
     if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
     if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
     var optionnelsSauves = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
-    var anciensImposes = memoireSujetsImposes(data.subjects) && optionnelsSauves.length === 0;
+    var anciensImposes = !depuisCompte && memoireSujetsImposes(data.subjects) && optionnelsSauves.length === 0;
     if (!anciensImposes && Array.isArray(data.subjects)) subjects = data.subjects;
     if (!anciensImposes && Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
     if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
@@ -195,13 +196,19 @@ function memoireAppliquer(data) {
     if (typeof currentMood !== 'undefined' && data.currentMood) currentMood = data.currentMood;
     if (data.profilComplet) window.__profilComplet = true;
 
-    var events = memoireJson('studyPlanIB_customEvents_juliss');
-    if (Array.isArray(events)) customEvents = events;
-    else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
+    if (depuisCompte && Array.isArray(data.customEvents)) customEvents = data.customEvents;
+    else {
+        var events = memoireJson('studyPlanIB_customEvents_juliss');
+        if (Array.isArray(events)) customEvents = events;
+        else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
+    }
 
-    var exos = memoireJson('studyPlanIB_exercices');
-    if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = exos;
-    else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
+    if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
+    else {
+        var exos = memoireJson('studyPlanIB_exercices');
+        if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = exos;
+        else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
+    }
 
     memoireSyncChamps();
 }
@@ -294,7 +301,11 @@ function memoireSauvegarder() {
         localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(data.customEvents || []));
         localStorage.setItem('studyPlanIB_exercices', JSON.stringify(data.exercices || []));
         if (window.compteSession && window.compteSession.sub) {
-            localStorage.setItem(MEMOIRE_KEY + ':' + window.compteSession.sub, json);
+            var cleLie = MEMOIRE_KEY + ':' + window.compteSession.sub;
+            var ancienLie = memoireJson(cleLie);
+            var garder = typeof compteDoitGarderLie === 'function' && compteDoitGarderLie(ancienLie, data);
+            if (!garder) localStorage.setItem(cleLie, json);
+            if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
         }
         memoirePoserHash(data.etape);
         memoireMajIndicateur();
@@ -303,8 +314,7 @@ function memoireSauvegarder() {
     }
 }
 
-function memoireEffacer() {
-    if (!confirm('Effacer toute la progression enregistrée sur cet appareil ?')) return;
+function memoireEffacerSuite() {
     memoirePret = false;
     window.__profilComplet = false;
     window.compteSession = null;
@@ -325,6 +335,22 @@ function memoireEffacer() {
     try { sessionStorage.clear(); } catch (e) {}
     var propre = location.pathname.replace(/index\.html$/, '');
     location.replace(propre + location.search);
+}
+
+function memoireEffacer() {
+    if (!confirm('Effacer toute la progression enregistrée sur cet appareil ?')) return;
+    if (typeof compteNuageEffacer !== 'function') {
+        memoireEffacerSuite();
+        return;
+    }
+    var fait = false;
+    var fin = function () {
+        if (fait) return;
+        fait = true;
+        memoireEffacerSuite();
+    };
+    setTimeout(fin, 15000);
+    compteNuageEffacer().then(fin, fin);
 }
 
 function memoireBrancher(nom) {

@@ -177,6 +177,28 @@
     word-break: break-all;
 }
 
+.compte-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 280px;
+    margin: 0 auto;
+    min-height: 2.6rem;
+    padding: 0.55rem 1rem;
+    border-radius: 999px;
+    border: 1px solid #dadce0;
+    background: #fff;
+    color: #1f2937;
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.compte-google:hover { background: #f8fafc; }
+.compte-google:disabled { opacity: 0.65; cursor: wait; }
+
 .compte-msg {
     margin-top: 0.75rem;
     font-size: 0.8rem;
