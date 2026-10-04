@@ -339,6 +339,9 @@ function memoireEffacerSuite() {
 
 function memoireEffacer() {
     if (!confirm('Effacer toute la progression enregistrée sur cet appareil ?')) return;
+    if (typeof sauvegardeEffacerLocal === 'function') {
+        try { sauvegardeEffacerLocal(); } catch (e) {}
+    }
     if (typeof compteNuageEffacer !== 'function') {
         memoireEffacerSuite();
         return;

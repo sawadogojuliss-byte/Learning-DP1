@@ -122,10 +122,13 @@ function compteDoitGarderLie(ancien, courant) {
 function compteProfilActuel() {
     var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
     var lie = null;
+    var precieux = null;
+    var locale = typeof memoireJson === 'function' ? memoireJson('studyPlanIB_sauvegarde:locale') : null;
     if (window.compteSession && window.compteSession.sub && typeof memoireJson === 'function') {
         lie = memoireJson(MEMOIRE_KEY + ':' + window.compteSession.sub);
+        precieux = memoireJson('studyPlanIB_sauvegarde:' + window.compteSession.sub);
     }
-    var choisi = compteChoisirProfil(lie, stocke);
+    var choisi = compteChoisirProfil(precieux, compteChoisirProfil(lie, compteChoisirProfil(stocke, locale)));
     if (choisi) return choisi;
     if (typeof memoireLireEtat !== 'function') return null;
     var vivant = memoireLireEtat();
@@ -153,7 +156,7 @@ function compteRestaurerLocal() {
     return true;
 }
 
-var COMPTE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_DRIVE_SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata';
 var COMPTE_DRIVE_NOM = 'study-plan-ib-profil.json';
 var compteJeton = '';
 var compteJetonFin = 0;
@@ -230,38 +233,40 @@ function compteDriveLire(token, id) {
 }
 
 function compteDriveEcrire(token, id, json) {
-    var boundary = 'studyplan' + Date.now();
-    var meta = { name: COMPTE_DRIVE_NOM, mimeType: 'application/json' };
-    if (!id) meta.parents = ['appDataFolder'];
-    var rn = '\r\n';
-    var body = '--' + boundary + rn + 'Content-Type: application/json; charset=UTF-8' + rn + rn
-        + JSON.stringify(meta) + rn + '--' + boundary + rn + 'Content-Type: application/json' + rn + rn
-        + json + rn + '--' + boundary + '--';
-    var url = id
-        ? 'https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(id) + '?uploadType=multipart'
-        : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-    return fetch(url, {
-        method: id ? 'PATCH' : 'POST',
+    function media(fileId) {
+        return fetch('https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(fileId) + '?uploadType=media', {
+            method: 'PATCH',
+            headers: {
+                Authorization: 'Bearer ' + token,
+                'Content-Type': 'application/json; charset=UTF-8'
+            },
+            body: json
+        }).then(function (res) {
+            if (!res.ok) throw new Error('media');
+            return res.json();
+        });
+    }
+    if (id) return media(id);
+    return fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
         headers: {
             Authorization: 'Bearer ' + token,
-            'Content-Type': 'multipart/related; boundary=' + boundary
+            'Content-Type': 'application/json'
         },
-        body: body
+        body: JSON.stringify({
+            name: COMPTE_DRIVE_NOM,
+            mimeType: 'application/json',
+            parents: ['appDataFolder']
+        })
     }).then(function (res) {
-        if (res.status === 404 && id) {
-            var cle = compteCleDrive();
-            if (cle) {
-                try { localStorage.removeItem(cle); } catch (e) {}
-            }
-            return compteDriveEcrire(token, '', json);
-        }
-        if (!res.ok) throw new Error('ecriture');
+        if (!res.ok) throw new Error('creation');
         return res.json();
     }).then(function (fichier) {
-        if (fichier && fichier.id && compteCleDrive()) {
+        if (!fichier || !fichier.id) throw new Error('creation');
+        if (compteCleDrive()) {
             try { localStorage.setItem(compteCleDrive(), fichier.id); } catch (e) {}
         }
-        return fichier;
+        return media(fichier.id);
     });
 }
 
@@ -453,6 +458,118 @@ function compteRelierNuage() {
     });
 }
 
+function compteMemoriserSession(session) {
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    window.compteSession = session;
+}
+
+function compteMontrerProgression(data, forcer) {
+    if (!data || typeof data !== 'object' || data.efface) return false;
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var applique = false;
+    if (!compteEquivalent(data, stocke) && typeof compteAfficherProfil === 'function') {
+        compteAfficherProfil(data);
+        applique = true;
+    }
+    var ouvrir = !!(data.profilComplet && (forcer || !stocke || !stocke.profilComplet));
+    if (ouvrir) {
+        compteOuvrirPlanning();
+        fermerCompte();
+    }
+    return applique || ouvrir;
+}
+
+function compteRestaurerTout(session, token) {
+    compteMemoriserSession(session);
+    var lecture = typeof sauvegardeMeilleure === 'function' ? sauvegardeMeilleure(session.sub) : Promise.resolve(compteProfilActuel());
+    return lecture.then(function (local) {
+        var ouvert = compteMontrerProgression(local, true);
+        if (local && typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(session.sub, local, true);
+        var suite = token
+            ? compteNuageFusionner(token).catch(function () { return 'echec'; })
+            : Promise.resolve(ouvert ? 'local' : 'vide');
+        return suite.then(function (etat) {
+            var meilleur = compteSourceNuage() || local;
+            if (meilleur && meilleur.profilComplet) {
+                if (compteMontrerProgression(meilleur, true)) ouvert = true;
+            }
+            if (meilleur && typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(session.sub, meilleur, true);
+            if (!token || !meilleur || !compteUtile(meilleur)) return ouvert ? 'local' : (etat || 'vide');
+            if (etat === 'same' || etat === 'uploaded' || etat === 'restored') {
+                return (etat === 'restored' || ouvert) ? 'restored' : etat;
+            }
+            return compteDriveTrouver(token).then(function (id) {
+                return compteDriveEcrire(token, id, JSON.stringify(meilleur));
+            }).then(function () {
+                return ouvert ? 'restored' : 'uploaded';
+            }).catch(function () {
+                return ouvert ? 'local' : 'echec';
+            });
+        });
+    }).then(function (etat) {
+        compteRafraichir();
+        if (etat === 'restored' || etat === 'local') {
+            if (typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+        } else if (etat === 'uploaded' || etat === 'same') {
+            if (typeof v3Toast === 'function') v3Toast('Sauvegarde liée à ton compte Google.', 'success');
+        } else if (etat === 'echec') {
+            compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
+            if (typeof v3Toast === 'function') v3Toast('Connecté avec Google : ' + (session.email || session.name), 'info');
+        } else if (typeof v3Toast === 'function') {
+            v3Toast('Connecté avec Google : ' + (session.email || session.name), 'success');
+        }
+        return etat;
+    });
+}
+
+function compteConnexionGoogle(origine) {
+    var bouton = (origine && origine.currentTarget) || document.getElementById('compteGoogleBtn');
+    var libelle = bouton ? bouton.textContent : 'Continuer avec Google';
+    if (bouton) {
+        bouton.disabled = true;
+        bouton.textContent = 'Connexion…';
+    }
+    compteMessage('');
+    if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
+        var instant = sauvegardeCapturer();
+        if (instant) sauvegardeEcrireLocal('locale', instant, false);
+    }
+    function fin() {
+        if (bouton && document.body.contains(bouton)) {
+            bouton.disabled = false;
+            bouton.textContent = libelle;
+        }
+    }
+    function lancer() {
+        compteDemanderJeton('select_account').then(function (token) {
+            return fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: 'Bearer ' + token }
+            }).then(function (res) {
+                if (!res.ok) throw new Error('profil');
+                return res.json();
+            }).then(function (profil) {
+                if (!profil || !profil.sub) throw new Error('profil');
+                return compteRestaurerTout(compteSessionDepuis(profil), token);
+            });
+        }).catch(function (err) {
+            var type = String((err && (err.type || err.error || err.message)) || '');
+            if (type.indexOf('popup_closed') !== -1 || type.indexOf('access_denied') !== -1) {
+                compteMessage('Connexion annulée.');
+                return;
+            }
+            compteMessage('Ouverture de la connexion Google…');
+            return comptePreparerGoogle().then(function (ok) {
+                if (ok && window.google && google.accounts.id && google.accounts.id.prompt) google.accounts.id.prompt();
+            });
+        }).then(fin, fin);
+    }
+    if (window.google && google.accounts && google.accounts.oauth2) lancer();
+    else compteChargerGIS().then(lancer, function (e) {
+        compteMessage((e && e.message) || 'Google est indisponible pour le moment.');
+        fin();
+    });
+}
+
 function compteOnCredential(resp) {
     if (!resp || !resp.credential) return;
     var payload;
@@ -462,8 +579,16 @@ function compteOnCredential(resp) {
         compteMessage('Réponse Google illisible.');
         return;
     }
-    compteTerminerConnexion(compteSessionDepuis(payload));
-    compteRelierNuage();
+    var session = compteSessionDepuis(payload);
+    compteRestaurerTout(session, null).then(function () {
+        return compteNuageSynchroniser(true);
+    }).then(function (etat) {
+        if (etat === 'restored') {
+            var profil = compteProfilActuel();
+            if (profil) compteMontrerProgression(profil, true);
+            if (typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+        }
+    });
 }
 
 function comptePreparerGoogle() {
@@ -484,7 +609,7 @@ function comptePreparerGoogle() {
         var texteInvite = document.getElementById('compteInviteTexte');
         if (texteInvite && !compteCopieEnAttente) texteInvite.textContent = COMPTE_INVITE;
         var host = document.getElementById('googleBtnSlot');
-        if (host && !compteCopieEnAttente) {
+        if (host && !document.getElementById('compteGoogleBtn') && !compteCopieEnAttente) {
             host.innerHTML = '';
             google.accounts.id.renderButton(host, {
                 type: 'standard',
@@ -518,8 +643,13 @@ function compteRafraichir() {
     var profil = document.getElementById('compteProfil');
     var invite = document.getElementById('compteInvite');
     var deconnect = document.getElementById('compteDeconnectBtn');
+    var complet = !!window.__profilComplet;
+    try {
+        var mem = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+        if (mem && mem.profilComplet) complet = true;
+    } catch (e) {}
     if (profil) profil.hidden = !session;
-    if (invite) invite.hidden = !!session && !compteCopieEnAttente;
+    if (invite) invite.hidden = !!session && complet && !compteCopieEnAttente;
     if (deconnect) deconnect.hidden = !session;
     if (session) {
         var nom = document.getElementById('compteNom');
@@ -649,11 +779,18 @@ function compteOuvrirOnglet() {
     try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
     compteRafraichir();
+    compteChargerGIS().catch(function () {});
     if (window.compteSession && window.compteSession.sub) {
-        var restaureLocal = false;
-        try { restaureLocal = compteRestaurerLocal(); } catch (e) {}
-        if (restaureLocal && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
-        setTimeout(function () { compteNuageSynchroniser(false); }, 400);
+        var sub = window.compteSession.sub;
+        var appliquer = function (data) {
+            if (!data) return;
+            if (compteMontrerProgression(data, false) && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+        };
+        try { appliquer(compteRestaurerLocal() ? memoireJson(MEMOIRE_KEY) : null); } catch (e) {}
+        if (typeof sauvegardeMeilleure === 'function') {
+            sauvegardeMeilleure(sub).then(appliquer).catch(function () {});
+        }
+        setTimeout(function () { compteNuageSynchroniser(false); }, 500);
     }
     if (typeof openSideMenu === 'function' && !openSideMenu.__compte) {
         var original = openSideMenu;
