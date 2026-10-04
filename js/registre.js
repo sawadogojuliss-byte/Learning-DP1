@@ -9,7 +9,6 @@ window.STUDYPLAN_HTML = [
     'pages/onboarding-objectif.html',
     'pages/onboarding-classe.html',
     'pages/onboarding-matieres.html',
-    'pages/onboarding-travaux.html',
     'pages/onboarding-transport.html',
     'pages/onboarding-voiture.html',
     'pages/onboarding-moto.html',
@@ -23,6 +22,7 @@ window.STUDYPLAN_HTML = [
     'pages/soutien.html',
     'pages/exercices.html',
     'pages/legende.html',
+    'pages/ee-ia.html',
     'pages/compte.html'
 ];
 

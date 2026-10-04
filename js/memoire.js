@@ -20,7 +20,8 @@ function memoireEtapeActive() {
     var panneaux = [
         ['panelSoutien', 'soutien'],
         ['panelExercices', 'exercices'],
-        ['panelLegende', 'legende']
+        ['panelLegende', 'legende'],
+        ['panelEEia', 'eeia']
     ];
     var modales = [
         ['contextModal', 'prenom'],
@@ -72,6 +73,7 @@ function memoireLireEtat() {
         ibYear: typeof ibYear !== 'undefined' ? ibYear : '',
         memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
         iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
+        iaLevels: typeof iaLevels !== 'undefined' ? iaLevels : {},
         transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
         carDeparture: carDeparture,
         carToSchool: carToSchool,
@@ -149,6 +151,7 @@ function memoireAppliquer(data) {
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
     if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
     if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
+    if (typeof iaLevels !== 'undefined' && data.iaLevels && typeof data.iaLevels === 'object') iaLevels = data.iaLevels;
     if (typeof transportMode !== 'undefined' && typeof data.transportMode === 'string') transportMode = data.transportMode;
     if (data.carDeparture) carDeparture = data.carDeparture;
     if (data.carToSchool) carToSchool = data.carToSchool;
@@ -203,13 +206,15 @@ function memoireAller(etape) {
         memoireFermerVues();
         return;
     }
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende') {
+    if (etape === 'travaux') etape = 'transport';
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active')) generatePlanning();
         if (etape === 'soutien') navigateTo('soutien');
         else if (etape === 'exercices') navigateTo('exercices');
         else if (etape === 'legende') navigateTo('legende');
+        else if (etape === 'eeia') navigateTo('eeia');
         else navigateTo('planning');
         return;
     }
@@ -341,7 +346,7 @@ function memoireDemarrer() {
         'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
         'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',
         'addOptionalSubject', 'removeOptionalSubject', 'updateSubjectLevel', 'updateSubjectGrade',
-        'setMemoirLevel', 'setIaLevel', 'validateTravaux',
+        'setMemoirLevel', 'setIaStage',
         'adjustScore', 'handleScoreInput', 'navigateTo', 'selectDay',
         'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
         'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',

@@ -199,7 +199,5 @@ function handleAddSubject(select) {
 }
 
 function validateSubjects() {
-    if (isSubjectsValid()) {
-        showTravauxPage();
-    }
+    if (isSubjectsValid() && typeof showTransportPage === 'function') showTransportPage();
 }

@@ -15,8 +15,8 @@ function showTransportPage() {
 
 function hideTransportPage() {
     document.getElementById('transportModal').classList.remove('active');
-    if (typeof showTravauxPage === 'function') showTravauxPage();
-    else document.getElementById('subjectsModal').classList.add('active');
+    document.getElementById('subjectsModal').classList.add('active');
+    if (typeof updateSubjectsUI === 'function') updateSubjectsUI();
 }
 
 let transportMode = '';

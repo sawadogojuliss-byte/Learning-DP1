@@ -373,7 +373,7 @@ function academicGapBlocks(start, end, dayIndex, seq) {
             blocks.push({
                 id: 'ia-' + cursor,
                 title: 'Évaluation interne · ' + subj.name,
-                subtitle: (typeof iaLevelLabel === 'function' ? iaLevelLabel() : 'critères et brouillon'),
+                subtitle: (typeof iaLevelLabel === 'function' ? iaLevelLabel(subj.name) : 'critères et brouillon'),
                 startTime: clock(cursor),
                 endTime: clock(cursor + dur),
                 type: 'ia',
