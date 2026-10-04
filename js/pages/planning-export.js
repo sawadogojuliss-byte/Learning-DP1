@@ -1,90 +1,33 @@
 /* ============================================================
    Export de l'emploi du temps
-   Fichier de toute la semaine, même rendu que le site.
+   Toute la semaine, une page par jour, même forme que le site :
+   bandeau, pastilles des jours, cartes colorées, heures à droite.
    ============================================================ */
 
-function exportEchap(str) {
-    if (typeof v3Escape === 'function') return v3Escape(str);
-    return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function exportDuree(event) {
-    var durMins = timeToMinutes(event.endTime) - timeToMinutes(event.startTime);
-    if (durMins <= 0) return '';
-    var durH = Math.floor(durMins / 60);
-    var durM = durMins % 60;
-    return (durH > 0 ? durH + 'h' : '') + (durM > 0 ? durM + 'min' : '');
-}
-
-function exportCarte(event) {
+function exportCouleur(type) {
     var borderColorMap = { indigo: '#818cf8', blue: '#60a5fa', orange: '#fb923c', red: '#ef4444', amber: '#f59e0b', purple: '#a78bfa', cyan: '#22d3ee', gray: '#9ca3af', pink: '#f472b6', green: '#4ade80', yellow: '#facc15', teal: '#2dd4bf', rose: '#fb7185', violet: '#a78bfa' };
     var bgColorMap = { indigo: '#eef2ff', blue: '#eff6ff', orange: '#fff7ed', red: '#fef2f2', amber: '#fffbeb', purple: '#faf5ff', cyan: '#ecfeff', gray: '#f9fafb', pink: '#fdf2f8', green: '#f0fdf4', yellow: '#fefce8', teal: '#f0fdfa', rose: '#fff1f2', violet: '#f5f3ff' };
-    var colorClass = getEventColor(event.type);
-    var parts = colorClass.split(' ');
-    var borderStyle = parts[0].replace('border-', '').replace('-400', '').replace('-500', '');
-    var bgStyle = parts[1].replace('bg-', '').replace('-50', '');
-    var bColor = borderColorMap[borderStyle] || '#9ca3af';
-    var bBg = bgColorMap[bgStyle] || '#f9fafb';
-    var durMins = timeToMinutes(event.endTime) - timeToMinutes(event.startTime);
-    var durLabel = exportDuree(event);
+    var colorClass = (typeof getEventColor === 'function' ? getEventColor(type) : 'border-gray-400 bg-gray-50').split(' ');
+    var borderStyle = String(colorClass[0] || '').replace('border-', '').replace('-400', '').replace('-500', '');
+    var bgStyle = String(colorClass[1] || '').replace('bg-', '').replace('-50', '');
+    return { border: borderColorMap[borderStyle] || '#9ca3af', bg: bgColorMap[bgStyle] || '#f9fafb' };
+}
+
+function exportDureeLabel(event) {
+    var mins = timeToMinutes(event.endTime) - timeToMinutes(event.startTime);
+    if (mins <= 0) return '';
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return (h > 0 ? h + 'h' : '') + (m > 0 ? m + 'min' : '');
+}
+
+function exportSousTitre(event) {
+    var mins = timeToMinutes(event.endTime) - timeToMinutes(event.startTime);
     var subtitle = event.subtitle || '';
-    if (typeof v3IsStudyType === 'function' && v3IsStudyType(event.type) && durMins > 0 && typeof v3PomodoroLabel === 'function') {
-        subtitle = (subtitle ? subtitle + ' · ' : '') + v3PomodoroLabel(durMins);
+    if (typeof v3IsStudyType === 'function' && v3IsStudyType(event.type) && mins > 0 && typeof v3PomodoroLabel === 'function') {
+        subtitle = (subtitle ? subtitle + ' · ' : '') + v3PomodoroLabel(mins);
     }
-    var pinBadge = event.kind === 'pinned' ? '<span style="font-size:0.7rem;margin-right:0.2rem;">📌</span>' : '';
-    return '<div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);margin-bottom:0.5rem;">'
-        + '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + exportEchap(event.icon || '') + '</span></div>'
-        + '<div style="flex:1;min-width:0;">'
-        + '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;">' + exportEchap(event.title) + '</h3>'
-        + (subtitle ? '<p style="font-size:0.75rem;color:#6b7280;margin:0.1rem 0 0;">' + exportEchap(subtitle) + '</p>' : '')
-        + '</div>'
-        + '<div style="text-align:right;flex-shrink:0;">'
-        + '<p style="font-size:0.85rem;font-weight:700;color:#374151;margin:0;">' + pinBadge + exportEchap(event.startTime) + '</p>'
-        + '<p style="font-size:0.7rem;color:#9ca3af;margin:0;">→ ' + exportEchap(event.endTime) + '</p>'
-        + (durLabel ? '<p style="font-size:0.68rem;color:' + bColor + ';font-weight:600;margin:0.1rem 0 0;">' + durLabel + '</p>' : '')
-        + '</div>'
-        + '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;visibility:hidden;"><span style="font-size:0.8rem;">✏️</span></div>'
-        + '</div>';
-}
-
-function exportChaine(event, bColor) {
-    if (event.id === 'sleep') return '';
-    return '<div style="display:flex;align-items:center;gap:0.5rem;padding:0 1rem;margin:-0.25rem 0;"><div style="width:3rem;flex-shrink:0;"></div><div style="width:2px;height:0.625rem;background:linear-gradient(to bottom,' + bColor + ',#e5e7eb);margin-left:1.375rem;opacity:0.5;border-radius:1px;"></div></div>';
-}
-
-function exportJour(index, jour) {
-    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
-    var mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-    var date = new Date(jour.date);
-    var puce = jour.isToday
-        ? 'background:#10b981;color:white;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);'
-        : 'background:#f3f4f6;color:#4b5563;';
-    var html = '<section style="margin:0 0 1.75rem;">'
-        + '<div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.85rem;">'
-        + '<div style="display:flex;flex-direction:column;align-items:center;padding:0.5rem 0.75rem;border-radius:0.75rem;min-width:3.5rem;' + puce + '"><span style="font-size:0.75rem;font-weight:500;">' + exportEchap(jour.dayName) + '</span><span style="font-size:1.125rem;font-weight:700;">' + jour.dayNumber + '</span></div>'
-        + '<div><h2 style="margin:0;font-size:1.15rem;color:#111827;">' + noms[index] + '</h2><p style="margin:0.1rem 0 0;color:#6b7280;font-size:0.8rem;">' + date.getDate() + ' ' + mois[date.getMonth()] + '</p></div>'
-        + '</div>';
-
-    if (typeof holidayMode === 'function' && holidayMode(index) === 'free') {
-        html += (typeof v3LibreVertical === 'function') ? v3LibreVertical() : '<p style="color:#be123c;font-family:Georgia,serif;font-size:2rem;">libre</p>';
-        return html + '</section>';
-    }
-    if (typeof holidayMode === 'function' && holidayMode(index) === 'keep') {
-        html += '<div style="margin-bottom:0.75rem;padding:0.75rem 1rem;border-radius:0.85rem;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;font-size:0.85rem;font-weight:600;">🎉 Jour férié — emploi du temps conservé</div>';
-    } else if (typeof holidayMode === 'function' && holidayMode(index) === 'light') {
-        html += '<div style="margin-bottom:0.75rem;padding:0.75rem 1rem;border-radius:0.85rem;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;font-size:0.85rem;font-weight:600;">🎉 Jour férié — activités désélectionnées retirées</div>';
-    }
-
-    var events = generateDayEvents(index);
-    var borderColorMap = { indigo: '#818cf8', blue: '#60a5fa', orange: '#fb923c', red: '#ef4444', amber: '#f59e0b', purple: '#a78bfa', cyan: '#22d3ee', gray: '#9ca3af', pink: '#f472b6', green: '#4ade80', yellow: '#facc15', teal: '#2dd4bf', rose: '#fb7185', violet: '#a78bfa' };
-    events.forEach(function (event, idx) {
-        html += exportCarte(event);
-        if (idx !== events.length - 1) {
-            var colorClass = getEventColor(event.type).split(' ')[0].replace('border-', '').replace('-400', '').replace('-500', '');
-            html += exportChaine(event, borderColorMap[colorClass] || '#9ca3af');
-        }
-    });
-    return html + '</section>';
+    return subtitle;
 }
 
 function exportDatesSemaine() {
@@ -102,50 +45,429 @@ function exportDatesSemaine() {
     });
 }
 
-function construireEmploiSemaine() {
+function exportArrondi(ctx, x, y, w, h, r) {
+    var rad = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + rad, y);
+    ctx.arcTo(x + w, y, x + w, y + h, rad);
+    ctx.arcTo(x + w, y + h, x, y + h, rad);
+    ctx.arcTo(x, y + h, x, y, rad);
+    ctx.arcTo(x, y, x + w, y, rad);
+    ctx.closePath();
+}
+
+function exportCouper(ctx, text, max) {
+    text = String(text == null ? '' : text);
+    if (ctx.measureText(text).width <= max) return text;
+    while (text.length > 1 && ctx.measureText(text + '…').width > max) text = text.slice(0, -1);
+    return text + '…';
+}
+
+function exportFond(ctx, w, h) {
+    var g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0, '#ecfdf5');
+    g.addColorStop(0.45, '#ffffff');
+    g.addColorStop(1, '#f0fdfa');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+}
+
+function exportBandeau(ctx, w) {
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 1;
+    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    ctx.fillRect(0, 0, w, 76);
+    ctx.restore();
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 76);
+    ctx.lineTo(w, 76);
+    ctx.stroke();
+
+    var logo = ctx.createLinearGradient(16, 18, 56, 58);
+    logo.addColorStop(0, '#10b981');
+    logo.addColorStop(1, '#14b8a6');
+    exportArrondi(ctx, 16, 18, 40, 40, 12);
+    ctx.fillStyle = logo;
+    ctx.fill();
+    ctx.font = '22px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('📚', 36, 39);
+
+    var titre = ctx.createLinearGradient(68, 0, 230, 0);
+    titre.addColorStop(0, '#059669');
+    titre.addColorStop(1, '#0d9488');
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '700 18px Inter, sans-serif';
+    ctx.fillStyle = titre;
+    ctx.fillText('Study Plan IB', 68, 36);
+    var salut = (typeof getGreeting === 'function' ? getGreeting() : 'Bonjour') + ', ' + ((typeof userName !== 'undefined' && userName) ? userName : 'là') + ' !';
+    ctx.font = '14px Inter, sans-serif';
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText(salut, 68, 58);
+
+    if (typeof ibYear !== 'undefined' && (ibYear === 'DP1' || ibYear === 'DP2')) {
+        ctx.font = '700 13px Inter, sans-serif';
+        var label = ibYear;
+        var tw = ctx.measureText(label).width + 22;
+        exportArrondi(ctx, w - 16 - tw, 24, tw, 28, 14);
+        ctx.fillStyle = '#ecfdf5';
+        ctx.fill();
+        ctx.fillStyle = '#047857';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, w - 16 - tw / 2, 38);
+    }
+}
+
+function exportPastilles(ctx, w, jours, actif) {
+    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    ctx.fillRect(0, 76, w, 78);
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.beginPath();
+    ctx.moveTo(0, 154);
+    ctx.lineTo(w, 154);
+    ctx.stroke();
+    var gap = 6;
+    var x0 = 12;
+    var largeur = (w - 24 - gap * 6) / 7;
+    jours.forEach(function (jour, i) {
+        var x = x0 + i * (largeur + gap);
+        var on = i === actif;
+        exportArrondi(ctx, x, 86, largeur, 56, 12);
+        if (on) {
+            ctx.fillStyle = '#10b981';
+            ctx.shadowColor = 'rgba(16,185,129,0.35)';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+        } else if (jour.isToday) {
+            ctx.fillStyle = '#d1fae5';
+            ctx.fill();
+            ctx.fillStyle = '#047857';
+        } else {
+            ctx.fillStyle = '#f3f4f6';
+            ctx.fill();
+            ctx.fillStyle = '#4b5563';
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '500 12px Inter, sans-serif';
+        ctx.fillText(jour.dayName, x + largeur / 2, 104);
+        ctx.font = '700 18px Inter, sans-serif';
+        ctx.fillText(String(jour.dayNumber), x + largeur / 2, 126);
+    });
+}
+
+function exportCarteDessin(ctx, event, x, y, w) {
+    var couleur = exportCouleur(event.type);
+    var h = 72;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.08)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 1;
+    exportArrondi(ctx, x, y, w, h, 14);
+    ctx.fillStyle = couleur.bg;
+    ctx.fill();
+    ctx.restore();
+    ctx.save();
+    exportArrondi(ctx, x, y, w, h, 14);
+    ctx.clip();
+    ctx.fillStyle = couleur.border;
+    ctx.fillRect(x, y, 4, h);
+    ctx.restore();
+
+    exportArrondi(ctx, x + 16, y + 14, 44, 44, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.font = '22px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#111827';
+    ctx.fillText(event.icon || '📌', x + 38, y + 37);
+
+    var etude = typeof v3IsStudyType === 'function' && v3IsStudyType(event.type);
+    var droite = x + w - 16 - 18;
+    var tempsX = droite - 78;
+    if (etude) tempsX -= 40;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '700 13.6px Inter, sans-serif';
+    ctx.fillStyle = '#374151';
+    var debut = (event.kind === 'pinned' ? '📌 ' : '') + (event.startTime || '');
+    ctx.fillText(debut, droite, y + 28);
+    ctx.font = '11.2px Inter, sans-serif';
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillText('→ ' + (event.endTime || ''), droite, y + 44);
+    var duree = exportDureeLabel(event);
+    if (duree) {
+        ctx.font = '600 10.8px Inter, sans-serif';
+        ctx.fillStyle = couleur.border;
+        ctx.fillText(duree, droite, y + 60);
+    }
+    if (etude) {
+        exportArrondi(ctx, tempsX + 78 - 36, y + 20, 32, 32, 16);
+        ctx.fillStyle = '#fef2f2';
+        ctx.fill();
+        ctx.strokeStyle = '#fecaca';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.font = '16px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🍅', tempsX + 78 - 20, y + 37);
+    }
+
+    var texteX = x + 74;
+    var texteMax = Math.max(40, tempsX - texteX - 8);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '700 14.4px Inter, sans-serif';
+    ctx.fillStyle = '#111827';
+    ctx.fillText(exportCouper(ctx, event.title || '', texteMax), texteX, y + (exportSousTitre(event) ? 32 : 40));
+    var sous = exportSousTitre(event);
+    if (sous) {
+        ctx.font = '12px Inter, sans-serif';
+        ctx.fillStyle = '#6b7280';
+        ctx.fillText(exportCouper(ctx, sous, texteMax), texteX, y + 52);
+    }
+    return h;
+}
+
+function exportLibreDessin(ctx, x, y, w) {
+    var carteW = Math.min(296, w - 32);
+    var carteH = 460;
+    var cx = x + (w - carteW) / 2;
+    exportArrondi(ctx, cx, y, carteW, carteH, 32);
+    var g = ctx.createLinearGradient(cx, y, cx, y + carteH);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(1, '#fff1f2');
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(190,18,60,0.16)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    exportArrondi(ctx, cx + 14, y + 14, carteW - 28, carteH - 28, 22);
+    ctx.strokeStyle = 'rgba(190,18,60,0.16)';
+    ctx.stroke();
+    ctx.fillStyle = '#9f1239';
+    ctx.font = '700 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('JOUR FÉRIÉ', cx + carteW / 2, y + 42);
+    ctx.save();
+    ctx.translate(cx + carteW / 2, y + carteH / 2 + 8);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = '#be123c';
+    ctx.font = '500 78px Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('libre', 0, 0);
+    ctx.restore();
+    ctx.strokeStyle = '#e11d48';
+    ctx.beginPath();
+    ctx.moveTo(cx + carteW / 2 - 19, y + carteH - 36);
+    ctx.lineTo(cx + carteW / 2 + 19, y + carteH - 36);
+    ctx.stroke();
+    return carteH;
+}
+
+function exportBanniere(ctx, x, y, w, mode) {
+    var h = 42;
+    exportArrondi(ctx, x, y, w, h, 14);
+    if (mode === 'keep') {
+        ctx.fillStyle = '#ecfdf5';
+        ctx.fill();
+        ctx.strokeStyle = '#a7f3d0';
+        ctx.stroke();
+        ctx.fillStyle = '#065f46';
+        ctx.font = '600 13.5px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎉  Jour férié — emploi du temps conservé', x + 14, y + 21);
+    } else {
+        ctx.fillStyle = '#fff7ed';
+        ctx.fill();
+        ctx.strokeStyle = '#fed7aa';
+        ctx.stroke();
+        ctx.fillStyle = '#9a3412';
+        ctx.font = '600 13.5px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🎉  Jour férié — activités désélectionnées retirées', x + 14, y + 21);
+    }
+    return h;
+}
+
+function exportDessinerJour(index, jours) {
+    var w = 820;
+    var x = 16;
+    var carteW = w - 32;
+    var mode = (typeof holidayMode === 'function') ? holidayMode(index) : null;
+    var libre = mode === 'free';
+    var events = libre ? [] : generateDayEvents(index);
+    var y = 154 + 18;
+    var hauteur = y + 24;
+    if (libre) hauteur += 460;
+    else {
+        if (mode === 'keep' || mode === 'light') hauteur += 42 + 12;
+        hauteur += Math.max(1, events.length) * 82;
+    }
+    var canvas = document.createElement('canvas');
+    var scale = 2;
+    canvas.width = w * scale;
+    canvas.height = hauteur * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.scale(scale, scale);
+    ctx.textBaseline = 'alphabetic';
+    exportFond(ctx, w, hauteur);
+    exportBandeau(ctx, w);
+    exportPastilles(ctx, w, jours, index);
+    if (libre) {
+        exportLibreDessin(ctx, x, y, carteW);
+    } else {
+        if (mode === 'keep' || mode === 'light') y += exportBanniere(ctx, x, y, carteW, mode) + 12;
+        events.forEach(function (event) {
+            exportCarteDessin(ctx, event, x, y, carteW);
+            y += 82;
+        });
+    }
+    return { canvas: canvas, cssW: w, cssH: hauteur };
+}
+
+function exportBytes(parts) {
+    var len = 0;
+    parts.forEach(function (p) { len += p.length; });
+    var out = new Uint8Array(len);
+    var o = 0;
+    parts.forEach(function (p) { out.set(p, o); o += p.length; });
+    return out;
+}
+
+function exportPdf(pages) {
+    var enc = new TextEncoder();
+    var n = pages.length;
+    var parts = [];
+    var size = 0;
+    function add(data) {
+        if (typeof data === 'string') data = enc.encode(data);
+        parts.push(data);
+        size += data.length;
+    }
+    function obj(id, chunks) {
+        offsets[id] = size;
+        add(id + ' 0 obj\n');
+        chunks.forEach(add);
+        add('\nendobj\n');
+    }
+    add('%PDF-1.4\n');
+    var offsets = [0];
+    var pagesId = 2;
+    var pageIds = [];
+    var contentIds = [];
+    var imageIds = [];
+    var i;
+    for (i = 0; i < n; i++) {
+        pageIds.push(3 + i);
+        contentIds.push(3 + n + i);
+        imageIds.push(3 + 2 * n + i);
+    }
+    var kids = pageIds.map(function (id) { return id + ' 0 R'; }).join(' ');
+    obj(1, ['<< /Type /Catalog /Pages 2 0 R >>']);
+    obj(2, ['<< /Type /Pages /Count ' + n + ' /Kids [' + kids + '] >>']);
+    pages.forEach(function (page, idx) {
+        obj(pageIds[idx], ['<< /Type /Page /Parent ' + pagesId + ' 0 R /MediaBox [0 0 ' + page.ptW.toFixed(2) + ' ' + page.ptH.toFixed(2) + '] /Contents ' + contentIds[idx] + ' 0 R /Resources << /XObject << /Im' + idx + ' ' + imageIds[idx] + ' 0 R >> >> >>']);
+    });
+    pages.forEach(function (page, idx) {
+        var stream = 'q\n' + page.ptW.toFixed(2) + ' 0 0 ' + page.ptH.toFixed(2) + ' 0 0 cm\n/Im' + idx + ' Do\nQ';
+        obj(contentIds[idx], ['<< /Length ' + enc.encode(stream).length + ' >>\nstream\n', stream, '\nendstream']);
+    });
+    pages.forEach(function (page, idx) {
+        obj(imageIds[idx], [
+            '<< /Type /XObject /Subtype /Image /Width ' + page.pxW + ' /Height ' + page.pxH + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + page.jpeg.length + ' >>\nstream\n',
+            page.jpeg,
+            '\nendstream'
+        ]);
+    });
+    var xref = size;
+    var total = 2 + 3 * n;
+    var table = 'xref\n0 ' + (total + 1) + '\n0000000000 65535 f \n';
+    for (i = 1; i <= total; i++) table += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
+    add(table);
+    add('trailer\n<< /Size ' + (total + 1) + ' /Root 1 0 R >>\nstartxref\n' + xref + '\n%%EOF');
+    return exportBytes(parts);
+}
+
+function exportJpeg(canvas) {
+    return new Promise(function (resolve, reject) {
+        var fini = function (bytes) {
+            if (!bytes || !bytes.length) reject(new Error('image vide'));
+            else resolve(bytes);
+        };
+        if (canvas.toBlob) {
+            canvas.toBlob(function (blob) {
+                if (!blob) { reject(new Error('image')); return; }
+                blob.arrayBuffer().then(function (buf) { fini(new Uint8Array(buf)); }).catch(reject);
+            }, 'image/jpeg', 0.92);
+            return;
+        }
+        var url = canvas.toDataURL('image/jpeg', 0.92);
+        var bin = atob(url.split(',')[1]);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        fini(bytes);
+    });
+}
+
+function exportSauver(bytes, nom, type) {
+    var blob = new Blob([bytes], { type: type });
+    var lien = document.createElement('a');
+    lien.href = URL.createObjectURL(blob);
+    lien.download = nom;
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(function () { URL.revokeObjectURL(lien.href); }, 1500);
+}
+
+function exportPreparerPdf() {
     var jours = exportDatesSemaine();
-    var mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
-    var debut = jours[0].date;
-    var fin = jours[6].date;
-    var plage = debut.getDate() + ' ' + mois[debut.getMonth()] + ' – ' + fin.getDate() + ' ' + mois[fin.getMonth()] + ' ' + fin.getFullYear();
-    var classe = (typeof ibYear !== 'undefined' && (ibYear === 'DP1' || ibYear === 'DP2')) ? ibYear : 'IB';
-    var nom = (typeof userName !== 'undefined' && userName) ? userName : '';
-    var sousTitre = [nom, classe, (typeof targetScore !== 'undefined' ? 'objectif ' + targetScore : '')].filter(Boolean).join(' · ');
-    var corps = jours.map(function (jour, index) { return exportJour(index, jour); }).join('');
-    var legend = document.getElementById('planningLegend');
-    var stats = document.getElementById('planningStats');
-    return '<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">'
-        + '<title>Emploi du temps — semaine</title>'
-        + '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">'
-        + '<style>body{margin:0;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:linear-gradient(to bottom right,#ecfdf5,white,#f0fdfa);color:#111827;} @media print { body{background:white;} .no-print{display:none;} section{break-inside:avoid;} }</style>'
-        + '</head><body>'
-        + '<header style="position:sticky;top:0;z-index:2;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);box-shadow:0 1px 3px rgba(0,0,0,0.1);border-bottom:1px solid #f3f4f6;">'
-        + '<div style="max-width:56rem;margin:0 auto;padding:0.85rem 1rem;display:flex;align-items:center;gap:0.75rem;">'
-        + '<div style="width:2.5rem;height:2.5rem;background:linear-gradient(to bottom right,#10b981,#14b8a6);border-radius:0.75rem;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);"><span style="font-size:1.25rem;">📚</span></div>'
-        + '<div><div style="font-size:1.125rem;font-weight:700;background:linear-gradient(to right,#059669,#0d9488);-webkit-background-clip:text;background-clip:text;color:transparent;">Study Plan IB</div>'
-        + '<p style="margin:0.1rem 0 0;font-size:0.875rem;color:#6b7280;">Emploi du temps de la semaine · ' + exportEchap(plage) + '</p>'
-        + (sousTitre ? '<p style="margin:0.1rem 0 0;font-size:0.8rem;color:#047857;font-weight:600;">' + exportEchap(sousTitre) + '</p>' : '')
-        + '</div></div></header>'
-        + '<main style="max-width:56rem;margin:0 auto;padding:1.5rem 1rem 2.5rem;">' + corps
-        + (stats ? stats.outerHTML : '')
-        + (legend ? legend.outerHTML : '')
-        + '</main></body></html>';
+    var dessins = jours.map(function (_, index) { return exportDessinerJour(index, jours); });
+    return Promise.all(dessins.map(function (dessin) {
+        return exportJpeg(dessin.canvas).then(function (jpeg) {
+            return { jpeg: jpeg, pxW: dessin.canvas.width, pxH: dessin.canvas.height, ptW: dessin.cssW * 0.75, ptH: dessin.cssH * 0.75 };
+        });
+    })).then(exportPdf);
 }
 
 function telechargerEmploiDuTemps() {
-    try {
-        var html = construireEmploiSemaine();
-        var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-        var lien = document.createElement('a');
-        lien.href = URL.createObjectURL(blob);
-        lien.download = 'emploi-du-temps-semaine.html';
-        document.body.appendChild(lien);
-        lien.click();
-        lien.remove();
-        setTimeout(function () { URL.revokeObjectURL(lien.href); }, 1500);
+    var btn = document.getElementById('downloadWeekBtn');
+    if (btn && btn.disabled) return;
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Préparation…';
+    }
+    var fonts = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+    fonts.then(exportPreparerPdf).then(function (pdf) {
+        exportSauver(pdf, 'emploi-du-temps-semaine.pdf', 'application/pdf');
         if (typeof v3Toast === 'function') v3Toast('Emploi du temps de la semaine téléchargé.', 'success');
-    } catch (e) {
+    }).catch(function (e) {
         console.error(e);
         if (typeof v3Toast === 'function') v3Toast('Le téléchargement n’a pas pu être préparé.', 'info');
-    }
+    }).then(function () {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Télécharger';
+        }
+    });
 }

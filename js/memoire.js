@@ -230,6 +230,11 @@ function memoireAller(etape) {
         libre: 'freeTimeModal',
         ecran: 'screenTimeModal'
     };
+    if (etape === 'matieres' && typeof showClassePage === 'function' && typeof ibYear !== 'undefined' && ibYear !== 'DP1' && ibYear !== 'DP2') {
+        classeRetour = '';
+        showClassePage();
+        return;
+    }
     var el = document.getElementById(cibles[etape] || '');
     if (el) el.classList.add('active');
     try {

@@ -6,6 +6,11 @@
 
 // Page 4 - Subjects
 function showSubjectsPage() {
+    if (typeof ibYear !== 'undefined' && ibYear !== 'DP1' && ibYear !== 'DP2' && typeof showClassePage === 'function') {
+        classeRetour = '';
+        showClassePage();
+        return;
+    }
     document.getElementById('sleepModal').classList.remove('active');
     var classe = document.getElementById('classeModal');
     if (classe) classe.classList.remove('active');

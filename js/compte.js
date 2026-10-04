@@ -151,7 +151,7 @@ function compteRafraichir() {
     var menuNom = document.getElementById('menuCompteNom');
     var menuDetail = document.getElementById('menuCompteDetail');
     if (menuNom) menuNom.textContent = session ? (session.given_name || 'Mon compte') : 'Mon compte';
-    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Mémoire active · Google en option';
+    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Connexion Google';
     var setup = document.getElementById('compteSetup');
     if (setup && !compteClientId()) setup.open = true;
 }
