@@ -103,7 +103,7 @@ function addOptionalSubject(name) {
     subjects.push({
         name: subjectDef.name,
         level: '',
-        grade: 5,
+        grade: notesSur7() ? '' : '',
         icon: subjectDef.icon
     });
     updateSubjectsUI();
@@ -122,15 +122,97 @@ function updateSubjectLevel(name, level) {
     subjects = subjects.map(apply);
     optionalSubjects = optionalSubjects.map(apply);
     updateSubjectsUI();
+    if (window.__profilComplet && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+}
+
+function notesSur7() {
+    return typeof ibYear !== 'undefined' && ibYear === 'DP2';
+}
+
+function noteMatiere(s) {
+    if (!notesSur7() || !s || s.grade == null || s.grade === '') return null;
+    var n = Number(s.grade);
+    if (!isFinite(n) || n < 1 || n > 7) return null;
+    return n;
+}
+
+function matierePrioritaire(s) {
+    if (!s) return false;
+    if (s.level === 'HL') return true;
+    var n = noteMatiere(s);
+    return n != null && n <= 4;
+}
+
+function sujetsParPriorite(list) {
+    return (list || []).slice().sort(function (a, b) {
+        var d = (matierePrioritaire(a) ? 0 : 1) - (matierePrioritaire(b) ? 0 : 1);
+        if (d) return d;
+        var na = noteMatiere(a);
+        var nb = noteMatiere(b);
+        if (na != null && nb != null && na !== nb) return na - nb;
+        if (na != null && nb == null) return -1;
+        if (nb != null && na == null) return 1;
+        if (a && a.level === 'HL' && !(b && b.level === 'HL')) return -1;
+        if (b && b.level === 'HL' && !(a && a.level === 'HL')) return 1;
+        return String(a && a.name || '').localeCompare(String(b && b.name || ''), 'fr');
+    });
+}
+
+function filePriorite(list) {
+    var file = [];
+    (list || []).forEach(function (s) {
+        if (!s) return;
+        var poids = 1;
+        if (s.level === 'HL') poids += 1;
+        var n = noteMatiere(s);
+        if (n != null && n <= 4) poids += 1;
+        var i;
+        for (i = 0; i < poids; i++) file.push(s);
+    });
+    return sujetsParPriorite(file);
+}
+
+function sujetDuJour(list, slot) {
+    var file = filePriorite(list);
+    if (!file.length) return null;
+    var i = ((slot % file.length) + file.length) % file.length;
+    return file[i];
+}
+
+function dureePrioritaire(s, longue, courte) {
+    if (s && s.level === 'HL') return longue;
+    var n = noteMatiere(s);
+    if (n != null && n <= 4) return longue;
+    return courte;
+}
+
+function sousTitreMatiere(s) {
+    if (!s) return '';
+    var n = noteMatiere(s);
+    if (n == null) return s.level || '';
+    return (s.level ? s.level + ' · ' : '') + n + '/7';
+}
+
+function couleurMatiere(s) {
+    var n = noteMatiere(s);
+    if (n == null || typeof getStudyColor !== 'function') return 'study';
+    return getStudyColor(n);
 }
 
 function updateSubjectGrade(name, grade) {
-    const clampedGrade = Math.max(1, Math.min(7, parseInt(grade) || 1));
+    if (!notesSur7()) return;
+    var brut = String(grade == null ? '' : grade).trim();
+    var suivant = brut === '' ? '' : Math.max(1, Math.min(7, parseInt(brut, 10) || 1));
     const apply = function (s) {
-        return s.name === name ? Object.assign({}, s, { grade: clampedGrade }) : s;
+        return s.name === name ? Object.assign({}, s, { grade: suivant }) : s;
     };
     subjects = subjects.map(apply);
     optionalSubjects = optionalSubjects.map(apply);
+    if (window.__profilComplet && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
 }
 
 function isSubjectsValid() {
@@ -149,13 +231,25 @@ function levelChoiceHTML(subject) {
 
 function subjectCardHTML(subject) {
     const removeBtn = '<button onclick="removeOptionalSubject(\'' + subject.name + '\')" class="remove-btn">✕</button>';
-    return '<div class="subject-card"><div class="subject-info"><div class="subject-icon">' + subject.icon + '</div><span class="subject-name">' + subject.name + '</span></div><div class="subject-controls">' + levelChoiceHTML(subject) + '<div class="grade-input-wrapper"><input type="number" min="1" max="7" value="' + subject.grade + '" onchange="updateSubjectGrade(\'' + subject.name + '\', this.value)" class="grade-input"><span class="grade-suffix">/7</span></div>' + removeBtn + '</div></div>';
+    var note = '';
+    if (notesSur7()) {
+        var valeur = subject.grade == null || subject.grade === '' ? '' : subject.grade;
+        note = '<div class="grade-input-wrapper"><input type="number" min="1" max="7" value="' + valeur + '" onchange="updateSubjectGrade(\'' + subject.name + '\', this.value)" class="grade-input" inputmode="numeric"><span class="grade-suffix">/7</span></div>';
+    }
+    return '<div class="subject-card"><div class="subject-info"><div class="subject-icon">' + subject.icon + '</div><span class="subject-name">' + subject.name + '</span></div><div class="subject-controls">' + levelChoiceHTML(subject) + note + removeBtn + '</div></div>';
 }
 
 function updateSubjectsUI() {
     enforceSubjectRules();
     const { hlCount, slCount } = countLevels();
     const total = subjects.length + optionalSubjects.length;
+
+    var sousTitre = document.getElementById('subjectsSubtitle');
+    if (sousTitre) {
+        sousTitre.textContent = notesSur7()
+            ? 'Choisis-en 6, avec 3 HL et 3 SL. La note est celle de ton dernier bulletin, sur 7.'
+            : 'Aucune matière n\'est imposée. Choisis-en 6, avec 3 HL et 3 SL';
+    }
 
     document.getElementById('hlCounter').textContent = 'HL: ' + hlCount + '/3';
     document.getElementById('hlCounter').className = 'counter-badge ' + (hlCount === 3 ? 'valid' : 'invalid-hl');

@@ -446,23 +446,24 @@ function getSuggestedStartTime() {
 
 function buildSubjectPicker() {
     const allSubj = [...subjects, ...optionalSubjects];
-    const sorted = [...allSubj];
+    const sorted = typeof sujetsParPriorite === 'function' ? sujetsParPriorite(allSubj) : [...allSubj];
     const suggested = getSuggestedStartTime();
 
     let html = '';
     sorted.forEach((s, i) => {
-        const gradeColor = s.grade <= 2 ? '#dc2626' : s.grade <= 4 ? '#d97706' : '#059669';
-        const gradeBg = s.grade <= 2 ? '#fef2f2' : s.grade <= 4 ? '#fff7ed' : '#ecfdf5';
-        const gradeBorder = s.grade <= 2 ? '#fecaca' : s.grade <= 4 ? '#fed7aa' : '#a7f3d0';
-        const priorityBadge = ''
+        const note = typeof noteMatiere === 'function' ? noteMatiere(s) : null;
+        const gradeColor = note == null ? '#059669' : note <= 2 ? '#dc2626' : note <= 4 ? '#d97706' : '#059669';
+        const gradeBg = note == null ? '#ffffff' : note <= 2 ? '#fef2f2' : note <= 4 ? '#fff7ed' : '#ecfdf5';
+        const gradeBorder = note == null ? '#e5e7eb' : note <= 2 ? '#fecaca' : note <= 4 ? '#fed7aa' : '#a7f3d0';
+        const noteHtml = note == null ? '' : '<div style="text-align: right;"><span style="font-size: 1.125rem; font-weight: 700; color: ' + gradeColor + ';">' + note + '/7</span></div>';
         html += '<button onclick="pickSubject(' + i + ')" data-subj-idx="' + i + '" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: ' + gradeBg + '; border: 2px solid ' + gradeBorder + '; border-radius: 0.75rem; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s;">'
             + '<div style="display: flex; align-items: center; gap: 0.75rem;">'
             + '<span style="font-size: 1.5rem;">' + s.icon + '</span>'
             + '<div>'
-            + '<span style="font-weight: 600; color: #111827; font-size: 0.9rem;">' + s.name + '</span>' + priorityBadge
+            + '<span style="font-weight: 600; color: #111827; font-size: 0.9rem;">' + s.name + '</span>'
             + '<div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.1rem;">' + s.level + '</div>'
             + '</div></div>'
-            + '<div style="text-align: right;"><span style="font-size: 1.125rem; font-weight: 700; color: ' + gradeColor + ';">' + s.grade + '/7</span></div>'
+            + noteHtml
             + '</button>';
     });
     document.getElementById('subjectPickerGrid').innerHTML = html;
@@ -472,7 +473,7 @@ function buildSubjectPicker() {
 
 function pickSubject(idx) {
     const allSubj = [...subjects, ...optionalSubjects];
-    const sorted = [...allSubj];
+    const sorted = typeof sujetsParPriorite === 'function' ? sujetsParPriorite(allSubj) : [...allSubj];
     newEventSelectedSubject = sorted[idx];
 
     // Highlight selected

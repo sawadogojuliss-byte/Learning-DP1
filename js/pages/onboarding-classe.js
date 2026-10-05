@@ -31,6 +31,13 @@ function setIbYear(year) {
     ibYear = year;
     renderClasse();
     majClasseAffichage();
+    if (typeof updateSubjectsUI === 'function') {
+        var matieres = document.getElementById('subjectsModal');
+        if (matieres && matieres.classList.contains('active')) updateSubjectsUI();
+    }
+    if (window.__profilComplet && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
 }
 
 function validateClasse() {

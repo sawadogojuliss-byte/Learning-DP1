@@ -175,11 +175,22 @@ function generateDayEvents(dayIndex) {
 
     if (isSunday) {
         chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
-        const s1 = allSubj[0];
-        if (s1) chain('study1', 'Révisions ' + s1.name, s1.level + ' · ' + s1.grade + '/7', s1.level === 'HL' ? 90 : 60, getStudyColor(s1.grade), s1.icon, true);
+        const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+        const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
+        const s1 = fileRev[i1];
+        if (s1) chain('study1', 'Révisions ' + s1.name, sousTitreMatiere(s1), dureePrioritaire(s1, 90, 60), couleurMatiere(s1), s1.icon, true);
         chain('lunch', 'Déjeuner', '', 60, 'meal', '🍽️', true);
-        const s2 = allSubj[1];
-        if (s2) chain('study2', 'Révisions ' + s2.name, s2.level + ' · ' + s2.grade + '/7', s2.level === 'HL' ? 90 : 60, getStudyColor(s2.grade), s2.icon, true);
+        var s2 = null;
+        if (fileRev.length > 1) {
+            var kRev;
+            for (kRev = 1; kRev < fileRev.length; kRev++) {
+                if (fileRev[(i1 + kRev) % fileRev.length] !== s1) {
+                    s2 = fileRev[(i1 + kRev) % fileRev.length];
+                    break;
+                }
+            }
+        }
+        if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureePrioritaire(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
         fixed('dinner', 'Dîner', '', '19:00', '19:45', 'meal', '🍝');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
@@ -194,11 +205,22 @@ function generateDayEvents(dayIndex) {
             fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
             chain('commute2', 'Trajet maison', commuteFromSchool + ' min', commuteFromSchool, 'transport', commuteIcon, true);
         }
-        const s1 = allSubj[0];
-        if (s1) chain('study1', 'Révisions ' + s1.name, s1.level + ' · ' + s1.grade + '/7', s1.level === 'HL' ? 90 : 60, getStudyColor(s1.grade), s1.icon, true);
+        const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+        const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
+        const s1 = fileRev[i1];
+        if (s1) chain('study1', 'Révisions ' + s1.name, sousTitreMatiere(s1), dureePrioritaire(s1, 90, 60), couleurMatiere(s1), s1.icon, true);
         chain('lunch', 'Déjeuner', '', 60, 'meal', '🍽️', true);
-        const s2 = allSubj[1];
-        if (s2) chain('study2', 'Révisions ' + s2.name, s2.level + ' · ' + s2.grade + '/7', s2.level === 'HL' ? 90 : 60, getStudyColor(s2.grade), s2.icon, true);
+        var s2 = null;
+        if (fileRev.length > 1) {
+            var kRev;
+            for (kRev = 1; kRev < fileRev.length; kRev++) {
+                if (fileRev[(i1 + kRev) % fileRev.length] !== s1) {
+                    s2 = fileRev[(i1 + kRev) % fileRev.length];
+                    break;
+                }
+            }
+        }
+        if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureePrioritaire(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
         fixed('dinner', 'Dîner', '', '19:00', '19:45', 'meal', '🍝');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
@@ -213,14 +235,14 @@ function generateDayEvents(dayIndex) {
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
         fixed('school2', 'Cours', '13h30 → 16h35', '13:30', '16:35', 'school', '🏫');
         chain('commute2', 'Trajet maison', commuteFromSchool + ' min', commuteFromSchool, 'transport', commuteIcon, true);
-        const mainSubj = allSubj[dayIndex % allSubj.length];
-        if (mainSubj) chain('study1', 'Révisions ' + mainSubj.name, mainSubj.level + ' · ' + mainSubj.grade + '/7', mainSubj.level === 'HL' ? 90 : 60, getStudyColor(mainSubj.grade), mainSubj.icon, true);
+        const mainSubj = typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % allSubj.length];
+        if (mainSubj) chain('study1', 'Révisions ' + mainSubj.name, sousTitreMatiere(mainSubj), dureePrioritaire(mainSubj, 90, 60), couleurMatiere(mainSubj), mainSubj.icon, true);
         const sciNames = ['Mathématiques', 'Physique', 'Chimie', 'Biologie'];
         const sciSubj = allSubj.filter(s => sciNames.some(n => s.name.includes(n)));
         const mainIsSci = mainSubj && sciNames.some(n => mainSubj.name.includes(n));
         if (sciSubj.length > 0 && !mainIsSci) {
-            const exSubj = sciSubj[dayIndex % sciSubj.length];
-            chain('exercises', 'Exercices ' + exSubj.name, exSubj.level + ' · ' + exSubj.grade + '/7', exSubj.level === 'HL' ? 45 : 30, getStudyColor(exSubj.grade), '✏️', true);
+            const exSubj = typeof sujetDuJour === 'function' ? sujetDuJour(sciSubj, dayIndex) : sciSubj[dayIndex % sciSubj.length];
+            if (exSubj) chain('exercises', 'Exercices ' + exSubj.name, sousTitreMatiere(exSubj), dureePrioritaire(exSubj, 45, 30), couleurMatiere(exSubj), '✏️', true);
         }
         chain('dinner', 'Dîner', '', 45, 'meal', '🍝', true);
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), Math.min(phoneTime, 60), 'phone', '📱', true);
@@ -351,7 +373,7 @@ function academicGapBlocks(start, end, dayIndex, seq) {
             else if (dur >= 45 && turn.ia < 1) kind = 'ia';
             else kind = 'revision';
         }
-        const subj = all.length ? all[(dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) % all.length] : null;
+        const subj = all.length ? (typeof sujetDuJour === 'function' ? sujetDuJour(all, dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) : all[(dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) % all.length]) : null;
         var tachePlan = null;
         if ((kind === 'memoir' || kind === 'ia') && typeof eeProchaineTache === 'function') tachePlan = eeProchaineTache(dayIndex, turn);
         if (tachePlan && typeof eeBlocTache === 'function') {
@@ -389,10 +411,10 @@ function academicGapBlocks(start, end, dayIndex, seq) {
             blocks.push({
                 id: 'revgap-' + cursor,
                 title: subj ? 'Révisions · ' + subj.name : 'Révisions',
-                subtitle: subj && subj.level ? subj.level + ' · cours et exercices' : 'Cours et exercices',
+                subtitle: subj ? (sousTitreMatiere(subj) || 'Cours et exercices') : 'Cours et exercices',
                 startTime: clock(cursor),
                 endTime: clock(cursor + dur),
-                type: subj && typeof getStudyColor === 'function' ? getStudyColor(subj.grade) : 'study',
+                type: subj && typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study',
                 icon: subj && subj.icon ? subj.icon : '📚',
                 editable: true,
                 kind: 'flex'
