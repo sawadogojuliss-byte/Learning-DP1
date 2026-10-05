@@ -98,7 +98,14 @@
 #compteInvite[hidden],
 #compteAvatar[hidden],
 #compteDeconnectBtn[hidden],
-#compteMessage[hidden] { display: none !important; }
+#compteMessage[hidden],
+#compteOutils[hidden] { display: none !important; }
+
+#compteOutils {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
 
 .compte-profil {
     display: flex;

@@ -835,7 +835,17 @@ function boiteDire(id, texte, erreur) {
 }
 
 function boiteSession() {
-    return (window.compteSession && window.compteSession.email) ? window.compteSession : null;
+    var session = window.compteSession;
+    if (!session || !session.sub) {
+        try {
+            var cle = typeof COMPTE_SESSION_KEY !== 'undefined' ? COMPTE_SESSION_KEY : 'studyPlanIB_googleSession';
+            session = JSON.parse(localStorage.getItem(cle) || 'null');
+            if (session && session.sub) window.compteSession = session;
+        } catch (e) {
+            session = null;
+        }
+    }
+    return (session && session.sub) ? session : null;
 }
 
 function boiteLierGoogle() {
@@ -903,14 +913,6 @@ function boiteQuestion(session) {
     });
 }
 
-function boitePreparerChoix() {
-    var bouton = document.getElementById('aideAvecGoogle');
-    var session = boiteSession();
-    if (bouton) {
-        bouton.textContent = session ? ('Envoyer avec ' + session.email) : 'Se connecter avec Google';
-    }
-}
-
 function initAide() {
     boiteMajMenu();
     boiteReessayerUneFois();
@@ -918,20 +920,22 @@ function initAide() {
     if (nom) nom.textContent = boiteNom() || 'Ton prénom';
     var choix = document.getElementById('aideChoix');
     if (choix) choix.style.display = 'none';
-    boitePreparerChoix();
     if (aideBranchee) return;
     aideBranchee = true;
     var envoi = document.getElementById('aideEnvoi');
     var avec = document.getElementById('aideAvecGoogle');
-    var sans = document.getElementById('aideSansCompte');
     if (envoi) envoi.onclick = function () {
         var texte = document.getElementById('aideTexte');
         if (!texte || texte.value.trim().length < 3) {
             boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
             return;
         }
-        boitePreparerChoix();
-        var choix = document.getElementById('aideChoix');
+        var session = boiteSession();
+        if (session) {
+            if (choix) choix.style.display = 'none';
+            boiteQuestion(session);
+            return;
+        }
         if (choix) choix.style.display = 'block';
         boiteDire('aideStatut', '', false);
     };
@@ -940,11 +944,9 @@ function initAide() {
         boiteLierGoogle().then(function (session) {
             boiteQuestion(session);
         }).catch(function () {
-            boiteDire('aideStatut', 'La connexion Google n\'a pas abouti. Tu peux envoyer la question sans compte.', true);
-            boitePreparerChoix();
+            boiteDire('aideStatut', 'La connexion Google n\'a pas abouti.', true);
         });
     };
-    if (sans) sans.onclick = function () { boiteQuestion(null); };
 }
 
 function initFeedback() {

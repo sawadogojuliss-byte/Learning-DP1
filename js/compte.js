@@ -652,9 +652,22 @@ function compteRafraichir() {
     if (setup && !compteClientId()) setup.open = true;
 }
 
-function ouvrirCompte() {
+function compteEmploiGenere() {
+    if (window.__profilComplet) return true;
+    var planning = document.getElementById('planningModal');
+    return !!(planning && planning.classList.contains('active'));
+}
+
+function comptePoserOutils(depuisSection) {
+    var outils = document.getElementById('compteOutils');
+    if (!outils) return;
+    outils.hidden = !(depuisSection && compteEmploiGenere());
+}
+
+function ouvrirCompte(depuisSection) {
     var modal = document.getElementById('compteModal');
     if (!modal) return;
+    comptePoserOutils(!!depuisSection);
     modal.classList.add('active');
     compteMessage('');
     compteRafraichir();
