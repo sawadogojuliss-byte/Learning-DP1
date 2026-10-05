@@ -12,6 +12,10 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom rayyan',
     'ouedraogo wendsom ryyan'
 ];
+var BOITE_EXPEDITEUR = 'studyplanib@gmail.com';
+var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
+var boiteJetonMail = '';
+var boiteJetonMailFin = 0;
 var BOITE_FILE = 'studyPlanIB_boiteFile';
 var BOITE_VUS = 'studyPlanIB_boiteVus';
 var BOITE_URL_LOCALE = 'studyPlanIB_boiteUrl';
@@ -602,7 +606,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">Message envoyé · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Mail envoyé à ' + boiteEchap(rep.destinataire || email) + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) + ' à ' + boiteEchap(rep.destinataire || email) + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -641,7 +645,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le message part dans l\'application et dans sa boîte mail. Le premier mail peut demander une confirmation.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part de ' + boiteEchap(BOITE_EXPEDITEUR) + '.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -653,28 +657,127 @@ function boiteRendreQuestions(fusion) {
     }
 }
 
-function boiteEnvoyerMail(destinataire, message, question, adminEmail) {
-    return boiteFetch('https://formsubmit.co/ajax/' + encodeURIComponent(destinataire), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            _subject: 'Réponse à ta question — Study Plan IB',
-            _template: 'box',
-            _captcha: 'false',
-            _replyto: adminEmail || undefined,
-            message: message,
-            question: question || '',
-            de: boiteNom()
-        })
-    }, 15000).then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-            var ok = data && (data.success === true || data.success === 'true' || String(data.success).toLowerCase() === 'true');
-            if (!res.ok || (data && data.success != null && !ok)) throw new Error('mail');
-            if (!res.ok) throw new Error('mail');
-            return data;
+function boiteOctets(str) {
+    if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(String(str));
+    var utf8 = unescape(encodeURIComponent(String(str)));
+    var out = new Uint8Array(utf8.length);
+    var i;
+    for (i = 0; i < utf8.length; i++) out[i] = utf8.charCodeAt(i);
+    return out;
+}
+
+function boiteBase64(str) {
+    var bytes = boiteOctets(str);
+    var bin = '';
+    var i;
+    for (i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+
+function boiteBase64Url(str) {
+    return boiteBase64(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function boiteLettre(destinataire, message, question) {
+    var sujet = 'Réponse à ta question — Study Plan IB';
+    var corps = String(message || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (question) corps += '\n\n—\nTa question :\n' + String(question).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    corps += '\n\n— Study Plan IB';
+    return [
+        'From: Study Plan IB <' + BOITE_EXPEDITEUR + '>',
+        'To: ' + destinataire,
+        'Reply-To: ' + BOITE_EXPEDITEUR,
+        'Subject: =?UTF-8?B?' + boiteBase64(sujet) + '?=',
+        'MIME-Version: 1.0',
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: base64',
+        '',
+        boiteBase64(corps).replace(/(.{76})/g, '$1\r\n')
+    ].join('\r\n');
+}
+
+function boiteOublierJetonMail() {
+    boiteJetonMail = '';
+    boiteJetonMailFin = 0;
+}
+
+function boiteDemanderJetonMail() {
+    if (boiteJetonMail && Date.now() < boiteJetonMailFin - 60000) return Promise.resolve(boiteJetonMail);
+    if (!window.google || !google.accounts || !google.accounts.oauth2 || typeof compteClientId !== 'function' || !compteClientId()) {
+        return Promise.reject(new Error('google'));
+    }
+    return new Promise(function (resolve, reject) {
+        var fini = false;
+        function ok(token) { if (!fini) { fini = true; resolve(token); } }
+        function ko(err) { if (!fini) { fini = true; reject(err || new Error('jeton')); } }
+        var client = google.accounts.oauth2.initTokenClient({
+            client_id: compteClientId(),
+            scope: BOITE_GMAIL_SCOPE,
+            hint: BOITE_EXPEDITEUR,
+            include_granted_scopes: false,
+            callback: function (resp) {
+                if (resp && resp.access_token) {
+                    boiteJetonMail = resp.access_token;
+                    boiteJetonMailFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+                    ok(boiteJetonMail);
+                } else ko(resp || new Error('jeton'));
+            },
+            error_callback: function (err) { ko(err || new Error('jeton')); }
+        });
+        try { client.requestAccessToken({ prompt: 'select_account', hint: BOITE_EXPEDITEUR }); }
+        catch (e) { ko(e); }
+    });
+}
+
+function boiteCompteExpediteur(token) {
+    return boiteFetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + token }
+    }, 12000).then(function (res) {
+        if (!res.ok) {
+            boiteOublierJetonMail();
+            throw new Error('profil');
+        }
+        return res.json();
+    }).then(function (profil) {
+        if (String(profil.email || '').toLowerCase() !== BOITE_EXPEDITEUR) {
+            boiteOublierJetonMail();
+            throw new Error('compte');
+        }
+        return token;
+    });
+}
+
+function boiteMessageEchecMail(err, data) {
+    var type = err && (err.type || err.message) || '';
+    var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
+    if (type === 'compte') return 'Choisis studyplanib@gmail.com. La question reste en attente.';
+    if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
+    if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
+    if (/SERVICE_DISABLED|accessNotConfigured|has not been used/i.test(api)) {
+        return 'Le service Gmail n\'est pas activé. La question reste en attente.';
+    }
+    return 'Le mail n\'a pas pu partir. La question reste en attente.';
+}
+
+function boiteEnvoyerMail(destinataire, message, question) {
+    return boiteDemanderJetonMail().then(boiteCompteExpediteur).then(function (token) {
+        return boiteFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+            method: 'POST',
+            headers: {
+                Authorization: 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ raw: boiteBase64Url(boiteLettre(destinataire, message, question)) })
+        }, 20000).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+                if (!res.ok || !data || !data.id) {
+                    if (res.status === 401 || res.status === 403) boiteOublierJetonMail();
+                    var err = new Error('mail');
+                    err.api = data;
+                    throw err;
+                }
+                return data;
+            });
         });
     });
 }
@@ -708,16 +811,15 @@ function boiteRepondre(questionId) {
     }
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
-    boiteDireDans(zone, 'Envoi du mail…', false);
-    var session = boiteSession();
-    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', session && session.email ? session.email : '').then(function () {
+    boiteDireDans(zone, 'Envoi depuis studyplanib@gmail.com…', false);
+    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function () {
         var record = {
             type: 'reponse',
             id: boiteId('r'),
             questionId: question.id,
             at: new Date().toISOString(),
             nom: boiteNom(),
-            email: session && session.email ? session.email : '',
+            email: BOITE_EXPEDITEUR,
             destinataire: email,
             texte: texte.slice(0, 800),
             mail: true
@@ -726,9 +828,9 @@ function boiteRepondre(questionId) {
         boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
         boiteRendreQuestions(boiteListesCache);
         boiteEnvoyer(record).catch(function () {});
-    }).catch(function () {
+    }).catch(function (err) {
         if (bouton) bouton.disabled = false;
-        boiteDireDans(zone, 'Le mail n\'a pas pu partir. La question reste en attente.', true);
+        boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
     });
 }
 
@@ -802,6 +904,7 @@ function boiteRafraichirAdmin() {
 }
 
 function boiteBrancherAdmin() {
+    if (typeof compteChargerGIS === 'function') compteChargerGIS().catch(function () {});
     if (boiteAdminBranche) return;
     boiteAdminBranche = true;
     ['retoursRafraichir', 'questionsRafraichir', 'emploisRafraichir'].forEach(function (id) {
