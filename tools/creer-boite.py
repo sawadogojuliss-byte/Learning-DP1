@@ -16,8 +16,19 @@ NOTES = []
 
 def noter(texte):
     propre = re.sub(r'https?://\S+', '[url]', str(texte))
-    NOTES.append(propre[:220])
-    print(propre[:220])
+    propre = re.sub(r'\b[A-Za-z0-9_-]{12,}\b', '[id]', propre)
+    NOTES.append(propre[:240])
+    print(propre[:240])
+
+
+def detail(exc):
+    code = getattr(exc, 'code', '')
+    corps = ''
+    try:
+        corps = exc.read().decode('utf-8', 'replace')[:120]
+    except Exception:
+        corps = ''
+    return type(exc).__name__ + ' ' + str(code) + ' ' + corps
 
 
 def lire():
@@ -41,10 +52,17 @@ def creer_kvdb():
     try:
         status, _headers, raw = ouvrir('https://kvdb.io', data=body, method='POST')
     except Exception as exc:
-        noter('kvdb indisponible ' + type(exc).__name__)
+        noter('kvdb indisponible ' + detail(exc))
         return ''
     bucket = raw.decode('utf-8', 'replace').strip()
-    if status >= 400 or not bucket or '/' in bucket or len(bucket) > 80 or ' ' in bucket:
+    noter('kvdb creation HTTP ' + str(status) + ' longueur ' + str(len(bucket)))
+    if bucket.startswith('{'):
+        try:
+            data = json.loads(bucket)
+            bucket = str(data.get('id') or data.get('bucket') or data.get('bucket_id') or '')
+        except Exception:
+            bucket = ''
+    if not re.fullmatch(r'[A-Za-z0-9_-]{8,80}', bucket):
         noter('kvdb reponse inattendue')
         return ''
     url = 'https://kvdb.io/' + bucket
@@ -60,7 +78,7 @@ def creer_kvdb():
         except Exception:
             pass
     except Exception as exc:
-        noter('kvdb ecriture impossible ' + type(exc).__name__)
+        noter('kvdb ecriture impossible ' + detail(exc))
         return ''
     noter('kvdb pret')
     return url
@@ -77,7 +95,7 @@ def creer_archive():
             method='POST',
         )
     except Exception as exc:
-        noter('archive indisponible ' + type(exc).__name__)
+        noter('archive indisponible ' + detail(exc))
         return ''
     uri = ''
     try:
@@ -100,14 +118,28 @@ def creer_archive():
         _status, _headers, got = ouvrir(uri)
         json.loads(got.decode('utf-8', 'replace'))
     except Exception as exc:
-        noter('archive illisible ' + type(exc).__name__)
+        noter('archive illisible ' + detail(exc))
         return ''
     noter('archive prete')
     return uri
 
 
+def sonder_ntfy(sujet):
+    try:
+        status, _headers, raw = ouvrir(
+            'https://ntfy.sh/' + sujet,
+            data=b'{"type":"probe"}',
+            headers={'Content-Type': 'text/plain', 'Priority': 'min', 'Title': 'probe'},
+            method='POST',
+        )
+        noter('ntfy HTTP ' + str(status) + ' longueur ' + str(len(raw)))
+    except Exception as exc:
+        noter('ntfy indisponible ' + detail(exc))
+
+
 def main():
     data = lire()
+    sonder_ntfy(data.get('sujet') or 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b')
     if not data.get('kvdb'):
         data['kvdb'] = creer_kvdb()
     if not data.get('archive'):
