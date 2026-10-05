@@ -94,6 +94,12 @@
     margin-bottom: 1rem;
 }
 
+.compte-profil[hidden],
+#compteInvite[hidden],
+#compteAvatar[hidden],
+#compteDeconnectBtn[hidden],
+#compteMessage[hidden] { display: none !important; }
+
 .compte-profil {
     display: flex;
     align-items: center;

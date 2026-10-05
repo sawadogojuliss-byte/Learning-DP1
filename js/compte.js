@@ -348,6 +348,7 @@ function compteSessionDepuis(payload) {
 }
 
 function comptePoserBoutonCopie() {
+    if (window.compteSession && window.compteSession.sub) return;
     var texte = document.getElementById('compteInviteTexte');
     if (texte) texte.textContent = 'Confirme Google pour ouvrir ton emploi du temps et tes informations.';
     var invite = document.getElementById('compteInvite');
@@ -586,8 +587,12 @@ function comptePreparerGoogle() {
                 locale: 'fr'
             });
         }
+        if (window.compteSession && window.compteSession.sub) {
+            var deja = document.getElementById('googleBtnSlot');
+            if (deja) deja.innerHTML = '';
+            return true;
+        }
         if (!compteCopieEnAttente) poserBouton(document.getElementById('googleBtnSlot'));
-        poserBouton(document.getElementById('googleBtnRestore'));
         return true;
     });
 }
@@ -615,8 +620,12 @@ function compteRafraichir() {
         if (mem && mem.profilComplet) complet = true;
     } catch (e) {}
     if (profil) profil.hidden = !session;
-    if (invite) invite.hidden = !!session && complet && !compteCopieEnAttente;
+    if (invite) invite.hidden = !!session;
     if (deconnect) deconnect.hidden = !session;
+    var slotGoogle = document.getElementById('googleBtnSlot');
+    if (session && slotGoogle) slotGoogle.innerHTML = '';
+    var second = document.getElementById('googleBtnRestore');
+    if (second) second.remove();
     if (session) {
         var nom = document.getElementById('compteNom');
         var email = document.getElementById('compteEmail');
