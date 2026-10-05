@@ -38,6 +38,7 @@
                     <button onclick="closeSideMenu()" style="width:2rem;height:2rem;background:rgba(255,255,255,0.2);border:none;border-radius:50%;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
                 </div>
                 <div id="menuUserGreeting" style="background:rgba(255,255,255,0.15);border-radius:0.75rem;padding:0.75rem;font-size:0.875rem;color:rgba(255,255,255,0.95);"></div>
+                <input id="menuNom" type="text" maxlength="80" autocomplete="name" placeholder="Ton nom complet" style="width:100%;box-sizing:border-box;margin-top:0.65rem;border:none;border-radius:0.65rem;padding:0.5rem 0.7rem;font:inherit;font-size:0.85rem;">
             </div>
             <!-- Menu Items -->
             <div style="flex:1;overflow-y:auto;padding:1rem 0.75rem;">
@@ -65,6 +66,26 @@
                 <button type="button" onclick="navigateTo('legende');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;border:1.5px solid #f3f4f6;transition:all 0.2s;">
                     <span style="font-size:1.375rem;">📊</span>
                     <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Légende des couleurs</p><p style="font-size:0.75rem;color:#6b7280;">Le sens de chaque couleur</p></div>
+                </button>
+                <button type="button" id="menuAide" onclick="navigateTo('aide');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">💬</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Aide</p><p style="font-size:0.75rem;color:#6b7280;">Pose une question</p></div>
+                </button>
+                <button type="button" id="menuFeedback" onclick="navigateTo('feedback');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">💡</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Feedback</p><p style="font-size:0.75rem;color:#6b7280;">Une idée pour le site</p></div>
+                </button>
+                <button type="button" id="menuRetours" onclick="navigateTo('retours');closeSideMenu();" class="menu-item-btn" style="width:100%;display:none;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">📬</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Retour des feedbacks</p><p style="font-size:0.75rem;color:#6b7280;">Messages et e-mails</p></div>
+                </button>
+                <button type="button" id="menuQuestions" onclick="navigateTo('questions');closeSideMenu();" class="menu-item-btn" style="width:100%;display:none;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">❓</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Questions des utilisateurs</p><p style="font-size:0.75rem;color:#6b7280;">Questions et compte Google</p></div>
+                </button>
+                <button type="button" id="menuEmplois" onclick="navigateTo('emplois');closeSideMenu();" class="menu-item-btn" style="width:100%;display:none;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">📅</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Emplois du temps</p><p style="font-size:0.75rem;color:#6b7280;">Le planning de chaque personne</p></div>
                 </button>
 
                 <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>

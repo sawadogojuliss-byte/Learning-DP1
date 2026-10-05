@@ -1,0 +1,55 @@
+<!-- ============================================================
+     PAGES : sections réservées aux quatre comptes
+     Script : js/pages/boite.js
+     ============================================================ -->
+<div class="app-panel" id="panelRetours">
+    <div style="max-width:640px;margin:0 auto;padding:0 1rem 4rem;">
+        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                <div style="flex:1;">
+                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Retour des feedbacks</h2>
+                    <p style="font-size:0.75rem;color:#6b7280;">Questions, suggestions et e-mails</p>
+                </div>
+                <button type="button" id="retoursRafraichir" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.45rem 0.7rem;cursor:pointer;">Actualiser</button>
+            </div>
+        </div>
+        <p id="retoursStatut" style="font-size:0.85rem;color:#6b7280;margin-bottom:0.75rem;"></p>
+        <div id="retoursListe"></div>
+    </div>
+</div>
+
+<div class="app-panel" id="panelQuestions">
+    <div style="max-width:640px;margin:0 auto;padding:0 1rem 4rem;">
+        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                <div style="flex:1;">
+                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Questions des utilisateurs</h2>
+                    <p style="font-size:0.75rem;color:#6b7280;">Questions et compte Google</p>
+                </div>
+                <button type="button" id="questionsRafraichir" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.45rem 0.7rem;cursor:pointer;">Actualiser</button>
+            </div>
+        </div>
+        <p id="questionsStatut" style="font-size:0.85rem;color:#6b7280;margin-bottom:0.75rem;"></p>
+        <div id="questionsListe"></div>
+    </div>
+</div>
+
+<div class="app-panel" id="panelEmplois">
+    <div style="max-width:720px;margin:0 auto;padding:0 1rem 4rem;">
+        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                <div style="flex:1;">
+                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Emplois du temps</h2>
+                    <p style="font-size:0.75rem;color:#6b7280;">Le planning de chaque personne</p>
+                </div>
+                <button type="button" id="emploisRafraichir" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.45rem 0.7rem;cursor:pointer;">Actualiser</button>
+            </div>
+        </div>
+        <input id="emploisFiltre" type="search" placeholder="Chercher un nom" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.85rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.9rem;margin-bottom:0.75rem;outline:none;">
+        <p id="emploisStatut" style="font-size:0.85rem;color:#6b7280;margin-bottom:0.75rem;"></p>
+        <div id="emploisListe"></div>
+    </div>
+</div>

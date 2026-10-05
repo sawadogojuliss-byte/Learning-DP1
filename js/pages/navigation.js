@@ -8,6 +8,7 @@
 function openSideMenu() {
     document.getElementById('sideMenu').style.right = '0';
     document.getElementById('sideMenuOverlay').style.display = 'block';
+    if (typeof boiteMajMenu === 'function') boiteMajMenu();
     // Refresh stats in menu
     const allSubj = typeof subjects !== 'undefined' ? [...subjects, ...(optionalSubjects||[])] : [];
     document.getElementById('menuUserGreeting').textContent = '👋 Salut ' + (typeof userName !== 'undefined' ? userName : '') + ' ! Objectif : ' + (typeof targetScore !== 'undefined' ? targetScore : '?') + ' pts IB';
@@ -42,5 +43,15 @@ function navigateTo(page) {
         var feries = document.getElementById('panelFeries');
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
+    } else if (page === 'aide') {
+        var aide = document.getElementById('panelAide');
+        if (typeof initAide === 'function') initAide();
+        if (aide) aide.classList.add('active');
+    } else if (page === 'feedback') {
+        var feedback = document.getElementById('panelFeedback');
+        if (typeof initFeedback === 'function') initFeedback();
+        if (feedback) feedback.classList.add('active');
+    } else if (page === 'retours' || page === 'questions' || page === 'emplois') {
+        if (typeof boiteOuvrirAdmin === 'function') boiteOuvrirAdmin(page);
     }
 }

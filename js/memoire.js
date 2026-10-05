@@ -309,6 +309,7 @@ function memoireSauvegarder() {
         }
         memoirePoserHash(data.etape);
         memoireMajIndicateur();
+        if (typeof boiteApresMemoire === 'function') boiteApresMemoire();
     } catch (e) {
         console.error('Mémoire', e);
     }

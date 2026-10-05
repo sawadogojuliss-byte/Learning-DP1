@@ -301,6 +301,7 @@ function initPlanning() {
     document.getElementById('greetingText').textContent = greeting + ', ' + (userName || 'là') + ' ! 👋';
     renderPlanning();
     // Refresh next activity banner every minute
+    if (typeof boitePublierEmploi === 'function') boitePublierEmploi();
     if (!window.__planningTicker) window.__planningTicker = setInterval(function() {
         const nextActivity = getNextActivity();
         if (nextActivity) {

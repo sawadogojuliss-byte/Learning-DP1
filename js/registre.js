@@ -23,6 +23,9 @@ window.STUDYPLAN_HTML = [
     'pages/legende.html',
     'pages/ee-ia.html',
     'pages/feries.html',
+    'pages/aide.html',
+    'pages/feedback.html',
+    'pages/boite.html',
     'pages/compte.html'
 ];
 
@@ -51,5 +54,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/planning-export.js',
     'js/memoire.js',
     'js/sauvegarde.js',
-    'js/compte.js'
+    'js/compte.js',
+    'js/pages/boite.js'
 ];
