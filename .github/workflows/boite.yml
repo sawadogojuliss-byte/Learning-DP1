@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/boite-url.json
+          git add data/boite-url.json data/boite-statut.txt
           git diff --cached --quiet && exit 0
           git commit -m "Ajoute l'adresse de la boîte Aide et Feedback."
           git push origin HEAD:arena/01a0bac7-learning-dp1

@@ -3,12 +3,21 @@
 
 import json
 import pathlib
+import re
 import urllib.error
 import urllib.parse
 import urllib.request
 
 DEST = pathlib.Path('data/boite-url.json')
+STATUT = pathlib.Path('data/boite-statut.txt')
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
+NOTES = []
+
+
+def noter(texte):
+    propre = re.sub(r'https?://\S+', '[url]', str(texte))
+    NOTES.append(propre[:220])
+    print(propre[:220])
 
 
 def lire():
@@ -32,11 +41,11 @@ def creer_kvdb():
     try:
         status, _headers, raw = ouvrir('https://kvdb.io', data=body, method='POST')
     except Exception as exc:
-        print('kvdb indisponible', type(exc).__name__)
+        noter('kvdb indisponible ' + type(exc).__name__)
         return ''
     bucket = raw.decode('utf-8', 'replace').strip()
     if status >= 400 or not bucket or '/' in bucket or len(bucket) > 80 or ' ' in bucket:
-        print('kvdb reponse inattendue')
+        noter('kvdb reponse inattendue')
         return ''
     url = 'https://kvdb.io/' + bucket
     probe = url + '/probe_boot?ttl=60'
@@ -44,16 +53,16 @@ def creer_kvdb():
         ouvrir(probe, data=b'ok', method='POST')
         _status, _headers, got = ouvrir(url + '/probe_boot')
         if got.decode('utf-8', 'replace').strip() != 'ok':
-            print('kvdb illisible')
+            noter('kvdb illisible')
             return ''
         try:
             ouvrir(url + '/probe_boot', method='DELETE')
         except Exception:
             pass
     except Exception as exc:
-        print('kvdb ecriture impossible', type(exc).__name__)
+        noter('kvdb ecriture impossible ' + type(exc).__name__)
         return ''
-    print('kvdb pret')
+    noter('kvdb pret')
     return url
 
 
@@ -68,7 +77,7 @@ def creer_archive():
             method='POST',
         )
     except Exception as exc:
-        print('archive indisponible', type(exc).__name__)
+        noter('archive indisponible ' + type(exc).__name__)
         return ''
     uri = ''
     try:
@@ -83,7 +92,7 @@ def creer_archive():
     if uri.startswith('/'):
         uri = 'https://api.jsonstorage.net' + uri
     if not uri.startswith('https://'):
-        print('archive sans adresse')
+        noter('archive sans adresse')
         return ''
     vide = json.dumps({'questions': [], 'feedbacks': [], 'emplois': []}).encode()
     try:
@@ -91,9 +100,9 @@ def creer_archive():
         _status, _headers, got = ouvrir(uri)
         json.loads(got.decode('utf-8', 'replace'))
     except Exception as exc:
-        print('archive illisible', type(exc).__name__)
+        noter('archive illisible ' + type(exc).__name__)
         return ''
-    print('archive prete')
+    noter('archive prete')
     return uri
 
 
@@ -109,8 +118,10 @@ def main():
         'kvdb': data.get('kvdb') or '',
         'archive': data.get('archive') or '',
     }, indent=2) + '\n', encoding='utf-8')
+    STATUT.write_text('\n'.join(NOTES) + '\n', encoding='utf-8')
     if not data.get('kvdb') and not data.get('archive'):
-        raise SystemExit(1)
+        noter('aucun coffre')
+        STATUT.write_text('\n'.join(NOTES) + '\n', encoding='utf-8')
 
 
 if __name__ == '__main__':
