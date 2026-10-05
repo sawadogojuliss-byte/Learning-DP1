@@ -13,6 +13,7 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom ryyan'
 ];
 var BOITE_FILE = 'studyPlanIB_boiteFile';
+var BOITE_VUS = 'studyPlanIB_boiteVus';
 var BOITE_URL_LOCALE = 'studyPlanIB_boiteUrl';
 var BOITE_EMPLOI_HASH = 'studyPlanIB_boiteEmploiHash';
 var boiteConfigCache = null;
@@ -209,18 +210,7 @@ function boiteResoudreKvdb(cfg) {
     if (cfg && cfg.kvdb) return Promise.resolve(cfg.kvdb);
     var local = boiteLireJson(BOITE_URL_LOCALE);
     if (local && local.kvdb) return Promise.resolve(local.kvdb);
-    return boiteLireNtfy().then(function (messages) {
-        var i;
-        for (i = messages.length - 1; i >= 0; i--) {
-            if (messages[i] && messages[i].type === 'coffre' && messages[i].kvdb) {
-                boiteMemoriserCoffre({ kvdb: messages[i].kvdb });
-                return messages[i].kvdb;
-            }
-        }
-        return boiteCreerKvdb().catch(function () { return ''; });
-    }).catch(function () {
-        return boiteCreerKvdb().catch(function () { return ''; });
-    });
+    return Promise.resolve('');
 }
 
 function boiteCleKvdb(record) {
@@ -295,9 +285,31 @@ function boiteEnvoyerDistant(record) {
     });
 }
 
+function boiteLireVus() {
+    var vus = boiteLireJson(BOITE_VUS);
+    if (!vus || typeof vus !== 'object') return [];
+    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || []);
+}
+
+function boiteMemoriserVus(fusion) {
+    boiteEcrireJson(BOITE_VUS, {
+        questions: (fusion.questions || []).slice(0, 80),
+        feedbacks: (fusion.feedbacks || []).slice(0, 80),
+        emplois: (fusion.emplois || []).slice(0, 40)
+    });
+}
+
+function boiteGarderVu(record) {
+    var fusion = boiteFusionner(boiteLireVus().concat([record]));
+    boiteMemoriserVus(fusion);
+}
+
 function boiteEnvoyer(record) {
     boiteGarderFile(record);
-    return boiteEnvoyerDistant(record);
+    return boiteEnvoyerDistant(record).then(function (ok) {
+        boiteGarderVu(record);
+        return ok;
+    });
 }
 
 function boiteReessayer() {
@@ -469,7 +481,7 @@ function boiteChargerListes(force) {
                 return premiers.concat(coffres);
             });
         }).then(function (sources) {
-            var items = boiteLireFile();
+            var items = boiteLireFile().concat(boiteLireVus());
             var ok = false;
             sources.forEach(function (source) {
                 if (source.ok) ok = true;
@@ -479,14 +491,22 @@ function boiteChargerListes(force) {
             fusion.partiel = !ok;
             boiteListesCache = fusion;
             if (archiveOk && cfg.archive) boiteArchiver(cfg, fusion);
-            if (cfg.kvdb) {
-                fusion.questions.concat(fusion.feedbacks, fusion.emplois).slice(0, 40).forEach(function (item) {
-                    boiteEcrireKvdb(cfg.kvdb, item).catch(function () {});
-                });
-            }
+            boiteMemoriserVus(fusion);
+            boiteProlongerNtfy(fusion);
             return fusion;
         });
     });
+}
+
+function boiteProlongerNtfy(fusion) {
+    var limite = Date.now() - 6 * 60 * 60 * 1000;
+    var vieux = fusion.questions.concat(fusion.feedbacks, fusion.emplois).filter(function (item) {
+        var quand = new Date(item.at || 0).getTime();
+        return quand && quand < limite;
+    }).slice(0, 8);
+    vieux.reduce(function (chaine, item) {
+        return chaine.then(function () { return boiteEcrireNtfy(item).catch(function () {}); });
+    }, Promise.resolve());
 }
 
 function boiteCarte(titre, meta, corps) {
