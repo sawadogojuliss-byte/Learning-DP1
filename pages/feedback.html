@@ -10,23 +10,22 @@
                 <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
                 <div>
                     <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Feedback</h2>
-                    <p style="font-size:0.75rem;color:#6b7280;">Une idée pour améliorer le site</p>
+                    <p style="font-size:0.75rem;color:#6b7280;">Une suggestion pour le site</p>
                 </div>
             </div>
         </div>
 
-        <div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:1rem 1.1rem;margin-bottom:1.15rem;">
-            <p style="font-size:0.9rem;color:#78350f;line-height:1.45;">Dis ce qui rendrait le site plus clair ou plus utile. Ton e-mail permet de te répondre.</p>
+        <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:1.25rem;padding:1.25rem 1.35rem;margin-bottom:1.25rem;color:white;">
+            <p style="font-size:0.8rem;opacity:0.85;margin-bottom:0.2rem;" id="feedbackNom"></p>
+            <p style="font-size:0.95rem;font-weight:650;line-height:1.45;">Avez-vous une suggestion pour améliorer le site ? Si oui, veuillez la renseigner ci-dessous.</p>
         </div>
 
-        <p style="font-size:0.8rem;color:#6b7280;margin-bottom:0.85rem;">De la part de <strong id="feedbackNom" style="color:#111827;"></strong></p>
-
-        <label for="feedbackEmail" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ton e-mail</label>
+        <label for="feedbackEmail" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Votre e-mail</label>
         <input id="feedbackEmail" type="email" autocomplete="email" maxlength="120" placeholder="prenom@email.com" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem 1rem;font:inherit;font-size:0.95rem;outline:none;margin-bottom:0.85rem;">
 
-        <label for="feedbackTexte" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ta suggestion</label>
-        <textarea id="feedbackTexte" maxlength="800" rows="6" placeholder="Ce qui améliorerait le site…" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.85rem 1rem;font:inherit;font-size:0.95rem;resize:vertical;outline:none;"></textarea>
-        <button type="button" id="feedbackEnvoi" style="width:100%;margin-top:0.85rem;padding:0.9rem 1rem;border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;font-size:0.95rem;cursor:pointer;">Envoyer la suggestion</button>
+        <label for="feedbackTexte" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Votre suggestion</label>
+        <textarea id="feedbackTexte" maxlength="800" rows="6" placeholder="Écris ici…" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.85rem 1rem;font:inherit;font-size:0.95rem;resize:vertical;outline:none;"></textarea>
+        <button type="button" id="feedbackEnvoi" style="width:100%;margin-top:0.85rem;padding:0.9rem 1rem;border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;font-size:0.95rem;cursor:pointer;">Envoyer</button>
         <p id="feedbackStatut" style="min-height:1.25rem;margin-top:0.75rem;font-size:0.85rem;font-weight:650;color:#047857;"></p>
     </div>
 </div>

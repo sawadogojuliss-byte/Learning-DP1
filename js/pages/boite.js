@@ -288,14 +288,15 @@ function boiteEnvoyerDistant(record) {
 function boiteLireVus() {
     var vus = boiteLireJson(BOITE_VUS);
     if (!vus || typeof vus !== 'object') return [];
-    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || []);
+    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || []);
 }
 
 function boiteMemoriserVus(fusion) {
     boiteEcrireJson(BOITE_VUS, {
         questions: (fusion.questions || []).slice(0, 80),
         feedbacks: (fusion.feedbacks || []).slice(0, 80),
-        emplois: (fusion.emplois || []).slice(0, 40)
+        emplois: (fusion.emplois || []).slice(0, 40),
+        reponses: (fusion.reponses || []).slice(0, 80)
     });
 }
 
@@ -375,16 +376,18 @@ function boiteLireArchive(url) {
         })
         .then(function (doc) {
             doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || []);
+            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || []);
         });
 }
 
 function boiteFusionner(items) {
     var questions = [];
     var feedbacks = [];
+    var reponses = [];
     var emplois = {};
     var vusQ = {};
     var vusF = {};
+    var vusR = {};
     (items || []).forEach(function (item) {
         if (!item || !item.type || item.type === 'coffre') return;
         if (item.type === 'question' && item.id && !vusQ[item.id]) {
@@ -393,6 +396,9 @@ function boiteFusionner(items) {
         } else if (item.type === 'feedback' && item.id && !vusF[item.id]) {
             vusF[item.id] = 1;
             feedbacks.push(item);
+        } else if (item.type === 'reponse' && item.id && !vusR[item.id]) {
+            vusR[item.id] = 1;
+            reponses.push(item);
         } else if (item.type === 'emploi') {
             var cle = item.appareil || item.id;
             if (!cle) return;
@@ -402,8 +408,14 @@ function boiteFusionner(items) {
     var listeEmplois = Object.keys(emplois).map(function (cle) { return emplois[cle]; });
     questions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
     listeEmplois.sort(function (a, b) { return boiteNormaliser(a.nom).localeCompare(boiteNormaliser(b.nom), 'fr'); });
-    return { questions: questions.slice(0, 120), feedbacks: feedbacks.slice(0, 120), emplois: listeEmplois.slice(0, 80) };
+    return {
+        questions: questions.slice(0, 120),
+        feedbacks: feedbacks.slice(0, 120),
+        reponses: reponses.slice(0, 120),
+        emplois: listeEmplois.slice(0, 80)
+    };
 }
 
 function boiteDocument(fusion) {
@@ -419,12 +431,16 @@ function boiteDocument(fusion) {
             email: item.email || '',
             google: item.google || '',
             googleNom: item.googleNom || '',
-            jours: item.jours || []
+            jours: item.jours || [],
+            questionId: item.questionId || '',
+            destinataire: item.destinataire || '',
+            mail: !!item.mail
         };
     }
     var doc = {
         questions: fusion.questions.slice(0, 60).map(leger),
         feedbacks: fusion.feedbacks.slice(0, 60).map(leger),
+        reponses: (fusion.reponses || []).slice(0, 60).map(leger),
         emplois: fusion.emplois.slice(0, 30).map(leger)
     };
     if (JSON.stringify(doc).length > 60000) {
@@ -500,7 +516,7 @@ function boiteChargerListes(force) {
 
 function boiteProlongerNtfy(fusion) {
     var limite = Date.now() - 6 * 60 * 60 * 1000;
-    var vieux = fusion.questions.concat(fusion.feedbacks, fusion.emplois).filter(function (item) {
+    var vieux = fusion.questions.concat(fusion.feedbacks, fusion.emplois, fusion.reponses || []).filter(function (item) {
         var quand = new Date(item.at || 0).getTime();
         return quand && quand < limite;
     }).slice(0, 8);
@@ -556,24 +572,164 @@ function boiteRendreRetours(fusion) {
     }
 }
 
+function boiteEmailQuestion(item) {
+    return String((item && (item.email || item.google)) || '').trim();
+}
+
+function boiteReponsesDe(fusion, questionId) {
+    return (fusion.reponses || []).filter(function (rep) {
+        return rep && rep.questionId === questionId && rep.mail;
+    });
+}
+
+function boiteCase(cochee) {
+    return '<input type="checkbox" disabled ' + (cochee ? 'checked' : '') + ' style="width:1.15rem;height:1.15rem;accent-color:#059669;flex:none;">';
+}
+
+function boiteCarteQuestion(item, reponses) {
+    var compte = item.google ? boiteEchap(item.google) : 'Sans compte Google';
+    if (item.googleNom) compte += ' · ' + boiteEchap(item.googleNom);
+    var email = boiteEmailQuestion(item);
+    var cochee = reponses.length > 0;
+    var html = '<article style="background:white;border:1.5px solid ' + (cochee ? '#a7f3d0' : '#e5e7eb') + ';border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
+        + '<div style="display:flex;align-items:flex-start;gap:0.65rem;">'
+        + boiteCase(cochee)
+        + '<div style="flex:1;min-width:0;">'
+        + '<p style="font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + '</p>'
+        + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte + '</p>'
+        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
+    reponses.forEach(function (rep) {
+        html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">Message envoyé · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Mail envoyé à ' + boiteEchap(rep.destinataire || email) + '</p>'
+            + '</div>';
+    });
+    if (!cochee) {
+        if (!boiteEmailValide(email)) {
+            html += '<p style="margin-top:0.75rem;font-size:0.84rem;color:#b45309;">Cette personne n\'a pas laissé d\'e-mail. Le mail ne peut pas partir.</p>';
+        } else {
+            html += '<label style="display:block;margin-top:0.85rem;font-size:0.8rem;font-weight:700;color:#374151;">Message pour ' + boiteEchap(email) + '</label>'
+                + '<textarea data-reponse-texte="' + boiteEchap(item.id) + '" maxlength="800" rows="4" placeholder="Écris le message…" style="width:100%;box-sizing:border-box;margin-top:0.35rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.7rem 0.8rem;font:inherit;font-size:0.9rem;resize:vertical;outline:none;"></textarea>'
+                + '<button type="button" data-repondre="' + boiteEchap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.75rem 1rem;border:none;border-radius:0.8rem;background:#059669;color:white;font-weight:800;cursor:pointer;">Envoyer le mail et le message</button>'
+                + '<p data-reponse-statut="' + boiteEchap(item.id) + '" style="min-height:1.1rem;margin-top:0.4rem;font-size:0.8rem;color:#047857;"></p>';
+        }
+    }
+    html += '</div></div></article>';
+    return html;
+}
+
 function boiteRendreQuestions(fusion) {
     var liste = document.getElementById('questionsListe');
     var statut = document.getElementById('questionsStatut');
     if (!liste) return;
-    if (!fusion.questions.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.partiel ? 'Les questions ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune question pour le moment.') + '</p>';
-    } else {
-        liste.innerHTML = fusion.questions.map(function (item) {
-            var compte = item.google ? boiteEchap(item.google) : 'Sans compte Google';
-            if (item.googleNom) compte += ' · ' + boiteEchap(item.googleNom);
-            return boiteCarte(
-                boiteEchap(item.nom || 'Sans nom'),
-                boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte,
-                boiteEchap(item.texte || '')
-            );
-        }).join('');
+    var attente = [];
+    var repondues = [];
+    (fusion.questions || []).forEach(function (item) {
+        var reps = boiteReponsesDe(fusion, item.id);
+        if (reps.length) repondues.push(boiteCarteQuestion(item, reps));
+        else attente.push(boiteCarteQuestion(item, []));
+    });
+    function bloc(titre, cartes, vide) {
+        return '<section style="margin-bottom:1.25rem;">'
+            + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.65rem;">' + titre + '</h3>'
+            + (cartes.length ? cartes.join('') : '<p style="color:#6b7280;margin-bottom:0.5rem;">' + vide + '</p>')
+            + '</section>';
     }
-    if (statut) statut.textContent = fusion.partiel ? 'Une partie des questions n\'a pas pu être rechargée.' : (fusion.questions.length + ' question' + (fusion.questions.length > 1 ? 's' : ''));
+    if (!fusion.questions.length && fusion.partiel) {
+        liste.innerHTML = '<p style="color:#6b7280;">Les questions ne sont pas accessibles pour le moment. Réessaie.</p>';
+    } else {
+        liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
+            + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le message part dans l\'application et dans sa boîte mail. Le premier mail peut demander une confirmation.</p>'
+            + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
+            + '</section>'
+            + bloc('Questions répondues', repondues, 'Aucune question répondue.');
+    }
+    if (statut) {
+        statut.textContent = fusion.partiel
+            ? 'Une partie des questions n\'a pas pu être rechargée.'
+            : (attente.length + ' en attente · ' + repondues.length + ' répondue' + (repondues.length > 1 ? 's' : ''));
+    }
+}
+
+function boiteEnvoyerMail(destinataire, message, question, adminEmail) {
+    return boiteFetch('https://formsubmit.co/ajax/' + encodeURIComponent(destinataire), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            _subject: 'Réponse à ta question — Study Plan IB',
+            _template: 'box',
+            _captcha: 'false',
+            _replyto: adminEmail || undefined,
+            message: message,
+            question: question || '',
+            de: boiteNom()
+        })
+    }, 15000).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+            var ok = data && (data.success === true || data.success === 'true' || String(data.success).toLowerCase() === 'true');
+            if (!res.ok || (data && data.success != null && !ok)) throw new Error('mail');
+            if (!res.ok) throw new Error('mail');
+            return data;
+        });
+    });
+}
+
+function boiteDireDans(el, texte, erreur) {
+    if (!el) return;
+    el.textContent = texte;
+    el.style.color = erreur ? '#b45309' : '#047857';
+}
+
+function boiteRepondre(questionId) {
+    if (!boiteEstAdmin() || !boiteListesCache) return;
+    var question = null;
+    (boiteListesCache.questions || []).some(function (item) {
+        if (item.id === questionId) { question = item; return true; }
+        return false;
+    });
+    var zone = document.querySelector('[data-reponse-statut="' + questionId + '"]');
+    var champ = document.querySelector('[data-reponse-texte="' + questionId + '"]');
+    var bouton = document.querySelector('[data-repondre="' + questionId + '"]');
+    if (!question) return;
+    var email = boiteEmailQuestion(question);
+    var texte = champ ? champ.value.trim() : '';
+    if (!boiteEmailValide(email)) {
+        boiteDireDans(zone, 'Cette personne n\'a pas laissé d\'e-mail.', true);
+        return;
+    }
+    if (texte.length < 2) {
+        boiteDireDans(zone, 'Écris le message avant de l\'envoyer.', true);
+        return;
+    }
+    if (bouton && bouton.disabled) return;
+    if (bouton) bouton.disabled = true;
+    boiteDireDans(zone, 'Envoi du mail…', false);
+    var session = boiteSession();
+    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', session && session.email ? session.email : '').then(function () {
+        var record = {
+            type: 'reponse',
+            id: boiteId('r'),
+            questionId: question.id,
+            at: new Date().toISOString(),
+            nom: boiteNom(),
+            email: session && session.email ? session.email : '',
+            destinataire: email,
+            texte: texte.slice(0, 800),
+            mail: true
+        };
+        boiteGarderVu(record);
+        boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+        boiteRendreQuestions(boiteListesCache);
+        boiteEnvoyer(record).catch(function () {});
+    }).catch(function () {
+        if (bouton) bouton.disabled = false;
+        boiteDireDans(zone, 'Le mail n\'a pas pu partir. La question reste en attente.', true);
+    });
 }
 
 function boiteRendreEmplois(fusion) {
@@ -656,6 +812,15 @@ function boiteBrancherAdmin() {
     if (filtre) filtre.oninput = function () {
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
     };
+    var questions = document.getElementById('questionsListe');
+    if (questions && !questions.__boite) {
+        questions.__boite = true;
+        questions.addEventListener('click', function (e) {
+            var btn = e.target && e.target.closest ? e.target.closest('[data-repondre]') : null;
+            if (!btn) return;
+            boiteRepondre(btn.getAttribute('data-repondre'));
+        });
+    }
 }
 
 function boiteNom() {
