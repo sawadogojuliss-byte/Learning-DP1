@@ -90,10 +90,13 @@
             font-size: 0.875rem;
         }
 
-        .grade-input-wrapper {
-            display: flex;
+.grade-input-wrapper {
+            display: none;
             align-items: center;
             gap: 0.25rem;
+        }
+        body.annee-dp2 .grade-input-wrapper {
+            display: flex;
         }
         .grade-input {
             width: 4rem;

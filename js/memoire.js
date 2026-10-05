@@ -156,6 +156,7 @@ function memoireAppliquer(data, opts) {
     if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
     if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear;
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
+    if (typeof majApparenceNotes === 'function') majApparenceNotes();
     if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
     if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
     if (typeof iaLevels !== 'undefined' && data.iaLevels && typeof data.iaLevels === 'object') iaLevels = data.iaLevels;

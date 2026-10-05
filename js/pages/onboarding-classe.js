@@ -31,6 +31,7 @@ function setIbYear(year) {
     ibYear = year;
     renderClasse();
     majClasseAffichage();
+    if (typeof majApparenceNotes === 'function') majApparenceNotes();
     if (typeof updateSubjectsUI === 'function') {
         var matieres = document.getElementById('subjectsModal');
         if (matieres && matieres.classList.contains('active')) updateSubjectsUI();

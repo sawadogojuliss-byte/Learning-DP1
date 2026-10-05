@@ -131,6 +131,11 @@ function notesSur7() {
     return typeof ibYear !== 'undefined' && ibYear === 'DP2';
 }
 
+function majApparenceNotes() {
+    if (!document.body) return;
+    document.body.classList.toggle('annee-dp2', notesSur7());
+}
+
 function noteMatiere(s) {
     if (!notesSur7() || !s || s.grade == null || s.grade === '') return null;
     var n = Number(s.grade);
@@ -244,13 +249,13 @@ function updateSubjectsUI() {
     const { hlCount, slCount } = countLevels();
     const total = subjects.length + optionalSubjects.length;
 
+    majApparenceNotes();
     var sousTitre = document.getElementById('subjectsSubtitle');
     if (sousTitre) {
         sousTitre.textContent = notesSur7()
-            ? 'Choisis-en 6, avec 3 HL et 3 SL. La note est celle de ton dernier bulletin, sur 7.'
-            : 'Aucune matière n\'est imposée. Choisis-en 6, avec 3 HL et 3 SL';
+            ? 'Choisis tes matières, le niveau de tes matières et la note sur 7 obtenue sur ton dernier bulletin.'
+            : 'Choisis tes matières et le niveau de tes matières de l\'IB ci-dessous.';
     }
-
     document.getElementById('hlCounter').textContent = 'HL: ' + hlCount + '/3';
     document.getElementById('hlCounter').className = 'counter-badge ' + (hlCount === 3 ? 'valid' : 'invalid-hl');
     document.getElementById('slCounter').textContent = 'SL: ' + slCount + '/3';
@@ -264,7 +269,10 @@ function updateSubjectsUI() {
         ? '<p style="margin:0;color:#6b7280;font-size:0.9rem;text-align:center;">Aucune matière pour l’instant. Ajoute celles que tu suis.</p>'
         : subjects.map(function (subject) { return subjectCardHTML(subject); }).join('')
             + optionalSubjects.map(function (subject) { return subjectCardHTML(subject); }).join('');
-const addSubjectSelect = document.getElementById('addSubjectSelect');
+    if (!notesSur7()) {
+        list.querySelectorAll('.grade-input-wrapper').forEach(function (el) { el.remove(); });
+    }
+    const addSubjectSelect = document.getElementById('addSubjectSelect');
     const available = getAvailableSubjects();
     addSubjectSelect.innerHTML = '<option value="">+ Ajouter une matière...</option>' + available.map(s =>
         '<option value="' + s.name + '">' + s.icon + ' ' + s.name + '</option>'
