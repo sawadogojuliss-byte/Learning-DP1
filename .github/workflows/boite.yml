@@ -2,6 +2,12 @@ name: Boîte partagée
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - arena/01a0bac7-learning-dp1
+    paths:
+      - .github/workflows/boite.yml
+      - tools/creer-boite.py
 
 permissions:
   contents: write
