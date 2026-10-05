@@ -253,10 +253,7 @@ function generateDayEvents(dayIndex) {
     });
 
     // ── COUCHER ──
-    const sleepLabel = (typeof sleepHoursForDay === 'function' && typeof formatSleepHours === 'function')
-        ? formatSleepHours(sleepHoursForDay(dayIndex)) + ' de sommeil'
-        : 'Sommeil';
-    const sleepEvt = { id: 'sleep', title: 'Coucher', subtitle: sleepLabel, startTime: bedtime, endTime: wakeupTime, type: 'sleep', icon: '😴', editable: false, kind: 'fixed' };
+    const sleepEvt = { id: 'sleep', title: 'Coucher', subtitle: '', startTime: bedtime, endTime: wakeupTime, type: 'sleep', icon: '😴', editable: false, kind: 'fixed' };
 
     let scheduled = v3Schedule(events, wakeupEvt);
     scheduled = closeProgramGaps(scheduled, bedtime, dayIndex);

@@ -333,9 +333,81 @@ function confirmAddStudy() {
     v3Toast('✅ « ' + title + ' » ajouté ' + V3_DAY_NAMES[selectedDay] + ' à ' + startTime + ' · ' + v3PomodoroLabel(timeToMinutes(endTime) - timeToMinutes(startTime)), 'success');
 }
 
+var activityEmojiManuel = false;
+var EMOJI_ACTIVITE = ['⚽','🏀','🏊','💃','🏋️','⛪','🕌','🎨','🤝','🎵','📚','🍳','🏃','🚴','🧘','🎬','🎮','💻','🙏','🎉','🎾','🏐','🥊','🚶','💼','⭐','🎯','🌟','💡','🧩','🎭','🏆','🌈','🔥','🎹','🎤','📖','✏️','😴','🍵','📷','🌸','🍀','💫','🥁','♟️'];
+
+function activiteEmojiReinit() {
+    activityEmojiManuel = false;
+    var picker = document.getElementById('activityEmojiPicker');
+    if (picker) picker.style.display = 'none';
+}
+
+function emojiPourActivite(nom) {
+    var n = String(nom || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    if (!n) return '✨';
+    var regles = [
+        [/foot|soccer/, '⚽'], [/basket/, '🏀'], [/natation|nage|piscine|swim/, '🏊'],
+        [/danse|dance/, '💃'], [/gym|muscu|fitness/, '🏋️'], [/eglise|messe|culte/, '⛪'],
+        [/mosque/, '🕌'], [/art|dessin|peint/, '🎨'], [/benevol/, '🤝'],
+        [/music|piano|guitare|violon|chant|chanson|batterie/, '🎵'], [/lecture|lire|livre/, '📚'],
+        [/cuisine|cuisin|repas/, '🍳'], [/course|jogging|run/, '🏃'], [/velo|cycl/, '🚴'],
+        [/yoga|medit/, '🧘'], [/film|cine|serie/, '🎬'], [/jeu|game|gaming|console/, '🎮'],
+        [/code|programm|info/, '💻'], [/priere|prier/, '🙏'], [/famille|parent/, '👨‍👩‍👧'],
+        [/ami|sortie|fete|anniv/, '🎉'], [/tennis/, '🎾'], [/volley/, '🏐'], [/boxe|combat/, '🥊'],
+        [/marche|promen/, '🚶'], [/travail|job|stage|boulot/, '💼'], [/echec|chess/, '♟️'],
+        [/photo/, '📷'], [/theatre/, '🎭'], [/sieste|repos|dorm/, '😴']
+    ];
+    for (var i = 0; i < regles.length; i++) if (regles[i][0].test(n)) return regles[i][1];
+    var h = 0;
+    for (var j = 0; j < n.length; j++) h = (h + n.charCodeAt(j) * (j + 1)) % EMOJI_ACTIVITE.length;
+    return EMOJI_ACTIVITE[h];
+}
+
+function majEmojiActivite() {
+    if (activityEmojiManuel) return;
+    var input = document.getElementById('activityNameInput');
+    var nom = input ? input.value.trim() : '';
+    var icon = emojiPourActivite(nom);
+    newActivityIcon = icon;
+    var preview = document.getElementById('activityIconPreview');
+    if (preview) preview.textContent = icon;
+    document.querySelectorAll('.preset-act-btn').forEach(function (btn) {
+        var on = nom && (btn.getAttribute('data-name') || '').toLowerCase() === nom.toLowerCase();
+        btn.style.background = on ? '#f0fdf4' : 'white';
+        btn.style.borderColor = on ? '#6ee7b7' : '#e5e7eb';
+    });
+}
+
+function basculerEmojisActivite() {
+    var picker = document.getElementById('activityEmojiPicker');
+    if (!picker) return;
+    if (!picker.childElementCount) {
+        var vus = {};
+        EMOJI_ACTIVITE.forEach(function (emoji) {
+            if (vus[emoji]) return;
+            vus[emoji] = true;
+            var bouton = document.createElement('button');
+            bouton.type = 'button';
+            bouton.textContent = emoji;
+            bouton.style.cssText = 'width:2.25rem;height:2.25rem;border:1px solid #e5e7eb;background:white;border-radius:0.6rem;font-size:1.15rem;cursor:pointer;padding:0;';
+            bouton.onclick = function (ev) {
+                ev.stopPropagation();
+                activityEmojiManuel = true;
+                newActivityIcon = emoji;
+                var preview = document.getElementById('activityIconPreview');
+                if (preview) preview.textContent = emoji;
+                picker.style.display = 'none';
+            };
+            picker.appendChild(bouton);
+        });
+    }
+    picker.style.display = picker.style.display === 'flex' ? 'none' : 'flex';
+}
+
 function confirmAddActivity() {
     const name = document.getElementById('activityNameInput').value.trim();
-    const icon = newActivityIcon;
+    const preview = document.getElementById('activityIconPreview');
+    const icon = (preview && preview.textContent.trim()) || newActivityIcon || '✨';
     const startTime = document.getElementById('activityStartInput').value;
     const endTime = document.getElementById('activityEndInput').value;
     const errEl = document.getElementById('activityTimeError');

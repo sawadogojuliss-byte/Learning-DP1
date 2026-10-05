@@ -153,8 +153,8 @@
         </div>
 
         <!-- Add Modal — Étape 1 : Choix du type -->
-        <div id="addEventModal" style="display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: center; justify-content: center; padding: 1rem;">
-            <div style="background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); max-width: 30rem; width: 100%; padding: 1.75rem; animation: fadeInUp 0.25s ease-out;">
+        <div id="addEventModal" style="display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: flex-start; justify-content: center; padding: 0.75rem; overflow-y: auto;">
+            <div style="background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); max-width: 30rem; width: 100%; padding: 1.75rem; margin: auto; box-sizing: border-box; animation: fadeInUp 0.25s ease-out;">
                 <!-- Header -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
                     <div>
@@ -222,20 +222,21 @@
                     <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
                     <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Nom de l'activité</p>
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-                        <button onclick="pickActivityPreset('Football','⚽')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⚽ Football</button>
-                        <button onclick="pickActivityPreset('Basketball','🏀')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏀 Basketball</button>
-                        <button onclick="pickActivityPreset('Natation','🏊')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏊 Natation</button>
-                        <button onclick="pickActivityPreset('Danse','💃')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">💃 Danse</button>
-                        <button onclick="pickActivityPreset('Gym','🏋️')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏋️ Gym</button>
-                        <button onclick="pickActivityPreset('Église','⛪')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⛪ Église</button>
-                        <button onclick="pickActivityPreset('Mosquée','🕌')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🕌 Mosquée</button>
-                        <button onclick="pickActivityPreset('Arts','🎨')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🎨 Arts</button>
-                        <button onclick="pickActivityPreset('Bénévolat','🤝')" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🤝 Bénévolat</button>
+                        <button type="button" onclick="pickActivityPreset('Football','⚽')" data-name="Football" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⚽ Football</button>
+                        <button type="button" onclick="pickActivityPreset('Basketball','🏀')" data-name="Basketball" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏀 Basketball</button>
+                        <button type="button" onclick="pickActivityPreset('Natation','🏊')" data-name="Natation" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏊 Natation</button>
+                        <button type="button" onclick="pickActivityPreset('Danse','💃')" data-name="Danse" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">💃 Danse</button>
+                        <button type="button" onclick="pickActivityPreset('Gym','🏋️')" data-name="Gym" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏋️ Gym</button>
+                        <button type="button" onclick="pickActivityPreset('Église','⛪')" data-name="Église" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⛪ Église</button>
+                        <button type="button" onclick="pickActivityPreset('Mosquée','🕌')" data-name="Mosquée" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🕌 Mosquée</button>
+                        <button type="button" onclick="pickActivityPreset('Arts','🎨')" data-name="Arts" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🎨 Arts</button>
+                        <button type="button" onclick="pickActivityPreset('Bénévolat','🤝')" data-name="Bénévolat" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🤝 Bénévolat</button>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                        <input type="text" id="activityNameInput" placeholder="Ou écris ton activité..." style="flex: 1; padding: 0.625rem 0.875rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem;">
-                        <div id="activityIconPreview" style="width: 2.5rem; height: 2.5rem; background: #f0fdf4; border: 2px solid #a7f3d0; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">✨</div>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 0.65rem;">
+                        <input type="text" id="activityNameInput" placeholder="Ou écris ton activité..." oninput="majEmojiActivite()" style="flex: 1; padding: 0.625rem 0.875rem; border: 2px solid #e5e7eb; border-radius: 0.75rem; font-size: 0.9rem;">
+                        <button type="button" id="activityIconPreview" onclick="basculerEmojisActivite()" style="width: 2.5rem; height: 2.5rem; flex-shrink: 0; background: #f0fdf4; border: 2px solid #a7f3d0; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; cursor: pointer; padding: 0;">✨</button>
                     </div>
+                    <div id="activityEmojiPicker" style="display: none; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.85rem;"></div>
 
                     <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Horaires</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
@@ -251,28 +252,28 @@
                     <p id="activityTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></p>
 
                     <div id="activityDupWarning" class="v3-warn-box"></div>
-                    <button onclick="confirmAddActivity()" style="width: 100%; padding: 0.875rem; background: linear-gradient(to right, #8b5cf6, #6d28d9); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
+                    <button onclick="confirmAddActivity()" style="width: 100%; padding: 0.875rem; background: linear-gradient(to right, #10b981, #059669); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
                     <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
                 </div>
             </div>
         </div>
 
         <!-- ═══════ EDIT MODAL — avec +/- durée et réajustement ═══════ -->
-        <div id="editEventModal" style="display:none;position:fixed;inset:0;z-index:50;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:1rem;">
-            <div style="background:white;border-radius:1.25rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);max-width:28rem;width:100%;padding:1.5rem;animation:fadeInUp 0.2s ease-out;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-                    <h3 style="font-size:1.125rem;font-weight:700;color:#111827;" id="editModalTitle">Modifier l'activité</h3>
+        <div id="editEventModal" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.5);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding:0.75rem;overflow-y:auto;-webkit-overflow-scrolling:touch;">
+            <div style="background:white;border-radius:1.25rem;box-shadow:0 25px 50px rgba(0,0,0,0.25);max-width:28rem;width:100%;padding:1.15rem;margin:auto;box-sizing:border-box;max-height:calc(100vh - 1.5rem);max-height:calc(100dvh - 1.5rem);overflow-y:auto;-webkit-overflow-scrolling:touch;animation:fadeInUp 0.2s ease-out;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">
+                    <h3 style="font-size:1.05rem;font-weight:700;color:#111827;" id="editModalTitle">Modifier l'activité</h3>
                     <button onclick="closeEditModal()" style="width:2rem;height:2rem;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;color:#6b7280;font-size:0.875rem;">✕</button>
                 </div>
                 <!-- Titre -->
-                <div style="margin-bottom:1rem;">
-                    <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Nom de l'activité</label>
-                    <input type="text" id="editEventTitle" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                <div style="margin-bottom:0.7rem;">
+                    <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.3rem;">Nom de l'activité</label>
+                    <input type="text" id="editEventTitle" style="width:100%;padding:0.6rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                 </div>
                 <!-- Méthode Pomodoro (sessions d'étude uniquement) -->
-                <button id="editPomodoroBtn" onclick="v3OpenPomodoroFromEdit()" style="display:none;width:100%;padding:0.75rem;background:linear-gradient(135deg,#fef2f2,#fff7ed);color:#b91c1c;font-weight:700;border-radius:0.875rem;border:1.5px solid #fecaca;cursor:pointer;margin-bottom:1rem;font-size:0.875rem;">🍅 Lancer un Pomodoro pour cette session</button>
+                <button id="editPomodoroBtn" onclick="v3OpenPomodoroFromEdit()" style="display:none;width:100%;padding:0.6rem 0.75rem;background:linear-gradient(135deg,#fef2f2,#fff7ed);color:#b91c1c;font-weight:700;border-radius:0.875rem;border:1.5px solid #fecaca;cursor:pointer;margin-bottom:0.7rem;font-size:0.84rem;">🍅 Lancer un Pomodoro pour cette session</button>
                 <!-- Contrôle durée -->
-                <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:1rem;margin-bottom:1rem;">
+                <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.7rem;margin-bottom:0.7rem;">
                     <p style="font-size:0.8rem;font-weight:600;color:#047857;margin-bottom:0.75rem;">⏱️ Durée de l'activité</p>
                     <div style="display:flex;align-items:center;justify-content:center;gap:1rem;">
                         <button onclick="adjustEditDuration(-15)" style="width:2.5rem;height:2.5rem;background:white;border:2px solid #a7f3d0;border-radius:0.75rem;font-size:1.125rem;font-weight:700;color:#059669;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='white'">−</button>
@@ -296,12 +297,12 @@
                 </div>
                 <p id="editPinHint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.75rem;padding:0.625rem 0.75rem;margin-bottom:0.75rem;font-size:0.78rem;color:#1e40af;"></p>
                 <!-- Cascade info -->
-                <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:0.75rem;padding:0.75rem;margin-bottom:1rem;font-size:0.8rem;color:#92400e;">
+                <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:0.75rem;padding:0.6rem 0.75rem;margin-bottom:0.7rem;font-size:0.78rem;color:#92400e;">
                     🔗 <strong>Réajustement automatique :</strong> les activités suivantes seront décalées en conséquence.
                 </div>
                 <p id="editTimeError" style="color:#ef4444;font-size:0.8rem;margin-bottom:0.75rem;display:none;"></p>
-                <div style="display:flex;flex-direction:column;gap:0.625rem;">
-                    <button onclick="saveEditedEventCascade()" style="width:100%;padding:0.875rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:700;border-radius:0.875rem;border:none;cursor:pointer;font-size:0.95rem;">✅ Enregistrer & réajuster</button>
+                <div style="display:flex;flex-direction:column;gap:0.45rem;">
+                    <button onclick="saveEditedEventCascade()" style="width:100%;padding:0.7rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:700;border-radius:0.875rem;border:none;cursor:pointer;font-size:0.95rem;">✅ Enregistrer & réajuster</button>
                     <button onclick="deleteEditedEvent()" style="width:100%;padding:0.75rem;background:#fef2f2;color:#dc2626;font-weight:600;border-radius:0.875rem;border:none;cursor:pointer;">🗑️ Supprimer</button>
                     <button onclick="closeEditModal()" style="width:100%;padding:0.625rem;background:#f3f4f6;color:#6b7280;font-weight:500;border-radius:0.875rem;border:none;cursor:pointer;">Annuler</button>
                 </div>

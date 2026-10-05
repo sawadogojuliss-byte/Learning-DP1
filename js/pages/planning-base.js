@@ -213,10 +213,7 @@ function generateDayEvents(dayIndex) {
     });
 
     // ── COUCHER (toujours dernier) ──
-    const sleepLabel = (typeof sleepHoursForDay === 'function' && typeof formatSleepHours === 'function')
-        ? formatSleepHours(sleepHoursForDay(dayIndex)) + ' de sommeil'
-        : 'Sommeil';
-    events.push({ id: 'sleep', title: 'Coucher', subtitle: sleepLabel, startTime: bedtime, endTime: wakeupTime, type: 'sleep', icon: '😴', editable: false });
+    events.push({ id: 'sleep', title: 'Coucher', subtitle: '', startTime: bedtime, endTime: wakeupTime, type: 'sleep', icon: '😴', editable: false });
 
     // Tri final : wakeup d'abord, sleep en dernier, reste par heure de début
     const wakeupEvt = events.find(e => e.id === 'wakeup');
@@ -433,6 +430,7 @@ function selectAddType(type) {
         document.getElementById('activityNameInput').value = '';
         document.getElementById('activityIconPreview').textContent = '✨';
         newActivityIcon = '✨';
+        if (typeof activiteEmojiReinit === 'function') activiteEmojiReinit();
         // Pre-fill suggested start time
         const suggested = getSuggestedStartTime();
         document.getElementById('activityStartInput').value = suggested;
@@ -512,10 +510,11 @@ function pickActivityPreset(name, icon) {
     document.getElementById('activityNameInput').value = name;
     document.getElementById('activityIconPreview').textContent = icon;
     newActivityIcon = icon;
-    // Highlight selected preset
+    if (typeof activiteEmojiReinit === 'function') activiteEmojiReinit();
     document.querySelectorAll('.preset-act-btn').forEach(btn => {
-        btn.style.background = btn.textContent.includes(name) ? '#f0fdf4' : 'white';
-        btn.style.borderColor = btn.textContent.includes(name) ? '#6ee7b7' : '#e5e7eb';
+        const on = (btn.getAttribute('data-name') || '') === name;
+        btn.style.background = on ? '#f0fdf4' : 'white';
+        btn.style.borderColor = on ? '#6ee7b7' : '#e5e7eb';
     });
 }
 
