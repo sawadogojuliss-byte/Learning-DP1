@@ -6,10 +6,10 @@
 var BOITE_SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b';
 var BOITE_ADMINS = [
     'sawadogo juliss bill owen',
-    'sere farid abdourraham',
     'sere farid abdourrahman',
-    'sere farid abdourahman',
-    'tamini ashley harisoa kania',
+    'sere farid abdourraham',
+    'tamini ashley kania harisoa',
+    'ouedraogo wendsom rayyan',
     'ouedraogo wendsom ryyan'
 ];
 var BOITE_FILE = 'studyPlanIB_boiteFile';
