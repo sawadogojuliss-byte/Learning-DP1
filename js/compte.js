@@ -85,6 +85,7 @@ function compteChoisirProfil(a, b) {
 
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
+    if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
     var etape = data.profilComplet ? 'planning' : (data.etape || 'accueil');
@@ -120,27 +121,36 @@ function compteDoitGarderLie(ancien, courant) {
 }
 
 function compteProfilActuel() {
-    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
-    var lie = null;
-    var precieux = null;
-    var locale = typeof memoireJson === 'function' ? memoireJson('studyPlanIB_sauvegarde:locale') : null;
-    if (window.compteSession && window.compteSession.sub && typeof memoireJson === 'function') {
-        lie = memoireJson(MEMOIRE_KEY + ':' + window.compteSession.sub);
-        precieux = memoireJson('studyPlanIB_sauvegarde:' + window.compteSession.sub);
+    var sub = window.compteSession && window.compteSession.sub;
+    if (sub) {
+        var dedie = compteLireDedie(sub);
+        if (dedie && compteUtile(dedie)) return dedie;
     }
-    var choisi = compteChoisirProfil(precieux, compteChoisirProfil(lie, compteChoisirProfil(stocke, locale)));
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var locale = typeof memoireJson === 'function' ? memoireJson('studyPlanIB_sauvegarde:locale') : null;
+    var session = window.compteSession;
+    var candidats = [stocke, locale].filter(function (item) {
+        if (!sub) return item && !(item.google && item.google.sub);
+        return item && comptePeutRevendiquer(item, session);
+    });
+    var choisi = candidats.reduce(function (acc, item) {
+        return compteChoisirProfil(item, acc) || acc;
+    }, null);
     if (choisi) return choisi;
-    if (typeof memoireLireEtat !== 'function') return null;
-    var vivant = memoireLireEtat();
-    if (!compteUtile(vivant)) return null;
-    vivant.savedAt = stocke && stocke.savedAt ? stocke.savedAt : '';
-    return vivant;
+    if (!sub && typeof memoireLireEtat === 'function') {
+        var vivant = memoireLireEtat();
+        if (compteUtile(vivant) && !(vivant.google && vivant.google.sub)) return vivant;
+    }
+    return null;
 }
 
 function compteSourceNuage() {
+    var sub = window.compteSession && window.compteSession.sub;
     var actuel = compteProfilActuel();
     if (typeof memoireLireEtat !== 'function') return actuel;
     var vivant = memoireLireEtat();
+    if (sub && vivant && vivant.google && vivant.google.sub && vivant.google.sub !== sub) vivant = null;
+    if (sub && vivant && vivant.userName && compteNomPris(vivant.userName, sub)) vivant = null;
     if (!compteUtile(vivant)) return actuel;
     if (!compteUtile(actuel) || !compteDoitGarderLie(actuel, vivant)) return vivant;
     return actuel;
@@ -148,12 +158,18 @@ function compteSourceNuage() {
 
 function compteRestaurerLocal() {
     if (!window.compteSession || !window.compteSession.sub || typeof memoireJson !== 'function') return false;
-    var lie = memoireJson(MEMOIRE_KEY + ':' + window.compteSession.sub);
+    var lie = compteLireDedie(window.compteSession.sub);
     var stocke = memoireJson(MEMOIRE_KEY);
-    var choisi = compteChoisirProfil(lie, stocke);
-    if (!choisi || choisi !== lie || compteEquivalent(lie, stocke)) return false;
-    compteAfficherProfil(lie);
-    return true;
+    if (!lie || !compteUtile(lie) || compteEquivalent(lie, stocke)) return false;
+    if (stocke && stocke.google && stocke.google.sub && stocke.google.sub !== window.compteSession.sub) {
+        compteBasculer(lie, window.compteSession);
+        return true;
+    }
+    if (!comptePeutRevendiquer(stocke, window.compteSession) && compteUtile(lie)) {
+        compteBasculer(lie, window.compteSession);
+        return true;
+    }
+    return false;
 }
 
 var COMPTE_IDENTITE_SCOPE = 'openid email profile';
@@ -272,7 +288,16 @@ function compteDriveEcrire(token, id, json) {
 function compteNuageFusionner(token) {
     return compteDriveTrouver(token).then(function (id) {
         return compteDriveLire(token, id).then(function (nuage) {
+var session = window.compteSession;
             var local = compteSourceNuage();
+            if (session && session.sub) {
+                if (local && !compteProfilEtranger(local, session.sub)) local = compteEstampiller(local, session);
+                else local = null;
+                if (nuage && compteUtile(nuage)) {
+                    if (nuage.userName && compteNomPris(nuage.userName, session.sub)) nuage.userName = compteNomLie(session.sub) || '';
+                    nuage = compteEstampiller(nuage, session);
+                }
+            }
             var choisi = compteChoisirProfil(nuage, local);
             if (choisi && choisi === nuage && !compteEquivalent(nuage, local)) {
                 compteAfficherProfil(nuage);
@@ -347,6 +372,203 @@ function compteSessionDepuis(payload) {
     };
 }
 
+var COMPTE_IDENTITES_KEY = 'studyPlanIB_identites';
+
+function compteNormaliserNom(nom) {
+    return String(nom || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+}
+
+function compteLireIdentites() {
+    var data = typeof memoireJson === 'function' ? memoireJson(COMPTE_IDENTITES_KEY) : null;
+    if (!data || typeof data !== 'object') data = { comptes: {}, noms: {} };
+    if (!data.comptes || typeof data.comptes !== 'object') data.comptes = {};
+    if (!data.noms || typeof data.noms !== 'object') data.noms = {};
+    return data;
+}
+
+function compteEcrireIdentites(data) {
+    try { localStorage.setItem(COMPTE_IDENTITES_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+function compteNomLie(sub) {
+    if (!sub) return '';
+    var row = compteLireIdentites().comptes[sub];
+    return row && row.userName ? String(row.userName) : '';
+}
+
+function compteSubDuNom(nom) {
+    return compteLireIdentites().noms[compteNormaliserNom(nom)] || '';
+}
+
+function compteNomPris(nom, sub) {
+    var autre = compteSubDuNom(nom);
+    return !!(autre && autre !== sub);
+}
+
+function compteNomAutorise(nom) {
+    var propre = String(nom || '').trim().replace(/\s+/g, ' ');
+    if (!propre) return false;
+    var sub = (window.compteSession && window.compteSession.sub) || '';
+    return !compteNomPris(propre, sub);
+}
+
+function compteLierNom(sub, nom, email) {
+    var propre = String(nom || '').trim().replace(/\s+/g, ' ');
+    if (!sub || !propre || compteNomPris(propre, sub)) return false;
+    var id = compteLireIdentites();
+    var ancien = id.comptes[sub] && id.comptes[sub].userName;
+    if (ancien && compteNormaliserNom(ancien) !== compteNormaliserNom(propre)) {
+        if (id.noms[compteNormaliserNom(ancien)] === sub) delete id.noms[compteNormaliserNom(ancien)];
+    }
+    id.comptes[sub] = { userName: propre, email: email || (id.comptes[sub] && id.comptes[sub].email) || '', at: new Date().toISOString() };
+    id.noms[compteNormaliserNom(propre)] = sub;
+    compteEcrireIdentites(id);
+    return true;
+}
+
+function compteOublierNom(sub) {
+    if (!sub) return;
+    var id = compteLireIdentites();
+    var ancien = id.comptes[sub] && id.comptes[sub].userName;
+    if (ancien && id.noms[compteNormaliserNom(ancien)] === sub) delete id.noms[compteNormaliserNom(ancien)];
+    delete id.comptes[sub];
+    compteEcrireIdentites(id);
+}
+
+function compteDireNomPris() {
+    var texte = 'Ce nom est déjà lié à un autre compte Google.';
+    compteMessage(texte);
+    if (typeof prenomErreur === 'function') prenomErreur(texte);
+    if (typeof v3Toast === 'function') v3Toast(texte, 'info');
+}
+
+function compteProfilEtranger(data, sub) {
+    if (!data || typeof data !== 'object' || data.efface) return true;
+    if (data.google && data.google.sub && sub && data.google.sub !== sub) return true;
+    if (data.userName && sub && compteNomPris(data.userName, sub)) return true;
+    var lie = sub ? compteNomLie(sub) : '';
+    if (lie && data.userName && compteNormaliserNom(data.userName) !== compteNormaliserNom(lie)) {
+        if (!(data.google && data.google.sub === sub)) return true;
+    }
+    return false;
+}
+
+function comptePeutRevendiquer(data, session) {
+    if (!data || !session || !session.sub || data.efface) return false;
+    if (data.google && data.google.sub && data.google.sub !== session.sub) return false;
+    if (data.userName && compteNomPris(data.userName, session.sub)) return false;
+    var lie = compteNomLie(session.sub);
+    if (lie && data.userName && compteNormaliserNom(data.userName) !== compteNormaliserNom(lie)) return false;
+    return true;
+}
+
+function compteLireDedie(sub) {
+    if (!sub || typeof memoireJson !== 'function') return null;
+    var lie = memoireJson(MEMOIRE_KEY + ':' + sub);
+    var precieux = memoireJson('studyPlanIB_sauvegarde:' + sub);
+    var choisi = typeof compteChoisirProfil === 'function' ? compteChoisirProfil(precieux, lie) : (precieux || lie);
+    if (choisi && compteProfilEtranger(choisi, sub)) return null;
+    return choisi;
+}
+
+function compteProprietaireConnu() {
+    if (window.compteSession && window.compteSession.sub) return window.compteSession;
+    if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+    try {
+        var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+        if (garde && garde.sub) return garde;
+    } catch (e) {}
+    if (typeof memoireJson === 'function') {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (data && data.google && data.google.sub) return data.google;
+    }
+    return null;
+}
+
+function compteMemoriserProprietaire(session) {
+    window.compteProprietaire = session && session.sub ? session : null;
+    try {
+        if (session && session.sub) localStorage.setItem('studyPlanIB_proprietaire', JSON.stringify(session));
+        else localStorage.removeItem('studyPlanIB_proprietaire');
+    } catch (e) {}
+}
+
+function compteEstampiller(data, session) {
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data || {})); } catch (e) { copie = data || {}; }
+    copie.google = {
+        sub: session.sub,
+        email: session.email || '',
+        name: session.name || '',
+        given_name: session.given_name || '',
+        picture: session.picture || ''
+    };
+    var lie = compteNomLie(session.sub);
+    var origine = data && data.google && data.google.sub;
+    if (lie && origine !== session.sub) copie.userName = lie;
+    else if (copie.userName && compteNomPris(copie.userName, session.sub)) copie.userName = lie || '';
+    else if (!copie.userName && lie) copie.userName = lie;
+    if (copie.userName && !compteNomPris(copie.userName, session.sub)) compteLierNom(session.sub, copie.userName, session.email);
+    return copie;
+}
+
+function compteEtatVide(session) {
+    return {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        etape: 'prenom',
+        profilComplet: false,
+        userName: compteNomLie(session && session.sub) || '',
+        subjects: [],
+        optionalSubjects: [],
+        customEvents: [],
+        exercices: [],
+        selectedActivities: [],
+        google: session || null
+    };
+}
+
+function compteArchiverPour(sub, data) {
+    if (!sub || !data || typeof data !== 'object') return;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data)); } catch (e) { return; }
+    if (!copie.google || copie.google.sub !== sub) {
+        copie.google = copie.google && copie.google.sub === sub ? copie.google : { sub: sub };
+    }
+    try { localStorage.setItem(MEMOIRE_KEY + ':' + sub, JSON.stringify(copie)); } catch (e) {}
+    if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(sub, copie, true);
+}
+
+function compteIndexerExistants() {
+    var id = compteLireIdentites();
+    var i, cle, data, sub;
+    try {
+        for (i = 0; i < localStorage.length; i++) {
+            cle = localStorage.key(i);
+            if (!cle || (cle.indexOf('studyPlanIB_profil:') !== 0 && cle.indexOf('studyPlanIB_sauvegarde:') !== 0)) continue;
+            if (cle.slice(-7) === ':locale') continue;
+            data = memoireJson(cle);
+            if (!data || !data.userName) continue;
+            sub = data.google && data.google.sub ? data.google.sub : cle.split(':').pop();
+            if (!sub || sub === 'locale' || sub.length < 4) continue;
+            if (compteNomPris(data.userName, sub)) continue;
+            if (!id.comptes[sub]) {
+                id.comptes[sub] = { userName: data.userName, email: (data.google && data.google.email) || '', at: data.savedAt || '' };
+                id.noms[compteNormaliserNom(data.userName)] = sub;
+            }
+        }
+        compteEcrireIdentites(id);
+    } catch (e) {}
+}
+
+function compteBasculer(data, session) {
+    if (session && session.sub) {
+        data = compteEstampiller(data || compteEtatVide(session), session);
+        if (data.userName) compteLierNom(session.sub, data.userName, session.email || '');
+    }
+    compteAfficherProfil(data || {});
+}
+
 function comptePoserBoutonCopie() {
     if (window.compteSession && window.compteSession.sub) return;
     var texte = document.getElementById('compteInviteTexte');
@@ -399,32 +621,7 @@ function compteOuvrirPlanning() {
 }
 
 function compteTerminerConnexion(session) {
-    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
-    var avait = !!(stocke && stocke.profilComplet);
-    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
-    window.compteSession = session;
-    var restaure = false;
-    try { restaure = compteRestaurerLocal(); } catch (e) {}
-    if (!restaure) {
-        var actuel = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
-        if (actuel && actuel.profilComplet) {
-            compteOuvrirPlanning();
-            restaure = true;
-        } else if (typeof userName !== 'undefined' && !userName && session.given_name) {
-            userName = session.given_name;
-            if (typeof memoireSet === 'function') memoireSet('nameInput', session.given_name);
-        }
-    }
-    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
-    compteRafraichir();
-    if (restaure) {
-        compteCopieEnAttente = false;
-        fermerCompte();
-    }
-    if (typeof v3Toast === 'function') {
-        v3Toast(restaure && !avait ? 'Progression retrouvée.' : ('Connecté avec Google : ' + (session.email || session.name)), 'success');
-    }
-    return restaure;
+    return compteRestaurerTout(session, null);
 }
 
 function compteRelierNuage() {
@@ -464,43 +661,61 @@ function compteMontrerProgression(data, forcer) {
 }
 
 function compteRestaurerTout(session, token) {
+    if (!session || !session.sub) return Promise.resolve('vide');
+    var ancien = compteProprietaireConnu();
+    var vivant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+    if (ancien && ancien.sub && ancien.sub !== session.sub) {
+        compteArchiverPour(ancien.sub, vivant);
+        vivant = null;
+    } else if (vivant && vivant.google && vivant.google.sub && vivant.google.sub !== session.sub) {
+        compteArchiverPour(vivant.google.sub, vivant);
+        vivant = null;
+    }
     compteMemoriserSession(session);
-    var lecture = typeof sauvegardeMeilleure === 'function' ? sauvegardeMeilleure(session.sub) : Promise.resolve(compteProfilActuel());
-    return lecture.then(function (local) {
-        var ouvert = compteMontrerProgression(local, true);
-        if (local && typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(session.sub, local, true);
-        var suite = token
-            ? compteNuageFusionner(token).catch(function () { return 'echec'; })
-            : Promise.resolve(ouvert ? 'local' : 'vide');
-        return suite.then(function (etat) {
-            var meilleur = compteSourceNuage() || local;
-            if (meilleur && meilleur.profilComplet) {
-                if (compteMontrerProgression(meilleur, true)) ouvert = true;
+    compteMemoriserProprietaire(session);
+    var dedie = compteLireDedie(session.sub);
+    var choisi = null;
+    if (dedie && compteUtile(dedie) && !compteProfilEtranger(dedie, session.sub)) choisi = dedie;
+    else if (vivant && comptePeutRevendiquer(vivant, session) && compteUtile(vivant)) choisi = vivant;
+    if (choisi) {
+        if (choisi.userName && compteNomPris(choisi.userName, session.sub)) {
+            choisi.userName = compteNomLie(session.sub) || '';
+            if (!choisi.userName) {
+                choisi.etape = 'prenom';
+                compteDireNomPris();
             }
-            if (meilleur && typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(session.sub, meilleur, true);
-            if (!token || !meilleur || !compteUtile(meilleur)) return ouvert ? 'local' : (etat || 'vide');
-            if (etat === 'same' || etat === 'uploaded' || etat === 'restored') {
-                return (etat === 'restored' || ouvert) ? 'restored' : etat;
-            }
-            return compteDriveTrouver(token).then(function (id) {
-                return compteDriveEcrire(token, id, JSON.stringify(meilleur));
-            }).then(function () {
-                return ouvert ? 'restored' : 'uploaded';
-            }).catch(function () {
-                return ouvert ? 'local' : 'echec';
-            });
-        });
-    }).then(function (etat) {
+        }
+        compteBasculer(choisi, session);
+    } else if (ancien && ancien.sub && ancien.sub !== session.sub) {
+        compteBasculer(compteEtatVide(session), session);
+    }
+    var suite = token
+        ? compteNuageFusionner(token).catch(function () { return 'echec'; })
+        : Promise.resolve(choisi ? 'local' : 'vide');
+    if (!token) suite = suite.then(function (etat) { return compteNuageSynchroniser(false).then(function (nuage) { return nuage && nuage !== 'failed' && nuage !== 'skip' ? nuage : etat; }); });
+    return suite.then(function (etat) {
+        if (!choisi && etat !== 'restored') {
+            var apres = compteLireDedie(session.sub);
+            if (apres && compteUtile(apres) && !compteProfilEtranger(apres, session.sub)) compteBasculer(apres, session);
+            else compteBasculer(compteEtatVide(session), session);
+        }
+        var nom = (typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || '';
+        if (typeof sauvegardeEcrireLocal === 'function' && typeof memoireLireEtat === 'function') {
+            var courant = memoireLireEtat();
+            if (courant && courant.google && courant.google.sub === session.sub) sauvegardeEcrireLocal(session.sub, courant, true);
+        }
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
         compteRafraichir();
+        compteCopieEnAttente = false;
+        if (window.__profilComplet) fermerCompte();
         if (etat === 'restored' || etat === 'local') {
-            if (typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+            if (typeof v3Toast === 'function') v3Toast(nom ? ('Emploi du temps de ' + nom + '.') : 'Progression retrouvée.', 'success');
         } else if (etat === 'uploaded' || etat === 'same') {
-            if (typeof v3Toast === 'function') v3Toast('Sauvegarde liée à ton compte Google.', 'success');
+            if (typeof v3Toast === 'function') v3Toast(nom ? (nom + ' est lié à ce compte Google.') : 'Sauvegarde liée à ton compte Google.', 'success');
         } else if (etat === 'echec') {
             compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
-            if (typeof v3Toast === 'function') v3Toast('Connecté avec Google : ' + (session.email || session.name), 'info');
         } else if (typeof v3Toast === 'function') {
-            v3Toast('Connecté avec Google : ' + (session.email || session.name), 'success');
+            v3Toast(nom ? ('Compte de ' + nom + '.') : 'Choisis un nom d’utilisateur pour ce compte Google.', 'info');
         }
         return etat;
     });
@@ -609,7 +824,8 @@ function compteRafraichir() {
             img.src = session.picture;
             btn.appendChild(img);
         }
-        btn.appendChild(document.createTextNode(session ? (session.given_name || 'Compte') : 'Se connecter'));
+        var nomUtilisateur = (typeof userName !== 'undefined' && userName) || (session && compteNomLie(session.sub)) || '';
+        btn.appendChild(document.createTextNode(session ? (nomUtilisateur || session.given_name || 'Compte') : 'Se connecter'));
     }
     var profil = document.getElementById('compteProfil');
     var invite = document.getElementById('compteInvite');
@@ -630,8 +846,11 @@ function compteRafraichir() {
         var nom = document.getElementById('compteNom');
         var email = document.getElementById('compteEmail');
         var avatar = document.getElementById('compteAvatar');
-        if (nom) nom.textContent = session.name || session.given_name || 'Compte Google';
+var nomLie = compteNomLie(session.sub) || (typeof userName !== 'undefined' ? userName : '');
+        if (nom) nom.textContent = nomLie || session.name || session.given_name || 'Compte Google';
         if (email) email.textContent = session.email || '';
+        var identite = document.getElementById('compteIdentite');
+        if (identite) identite.textContent = nomLie ? ('Nom d’utilisateur : ' + nomLie) : 'Choisis un nom d’utilisateur pour ce compte Google.';
         if (avatar) {
             avatar.hidden = !session.picture;
             if (session.picture) {
@@ -646,7 +865,8 @@ function compteRafraichir() {
     if (input && !input.value) input.value = compteClientId();
     var menuNom = document.getElementById('menuCompteNom');
     var menuDetail = document.getElementById('menuCompteDetail');
-    if (menuNom) menuNom.textContent = session ? (session.given_name || 'Mon compte') : 'Mon compte';
+    var nomMenu = session ? ((typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || session.given_name || 'Mon compte') : 'Mon compte';
+    if (menuNom) menuNom.textContent = nomMenu;
     if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Connexion Google';
     var setup = document.getElementById('compteSetup');
     if (setup && !compteClientId()) setup.open = true;
@@ -706,6 +926,10 @@ function compteEnregistrerClientId() {
 }
 
 function compteDeconnecter() {
+    if (window.compteSession && window.compteSession.sub) {
+        compteMemoriserProprietaire(window.compteSession);
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    }
     window.compteSession = null;
     compteCopieEnAttente = false;
     compteJeton = '';
@@ -715,7 +939,7 @@ function compteDeconnecter() {
         try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
     compteRafraichir();
-    if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Ta progression reste sur cet appareil.', 'info');
+    if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Le nom et l’emploi du temps restent liés à ce compte.', 'info');
 }
 
 function compteExporter() {
@@ -761,8 +985,12 @@ function compteOuvrirOnglet() {
 (function () {
     try {
         var sauve = JSON.parse(localStorage.getItem(COMPTE_SESSION_KEY) || 'null');
-        if (sauve && sauve.sub) window.compteSession = sauve;
+if (sauve && sauve.sub) {
+            window.compteSession = sauve;
+            compteMemoriserProprietaire(sauve);
+        }
     } catch (e) {}
+    try { compteIndexerExistants(); } catch (e) {}
     var stocke = '';
     try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
@@ -771,10 +999,19 @@ function compteOuvrirOnglet() {
     if (window.compteSession && window.compteSession.sub) {
         var sub = window.compteSession.sub;
         var appliquer = function (data) {
-            if (!data) return;
+            if (!data || compteProfilEtranger(data, sub)) return;
+            if (!compteUtile(data)) return;
+            var courant = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+            if (courant && courant.google && courant.google.sub && courant.google.sub !== sub) {
+                compteBasculer(data, window.compteSession);
+                return;
+            }
             if (compteMontrerProgression(data, false) && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
         };
-        try { appliquer(compteRestaurerLocal() ? memoireJson(MEMOIRE_KEY) : null); } catch (e) {}
+        try {
+            var dedie = compteLireDedie(sub);
+            if (dedie) appliquer(dedie);
+        } catch (e) {}
         if (typeof sauvegardeMeilleure === 'function') {
             sauvegardeMeilleure(sub).then(appliquer).catch(function () {});
         }

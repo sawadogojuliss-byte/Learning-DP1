@@ -118,19 +118,28 @@ function sauvegardeChoisirListe(liste) {
 }
 
 function sauvegardeMeilleure(sub) {
-    var cles = [
-        SAUVEGARDE_PREFIX + 'locale',
-        typeof MEMOIRE_KEY === 'string' ? MEMOIRE_KEY : 'studyPlanIB_profil'
-    ];
+    var profilCle = typeof MEMOIRE_KEY === 'string' ? MEMOIRE_KEY : 'studyPlanIB_profil';
+    var cles = [];
     if (sub) {
-        cles.unshift(SAUVEGARDE_PREFIX + sub);
-        cles.unshift((typeof MEMOIRE_KEY === 'string' ? MEMOIRE_KEY : 'studyPlanIB_profil') + ':' + sub);
+        cles.push(SAUVEGARDE_PREFIX + sub);
+        cles.push(profilCle + ':' + sub);
     }
     var locaux = cles.map(sauvegardeLireCle);
-    var lectures = [sauvegardeIdbLire('locale')];
-    if (sub) lectures.unshift(sauvegardeIdbLire(sub));
+    var anonymes = [sauvegardeLireCle(SAUVEGARDE_PREFIX + 'locale'), sauvegardeLireCle(profilCle)];
+    var lectures = [];
+    if (sub) lectures.push(sauvegardeIdbLire(sub));
     return Promise.all(lectures).then(function (distants) {
-        return sauvegardeChoisirListe(locaux.concat(distants));
+        var liste = locaux.concat(distants).filter(function (item) {
+            return item && (typeof compteProfilEtranger !== 'function' || !compteProfilEtranger(item, sub));
+        });
+        var dedie = sauvegardeChoisirListe(liste);
+        if (dedie && (typeof compteUtile !== 'function' || compteUtile(dedie))) return dedie;
+        if (!sub) return sauvegardeChoisirListe(anonymes);
+        var session = { sub: sub };
+        var libres = anonymes.filter(function (item) {
+            return item && typeof comptePeutRevendiquer === 'function' && comptePeutRevendiquer(item, session);
+        });
+        return sauvegardeChoisirListe(libres);
     });
 }
 

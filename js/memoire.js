@@ -16,38 +16,44 @@ function memoireJson(key) {
     }
 }
 
+var MEMOIRE_PAGES = {
+    panelSoutien: 'soutien',
+    panelExercices: 'exercices',
+    panelLegende: 'legende',
+    panelEEia: 'eeia',
+    panelFeries: 'feries',
+    panelAide: 'aide',
+    panelFeedback: 'feedback',
+    panelRetours: 'retours',
+    panelQuestions: 'questions',
+    panelEmplois: 'emplois',
+    contextModal: 'prenom',
+    objectivesModal: 'objectif',
+    sleepModal: 'sommeil',
+    classeModal: 'classe',
+    subjectsModal: 'matieres',
+    travauxModal: 'travaux',
+    transportModal: 'transport',
+    carConfigModal: 'voiture',
+    motoConfigModal: 'moto',
+    activitiesModal: 'activites',
+    holidaysModal: 'feries',
+    freeTimeModal: 'libre',
+    screenTimeModal: 'ecran',
+    planningModal: 'planning'
+};
+
 function memoireEtapeActive() {
-    var panneaux = [
-        ['panelSoutien', 'soutien'],
-        ['panelExercices', 'exercices'],
-        ['panelLegende', 'legende'],
-        ['panelEEia', 'eeia'],
-        ['panelFeries', 'feries']
-    ];
-    var modales = [
-        ['contextModal', 'prenom'],
-        ['objectivesModal', 'objectif'],
-        ['sleepModal', 'sommeil'],
-        ['classeModal', 'classe'],
-        ['subjectsModal', 'matieres'],
-        ['travauxModal', 'travaux'],
-        ['transportModal', 'transport'],
-        ['carConfigModal', 'voiture'],
-        ['motoConfigModal', 'moto'],
-        ['activitiesModal', 'activites'],
-        ['holidaysModal', 'feries'],
-        ['freeTimeModal', 'libre'],
-        ['screenTimeModal', 'ecran'],
-        ['planningModal', 'planning']
-    ];
-    var i, el;
-    for (i = 0; i < panneaux.length; i++) {
-        el = document.getElementById(panneaux[i][0]);
-        if (el && el.classList.contains('active')) return panneaux[i][1];
+    var panneaux = document.querySelectorAll('.app-panel.active');
+    var i, id;
+    for (i = panneaux.length - 1; i >= 0; i--) {
+        id = panneaux[i].id;
+        if (MEMOIRE_PAGES[id]) return MEMOIRE_PAGES[id];
     }
-    for (i = 0; i < modales.length; i++) {
-        el = document.getElementById(modales[i][0]);
-        if (el && el.classList.contains('active')) return modales[i][1];
+    var modales = document.querySelectorAll('.context-modal.active');
+    for (i = modales.length - 1; i >= 0; i--) {
+        id = modales[i].id;
+        if (MEMOIRE_PAGES[id]) return MEMOIRE_PAGES[id];
     }
     return 'accueil';
 }
@@ -55,7 +61,18 @@ function memoireEtapeActive() {
 function memoireLireEtat() {
     if (typeof eeNettoyerSuivi === 'function') eeNettoyerSuivi();
     var champNom = document.getElementById('nameInput');
-    if (champNom && champNom.value.trim()) userName = champNom.value.trim();
+    if (champNom && champNom.value.trim()) {
+        var saisi = champNom.value.trim().replace(/\s+/g, ' ');
+        if (typeof compteNomAutorise === 'function' && !compteNomAutorise(saisi)) {
+            champNom.value = userName || '';
+            if (typeof compteDireNomPris === 'function') compteDireNomPris();
+        } else {
+            userName = saisi;
+        }
+    }
+    if (!userName && typeof compteNomLie === 'function' && window.compteSession && window.compteSession.sub) {
+        userName = compteNomLie(window.compteSession.sub) || userName;
+    }
 
     var etape = memoireEtapeActive();
     if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
@@ -106,7 +123,15 @@ function memoireLireEtat() {
         customEvents: customEvents,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
-        google: window.compteSession || null
+        google: (function () {
+            if (window.compteSession && window.compteSession.sub) return window.compteSession;
+            if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+            try {
+                var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+                if (garde && garde.sub) return garde;
+            } catch (e) {}
+            return null;
+        })()
     };
 }
 
@@ -198,19 +223,80 @@ function memoireAppliquer(data, opts) {
     if (data.profilComplet) window.__profilComplet = true;
 
     if (depuisCompte && Array.isArray(data.customEvents)) customEvents = data.customEvents;
-    else {
+    else if (!depuisCompte) {
         var events = memoireJson('studyPlanIB_customEvents_juliss');
         if (Array.isArray(events)) customEvents = events;
         else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
     }
 
     if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
-    else {
+    else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
         if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = exos;
         else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
     }
+    if (depuisCompte) memoireEcrireMiroir(customEvents, typeof exercices !== 'undefined' ? exercices : []);
 
+    memoireSyncChamps();
+}
+
+function memoireEcrireMiroir(events, exos) {
+    try {
+        localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(events || []));
+        localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exos || []));
+    } catch (e) {}
+}
+
+function memoireReinitialiser() {
+    userName = '';
+    targetScore = 40;
+    weekdayWakeup = '06:00';
+    saturdayWakeup = '07:00';
+    sundayWakeup = '08:00';
+    if (typeof setSleepHours === 'function') {
+        setSleepHours('weekday', 8);
+        setSleepHours('saturday', 8);
+        setSleepHours('sunday', 8);
+    } else {
+        weekdaySleepHours = 8;
+        saturdaySleepHours = 8;
+        sundaySleepHours = 8;
+    }
+    subjects = [];
+    optionalSubjects = [];
+    if (typeof ibYear !== 'undefined') ibYear = '';
+    if (typeof memoirLevel !== 'undefined') memoirLevel = '';
+    if (typeof iaLevel !== 'undefined') iaLevel = '';
+    if (typeof iaLevels !== 'undefined') iaLevels = {};
+    if (typeof memoirPlan !== 'undefined') memoirPlan = [];
+    if (typeof iaPlans !== 'undefined') iaPlans = {};
+    if (typeof eeVus !== 'undefined') eeVus = {};
+    if (typeof eeDemandes !== 'undefined') eeDemandes = {};
+    if (typeof transportMode !== 'undefined') transportMode = '';
+    carDeparture = '07:30';
+    carToSchool = 30;
+    carFromSchool = 40;
+    motoDeparture = '07:30';
+    motoReturn = '17:00';
+    motoToSchool = 25;
+    motoFromSchool = 25;
+    selectedActivities = [];
+    holidayDays = [];
+    holidayModes = {};
+    holidayDropped = {};
+    sameFreeTime = true;
+    freeTimeMinutes = 60;
+    freeTimeByDay = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
+    phoneDays = [0, 1, 2, 3, 4, 5, 6];
+    samePhoneDuration = true;
+    phoneDuration = 60;
+    phoneDayDurations = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
+    selectedDay = 0;
+    customEvents = [];
+    if (typeof exercices !== 'undefined') exercices = [];
+    if (typeof currentMood !== 'undefined') currentMood = null;
+    window.__profilComplet = false;
+    memoireEcrireMiroir([], []);
     memoireSyncChamps();
 }
 
@@ -219,22 +305,41 @@ function memoireFermerVues() {
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
 }
 
+function memoireFermerCouches() {
+    if (typeof closeSideMenu === 'function') {
+        try { closeSideMenu(); } catch (e) {}
+    }
+    if (typeof fermerCompte === 'function') {
+        try { fermerCompte(); } catch (e) {}
+    }
+    if (typeof closeAddModal === 'function') {
+        try { closeAddModal(); } catch (e) {}
+    }
+    if (typeof closeEditModal === 'function') {
+        try { closeEditModal(); } catch (e) {}
+    }
+    if (typeof v3ClosePomodoro === 'function') {
+        try { v3ClosePomodoro(); } catch (e) {}
+    }
+}
+
 function memoireAller(etape) {
     if (!etape || etape === 'accueil') {
         memoireFermerVues();
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') {
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'aide' || etape === 'feedback' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
+        document.querySelectorAll('.context-modal').forEach(function (el) {
+            if (el.id !== 'planningModal') el.classList.remove('active');
+        });
         var planning = document.getElementById('planningModal');
-        if (planning && !planning.classList.contains('active')) generatePlanning();
-        if (etape === 'soutien') navigateTo('soutien');
-        else if (etape === 'exercices') navigateTo('exercices');
-        else if (etape === 'legende') navigateTo('legende');
-        else if (etape === 'eeia') navigateTo('eeia');
-        else if (etape === 'feries') navigateTo('feries');
-        else navigateTo('planning');
+        if (planning && !planning.classList.contains('active') && typeof generatePlanning === 'function') generatePlanning();
+        else if (planning) planning.classList.add('active');
+        if (etape === 'planning') {
+            document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+        } else if (typeof navigateTo === 'function') navigateTo(etape);
         return;
     }
     memoireFermerVues();
@@ -277,10 +382,140 @@ function memoireAller(etape) {
     }
 }
 
+var memoireNavPret = false;
+var memoireNavSilence = false;
+
+function memoireEtapeConnue(etape) {
+    var connues = {
+        accueil: 1, prenom: 1, objectif: 1, sommeil: 1, classe: 1, matieres: 1,
+        travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
+        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
+        eeia: 1, aide: 1, feedback: 1, retours: 1, questions: 1, emplois: 1
+    };
+    return !!connues[etape];
+}
+
 function memoirePoserHash(etape) {
-    var next = '#' + (etape || 'accueil');
-    if (location.hash === next) return;
-    try { history.replaceState(null, '', next); } catch (e) {}
+    var id = memoireEtapeConnue(etape) ? etape : 'accueil';
+    var next = '#' + id;
+    var state = { app: 'studyplan', etape: id };
+    var url = location.pathname + location.search + next;
+    var courant = history.state && history.state.app === 'studyplan' ? history.state.etape : '';
+    try {
+        if (courant === id && (location.hash === next || location.hash === '#' + id)) return;
+        if (!memoireNavPret || memoireNavSilence) {
+            history.replaceState(state, '', url);
+            return;
+        }
+        history.pushState(state, '', url);
+    } catch (e) {}
+}
+
+function memoireDepuisHistorique(etape) {
+    if (!memoireEtapeConnue(etape)) etape = memoireEtapeHash() || 'accueil';
+    if (!memoireEtapeConnue(etape)) etape = 'accueil';
+    memoireNavSilence = true;
+    try {
+        memoireFermerCouches();
+        memoireAller(etape);
+        if (memoireEtapeActive() !== etape && etape !== 'accueil') memoireAller(etape);
+    } catch (e) {
+        console.error(e);
+    }
+    try { memoireSauvegarder(); } catch (e) {}
+    memoireNavSilence = false;
+}
+
+function memoireEtapeHash() {
+    return decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
+}
+
+function memoirePagePrecedente(etape) {
+    if (etape === 'activites') {
+        if (typeof transportMode !== 'undefined' && transportMode === 'voiture') return 'voiture';
+        if (typeof transportMode !== 'undefined' && transportMode === 'moto') return 'moto';
+        return 'transport';
+    }
+    var prec = {
+        prenom: 'accueil',
+        classe: 'prenom',
+        objectif: 'classe',
+        matieres: 'objectif',
+        sommeil: 'matieres',
+        transport: 'sommeil',
+        voiture: 'transport',
+        moto: 'transport',
+        ecran: 'activites',
+        libre: 'ecran',
+        planning: 'libre',
+        soutien: 'planning',
+        exercices: 'planning',
+        legende: 'planning',
+        eeia: 'planning',
+        feries: 'planning',
+        aide: 'planning',
+        feedback: 'planning',
+        retours: 'planning',
+        questions: 'planning',
+        emplois: 'planning'
+    };
+    return prec[etape] || '';
+}
+
+function memoireHistoriqueSemer(etape) {
+    var chaine = [];
+    var garde = {};
+    var cur = memoireEtapeConnue(etape) ? etape : 'accueil';
+    while (cur && !garde[cur]) {
+        chaine.unshift(cur);
+        garde[cur] = true;
+        cur = memoirePagePrecedente(cur);
+    }
+    if (!chaine.length || chaine[0] !== 'accueil') chaine.unshift('accueil');
+    var i;
+    for (i = 0; i < chaine.length; i++) {
+        var id = chaine[i];
+        var url = location.pathname + location.search + '#' + id;
+        var state = { app: 'studyplan', etape: id };
+        if (i === 0) history.replaceState(state, '', url);
+        else history.pushState(state, '', url);
+    }
+}
+
+function memoireHistoriqueActiver() {
+    memoireNavSilence = true;
+    try { memoireHistoriqueSemer(memoireEtapeActive()); } catch (e) { memoirePoserHash(memoireEtapeActive()); }
+    memoireNavPret = true;
+    memoireNavSilence = false;
+    if (window.__memoireHistorique) return;
+    window.__memoireHistorique = true;
+    window.addEventListener('popstate', function () {
+        var etape = (history.state && history.state.etape) || memoireEtapeHash() || 'accueil';
+        memoireDepuisHistorique(etape);
+    });
+    window.addEventListener('hashchange', function () {
+        var etape = memoireEtapeHash();
+        if (!etape || etape === memoireEtapeActive()) return;
+        if (history.state && history.state.etape === etape) return;
+        memoireDepuisHistorique(etape);
+    });
+    window.addEventListener('pageshow', function (ev) {
+        if (!ev.persisted || !memoireNavPret) return;
+        memoireDepuisHistorique((history.state && history.state.etape) || memoireEtapeHash() || memoireEtapeActive());
+    });
+    var racine = document.getElementById('app-pages') || document.body;
+    if (racine && window.MutationObserver) {
+        var attente = null;
+        var obs = new MutationObserver(function () {
+            if (attente) clearTimeout(attente);
+            attente = setTimeout(function () {
+                attente = null;
+                if (!memoireNavPret || memoireNavSilence) return;
+                memoirePoserHash(memoireEtapeActive());
+            }, 30);
+        });
+        obs.observe(racine, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
 }
 
 function memoireMajIndicateur() {
@@ -305,7 +540,11 @@ function memoireSauvegarder() {
             var cleLie = MEMOIRE_KEY + ':' + window.compteSession.sub;
             var ancienLie = memoireJson(cleLie);
             var garder = typeof compteDoitGarderLie === 'function' && compteDoitGarderLie(ancienLie, data);
+            if (!garder && data.google && data.google.sub && data.google.sub !== window.compteSession.sub) garder = true;
             if (!garder) localStorage.setItem(cleLie, json);
+            if (!garder && data.userName && typeof compteLierNom === 'function') {
+                compteLierNom(window.compteSession.sub, data.userName, window.compteSession.email || '');
+            }
             if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
         }
         memoirePoserHash(data.etape);
@@ -316,10 +555,17 @@ function memoireSauvegarder() {
     }
 }
 
+function memoireCleDuCompte(cle, sub) {
+    if (!cle) return false;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle.indexOf(sub) !== -1;
+}
+
 function memoireEffacerSuite() {
     memoirePret = false;
     window.__profilComplet = false;
+    var sub = (window.compteSession && window.compteSession.sub) || (window.compteProprietaire && window.compteProprietaire.sub) || '';
     window.compteSession = null;
+    window.compteProprietaire = null;
     if (window.google && google.accounts && google.accounts.id) {
         try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
@@ -330,9 +576,17 @@ function memoireEffacerSuite() {
     try {
         for (i = 0; i < localStorage.length; i++) cles.push(localStorage.key(i));
         cles.forEach(function (cle) {
-            if (cle && cle.indexOf('studyPlanIB_') === 0) localStorage.removeItem(cle);
+            if (!cle || cle.indexOf('studyPlanIB_') !== 0 || cle === 'studyPlanIB_googleClientId' || cle === 'studyPlanIB_identites') return;
+            if (sub) {
+                if (memoireCleDuCompte(cle, sub)) localStorage.removeItem(cle);
+                return;
+            }
+            if (cle.indexOf('studyPlanIB_profil:') === 0 || cle.indexOf('studyPlanIB_driveFileId:') === 0) return;
+            if (cle.indexOf('studyPlanIB_sauvegarde:') === 0 && cle !== 'studyPlanIB_sauvegarde:locale') return;
+            localStorage.removeItem(cle);
         });
         if (client) localStorage.setItem('studyPlanIB_googleClientId', client);
+        if (sub && typeof compteOublierNom === 'function') compteOublierNom(sub);
     } catch (e) {}
     try { sessionStorage.clear(); } catch (e) {}
     var propre = location.pathname.replace(/index\.html$/, '');

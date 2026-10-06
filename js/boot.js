@@ -14,7 +14,7 @@
         }
     }
 
-var version = '20261005k';
+var version = '20261006a';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
@@ -45,6 +45,7 @@ var version = '20261005k';
         document.body.classList.remove('booting');
         if (status) status.hidden = true;
         window.__STUDYPLAN_READY = true;
+        if (typeof memoireHistoriqueActiver === 'function') memoireHistoriqueActiver();
     }).catch(function (err) {
         console.error(err);
         fail(err && err.message ? err.message : 'Impossible de charger Study Plan IB.');

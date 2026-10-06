@@ -6,17 +6,35 @@
 
 let userName = '';
 
+function prenomErreur(message) {
+    var el = document.getElementById('nameError');
+    if (!el) return;
+    el.textContent = message;
+    el.classList.add('show');
+}
+
 function handleContinue() {
-    const name = document.getElementById('nameInput').value.trim();
+    const name = document.getElementById('nameInput').value.trim().replace(/\s+/g, ' ');
     
     if (!name) {
-        document.getElementById('nameError').classList.add('show');
+        prenomErreur('Merci d\'entrer ton prénom');
+        return;
+    }
+    if (typeof compteNomAutorise === 'function' && !compteNomAutorise(name)) {
+        prenomErreur('Ce nom est déjà lié à un autre compte Google.');
         return;
     }
 
     document.getElementById('nameError').classList.remove('show');
     userName = name;
+    if (window.compteSession && window.compteSession.sub && typeof compteLierNom === 'function') {
+        compteLierNom(window.compteSession.sub, name, window.compteSession.email || '');
+    }
     classeRetour = '';
+    if (window.__profilComplet && typeof memoireAller === 'function') {
+        memoireAller('planning');
+        return;
+    }
     showClassePage();
 }
 
