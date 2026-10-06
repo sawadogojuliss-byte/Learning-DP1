@@ -43,6 +43,11 @@ function navigateTo(page) {
         var feries = document.getElementById('panelFeries');
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
+    } else if (page === 'assistant') {
+        if (typeof iaEstJuliss !== 'function' || !iaEstJuliss()) return;
+        var assistant = document.getElementById('panelAssistant');
+        if (assistant) assistant.classList.add('active');
+        if (typeof iaOuvrir === 'function') iaOuvrir();
     } else if (page === 'aide') {
         var aide = document.getElementById('panelAide');
         if (typeof initAide === 'function') initAide();
