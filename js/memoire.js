@@ -61,15 +61,7 @@ function memoireEtapeActive() {
 function memoireLireEtat() {
     if (typeof eeNettoyerSuivi === 'function') eeNettoyerSuivi();
     var champNom = document.getElementById('nameInput');
-    if (champNom && champNom.value.trim()) {
-        var saisi = champNom.value.trim().replace(/\s+/g, ' ');
-        if (typeof compteNomAutorise === 'function' && !compteNomAutorise(saisi)) {
-            champNom.value = userName || '';
-            if (typeof compteDireNomPris === 'function') compteDireNomPris();
-        } else {
-            userName = saisi;
-        }
-    }
+    if (champNom && champNom.value.trim()) userName = champNom.value.trim().replace(/\s+/g, ' ');
     if (!userName && typeof compteNomLie === 'function' && window.compteSession && window.compteSession.sub) {
         userName = compteNomLie(window.compteSession.sub) || userName;
     }
@@ -123,6 +115,11 @@ function memoireLireEtat() {
         customEvents: customEvents,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
+        utilisateurId: (function () {
+            var s = window.compteSession && window.compteSession.sub;
+            if (!s) return '';
+            return typeof compteCanonique === 'function' ? (compteCanonique(s) || s) : s;
+        })(),
         google: (function () {
             if (window.compteSession && window.compteSession.sub) return window.compteSession;
             if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
@@ -537,13 +534,15 @@ function memoireSauvegarder() {
         localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(data.customEvents || []));
         localStorage.setItem('studyPlanIB_exercices', JSON.stringify(data.exercices || []));
         if (window.compteSession && window.compteSession.sub) {
-            var cleLie = MEMOIRE_KEY + ':' + window.compteSession.sub;
+            var canon = typeof compteCanonique === 'function' ? (compteCanonique(window.compteSession.sub) || window.compteSession.sub) : window.compteSession.sub;
+            var cleLie = MEMOIRE_KEY + ':' + canon;
             var ancienLie = memoireJson(cleLie);
             var garder = typeof compteDoitGarderLie === 'function' && compteDoitGarderLie(ancienLie, data);
-            if (!garder && data.google && data.google.sub && data.google.sub !== window.compteSession.sub) garder = true;
+            var dataSub = data.google && (data.utilisateurId || data.google.sub);
+            if (!garder && dataSub && typeof compteMemeCompte === 'function' && !compteMemeCompte(dataSub, canon)) garder = true;
             if (!garder) localStorage.setItem(cleLie, json);
-            if (!garder && data.userName && typeof compteLierNom === 'function') {
-                compteLierNom(window.compteSession.sub, data.userName, window.compteSession.email || '');
+            if (!garder && typeof compteLierCompte === 'function') {
+                compteLierCompte(window.compteSession, data.userName || '');
             }
             if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
         }

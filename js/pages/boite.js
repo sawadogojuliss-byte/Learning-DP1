@@ -144,11 +144,6 @@ function boiteMajMenu() {
             champ.value = boiteNom();
             return;
         }
-        if (typeof compteNomAutorise === 'function' && !compteNomAutorise(nom)) {
-            champ.value = typeof boiteNom === 'function' ? boiteNom() : '';
-            if (typeof compteDireNomPris === 'function') compteDireNomPris();
-            return;
-        }
         if (typeof userName !== 'undefined') userName = nom;
         if (window.compteSession && window.compteSession.sub && typeof compteLierNom === 'function') {
             compteLierNom(window.compteSession.sub, nom, window.compteSession.email || '');

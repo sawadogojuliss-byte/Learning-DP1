@@ -20,10 +20,6 @@ function handleContinue() {
         prenomErreur('Merci d\'entrer ton prénom');
         return;
     }
-    if (typeof compteNomAutorise === 'function' && !compteNomAutorise(name)) {
-        prenomErreur('Ce nom est déjà lié à un autre compte Google.');
-        return;
-    }
 
     document.getElementById('nameError').classList.remove('show');
     userName = name;

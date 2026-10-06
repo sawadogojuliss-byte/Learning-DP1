@@ -150,7 +150,7 @@ function compteSourceNuage() {
     if (typeof memoireLireEtat !== 'function') return actuel;
     var vivant = memoireLireEtat();
     if (sub && vivant && vivant.google && vivant.google.sub && vivant.google.sub !== sub) vivant = null;
-    if (sub && vivant && vivant.userName && compteNomPris(vivant.userName, sub)) vivant = null;
+    if (sub && vivant && compteProfilEtranger(vivant, sub) && vivant.google && vivant.google.sub) vivant = null;
     if (!compteUtile(vivant)) return actuel;
     if (!compteUtile(actuel) || !compteDoitGarderLie(actuel, vivant)) return vivant;
     return actuel;
@@ -293,10 +293,7 @@ var session = window.compteSession;
             if (session && session.sub) {
                 if (local && !compteProfilEtranger(local, session.sub)) local = compteEstampiller(local, session);
                 else local = null;
-                if (nuage && compteUtile(nuage)) {
-                    if (nuage.userName && compteNomPris(nuage.userName, session.sub)) nuage.userName = compteNomLie(session.sub) || '';
-                    nuage = compteEstampiller(nuage, session);
-                }
+                if (nuage && compteUtile(nuage)) nuage = compteEstampiller(nuage, session);
             }
             var choisi = compteChoisirProfil(nuage, local);
             if (choisi && choisi === nuage && !compteEquivalent(nuage, local)) {
@@ -375,14 +372,19 @@ function compteSessionDepuis(payload) {
 var COMPTE_IDENTITES_KEY = 'studyPlanIB_identites';
 
 function compteNormaliserNom(nom) {
-    return String(nom || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr');
+    return String(nom || '').trim().replace(/\s+/g, ' ');
+}
+
+function compteEmailCle(email) {
+    return String(email || '').trim().toLowerCase();
 }
 
 function compteLireIdentites() {
     var data = typeof memoireJson === 'function' ? memoireJson(COMPTE_IDENTITES_KEY) : null;
-    if (!data || typeof data !== 'object') data = { comptes: {}, noms: {} };
+    if (!data || typeof data !== 'object') data = { comptes: {}, emails: {}, alias: {} };
     if (!data.comptes || typeof data.comptes !== 'object') data.comptes = {};
-    if (!data.noms || typeof data.noms !== 'object') data.noms = {};
+    if (!data.emails || typeof data.emails !== 'object') data.emails = {};
+    if (!data.alias || typeof data.alias !== 'object') data.alias = {};
     return data;
 }
 
@@ -390,84 +392,112 @@ function compteEcrireIdentites(data) {
     try { localStorage.setItem(COMPTE_IDENTITES_KEY, JSON.stringify(data)); } catch (e) {}
 }
 
+function compteCanonique(sub) {
+    var id = compteLireIdentites();
+    var vu = {};
+    var cur = sub || '';
+    while (cur && id.alias[cur] && id.alias[cur] !== cur && !vu[cur]) {
+        vu[cur] = true;
+        cur = id.alias[cur];
+    }
+    return cur || '';
+}
+
+function compteSubDeEmail(email) {
+    var cle = compteEmailCle(email);
+    if (!cle) return '';
+    return compteCanonique(compteLireIdentites().emails[cle] || '');
+}
+
 function compteNomLie(sub) {
-    if (!sub) return '';
-    var row = compteLireIdentites().comptes[sub];
+    var canon = compteCanonique(sub);
+    if (!canon) return '';
+    var row = compteLireIdentites().comptes[canon];
     return row && row.userName ? String(row.userName) : '';
 }
 
-function compteSubDuNom(nom) {
-    return compteLireIdentites().noms[compteNormaliserNom(nom)] || '';
-}
-
-function compteNomPris(nom, sub) {
-    var autre = compteSubDuNom(nom);
-    return !!(autre && autre !== sub);
-}
-
-function compteNomAutorise(nom) {
-    var propre = String(nom || '').trim().replace(/\s+/g, ' ');
-    if (!propre) return false;
-    var sub = (window.compteSession && window.compteSession.sub) || '';
-    return !compteNomPris(propre, sub);
+function compteLierCompte(session, nom) {
+    if (!session || !session.sub) return '';
+    var id = compteLireIdentites();
+    var email = compteEmailCle(session.email);
+    var canon = session.sub;
+    if (email && id.emails[email]) canon = compteCanonique(id.emails[email]) || id.emails[email];
+    else if (email) id.emails[email] = session.sub;
+    if (canon !== session.sub) id.alias[session.sub] = canon;
+    if (email) id.emails[email] = canon;
+    var row = id.comptes[canon] || { userId: canon, email: session.email || '', userName: '' };
+    row.userId = canon;
+    if (session.email) row.email = session.email;
+    var propre = compteNormaliserNom(nom);
+    if (propre) row.userName = propre;
+    row.at = new Date().toISOString();
+    id.comptes[canon] = row;
+    compteEcrireIdentites(id);
+    return canon;
 }
 
 function compteLierNom(sub, nom, email) {
-    var propre = String(nom || '').trim().replace(/\s+/g, ' ');
-    if (!sub || !propre || compteNomPris(propre, sub)) return false;
-    var id = compteLireIdentites();
-    var ancien = id.comptes[sub] && id.comptes[sub].userName;
-    if (ancien && compteNormaliserNom(ancien) !== compteNormaliserNom(propre)) {
-        if (id.noms[compteNormaliserNom(ancien)] === sub) delete id.noms[compteNormaliserNom(ancien)];
-    }
-    id.comptes[sub] = { userName: propre, email: email || (id.comptes[sub] && id.comptes[sub].email) || '', at: new Date().toISOString() };
-    id.noms[compteNormaliserNom(propre)] = sub;
-    compteEcrireIdentites(id);
-    return true;
+    return compteLierCompte({ sub: sub, email: email || '' }, nom);
 }
 
 function compteOublierNom(sub) {
-    if (!sub) return;
+    var canon = compteCanonique(sub);
+    if (!canon) return;
     var id = compteLireIdentites();
-    var ancien = id.comptes[sub] && id.comptes[sub].userName;
-    if (ancien && id.noms[compteNormaliserNom(ancien)] === sub) delete id.noms[compteNormaliserNom(ancien)];
-    delete id.comptes[sub];
+    Object.keys(id.emails).forEach(function (cle) {
+        if (compteCanonique(id.emails[cle]) === canon) delete id.emails[cle];
+    });
+    Object.keys(id.alias).forEach(function (cle) {
+        if (id.alias[cle] === canon || cle === canon) delete id.alias[cle];
+    });
+    delete id.comptes[canon];
     compteEcrireIdentites(id);
 }
 
-function compteDireNomPris() {
-    var texte = 'Ce nom est déjà lié à un autre compte Google.';
-    compteMessage(texte);
-    if (typeof prenomErreur === 'function') prenomErreur(texte);
-    if (typeof v3Toast === 'function') v3Toast(texte, 'info');
+function compteMemeCompte(a, b) {
+    if (!a || !b) return false;
+    var ca = compteCanonique(a);
+    var cb = compteCanonique(b);
+    return !!(ca && cb && ca === cb);
 }
 
 function compteProfilEtranger(data, sub) {
     if (!data || typeof data !== 'object' || data.efface) return true;
-    if (data.google && data.google.sub && sub && data.google.sub !== sub) return true;
-    if (data.userName && sub && compteNomPris(data.userName, sub)) return true;
-    var lie = sub ? compteNomLie(sub) : '';
-    if (lie && data.userName && compteNormaliserNom(data.userName) !== compteNormaliserNom(lie)) {
-        if (!(data.google && data.google.sub === sub)) return true;
-    }
+    var canon = compteCanonique(sub);
+    if (!canon) return true;
+    var dataSub = data.google && data.google.sub;
+    if (dataSub && !compteMemeCompte(dataSub, canon)) return true;
+    var dataId = data.utilisateurId;
+    if (dataId && !compteMemeCompte(dataId, canon)) return true;
+    var owner = compteSubDeEmail(data.google && data.google.email);
+    if (owner && !compteMemeCompte(owner, canon)) return true;
     return false;
 }
 
 function comptePeutRevendiquer(data, session) {
     if (!data || !session || !session.sub || data.efface) return false;
-    if (data.google && data.google.sub && data.google.sub !== session.sub) return false;
-    if (data.userName && compteNomPris(data.userName, session.sub)) return false;
-    var lie = compteNomLie(session.sub);
-    if (lie && data.userName && compteNormaliserNom(data.userName) !== compteNormaliserNom(lie)) return false;
+    if (compteProfilEtranger(data, session.sub) && (data.google && data.google.sub || data.utilisateurId)) return false;
+    if (data.google && data.google.sub && !compteMemeCompte(data.google.sub, session.sub)) return false;
+    if (data.utilisateurId && !compteMemeCompte(data.utilisateurId, session.sub)) return false;
+    var owner = compteSubDeEmail(data.google && data.google.email);
+    if (owner && !compteMemeCompte(owner, session.sub)) return false;
     return true;
 }
 
 function compteLireDedie(sub) {
-    if (!sub || typeof memoireJson !== 'function') return null;
-    var lie = memoireJson(MEMOIRE_KEY + ':' + sub);
-    var precieux = memoireJson('studyPlanIB_sauvegarde:' + sub);
-    var choisi = typeof compteChoisirProfil === 'function' ? compteChoisirProfil(precieux, lie) : (precieux || lie);
-    if (choisi && compteProfilEtranger(choisi, sub)) return null;
+    var canon = compteCanonique(sub) || sub;
+    if (!canon || typeof memoireJson !== 'function') return null;
+    var cles = [canon];
+    if (sub && sub !== canon) cles.push(sub);
+    var choisi = null;
+    cles.forEach(function (id) {
+        var lie = memoireJson(MEMOIRE_KEY + ':' + id);
+        var precieux = memoireJson('studyPlanIB_sauvegarde:' + id);
+        var candidat = typeof compteChoisirProfil === 'function' ? compteChoisirProfil(precieux, lie) : (precieux || lie);
+        if (candidat && !compteProfilEtranger(candidat, canon)) {
+            choisi = typeof compteChoisirProfil === 'function' ? (compteChoisirProfil(candidat, choisi) || candidat) : (choisi || candidat);
+        }
+    });
     return choisi;
 }
 
@@ -496,19 +526,16 @@ function compteMemoriserProprietaire(session) {
 function compteEstampiller(data, session) {
     var copie;
     try { copie = JSON.parse(JSON.stringify(data || {})); } catch (e) { copie = data || {}; }
+    var canon = compteLierCompte(session, copie.userName || '');
+    copie.utilisateurId = canon || session.sub;
     copie.google = {
-        sub: session.sub,
+        sub: canon || session.sub,
         email: session.email || '',
         name: session.name || '',
         given_name: session.given_name || '',
         picture: session.picture || ''
     };
-    var lie = compteNomLie(session.sub);
-    var origine = data && data.google && data.google.sub;
-    if (lie && origine !== session.sub) copie.userName = lie;
-    else if (copie.userName && compteNomPris(copie.userName, session.sub)) copie.userName = lie || '';
-    else if (!copie.userName && lie) copie.userName = lie;
-    if (copie.userName && !compteNomPris(copie.userName, session.sub)) compteLierNom(session.sub, copie.userName, session.email);
+    if (!copie.userName) copie.userName = compteNomLie(canon || session.sub) || '';
     return copie;
 }
 
@@ -519,6 +546,7 @@ function compteEtatVide(session) {
         etape: 'prenom',
         profilComplet: false,
         userName: compteNomLie(session && session.sub) || '',
+        utilisateurId: session && session.sub ? (compteCanonique(session.sub) || session.sub) : '',
         subjects: [],
         optionalSubjects: [],
         customEvents: [],
@@ -529,11 +557,13 @@ function compteEtatVide(session) {
 }
 
 function compteArchiverPour(sub, data) {
+    sub = compteCanonique(sub) || sub;
     if (!sub || !data || typeof data !== 'object') return;
     var copie;
     try { copie = JSON.parse(JSON.stringify(data)); } catch (e) { return; }
-    if (!copie.google || copie.google.sub !== sub) {
-        copie.google = copie.google && copie.google.sub === sub ? copie.google : { sub: sub };
+    copie.utilisateurId = sub;
+    if (!copie.google || !compteMemeCompte(copie.google.sub, sub)) {
+        copie.google = { sub: sub, email: (copie.google && copie.google.email) || '' };
     }
     try { localStorage.setItem(MEMOIRE_KEY + ':' + sub, JSON.stringify(copie)); } catch (e) {}
     if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(sub, copie, true);
@@ -549,12 +579,14 @@ function compteIndexerExistants() {
             if (cle.slice(-7) === ':locale') continue;
             data = memoireJson(cle);
             if (!data || !data.userName) continue;
-            sub = data.google && data.google.sub ? data.google.sub : cle.split(':').pop();
+            sub = data.utilisateurId || (data.google && data.google.sub) || cle.split(':').pop();
+            sub = compteCanonique(sub) || sub;
             if (!sub || sub === 'locale' || sub.length < 4) continue;
-            if (compteNomPris(data.userName, sub)) continue;
+            var email = compteEmailCle(data.google && data.google.email);
+            if (email && id.emails[email] && compteCanonique(id.emails[email]) !== sub) continue;
+            if (email && !id.emails[email]) id.emails[email] = sub;
             if (!id.comptes[sub]) {
-                id.comptes[sub] = { userName: data.userName, email: (data.google && data.google.email) || '', at: data.savedAt || '' };
-                id.noms[compteNormaliserNom(data.userName)] = sub;
+                id.comptes[sub] = { userId: sub, userName: data.userName, email: (data.google && data.google.email) || '', at: data.savedAt || '' };
             }
         }
         compteEcrireIdentites(id);
@@ -671,20 +703,15 @@ function compteRestaurerTout(session, token) {
         compteArchiverPour(vivant.google.sub, vivant);
         vivant = null;
     }
+    compteLierCompte(session, '');
+    var canon = compteCanonique(session.sub) || session.sub;
     compteMemoriserSession(session);
     compteMemoriserProprietaire(session);
-    var dedie = compteLireDedie(session.sub);
+    var dedie = compteLireDedie(canon);
     var choisi = null;
     if (dedie && compteUtile(dedie) && !compteProfilEtranger(dedie, session.sub)) choisi = dedie;
     else if (vivant && comptePeutRevendiquer(vivant, session) && compteUtile(vivant)) choisi = vivant;
     if (choisi) {
-        if (choisi.userName && compteNomPris(choisi.userName, session.sub)) {
-            choisi.userName = compteNomLie(session.sub) || '';
-            if (!choisi.userName) {
-                choisi.etape = 'prenom';
-                compteDireNomPris();
-            }
-        }
         compteBasculer(choisi, session);
     } else if (ancien && ancien.sub && ancien.sub !== session.sub) {
         compteBasculer(compteEtatVide(session), session);
@@ -715,7 +742,7 @@ function compteRestaurerTout(session, token) {
         } else if (etat === 'echec') {
             compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
         } else if (typeof v3Toast === 'function') {
-            v3Toast(nom ? ('Compte de ' + nom + '.') : 'Choisis un nom d’utilisateur pour ce compte Google.', 'info');
+            v3Toast(nom ? ('Compte de ' + nom + '.') : 'Choisis ton prénom.', 'info');
         }
         return etat;
     });
@@ -849,8 +876,6 @@ function compteRafraichir() {
 var nomLie = compteNomLie(session.sub) || (typeof userName !== 'undefined' ? userName : '');
         if (nom) nom.textContent = nomLie || session.name || session.given_name || 'Compte Google';
         if (email) email.textContent = session.email || '';
-        var identite = document.getElementById('compteIdentite');
-        if (identite) identite.textContent = nomLie ? ('Nom d’utilisateur : ' + nomLie) : 'Choisis un nom d’utilisateur pour ce compte Google.';
         if (avatar) {
             avatar.hidden = !session.picture;
             if (session.picture) {
