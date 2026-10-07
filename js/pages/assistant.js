@@ -9,15 +9,46 @@ var iaOuvert = false;
 var iaEnCours = false;
 var iaControleur = null;
 
+function iaNormaliserNom(s) {
+    if (typeof boiteNormaliser === 'function') return boiteNormaliser(s);
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function iaNomActuel() {
+    var morceaux = [];
+    if (typeof userName !== 'undefined' && userName) morceaux.push(userName);
+    if (typeof boiteNom === 'function') morceaux.push(boiteNom());
+    if (typeof compteNomLie === 'function') {
+        var session = window.compteSession;
+        if ((!session || !session.sub) && typeof boiteSession === 'function') session = boiteSession();
+        if (session && session.sub) morceaux.push(compteNomLie(session.sub) || '');
+    }
+    ['menuNom', 'nameInput'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.value) morceaux.push(el.value);
+    });
+    return iaNormaliserNom(morceaux.join(' '));
+}
+
 function iaEstJuliss() {
-    if (typeof estAdmin !== 'function' || !estAdmin()) return false;
-    var nom = (typeof nomNormalise === 'function')
-        ? nomNormalise(currentUserName || '')
-        : String(currentUserName || '').trim().toLowerCase();
-    return nom.indexOf('sawadogo') !== -1
-        && nom.indexOf('juliss') !== -1
-        && nom.indexOf('bill') !== -1
-        && nom.indexOf('owen') !== -1;
+    var mots = iaNomActuel().split(' ').filter(Boolean);
+    return ['sawadogo', 'juliss', 'bill', 'owen'].every(function (mot) {
+        return mots.indexOf(mot) !== -1;
+    });
+}
+
+function iaAfficherEntree() {
+    var visible = iaEstJuliss() ? 'flex' : 'none';
+    ['menuAssistant', 'btnAssistant'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = visible;
+    });
 }
 
 function iaEchap(texte) {
@@ -698,8 +729,10 @@ function iaBrancher() {
     window.__iaBranche = true;
     var original = openSideMenu;
     window.openSideMenu = function () {
+        iaAfficherEntree();
         original();
         iaPoserRappel();
     };
 }
 iaBrancher();
+iaAfficherEntree();

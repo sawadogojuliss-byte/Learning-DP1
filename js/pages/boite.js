@@ -133,8 +133,11 @@ function boiteMajMenu() {
         var el = document.getElementById(id);
         if (el) el.style.display = admin ? 'flex' : 'none';
     });
-    var assistant = document.getElementById('menuAssistant');
-    if (assistant) assistant.style.display = (typeof iaEstJuliss === 'function' && iaEstJuliss()) ? 'flex' : 'none';
+    if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
+    else {
+        var assistant = document.getElementById('menuAssistant');
+        if (assistant) assistant.style.display = 'none';
+    }
     var champ = document.getElementById('menuNom');
     if (!champ) return;
     if (document.activeElement !== champ && champ.value !== boiteNom()) champ.value = boiteNom();
