@@ -1,29 +1,36 @@
 <!-- ============================================================
-     PAGE : Assistant — réservé au compte admin Juliss Owen
+     PAGE : Assistant — réservé aux 4 comptes admin
      Script : js/pages/assistant.js
      ============================================================ -->
 <div class="app-panel" id="panelAssistant">
-    <div style="max-width:480px;margin:0 auto;height:100%;display:flex;flex-direction:column;background:#f8fafc;">
-        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.96);backdrop-filter:blur(8px);padding:0.875rem 1rem;border-bottom:1px solid #f3f4f6;">
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
-                <div style="flex:1;">
-                    <h2 style="font-size:1.05rem;font-weight:800;color:#111827;margin:0;">Assistant</h2>
-                    <p id="iaStatut" style="font-size:0.75rem;color:#059669;margin:0.1rem 0 0;">Juliss Owen · questions, pages et planning</p>
-                </div>
-                <button type="button" onclick="iaBriefing()" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.4rem 0.65rem;cursor:pointer;font-size:0.75rem;">Briefing</button>
+    <div class="ia-shell">
+        <header class="ia-top">
+            <button type="button" class="ia-back" onclick="navigateTo('planning')" aria-label="Retour au planning">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <img class="ia-logo" src="images/logo.png" alt="">
+            <div class="ia-titles">
+                <p class="ia-kicker">Study Plan IB</p>
+                <h2>Assistant</h2>
+                <p id="iaSalut">Bonjour</p>
             </div>
-        </div>
-        <div id="iaFil" style="flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:0.7rem;"></div>
-        <div style="padding:0.75rem 1rem 1rem;background:white;border-top:1px solid #f3f4f6;">
-            <div id="iaPuces" style="display:flex;gap:0.4rem;overflow-x:auto;padding-bottom:0.55rem;"></div>
-            <p id="iaDocs" style="font-size:0.72rem;color:#6b7280;margin:0 0 0.45rem;">Aucun PDF retenu sur cet appareil.</p>
-            <form id="iaForm" style="display:flex;gap:0.45rem;align-items:flex-end;" onsubmit="return iaEnvoyer(event)">
+            <div class="ia-top-actions">
+                <p id="iaStatut"><span class="ia-dot"></span><span id="iaStatutTexte">En ligne</span></p>
+                <button type="button" class="ia-brief" onclick="iaBriefing()">Briefing</button>
+            </div>
+        </header>
+        <div id="iaFil" class="ia-fil"></div>
+        <form id="iaForm" class="ia-composer" onsubmit="return iaEnvoyer(event)">
+            <div id="iaPuces" class="ia-puces"></div>
+            <p id="iaDocs" class="ia-docs">Aucun PDF sur cet appareil.</p>
+            <div class="ia-saisie-ligne">
                 <input id="iaFichier" type="file" accept="application/pdf,.pdf" hidden>
-                <button type="button" id="iaJoindre" onclick="iaChoisirPdf()" title="Ajouter un PDF" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;border-radius:0.9rem;font-weight:800;padding:0.75rem 0.7rem;cursor:pointer;">PDF</button>
-                <textarea id="iaSaisie" rows="1" maxlength="4000" placeholder="Une question, une page à ouvrir, ou un créneau à ajouter…" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.92rem;outline:none;resize:none;max-height:7rem;"></textarea>
-                <button type="submit" id="iaEnvoi" style="border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;padding:0 1rem;cursor:pointer;">Envoyer</button>
-            </form>
-        </div>
+                <button type="button" id="iaJoindre" class="ia-pdf" onclick="iaChoisirPdf()" title="Ajouter un PDF">PDF</button>
+                <textarea id="iaSaisie" rows="1" maxlength="4000" placeholder="Une question, une page à ouvrir, ou un créneau à ajouter…"></textarea>
+                <button type="submit" id="iaEnvoi" class="ia-send" aria-label="Envoyer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+        </form>
     </div>
 </div>

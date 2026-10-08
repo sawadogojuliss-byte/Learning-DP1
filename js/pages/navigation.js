@@ -44,7 +44,7 @@ function navigateTo(page) {
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
     } else if (page === 'assistant') {
-        if (typeof iaEstJuliss !== 'function' || !iaEstJuliss()) return;
+        if (typeof iaEstAdmin !== 'function' || !iaEstAdmin()) return;
         var assistant = document.getElementById('panelAssistant');
         if (assistant) assistant.classList.add('active');
         if (typeof iaOuvrir === 'function') iaOuvrir();
