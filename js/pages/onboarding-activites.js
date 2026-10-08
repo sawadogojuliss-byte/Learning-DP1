@@ -28,9 +28,57 @@ function isSchoolHours(time, dayIndex) {
 }
 
 function showSchoolWarning() {
+    showActivityWarning('⚠️ Tu ne peux pas planifier d\'activités pendant les heures de cours (8h15 - 16h35, lundi au vendredi).');
+}
+
+function showActivityWarning(message) {
     const warning = document.getElementById('schoolWarning');
+    if (!warning) return;
+    const lines = warning.querySelectorAll('p');
+    if (lines[0]) lines[0].textContent = message;
+    if (lines[1]) lines[1].textContent = 'Deux activités ne peuvent pas occuper le même créneau. Choisis un autre horaire.';
     warning.style.display = 'block';
-    setTimeout(() => { warning.style.display = 'none'; }, 4000);
+    clearTimeout(warning._timer);
+    warning._timer = setTimeout(function () { warning.style.display = 'none'; }, 4500);
+}
+
+function creneauActivite(act, dayIndex) {
+    if (!act) return null;
+    if (act.sameTime) return { start: act.startTime, end: act.endTime };
+    const dt = act.dayTimes && (act.dayTimes[dayIndex] || act.dayTimes[String(dayIndex)]);
+    return { start: (dt && dt.start) || act.startTime || '17:00', end: (dt && dt.end) || act.endTime || '19:00' };
+}
+
+function messageChevauchementActivite(start, end, dayIndex, exceptName) {
+    if (typeof timeToMinutes !== 'function') return '';
+    const s = timeToMinutes(start);
+    const e = timeToMinutes(end);
+    if (!(e > s)) return 'L\'heure de fin doit être après l\'heure de début.';
+    const busy = [];
+    if (dayIndex < 5) busy.push({ name: 'les cours', start: 8 * 60 + 15, end: 16 * 60 + 35 });
+    if (dayIndex === 5 && typeof studentTakesEconomics === 'function' && studentTakesEconomics()) {
+        busy.push({ name: 'le cours d\'Économie', start: 8 * 60 + 30, end: 10 * 60 + 30 });
+    }
+    if (typeof bedtimeForDay === 'function' && typeof weekdayWakeup !== 'undefined') {
+        const wakeClock = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
+        const wake = timeToMinutes(wakeClock);
+        let bed = timeToMinutes(bedtimeForDay(dayIndex));
+        if (bed <= wake) bed += 1440;
+        if (s < wake + 10 || e > bed) {
+            return '⚠️ Ce créneau chevauche le sommeil ou le réveil (' + bedtimeForDay(dayIndex) + ' → ' + wakeClock + ').';
+        }
+    }
+    (selectedActivities || []).forEach(function (act) {
+        if (!act || act.name === exceptName || !act.days || act.days.indexOf(dayIndex) === -1) return;
+        const slot = creneauActivite(act, dayIndex);
+        if (!slot || !slot.start || !slot.end) return;
+        const os = timeToMinutes(slot.start);
+        const oe = timeToMinutes(slot.end);
+        if (s < oe && os < e) busy.push({ name: act.name, start: os, end: oe, label: slot.start + ' → ' + slot.end });
+    });
+    const hit = busy.find(function (b) { return s < b.end && b.start < e; });
+    if (!hit) return '';
+    return '⚠️ Ce créneau chevauche « ' + hit.name + ' »' + (hit.label ? ' (' + hit.label + ')' : '') + '.';
 }
 
 function toggleActivity(name, icon) {
@@ -52,9 +100,12 @@ function toggleActivityDay(name, dayIndex) {
         if (activity.days.includes(dayIndex)) {
             activity.days = activity.days.filter(d => d !== dayIndex);
         } else {
+            const slot = creneauActivite(activity, dayIndex) || { start: '17:00', end: '19:00' };
+            const conflit = messageChevauchementActivite(slot.start, slot.end, dayIndex, activity.name);
+            if (conflit) { showActivityWarning(conflit); return; }
             activity.days.push(dayIndex);
             if (!activity.dayTimes[dayIndex]) {
-                activity.dayTimes[dayIndex] = { start: '17:00', end: '19:00' };
+                activity.dayTimes[dayIndex] = { start: slot.start || '17:00', end: slot.end || '19:00' };
             }
         }
         renderActivities();
@@ -70,29 +121,28 @@ function toggleSameTime(name) {
 }
 
 function updateActivityTime(name, field, value, days) {
-    const hasWeekday = days && days.some(d => d < 5);
-    if (hasWeekday && isSchoolHours(value, 0)) {
-        showSchoolWarning();
-        return;
-    }
     const activity = selectedActivities.find(a => a.name === name);
-    if (activity) {
-        activity[field] = value;
+    if (!activity) return;
+    const start = field === 'startTime' ? value : activity.startTime;
+    const end = field === 'endTime' ? value : activity.endTime;
+    const jours = (days && days.length) ? days : activity.days;
+    for (let i = 0; i < jours.length; i++) {
+        const conflit = messageChevauchementActivite(start, end, jours[i], name);
+        if (conflit) { showActivityWarning(conflit); renderActivities(); return; }
     }
+    activity[field] = value;
 }
 
 function updateActivityDayTime(name, dayIndex, field, value) {
-    if (dayIndex < 5 && isSchoolHours(value, dayIndex)) {
-        showSchoolWarning();
-        return;
-    }
     const activity = selectedActivities.find(a => a.name === name);
-    if (activity) {
-        if (!activity.dayTimes[dayIndex]) {
-            activity.dayTimes[dayIndex] = { start: '17:00', end: '19:00' };
-        }
-        activity.dayTimes[dayIndex][field] = value;
-    }
+    if (!activity) return;
+    const current = activity.dayTimes[dayIndex] || { start: activity.startTime || '17:00', end: activity.endTime || '19:00' };
+    const start = field === 'start' ? value : current.start;
+    const end = field === 'end' ? value : current.end;
+    const conflit = messageChevauchementActivite(start, end, dayIndex, name);
+    if (conflit) { showActivityWarning(conflit); renderActivities(); return; }
+    if (!activity.dayTimes[dayIndex]) activity.dayTimes[dayIndex] = { start: current.start, end: current.end };
+    activity.dayTimes[dayIndex][field] = value;
 }
 
 function removeActivity(name) {

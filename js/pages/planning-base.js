@@ -598,15 +598,15 @@ function validateNewEventTime(startTime, endTime, dayIndex) {
     const startMins = timeToMinutes(startTime);
     const endMins = timeToMinutes(endTime);
     if (endMins <= startMins) return { valid: false, error: "L'heure de fin doit être après l'heure de début" };
+    function coupe(debut, fin) { return startMins < fin && debut < endMins; }
     if (dayIndex < 5) {
-        if ((startMins >= 480 && startMins < 750) || (endMins > 480 && endMins <= 750))
-            return { valid: false, error: "⏰ Impossible pendant les cours du matin (8h00-12h30)" };
-        if ((startMins >= 810 && startMins < 995) || (endMins > 810 && endMins <= 995))
+        if (coupe(8 * 60 + 15, 12 * 60 + 30))
+            return { valid: false, error: "⏰ Impossible pendant les cours du matin (8h15-12h30)" };
+        if (coupe(13 * 60 + 30, 16 * 60 + 35))
             return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-16h35)" };
-        // Saturday ECO 8:30-10:30
-        if (dayIndex === 5 && ((startMins >= 510 && startMins < 630) || (endMins > 510 && endMins <= 630)))
-            return { valid: false, error: "⏰ Impossible pendant le cours d'ECO du samedi (8h30-10h30)" };
     }
+    if (dayIndex === 5 && typeof studentTakesEconomics === 'function' && studentTakesEconomics() && coupe(8 * 60 + 30, 10 * 60 + 30))
+        return { valid: false, error: "⏰ Impossible pendant le cours d'Économie du samedi (8h30-10h30)" };
     return { valid: true, error: '' };
 }
 
