@@ -732,6 +732,7 @@ function compteRestaurerTout(session, token) {
             if (courant && courant.google && courant.google.sub === session.sub) sauvegardeEcrireLocal(session.sub, courant, true);
         }
         if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 1200);
         compteRafraichir();
         compteCopieEnAttente = false;
         if (window.__profilComplet) fermerCompte();

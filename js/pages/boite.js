@@ -196,7 +196,7 @@ function boiteMemoriserCoffre(cfg) {
 }
 
 function boiteCreerKvdb() {
-    var body = 'email=' + encodeURIComponent('234701558+sawadogojuliss-byte@users.noreply.github.com') + '&default_ttl=604800';
+    var body = 'email=' + encodeURIComponent('234701558+sawadogojuliss-byte@users.noreply.github.com') + '&default_ttl=31536000';
     return boiteFetch('https://kvdb.io', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -222,7 +222,9 @@ function boiteResoudreKvdb(cfg) {
     if (cfg && cfg.kvdb) return Promise.resolve(cfg.kvdb);
     var local = boiteLireJson(BOITE_URL_LOCALE);
     if (local && local.kvdb) return Promise.resolve(local.kvdb);
-    return Promise.resolve('');
+    if (window.__boiteKvdbPromesse) return window.__boiteKvdbPromesse;
+    window.__boiteKvdbPromesse = boiteCreerKvdb().catch(function () { return ''; });
+    return window.__boiteKvdbPromesse;
 }
 
 function boiteCleKvdb(record) {
@@ -233,13 +235,16 @@ function boiteCleKvdb(record) {
 
 function boiteEcrireKvdb(url, record) {
     var cle = boiteCleKvdb(record);
-    return boiteFetch(url.replace(/\/$/, '') + '/' + encodeURIComponent(cle) + '?ttl=604800', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(record)
-    }, 12000).then(function (res) {
-        if (!res.ok) throw new Error('kvdb');
-    });
+    function envoyer(ttl) {
+        return boiteFetch(url.replace(/\/$/, '') + '/' + encodeURIComponent(cle) + '?ttl=' + ttl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(record)
+        }, 12000).then(function (res) {
+            if (!res.ok) throw new Error('kvdb');
+        });
+    }
+    return envoyer(31536000).catch(function () { return envoyer(604800); });
 }
 
 function boiteCorpsNtfy(record) {
@@ -259,7 +264,8 @@ function boiteCorpsNtfy(record) {
         copie = {
             type: 'emploi', id: record.id, appareil: record.appareil, at: record.at,
             nom: record.nom, classe: record.classe || '', email: record.email || '',
-            google: record.google || '', googleNom: record.googleNom || '',
+            google: record.google || '', googleNom: record.googleNom || '', googleSub: record.googleSub || '',
+            matieres: record.matieres || [],
             jours: jours.map(function (jour) {
                 return {
                     j: jour.j,
@@ -307,7 +313,7 @@ function boiteMemoriserVus(fusion) {
     boiteEcrireJson(BOITE_VUS, {
         questions: (fusion.questions || []).slice(0, 80),
         feedbacks: (fusion.feedbacks || []).slice(0, 80),
-        emplois: (fusion.emplois || []).slice(0, 40),
+        emplois: (fusion.emplois || []).slice(0, 200),
         reponses: (fusion.reponses || []).slice(0, 80)
     });
 }
@@ -414,7 +420,25 @@ function boiteFusionner(items) {
         } else if (item.type === 'emploi') {
             var cle = item.appareil || item.id;
             if (!cle) return;
-            if (!emplois[cle] || String(item.at || '') > String(emplois[cle].at || '')) emplois[cle] = item;
+            var deja = emplois[cle];
+            if (!deja || String(item.at || '') >= String(deja.at || '')) {
+                if (deja) {
+                    if (!item.google && deja.google) item.google = deja.google;
+                    if (!item.googleSub && deja.googleSub) item.googleSub = deja.googleSub;
+                    if (!item.googleNom && deja.googleNom) item.googleNom = deja.googleNom;
+                    if (!item.email && deja.email) item.email = deja.email;
+                    if (!(item.jours && item.jours.length) && deja.jours) item.jours = deja.jours;
+                    if (!(item.matieres && item.matieres.length) && deja.matieres) item.matieres = deja.matieres;
+                }
+                emplois[cle] = item;
+            } else {
+                if (!deja.google && item.google) deja.google = item.google;
+                if (!deja.googleSub && item.googleSub) deja.googleSub = item.googleSub;
+                if (!deja.googleNom && item.googleNom) deja.googleNom = item.googleNom;
+                if (!deja.email && item.email) deja.email = item.email;
+                if (!(deja.jours && deja.jours.length) && item.jours) deja.jours = item.jours;
+                if (!(deja.matieres && deja.matieres.length) && item.matieres) deja.matieres = item.matieres;
+            }
         }
     });
     var listeEmplois = Object.keys(emplois).map(function (cle) { return emplois[cle]; });
@@ -426,7 +450,7 @@ function boiteFusionner(items) {
         questions: questions.slice(0, 120),
         feedbacks: feedbacks.slice(0, 120),
         reponses: reponses.slice(0, 120),
-        emplois: listeEmplois.slice(0, 80)
+        emplois: listeEmplois.slice(0, 300)
     };
 }
 
@@ -443,6 +467,8 @@ function boiteDocument(fusion) {
             email: item.email || '',
             google: item.google || '',
             googleNom: item.googleNom || '',
+            googleSub: item.googleSub || '',
+            matieres: item.matieres || [],
             jours: item.jours || [],
             questionId: item.questionId || '',
             destinataire: item.destinataire || '',
@@ -486,6 +512,19 @@ function boiteUrlsKvdb(cfg, messages) {
     return urls.slice(0, 6);
 }
 
+function boiteLireEmploisFichier() {
+    return boiteFetch('data/emplois.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
+        .then(function (res) {
+            if (!res.ok) throw new Error('emplois');
+            return res.json();
+        })
+        .then(function (doc) {
+            doc = doc || {};
+            return [].concat(doc.emplois || []);
+        })
+        .catch(function () { return []; });
+}
+
 function boiteChargerListes(force) {
     if (boiteListesCache && !force) return Promise.resolve(boiteListesCache);
     return boiteLireConfig().then(function (cfg) {
@@ -495,7 +534,8 @@ function boiteChargerListes(force) {
         var archiveOk = false;
         return Promise.all([
             archiveP,
-            boiteLireNtfy().then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; })
+            boiteLireNtfy().then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
+            boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; })
         ]).then(function (premiers) {
             archiveOk = premiers[0].ok;
             var messages = premiers[1].items || [];
@@ -848,12 +888,17 @@ function boiteRendreEmplois(fusion) {
     var filtre = document.getElementById('emploisFiltre');
     if (!liste) return;
     var mot = boiteNormaliser(filtre ? filtre.value : '');
+    var doublons = {};
+    (fusion.emplois || []).forEach(function (item) {
+        var g = boiteNormaliser(item.google || item.email || '');
+        if (g) doublons[g] = (doublons[g] || 0) + 1;
+    });
     var rows = fusion.emplois.filter(function (item) {
         if (!mot) return true;
-        return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '')).indexOf(mot) !== -1;
+        return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
     });
     if (!rows.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.emplois.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun emploi du temps reçu pour le moment.')) + '</p>';
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.emplois.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici dès qu\'elle rouvre le site, même sans Google.')) + '</p>';
     } else {
         liste.innerHTML = rows.map(function (item) {
             var jours = (item.jours || []).map(function (jour) {
@@ -862,13 +907,20 @@ function boiteRendreEmplois(fusion) {
                 }).join('');
                 return '<div style="margin-top:0.55rem;"><p style="font-size:0.75rem;font-weight:800;color:#047857;text-transform:uppercase;">' + boiteEchap(jour.j || '') + '</p>' + slots + '</div>';
             }).join('');
-            if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Aucun créneau enregistré.</p>';
-            var meta = boiteEchap(item.classe || 'Classe non indiquée');
-            if (item.email || item.google) meta += ' · ' + boiteEchap(item.email || item.google);
-            meta += ' · ' + boiteEchap(boiteDate(item.at));
+            if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Inscrit. Le planning n\'a pas encore été généré sur son appareil.</p>';
+            var google = item.google || item.email || '';
+            var googleLigne = google
+                ? 'Compte Google : ' + boiteEchap(google) + (item.googleNom ? ' · ' + boiteEchap(item.googleNom) : '')
+                : 'Compte Google : pas encore connecté';
+            if (google && doublons[boiteNormaliser(google)] > 1) googleLigne += ' · ce Gmail apparaît sur un autre planning';
+            var meta = boiteEchap(item.classe || 'Classe non indiquée') + ' · ' + googleLigne + ' · ' + boiteEchap(boiteDate(item.at));
+            var matieres = (item.matieres || []).length
+                ? '<p style="font-size:0.8rem;color:#374151;margin-top:0.35rem;">Matières : ' + boiteEchap(item.matieres.join(', ')) + '</p>'
+                : '';
             return '<details style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
                 + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || '') + '</span></summary>'
                 + '<p style="font-size:0.78rem;color:#6b7280;margin-top:0.35rem;">' + meta + '</p>'
+                + matieres
                 + jours
                 + '</details>';
         }).join('');
@@ -988,6 +1040,7 @@ function boiteLierGoogle() {
         if (typeof compteRafraichir === 'function') {
             try { compteRafraichir(); } catch (e) {}
         }
+        setTimeout(function () { boitePublierEmploi(true); }, 600);
         return session;
     });
 }
@@ -1127,8 +1180,16 @@ function boiteSnapshotEmploi() {
         }
         if (slots.length) jours.push({ j: noms[i], s: slots });
     }
-    if (!jours.length) return null;
-    var session = window.compteSession || {};
+    var session = (typeof boiteSession === 'function' ? boiteSession() : null) || window.compteSession || {};
+    var matieres = [];
+    var liste = [];
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
+    if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
+    liste.forEach(function (s) {
+        if (!s || !s.name || matieres.length >= 12) return;
+        matieres.push((s.name + (s.level ? ' ' + s.level : '')).trim());
+    });
+    if (!jours.length && !matieres.length && !session.email && !window.__profilComplet) return null;
     return {
         type: 'emploi',
         id: 'e_' + boiteAppareil(),
@@ -1138,18 +1199,33 @@ function boiteSnapshotEmploi() {
         classe: typeof ibYear !== 'undefined' ? (ibYear || '') : '',
         email: session.email || '',
         google: session.email || '',
-        googleNom: session.name || '',
+        googleNom: session.name || session.given_name || '',
+        googleSub: session.sub || '',
+        matieres: matieres,
         jours: jours
     };
 }
 
-function boitePublierEmploi() {
-    if (!window.__profilComplet) return;
+function boiteInscrit() {
+    if (window.__profilComplet) return true;
+    return (typeof subjects !== 'undefined' && Array.isArray(subjects) && subjects.length > 0);
+}
+
+function boitePublierEmploi(force) {
+    if (!boiteNom()) return;
+    if (!force && !boiteInscrit()) return;
     var record = boiteSnapshotEmploi();
     if (!record) return;
-    var empreinte = JSON.stringify({ nom: record.nom, classe: record.classe, jours: record.jours });
+    var empreinte = JSON.stringify({
+        nom: record.nom,
+        classe: record.classe,
+        jours: record.jours,
+        matieres: record.matieres,
+        google: record.google,
+        googleSub: record.googleSub
+    });
     var deja = boiteLireJson(BOITE_EMPLOI_HASH);
-    if (deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
+    if (!force && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
     boiteEnvoyer(record).then(function () {
         boiteEcrireJson(BOITE_EMPLOI_HASH, { hash: empreinte, at: Date.now() });
     }).catch(function () {});
@@ -1165,9 +1241,9 @@ function boiteReessayerUneFois() {
 function boiteApresMemoire() {
     boiteMajMenu();
     boiteReessayerUneFois();
-    if (!window.__profilComplet) return;
+    if (!boiteInscrit() && !boiteSession()) return;
     clearTimeout(boiteEmploiTimer);
-    boiteEmploiTimer = setTimeout(boitePublierEmploi, 8000);
+    boiteEmploiTimer = setTimeout(function () { boitePublierEmploi(false); }, 2000);
 }
 
 if (typeof document !== 'undefined') boiteMajMenu();

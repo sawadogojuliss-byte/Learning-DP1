@@ -1,0 +1,30 @@
+name: Emplois du temps
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  garder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/01a0bac7-learning-dp1
+
+      - name: Rassembler les inscriptions
+        run: python3 tools/sync-emplois.py
+
+      - name: Enregistrer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/boite-url.json data/emplois.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Met à jour les emplois du temps reçus."
+          git push origin HEAD:arena/01a0bac7-learning-dp1
