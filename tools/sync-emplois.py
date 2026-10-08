@@ -10,12 +10,14 @@ garde la dernière fiche de chaque appareil, avec le compte Google s'il a
 import json
 import pathlib
 import re
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
 
 DEST_URL = pathlib.Path('data/boite-url.json')
 DEST_EMPLOIS = pathlib.Path('data/emplois.json')
+DEST_RAPPELS = pathlib.Path('data/rappels.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
 
@@ -253,6 +255,84 @@ def ecrire_archive(url, emplois):
         print('archive ecriture impossible', type(exc).__name__)
 
 
+def cle_matiere(nom):
+    texte = unicodedata.normalize('NFD', str(nom or '').lower())
+    texte = ''.join(ch for ch in texte if unicodedata.category(ch) != 'Mn')
+    texte = re.sub(r'\b(hl|sl)\b', ' ', texte)
+    return re.sub(r'[^a-z0-9]+', ' ', texte).strip()
+
+
+def matiere_exclue(nom):
+    cle = cle_matiere(nom)
+    return not cle or cle == 'anglais b' or cle == 'english b' or cle.startswith('anglais b ') or cle.startswith('english b ')
+
+
+def nom_matiere(nom):
+    return re.sub(r'\s+(HL|SL)\s*$', '', str(nom or '').strip(), flags=re.I).strip()
+
+
+def groupes_et_exercices(items, emplois):
+    groupes = {}
+    exercices = {}
+
+    def ajouter(appareil, nom, classe, matiere):
+        if not appareil or matiere_exclue(matiere):
+            return
+        cle = cle_matiere(matiere)
+        lot = groupes.setdefault(cle, {'cle': cle, 'matiere': nom_matiere(matiere) or cle, 'eleves': {}})
+        affiche = nom_matiere(matiere)
+        if affiche and (not lot['matiere'] or lot['matiere'] == cle):
+            lot['matiere'] = affiche
+        deja = lot['eleves'].get(appareil) or {}
+        lot['eleves'][appareil] = {
+            'appareil': appareil,
+            'nom': nom or deja.get('nom') or '',
+            'classe': classe or deja.get('classe') or '',
+        }
+
+    for emp in emplois or []:
+        if not isinstance(emp, dict):
+            continue
+        for raw in emp.get('matieres') or []:
+            ajouter(str(emp.get('appareil') or ''), emp.get('nom') or '', emp.get('classe') or '', raw)
+    for item in items or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get('type') == 'groupe':
+            for raw in item.get('matieres') or []:
+                ajouter(str(item.get('appareil') or ''), item.get('nom') or '', item.get('classe') or '', raw)
+            continue
+        if item.get('type') != 'rappel' or matiere_exclue(item.get('matiere')):
+            continue
+        ident = str(item.get('id') or '')
+        if not ident:
+            continue
+        deja = exercices.get(ident)
+        if not deja or str(item.get('at') or '') >= str(deja.get('at') or ''):
+            exercices[ident] = {
+                'type': 'rappel',
+                'id': ident,
+                'appareil': item.get('appareil') or '',
+                'at': item.get('at') or '',
+                'nom': item.get('nom') or '',
+                'matiere': nom_matiere(item.get('matiere') or ''),
+                'niveau': item.get('niveau') or '',
+                'jour': item.get('jour'),
+                'debut': item.get('debut') or '',
+                'fin': item.get('fin') or '',
+                'exo': item.get('exo') or '',
+            }
+        ajouter(str(item.get('appareil') or ''), item.get('nom') or '', item.get('classe') or '', item.get('matiere') or '')
+    lots = []
+    for cle in sorted(groupes):
+        eleves = list(groupes[cle]['eleves'].values())
+        eleves.sort(key=lambda eleve: str(eleve.get('nom') or '').lower())
+        lots.append({'cle': cle, 'matiere': groupes[cle]['matiere'], 'eleves': eleves})
+    exos = list(exercices.values())
+    exos.sort(key=lambda exo: str(exo.get('at') or ''))
+    return lots, exos[-500:]
+
+
 def main():
     config = lire_json(DEST_URL, {'sujet': SUJET, 'kvdb': '', 'archive': ''})
     config.setdefault('sujet', SUJET)
@@ -279,7 +359,10 @@ def main():
     emplois = [leger(item) for item in fusionner(items)]
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
     ecrire_archive(config.get('archive') or '', emplois)
-    print('emplois', len(emplois))
+    anciens = lire_json(DEST_RAPPELS, {}).get('exercices') or []
+    lots, exos = groupes_et_exercices(list(anciens) + items, emplois)
+    ecrire(DEST_RAPPELS, {'groupes': lots, 'exercices': exos})
+    print('emplois', len(emplois), 'groupes', len(lots), 'rappels', len(exos))
 
 
 if __name__ == '__main__':

@@ -57,5 +57,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/sauvegarde.js',
     'js/compte.js',
     'js/pages/boite.js',
-    'js/pages/assistant.js'
+    'js/pages/assistant.js',
+    'js/pages/rappels.js'
 ];

@@ -511,6 +511,7 @@ function scheduleExo(exoId, slotIdx) {
     setTimeout(() => toast.remove(), 3500);
     renderPlanifier();
     renderExoList();
+    if (typeof rappelPublierExercice === 'function') rappelPublierExercice(exo, slot);
 }
 
 function switchExoTab(tab) {
