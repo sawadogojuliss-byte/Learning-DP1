@@ -48,7 +48,7 @@ def ouvrir(url, data=None, headers=None, method=None):
 
 
 def creer_kvdb():
-    body = urllib.parse.urlencode({'email': EMAIL, 'default_ttl': '604800'}).encode()
+    body = urllib.parse.urlencode({'email': EMAIL, 'default_ttl': '31536000'}).encode()
     try:
         status, _headers, raw = ouvrir('https://kvdb.io', data=body, method='POST')
     except Exception as exc:

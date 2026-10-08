@@ -8,6 +8,7 @@ on:
     paths:
       - .github/workflows/boite.yml
       - tools/creer-boite.py
+      - tools/sync-emplois.py
 
 permissions:
   contents: write
@@ -24,11 +25,14 @@ jobs:
       - name: Créer le coffre
         run: python3 tools/creer-boite.py
 
+      - name: Rassembler les emplois du temps
+        run: python3 tools/sync-emplois.py
+
       - name: Enregistrer l'adresse
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/boite-url.json data/boite-statut.txt
+          git add data/boite-url.json data/boite-statut.txt data/emplois.json
           git diff --cached --quiet && exit 0
           git commit -m "Ajoute l'adresse de la boîte Aide et Feedback."
           git push origin HEAD:arena/01a0bac7-learning-dp1
