@@ -266,7 +266,14 @@ def main():
         'archive': config.get('archive') or '',
     })
     existants = lire_json(DEST_EMPLOIS, {}).get('emplois') or []
-    items = list(existants) + lire_ntfy(config.get('sujet') or SUJET)
+    messages = lire_ntfy(config.get('sujet') or SUJET)
+    if not config.get('archive'):
+        for item in messages:
+            url = str(item.get('archive') or '') if isinstance(item, dict) else ''
+            if item.get('type') == 'coffre' and url.startswith('https://'):
+                config['archive'] = url
+                break
+    items = list(existants) + messages
     items.extend(lire_kvdb(config.get('kvdb') or ''))
     items.extend(lire_archive(config.get('archive') or ''))
     emplois = [leger(item) for item in fusionner(items)]

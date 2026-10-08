@@ -597,7 +597,8 @@ function boiteChargerListes(force) {
             archiveOk = premiers[0].ok;
             var messages = premiers[1].items || [];
             messages.forEach(function (item) {
-                if (item && item.type === 'coffre' && item.kvdb) boiteMemoriserCoffre({ kvdb: item.kvdb });
+                if (!item || item.type !== 'coffre') return;
+                if (item.kvdb || item.archive) boiteMemoriserCoffre({ kvdb: item.kvdb || '', archive: item.archive || '' });
             });
             var lectures = boiteUrlsKvdb(cfg, messages).map(function (url) {
                 return boiteLireKvdb(url).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; });
@@ -615,23 +616,65 @@ function boiteChargerListes(force) {
             var fusion = boiteFusionner(items);
             fusion.partiel = !ok;
             boiteListesCache = fusion;
-            if (archiveOk && cfg.archive) boiteArchiver(cfg, fusion);
             boiteMemoriserVus(fusion);
             boiteProlongerNtfy(fusion);
+            boiteAssurerArchive(fusion);
             return fusion;
         });
     });
 }
 
+var boiteProlongeFait = false;
 function boiteProlongerNtfy(fusion) {
-    var limite = Date.now() - 6 * 60 * 60 * 1000;
-    var vieux = fusion.questions.concat(fusion.feedbacks, fusion.emplois, fusion.reponses || []).filter(function (item) {
-        var quand = new Date(item.at || 0).getTime();
-        return quand && quand < limite;
-    }).slice(0, 8);
-    vieux.reduce(function (chaine, item) {
+    if (boiteProlongeFait) return;
+    boiteProlongeFait = true;
+    var morceaux = [];
+    (fusion.emplois || []).forEach(function (item) {
+        boiteDecouperEmploi(item).forEach(function (morceau) { morceaux.push(morceau); });
+    });
+    morceaux.slice(0, 48).reduce(function (chaine, item) {
         return chaine.then(function () { return boiteEcrireNtfy(item).catch(function () {}); });
     }, Promise.resolve());
+}
+
+var boiteArchivePromesse = null;
+function boiteAnnoncerCoffre(extra) {
+    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain', Title: 'coffre', Priority: 'min' },
+        body: JSON.stringify(Object.assign({ type: 'coffre' }, extra || {}))
+    }, 8000).catch(function () {});
+}
+
+function boiteCreerArchive() {
+    if (boiteConfigCache && boiteConfigCache.archive) return Promise.resolve(boiteConfigCache.archive);
+    if (boiteArchivePromesse) return boiteArchivePromesse;
+    boiteArchivePromesse = boiteFetch('https://jsonblob.com/api/jsonBlob', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ questions: [], feedbacks: [], reponses: [], emplois: [] })
+    }, 12000).then(function (res) {
+        if (!res.ok) throw new Error('archive');
+        var loc = res.headers.get('Location') || '';
+        var id = res.headers.get('X-jsonblob') || '';
+        if (loc.indexOf('/') === 0) loc = 'https://jsonblob.com' + loc;
+        if (!loc && id) loc = 'https://jsonblob.com/api/jsonBlob/' + id;
+        if (loc.indexOf('https://jsonblob.com/api/jsonBlob/') !== 0) throw new Error('archive');
+        boiteMemoriserCoffre({ archive: loc });
+        return boiteAnnoncerCoffre({ archive: loc }).then(function () { return loc; });
+    }).catch(function () {
+        boiteArchivePromesse = null;
+        return '';
+    });
+    return boiteArchivePromesse;
+}
+
+function boiteAssurerArchive(fusion) {
+    var connu = boiteConfigCache && boiteConfigCache.archive;
+    var suite = connu ? Promise.resolve(connu) : boiteCreerArchive();
+    suite.then(function (url) {
+        if (url) boiteArchiver({ archive: url }, fusion);
+    }).catch(function () {});
 }
 
 function boiteCarte(titre, meta, corps) {
