@@ -9,7 +9,7 @@
                 <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
                 <div style="flex:1;">
                     <h2 style="font-size:1.05rem;font-weight:800;color:#111827;margin:0;">Assistant</h2>
-                    <p id="iaStatut" style="font-size:0.75rem;color:#059669;margin:0.1rem 0 0;">Juliss Owen · questions, PDF et soutien</p>
+                    <p id="iaStatut" style="font-size:0.75rem;color:#059669;margin:0.1rem 0 0;">Juliss Owen · questions, pages et planning</p>
                 </div>
                 <button type="button" onclick="iaBriefing()" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.4rem 0.65rem;cursor:pointer;font-size:0.75rem;">Briefing</button>
             </div>
@@ -21,7 +21,7 @@
             <form id="iaForm" style="display:flex;gap:0.45rem;align-items:flex-end;" onsubmit="return iaEnvoyer(event)">
                 <input id="iaFichier" type="file" accept="application/pdf,.pdf" hidden>
                 <button type="button" id="iaJoindre" onclick="iaChoisirPdf()" title="Ajouter un PDF" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;border-radius:0.9rem;font-weight:800;padding:0.75rem 0.7rem;cursor:pointer;">PDF</button>
-                <textarea id="iaSaisie" rows="1" maxlength="4000" placeholder="Une question, un PDF, ou comment tu te sens…" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.92rem;outline:none;resize:none;max-height:7rem;"></textarea>
+                <textarea id="iaSaisie" rows="1" maxlength="4000" placeholder="Une question, une page à ouvrir, ou un créneau à ajouter…" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.92rem;outline:none;resize:none;max-height:7rem;"></textarea>
                 <button type="submit" id="iaEnvoi" style="border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;padding:0 1rem;cursor:pointer;">Envoyer</button>
             </form>
         </div>
