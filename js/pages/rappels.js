@@ -1,12 +1,13 @@
-/* Rappels d'exercices entre camarades de la même matière.
-   Anglais B est exclu : les enseignants ne sont pas les mêmes. */
+/* Rappels entre camarades de la même matière.
+   Anglais B est divisé : SL et HL ne se notifient pas. */
 
 var RAPPEL_VUS = 'studyPlanIB_rappelsVus';
 var RAPPEL_CACHE = 'studyPlanIB_rappels';
 var RAPPEL_GROUPE = 'studyPlanIB_groupe';
+var RAPPEL_JOURNEE = 'studyPlanIB_journee';
 var rappelListe = [];
 var rappelGroupes = [];
-var rappelSession = false;
+var rappelFlux = {};
 
 function rappelSansAccent(nom) {
     return String(nom || '').toLowerCase()
@@ -17,17 +18,38 @@ function rappelSansAccent(nom) {
         .trim();
 }
 
-function rappelExclu(nom) {
+function rappelAnglaisB(nom) {
     var cle = rappelSansAccent(nom);
-    return !cle || cle === 'anglais b' || cle === 'english b' || cle.indexOf('anglais b ') === 0 || cle.indexOf('english b ') === 0;
+    return cle === 'anglais b' || cle === 'english b';
 }
 
-function rappelCle(nom) {
-    return rappelSansAccent(nom);
+function rappelNiveau(nom, niveau) {
+    var brut = String(niveau || '') + ' ' + String(nom || '');
+    var trouve = brut.match(/\b(HL|SL)\b/i);
+    return trouve ? trouve[1].toUpperCase() : '';
+}
+
+function rappelCle(nom, niveau) {
+    var cle = rappelSansAccent(nom);
+    if (!cle) return '';
+    if (rappelAnglaisB(nom)) {
+        var niv = rappelNiveau(nom, niveau);
+        return niv ? cle + ' ' + niv.toLowerCase() : '';
+    }
+    return cle;
 }
 
 function rappelNom(nom) {
     return String(nom || '').replace(/\s+(HL|SL)\s*$/i, '').trim();
+}
+
+function rappelNomAffiche(nom, niveau) {
+    var base = rappelNom(nom);
+    if (rappelAnglaisB(nom)) {
+        var niv = rappelNiveau(nom, niveau);
+        return niv ? base + ' ' + niv : base;
+    }
+    return base;
 }
 
 function rappelLireJson(cle) {
@@ -40,19 +62,33 @@ function rappelMesMatieres() {
     if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
     if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
     liste.forEach(function (s) {
-        if (!s || !s.name || rappelExclu(s.name)) return;
-        map[rappelCle(s.name)] = rappelNom(s.name);
+        if (!s || !s.name) return;
+        var cle = rappelCle(s.name, s.level);
+        if (cle) map[cle] = rappelNomAffiche(s.name, s.level);
     });
     return map;
 }
 
-function rappelJaiExercice(matiere) {
-    var cle = rappelCle(matiere);
+function rappelTrouverMatiere(nom, niveau) {
+    var cle = rappelCle(nom, niveau);
+    var liste = [];
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
+    if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
+    var i;
+    for (i = 0; i < liste.length; i++) {
+        if (liste[i] && rappelCle(liste[i].name, liste[i].level) === cle) return liste[i];
+    }
+    return { name: rappelNom(nom) || 'Matière', level: rappelNiveau(nom, niveau), icon: '📝' };
+}
+
+function rappelJaiExercice(matiere, niveau) {
+    var cle = rappelCle(matiere, niveau);
+    if (!cle) return false;
     var liste = (typeof exercices !== 'undefined' && Array.isArray(exercices)) ? exercices : [];
     var i;
     for (i = 0; i < liste.length; i++) {
         var exo = liste[i];
-        if (!exo || rappelCle(exo.subject) !== cle || !exo.scheduledSlot) continue;
+        if (!exo || rappelCle(exo.subject, exo.level) !== cle || !exo.scheduledSlot) continue;
         return true;
     }
     var evs = (typeof customEvents !== 'undefined' && Array.isArray(customEvents)) ? customEvents : [];
@@ -62,7 +98,7 @@ function rappelJaiExercice(matiere) {
         var titre = String(ev.title || '');
         if (ev.source !== 'exercice' && !/^Exercices\s+/i.test(titre)) continue;
         var sujet = titre.replace(/^Exercices\s+/i, '').replace(/\s*\(Partie[^)]*\)\s*$/i, '');
-        if (rappelCle(sujet) === cle) return true;
+        if (rappelCle(sujet, ev.level || niveau) === cle) return true;
     }
     return false;
 }
@@ -80,12 +116,11 @@ function rappelEnAttente() {
     var deja = {};
     rappelListe.forEach(function (item) {
         if (!item || (item.type && item.type !== 'rappel') || !item.id) return;
-        if (rappelExclu(item.matiere)) return;
-        var cle = rappelCle(item.matiere);
-        if (!cles[cle]) return;
+        var cle = rappelCle(item.matiere, item.niveau);
+        if (!cle || !cles[cle]) return;
         if (moi && item.appareil === moi) return;
         if (vus.indexOf(item.id) !== -1) return;
-        if (rappelJaiExercice(item.matiere)) return;
+        if (rappelJaiExercice(item.matiere, item.niveau)) return;
         if (deja[item.id]) return;
         deja[item.id] = true;
         out.push(item);
@@ -97,6 +132,25 @@ function rappelCompte() {
     return rappelEnAttente().length;
 }
 
+function rappelJourneeLire() {
+    var data = rappelLireJson(RAPPEL_JOURNEE);
+    return data && typeof data === 'object' ? data : {};
+}
+
+function rappelJourneeDue() {
+    if (!window.__profilComplet) return false;
+    var data = rappelJourneeLire();
+    var ref = data.answeredAt || data.askedAt || '';
+    if (!ref) return true;
+    var age = Date.now() - new Date(ref).getTime();
+    if (!isFinite(age)) return true;
+    return age >= (data.answeredAt ? 5 : 3) * 3600000;
+}
+
+function rappelPeutOuvrir() {
+    return rappelCompte() > 0 || rappelJourneeDue();
+}
+
 function rappelIngerer(items) {
     if (!Array.isArray(items)) return;
     var map = {};
@@ -104,7 +158,7 @@ function rappelIngerer(items) {
         if (item && item.id) map[item.id] = item;
     });
     items.forEach(function (item) {
-        if (!item || item.type !== 'rappel' || !item.id || rappelExclu(item.matiere)) return;
+        if (!item || item.type !== 'rappel' || !item.id || !rappelCle(item.matiere, item.niveau)) return;
         var deja = map[item.id];
         if (!deja || String(item.at || '') >= String(deja.at || '')) map[item.id] = item;
     });
@@ -130,9 +184,25 @@ function rappelBadge(n) {
     });
 }
 
+function rappelBouton(texte, fn) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = texte;
+    btn.style.cssText = 'border:none;border-radius:999px;padding:0.4rem 0.7rem;font:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;background:#ecfdf5;color:#047857;';
+    btn.onclick = fn;
+    return btn;
+}
+
+function rappelActions(parent) {
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:0.4rem;margin-top:0.65rem;flex-wrap:wrap;align-items:center;';
+    parent.appendChild(actions);
+    return actions;
+}
+
 function rappelTexte(item) {
     var jours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-    var matiere = rappelNom(item.matiere) || 'cette matière';
+    var matiere = rappelNomAffiche(item.matiere, item.niveau) || 'cette matière';
     var quand = '';
     if (typeof item.jour === 'number' && jours[item.jour]) quand = jours[item.jour];
     if (item.debut && item.fin) quand = (quand ? quand + ' de ' : '') + item.debut + ' à ' + item.fin;
@@ -146,7 +216,131 @@ function rappelIgnorer(id) {
     try { localStorage.setItem(RAPPEL_VUS, JSON.stringify(vus.slice(-500))); } catch (e) {}
     var noeud = document.getElementById('rappel-' + id);
     if (noeud) noeud.remove();
+    delete rappelFlux[id];
     if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
+}
+
+function rappelDemanderDeadline(item) {
+    if (typeof iaBulle !== 'function') return;
+    var matiere = rappelNomAffiche(item.matiere, item.niveau) || 'cette matière';
+    var bulle = iaBulle('assistant', 'D\'accord. Pour quelle date dois-tu rendre cet exercice de ' + matiere + ' ?');
+    if (!bulle) return;
+    var actions = rappelActions(bulle);
+    var date = document.createElement('input');
+    date.type = 'date';
+    date.min = new Date().toISOString().slice(0, 10);
+    date.style.cssText = 'border:1px solid #a7f3d0;border-radius:0.6rem;padding:0.35rem 0.5rem;font:inherit;font-size:0.78rem;';
+    var ok = rappelBouton('Voir les créneaux', function () {
+        if (!date.value) return;
+        rappelFlux[item.id] = { deadline: date.value, duration: (rappelFlux[item.id] && rappelFlux[item.id].duration) || 60 };
+        rappelProposer(item);
+    });
+    actions.appendChild(date);
+    actions.appendChild(ok);
+    var fil = document.getElementById('iaFil');
+    if (fil) fil.scrollTop = fil.scrollHeight;
+}
+
+function rappelLibelleDuree(minutes) {
+    if (minutes >= 60 && minutes % 60 === 0) return (minutes / 60) + ' h';
+    if (minutes > 60) return Math.floor(minutes / 60) + ' h ' + (minutes % 60);
+    return minutes + ' min';
+}
+
+function rappelProposer(item) {
+    if (typeof iaBulle !== 'function' || typeof findAvailableSlots !== 'function') return;
+    var flux = rappelFlux[item.id] || { deadline: '', duration: 60 };
+    if (!flux.deadline) return rappelDemanderDeadline(item);
+    var ancien = document.getElementById('rappel-slots-' + item.id);
+    if (ancien) ancien.remove();
+    var sujet = rappelTrouverMatiere(item.matiere, item.niveau);
+    var brouillon = { subject: sujet.name, level: sujet.level || '', duration: flux.duration || 60, deadline: flux.deadline };
+    var slots = [];
+    try { slots = findAvailableSlots(brouillon) || []; } catch (e) { slots = []; }
+    slots = slots.slice(0, 4);
+    var intro = slots.length
+        ? 'Je peux le placer sans superposer un autre créneau. Je pars sur ' + rappelLibelleDuree(brouillon.duration) + '. Choisis une solution, ou change la durée.'
+        : 'Je ne trouve pas de créneau libre avant cette date. Donne-moi une autre deadline.';
+    var bulle = iaBulle('assistant', intro);
+    if (!bulle) return;
+    if (bulle.parentNode) bulle.parentNode.id = 'rappel-slots-' + item.id;
+    var actions = rappelActions(bulle);
+    [30, 45, 60, 90].forEach(function (minutes) {
+        actions.appendChild(rappelBouton(rappelLibelleDuree(minutes), function () {
+            rappelFlux[item.id].duration = minutes;
+            rappelProposer(item);
+        }));
+    });
+    if (!slots.length) {
+        actions.appendChild(rappelBouton('Autre date', function () { rappelDemanderDeadline(item); }));
+    }
+    slots.forEach(function (slot, index) {
+        actions.appendChild(rappelBouton(slot.label || (slot.startTime + '–' + slot.endTime), function () {
+            rappelPlacer(item, slot, index);
+        }));
+    });
+    var fil = document.getElementById('iaFil');
+    if (fil) fil.scrollTop = fil.scrollHeight;
+}
+
+function rappelPlacer(item, slot) {
+    if (!slot || typeof applyExerciseSlot !== 'function') return;
+    var flux = rappelFlux[item.id] || { deadline: '', duration: 60 };
+    var sujet = rappelTrouverMatiere(item.matiere, item.niveau);
+    var exo = null;
+    var liste = (typeof exercices !== 'undefined' && Array.isArray(exercices)) ? exercices : null;
+    if (!liste) return;
+    var i;
+    for (i = 0; i < liste.length; i++) {
+        if (liste[i] && !liste[i].done && !liste[i].scheduledSlot && rappelCle(liste[i].subject, liste[i].level) === rappelCle(item.matiere, item.niveau)) {
+            exo = liste[i];
+            break;
+        }
+    }
+    if (!exo) {
+        exo = {
+            id: 'exo-' + Date.now(),
+            subject: sujet.name,
+            subjectIcon: sujet.icon || '📝',
+            subjectGrade: sujet.grade,
+            level: sujet.level || rappelNiveau(item.matiere, item.niveau),
+            text: 'Exercice de ' + rappelNomAffiche(sujet.name, sujet.level),
+            duration: flux.duration || 60,
+            deadline: flux.deadline,
+            done: false,
+            addedAt: new Date().toISOString(),
+            scheduledSlot: null
+        };
+        liste.push(exo);
+    } else {
+        exo.duration = flux.duration || exo.duration || 60;
+        exo.deadline = flux.deadline || exo.deadline;
+        exo.level = exo.level || sujet.level || '';
+    }
+    try {
+        applyExerciseSlot(exo, slot, 'Exercices ' + exo.subject + (slot.isSplit ? ' (Partie 1)' : ''));
+    } catch (e) {
+        if (typeof iaBulle === 'function') iaBulle('assistant', 'Je n\'ai pas pu le placer sur ce créneau. Choisis-en un autre.');
+        return;
+    }
+    exo.scheduledSlot = (slot.dateStr || '') + ' · ' + slot.startTime + '–' + slot.endTime;
+    if (typeof refreshPlanningAfterExercise === 'function') refreshPlanningAfterExercise(slot.planDay);
+    else {
+        try { localStorage.setItem('studyPlanIB_exercices', JSON.stringify(liste)); } catch (e2) {}
+    }
+    if (typeof rappelPublierExercice === 'function') rappelPublierExercice(exo, slot);
+    var badge = document.getElementById('exoCountBadge');
+    if (badge) badge.textContent = liste.length + ' exercice' + (liste.length > 1 ? 's' : '');
+    rappelIgnorer(item.id);
+    if (typeof iaBulle === 'function') {
+        iaBulle('assistant', 'C\'est dans ton planning' + (slot.dateStr ? ', le ' + slot.dateStr : '') + ' de ' + slot.startTime + ' à ' + slot.endTime + '. La deadline est le ' + flux.deadline + '.');
+    }
+}
+
+function rappelCommencer(item) {
+    var flux = rappelFlux[item.id];
+    if (flux && flux.deadline) rappelProposer(item);
+    else rappelDemanderDeadline(item);
 }
 
 function rappelPoser() {
@@ -157,30 +351,60 @@ function rappelPoser() {
         var bulle = iaBulle('assistant', rappelTexte(item));
         if (!bulle) return;
         if (bulle.parentNode) bulle.parentNode.id = 'rappel-' + item.id;
-        var actions = document.createElement('div');
-        actions.style.cssText = 'display:flex;gap:0.4rem;margin-top:0.65rem;flex-wrap:wrap;';
-        var oui = document.createElement('button');
-        var non = document.createElement('button');
-        oui.type = 'button';
-        non.type = 'button';
-        oui.textContent = 'Oui, j\'en ai un';
-        non.textContent = 'Non, je l\'ajoute';
-        [oui, non].forEach(function (btn) {
-            btn.style.cssText = 'border:none;border-radius:999px;padding:0.4rem 0.7rem;font:inherit;font-size:0.75rem;font-weight:700;cursor:pointer;background:#ecfdf5;color:#047857;';
-        });
-        oui.onclick = function () { rappelIgnorer(item.id); };
-        non.onclick = function () {
-            if (typeof navigateTo === 'function') navigateTo('exercices');
-        };
-        actions.appendChild(oui);
-        actions.appendChild(non);
-        bulle.appendChild(actions);
+        var actions = rappelActions(bulle);
+        actions.appendChild(rappelBouton('Oui, j\'en ai un', function () { rappelCommencer(item); }));
+        actions.appendChild(rappelBouton('Non, je l\'ajoute', function () { rappelCommencer(item); }));
     });
+    rappelPoserJournee();
     fil.scrollTop = fil.scrollHeight;
 }
 
+function rappelReponseJournee(mood) {
+    if (mood === 'motive') return 'Cette énergie est bonne. Garde-la pour une matière qui compte, et arrête-toi avant d\'être vidé(e).';
+    if (mood === 'bien') return 'Content de l\'entendre. Si une matière te bloque, on peut la placer dans un trou du planning.';
+    if (mood === 'fatigue') return 'Repose-toi un peu. Une journée fatiguée avance mieux avec une seule chose claire, pas avec tout le programme.';
+    if (mood === 'stresse') return 'C\'est lourd, et tu n\'as pas à tout régler ce soir. On prend une chose, puis tu souffles.';
+    return 'Quand la journée est difficile, on réduit. Dis-moi la matière qui pèse, et on trouve un petit créneau, pas une montagne.';
+}
+
+function rappelNoterJournee(mood) {
+    if (typeof currentMood !== 'undefined') currentMood = mood;
+    var data = rappelJourneeLire();
+    data.answeredAt = new Date().toISOString();
+    data.mood = mood;
+    data.historique = Array.isArray(data.historique) ? data.historique.slice(-40) : [];
+    data.historique.push({ at: data.answeredAt, mood: mood });
+    try { localStorage.setItem(RAPPEL_JOURNEE, JSON.stringify(data)); } catch (e) {}
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    var noeud = document.getElementById('rappel-journee');
+    if (noeud) noeud.remove();
+    if (typeof iaBulle === 'function') iaBulle('assistant', rappelReponseJournee(mood));
+    if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
+}
+
+function rappelPoserJournee() {
+    if (!rappelJourneeDue() || typeof iaBulle !== 'function') return;
+    if (document.getElementById('rappel-journee')) return;
+    var bulle = iaBulle('assistant', 'Comment s\'est passée ta journée ?');
+    if (!bulle || !bulle.parentNode) return;
+    bulle.parentNode.id = 'rappel-journee';
+    var data = rappelJourneeLire();
+    data.askedAt = new Date().toISOString();
+    try { localStorage.setItem(RAPPEL_JOURNEE, JSON.stringify(data)); } catch (e) {}
+    var actions = rappelActions(bulle);
+    [
+        ['Bien', 'bien'],
+        ['Motivé(e)', 'motive'],
+        ['Fatigué(e)', 'fatigue'],
+        ['Stressé(e)', 'stresse'],
+        ['Difficile', 'perdu']
+    ].forEach(function (choix) {
+        actions.appendChild(rappelBouton(choix[0], function () { rappelNoterJournee(choix[1]); }));
+    });
+}
+
 function rappelPublierExercice(exo, slot) {
-    if (!exo || !slot || rappelExclu(exo.subject)) return;
+    if (!exo || !slot || !rappelCle(exo.subject, exo.level)) return;
     if (typeof boiteAppareil !== 'function' || typeof boiteEnvoyerDistant !== 'function') return;
     var ident = 'r_' + boiteAppareil() + '_' + String(exo.id || exo.subject || 'x').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
     var record = {
@@ -191,7 +415,7 @@ function rappelPublierExercice(exo, slot) {
         nom: typeof boiteNom === 'function' ? boiteNom() : '',
         classe: typeof ibYear !== 'undefined' ? (ibYear || '') : '',
         matiere: exo.subject || '',
-        niveau: exo.level || '',
+        niveau: exo.level || rappelNiveau(exo.subject, ''),
         jour: slot.planDay,
         debut: slot.startTime || '',
         fin: slot.endTime || '',
@@ -209,8 +433,8 @@ function rappelPublierCohorte() {
     if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
     if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
     liste.forEach(function (s) {
-        if (!s || !s.name || rappelExclu(s.name) || matieres.length >= 12) return;
-        matieres.push((s.name + (s.level ? ' ' + s.level : '')).trim());
+        if (!s || !s.name || !rappelCle(s.name, s.level) || matieres.length >= 12) return;
+        matieres.push(rappelNomAffiche(s.name, s.level));
     });
     if (!matieres.length) return;
     var empreinte = matieres.join('|');
@@ -230,12 +454,17 @@ function rappelPublierCohorte() {
 }
 
 function rappelOuvrirSiBesoin() {
-    if (rappelSession || !window.__profilComplet || rappelCompte() <= 0) return;
+    if (!window.__profilComplet || !rappelPeutOuvrir()) return;
+    var raison = rappelCompte() > 0 ? 'exo' : 'journee';
     try {
-        if (sessionStorage.getItem('studyPlanIB_rappelOuvert') === '1') return;
-        sessionStorage.setItem('studyPlanIB_rappelOuvert', '1');
+        if (raison === 'exo' && sessionStorage.getItem('studyPlanIB_chatOuvert_exo') === '1' && !rappelJourneeDue()) return;
+        if (raison === 'exo') sessionStorage.setItem('studyPlanIB_chatOuvert_exo', '1');
     } catch (e) {}
-    rappelSession = true;
+    var panel = document.getElementById('panelAssistant');
+    if (panel && panel.classList.contains('active')) {
+        rappelPoser();
+        return;
+    }
     if (typeof navigateTo === 'function') navigateTo('assistant');
 }
 

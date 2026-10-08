@@ -262,9 +262,32 @@ def cle_matiere(nom):
     return re.sub(r'[^a-z0-9]+', ' ', texte).strip()
 
 
-def matiere_exclue(nom):
+def est_anglais_b(nom):
     cle = cle_matiere(nom)
-    return not cle or cle == 'anglais b' or cle == 'english b' or cle.startswith('anglais b ') or cle.startswith('english b ')
+    return cle == 'anglais b' or cle == 'english b'
+
+
+def niveau_de(nom, niveau=''):
+    trouve = re.search(r'\b(HL|SL)\b', str(niveau or ''), re.I) or re.search(r'\b(HL|SL)\b', str(nom or ''), re.I)
+    return trouve.group(1).upper() if trouve else ''
+
+
+def cle_groupe(nom, niveau=''):
+    cle = cle_matiere(nom)
+    if not cle:
+        return ''
+    if est_anglais_b(nom):
+        niv = niveau_de(nom, niveau)
+        return (cle + ' ' + niv.lower()) if niv else ''
+    return cle
+
+
+def nom_groupe(nom, niveau=''):
+    base = nom_matiere(nom)
+    if est_anglais_b(nom):
+        niv = niveau_de(nom, niveau)
+        return (base + ' ' + niv).strip() if niv else ''
+    return base
 
 
 def nom_matiere(nom):
@@ -275,14 +298,14 @@ def groupes_et_exercices(items, emplois):
     groupes = {}
     exercices = {}
 
-    def ajouter(appareil, nom, classe, matiere):
-        if not appareil or matiere_exclue(matiere):
+    def ajouter(appareil, nom, classe, matiere, niveau=''):
+        if not appareil:
             return
-        cle = cle_matiere(matiere)
-        lot = groupes.setdefault(cle, {'cle': cle, 'matiere': nom_matiere(matiere) or cle, 'eleves': {}})
-        affiche = nom_matiere(matiere)
-        if affiche and (not lot['matiere'] or lot['matiere'] == cle):
-            lot['matiere'] = affiche
+        cle = cle_groupe(matiere, niveau)
+        affiche = nom_groupe(matiere, niveau)
+        if not cle or not affiche:
+            return
+        lot = groupes.setdefault(cle, {'cle': cle, 'matiere': affiche, 'eleves': {}})
         deja = lot['eleves'].get(appareil) or {}
         lot['eleves'][appareil] = {
             'appareil': appareil,
@@ -302,11 +325,12 @@ def groupes_et_exercices(items, emplois):
             for raw in item.get('matieres') or []:
                 ajouter(str(item.get('appareil') or ''), item.get('nom') or '', item.get('classe') or '', raw)
             continue
-        if item.get('type') != 'rappel' or matiere_exclue(item.get('matiere')):
+        if item.get('type') != 'rappel' or not cle_groupe(item.get('matiere'), item.get('niveau')):
             continue
         ident = str(item.get('id') or '')
         if not ident:
             continue
+        niveau = item.get('niveau') or niveau_de(item.get('matiere'))
         deja = exercices.get(ident)
         if not deja or str(item.get('at') or '') >= str(deja.get('at') or ''):
             exercices[ident] = {
@@ -316,13 +340,13 @@ def groupes_et_exercices(items, emplois):
                 'at': item.get('at') or '',
                 'nom': item.get('nom') or '',
                 'matiere': nom_matiere(item.get('matiere') or ''),
-                'niveau': item.get('niveau') or '',
+                'niveau': niveau,
                 'jour': item.get('jour'),
                 'debut': item.get('debut') or '',
                 'fin': item.get('fin') or '',
                 'exo': item.get('exo') or '',
             }
-        ajouter(str(item.get('appareil') or ''), item.get('nom') or '', item.get('classe') or '', item.get('matiere') or '')
+        ajouter(str(item.get('appareil') or ''), item.get('nom') or '', item.get('classe') or '', item.get('matiere') or '', niveau)
     lots = []
     for cle in sorted(groupes):
         eleves = list(groupes[cle]['eleves'].values())

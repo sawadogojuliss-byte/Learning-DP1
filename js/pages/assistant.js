@@ -97,16 +97,13 @@ function iaIdentite() {
 
 function iaAfficherEntree() {
     var n = typeof rappelCompte === 'function' ? rappelCompte() : 0;
+    var ouvert = typeof rappelPeutOuvrir === 'function' ? rappelPeutOuvrir() : n > 0;
     var admin = iaEstAdmin();
-    var visible = (admin || n > 0) ? 'flex' : 'none';
+    var visible = (admin || ouvert) ? 'flex' : 'none';
     ['menuAssistant', 'btnAssistant'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.style.display = visible;
     });
-    if (!admin && n <= 0) {
-        var panel = document.getElementById('panelAssistant');
-        if (panel) panel.classList.remove('active');
-    }
     if (typeof rappelBadge === 'function') rappelBadge(n);
 }
 
@@ -929,7 +926,7 @@ function iaAccueil() {
 
 function iaOuvrir() {
     var admin = iaEstAdmin();
-    var rappelOk = typeof rappelCompte === 'function' && rappelCompte() > 0;
+    var rappelOk = typeof rappelPeutOuvrir === 'function' ? rappelPeutOuvrir() : (typeof rappelCompte === 'function' && rappelCompte() > 0);
     if (!admin && !rappelOk) return;
     var form = document.getElementById('iaForm');
     if (form) form.style.display = admin ? '' : 'none';

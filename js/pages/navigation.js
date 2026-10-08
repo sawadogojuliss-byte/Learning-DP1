@@ -44,7 +44,7 @@ function navigateTo(page) {
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
     } else if (page === 'assistant') {
-        var rappelOk = typeof rappelCompte === 'function' && rappelCompte() > 0;
+        var rappelOk = typeof rappelPeutOuvrir === 'function' ? rappelPeutOuvrir() : (typeof rappelCompte === 'function' && rappelCompte() > 0);
         if ((typeof iaEstAdmin !== 'function' || !iaEstAdmin()) && !rappelOk) return;
         var assistant = document.getElementById('panelAssistant');
         if (assistant) assistant.classList.add('active');
