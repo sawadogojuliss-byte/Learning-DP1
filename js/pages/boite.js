@@ -20,6 +20,8 @@ var BOITE_FILE = 'studyPlanIB_boiteFile';
 var BOITE_VUS = 'studyPlanIB_boiteVus';
 var BOITE_URL_LOCALE = 'studyPlanIB_boiteUrl';
 var BOITE_EMPLOI_HASH = 'studyPlanIB_boiteEmploiHash';
+var BOITE_COMPLET = 'studyPlanIB_boiteComplet';
+var BOITE_COMPLET_VERSION = '20261008b';
 var boiteConfigCache = null;
 var boiteConfigPromise = null;
 var boiteListesCache = null;
@@ -362,6 +364,7 @@ function boiteEnvoyer(record) {
         return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
     }, Promise.resolve(true)).then(function (ok) {
         boiteGarderVu(record);
+        if (record.type === 'emploi') boiteAjouterArchive(record);
         return ok;
     });
 }
@@ -383,7 +386,7 @@ function boiteParserMessage(texte) {
 }
 
 function boiteLireNtfy() {
-    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=48h', { cache: 'no-store' }, 12000)
+    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=all', { cache: 'no-store' }, 20000)
         .then(function (res) {
             if (!res.ok) throw new Error('ntfy');
             return res.text();
@@ -523,11 +526,33 @@ function boiteDocument(fusion) {
 
 function boiteArchiver(cfg, fusion) {
     if (!cfg || !cfg.archive) return Promise.resolve();
-    return boiteFetch(cfg.archive, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(boiteDocument(fusion))
-    }, 12000).then(function () {}, function () {});
+    return boiteFetch(cfg.archive, { cache: 'no-store' }, 12000).then(function (res) {
+        if (!res.ok) throw new Error('archive');
+        return res.json();
+    }).then(function (doc) {
+        doc = doc && typeof doc === 'object' ? doc : {};
+        var mix = boiteFusionner([].concat(
+            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [],
+            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || []
+        ));
+        return boiteFetch(cfg.archive, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(boiteDocument(mix))
+        }, 12000);
+    }).then(function () {}, function () {});
+}
+
+function boiteAjouterArchive(record) {
+    if (!record) return Promise.resolve();
+    return boiteLireConfig().then(function (cfg) {
+        var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [] };
+        if (record.type === 'feedback') fusion.feedbacks = [record];
+        else if (record.type === 'reponse') fusion.reponses = [record];
+        else if (record.type === 'question') fusion.questions = [record];
+        else fusion.emplois = [record];
+        return boiteArchiver(cfg, fusion);
+    });
 }
 
 function boiteUrlsKvdb(cfg, messages) {
@@ -925,6 +950,17 @@ function boiteRendreEmplois(fusion) {
         var g = boiteNormaliser(item.google || item.email || '');
         if (g) doublons[g] = (doublons[g] || 0) + 1;
     });
+    function boiteJourAffiche(jour) {
+    var slots = (jour && jour.s ? jour.s : []).slice();
+    var fin = slots.length ? String(slots[slots.length - 1].f || '') : '';
+    var incomplet = fin && fin <= '12:30';
+    if (incomplet) {
+        [{ d: '12:30', f: '13:30', t: 'Déjeuner' }, { d: '13:30', f: '16:35', t: 'Cours' }].forEach(function (slot) {
+            if (!slots.some(function (s) { return s.d === slot.d; })) slots.push(slot);
+        });
+    }
+    return { slots: slots, incomplet: incomplet };
+}
     var rows = fusion.emplois.filter(function (item) {
         if (!mot) return true;
         return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
@@ -933,12 +969,18 @@ function boiteRendreEmplois(fusion) {
         liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.emplois.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici dès qu\'elle rouvre le site, même sans Google.')) + '</p>';
     } else {
         liste.innerHTML = rows.map(function (item) {
+            var incomplet = false;
             var jours = (item.jours || []).map(function (jour) {
-                var slots = (jour.s || []).map(function (slot) {
-                    return '<p style="font-size:0.84rem;color:#1f2937;margin:0.15rem 0;">' + boiteEchap(slot.d || '') + '–' + boiteEchap(slot.f || '') + '  ' + boiteEchap(slot.t || '') + '</p>';
+                var affiche = boiteJourAffiche(jour);
+                if (affiche.incomplet) incomplet = true;
+                var recus = (jour.s || []).length;
+                var slots = affiche.slots.map(function (slot, index) {
+                    var ajoute = index >= recus;
+                    return '<p style="font-size:0.84rem;color:' + (ajoute ? '#6b7280' : '#1f2937') + ';margin:0.15rem 0;">' + boiteEchap(slot.d || '') + '–' + boiteEchap(slot.f || '') + '  ' + boiteEchap(slot.t || '') + (ajoute ? ' · cours fixe' : '') + '</p>';
                 }).join('');
                 return '<div style="margin-top:0.55rem;"><p style="font-size:0.75rem;font-weight:800;color:#047857;text-transform:uppercase;">' + boiteEchap(jour.j || '') + '</p>' + slots + '</div>';
             }).join('');
+            if (incomplet) jours += '<p style="font-size:0.78rem;color:#b45309;margin-top:0.55rem;">La fin de journée n\'avait pas été reçue. Elle s\'ajoute dès que cet appareil rouvre le site.</p>';
             if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Inscrit. Le planning n\'a pas encore été généré sur son appareil.</p>';
             var google = item.google || item.email || '';
             var googleLigne = google
@@ -1205,7 +1247,7 @@ function boiteSnapshotEmploi() {
         try { evs = generateDayEvents(i) || []; } catch (e) { evs = []; }
         var slots = [];
         var k;
-        for (k = 0; k < evs.length && slots.length < 16; k++) {
+        for (k = 0; k < evs.length && slots.length < 24; k++) {
             var ev = evs[k];
             if (!ev || !ev.title || !ev.startTime) continue;
             slots.push({ d: ev.startTime, f: ev.endTime || '', t: String(ev.title).slice(0, 42) });
@@ -1257,9 +1299,12 @@ function boitePublierEmploi(force) {
         googleSub: record.googleSub
     });
     var deja = boiteLireJson(BOITE_EMPLOI_HASH);
-    if (!force && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
+    var dejaComplet = '';
+    try { dejaComplet = localStorage.getItem(BOITE_COMPLET) || ''; } catch (e) {}
+    if (!force && dejaComplet === BOITE_COMPLET_VERSION && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
     boiteEnvoyer(record).then(function () {
         boiteEcrireJson(BOITE_EMPLOI_HASH, { hash: empreinte, at: Date.now() });
+        try { localStorage.setItem(BOITE_COMPLET, BOITE_COMPLET_VERSION); } catch (e) {}
     }).catch(function () {});
 }
 
@@ -1270,12 +1315,156 @@ function boiteReessayerUneFois() {
     boiteReessaiFait = true;
     boiteReessayer();
 }
+function boiteHeurePlus(heure, minutes) {
+    var parts = String(heure || '00:00').split(':');
+    var total = Number(parts[0]) * 60 + Number(parts[1] || 0) + minutes;
+    total = ((total % 1440) + 1440) % 1440;
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+}
+
+function boiteCopierEtat() {
+    if (typeof memoireLireEtat === 'function') {
+        try { return memoireLireEtat(); } catch (e) {}
+    }
+    return null;
+}
+
+function boitePoserEtat(data) {
+    if (!data) return;
+    if (typeof data.userName === 'string' && typeof userName !== 'undefined') userName = data.userName;
+    if (typeof weekdayWakeup !== 'undefined') weekdayWakeup = data.weekdayWakeup || '06:00';
+    if (typeof saturdayWakeup !== 'undefined') saturdayWakeup = data.saturdayWakeup || '07:00';
+    if (typeof sundayWakeup !== 'undefined') sundayWakeup = data.sundayWakeup || '08:00';
+    if (typeof subjects !== 'undefined') subjects = Array.isArray(data.subjects) ? data.subjects : [];
+    if (typeof optionalSubjects !== 'undefined') optionalSubjects = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    if (typeof selectedActivities !== 'undefined') selectedActivities = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
+    if (typeof customEvents !== 'undefined') customEvents = Array.isArray(data.customEvents) ? data.customEvents.slice() : [];
+    if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear || '';
+    if (typeof carToSchool !== 'undefined') carToSchool = data.carToSchool || 30;
+    if (typeof carFromSchool !== 'undefined') carFromSchool = data.carFromSchool || 40;
+    if (typeof motoToSchool !== 'undefined') motoToSchool = data.motoToSchool || 25;
+    if (typeof motoFromSchool !== 'undefined') motoFromSchool = data.motoFromSchool || 40;
+    if (typeof phoneDays !== 'undefined') phoneDays = Array.isArray(data.phoneDays) ? data.phoneDays : [];
+    if (typeof samePhoneDuration !== 'undefined' && typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
+    if (data.phoneDuration && typeof phoneDuration !== 'undefined') phoneDuration = data.phoneDuration;
+    if (data.phoneDayDurations && typeof phoneDayDurations !== 'undefined') phoneDayDurations = data.phoneDayDurations;
+    if (typeof setSleepHours === 'function') {
+        if (data.weekdaySleepHours != null) setSleepHours('weekday', data.weekdaySleepHours);
+        if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
+        if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
+    }
+}
+
+function boiteEmploiDepuisProfil(data, appareil) {
+    if (!data || typeof generateDayEvents !== 'function') return null;
+    var backup = boiteCopierEtat();
+    var record = null;
+    try {
+        boitePoserEtat(data);
+        if (typeof customEvents !== 'undefined' && !customEvents.length) {
+            customEvents.push({ id: 'boite-garde', day: -1, title: '', startTime: '00:00', endTime: '00:00' });
+        }
+        record = boiteSnapshotEmploi();
+    } catch (e) {
+        record = null;
+    }
+    if (backup) {
+        try { boitePoserEtat(backup); } catch (e2) {}
+    }
+    if (!record || !record.jours || !record.jours.length) return null;
+    record.appareil = appareil;
+    record.id = 'e_' + appareil;
+    if (data.google && data.google.email && !record.google) {
+        record.google = data.google.email;
+        record.email = data.google.email;
+        record.googleNom = data.google.name || '';
+        record.googleSub = data.google.sub || '';
+    }
+    return record;
+}
+
+function boiteCleStable(texte) {
+    var h = 0;
+    var s = String(texte || '');
+    var i;
+    for (i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return 'p' + Math.abs(h).toString(16);
+}
+
+function boiteProfilsLocaux() {
+    var out = [];
+    var vus = {};
+    function ajouter(cle, data) {
+        if (!data || typeof data !== 'object' || data.efface) return;
+        if (!data.userName && !(Array.isArray(data.subjects) && data.subjects.length)) return;
+        var id = cle + '|' + (data.userName || '') + '|' + (data.savedAt || '');
+        if (vus[id]) return;
+        vus[id] = 1;
+        out.push({ cle: String(cle), data: data });
+    }
+    try {
+        var i;
+        for (i = 0; i < localStorage.length; i++) {
+            var cle = localStorage.key(i);
+            if (!cle) continue;
+            if (cle !== 'studyPlanIB_profil' && cle.indexOf('studyPlanIB_profil:') !== 0 && cle.indexOf('studyPlanIB_sauvegarde:') !== 0) continue;
+            ajouter(cle, boiteLireJson(cle));
+        }
+    } catch (e) {}
+    return out;
+}
+
+function boiteIdbProfils() {
+    return new Promise(function (resolve) {
+        if (!window.indexedDB) return resolve([]);
+        var req = indexedDB.open('studyPlanIB', 1);
+        req.onerror = function () { resolve([]); };
+        req.onsuccess = function () {
+            var db = req.result;
+            if (!db.objectStoreNames.contains('sauvegardes')) return resolve([]);
+            var tx = db.transaction('sauvegardes', 'readonly');
+            var out = [];
+            var cur = tx.objectStore('sauvegardes').openCursor();
+            cur.onsuccess = function () {
+                var row = cur.result;
+                if (!row) return resolve(out);
+                out.push({ cle: 'idb:' + row.key, data: row.value });
+                row.continue();
+            };
+            cur.onerror = function () { resolve(out); };
+        };
+    });
+}
+
+var boiteRejeuFait = false;
+function boiteRejouerPasses() {
+    if (boiteRejeuFait || typeof generateDayEvents !== 'function') return;
+    boiteRejeuFait = true;
+    var courant = boiteNormaliser(boiteNom());
+    function publier(liste) {
+        liste.forEach(function (item) {
+            var data = item.data;
+            if (!data || typeof data !== 'object') return;
+            var nom = boiteNormaliser(data.userName || '');
+            if (!nom || nom === courant) return;
+            var appareil = boiteCleStable(item.cle + '|' + nom);
+            var record = boiteEmploiDepuisProfil(data, appareil);
+            if (record) boiteEnvoyer(record).catch(function () {});
+        });
+    }
+    publier(boiteProfilsLocaux());
+    boiteIdbProfils().then(publier).catch(function () {});
+}
+
 function boiteApresMemoire() {
     boiteMajMenu();
     boiteReessayerUneFois();
     if (!boiteInscrit() && !boiteSession()) return;
     clearTimeout(boiteEmploiTimer);
-    boiteEmploiTimer = setTimeout(function () { boitePublierEmploi(false); }, 2000);
+    boiteEmploiTimer = setTimeout(function () {
+        boitePublierEmploi(false);
+        boiteRejouerPasses();
+    }, 2000);
 }
 
 if (typeof document !== 'undefined') boiteMajMenu();

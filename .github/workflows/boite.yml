@@ -36,5 +36,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/boite-url.json data/boite-statut.txt data/emplois.json
           git diff --cached --quiet && exit 0
-          git commit -m "Ajoute l'adresse de la boîte Aide et Feedback."
+          git commit -m "Met à jour les emplois du temps reçus."
           git push origin HEAD:arena/01a0bac7-learning-dp1

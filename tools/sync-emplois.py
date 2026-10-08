@@ -49,7 +49,7 @@ def parser(texte):
 
 
 def lire_ntfy(sujet):
-    url = 'https://ntfy.sh/' + urllib.parse.quote(sujet) + '/json?poll=1&since=48h'
+    url = 'https://ntfy.sh/' + urllib.parse.quote(sujet) + '/json?poll=1&since=all'
     try:
         _status, raw = ouvrir(url, headers={'Accept': 'application/x-ndjson'})
     except Exception as exc:
@@ -226,6 +226,33 @@ def leger(item):
     }
 
 
+def ecrire_archive(url, emplois):
+    if not url:
+        return
+    try:
+        _status, raw = ouvrir(url, headers={'Accept': 'application/json'})
+        doc = json.loads(raw.decode('utf-8', 'replace'))
+    except Exception as exc:
+        print('archive ecriture ignoree', type(exc).__name__)
+        return
+    if not isinstance(doc, dict):
+        doc = {}
+    doc['emplois'] = emplois
+    doc.setdefault('questions', [])
+    doc.setdefault('feedbacks', [])
+    doc.setdefault('reponses', [])
+    try:
+        ouvrir(
+            url,
+            data=json.dumps(doc, ensure_ascii=False).encode('utf-8'),
+            headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+            method='PUT',
+        )
+        print('archive mise a jour', len(emplois))
+    except Exception as exc:
+        print('archive ecriture impossible', type(exc).__name__)
+
+
 def main():
     config = lire_json(DEST_URL, {'sujet': SUJET, 'kvdb': '', 'archive': ''})
     config.setdefault('sujet', SUJET)
@@ -244,6 +271,7 @@ def main():
     items.extend(lire_archive(config.get('archive') or ''))
     emplois = [leger(item) for item in fusionner(items)]
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
+    ecrire_archive(config.get('archive') or '', emplois)
     print('emplois', len(emplois))
 
 

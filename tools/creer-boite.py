@@ -84,7 +84,58 @@ def creer_kvdb():
     return url
 
 
+def seed_archive():
+    path = pathlib.Path('data/emplois.json')
+    emplois = []
+    if path.exists():
+        try:
+            doc = json.loads(path.read_text(encoding='utf-8'))
+            emplois = doc.get('emplois') or []
+        except Exception:
+            emplois = []
+    return {'questions': [], 'feedbacks': [], 'reponses': [], 'emplois': emplois}
+
+
+def creer_jsonblob():
+    payload = json.dumps(seed_archive(), ensure_ascii=False).encode('utf-8')
+    headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
+    try:
+        status, hdrs, _raw = ouvrir(
+            'https://jsonblob.com/api/jsonBlob',
+            data=payload,
+            headers=headers,
+            method='POST',
+        )
+    except Exception as exc:
+        noter('jsonblob indisponible ' + detail(exc))
+        return ''
+    noter('jsonblob creation HTTP ' + str(status))
+    uri = (hdrs.get('Location') or hdrs.get('location') or '').strip()
+    blob = (hdrs.get('X-jsonblob') or hdrs.get('x-jsonblob') or '').strip()
+    if not uri and blob:
+        uri = 'https://jsonblob.com/api/jsonBlob/' + blob
+    if uri.startswith('/'):
+        uri = 'https://jsonblob.com' + uri
+    if not uri.startswith('https://jsonblob.com/api/jsonBlob/'):
+        noter('jsonblob sans adresse')
+        return ''
+    try:
+        _status, _headers, got = ouvrir(uri, headers={'Accept': 'application/json'})
+        lu = json.loads(got.decode('utf-8', 'replace'))
+        if not isinstance(lu, dict) or 'emplois' not in lu:
+            noter('jsonblob inattendu')
+            return ''
+    except Exception as exc:
+        noter('jsonblob illisible ' + detail(exc))
+        return ''
+    noter('jsonblob pret ' + str(len((lu.get('emplois') or []))) + ' emplois')
+    return uri
+
+
 def creer_archive():
+    blob = creer_jsonblob()
+    if blob:
+        return blob
     payload = json.dumps({'questions': [], 'feedbacks': [], 'emplois': []}).encode()
     headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
     try:
