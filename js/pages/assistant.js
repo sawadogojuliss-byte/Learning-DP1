@@ -278,34 +278,7 @@ function iaMajBulle(bulle, texte) {
 
 function iaPuces() {
     var zone = document.getElementById('iaPuces');
-    if (!zone || zone.childElementCount) return;
-    [
-        { q: 'Ajoute une activité', titre: 'Ajouter', detail: 'Un créneau précis' },
-        { q: 'Ouvre mon planning', titre: 'Planning', detail: 'Ouvrir la page' },
-        { q: 'Je suis stressé', titre: 'Soutien', detail: 'En parler d’abord' },
-        { q: 'Exercices d\'aujourd\'hui', titre: 'Aujourd’hui', detail: 'Ce qui est à rendre' }
-    ].forEach(function (item) {
-        var b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'ia-puce';
-        b.innerHTML = '<strong>' + iaEchap(item.titre) + '</strong><small>' + iaEchap(item.detail) + '</small>';
-        b.onclick = function () { iaQuestion(item.q); };
-        zone.appendChild(b);
-    });
-}
-
-function iaChargerPuter() {
-    if (window.puter && window.puter.ai) return Promise.resolve();
-    if (window.__iaPuter) return window.__iaPuter;
-    window.__iaPuter = new Promise(function (resolve, reject) {
-        var s = document.createElement('script');
-        s.src = 'https://js.puter.com/v2/';
-        s.async = true;
-        s.onload = function () { resolve(); };
-        s.onerror = function () { reject(new Error('Le modèle n\'a pas pu se charger.')); };
-        document.head.appendChild(s);
-    });
-    return window.__iaPuter;
+    if (zone) zone.innerHTML = '';
 }
 
 function iaTexteMessage(message) {
@@ -378,74 +351,11 @@ async function iaAppelerHttp(url, modele, cle, messages, onToken, signal) {
     return texte;
 }
 
-function iaAttendre(promise, signal) {
-    return new Promise(function (resolve, reject) {
-        if (signal.aborted) return reject(new Error('arrêt'));
-        var stop = function () { reject(new Error('arrêt')); };
-        signal.addEventListener('abort', stop);
-        promise.then(function (v) { signal.removeEventListener('abort', stop); resolve(v); }, function (e) {
-            signal.removeEventListener('abort', stop);
-            reject(e);
-        });
-    });
-}
-
-async function iaLirePuter(reponse, onToken, signal) {
-    var complet = '';
-    if (reponse && typeof reponse[Symbol.asyncIterator] === 'function') {
-        for await (var part of reponse) {
-            if (signal.aborted) break;
-            complet = iaAjouterMorceau(complet, typeof part === 'string' ? part : (part && (part.text || iaTexteMessage(part))));
-            if (complet) onToken(complet);
-        }
-    } else {
-        complet = iaTexteMessage(reponse);
-        if (complet) onToken(complet);
-    }
-    return complet;
-}
-
-async function iaAppelerPuter(messages, onToken, signal) {
-    iaStatut('Connexion au modèle… accepte la fenêtre si elle s\'ouvre', '#059669');
-    await iaAttendre(iaChargerPuter(), signal);
-    var plat = messages.map(function (m) {
-        return (m.role === 'system' ? 'Consignes' : m.role === 'assistant' ? 'Assistant' : iaIdentite().prenom) + ': ' + m.content;
-    }).join('\n\n');
-    var essais = [
-        function () { return window.puter.ai.chat(messages, { model: 'openai/gpt-4o-mini', stream: true }); },
-        function () { return window.puter.ai.chat(plat, { model: 'openai/gpt-4o-mini', stream: true }); },
-        function () { return window.puter.ai.chat(plat, { model: 'gpt-4o-mini' }); }
-    ];
-    var derniere = null;
-    for (var i = 0; i < essais.length; i++) {
-        if (signal.aborted) throw new Error('arrêt');
-        try {
-            var reponse = await iaAttendre(essais[i](), signal);
-            var complet = await iaLirePuter(reponse, onToken, signal);
-            if (complet.trim()) return complet;
-        } catch (e) {
-            derniere = e;
-        }
-    }
-    throw derniere || new Error('modèle indisponible');
-}
-
 async function iaGenerer(messages, onToken, signal) {
-    if (!signal.aborted) {
-        var court = new AbortController();
-        var delai = setTimeout(function () { court.abort(); }, 8000);
-        var couper = function () { court.abort(); };
-        signal.addEventListener('abort', couper);
-        try {
-            var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', 'DeepSeek-V4-Flash-0731', 'unused', messages, onToken, court.signal);
-            if (texte && texte.trim()) return texte.trim();
-        } catch (e) {}
-        finally {
-            clearTimeout(delai);
-            signal.removeEventListener('abort', couper);
-        }
-    }
-    return (await iaAppelerPuter(messages, onToken, signal)).trim();
+    if (signal.aborted) throw new Error('arrêt');
+    var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', 'DeepSeek-V4-Flash-0731', '', messages, onToken, signal);
+    if (!texte || !texte.trim()) throw new Error('vide');
+    return texte.trim();
 }
 
 function iaCleDocs() {
@@ -486,13 +396,10 @@ function iaMajDocs() {
     if (!el) return;
     var docs = iaDocs();
     el.textContent = '';
-    if (!docs.length) {
-        el.textContent = iaEstJuliss()
-        ? 'Aucun PDF sur cet appareil. Tu peux ajouter celui du 5 au 9 octobre.'
-        : 'Aucun PDF sur cet appareil. Il reste privé, pour toi seulement.';
-        return;
-    }
-    el.appendChild(document.createTextNode(docs.map(function (d) { return d.nom; }).join(' · ') + ' · retenu ici seulement '));
+    el.style.display = 'none';
+    if (!docs.length) return;
+    el.style.display = '';
+    el.appendChild(document.createTextNode(docs.map(function (d) { return d.nom; }).join(' · ') + ' '));
     var oublier = document.createElement('button');
     oublier.type = 'button';
     oublier.textContent = 'Oublier';
@@ -503,7 +410,7 @@ function iaMajDocs() {
 
 function iaBlocDocuments() {
     var docs = iaDocs();
-    if (!docs.length) return 'Aucun PDF lu pour le moment. Ne prétends pas avoir lu un document qui n\'est pas ici.';
+    if (!docs.length) return 'Aucun document n\'a été lu dans cette conversation.';
     var reste = 8000;
     return docs.slice().reverse().map(function (d) {
         if (reste < 200) return '';
@@ -566,6 +473,98 @@ function iaChoisirPdf() {
     if (input) input.click();
 }
 
+function iaVeutSolution(texte) {
+    var n = iaNormaliser(texte);
+    if (!n) return false;
+    if (/(planifie|planning|creneau|deadline|date limite|organise|organisation|rappel|coche|termine|ajoute)/.test(n) && !/(reponse|solution|resous|resols|redige|ecris|corrige|calcule)/.test(n)) return false;
+    return /(fais|faire|resous|resols|resoudre|redige|rediger|ecris|ecrire|complete|corrige|calcule|solve|write).{0,48}(exercice|devoir|essai|memoire|tok|ia|reponse|solution|calcul|probleme|dm|homework|essay)/.test(n)
+        || /(reponse|solution|correction|answer).{0,24}(exercice|devoir|probleme|question|homework)/.test(n)
+        || /(fais|ecris|redige|write|solve).{0,20}(pour moi|a ma place|for me)/.test(n)
+        || /(aide).{0,24}(faire|resoudre|rediger|ecrire|solve|write).{0,36}(exercice|devoir|essai|ia|memoire|tok|homework|essay)/.test(n)
+        || /(do my homework|write my essay|give me the answer|solve this)/.test(n);
+}
+
+function iaRefusExercice() {
+    return 'Je ne fais pas cet exercice à ta place. Je peux le placer dans ton planning ou te rappeler la date.';
+}
+
+function iaFaitsPdf(texte) {
+    var lignes = String(texte || '').split('\n').map(function (l) { return l.replace(/[ \t]+/g, ' ').trim(); }).filter(Boolean);
+    var jours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    var matieres = ['mathematiques aa', 'maths', 'math', 'francais a', 'francais b', 'anglais a', 'anglais b', 'english a', 'english b', 'biologie', 'biology', 'physique', 'physics', 'chimie', 'chemistry', 'histoire', 'history', 'geographie', 'geography', 'economie', 'economics', 'philosophie', 'philosophy', 'ess', 'tok'];
+    var mois = 'janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|sept|octobre|novembre|decembre|january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec';
+    var faits = { horaires: [], taches: [] };
+    var jourCourant = '';
+    lignes.forEach(function (ligne) {
+        var n = iaNormaliser(ligne);
+        if (/(\?|calculate|find the|solve|resous|montre que|prove|determine)/.test(n)) return;
+        var jour = '';
+        jours.forEach(function (nom) { if (!jour && n.indexOf(nom) !== -1) jour = nom; });
+        var date = '';
+        var md = n.match(new RegExp('(\\d{1,2})\\s+(' + mois + ')'));
+        if (md) date = md[1] + ' ' + md[2];
+        var chiffre = ligne.match(/\b(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?\b/);
+        if (!date && chiffre) date = chiffre[0];
+        if (jour || date) jourCourant = [jour, date].filter(Boolean).join(' ');
+        var heures = ligne.match(/\b\d{1,2}\s*(?:[:h]\s*\d{2}|\s*h)\b/gi) || [];
+        var matiere = '';
+        matieres.forEach(function (nom) { if (!matiere && n.indexOf(nom) !== -1) matiere = nom; });
+        if (heures.length) faits.horaires.push({ jour: jourCourant, ligne: ligne.slice(0, 160) });
+        if (/(exercice|devoir|a rendre|deadline|internal assessment|controle|test|quiz)/.test(n) && !/(\?|calculate|solve|resous)/.test(n)) {
+            faits.taches.push({ jour: jourCourant, ligne: ligne.slice(0, 180) });
+        }
+    });
+    return faits;
+}
+
+function iaResumePdf(nom, texte) {
+    var faits = iaFaitsPdf(texte);
+    var lignes = ['J\'ai lu « ' + nom + ' ».'];
+    if (faits.horaires.length) {
+        lignes.push('Créneaux écrits dans le fichier :');
+        faits.horaires.slice(0, 24).forEach(function (item) {
+            lignes.push((item.jour ? item.jour + ' · ' : '') + item.ligne);
+        });
+    }
+    if (faits.taches.length) {
+        lignes.push('Échéances écrites dans le fichier :');
+        faits.taches.slice(0, 12).forEach(function (item) {
+            lignes.push((item.jour ? item.jour + ' · ' : '') + item.ligne);
+        });
+    }
+    if (!faits.horaires.length && !faits.taches.length) lignes.push('Je n\'y vois pas d\'horaire ni de date à rendre.');
+    return lignes.join('\n');
+}
+
+function iaRepondrePdf(texte) {
+    var n = iaNormaliser(texte);
+    var docs = iaDocs();
+    if (!docs.length) return '';
+    if (!/(pdf|document|fichier|semaine|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|horaire|emploi)/.test(n) && n.indexOf('analys') === -1) return '';
+    var jour = '';
+    ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].forEach(function (nom) {
+        if (n.indexOf(nom) !== -1) jour = nom;
+    });
+    return docs.map(function (doc) {
+        if (!jour) return iaResumePdf(doc.nom, doc.texte);
+        var faits = iaFaitsPdf(doc.texte);
+        var choisis = faits.horaires.concat(faits.taches).filter(function (item) {
+            return iaNormaliser(item.jour).indexOf(jour) !== -1 || iaNormaliser(item.ligne).indexOf(jour) !== -1;
+        });
+        if (!choisis.length) return 'Dans « ' + doc.nom + ' », je ne vois rien pour ' + jour + '.';
+        return 'Dans « ' + doc.nom + ' », pour ' + jour + ' :\n' + choisis.slice(0, 12).map(function (item) { return item.ligne; }).join('\n');
+    }).join('\n\n');
+}
+
+function iaRepondreLocal(texte) {
+    if (iaVeutSolution(texte)) return iaRefusExercice();
+    var pdf = iaRepondrePdf(texte);
+    if (pdf) return pdf;
+    var n = iaNormaliser(texte);
+    if (/(planning|aujourd|demain|exercice|deadline|rendre|organise|matiere|note)/.test(n)) return iaDossier();
+    return '';
+}
+
 async function iaLireFichier(fichier) {
     if (!iaEstAdmin() || !fichier) return;
     var pdf = fichier.type === 'application/pdf' || /\.pdf$/i.test(fichier.name);
@@ -588,8 +587,7 @@ async function iaLireFichier(fichier) {
         }
         iaEnregistrerDoc(fichier.name, texte);
         iaMajDocs();
-        iaBulle('assistant', 'J\'ai lu « ' + fichier.name + ' ». Je le retiens sur cet appareil, pas pour les autres élèves. Je te fais le résumé.');
-        iaQuestion('Analyse le PDF « ' + fichier.name + ' » que tu viens de lire. Résume uniquement ce qui est écrit : dates, horaires, matières, salles, tâches. Dis ensuite comment t\'en servir pour m\'aider. N\'invente rien.');
+        iaBulle('assistant', iaResumePdf(fichier.name, texte));
     } catch (e) {
         iaBulle('assistant', 'Je n\'ai pas réussi à lire ce PDF. Réessaie, ou envoie un PDF dont le texte est sélectionnable.');
         iaStatut('Lecture du PDF impossible', '#b45309');
@@ -805,8 +803,11 @@ function iaActionModele(ligne, texteUser) {
 function iaMessages(question, action) {
     var qui = iaIdentite();
     var systeme = [
-        'Tu es l\'assistant personnel de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu l\'assistes vraiment : tu réponds, tu ouvres la page du site demandée, et tu places une activité au créneau choisi.',
-        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds à n\'importe quelle question, dans la langue de la question, en français par défaut. Sois personnel, clair et chaleureux.',
+        'Tu es l\'assistant personnel de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu l\'aides à s\'organiser : tu réponds, tu ouvres la page demandée, et tu places une activité au créneau choisi.',
+        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Sois personnel, clair et chaleureux.',
+        'Tu ne fais jamais le travail à sa place. Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire, une IA, donner une réponse, une correction ou les étapes d\'un devoir. Si on te le demande, refuse et propose seulement de placer un créneau ou de rappeler la deadline.',
+        'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas.',
+        'Pour les notes : commence par les HL et par les matières à 4/7 ou moins. Préfère des séances courtes avant la deadline, protège le sommeil, et allège la journée si la personne est fatiguée ou stressée.',
         'N\'invente jamais ses notes, ses exercices, son planning, ni le contenu d\'un PDF. Si une action a déjà été faite, confirme-la. Ne demande pas de la refaire.',
         'Si la personne demande d\'ouvrir une page, tu peux ajouter à la fin une ligne [[action:ouvrir:planning]], exercices, soutien, eeia, feries, legende, aide ou feedback.',
         'Si la personne demande d\'ajouter une activité avec un jour et un créneau, et que ce n\'est pas déjà fait, tu peux ajouter [[action:activite:Nom|0|17:00|18:30]] où 0 est lundi et 6 dimanche. N\'invente jamais un horaire qui n\'a pas été dit.',
@@ -831,7 +832,10 @@ function iaQuestion(texte) {
         iaChoisirPdf();
         return;
     }
-    if (texte === 'Analyse mon PDF') texte = 'Analyse les PDF que tu as lus. Résume ce qui est écrit, puis dis comment ça change ma journée. N\'invente rien.';
+    if (texte === 'Analyse mon PDF') {
+        iaBulle('assistant', iaDocs().map(function (doc) { return iaResumePdf(doc.nom, doc.texte); }).join('\n\n'));
+        return;
+    }
     if (texte === 'Je suis stressé') texte = 'Je suis stressé. Écoute-moi d\'abord, sans me donner une longue liste de devoirs.';
     if (texte === 'Je suis fatigué') texte = 'Je suis fatigué. Aide-moi à alléger la journée sans me mettre la pression.';
     if (texte === 'Ajoute une activité') texte = 'Je veux ajouter une activité. Demande-moi le nom, le jour et le créneau exact, puis place-la.';
@@ -852,6 +856,20 @@ async function iaEnvoyer(event) {
         saisie.style.height = 'auto';
     }
     iaBulle('user', texte);
+    var depuisPdf = iaRepondrePdf(texte);
+    if (depuisPdf && /(pdf|document|fichier|analys)/.test(iaNormaliser(texte))) {
+        iaHistorique.push({ role: 'user', content: texte });
+        iaHistorique.push({ role: 'assistant', content: depuisPdf });
+        iaBulle('assistant', depuisPdf);
+        return false;
+    }
+    if (iaVeutSolution(texte)) {
+        var refus = iaRefusExercice();
+        iaBulle('assistant', refus);
+        iaHistorique.push({ role: 'user', content: texte });
+        iaHistorique.push({ role: 'assistant', content: refus });
+        return false;
+    }
     if (iaDetresse(texte)) {
         var soin = iaMessageDetresse();
         iaBulle('assistant', soin);
@@ -888,8 +906,8 @@ async function iaEnvoyer(event) {
             iaHistorique.push({ role: 'assistant', content: recu });
             iaStatut('Réponse arrêtée', '#6b7280');
         } else {
-            var local = action || iaSoutienLocal(texte);
-            iaMajBulle(bulle, local || 'Je n\'ai pas réussi à joindre le modèle. Réessaie dans un instant. Si une fenêtre de confirmation s\'est ouverte, accepte-la puis renvoie ta question.');
+            var local = action || iaRepondreLocal(texte) || iaSoutienLocal(texte);
+            iaMajBulle(bulle, local || 'Je n\'ai pas la suite pour l\'instant. Réessaie.');
             iaStatut(local ? 'Soutien disponible, modèle occupé' : 'Modèle momentanément indisponible', '#b45309');
             if (local) iaHistorique.push({ role: 'assistant', content: local });
             else iaHistorique.pop();
@@ -914,9 +932,7 @@ function iaAccueil() {
     var jour = iaExercices().filter(function (e) { return !e.done && e.deadline === auj; });
     var retard = iaExercices().filter(function (e) { return !e.done && e.deadline && e.deadline < auj; });
     var prenom = iaIdentite().prenom;
-    var intro = prenom + ', je peux répondre, ouvrir la page que tu veux, ou ajouter une activité au créneau que tu me donnes. Par exemple : « Ajoute football lundi de 17h à 18h30 » ou « Ouvre mes exercices ».';
-    if (!iaDocs().length && iaEstJuliss()) intro += '\n\nPour que j\'apprenne ta semaine du 5 au 9 octobre, appuie sur PDF et ajoute ce fichier. Je le retiens seulement sur cet appareil.';
-    else if (!iaDocs().length) intro += '\n\nTu peux aussi joindre un PDF. Je le garde seulement sur cet appareil, pas pour les autres comptes.';
+    var intro = 'Bonjour, ' + prenom + '.';
     if (jour.length || retard.length) {
         intro += '\n\n' + (retard.length ? retard.length + ' exercice' + (retard.length > 1 ? 's' : '') + ' en retard. ' : '')
             + (jour.length ? jour.length + ' à rendre aujourd\'hui.' : 'Rien à rendre aujourd\'hui.');
