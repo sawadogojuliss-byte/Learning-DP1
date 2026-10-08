@@ -2,6 +2,8 @@ name: Boîte partagée
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
   push:
     branches:
       - arena/01a0bac7-learning-dp1

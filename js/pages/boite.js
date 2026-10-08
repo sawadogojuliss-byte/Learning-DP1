@@ -323,9 +323,44 @@ function boiteGarderVu(record) {
     boiteMemoriserVus(fusion);
 }
 
+function boiteJoindreJours(anciens, nouveaux) {
+    var map = {};
+    (anciens || []).forEach(function (jour) { if (jour && jour.j) map[jour.j] = jour; });
+    (nouveaux || []).forEach(function (jour) { if (jour && jour.j) map[jour.j] = jour; });
+    return ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].filter(function (nom) {
+        return map[nom];
+    }).map(function (nom) { return map[nom]; });
+}
+
+function boiteDecouperEmploi(record) {
+    if (!record || record.type !== 'emploi') return [record];
+    var jours = record.jours || [];
+    if (!jours.length || JSON.stringify(record).length <= 3200) return [record];
+    return jours.map(function (jour, index) {
+        return {
+            type: 'emploi',
+            id: record.id,
+            appareil: record.appareil,
+            at: record.at,
+            nom: record.nom,
+            classe: record.classe || '',
+            email: record.email || '',
+            google: record.google || '',
+            googleNom: record.googleNom || '',
+            googleSub: record.googleSub || '',
+            matieres: record.matieres || [],
+            jours: [jour],
+            partie: index
+        };
+    });
+}
+
 function boiteEnvoyer(record) {
-    boiteGarderFile(record);
-    return boiteEnvoyerDistant(record).then(function (ok) {
+    var morceaux = boiteDecouperEmploi(record);
+    morceaux.forEach(boiteGarderFile);
+    return morceaux.reduce(function (chaine, morceau) {
+        return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
+    }, Promise.resolve(true)).then(function (ok) {
         boiteGarderVu(record);
         return ok;
     });
@@ -348,7 +383,7 @@ function boiteParserMessage(texte) {
 }
 
 function boiteLireNtfy() {
-    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=24h', { cache: 'no-store' }, 12000)
+    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=48h', { cache: 'no-store' }, 12000)
         .then(function (res) {
             if (!res.ok) throw new Error('ntfy');
             return res.text();
@@ -421,24 +456,21 @@ function boiteFusionner(items) {
             var cle = item.appareil || item.id;
             if (!cle) return;
             var deja = emplois[cle];
-            if (!deja || String(item.at || '') >= String(deja.at || '')) {
-                if (deja) {
-                    if (!item.google && deja.google) item.google = deja.google;
-                    if (!item.googleSub && deja.googleSub) item.googleSub = deja.googleSub;
-                    if (!item.googleNom && deja.googleNom) item.googleNom = deja.googleNom;
-                    if (!item.email && deja.email) item.email = deja.email;
-                    if (!(item.jours && item.jours.length) && deja.jours) item.jours = deja.jours;
-                    if (!(item.matieres && item.matieres.length) && deja.matieres) item.matieres = deja.matieres;
-                }
+            if (!deja) {
                 emplois[cle] = item;
-            } else {
-                if (!deja.google && item.google) deja.google = item.google;
-                if (!deja.googleSub && item.googleSub) deja.googleSub = item.googleSub;
-                if (!deja.googleNom && item.googleNom) deja.googleNom = item.googleNom;
-                if (!deja.email && item.email) deja.email = item.email;
-                if (!(deja.jours && deja.jours.length) && item.jours) deja.jours = item.jours;
-                if (!(deja.matieres && deja.matieres.length) && item.matieres) deja.matieres = item.matieres;
+                return;
             }
+            var recent = String(item.at || '') >= String(deja.at || '');
+            var garde = recent ? item : deja;
+            var autre = recent ? deja : item;
+            if (!garde.google && autre.google) garde.google = autre.google;
+            if (!garde.googleSub && autre.googleSub) garde.googleSub = autre.googleSub;
+            if (!garde.googleNom && autre.googleNom) garde.googleNom = autre.googleNom;
+            if (!garde.email && autre.email) garde.email = autre.email;
+            if (!(garde.matieres && garde.matieres.length) && autre.matieres) garde.matieres = autre.matieres;
+            if (!garde.classe && autre.classe) garde.classe = autre.classe;
+            garde.jours = boiteJoindreJours(autre.jours, garde.jours);
+            emplois[cle] = garde;
         }
     });
     var listeEmplois = Object.keys(emplois).map(function (cle) { return emplois[cle]; });

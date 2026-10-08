@@ -165,20 +165,29 @@ def lire_archive(url):
     return [item for item in (doc.get('emplois') or []) if isinstance(item, dict)]
 
 
+JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+
+
+def joindre_jours(anciens, nouveaux):
+    carte = {}
+    for jour in anciens or []:
+        if isinstance(jour, dict) and jour.get('j'):
+            carte[jour['j']] = jour
+    for jour in nouveaux or []:
+        if isinstance(jour, dict) and jour.get('j'):
+            carte[jour['j']] = jour
+    return [carte[nom] for nom in JOURS if nom in carte]
+
+
 def completer(ancien, nouveau):
     if not ancien:
         return nouveau
-    for champ in ('google', 'googleSub', 'googleNom', 'email'):
+    for champ in ('google', 'googleSub', 'googleNom', 'email', 'classe', 'nom'):
         if not nouveau.get(champ) and ancien.get(champ):
             nouveau[champ] = ancien[champ]
-    if not nouveau.get('jours') and ancien.get('jours'):
-        nouveau['jours'] = ancien['jours']
     if not nouveau.get('matieres') and ancien.get('matieres'):
         nouveau['matieres'] = ancien['matieres']
-    if not nouveau.get('classe') and ancien.get('classe'):
-        nouveau['classe'] = ancien['classe']
-    if not nouveau.get('nom') and ancien.get('nom'):
-        nouveau['nom'] = ancien['nom']
+    nouveau['jours'] = joindre_jours(ancien.get('jours'), nouveau.get('jours'))
     return nouveau
 
 
