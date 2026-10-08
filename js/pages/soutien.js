@@ -216,16 +216,9 @@ function initSoutien() {
 }
 
 function updateStreak() {
-    let streak = parseInt(localStorage.getItem('studyPlanIB_streak') || '0');
-    const lastVisit = localStorage.getItem('studyPlanIB_lastVisit');
-    const today = new Date().toDateString();
-    if (lastVisit !== today) {
-        const yesterday = new Date(Date.now() - 86400000).toDateString();
-        streak = lastVisit === yesterday ? streak + 1 : 1;
-        localStorage.setItem('studyPlanIB_streak', streak);
-        localStorage.setItem('studyPlanIB_lastVisit', today);
-    }
-    document.getElementById('streakCount').textContent = streak + ' jour' + (streak > 1 ? 's' : '');
+    var n = typeof compterJourConnecte === 'function' ? compterJourConnecte() : 1;
+    var el = document.getElementById('streakCount');
+    if (el) el.textContent = n + ' jour' + (n > 1 ? 's' : '');
 }
 
 function selectMood(mood) {

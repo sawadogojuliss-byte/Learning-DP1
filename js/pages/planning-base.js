@@ -151,14 +151,7 @@ function generateDayEvents(dayIndex) {
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else if (isSaturday) {
-        const commuteToSchool = (carToSchool || motoToSchool || 30);
-        const commuteFromSchool = (carFromSchool || motoFromSchool || 40);
         chain('prep', 'Préparation', '', getDuration('prep', 30), 'prep', '🚿', true);
-        if (!(typeof studentTakesEconomics === 'function' && studentTakesEconomics())) {
-            chain('commute1', 'Trajet école', commuteToSchool + ' min', getDuration('commute1', commuteToSchool), 'transport', '🚗', true);
-            fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
-            chain('commute2', 'Trajet maison', commuteFromSchool + ' min', getDuration('commute2', commuteFromSchool), 'transport', '🚗', true);
-        }
         const s1 = allSubj[0];
         if (s1) chain('study1', 'Révisions ' + s1.name, s1.level + ' · ' + s1.grade + '/7', getDuration('study1', s1.level === 'HL' ? 90 : 60), getStudyColor(s1.grade), s1.icon, true);
         chain('lunch', 'Déjeuner', '', getDuration('lunch', 60), 'meal', '🍽️', true);
@@ -292,10 +285,41 @@ function selectDay(index) {
     renderPlanning();
 }
 
+function compterJourConnecte() {
+    var n = 1;
+    try {
+        var cleN = 'studyPlanIB_joursConnectes';
+        var cleD = 'studyPlanIB_dernierJour';
+        var aujourd = new Date().toDateString();
+        n = parseInt(localStorage.getItem(cleN) || '0', 10);
+        if (!isFinite(n) || n < 0) n = 0;
+        if (localStorage.getItem(cleN) == null) {
+            var ancien = parseInt(localStorage.getItem('studyPlanIB_streak') || '0', 10);
+            if (isFinite(ancien) && ancien > 0) n = ancien;
+        }
+        var dernier = localStorage.getItem(cleD) || '';
+        if (!dernier && localStorage.getItem('studyPlanIB_lastVisit') === aujourd && n > 0) dernier = aujourd;
+        if (dernier !== aujourd) {
+            n += 1;
+            localStorage.setItem(cleN, String(n));
+            localStorage.setItem(cleD, aujourd);
+        }
+        if (!n) n = 1;
+    } catch (e) {
+        n = 1;
+    }
+    var el = document.getElementById('joursCompte');
+    if (el) el.textContent = String(n);
+    var soutien = document.getElementById('streakCount');
+    if (soutien) soutien.textContent = n + ' jour' + (n > 1 ? 's' : '');
+    return n;
+}
+
 function initPlanning() {
     // Set greeting with user name
     const greeting = getGreeting();
     document.getElementById('greetingText').textContent = greeting + ', ' + (userName || 'là') + ' ! 👋';
+    if (typeof compterJourConnecte === 'function') compterJourConnecte();
     renderPlanning();
     // Refresh next activity banner every minute
     if (typeof boitePublierEmploi === 'function') boitePublierEmploi();
@@ -605,8 +629,6 @@ function validateNewEventTime(startTime, endTime, dayIndex) {
         if (coupe(13 * 60 + 30, 16 * 60 + 35))
             return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-16h35)" };
     }
-    if (dayIndex === 5 && typeof studentTakesEconomics === 'function' && studentTakesEconomics() && coupe(8 * 60 + 30, 10 * 60 + 30))
-        return { valid: false, error: "⏰ Impossible pendant le cours d'Économie du samedi (8h30-10h30)" };
     return { valid: true, error: '' };
 }
 
@@ -726,4 +748,6 @@ function goBackToActivities() {
     document.getElementById('screenTimeModal').classList.remove('active');
     document.getElementById('activitiesModal').classList.add('active');
 }
+
+if (typeof compterJourConnecte === 'function') compterJourConnecte();
  

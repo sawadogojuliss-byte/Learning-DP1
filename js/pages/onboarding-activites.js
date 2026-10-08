@@ -49,9 +49,6 @@ function messageChevauchementActivite(start, end, dayIndex, exceptName) {
     if (!(e > s)) return 'L\'heure de fin doit être après l\'heure de début.';
     const busy = [];
     if (dayIndex < 5) busy.push({ name: 'les cours', start: 8 * 60 + 15, end: 16 * 60 + 35 });
-    if (dayIndex === 5 && typeof studentTakesEconomics === 'function' && studentTakesEconomics()) {
-        busy.push({ name: 'le cours d\'Économie', start: 8 * 60 + 30, end: 10 * 60 + 30 });
-    }
     if (typeof bedtimeForDay === 'function' && typeof weekdayWakeup !== 'undefined') {
         const wakeClock = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
         const wake = timeToMinutes(wakeClock);

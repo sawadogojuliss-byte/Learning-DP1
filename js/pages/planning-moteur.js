@@ -210,13 +210,21 @@ function planningOccupe(placed, start, end) {
     return placed.some(function (p) { return start < p._fin && p._debut < end; });
 }
 
+function coursEconomieSamedi(ev, dayIndex) {
+    if (!ev) return true;
+    var jour = dayIndex != null ? dayIndex : ev.day;
+    if (Number(jour) !== 5) return false;
+    if (ev.id === 'eco' || ev.replacesId === 'eco') return true;
+    var titre = String(ev.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’]/g, ' ');
+    return titre.indexOf('cours d economie') !== -1;
+}
+
 function annoterPlages(events, dayIndex, wakeupTime, bedtime) {
     var wake = planningMinutes(wakeupTime);
     var bed = planningMinutes(bedtime);
     if (bed <= wake) bed += 1440;
-    var eco = (events || []).some(function (ev) { return ev && ev.id === 'eco'; });
-    var matinFin = dayIndex < 5 ? 8 * 60 + 15 : (eco ? 8 * 60 + 30 : Math.min(bed, wake + 4 * 60));
-    var apres = dayIndex < 5 ? 16 * 60 + 35 : (eco ? 10 * 60 + 30 : wake + 60);
+    var matinFin = dayIndex < 5 ? 8 * 60 + 15 : Math.min(bed, wake + 4 * 60);
+    var apres = dayIndex < 5 ? 16 * 60 + 35 : wake + 60;
     (events || []).forEach(function (ev) {
         if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return;
         var dur = planningDuree(ev);
@@ -470,17 +478,7 @@ function generateDayEvents(dayIndex) {
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else if (isSaturday) {
-        const saturdayClass = typeof studentTakesEconomics === 'function' && studentTakesEconomics();
-        const trajetSam = trajetProfil();
         chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
-        if (saturdayClass) {
-            chain('commute1', 'Trajet école', trajetSam.aller + ' min', trajetSam.aller, 'transport', trajetSam.icon, true);
-            fixed('eco', "Cours d'Économie", '8h30 → 10h30', '08:30', '10:30', 'school', '💹');
-            chain('commute2', 'Trajet maison', trajetSam.retour + ' min', trajetSam.retour, 'transport', trajetSam.icon, true);
-            fixerTrajet(events, 'commute1', debutTrajetAller(trajetSam.depart, trajetSam.aller, 8 * 60 + 30), trajetSam.aller);
-            calerPreparation(events, 'commute1');
-            fixerTrajet(events, 'commute2', debutTrajetRetour(10 * 60 + 30, trajetSam.retourHeure), trajetSam.retour);
-        }
         const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
@@ -561,7 +559,7 @@ function generateDayEvents(dayIndex) {
     });
 
     // ── CRÉNEAUX AJOUTÉS PAR L'ÉLÈVE (heure choisie → fixés 📌) ──
-    customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted).forEach(event => {
+    customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex)).forEach(event => {
         events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
             type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId });
     });
@@ -588,6 +586,7 @@ function generateDayEvents(dayIndex) {
     }
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
+    if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
     return planningBalayer(jour);
 }
 

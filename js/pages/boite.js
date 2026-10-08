@@ -995,6 +995,11 @@ function boiteRendreEmplois(fusion) {
     });
     function boiteJourAffiche(jour) {
     var slots = (jour && jour.s ? jour.s : []).slice();
+    if (boiteNormaliser(jour && jour.j).indexOf('samedi') !== -1) {
+        slots = slots.filter(function (slot) {
+            return boiteNormaliser(slot && slot.t).indexOf('cours d economie') === -1;
+        });
+    }
     var fin = slots.length ? String(slots[slots.length - 1].f || '') : '';
     var incomplet = fin && fin <= '12:30';
     if (incomplet) {
@@ -1293,6 +1298,7 @@ function boiteSnapshotEmploi() {
         for (k = 0; k < evs.length && slots.length < 24; k++) {
             var ev = evs[k];
             if (!ev || !ev.title || !ev.startTime) continue;
+            if (i === 5 && (ev.id === 'eco' || boiteNormaliser(ev.title).indexOf('cours d economie') !== -1)) continue;
             slots.push({ d: ev.startTime, f: ev.endTime || '', t: String(ev.title).slice(0, 42) });
         }
         if (slots.length) jours.push({ j: noms[i], s: slots });

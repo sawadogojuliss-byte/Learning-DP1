@@ -108,6 +108,13 @@ function rappelVus() {
     return Array.isArray(vus) ? vus : [];
 }
 
+function rappelMemeClasse(item) {
+    var moi = typeof ibYear !== 'undefined' ? String(ibYear || '').trim().toLowerCase() : '';
+    var eux = item && item.classe ? String(item.classe).trim().toLowerCase() : '';
+    if (!moi || !eux) return true;
+    return moi === eux;
+}
+
 function rappelEnAttente() {
     var moi = typeof boiteAppareil === 'function' ? boiteAppareil() : '';
     var cles = rappelMesMatieres();
@@ -118,6 +125,7 @@ function rappelEnAttente() {
         if (!item || (item.type && item.type !== 'rappel') || !item.id) return;
         var cle = rappelCle(item.matiere, item.niveau);
         if (!cle || !cles[cle]) return;
+        if (!rappelMemeClasse(item)) return;
         if (moi && item.appareil === moi) return;
         if (vus.indexOf(item.id) !== -1) return;
         if (rappelJaiExercice(item.matiere, item.niveau)) return;
@@ -201,13 +209,8 @@ function rappelActions(parent) {
 }
 
 function rappelTexte(item) {
-    var jours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-    var matiere = rappelNomAffiche(item.matiere, item.niveau) || 'cette matière';
-    var quand = '';
-    if (typeof item.jour === 'number' && jours[item.jour]) quand = jours[item.jour];
-    if (item.debut && item.fin) quand = (quand ? quand + ' de ' : '') + item.debut + ' à ' + item.fin;
-    else if (item.debut) quand = (quand ? quand + ' à ' : '') + item.debut;
-    return 'Tu fais ' + matiere + '. Un camarade a placé un exercice' + (quand ? ' ' + quand : '') + '. Tu n\'en as pas dans cette matière. Tu en as un ?';
+    var matiere = rappelNomAffiche(item.matiere, item.niveau) || 'ta classe';
+    return 'Un autre élève de ta classe a prévu une plage horaire pour un exercice de ' + matiere + '. C\'est la même chose pour toi. Est-ce que tu as le même exercice ?';
 }
 
 function rappelIgnorer(id) {
@@ -352,8 +355,8 @@ function rappelPoser() {
         if (!bulle) return;
         if (bulle.parentNode) bulle.parentNode.id = 'rappel-' + item.id;
         var actions = rappelActions(bulle);
-        actions.appendChild(rappelBouton('Oui, j\'en ai un', function () { rappelCommencer(item); }));
-        actions.appendChild(rappelBouton('Non, je l\'ajoute', function () { rappelCommencer(item); }));
+        actions.appendChild(rappelBouton('Oui', function () { rappelCommencer(item); }));
+        actions.appendChild(rappelBouton('Non', function () { rappelIgnorer(item.id); }));
     });
     rappelPoserJournee();
     fil.scrollTop = fil.scrollHeight;

@@ -326,7 +326,7 @@ async function iaLireFlux(res, onToken) {
     return complet;
 }
 
-async function iaAppelerHttp(url, modele, cle, messages, onToken, signal) {
+async function iaAppelerHttp(url, modele, cle, messages, onToken, signal, stream) {
     var headers = { 'Content-Type': 'application/json' };
     if (cle) headers.Authorization = 'Bearer ' + cle;
     var res = await fetch(url, {
@@ -338,7 +338,7 @@ async function iaAppelerHttp(url, modele, cle, messages, onToken, signal) {
             messages: messages,
             temperature: 0.6,
             max_tokens: 900,
-            stream: true
+            stream: stream !== false
         })
     });
     if (!res.ok) throw new Error('modèle indisponible');
@@ -351,11 +351,79 @@ async function iaAppelerHttp(url, modele, cle, messages, onToken, signal) {
     return texte;
 }
 
+function iaLierSignal(parent, ms) {
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { ctrl.abort(); }, ms);
+    function couper() {
+        clearTimeout(timer);
+        if (!ctrl.signal.aborted) ctrl.abort();
+    }
+    if (parent) {
+        if (parent.aborted) couper();
+        else parent.addEventListener('abort', couper, { once: true });
+    }
+    ctrl.signal.addEventListener('abort', function () { clearTimeout(timer); }, { once: true });
+    return ctrl.signal;
+}
+
+async function iaAppelerTexte(messages, onToken, signal) {
+    var systeme = '';
+    var user = '';
+    (messages || []).forEach(function (m) {
+        if (!m) return;
+        if (m.role === 'system') systeme = String(m.content || '');
+        if (m.role === 'user') user = String(m.content || '');
+    });
+    var prompt = [
+        'Tu es l\'assistant d\'un élève du Baccalauréat International à Enko Ouaga. Réponds dans la langue de la question, en français par défaut. Sois personnel et bref.',
+        'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, donner une correction ou les étapes d\'un devoir. Propose seulement d\'organiser un créneau.',
+        'Il n\'y a aucun cours d\'économie le samedi. N\'invente ni notes, ni planning, ni PDF.',
+        systeme.slice(0, 900),
+        'Question : ' + user.slice(0, 700)
+    ].join('\n\n');
+    var res = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt), {
+        method: 'GET',
+        signal: signal,
+        cache: 'no-store'
+    });
+    if (!res.ok) throw new Error('texte');
+    var texte = String(await res.text() || '').trim();
+    if (!texte || texte.charAt(0) === '<') throw new Error('texte');
+    if (texte.length < 280 && /^(error|unauthorized|api key|rate limit|forbidden)/i.test(texte)) throw new Error('texte');
+    if (onToken) onToken(texte);
+    return texte;
+}
+
 async function iaGenerer(messages, onToken, signal) {
-    if (signal.aborted) throw new Error('arrêt');
-    var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', 'DeepSeek-V4-Flash-0731', '', messages, onToken, signal);
-    if (!texte || !texte.trim()) throw new Error('vide');
-    return texte.trim();
+    if (signal && signal.aborted) throw new Error('arrêt');
+    var budget = iaLierSignal(signal, 9000);
+    var fini = false;
+    function garder(texte) {
+        var t = String(texte || '').trim();
+        if (!t || fini) return '';
+        fini = true;
+        try { budget.abort(); } catch (e) {}
+        return t;
+    }
+    function silencieux(promesse) {
+        return promesse.then(garder, function () {
+            if (signal && signal.aborted && !fini) throw new Error('arrêt');
+            return '';
+        });
+    }
+    var essais = await Promise.all([
+        silencieux(iaAppelerHttp('https://api.llm7.io/v1/chat/completions', 'fast', 'unused', messages, function (partiel) {
+            if (!fini && onToken) onToken(partiel);
+        }, budget, false)),
+        silencieux(iaAppelerHttp('https://api.llm7.io/v1/chat/completions', 'default', 'unused', messages, function () {}, budget, false)),
+        silencieux(iaAppelerTexte(messages, function (partiel) {
+            if (!fini && onToken) onToken(partiel);
+        }, budget))
+    ]);
+    if (signal && signal.aborted && !fini) throw new Error('arrêt');
+    var choisi = essais.filter(Boolean)[0];
+    if (choisi) return choisi;
+    throw new Error('modele');
 }
 
 function iaCleDocs() {
@@ -556,13 +624,52 @@ function iaRepondrePdf(texte) {
     }).join('\n\n');
 }
 
-function iaRepondreLocal(texte) {
+function iaPhraseJournee() {
+    var n = new Date().getDate() % 3;
+    if (n === 0) return 'Comment s\'est passée ta journée ?';
+    if (n === 1) return 'Ta journée a été comment, vraiment ?';
+    return 'Si tu veux, dis-moi comment s\'est passée ta journée.';
+}
+
+function iaResumeEleve() {
+    var qui = iaIdentite();
+    var index = iaIndexJour(new Date());
+    var maintenant = new Date().getHours() * 60 + new Date().getMinutes();
+    var auj = iaAujourdhui();
+    var exercices = iaExercices();
+    var retard = exercices.filter(function (e) { return !e.done && e.deadline && e.deadline < auj; });
+    var jour = exercices.filter(function (e) { return !e.done && e.deadline === auj; });
+    var evenements = iaEvenements(index);
+    var prochain = evenements.find(function (e) { return e.end > maintenant; });
+    var lignes = [qui.prenom + ', je reste avec toi.'];
+    if (prochain) lignes.push('Prochain créneau : ' + prochain.title + ', à ' + iaHeureCourte(prochain.start) + '.');
+    else lignes.push('Je ne vois plus de créneau pour aujourd\'hui.');
+    if (retard.length) lignes.push(retard.length + ' exercice' + (retard.length > 1 ? 's sont' : ' est') + ' en retard.');
+    if (jour.length) lignes.push(jour.length + ' à rendre aujourd\'hui.');
+    lignes.push('Je peux ouvrir une page ou placer un créneau si tu me donnes le jour et l\'heure. Je ne fais pas tes exercices.');
+    lignes.push(iaPhraseJournee());
+    return lignes.join('\n');
+}
+
+function iaReponseSure(texte, action) {
+    if (action) return action + '\n\n' + iaPhraseJournee();
     if (iaVeutSolution(texte)) return iaRefusExercice();
     var pdf = iaRepondrePdf(texte);
     if (pdf) return pdf;
+    var soutien = iaSoutienLocal(texte);
+    if (soutien) return soutien;
     var n = iaNormaliser(texte);
-    if (/(planning|aujourd|demain|exercice|deadline|rendre|organise|matiere|note)/.test(n)) return iaDossier();
-    return '';
+    if (/(bonjour|salut|bonsoir|coucou|hello)/.test(n) && n.length < 48) {
+        return 'Bonjour, ' + iaIdentite().prenom + '. ' + iaPhraseJournee() + ' Je peux ouvrir une page, placer un créneau, ou regarder ce qui est à rendre.';
+    }
+    if (/(tok|cas|memoire|diplome|\bib\b|hl|sl)/.test(n)) {
+        return 'Le diplôme compte six matières, souvent trois HL et trois SL, notées de 1 à 7, plus au plus 3 points pour le TOK et le mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Je ne fais pas le travail à ta place : je peux le placer dans le planning.\n\n' + iaPhraseJournee();
+    }
+    return iaResumeEleve();
+}
+
+function iaRepondreLocal(texte) {
+    return iaReponseSure(texte, '');
 }
 
 async function iaLireFichier(fichier) {
@@ -806,7 +913,8 @@ function iaMessages(question, action) {
         'Tu es l\'assistant personnel de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu l\'aides à s\'organiser : tu réponds, tu ouvres la page demandée, et tu places une activité au créneau choisi.',
         'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Sois personnel, clair et chaleureux.',
         'Tu ne fais jamais le travail à sa place. Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire, une IA, donner une réponse, une correction ou les étapes d\'un devoir. Si on te le demande, refuse et propose seulement de placer un créneau ou de rappeler la deadline.',
-        'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas.',
+        'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas. Il n\'y a aucun cours d\'économie le samedi : n\'en invente jamais un.',
+        'Demande souvent, en une seule phrase, comment s\'est passée la journée.',
         'Pour les notes : commence par les HL et par les matières à 4/7 ou moins. Préfère des séances courtes avant la deadline, protège le sommeil, et allège la journée si la personne est fatiguée ou stressée.',
         'N\'invente jamais ses notes, ses exercices, son planning, ni le contenu d\'un PDF. Si une action a déjà été faite, confirme-la. Ne demande pas de la refaire.',
         'Si la personne demande d\'ouvrir une page, tu peux ajouter à la fin une ligne [[action:ouvrir:planning]], exercices, soutien, eeia, feries, legende, aide ou feedback.',
@@ -906,11 +1014,12 @@ async function iaEnvoyer(event) {
             iaHistorique.push({ role: 'assistant', content: recu });
             iaStatut('Réponse arrêtée', '#6b7280');
         } else {
-            var local = action || iaRepondreLocal(texte) || iaSoutienLocal(texte);
-            iaMajBulle(bulle, local || 'Je n\'ai pas la suite pour l\'instant. Réessaie.');
-            iaStatut(local ? 'Soutien disponible, modèle occupé' : 'Modèle momentanément indisponible', '#b45309');
-            if (local) iaHistorique.push({ role: 'assistant', content: local });
-            else iaHistorique.pop();
+            var local = '';
+            try { local = iaReponseSure(texte, action); } catch (e2) {}
+            if (!local) local = 'Je suis là. Dis-moi le jour et l\'heure si tu veux placer un créneau, ou la page à ouvrir.';
+            iaMajBulle(bulle, local);
+            iaHistorique.push({ role: 'assistant', content: local });
+            iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
         }
     }
     iaEnCours = false;
