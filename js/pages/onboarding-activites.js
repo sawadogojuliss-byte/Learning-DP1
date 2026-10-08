@@ -28,18 +28,11 @@ function isSchoolHours(time, dayIndex) {
 }
 
 function showSchoolWarning() {
-    showActivityWarning('⚠️ Tu ne peux pas planifier d\'activités pendant les heures de cours (8h15 - 16h35, lundi au vendredi).');
-}
-
-function showActivityWarning(message) {
     const warning = document.getElementById('schoolWarning');
     if (!warning) return;
-    const lines = warning.querySelectorAll('p');
-    if (lines[0]) lines[0].textContent = message;
-    if (lines[1]) lines[1].textContent = 'Deux activités ne peuvent pas occuper le même créneau. Choisis un autre horaire.';
     warning.style.display = 'block';
     clearTimeout(warning._timer);
-    warning._timer = setTimeout(function () { warning.style.display = 'none'; }, 4500);
+    warning._timer = setTimeout(function () { warning.style.display = 'none'; }, 4000);
 }
 
 function creneauActivite(act, dayIndex) {
@@ -102,7 +95,7 @@ function toggleActivityDay(name, dayIndex) {
         } else {
             const slot = creneauActivite(activity, dayIndex) || { start: '17:00', end: '19:00' };
             const conflit = messageChevauchementActivite(slot.start, slot.end, dayIndex, activity.name);
-            if (conflit) { showActivityWarning(conflit); return; }
+            if (conflit) { if (dayIndex < 5) showSchoolWarning(); return; }
             activity.days.push(dayIndex);
             if (!activity.dayTimes[dayIndex]) {
                 activity.dayTimes[dayIndex] = { start: slot.start || '17:00', end: slot.end || '19:00' };
@@ -128,7 +121,7 @@ function updateActivityTime(name, field, value, days) {
     const jours = (days && days.length) ? days : activity.days;
     for (let i = 0; i < jours.length; i++) {
         const conflit = messageChevauchementActivite(start, end, jours[i], name);
-        if (conflit) { showActivityWarning(conflit); renderActivities(); return; }
+        if (conflit) { if (jours[i] < 5) showSchoolWarning(); renderActivities(); return; }
     }
     activity[field] = value;
 }
@@ -140,7 +133,7 @@ function updateActivityDayTime(name, dayIndex, field, value) {
     const start = field === 'start' ? value : current.start;
     const end = field === 'end' ? value : current.end;
     const conflit = messageChevauchementActivite(start, end, dayIndex, name);
-    if (conflit) { showActivityWarning(conflit); renderActivities(); return; }
+    if (conflit) { if (dayIndex < 5) showSchoolWarning(); renderActivities(); return; }
     if (!activity.dayTimes[dayIndex]) activity.dayTimes[dayIndex] = { start: current.start, end: current.end };
     activity.dayTimes[dayIndex][field] = value;
 }

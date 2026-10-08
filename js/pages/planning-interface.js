@@ -236,13 +236,7 @@ function saveEditedEventCascade() {
     closeEditModal();
     renderPlanning();
 
-    const newOverlaps = v3OverlapWarnings(day).filter(k => !overlapsBefore.includes(k));
-    if (newOverlaps.length) {
-        const [a, b] = newOverlaps[0].split('|');
-        const evs = generateDayEvents(day);
-        const ea = evs.find(e => e.id === a), eb = evs.find(e => e.id === b);
-        v3Toast('⚠️ Attention : « ' + (ea ? ea.title : a) + ' » chevauche « ' + (eb ? eb.title : b) + '». Ajuste les durées si besoin.', 'warn', { duration: 5000 });
-    } else if (delta !== 0) {
+    if (delta !== 0) {
         v3Toast('🔗 Planning synchronisé — ' + (delta > 0 ? '+' : '') + delta + ' min sur les activités suivantes', 'success');
     } else {
         v3Toast('✅ Modification enregistrée', 'success');

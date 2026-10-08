@@ -114,9 +114,17 @@ function planningFacteurObjectif() {
     return 0.85 + (Math.max(24, Math.min(45, score)) - 24) / 21 * 0.4;
 }
 
+function planningFacteurHumeur() {
+    var mood = typeof currentMood === 'string' ? currentMood : '';
+    if (mood === 'motive') return 1.15;
+    if (mood === 'mauvaisnote') return 1.1;
+    if (mood === 'fatigue' || mood === 'stresse') return 0.8;
+    return 1;
+}
+
 function dureeEtude(subj, longue, courte) {
     var base = (typeof dureePrioritaire === 'function') ? dureePrioritaire(subj, longue, courte) : (subj && subj.level === 'HL' ? longue : courte);
-    return Math.max(15, Math.round((Number(base) || 30) * planningFacteurObjectif() / 5) * 5);
+    return Math.max(15, Math.round((Number(base) || 30) * planningFacteurObjectif() * planningFacteurHumeur() / 5) * 5);
 }
 
 function trajetProfil() {
@@ -534,7 +542,7 @@ function generateDayEvents(dayIndex) {
 
     // ── ACTIVITÉS EXTRASCOLAIRES (configurées à l'inscription) ──
     selectedActivities.forEach(activity => {
-        if (!activity.days.includes(dayIndex)) return;
+        if (!activity || !activity.days || activity.days.indexOf(dayIndex) === -1) return;
         const id = 'activity-' + activity.name;
         const ov = ovFor(id);
         if (ov && ov.deleted) return;
@@ -578,7 +586,39 @@ function generateDayEvents(dayIndex) {
         const dropped = new Set(holidayDroppedIds(dayIndex));
         scheduled = scheduled.filter(function (ev) { return !dropped.has(ev.id); });
     }
-    return assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
+    var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
+    jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
+    return planningBalayer(jour);
+}
+
+function emploiDuTemps(jour) {
+    return generateDayEvents(jour);
+}
+
+function emploiDuTempsSemaine() {
+    var jours = [];
+    var i;
+    for (i = 0; i < 7; i++) jours.push(emploiDuTemps(i));
+    return jours;
+}
+
+function planningActualiser() {
+    var planning = document.getElementById('planningModal');
+    if (planning && planning.classList.contains('active') && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    var feries = document.getElementById('panelFeries');
+    if (feries && feries.classList.contains('active') && typeof renderHolidays === 'function') {
+        try { renderHolidays(); } catch (e) {}
+    }
+    var travaux = document.getElementById('panelEEia');
+    if (travaux && travaux.classList.contains('active') && typeof renderEEia === 'function') {
+        try { renderEEia(); } catch (e) {}
+    }
+    var exo = document.getElementById('panelExercices');
+    if (exo && exo.classList.contains('active') && typeof renderPlanifier === 'function') {
+        try { renderPlanifier(); } catch (e) {}
+    }
 }
 
 function assurerRevision(events, dayIndex) {
@@ -621,6 +661,151 @@ function assurerRevision(events, dayIndex) {
     var sleep = list.find(function (ev) { return ev && ev.id === 'sleep'; });
     if (sleep) out.push(sleep);
     return out;
+}
+
+function planningSujetsSaisis() {
+    var all = [];
+    if (typeof subjects !== 'undefined' && subjects) all = all.concat(subjects);
+    if (typeof optionalSubjects !== 'undefined' && optionalSubjects) all = all.concat(optionalSubjects);
+    var vus = {};
+    return all.filter(function (s) {
+        if (!s || !s.name || vus[s.name]) return false;
+        vus[s.name] = true;
+        return true;
+    });
+}
+
+function planningBlocManquant(id, title, subtitle, dur, type, icon) {
+    return { id: id, title: title, subtitle: subtitle || '', duree: dur, type: type, icon: icon || '📌' };
+}
+
+function planningManquesDuJour(events, dayIndex) {
+    var titres = (events || []).map(function (ev) { return String(ev && ev.title || ''); }).join(' | ');
+    var ids = {};
+    (events || []).forEach(function (ev) { if (ev && ev.id) ids[ev.id] = true; });
+    var manques = [];
+    var sujets = planningSujetsSaisis();
+    if (sujets.length && !/Révisions|Exercices/.test(titres)) {
+        var subj = sujets[dayIndex % sujets.length];
+        manques.push(planningBlocManquant('study-page', 'Révisions ' + subj.name, typeof sousTitreMatiere === 'function' ? sousTitreMatiere(subj) : (subj.level || ''), dureeEtude(subj, 45, 30), typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study', subj.icon || '📚'));
+    }
+    var memoirSaisi = (typeof memoirLevel === 'string' && memoirLevel) || (typeof memoirPlan !== 'undefined' && Array.isArray(memoirPlan) && memoirPlan.some(function (p) { return p && !p.done; }));
+    if (memoirSaisi && dayIndex === 6 && !ids['memoir-page'] && titres.indexOf('Mémoire') === -1) {
+        manques.push(planningBlocManquant('memoir-page', 'Mémoire', typeof memoirLevelLabel === 'function' ? memoirLevelLabel() : '', 40, 'memoir', '📖'));
+    }
+    var iaSujets = typeof eeSujets === 'function' ? eeSujets() : sujets;
+    if (iaSujets.length) {
+        var idx = dayIndex % iaSujets.length;
+        var sujetIa = iaSujets[idx];
+        var niveau = sujetIa && typeof iaStageId === 'function' ? iaStageId(sujetIa.name) : '';
+        var plan = sujetIa && typeof iaPlans !== 'undefined' && iaPlans ? iaPlans[sujetIa.name] : null;
+        var iaSaisi = !!niveau || (Array.isArray(plan) && plan.some(function (p) { return p && !p.done; }));
+        if (iaSaisi && titres.indexOf(sujetIa.name) === -1) {
+            manques.push(planningBlocManquant('ia-page-' + sujetIa.name, 'Évaluation interne · ' + sujetIa.name, typeof iaLevelLabel === 'function' ? iaLevelLabel(sujetIa.name) : '', 35, 'ia', sujetIa.icon || '📋'));
+        }
+    }
+    var phoneDu = typeof phoneDays !== 'undefined' && phoneDays && phoneDays.indexOf(dayIndex) !== -1;
+    var phoneMin = phoneDu ? (typeof samePhoneDuration !== 'undefined' && samePhoneDuration ? phoneDuration : (phoneDayDurations && (phoneDayDurations[dayIndex] || phoneDayDurations[String(dayIndex)]) || 0)) : 0;
+    if (phoneMin >= 15 && !ids.phone) manques.push(planningBlocManquant('phone', 'Téléphone', typeof formatDuration === 'function' ? formatDuration(phoneMin) : '', Math.min(phoneMin, 60), 'phone', '📱'));
+    var libre = typeof freeMinutesForDay === 'function' ? freeMinutesForDay(dayIndex) : 0;
+    if (libre >= 15 && !ids.freetime && !(events || []).some(function (ev) { return ev && ev.type === 'free'; })) {
+        manques.push(planningBlocManquant('freetime', 'Temps libre', typeof formatDuration === 'function' ? formatDuration(libre) : '', Math.min(libre, 60), 'free', '🎮'));
+    }
+    (typeof selectedActivities !== 'undefined' ? selectedActivities : []).forEach(function (act) {
+        if (!act || !act.days || act.days.indexOf(dayIndex) === -1) return;
+        var id = 'activity-' + act.name;
+        if (ids[id] || titres.indexOf(act.name) !== -1) return;
+        var slot = act.sameTime ? { start: act.startTime, end: act.endTime } : ((act.dayTimes && act.dayTimes[dayIndex]) || { start: '17:00', end: '19:00' });
+        var dur = 30;
+        if (typeof timeToMinutes === 'function' && slot.start && slot.end) dur = Math.max(20, timeToMinutes(slot.end) - timeToMinutes(slot.start));
+        manques.push(planningBlocManquant(id, act.name, 'Activité', dur, 'activity', act.icon || '✨'));
+    });
+    return manques;
+}
+
+function planningCompleterPages(events, dayIndex, wakeupTime, bedtime) {
+    var list = (events || []).map(function (ev) { return Object.assign({}, ev); });
+    var wake = planningMinutes(wakeupTime);
+    var bed = planningMinutes(bedtime);
+    if (bed <= wake) bed += 1440;
+    planningManquesDuJour(list, dayIndex).forEach(function (bloc) {
+        var donor = null;
+        list.forEach(function (ev) {
+            if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school' || ev.type === 'activity') return;
+            var dur = planningMinutes(ev.endTime) - planningMinutes(ev.startTime);
+            if (dur < bloc.duree + 15) return;
+            if (!donor || dur > (planningMinutes(donor.endTime) - planningMinutes(donor.startTime))) donor = ev;
+        });
+        if (!donor) return;
+        var fin = planningMinutes(donor.endTime);
+        var debut = fin - bloc.duree;
+        if (debut < wake || fin > bed) return;
+        donor.endTime = v3M2T(debut);
+        list.push({
+            id: bloc.id,
+            title: bloc.title,
+            subtitle: bloc.subtitle,
+            startTime: v3M2T(debut),
+            endTime: v3M2T(fin),
+            type: bloc.type,
+            icon: bloc.icon,
+            editable: true,
+            kind: 'flex'
+        });
+    });
+    return list;
+}
+
+function planningBalayer(events) {
+    var list = (events || []).filter(function (ev) { return ev && !ev.hidden; }).map(function (ev) { return Object.assign({}, ev); });
+    function bornes(ev) {
+        var s = planningMinutes(ev.startTime);
+        var e = planningMinutes(ev.endTime);
+        if (e <= s) return [[s, 1440], [0, e]].filter(function (p) { return p[1] > p[0]; });
+        return [[s, e]];
+    }
+    function chevauche(a, b) {
+        var pa = bornes(a);
+        var pb = bornes(b);
+        var i, j;
+        for (i = 0; i < pa.length; i++) for (j = 0; j < pb.length; j++) {
+            if (pa[i][0] < pb[j][1] && pb[j][0] < pa[i][1]) return true;
+        }
+        return false;
+    }
+    function rang(ev) {
+        if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return 0;
+        if (ev.type === 'activity') return 1;
+        if (ev.type === 'transport' || ev.type === 'prep') return 2;
+        if (ev.type === 'meal') return 3;
+        return 4;
+    }
+    list.sort(function (a, b) { return rang(a) - rang(b) || planningMinutes(a.startTime) - planningMinutes(b.startTime); });
+    var gardes = [];
+    list.forEach(function (ev) {
+        var tours = 0;
+        while (tours++ < 12 && gardes.some(function (autre) { return chevauche(ev, autre); })) {
+            var autre = null;
+            gardes.forEach(function (candidat) { if (!autre && chevauche(ev, candidat)) autre = candidat; });
+            if (!autre || rang(ev) === 0) break;
+            var finAutre = planningMinutes(autre.endTime);
+            if (finAutre <= planningMinutes(autre.startTime)) finAutre += 1440;
+            var dur = Math.max(10, planningDuree(ev));
+            var debut = finAutre % 1440;
+            ev.startTime = v3M2T(debut);
+            ev.endTime = v3M2T((debut + dur) % 1440);
+            ev.shifted = true;
+        }
+        if (!gardes.some(function (autre) { return chevauche(ev, autre); })) gardes.push(ev);
+    });
+    gardes.sort(function (a, b) {
+        if (a.id === 'wakeup') return -1;
+        if (b.id === 'wakeup') return 1;
+        if (a.id === 'sleep') return 1;
+        if (b.id === 'sleep') return -1;
+        return planningMinutes(a.startTime) - planningMinutes(b.startTime);
+    });
+    return gardes;
 }
 
 function slotWasRemoved(dayIndex, id) {

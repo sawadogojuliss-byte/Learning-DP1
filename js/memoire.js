@@ -551,6 +551,7 @@ function memoireSauvegarder() {
         memoirePoserHash(data.etape);
         memoireMajIndicateur();
         if (typeof boiteApresMemoire === 'function') boiteApresMemoire();
+        if (typeof planningActualiser === 'function') planningActualiser();
     } catch (e) {
         console.error('Mémoire', e);
     }
