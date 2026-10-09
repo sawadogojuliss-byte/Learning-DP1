@@ -1248,21 +1248,13 @@ function iaLireQuestion(texte) {
     };
 }
 
-function iaPhraseLecture(lecture) {
-    var q = iaCitation(lecture.brut);
-    var formes = [
-        'Je t\'écoute. Tu me demandes : « ' + q + ' ».',
-        'D\'accord, je suis avec toi. Tu veux savoir : « ' + q + ' ».',
-        'Je lis d\'abord ta question, tranquillement : « ' + q + ' ».',
-        'Pas de souci, je reste là. Tu m\'écris : « ' + q + ' ».',
-        'Je te réponds avec plaisir. Voici ce que tu demandes : « ' + q + ' ».'
-    ];
-    var phrase = iaVariante(formes, lecture.brut + '|' + iaHistorique.length);
-    var dernieres = iaDernieresReponses(1);
-    if (dernieres.length && iaNormaliser(dernieres[0]).indexOf(iaNormaliser(phrase).slice(0, 28)) === 0) {
-        phrase = formes[(formes.indexOf(phrase) + 1) % formes.length];
-    }
-    return phrase;
+function iaRetirerAnnonce(texte) {
+    var lignes = String(texte || '').split('\n').filter(function (ligne) {
+        var n = iaNormaliser(ligne);
+        if (/^lecture\s*:/.test(n)) return false;
+        return !(/voici ce que tu demandes|tu me demandes|tu veux savoir|je lis d.abord|tu m.ecris|je retiens ta question|ta question, telle que|ce que tu viens d.ecrire/.test(n) && n.length < 280);
+    });
+    return lignes.join('\n').replace(/^\s*lecture\s*:\s*/i, '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function iaMomentJournee() {
@@ -1411,16 +1403,15 @@ function iaReponseGenerique(corps) {
 }
 
 function iaReponseFinale(texte, lecture, modele, action) {
-    var phrase = iaPhraseLecture(lecture || iaLireQuestion(texte));
-    var corps = iaNettoyer(modele || '').replace(/^lecture\s*:\s*[^\n]*\n*/i, '').trim();
-    if (corps.indexOf(phrase) === 0) corps = corps.slice(phrase.length).trim();
+    lecture = lecture || iaLireQuestion(texte);
+    var corps = iaRetirerAnnonce(iaNettoyer(modele || ''));
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     else if (lecture && lecture.intention === 'pdf' && !iaReponseUtilePdf(corps, lecture)) corps = '';
     if (!corps || corps.length < 24 || iaReponseGenerique(corps) || iaDejaDit(corps)) corps = iaComposer(lecture, action);
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     if (action && lecture.intention !== 'exercice' && corps.indexOf(action) === -1) corps = action + '\n\n' + corps;
     if (iaDoitDemanderJournee(lecture) && !/journ/.test(iaNormaliser(corps))) corps += '\n\n' + iaPhraseJournee();
-    return iaRetirerQuestionJournee(phrase + '\n\n' + corps, lecture);
+    return iaRetirerQuestionJournee(iaRetirerAnnonce(corps), lecture);
 }
 
 function iaReponseSure(texte, action) {
@@ -1742,7 +1733,7 @@ function iaMessages(question, action, lecture) {
     var systeme = [
         'Tu es l\'ami proche de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu réponds de façon très amicale, tu écoutes, tu encourages et tu soutiens, sans jugement. Tu aides aussi à s\'organiser : tu ouvres la page demandée, et tu places une activité au créneau choisi.',
         'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Le ton est doux, chaleureux et proche, jamais froid ni sec.',
-        'Avant de répondre, lis la question mot à mot. La première ligne doit être « Lecture : » suivie d\'une reformulation de CETTE question, pas d\'un briefing. Ensuite seulement, réponds à cette lecture. N\'ajoute pas le planning, les notes ou une question sur la journée si la question n\'en parle pas.',
+        'Avant de répondre, comprends la question, mais ne l\'annonce pas. Interdit d\'écrire « Lecture : », « Voici ce que tu demandes », « Tu me demandes » ou toute reformulation de la question. Réponds directement. N\'ajoute pas le planning, les notes ou une question sur la journée si la question n\'en parle pas.',
         'Ne recopie jamais une réponse précédente. Change l\'angle, les exemples et la première phrase. Dernière réponse à ne pas répéter : ' + (iaDernieresReponses(1)[0] || 'aucune').slice(0, 240),
         'Tu ne fais jamais le travail à sa place. Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire, une IA, donner une réponse, une correction ou les étapes d\'un devoir. Si on te le demande, refuse et propose seulement de placer un créneau ou de rappeler la deadline.',
         'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas. Il n\'y a aucun cours d\'économie le samedi : n\'en invente jamais un.',
@@ -1829,20 +1820,20 @@ async function iaEnvoyer(event) {
     }
     iaHistorique.push({ role: 'user', content: texte });
     var lecture = iaLireQuestion(texte);
-    var bulle = iaBulle('assistant', 'Je lis ta question…', true);
+    var bulle = iaBulle('assistant', '', true);
     var bouton = document.getElementById('iaEnvoi');
     iaEnCours = true;
     if (bouton) bouton.classList.add('stop');
-    iaStatut('Lecture de la question…', '#059669');
-    iaMajBulle(bulle, iaPhraseLecture(lecture));
+    iaStatut('Je réfléchis…', '#059669');
     iaControleur = new AbortController();
     var action = [iaCocherSiDemande(texte), iaAgir(texte)].filter(Boolean).join(' ');
     var recu = '';
     try {
-        iaStatut('Réponse à cette question…', '#059669');
+        iaStatut('Je réfléchis…', '#059669');
         recu = await iaGenerer(iaMessages(texte, action, lecture), function (partiel) {
             recu = partiel;
-            iaMajBulle(bulle, iaPhraseLecture(lecture) + '\n\n' + (iaNettoyer(partiel) || '…'));
+            var propre = iaRetirerAnnonce(iaNettoyer(partiel));
+            if (propre) iaMajBulle(bulle, propre);
         }, iaControleur.signal);
         if (!recu) throw new Error('vide');
         var extra = (recu.match(/\[\[action:[^\]]+\]\]/g) || []).map(function (ligne) {
@@ -1854,12 +1845,12 @@ async function iaEnvoyer(event) {
         iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
     } catch (e) {
         if (iaControleur && iaControleur.signal.aborted && recu) {
-            iaHistorique.push({ role: 'assistant', content: iaPhraseLecture(lecture) + '\n\n' + iaNettoyer(recu) });
+            iaHistorique.push({ role: 'assistant', content: iaRetirerAnnonce(iaNettoyer(recu)) });
             iaStatut('Réponse arrêtée', '#6b7280');
         } else {
             var local = '';
             try { local = iaReponseFinale(texte, lecture, '', action); } catch (e2) {}
-            if (!local) local = iaPhraseLecture(lecture) + '\n\nJe n\'ai pas encore la suite de cette question. Reformule-la, je la relirai.';
+            if (!local) local = 'Je n\'ai pas encore la suite. Reformule, je réfléchis et je te réponds.';
             iaMajBulle(bulle, local);
             iaHistorique.push({ role: 'assistant', content: local });
             iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
