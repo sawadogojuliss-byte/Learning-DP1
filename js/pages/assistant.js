@@ -377,7 +377,8 @@ async function iaAppelerTexte(messages, onToken, signal) {
         if (m.role === 'user') user = String(m.content || '');
     });
     var prompt = [
-        'Tu es l\'assistant d\'un élève du Baccalauréat International à Enko Ouaga. Réponds dans la langue de la question, en français par défaut. Sois personnel et bref.',
+        'Tu es l\'ami proche d\'un élève du Baccalauréat International à Enko Ouaga. Réponds dans la langue de la question, en français par défaut. Sois très amical, doux et un vrai soutien, jamais froid.',
+        iaMomentJournee() ? 'C\'est le soir après les cours : tu peux demander une seule fois comment s\'est passée la journée.' : 'Ne demande pas comment s\'est passée la journée. Seulement après 16h35, le soir, du lundi au vendredi. Jamais le week-end.',
         'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, donner une correction ou les étapes d\'un devoir. Propose seulement d\'organiser un créneau.',
         'Il n\'y a aucun cours d\'économie le samedi. N\'invente ni notes, ni planning, ni PDF.',
         systeme.slice(0, 900),
@@ -685,10 +686,10 @@ function iaVeutSolution(texte) {
 
 function iaRefusExercice(texte) {
     var formes = [
-        'Je ne fais pas cet exercice à ta place. Je peux le placer dans ton planning ou te rappeler la date.',
-        'Je ne vais pas le résoudre. Dis-moi la deadline, et je cherche un créneau qui ne chevauche rien.',
-        'La réponse, je ne la donne pas. Je peux seulement t\'aider à t\'organiser pour le faire toi-même.',
-        'Je m\'arrête avant la solution. Si tu veux, on place le travail dans le planning, rien de plus.'
+        'Je suis là pour toi, mais je ne fais pas cet exercice à ta place. On peut le placer dans ton planning, si tu veux.',
+        'Je ne vais pas le résoudre, et ce n\'est pas contre toi. Dis-moi la deadline, je cherche un créneau qui ne chevauche rien.',
+        'La réponse, je ne la donne pas. Je peux t\'aider à t\'organiser pour le faire toi-même, tranquillement.',
+        'Je m\'arrête avant la solution, pour te protéger. Si tu veux, on place le travail dans le planning, rien de plus.'
     ];
     return formes[iaEmpreinte(texte || String(iaHistorique.length)) % formes.length];
 }
@@ -862,11 +863,11 @@ function iaLireQuestion(texte) {
 function iaPhraseLecture(lecture) {
     var q = iaCitation(lecture.brut);
     var formes = [
-        'Tu me demandes : « ' + q + ' ».',
-        'Je lis d\'abord ceci : « ' + q + ' ».',
-        'Avant de répondre, je retiens ta question : « ' + q + ' ».',
-        'Ta question, telle que je la lis : « ' + q + ' ».',
-        'Je réponds à ce que tu viens d\'écrire : « ' + q + ' ».'
+        'Je t\'écoute. Tu me demandes : « ' + q + ' ».',
+        'D\'accord, je suis avec toi. Tu veux savoir : « ' + q + ' ».',
+        'Je lis d\'abord ta question, tranquillement : « ' + q + ' ».',
+        'Pas de souci, je reste là. Tu m\'écris : « ' + q + ' ».',
+        'Je te réponds avec plaisir. Voici ce que tu demandes : « ' + q + ' ».'
     ];
     var phrase = iaVariante(formes, lecture.brut + '|' + iaHistorique.length);
     var dernieres = iaDernieresReponses(1);
@@ -876,22 +877,39 @@ function iaPhraseLecture(lecture) {
     return phrase;
 }
 
+function iaMomentJournee() {
+    var maintenant = new Date();
+    var index = iaIndexJour(maintenant);
+    if (index >= 5) return false;
+    return maintenant.getHours() * 60 + maintenant.getMinutes() >= 16 * 60 + 35;
+}
+
 function iaPhraseJournee() {
     var formes = [
-        'Comment s\'est passée ta journée ?',
-        'Et ta journée, elle a été comment ?',
-        'Si tu veux, dis-moi comment s\'est passée la journée.',
-        'La journée a été lourde, ou ça va ?'
+        'Si tu veux, comment s\'est passée ta journée ?',
+        'Je suis là. Ta journée, elle a été comment ?',
+        'Après les cours, tu peux me dire comment s\'est passée la journée.',
+        'Le soir, je peux t\'écouter : la journée a été comment ?'
     ];
     return formes[(iaHistorique.length + new Date().getHours()) % formes.length];
 }
 
+function iaRetirerQuestionJournee(texte, lecture) {
+    if (iaMomentJournee()) return texte;
+    if (lecture && /journ/.test(lecture.n)) return texte;
+    return String(texte || '').split('\n').filter(function (ligne) {
+        var n = iaNormaliser(ligne);
+        return !(/comment/.test(n) && /journ/.test(n));
+    }).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 function iaDoitDemanderJournee(lecture) {
+    if (!iaMomentJournee()) return false;
     if (!lecture || lecture.intention === 'exercice' || lecture.intention === 'emotion' || lecture.intention === 'suivi') return false;
     if (/journ/.test(lecture.n)) return false;
     var recent = iaDernieresReponses(2).join(' ');
     if (/comment s.est pass|ta journee/.test(iaNormaliser(recent))) return false;
-    return (iaHistorique.length + new Date().getDate()) % 2 === 0;
+    return true;
 }
 
 function iaFaitPlanning(lecture) {
@@ -950,11 +968,11 @@ function iaFaitEmotion(lecture) {
     else if (/honte/.test(n)) sentiment = 'la honte';
     else if (/decourag|perdu|depasse|ecrase/.test(n)) sentiment = 'le découragement';
     var formes = [
-        'Tu parles de ' + sentiment + '. Je le prends au sérieux, sans en faire un diagnostic.',
-        sentiment.charAt(0).toUpperCase() + sentiment.slice(1) + ', ce n\'est pas un échec. On peut le réduire à une seule chose.',
-        'J\'entends ' + sentiment + '. On ne remplit pas la semaine : une étape suffit.'
+        'Je suis avec toi. Tu parles de ' + sentiment + ', et ça compte. Je ne te juge pas.',
+        sentiment.charAt(0).toUpperCase() + sentiment.slice(1) + ', ce n\'est pas un échec. On peut le prendre tout doucement, ensemble.',
+        'Je t\'écoute. ' + sentiment + ', c\'est lourd, et tu n\'as pas à le porter seul(e).'
     ];
-    return iaVariante(formes, lecture.brut) + '\n\nDis-moi, en une phrase, ce qui pèse le plus. Je ne suis pas un professionnel de santé.';
+    return iaVariante(formes, lecture.brut) + '\n\nDis-moi, en une phrase, ce qui pèse le plus. Je reste là. Je ne suis pas un professionnel de santé.';
 }
 
 function iaFaitLibre(lecture) {
@@ -968,9 +986,9 @@ function iaFaitLibre(lecture) {
     });
     var fait = lies.join(', ');
     var formes = [
-        function () { return fait ? 'Je rattache ça à ' + fait + ', sans inventer le reste.' : 'Je n\'ai pas une fiche toute faite pour cette question. Je ne vais pas inventer.'; },
-        function () { return fait ? 'Dans ton dossier, le seul lien que je vois est ' + fait + '.' : 'Ça ne figure pas dans ton planning ni dans tes matières. Dis-le autrement si tu veux que je m\'en serve pour t\'organiser.'; },
-        function () { return fait ? 'Le mot que je reconnais chez toi, c\'est ' + fait + '.' : 'Je préfère te le dire : je n\'ai pas la réponse dans tes données, et je n\'en fabrique pas une.'; }
+        function () { return fait ? 'Je suis avec toi. Je rattache ça à ' + fait + ', sans inventer le reste.' : 'Je suis là, vraiment. Pour cette question, je n\'ai pas une fiche toute faite, et je ne vais pas inventer.'; },
+        function () { return fait ? 'D\'accord, on regarde ça ensemble. Le lien que je vois, c\'est ' + fait + '.' : 'Je t\'écoute. Ça ne figure pas encore dans ton planning. Dis-le autrement, et on trouve une façon de t\'aider.'; },
+        function () { return fait ? 'Pas de souci. Chez toi, je reconnais ' + fait + ', et je reste à côté.' : 'Je préfère être honnête avec toi : je n\'ai pas cette réponse dans tes données, et je n\'en fabrique pas une.'; }
     ];
     return iaVariante(formes, lecture.brut + '|' + iaHistorique.length)();
 }
@@ -1011,7 +1029,7 @@ function iaReponseFinale(texte, lecture, modele, action) {
     if (!corps || corps.length < 24 || iaReponseGenerique(corps) || iaDejaDit(corps)) corps = iaComposer(lecture, action);
     if (action && lecture.intention !== 'exercice' && corps.indexOf(action) === -1) corps = action + '\n\n' + corps;
     if (iaDoitDemanderJournee(lecture) && !/journ/.test(iaNormaliser(corps))) corps += '\n\n' + iaPhraseJournee();
-    return phrase + '\n\n' + corps;
+    return iaRetirerQuestionJournee(phrase + '\n\n' + corps, lecture);
 }
 
 function iaReponseSure(texte, action) {
@@ -1098,7 +1116,7 @@ function iaMessageDetresse() {
 function iaSoutienLocal(texte) {
     var n = iaNormaliser(texte);
     if (!/(stress|anxie|fatigue|triste|decourage|perdu|mauvaise note|seul|peur|honte|mal|pleure|vide|ecrase|depasse)/.test(n)) return '';
-    return 'Je t\'entends. Ce que tu ressens compte, et ça ne veut pas dire que tu es en train d\'échouer.\n\nOn peut le prendre tout petit : dis-moi, en une phrase, ce qui pèse le plus. Si tu veux, on le relie ensuite à une seule chose de ta journée, pas à toute la semaine.\n\nJe ne suis pas un professionnel de santé. Si ça devient trop lourd, parle-en à un adulte de confiance à la maison ou à Enko Ouaga.';
+    return 'Je suis là, et je t\'écoute. Ce que tu ressens compte. Ça ne veut pas dire que tu es en train d\'échouer.\n\nOn peut le prendre tout petit, ensemble : dis-moi, en une phrase, ce qui pèse le plus. Ensuite, une seule chose, pas toute la semaine.\n\nJe ne suis pas un professionnel de santé. Si ça devient trop lourd, parle-en à un adulte de confiance à la maison ou à Enko Ouaga.';
 }
 
 function iaPages() {
@@ -1296,13 +1314,15 @@ function iaMessages(question, action, lecture) {
     var qui = iaIdentite();
     lecture = lecture || iaLireQuestion(question);
     var systeme = [
-        'Tu es l\'assistant personnel de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu l\'aides à s\'organiser : tu réponds, tu ouvres la page demandée, et tu places une activité au créneau choisi.',
-        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Sois personnel, clair et chaleureux.',
+        'Tu es l\'ami proche de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu réponds de façon très amicale, tu écoutes, tu encourages et tu soutiens, sans jugement. Tu aides aussi à s\'organiser : tu ouvres la page demandée, et tu places une activité au créneau choisi.',
+        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Le ton est doux, chaleureux et proche, jamais froid ni sec.',
         'Avant de répondre, lis la question mot à mot. La première ligne doit être « Lecture : » suivie d\'une reformulation de CETTE question, pas d\'un briefing. Ensuite seulement, réponds à cette lecture. N\'ajoute pas le planning, les notes ou une question sur la journée si la question n\'en parle pas.',
         'Ne recopie jamais une réponse précédente. Change l\'angle, les exemples et la première phrase. Dernière réponse à ne pas répéter : ' + (iaDernieresReponses(1)[0] || 'aucune').slice(0, 240),
         'Tu ne fais jamais le travail à sa place. Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire, une IA, donner une réponse, une correction ou les étapes d\'un devoir. Si on te le demande, refuse et propose seulement de placer un créneau ou de rappeler la deadline.',
         'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas. Il n\'y a aucun cours d\'économie le samedi : n\'en invente jamais un.',
-        'Après la réponse, tu peux parfois, pas à chaque message, demander en une phrase différente comment s\'est passée la journée. Ne le fais pas si tu l\'as déjà demandé dans les deux derniers messages.',
+        iaMomentJournee()
+            ? 'C\'est après les cours, un soir de semaine. Tu peux demander une seule fois, gentiment, comment s\'est passée la journée.'
+            : 'Ne demande jamais comment s\'est passée la journée. Ce n\'est permis qu\'après 16h35, le soir, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le samedi, jamais le dimanche.',
         'Pour les notes : commence par les HL et par les matières à 4/7 ou moins. Préfère des séances courtes avant la deadline, protège le sommeil, et allège la journée si la personne est fatiguée ou stressée.',
         'N\'invente jamais ses notes, ses exercices, son planning, ni le contenu d\'un PDF. Si une action a déjà été faite, confirme-la. Ne demande pas de la refaire.',
         'Si la personne demande d\'ouvrir une page, tu peux ajouter à la fin une ligne [[action:ouvrir:planning]], exercices, soutien, eeia, feries, legende, aide ou feedback.',
@@ -1430,7 +1450,7 @@ function iaAccueil() {
     var jour = iaExercices().filter(function (e) { return !e.done && e.deadline === auj; });
     var retard = iaExercices().filter(function (e) { return !e.done && e.deadline && e.deadline < auj; });
     var prenom = iaIdentite().prenom;
-    var intro = 'Bonjour, ' + prenom + '.';
+    var intro = 'Coucou ' + prenom + ', je suis là. Tu peux me parler, je t\'écoute.';
     if (jour.length || retard.length) {
         intro += '\n\n' + (retard.length ? retard.length + ' exercice' + (retard.length > 1 ? 's' : '') + ' en retard. ' : '')
             + (jour.length ? jour.length + ' à rendre aujourd\'hui.' : 'Rien à rendre aujourd\'hui.');

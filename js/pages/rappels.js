@@ -145,14 +145,22 @@ function rappelJourneeLire() {
     return data && typeof data === 'object' ? data : {};
 }
 
+function rappelMomentJournee() {
+    if (typeof iaMomentJournee === 'function') return iaMomentJournee();
+    var d = new Date();
+    var js = d.getDay();
+    if (js === 0 || js === 6) return false;
+    return d.getHours() * 60 + d.getMinutes() >= 16 * 60 + 35;
+}
+
 function rappelJourneeDue() {
-    if (!window.__profilComplet) return false;
+    if (!window.__profilComplet || !rappelMomentJournee()) return false;
     var data = rappelJourneeLire();
     var ref = data.answeredAt || data.askedAt || '';
     if (!ref) return true;
-    var age = Date.now() - new Date(ref).getTime();
-    if (!isFinite(age)) return true;
-    return age >= (data.answeredAt ? 5 : 3) * 3600000;
+    var quand = new Date(ref);
+    if (!isFinite(quand.getTime())) return true;
+    return quand.toDateString() !== new Date().toDateString();
 }
 
 function rappelPeutOuvrir() {
@@ -363,11 +371,11 @@ function rappelPoser() {
 }
 
 function rappelReponseJournee(mood) {
-    if (mood === 'motive') return 'Cette énergie est bonne. Garde-la pour une matière qui compte, et arrête-toi avant d\'être vidé(e).';
-    if (mood === 'bien') return 'Content de l\'entendre. Si une matière te bloque, on peut la placer dans un trou du planning.';
-    if (mood === 'fatigue') return 'Repose-toi un peu. Une journée fatiguée avance mieux avec une seule chose claire, pas avec tout le programme.';
-    if (mood === 'stresse') return 'C\'est lourd, et tu n\'as pas à tout régler ce soir. On prend une chose, puis tu souffles.';
-    return 'Quand la journée est difficile, on réduit. Dis-moi la matière qui pèse, et on trouve un petit créneau, pas une montagne.';
+    if (mood === 'motive') return 'Je suis content de t\'entendre comme ça. Garde un peu de cette énergie pour une matière qui compte, et arrête-toi avant d\'être vidé(e).';
+    if (mood === 'bien') return 'Ça me fait plaisir. Si une matière te bloque, on peut la placer ensemble, tranquillement.';
+    if (mood === 'fatigue') return 'Je t\'entends. Repose-toi un peu. Une journée fatiguée avance mieux avec une seule chose claire, pas avec tout le programme.';
+    if (mood === 'stresse') return 'C\'est lourd, et tu n\'as pas à tout régler ce soir. Je suis là. On prend une chose, puis tu souffles.';
+    return 'Je suis avec toi. Quand la journée est difficile, on réduit. Dis-moi la matière qui pèse, et on trouve un petit créneau, pas une montagne.';
 }
 
 function rappelNoterJournee(mood) {
@@ -388,7 +396,7 @@ function rappelNoterJournee(mood) {
 function rappelPoserJournee() {
     if (!rappelJourneeDue() || typeof iaBulle !== 'function') return;
     if (document.getElementById('rappel-journee')) return;
-    var bulle = iaBulle('assistant', 'Comment s\'est passée ta journée ?');
+    var bulle = iaBulle('assistant', 'Je suis là. Comment s\'est passée ta journée ?');
     if (!bulle || !bulle.parentNode) return;
     bulle.parentNode.id = 'rappel-journee';
     var data = rappelJourneeLire();
