@@ -468,18 +468,18 @@ function compteDemanderJeton(prompt, scope) {
             },
             error_callback: function (err) { ko(err); }
         });
-        try { client.requestAccessToken({ prompt: prompt || 'none' }); }
-        catch (e) { ko(e); }
+        try {
+            if (prompt) client.requestAccessToken({ prompt: prompt });
+            else client.requestAccessToken();
+        } catch (e) { ko(e); }
     });
 }
 
 function compteObtenirJeton(interactif) {
     if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
+    if (!interactif) return Promise.reject(new Error('silence'));
     var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
-    return compteDemanderJeton('none', scope).catch(function () {
-        if (!interactif) return Promise.reject(new Error('silence'));
-        return compteDemanderJeton('', scope);
-    });
+    return compteDemanderJeton('', scope);
 }
 
 function compteDriveTrouver(token) {
@@ -585,6 +585,7 @@ function compteNuageFusionner(token) {
 
 function compteNuageSynchroniser(interactif) {
     if (!window.compteSession || !window.compteSession.sub || !compteClientId()) return Promise.resolve('skip');
+    if (!interactif && !(compteJeton && Date.now() < compteJetonFin - 60000)) return Promise.resolve('skip');
     if (compteNuageEnCours) return Promise.resolve('busy');
     compteNuageEnCours = true;
     var etat = 'failed';
@@ -994,7 +995,7 @@ function compteRestaurerTout(session, token) {
     }
     var suite = token
         ? compteNuageFusionner(token).catch(function () { return 'echec'; })
-        : compteNuageSynchroniser(true).catch(function () { return 'echec'; });
+        : Promise.resolve(choisi && compteUtile(choisi) ? 'local' : 'vide');
     return suite.then(function (etat) {
         var apresCopies = compteCopiesLocales(session);
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
@@ -1055,42 +1056,26 @@ function compteConnexionGoogle(origine) {
             bouton.textContent = libelle;
         }
     }
-    function secours(e) {
-        return comptePreparerGoogle().then(function () {
-            var slot = document.getElementById('googleBtnSlot');
-            if (slot && window.google && google.accounts && google.accounts.id && google.accounts.id.renderButton) {
-                slot.innerHTML = '';
-                google.accounts.id.renderButton(slot, {
-                    type: 'standard',
-                    theme: 'outline',
-                    size: 'large',
-                    text: 'continue_with',
-                    shape: 'pill',
-                    logo_alignment: 'left',
-                    width: 280,
-                    locale: 'fr'
-                });
-            } else if (window.google && google.accounts && google.accounts.id && google.accounts.id.prompt) {
-                try { google.accounts.id.prompt(); } catch (err) {}
-            }
-            compteMessage('Choisis le compte Google pour retrouver la progression.');
+    if (!window.google || !google.accounts || !google.accounts.oauth2) {
+        compteChargerGIS().then(function () {
             fin();
-        }).catch(function () {
+            compteMessage('Google est prêt. Appuie encore sur Continuer avec Google.');
+        }, function (e) {
             compteMessage((e && e.message) || 'La connexion Google n’a pas abouti. Réessaie.');
             fin();
         });
+        return;
     }
-    return compteChargerGIS().then(function () {
-        var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
-        return compteDemanderJeton('', scope);
-    }).then(function (token) {
+    var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
+    return compteDemanderJeton('', scope).then(function (token) {
         return compteSessionDepuisJeton(token).then(function (session) {
             return compteRestaurerTout(session, token);
         });
     }).then(function () {
         fin();
-    }).catch(function (e) {
-        return secours(e);
+    }, function () {
+        fin();
+        compteMessage('La connexion n’a pas abouti. Réessaie.');
     });
 }
 
@@ -1318,7 +1303,6 @@ if (sauve && sauve.sub) {
     try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
     compteRafraichir();
-    comptePreparerGoogle().catch(function () {});
     try {
         var dejaLa = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         if (dejaLa && compteUtile(dejaLa)) compteArchiverProgression(dejaLa);
@@ -1345,7 +1329,7 @@ if (sauve && sauve.sub) {
         if (typeof sauvegardeMeilleure === 'function') {
             sauvegardeMeilleure(sub).then(appliquer).catch(function () {});
         }
-        setTimeout(function () { compteNuageSynchroniser(false); }, 500);
+
     }
     if (typeof openSideMenu === 'function' && !openSideMenu.__compte) {
         var original = openSideMenu;
