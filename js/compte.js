@@ -73,6 +73,9 @@ function compteChoisirProfil(a, b) {
     if (ua && !ub) return a;
     if (ub && !ua) return b;
     if (!ua && !ub) return null;
+    var ra = compteRichesse(a);
+    var rb = compteRichesse(b);
+    if (ra !== rb) return ra > rb ? a : b;
     var ca = !!(a && a.profilComplet);
     var cb = !!(b && b.profilComplet);
     if (ca && !cb) return a;
@@ -80,7 +83,265 @@ function compteChoisirProfil(a, b) {
     var ta = Date.parse(a && a.savedAt) || 0;
     var tb = Date.parse(b && b.savedAt) || 0;
     if (ta !== tb) return ta > tb ? a : b;
-    return compteRichesse(a) >= compteRichesse(b) ? a : b;
+    return a;
+}
+
+
+function compteChampRempli(v) {
+    if (v == null || v === '') return false;
+    if (typeof v === 'number') return isFinite(v);
+    if (typeof v === 'boolean') return true;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+}
+
+function compteCleItem(item, cle) {
+    if (!item || typeof item !== 'object') return '';
+    if (cle && item[cle]) return String(cle) + ':' + String(item[cle]);
+    if (item.id) return 'id:' + String(item.id);
+    if (item.name) return 'name:' + String(item.name);
+    if (item.nom) return 'nom:' + String(item.nom);
+    try { return JSON.stringify(item); } catch (e) { return ''; }
+}
+
+function compteUnionParId(listes, cle) {
+    var map = {};
+    var ordre = [];
+    (listes || []).forEach(function (liste) {
+        (liste || []).forEach(function (item) {
+            if (!item || typeof item !== 'object') return;
+            var id = compteCleItem(item, cle);
+            if (!id) return;
+            if (!map[id]) {
+                try { map[id] = JSON.parse(JSON.stringify(item)); } catch (e) { map[id] = item; }
+                ordre.push(id);
+                return;
+            }
+            var garde = map[id];
+            Object.keys(item).forEach(function (k) {
+                if (!compteChampRempli(garde[k]) && compteChampRempli(item[k])) garde[k] = item[k];
+            });
+        });
+    });
+    return ordre.map(function (id) { return map[id]; });
+}
+
+function compteFusionnerObjets(a, b) {
+    var mix = Object.assign({}, b || {}, a && typeof a === 'object' ? a : {});
+    Object.keys(b || {}).forEach(function (k) {
+        if (!compteChampRempli(mix[k]) && compteChampRempli(b[k])) mix[k] = b[k];
+    });
+    return mix;
+}
+
+function compteFusionnerProfils(copies) {
+    var tous = (copies || []).filter(function (c) { return c && typeof c === 'object' && !c.efface; });
+    var utiles = tous.filter(function (c) { return compteUtile(c); });
+    if (!utiles.length) return null;
+    utiles.sort(function (a, b) {
+        var ra = compteRichesse(a);
+        var rb = compteRichesse(b);
+        if (ra !== rb) return rb - ra;
+        return (Date.parse(b.savedAt) || 0) - (Date.parse(a.savedAt) || 0);
+    });
+    var base;
+    try { base = JSON.parse(JSON.stringify(utiles[0])); } catch (e) { base = utiles[0]; }
+    var tableaux = {
+        subjects: 'name',
+        optionalSubjects: 'name',
+        selectedActivities: 'name',
+        customEvents: 'id',
+        exercices: 'id',
+        memoirPlan: 'id',
+        iaDocs: 'nom'
+    };
+    utiles.slice(1).forEach(function (src) {
+        Object.keys(src).forEach(function (k) {
+            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour') return;
+            var b = src[k];
+            if (Array.isArray(b)) {
+                if (k === 'holidayDays') {
+                    var set = {};
+                    [].concat(base[k] || [], b).forEach(function (n) { if (n != null && n !== '') set[n] = 1; });
+                    base[k] = Object.keys(set).map(Number);
+                    return;
+                }
+                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id');
+                return;
+            }
+            if (b && typeof b === 'object') {
+                base[k] = compteFusionnerObjets(base[k], b);
+                return;
+            }
+            if (!compteChampRempli(base[k]) && compteChampRempli(b)) base[k] = b;
+        });
+        if (src.profilComplet) {
+            base.profilComplet = true;
+            if (!base.etape || base.etape === 'accueil') base.etape = (src.etape && src.etape !== 'accueil') ? src.etape : 'planning';
+        }
+        if ((Date.parse(src.savedAt) || 0) > (Date.parse(base.savedAt) || 0)) base.savedAt = src.savedAt;
+        if (!base.google && src.google) base.google = src.google;
+        if (!base.utilisateurId && src.utilisateurId) base.utilisateurId = src.utilisateurId;
+    });
+    tous.forEach(function (src) {
+        Object.keys(tableaux).forEach(function (k) {
+            if (!Array.isArray(src[k]) || !src[k].length) return;
+            base[k] = compteUnionParId([base[k], src[k]], tableaux[k]);
+        });
+    });
+    var maxJours = 0;
+    var dernier = '';
+    tous.forEach(function (src) {
+        var n = Number(src.joursConnectes) || 0;
+        if (n > maxJours) {
+            maxJours = n;
+            if (src.dernierJour) dernier = src.dernierJour;
+        } else if (n === maxJours && src.dernierJour && String(src.dernierJour) > String(dernier)) {
+            dernier = src.dernierJour;
+        }
+    });
+    if (maxJours) base.joursConnectes = maxJours;
+    if (dernier) base.dernierJour = dernier;
+    if (!base.savedAt) base.savedAt = new Date().toISOString();
+    return base;
+}
+
+function compteCleArchive(id) {
+    return 'studyPlanIB_archive:' + id;
+}
+
+function compteLireArchive(id) {
+    if (!id || typeof memoireJson !== 'function') return null;
+    return memoireJson(compteCleArchive(id));
+}
+
+function compteEcrireArchive(id, data) {
+    if (!id || !data) return;
+    var json = '';
+    try { json = JSON.stringify(data); } catch (e) { return; }
+    try {
+        localStorage.setItem(compteCleArchive(id), json);
+    } catch (e) {
+        try {
+            var leger = JSON.parse(json);
+            delete leger.iaDocs;
+            localStorage.setItem(compteCleArchive(id), JSON.stringify(leger));
+        } catch (e2) {}
+    }
+    if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal('archive-' + id, data, false);
+}
+
+function compteArchiverProgression(data) {
+    if (!data || !compteUtile(data)) return null;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data)); } catch (e) { return null; }
+    var session = window.compteSession;
+    if (session && session.sub && typeof compteEstampiller === 'function' && !(copie.google && copie.google.sub)) {
+        copie = compteEstampiller(copie, session);
+    }
+    var ids = [];
+    var sub = (copie.google && copie.google.sub) || copie.utilisateurId || (session && session.sub) || '';
+    if (sub && typeof compteCanonique === 'function') sub = compteCanonique(sub) || sub;
+    if (sub) ids.push(sub);
+    var email = typeof compteEmailCle === 'function' ? compteEmailCle((copie.google && copie.google.email) || (session && session.email) || '') : '';
+    if (email) ids.push('mail-' + email);
+    if (!sub) ids.push('locale');
+    var fusion = null;
+    ids.forEach(function (id) {
+        fusion = compteFusionnerProfils([compteLireArchive(id), copie]);
+        if (fusion) compteEcrireArchive(id, fusion);
+    });
+    return fusion;
+}
+
+function comptePeutJoindreLocal(data, session) {
+    if (!data || typeof data !== 'object' || data.efface) return false;
+    if (!session || !session.sub) return true;
+    if (data.google && data.google.sub && typeof compteMemeCompte === 'function' && !compteMemeCompte(data.google.sub, session.sub)) return false;
+    if (data.utilisateurId && data.google && data.google.sub && typeof compteMemeCompte === 'function' && !compteMemeCompte(data.utilisateurId, session.sub)) return false;
+    return true;
+}
+
+function compteCopiesLocales(session) {
+    var copies = [];
+    function add(item) {
+        if (item && typeof item === 'object' && !item.efface) copies.push(item);
+    }
+    var sub = session && session.sub;
+    var canon = sub && typeof compteCanonique === 'function' ? (compteCanonique(sub) || sub) : (sub || '');
+    if (canon) {
+        if (typeof compteLireDedie === 'function') add(compteLireDedie(canon));
+        add(compteLireArchive(canon));
+        if (sub && sub !== canon) add(compteLireArchive(sub));
+    }
+    var email = typeof compteEmailCle === 'function' ? compteEmailCle(session && session.email) : '';
+    if (email) {
+        var parMail = typeof compteSubDeEmail === 'function' ? compteSubDeEmail(email) : '';
+        if (parMail && parMail !== canon) {
+            if (typeof compteLireDedie === 'function') add(compteLireDedie(parMail));
+            add(compteLireArchive(parMail));
+        }
+        add(compteLireArchive('mail-' + email));
+    }
+    if (typeof memoireJson === 'function') {
+        var stocke = memoireJson(MEMOIRE_KEY);
+        if (comptePeutJoindreLocal(stocke, session)) add(stocke);
+        var locale = memoireJson('studyPlanIB_sauvegarde:locale');
+        if (comptePeutJoindreLocal(locale, session)) add(locale);
+        var archiveLocale = compteLireArchive('locale');
+        if (comptePeutJoindreLocal(archiveLocale, session)) add(archiveLocale);
+        if (comptePeutJoindreLocal(stocke, session)) {
+            add({
+                customEvents: memoireJson('studyPlanIB_customEvents_juliss') || [],
+                exercices: memoireJson('studyPlanIB_exercices') || []
+            });
+        }
+    }
+    return copies;
+}
+
+function compteRevendiquerArchiveLocale(session) {
+    if (!session || !session.sub) return;
+    var locale = compteLireArchive('locale');
+    if (!comptePeutJoindreLocal(locale, session) || !compteUtile(locale)) return;
+    compteArchiverProgression(compteEstampiller(locale, session));
+    try { localStorage.removeItem(compteCleArchive('locale')); } catch (e) {}
+}
+
+function compteDriveLister(token) {
+    var q = encodeURIComponent("name='" + COMPTE_DRIVE_NOM + "' and trashed=false");
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&pageSize=20&q=' + q, {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('drive');
+        return res.json();
+    }).then(function (data) {
+        var ids = [];
+        var connu = '';
+        try { connu = compteCleDrive() ? (localStorage.getItem(compteCleDrive()) || '') : ''; } catch (e) {}
+        if (connu) ids.push(connu);
+        ((data && data.files) || []).forEach(function (fichier) {
+            if (fichier && fichier.id && ids.indexOf(fichier.id) === -1) ids.push(fichier.id);
+        });
+        var cle = compteCleDrive();
+        if (ids[0] && cle) {
+            try { localStorage.setItem(cle, ids[0]); } catch (e) {}
+        }
+        return ids;
+    });
+}
+
+function compteSessionDepuisJeton(token) {
+    return fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('profil');
+        return res.json();
+    }).then(function (info) {
+        if (!info || !info.sub) throw new Error('profil');
+        return compteSessionDepuis(info);
+    });
 }
 
 function compteAfficherProfil(data) {
@@ -115,8 +376,8 @@ function compteEquivalent(a, b) {
 function compteDoitGarderLie(ancien, courant) {
     if (!compteUtile(ancien)) return false;
     if (!compteUtile(courant)) return true;
+    if (compteRichesse(ancien) > compteRichesse(courant)) return true;
     if (ancien.profilComplet && !courant.profilComplet) return true;
-    if (!courant.profilComplet && compteRichesse(ancien) > compteRichesse(courant)) return true;
     return false;
 }
 
@@ -174,6 +435,7 @@ function compteRestaurerLocal() {
 
 var COMPTE_IDENTITE_SCOPE = 'openid email profile';
 var COMPTE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_RESTAURATION_SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata';
 var COMPTE_DRIVE_NOM = 'study-plan-ib-profil.json';
 var compteJeton = '';
 var compteJetonFin = 0;
@@ -211,9 +473,13 @@ function compteDemanderJeton(prompt, scope) {
     });
 }
 
-function compteObtenirJeton() {
+function compteObtenirJeton(interactif) {
     if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
-    return Promise.reject(new Error('silence'));
+    var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
+    return compteDemanderJeton('none', scope).catch(function () {
+        if (!interactif) return Promise.reject(new Error('silence'));
+        return compteDemanderJeton('', scope);
+    });
 }
 
 function compteDriveTrouver(token) {
@@ -286,24 +552,33 @@ function compteDriveEcrire(token, id, json) {
 }
 
 function compteNuageFusionner(token) {
-    return compteDriveTrouver(token).then(function (id) {
-        return compteDriveLire(token, id).then(function (nuage) {
-var session = window.compteSession;
-            var local = compteSourceNuage();
-            if (session && session.sub) {
-                if (local && !compteProfilEtranger(local, session.sub)) local = compteEstampiller(local, session);
-                else local = null;
-                if (nuage && compteUtile(nuage)) nuage = compteEstampiller(nuage, session);
+    var session = window.compteSession;
+    return compteDriveLister(token).then(function (ids) {
+        return Promise.all((ids || []).map(function (id) {
+            return compteDriveLire(token, id).catch(function () { return null; });
+        })).then(function (nuages) {
+            var copies = compteCopiesLocales(session).concat(nuages || []);
+            var choisi = compteFusionnerProfils(copies);
+            if (session && session.sub && choisi) choisi = compteEstampiller(choisi, session);
+            var avant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+            var applique = false;
+            if (choisi && compteUtile(choisi) && !compteEquivalent(choisi, avant)) {
+                compteAfficherProfil(choisi);
+                applique = true;
+                compteArchiverProgression(choisi);
             }
-            var choisi = compteChoisirProfil(nuage, local);
-            if (choisi && choisi === nuage && !compteEquivalent(nuage, local)) {
-                compteAfficherProfil(nuage);
-                if (typeof v3Toast === 'function') v3Toast('Emploi du temps restauré.', 'success');
-                return 'restored';
-            }
-            if (!compteUtile(local)) return 'empty';
-            if (nuage && compteEquivalent(nuage, local)) return 'same';
-            return compteDriveEcrire(token, id, JSON.stringify(local)).then(function () { return 'uploaded'; });
+            if (!compteUtile(choisi)) return 'empty';
+            var meilleurNuage = null;
+            (nuages || []).forEach(function (nuage) {
+                if (!compteUtile(nuage)) return;
+                if (!meilleurNuage || compteRichesse(nuage) > compteRichesse(meilleurNuage)) meilleurNuage = nuage;
+            });
+            if (meilleurNuage && compteEquivalent(meilleurNuage, choisi)) return applique ? 'restored' : 'same';
+            if (meilleurNuage && compteRichesse(choisi) < compteRichesse(meilleurNuage)) return applique ? 'restored' : 'same';
+            var id = (ids && ids[0]) || '';
+            return compteDriveEcrire(token, id, JSON.stringify(choisi)).then(function () {
+                return applique ? 'restored' : 'uploaded';
+            });
         });
     });
 }
@@ -696,40 +971,49 @@ function compteRestaurerTout(session, token) {
     if (!session || !session.sub) return Promise.resolve('vide');
     var ancien = compteProprietaireConnu();
     var vivant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
-    if (ancien && ancien.sub && ancien.sub !== session.sub) {
+    if (ancien && ancien.sub && !compteMemeCompte(ancien.sub, session.sub)) {
+        if (vivant) compteArchiverProgression(compteEstampiller(vivant, ancien));
         compteArchiverPour(ancien.sub, vivant);
         vivant = null;
-    } else if (vivant && vivant.google && vivant.google.sub && vivant.google.sub !== session.sub) {
+    } else if (vivant && vivant.google && vivant.google.sub && !compteMemeCompte(vivant.google.sub, session.sub)) {
+        compteArchiverProgression(vivant);
         compteArchiverPour(vivant.google.sub, vivant);
         vivant = null;
     }
-    compteLierCompte(session, '');
+    compteLierCompte(session, (vivant && vivant.userName) || '');
     var canon = compteCanonique(session.sub) || session.sub;
     compteMemoriserSession(session);
     compteMemoriserProprietaire(session);
-    var dedie = compteLireDedie(canon);
-    var choisi = null;
-    if (dedie && compteUtile(dedie) && !compteProfilEtranger(dedie, session.sub)) choisi = dedie;
-    else if (vivant && comptePeutRevendiquer(vivant, session) && compteUtile(vivant)) choisi = vivant;
-    if (choisi) {
+    compteRevendiquerArchiveLocale(session);
+    var copies = compteCopiesLocales(session);
+    if (vivant && comptePeutJoindreLocal(vivant, session)) copies.push(vivant);
+    var choisi = compteFusionnerProfils(copies);
+    if (choisi && compteUtile(choisi)) {
         compteBasculer(choisi, session);
-    } else if (ancien && ancien.sub && ancien.sub !== session.sub) {
-        compteBasculer(compteEtatVide(session), session);
+        compteArchiverProgression(compteEstampiller(choisi, session));
     }
     var suite = token
         ? compteNuageFusionner(token).catch(function () { return 'echec'; })
-        : Promise.resolve(choisi ? 'local' : 'vide');
-    if (!token) suite = suite.then(function (etat) { return compteNuageSynchroniser(false).then(function (nuage) { return nuage && nuage !== 'failed' && nuage !== 'skip' ? nuage : etat; }); });
+        : compteNuageSynchroniser(true).catch(function () { return 'echec'; });
     return suite.then(function (etat) {
-        if (!choisi && etat !== 'restored') {
-            var apres = compteLireDedie(session.sub);
-            if (apres && compteUtile(apres) && !compteProfilEtranger(apres, session.sub)) compteBasculer(apres, session);
-            else compteBasculer(compteEtatVide(session), session);
+        var apresCopies = compteCopiesLocales(session);
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (courant && comptePeutJoindreLocal(courant, session)) apresCopies.push(courant);
+        var apres = compteFusionnerProfils(apresCopies);
+        if (apres && compteUtile(apres) && compteRichesse(apres) >= compteRichesse(courant)) {
+            if (!compteEquivalent(apres, courant)) {
+                compteBasculer(apres, session);
+                if (etat !== 'uploaded' && etat !== 'same') etat = 'restored';
+            }
+        } else if (!(choisi && compteUtile(choisi)) && etat !== 'restored') {
+            compteBasculer(compteEtatVide(session), session);
         }
         var nom = (typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || '';
-        if (typeof sauvegardeEcrireLocal === 'function' && typeof memoireLireEtat === 'function') {
-            var courant = memoireLireEtat();
-            if (courant && courant.google && courant.google.sub === session.sub) sauvegardeEcrireLocal(session.sub, courant, true);
+        var finalData = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (finalData && compteUtile(finalData)) {
+            var estampille = compteEstampiller(finalData, session);
+            compteArchiverProgression(estampille);
+            if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(canon, estampille, false);
         }
         if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
         if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 1200);
@@ -741,7 +1025,11 @@ function compteRestaurerTout(session, token) {
         } else if (etat === 'uploaded' || etat === 'same') {
             if (typeof v3Toast === 'function') v3Toast(nom ? (nom + ' est lié à ce compte Google.') : 'Sauvegarde liée à ton compte Google.', 'success');
         } else if (etat === 'echec') {
-            compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
+            if (choisi && compteUtile(choisi)) {
+                if (typeof v3Toast === 'function') v3Toast(nom ? ('Emploi du temps de ' + nom + '.') : 'Progression retrouvée.', 'success');
+            } else {
+                compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
+            }
         } else if (typeof v3Toast === 'function') {
             v3Toast(nom ? ('Compte de ' + nom + '.') : 'Choisis ton prénom.', 'info');
         }
@@ -750,7 +1038,7 @@ function compteRestaurerTout(session, token) {
 }
 
 function compteConnexionGoogle(origine) {
-    var bouton = (origine && origine.currentTarget) || document.getElementById('compteGoogleBtn');
+    var bouton = (origine && origine.currentTarget) || document.getElementById('compteGoogleBtn') || document.getElementById('compteCopieBtn');
     var libelle = bouton ? bouton.textContent : 'Continuer avec Google';
     if (bouton) {
         bouton.disabled = true;
@@ -767,18 +1055,42 @@ function compteConnexionGoogle(origine) {
             bouton.textContent = libelle;
         }
     }
-    function lancer() {
+    function secours(e) {
         return comptePreparerGoogle().then(function () {
+            var slot = document.getElementById('googleBtnSlot');
+            if (slot && window.google && google.accounts && google.accounts.id && google.accounts.id.renderButton) {
+                slot.innerHTML = '';
+                google.accounts.id.renderButton(slot, {
+                    type: 'standard',
+                    theme: 'outline',
+                    size: 'large',
+                    text: 'continue_with',
+                    shape: 'pill',
+                    logo_alignment: 'left',
+                    width: 280,
+                    locale: 'fr'
+                });
+            } else if (window.google && google.accounts && google.accounts.id && google.accounts.id.prompt) {
+                try { google.accounts.id.prompt(); } catch (err) {}
+            }
+            compteMessage('Choisis le compte Google pour retrouver la progression.');
             fin();
-        }).catch(function (e) {
+        }).catch(function () {
             compteMessage((e && e.message) || 'La connexion Google n’a pas abouti. Réessaie.');
             fin();
         });
     }
-    if (window.google && google.accounts && google.accounts.oauth2) return lancer();
-    return compteChargerGIS().then(lancer, function (e) {
-        compteMessage((e && e.message) || 'Google est indisponible pour le moment.');
+    return compteChargerGIS().then(function () {
+        var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
+        return compteDemanderJeton('', scope);
+    }).then(function (token) {
+        return compteSessionDepuisJeton(token).then(function (session) {
+            return compteRestaurerTout(session, token);
+        });
+    }).then(function () {
         fin();
+    }).catch(function (e) {
+        return secours(e);
     });
 }
 
@@ -816,26 +1128,11 @@ function comptePreparerGoogle() {
         }
         var texteInvite = document.getElementById('compteInviteTexte');
         if (texteInvite && !compteCopieEnAttente) texteInvite.textContent = COMPTE_INVITE;
-        function poserBouton(host) {
-            if (!host || host.querySelector('iframe')) return;
-            host.innerHTML = '';
-            google.accounts.id.renderButton(host, {
-                type: 'standard',
-                theme: 'outline',
-                size: 'large',
-                text: 'continue_with',
-                shape: 'pill',
-                logo_alignment: 'left',
-                width: 280,
-                locale: 'fr'
-            });
-        }
         if (window.compteSession && window.compteSession.sub) {
             var deja = document.getElementById('googleBtnSlot');
             if (deja) deja.innerHTML = '';
             return true;
         }
-        if (!compteCopieEnAttente) poserBouton(document.getElementById('googleBtnSlot'));
         return true;
     });
 }
@@ -1022,17 +1319,24 @@ if (sauve && sauve.sub) {
     if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
     compteRafraichir();
     comptePreparerGoogle().catch(function () {});
+    try {
+        var dejaLa = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (dejaLa && compteUtile(dejaLa)) compteArchiverProgression(dejaLa);
+    } catch (e) {}
     if (window.compteSession && window.compteSession.sub) {
         var sub = window.compteSession.sub;
         var appliquer = function (data) {
             if (!data || compteProfilEtranger(data, sub)) return;
-            if (!compteUtile(data)) return;
             var courant = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
-            if (courant && courant.google && courant.google.sub && courant.google.sub !== sub) {
-                compteBasculer(data, window.compteSession);
-                return;
+            var copies = [courant, data].concat(compteCopiesLocales(window.compteSession));
+            var fusion = compteFusionnerProfils(copies);
+            if (!fusion || !compteUtile(fusion) || compteProfilEtranger(fusion, sub)) return;
+            if (!compteEquivalent(fusion, courant)) {
+                var plus = compteRichesse(fusion) > compteRichesse(courant);
+                compteBasculer(fusion, window.compteSession);
+                compteArchiverProgression(fusion);
+                if (plus && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
             }
-            if (compteMontrerProgression(data, false) && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
         };
         try {
             var dedie = compteLireDedie(sub);

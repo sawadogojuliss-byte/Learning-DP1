@@ -27,8 +27,8 @@ function sauvegardeRiche(data) {
 function sauvegardeGarder(ancien, courant) {
     if (sauvegardeRiche(ancien) <= 0) return false;
     if (sauvegardeRiche(courant) <= 0) return true;
+    if (sauvegardeRiche(ancien) > sauvegardeRiche(courant)) return true;
     if (ancien.profilComplet && !courant.profilComplet) return true;
-    if (!courant.profilComplet && sauvegardeRiche(ancien) > sauvegardeRiche(courant)) return true;
     return false;
 }
 

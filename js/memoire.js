@@ -116,6 +116,35 @@ function memoireLireEtat() {
         customEvents: customEvents,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
+        joursConnectes: (function () {
+            var n = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
+            return isFinite(n) && n > 0 ? n : 0;
+        })(),
+        dernierJour: (function () {
+            try { return localStorage.getItem('studyPlanIB_dernierJour') || ''; } catch (e) { return ''; }
+        })(),
+        iaDocs: (function () {
+            var out = [];
+            try {
+                var i, cle, docs;
+                for (i = 0; i < localStorage.length; i++) {
+                    cle = localStorage.key(i);
+                    if (!cle || cle.indexOf('ia-docs-') !== 0) continue;
+                    docs = JSON.parse(localStorage.getItem(cle) || '[]');
+                    if (Array.isArray(docs)) out = out.concat(docs);
+                }
+            } catch (e) {}
+            return out.slice(-4).map(function (doc) {
+                if (!doc || typeof doc !== 'object') return doc;
+                return {
+                    nom: doc.nom || '',
+                    texte: String(doc.texte || '').slice(0, 6000),
+                    quand: doc.quand || '',
+                    type: doc.type || '',
+                    taille: doc.taille || 0
+                };
+            });
+        })(),
         utilisateurId: (function () {
             var s = window.compteSession && window.compteSession.sub;
             if (!s) return '';
@@ -219,6 +248,28 @@ function memoireAppliquer(data, opts) {
     if (typeof data.selectedDay === 'number') selectedDay = data.selectedDay;
     if (typeof currentMood !== 'undefined' && data.currentMood) currentMood = data.currentMood;
     if (data.profilComplet) window.__profilComplet = true;
+    if (data.joursConnectes != null) {
+        var joursLocaux = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
+        if (!isFinite(joursLocaux) || joursLocaux < 0) joursLocaux = 0;
+        var joursSauves = Number(data.joursConnectes) || 0;
+        if (joursSauves > joursLocaux) {
+            try {
+                localStorage.setItem('studyPlanIB_joursConnectes', String(joursSauves));
+                if (data.dernierJour) localStorage.setItem('studyPlanIB_dernierJour', data.dernierJour);
+            } catch (e) {}
+        }
+    }
+    if (Array.isArray(data.iaDocs) && data.iaDocs.length && data.userName) {
+        var cleDocs = 'ia-docs-' + String(data.userName).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').slice(0, 80);
+        try {
+            var docsDeja = JSON.parse(localStorage.getItem(cleDocs) || '[]');
+            var docsMap = {};
+            [].concat(Array.isArray(docsDeja) ? docsDeja : [], data.iaDocs).forEach(function (doc) {
+                if (doc && doc.nom) docsMap[doc.nom] = doc;
+            });
+            localStorage.setItem(cleDocs, JSON.stringify(Object.keys(docsMap).map(function (k) { return docsMap[k]; }).slice(-4)));
+        } catch (e) {}
+    }
 
     if (depuisCompte && Array.isArray(data.customEvents)) customEvents = data.customEvents;
     else if (!depuisCompte) {
@@ -548,6 +599,7 @@ function memoireSauvegarder() {
             }
             if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
         }
+        if (typeof compteArchiverProgression === 'function') compteArchiverProgression(data);
         memoirePoserHash(data.etape);
         memoireMajIndicateur();
         if (typeof boiteApresMemoire === 'function') boiteApresMemoire();
@@ -566,6 +618,8 @@ function memoireEffacerSuite() {
     memoirePret = false;
     window.__profilComplet = false;
     var sub = (window.compteSession && window.compteSession.sub) || (window.compteProprietaire && window.compteProprietaire.sub) || '';
+    var emailEfface = '';
+    try { emailEfface = String((window.compteSession && window.compteSession.email) || '').trim().toLowerCase(); } catch (e) {}
     window.compteSession = null;
     window.compteProprietaire = null;
     if (window.google && google.accounts && google.accounts.id) {
@@ -580,7 +634,7 @@ function memoireEffacerSuite() {
         cles.forEach(function (cle) {
             if (!cle || cle.indexOf('studyPlanIB_') !== 0 || cle === 'studyPlanIB_googleClientId' || cle === 'studyPlanIB_identites') return;
             if (sub) {
-                if (memoireCleDuCompte(cle, sub)) localStorage.removeItem(cle);
+                if (memoireCleDuCompte(cle, sub) || (emailEfface && cle === 'studyPlanIB_archive:mail-' + emailEfface)) localStorage.removeItem(cle);
                 return;
             }
             if (cle.indexOf('studyPlanIB_profil:') === 0 || cle.indexOf('studyPlanIB_driveFileId:') === 0) return;

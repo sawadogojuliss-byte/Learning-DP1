@@ -146,11 +146,13 @@ function debutTrajetAller(depart, duree, limite) {
 }
 
 function debutTrajetRetour(finCours, retourHeure) {
-    var start = finCours;
+    var plancher = 16 * 60 + 25;
+    var start = Math.max(Number(finCours) || 0, plancher + 1);
     if (retourHeure) {
         var asked = timeToMinutes(retourHeure);
-        if (asked >= finCours) start = asked;
+        if (asked > plancher) start = Math.max(start, asked);
     }
+    if (start <= plancher) start = plancher + 1;
     return start;
 }
 
@@ -163,6 +165,111 @@ function fixerTrajet(events, id, startMin, dur) {
     ev.kind = 'pinned';
     ev.horaireEntre = true;
     ev.preferMin = startMin;
+}
+
+function trajetRetire(dayIndex, id) {
+    if (typeof slotWasRemoved === 'function' && slotWasRemoved(dayIndex, id)) return true;
+    if (typeof v3FindOverride === 'function') {
+        var ov = v3FindOverride(id, dayIndex);
+        if (ov && ov.deleted) return true;
+    }
+    if (typeof holidayDroppedIds === 'function') {
+        var dropped = holidayDroppedIds(dayIndex) || [];
+        if (dropped.indexOf(id) !== -1) return true;
+    }
+    return false;
+}
+
+function verrouillerTrajets(events, dayIndex) {
+    if (dayIndex == null || Number(dayIndex) >= 5 || !events) return events;
+    var trajet = typeof trajetProfil === 'function' ? trajetProfil() : { aller: 30, retour: 40, depart: '07:30', retourHeure: '', icon: '🚗' };
+    var plancher = 16 * 60 + 25;
+    var finEcole = 8 * 60 + 15;
+    var finCours = 16 * 60 + 35;
+    var list = events;
+    function trouver(id) {
+        var i;
+        for (i = 0; i < list.length; i++) if (list[i] && list[i].id === id) return list[i];
+        return null;
+    }
+    var aller = trouver('commute1');
+    var retour = trouver('commute2');
+    if (!aller && !trajetRetire(dayIndex, 'commute1')) {
+        aller = { id: 'commute1', title: 'Trajet école', subtitle: '', type: 'transport', icon: trajet.icon || '🚗', editable: true, kind: 'pinned' };
+        list.push(aller);
+    }
+    if (!retour && !trajetRetire(dayIndex, 'commute2')) {
+        retour = { id: 'commute2', title: 'Trajet maison', subtitle: '', type: 'transport', icon: trajet.icon || '🚗', editable: true, kind: 'pinned' };
+        list.push(retour);
+    }
+    var durA = Math.max(5, Number(trajet.aller) || 5);
+    var durR = Math.max(5, Number(trajet.retour) || 5);
+    if (aller) {
+        var debutA = typeof debutTrajetAller === 'function' ? debutTrajetAller(trajet.depart, durA, finEcole) : Math.max(0, finEcole - durA);
+        if (debutA + durA > finEcole) debutA = Math.max(0, finEcole - durA);
+        aller.startTime = v3M2T(debutA);
+        aller.endTime = v3M2T(debutA + durA);
+        aller.title = 'Trajet école';
+        aller.type = 'transport';
+        aller.kind = 'pinned';
+        aller.subtitle = durA + ' min';
+    }
+    if (retour) {
+        var debutR = Math.max(finCours, plancher + 1);
+        if (trajet.retourHeure && typeof timeToMinutes === 'function') {
+            var asked = timeToMinutes(trajet.retourHeure);
+            if (asked > plancher) debutR = Math.max(debutR, asked);
+        }
+        var actuel = typeof timeToMinutes === 'function' ? timeToMinutes(retour.startTime) : 0;
+        if (actuel > debutR && actuel > plancher) debutR = actuel;
+        if (debutR <= plancher) debutR = plancher + 1;
+        retour.startTime = v3M2T(debutR % 1440);
+        retour.endTime = v3M2T((debutR + durR) % 1440);
+        retour.title = 'Trajet maison';
+        retour.type = 'transport';
+        retour.kind = 'pinned';
+        retour.subtitle = durR + ' min';
+    }
+    if (aller && retour && typeof timeToMinutes === 'function') {
+        var finAller = timeToMinutes(aller.endTime);
+        var debutRetour = timeToMinutes(retour.startTime);
+        if (debutRetour <= plancher || debutRetour <= finAller) {
+            var corrige = Math.max(finCours, plancher + 1, finAller);
+            retour.startTime = v3M2T(corrige % 1440);
+            retour.endTime = v3M2T((corrige + durR) % 1440);
+        }
+    }
+    function bornesTrajet(ev) {
+        var s = timeToMinutes(ev.startTime);
+        var e = timeToMinutes(ev.endTime);
+        if (e <= s) e += 1440;
+        return { s: s, e: e };
+    }
+    if (retour && typeof timeToMinutes === 'function') {
+        var tours = 0;
+        while (tours++ < 8) {
+            var bloque = null;
+            list.forEach(function (ev) {
+                if (bloque || !ev || ev === retour || ev.id === 'sleep' || ev.id === 'commute1') return;
+                var a = bornesTrajet(retour);
+                var b = bornesTrajet(ev);
+                if (a.s < b.e && b.s < a.e) bloque = ev;
+            });
+            if (!bloque) break;
+            var apresBloque = bornesTrajet(bloque).e;
+            if (apresBloque <= plancher) apresBloque = plancher + 1;
+            retour.startTime = v3M2T(apresBloque % 1440);
+            retour.endTime = v3M2T((apresBloque + durR) % 1440);
+        }
+    }
+    list.sort(function (a, b) {
+        if (!a || a.id === 'wakeup') return -1;
+        if (!b || b.id === 'wakeup') return 1;
+        if (a.id === 'sleep') return 1;
+        if (b.id === 'sleep') return -1;
+        return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+    });
+    return list;
 }
 
 function calerPreparation(events, commuteId) {
@@ -360,6 +467,14 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
         rest.forEach(function (ev) {
             if (!pred(ev)) { next.push(ev); return; }
             if (!poserMobile(ev)) { next.push(ev); return; }
+            if (ev.id === 'commute1' && ev._fin > 8 * 60 + 15) {
+                ev._fin = 8 * 60 + 15;
+                ev._debut = Math.max(0, ev._fin - (ev._dur || 5));
+            }
+            if (ev.id === 'commute2' && ev._debut <= 16 * 60 + 25) {
+                ev._debut = Math.max(16 * 60 + 35, 16 * 60 + 26);
+                ev._fin = ev._debut + (ev._dur || 5);
+            }
             ev.startTime = v3M2T(ev._debut % 1440);
             ev.endTime = v3M2T(ev._fin % 1440);
             placed.push(ev);
@@ -371,7 +486,8 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
         var debut = debutVoulu(ev);
         return (ev.type === 'activity' || (ev.kind === 'pinned' && !ev.horaireEntre)) && !planningOccupe(placed, debut, debut + ev._dur);
     });
-    pass(function (ev) { return ev.id === 'commute1' || ev.id === 'commute2'; });
+    pass(function (ev) { return ev.id === 'commute1'; });
+    pass(function (ev) { return ev.id === 'commute2'; });
     pass(function (ev) { return ev.id === 'prep' || ev.id === 'breakfast'; });
     pass(function (ev) { return ev.type === 'meal'; });
     pass(function (ev) { return ev.id === 'phone' || ev.id === 'freetime' || ev.type === 'phone' || ev.type === 'free'; });
@@ -587,7 +703,7 @@ function generateDayEvents(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return planningBalayer(jour);
+    return verrouillerTrajets(planningBalayer(jour), dayIndex);
 }
 
 function emploiDuTemps(jour) {

@@ -325,13 +325,46 @@ function boiteGarderVu(record) {
     boiteMemoriserVus(fusion);
 }
 
+function boiteSlotsJour(jour) {
+    return (jour && jour.s && jour.s.length) || 0;
+}
+
 function boiteJoindreJours(anciens, nouveaux) {
     var map = {};
-    (anciens || []).forEach(function (jour) { if (jour && jour.j) map[jour.j] = jour; });
-    (nouveaux || []).forEach(function (jour) { if (jour && jour.j) map[jour.j] = jour; });
+    function poser(jour, recent) {
+        if (!jour || !jour.j) return;
+        var deja = map[jour.j];
+        if (!deja || boiteSlotsJour(jour) > boiteSlotsJour(deja) || (recent && boiteSlotsJour(jour) === boiteSlotsJour(deja))) map[jour.j] = jour;
+    }
+    (anciens || []).forEach(function (jour) { poser(jour, false); });
+    (nouveaux || []).forEach(function (jour) { poser(jour, true); });
     return ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].filter(function (nom) {
         return map[nom];
     }).map(function (nom) { return map[nom]; });
+}
+
+var BOITE_EMPLOIS_RETIRES = {
+    a1a112dcf4ed266ce751: 1,
+    a1a112dd6ac2adcf6166: 1,
+    a1a11c0ee01878c1524f: 1
+};
+
+function boiteEmploiRetire(item) {
+    if (!item) return true;
+    var appareil = String(item.appareil || '');
+    var id = String(item.id || '').replace(/^e_/, '');
+    if (BOITE_EMPLOIS_RETIRES[appareil] || BOITE_EMPLOIS_RETIRES[id]) return true;
+    var nom = boiteNormaliser(item.nom || '');
+    return nom === 'julia' || nom === 'u';
+}
+
+function boiteCleEmploi(item) {
+    if (!item || boiteEmploiRetire(item)) return '';
+    var sub = String(item.googleSub || '').trim();
+    if (sub) return 'sub:' + sub;
+    var mail = boiteNormaliser(item.google || item.email || '');
+    if (mail) return 'mail:' + mail;
+    return 'app:' + String(item.appareil || item.id || item.nom || '');
 }
 
 function boiteDecouperEmploi(record) {
@@ -456,7 +489,8 @@ function boiteFusionner(items) {
             vusR[item.id] = 1;
             reponses.push(item);
         } else if (item.type === 'emploi') {
-            var cle = item.appareil || item.id;
+            if (boiteEmploiRetire(item)) return;
+            var cle = boiteCleEmploi(item);
             if (!cle) return;
             var deja = emplois[cle];
             if (!deja) {
@@ -466,12 +500,14 @@ function boiteFusionner(items) {
             var recent = String(item.at || '') >= String(deja.at || '');
             var garde = recent ? item : deja;
             var autre = recent ? deja : item;
+            if (!garde.nom && autre.nom) garde.nom = autre.nom;
             if (!garde.google && autre.google) garde.google = autre.google;
             if (!garde.googleSub && autre.googleSub) garde.googleSub = autre.googleSub;
             if (!garde.googleNom && autre.googleNom) garde.googleNom = autre.googleNom;
             if (!garde.email && autre.email) garde.email = autre.email;
             if (!(garde.matieres && garde.matieres.length) && autre.matieres) garde.matieres = autre.matieres;
             if (!garde.classe && autre.classe) garde.classe = autre.classe;
+            if (!garde.appareil && autre.appareil) garde.appareil = autre.appareil;
             garde.jours = boiteJoindreJours(autre.jours, garde.jours);
             emplois[cle] = garde;
         }
@@ -570,16 +606,18 @@ function boiteUrlsKvdb(cfg, messages) {
 }
 
 function boiteLireEmploisFichier() {
-    return boiteFetch('data/emplois.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('emplois');
-            return res.json();
-        })
-        .then(function (doc) {
-            doc = doc || {};
-            return [].concat(doc.emplois || []);
-        })
-        .catch(function () { return []; });
+    function une() {
+        return boiteFetch('data/emplois.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
+            .then(function (res) {
+                if (!res.ok) throw new Error('emplois');
+                return res.json();
+            })
+            .then(function (doc) {
+                doc = doc || {};
+                return [].concat(doc.emplois || []);
+            });
+    }
+    return une().catch(function () { return une(); }).catch(function () { return []; });
 }
 
 function boiteChargerListes(force) {
@@ -591,7 +629,7 @@ function boiteChargerListes(force) {
         var archiveOk = false;
         return Promise.all([
             archiveP,
-            boiteLireNtfy().then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
+            boiteLireNtfy().catch(function () { return boiteLireNtfy(); }).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
             boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; })
         ]).then(function (premiers) {
             archiveOk = premiers[0].ok;
@@ -1009,7 +1047,8 @@ function boiteRendreEmplois(fusion) {
     }
     return { slots: slots, incomplet: incomplet };
 }
-    var rows = fusion.emplois.filter(function (item) {
+    var rows = (fusion.emplois || []).filter(function (item) {
+        if (!item || boiteEmploiRetire(item)) return false;
         if (!mot) return true;
         return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
     });
@@ -1039,7 +1078,7 @@ function boiteRendreEmplois(fusion) {
             var matieres = (item.matieres || []).length
                 ? '<p style="font-size:0.8rem;color:#374151;margin-top:0.35rem;">Matières : ' + boiteEchap(item.matieres.join(', ')) + '</p>'
                 : '';
-            return '<details style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
+            return '<details open style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
                 + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || '') + '</span></summary>'
                 + '<p style="font-size:0.78rem;color:#6b7280;margin-top:0.35rem;">' + meta + '</p>'
                 + matieres
@@ -1295,7 +1334,7 @@ function boiteSnapshotEmploi() {
         try { evs = generateDayEvents(i) || []; } catch (e) { evs = []; }
         var slots = [];
         var k;
-        for (k = 0; k < evs.length && slots.length < 24; k++) {
+        for (k = 0; k < evs.length && slots.length < 40; k++) {
             var ev = evs[k];
             if (!ev || !ev.title || !ev.startTime) continue;
             if (i === 5 && (ev.id === 'eco' || boiteNormaliser(ev.title).indexOf('cours d economie') !== -1)) continue;
@@ -1312,7 +1351,7 @@ function boiteSnapshotEmploi() {
         if (!s || !s.name || matieres.length >= 12) return;
         matieres.push((s.name + (s.level ? ' ' + s.level : '')).trim());
     });
-    if (!jours.length && !matieres.length && !session.email && !window.__profilComplet) return null;
+    if (!jours.length && !matieres.length && !window.__profilComplet) return null;
     return {
         type: 'emploi',
         id: 'e_' + boiteAppareil(),
@@ -1331,7 +1370,9 @@ function boiteSnapshotEmploi() {
 
 function boiteInscrit() {
     if (window.__profilComplet) return true;
-    return (typeof subjects !== 'undefined' && Array.isArray(subjects) && subjects.length > 0);
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects) && subjects.length > 0) return true;
+    var planning = document.getElementById('planningModal');
+    return !!(planning && planning.classList.contains('active') && boiteNom());
 }
 
 function boitePublierEmploi(force) {

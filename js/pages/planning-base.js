@@ -165,8 +165,9 @@ function generateDayEvents(dayIndex) {
 
     } else {
         // ── SEMAINE Lun-Ven ──
-        const commuteToSchool = (carToSchool || motoToSchool || 30);
-        const commuteFromSchool = (carFromSchool || motoFromSchool || 40);
+        const trajetMoto = typeof transportMode !== 'undefined' && transportMode === 'moto';
+        const commuteToSchool = Math.max(5, Number(trajetMoto ? motoToSchool : carToSchool) || (trajetMoto ? 25 : 30));
+        const commuteFromSchool = Math.max(5, Number(trajetMoto ? motoFromSchool : carFromSchool) || (trajetMoto ? 25 : 40));
         chain('prep', 'Préparation', '', getDuration('prep', 30), 'prep', '🚿', true);
         chain('commute1', 'Trajet école', commuteToSchool + ' min', getDuration('commute1', commuteToSchool), 'transport', '🚗', true);
         // Cours fixes
@@ -215,7 +216,7 @@ function generateDayEvents(dayIndex) {
 
     // RE-CHAIN : chaque activité commence exactement quand la précédente se termine
     // (sauf les fixes : school, eco)
-    const FIXED_IDS = new Set(['school1','school2','eco','sleep','wakeup']);
+    const FIXED_IDS = new Set(['school1','school2','eco','sleep','wakeup','commute1','commute2']);
     let runCursor = wakeupEvt ? wakeupEvt.endTime : wakeupTime;
     const reChained = [];
     for (const ev of middle) {
@@ -232,7 +233,21 @@ function generateDayEvents(dayIndex) {
         }
     }
 
-    return wakeupEvt ? [wakeupEvt, ...reChained, sleepEvt] : [...reChained, sleepEvt];
+    var resultat = wakeupEvt ? [wakeupEvt, ...reChained, sleepEvt] : [...reChained, sleepEvt];
+    if (dayIndex < 5) {
+        resultat.forEach(function (ev) {
+            if (!ev || ev.id !== 'commute2') return;
+            var debut = timeToMinutes(ev.startTime);
+            if (debut <= 16 * 60 + 25) {
+                var dur = Math.max(5, timeToMinutes(ev.endTime) - debut);
+                if (!(dur > 0)) dur = 40;
+                ev.startTime = addMinutes('00:00', 16 * 60 + 35);
+                ev.endTime = addMinutes(ev.startTime, dur);
+            }
+        });
+    }
+    if (typeof verrouillerTrajets === 'function') return verrouillerTrajets(resultat, dayIndex);
+    return resultat;
 }
 
 function getEventColor(type) {
@@ -310,6 +325,8 @@ function compterJourConnecte() {
     }
     var el = document.getElementById('joursCompte');
     if (el) el.textContent = String(n);
+    var flamme = document.getElementById('joursFlamme');
+    if (flamme) flamme.style.display = 'inline-flex';
     var soutien = document.getElementById('streakCount');
     if (soutien) soutien.textContent = n + ' jour' + (n > 1 ? 's' : '');
     return n;
