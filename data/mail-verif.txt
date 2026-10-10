@@ -1,9 +1,9 @@
-proprio proprio1791644206@maxxspace.com
-activation_http 200 {"success":"false","message":"Make sure you open this page through a web server, FormSubmit will not work in pages browsed as HTML files."}
-activation_mail non
+proprio proprio1791644419@maxxspace.com
+activation_http 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
+activation_mail oui
 lien absent
-eleve eleve1791644282@maxxspace.com
+eleve eleve1791644428@maxxspace.com
 envoi_form 200 <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" content="text/html" charset=utf-8">              <meta name="description" content="FormSubmit is a form backend, API and email service
-envoi_ajax 200 {"success":"false","message":"Make sure you open this page through a web server, FormSubmit will not work in pages browsed as HTML files."}
+envoi_ajax 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
 pas_livre
 apercu 
