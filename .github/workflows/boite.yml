@@ -30,7 +30,7 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
-      - name: Vérifier qu'une réponse arrive dans la boîte du destinataire
+      - name: Vérifier la livraison ntfy vers la boîte du destinataire
         continue-on-error: true
         run: python3 tools/verifier-livraison.py > data/mail-verif.txt 2>&1 || true
 

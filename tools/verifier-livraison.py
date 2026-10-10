@@ -49,16 +49,18 @@ def boite(adresse):
         'Origin': 'https://sawadogojuliss-byte.github.io',
         'Referer': 'https://sawadogojuliss-byte.github.io/',
     }
-    url = 'https://formsubmit.co/ajax/' + urllib.parse.quote(adresse)
-    status, texte = poster(url, json.dumps(payload).encode(), entetes)
-    print('formsubmit', status, texte[:500])
     status_n, texte_n = poster(
         'https://ntfy.sh/ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b',
-        CORPS.encode(),
-        {'Email': adresse, 'Title': SUJET, 'Content-Type': 'text/plain', 'User-Agent': entetes['User-Agent']}
+        CORPS.encode('utf-8'),
+        {
+            'Email': adresse,
+            'Title': 'Reponse Study Plan IB',
+            'Content-Type': 'text/plain; charset=utf-8',
+            'User-Agent': 'StudyPlanIB',
+        }
     )
-    print('ntfy', status_n, texte_n[:300])
-    return status, texte
+    print('ntfy', status_n, texte_n[:500])
+    return status_n, texte_n
 
 
 def creer_boite():
