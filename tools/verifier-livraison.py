@@ -19,6 +19,19 @@ def ouvrir(url, data=None, headers=None, method=None, timeout=30):
         return res.status, res.read()
 
 
+def poster(url, data, headers):
+    try:
+        status, raw = ouvrir(url, data=data, headers=headers, method='POST')
+        return status, raw.decode('utf-8', 'replace')
+    except urllib.error.HTTPError as exc:
+        corps = ''
+        try:
+            corps = exc.read().decode('utf-8', 'replace')
+        except Exception:
+            corps = ''
+        return exc.code, corps
+
+
 def boite(adresse):
     payload = {
         'name': 'Study Plan IB',
@@ -29,14 +42,22 @@ def boite(adresse):
         '_captcha': 'false',
         'message': CORPS,
     }
-    url = 'https://formsubmit.co/ajax/' + urllib.parse.quote(adresse)
-    corps = json.dumps(payload).encode()
-    status, raw = ouvrir(url, data=corps, headers={
+    entetes = {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-    }, method='POST')
-    texte = raw.decode('utf-8', 'replace')
-    print('fournisseur', status, texte[:500])
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
+        'Origin': 'https://sawadogojuliss-byte.github.io',
+        'Referer': 'https://sawadogojuliss-byte.github.io/',
+    }
+    url = 'https://formsubmit.co/ajax/' + urllib.parse.quote(adresse)
+    status, texte = poster(url, json.dumps(payload).encode(), entetes)
+    print('formsubmit', status, texte[:500])
+    status_n, texte_n = poster(
+        'https://ntfy.sh/ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b',
+        CORPS.encode(),
+        {'Email': adresse, 'Title': SUJET, 'Content-Type': 'text/plain', 'User-Agent': entetes['User-Agent']}
+    )
+    print('ntfy', status_n, texte_n[:300])
     return status, texte
 
 
