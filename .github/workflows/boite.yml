@@ -30,6 +30,9 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
+      - name: Vérifier qu'une réponse arrive dans la boîte
+        run: python3 tools/verifier-livraison.py
+
       - name: Enregistrer l'adresse
         run: |
           git config user.name "github-actions[bot]"
