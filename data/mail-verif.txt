@@ -1,2 +1,3 @@
-destinataire spib1791642887@maxxspace.com
-envoi HTTPError HTTP Error 403: Forbidden
+destinataire spib1791642975@maxxspace.com
+formsubmit 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
+envoi UnicodeEncodeError 'latin-1' codec can't encode character '\u2014' in position 22: ordinal not in range(256)
