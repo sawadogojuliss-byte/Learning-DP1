@@ -14,7 +14,7 @@
         }
     }
 
-var version = '20261010g';
+var version = '20261010h';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

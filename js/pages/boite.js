@@ -13,7 +13,7 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom ryyan'
 ];
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
-var BOITE_FORMULAIRE = 'https://formsubmit.co/ajax/proprio1791644730@maxxspace.com';
+var BOITE_SCRIPT_SECRET = 'spib-7c4e9a2b8d1f6c3e';
 var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
 var boiteJetonMail = '';
 var boiteJetonMailFin = 0;
@@ -833,7 +833,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (rep.mail ? 'Message envoyé' : 'Réponse enregistrée') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé à ' + boiteEchap(rep.destinataire || email) : 'Pas encore envoyé par mail') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Pas encore envoyé par mail') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -873,7 +873,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part vers la personne qui a posé la question.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Study Plan IB.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -957,11 +957,53 @@ function boiteDemanderJetonMail() {
     });
 }
 
-function boiteCorpsMail(message, question) {
-    var corps = String(message || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    if (question) corps += '\n\n—\nTa question :\n' + String(question).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    corps += '\n\n— Study Plan IB';
-    return corps.slice(0, 4000);
+function boiteLignes(s) {
+    return String(s || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+}
+
+function boiteEchapHtml(s) {
+    return boiteEchap(s).replace(/\n/g, '<br>');
+}
+
+function boiteTexteMail(message, question) {
+    var texte = 'Bonjour,\n\n' + boiteLignes(message);
+    if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
+    texte += '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
+    return texte.slice(0, 4000);
+}
+
+function boiteHtmlMail(message, question) {
+    var questionHtml = '';
+    if (boiteLignes(question)) {
+        questionHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;background:#f8faf9;border-radius:12px;">'
+            + '<tr><td style="padding:14px 16px;border-left:3px solid #34d399;">'
+            + '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#047857;">Ta question</p>'
+            + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#4b5563;">' + boiteEchapHtml(boiteLignes(question)) + '</p>'
+            + '</td></tr></table>';
+    }
+    return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;">'
+        + '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f3f4f6;">Réponse de l\'équipe Study Plan IB</div>'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:28px 12px;">'
+        + '<tr><td align="center">'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
+        + '<tr><td style="background:#059669;padding:22px 28px;">'
+        + '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        + '<td style="padding-right:12px;vertical-align:middle;"><img src="https://sawadogojuliss-byte.github.io/Learning-DP1/images/logo.png" width="42" height="42" alt="" style="display:block;border:0;border-radius:12px;"></td>'
+        + '<td style="vertical-align:middle;">'
+        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#d1fae5;">Study Plan IB</p>'
+        + '<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.25;font-weight:700;color:#ffffff;">Réponse à ta question</p>'
+        + '</td></tr></table></td></tr>'
+        + '<tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#111827;">'
+        + '<p style="margin:0 0 16px;">Bonjour,</p>'
+        + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
+        + questionHtml
+        + '<p style="margin:26px 0 0;">À bientôt,</p>'
+        + '<p style="margin:2px 0 0;font-weight:700;color:#047857;">L\'équipe Study Plan IB</p>'
+        + '</td></tr>'
+        + '<tr><td style="padding:8px 28px 26px;">'
+        + '<p style="margin:18px 0 0;padding-top:16px;border-top:1px solid #f3f4f6;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">Tu peux répondre à ce message. Il sera lu par l\'équipe Study Plan IB.</p>'
+        + '</td></tr>'
+        + '</table></td></tr></table></body></html>';
 }
 
 function boiteCompteExpediteur(token) {
@@ -985,6 +1027,7 @@ function boiteCompteExpediteur(token) {
 function boiteMessageEchecMail(err, data) {
     var type = err && (err.type || err.message) || '';
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
+    if (type === 'script') return 'L\'envoi au nom de l\'équipe Study Plan IB n\'est pas encore activé. La question reste en attente.';
     if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
@@ -1027,32 +1070,45 @@ function boiteConnecterPartage() {
 
 function boiteMajConnexion() {
     var texte = document.getElementById('retoursPartageTexte');
-    if (texte) texte.textContent = 'La réponse part dans la boîte de la personne qui a posé la question.';
+    if (texte) texte.textContent = 'Les réponses partent au nom de l\'équipe Study Plan IB.';
 }
 
 function boiteMailAccepte(data) {
     return !!(data && (data.success === true || String(data.success) === 'true'));
 }
 
+function boiteUrlScript() {
+    return boiteFetch('data/mail-script.json?t=' + Date.now(), { cache: 'no-store' }, 8000).then(function (res) {
+        return res.ok ? res.json() : {};
+    }).catch(function () {
+        return {};
+    }).then(function (data) {
+        var url = String((data && data.url) || '').trim();
+        if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)) {
+            throw new Error('script');
+        }
+        return url;
+    });
+}
+
 function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
-    return fetch(BOITE_FORMULAIRE, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-            name: 'Study Plan IB',
-            email: email,
-            _replyto: BOITE_EXPEDITEUR,
-            _subject: 'Réponse à ta question — Study Plan IB',
-            _cc: email,
-            _captcha: 'false',
-            _template: 'box',
-            message: boiteCorpsMail(message, question)
-        })
+    var sujet = 'Réponse à ta question — Study Plan IB';
+    return boiteUrlScript().then(function (url) {
+        return fetch(url, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                secret: BOITE_SCRIPT_SECRET,
+                to: email,
+                replyTo: BOITE_EXPEDITEUR,
+                subject: sujet,
+                text: boiteTexteMail(message, question),
+                html: boiteHtmlMail(message, question)
+            })
+        });
     }).then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
             if (!res.ok || !boiteMailAccepte(data)) {
