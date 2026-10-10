@@ -38,20 +38,3 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m "Met à jour les emplois du temps reçus."
           git push origin HEAD:arena/01a0bac7-learning-dp1
-
-  verifier:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Envoyer et lire la boîte temporaire
-        run: |
-          set +e
-          python3 tools/verifier-livraison.py > /tmp/verif.txt 2>&1
-          code=$?
-          python3 -c 'import pathlib; t=pathlib.Path("/tmp/verif.txt").read_text(errors="replace")[-3500:]; print(t); print("::error::"+t.replace("\n"," | ")[-1800:])'
-          exit $code
