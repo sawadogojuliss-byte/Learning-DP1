@@ -1,4 +1,9 @@
-eleve eleve1791645049@maxxspace.com
-envoi 200 {"success":"true","message":"The form was submitted successfully."}
-proprio_utile proprio1791644730@maxxspace.com
+eleve eleve1791648525@maxxspace.com
+envoi 200 {"success":true}
+acao *
+messages 1
+from {"address": "ibstudyplan@gmail.com", "name": "Équipe Study Plan IB"}
+sujet_recu Réponse à ta question — Study Plan IB
+formsubmit False
+equipe True
 livre
