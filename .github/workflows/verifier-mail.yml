@@ -1,0 +1,16 @@
+name: Vérifier le mail de réponse
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Envoyer et lire la boîte temporaire
+        run: python3 tools/verifier-livraison.py

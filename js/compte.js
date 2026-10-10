@@ -608,7 +608,7 @@ function compteNuageEffacer() {
 }
 
 var compteCopieEnAttente = false;
-var COMPTE_INVITE = 'Entre ton Gmail pour retrouver ton emploi du temps et tes informations.';
+var COMPTE_INVITE = 'Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.';
 
 function compteSessionDepuis(payload) {
     return {
@@ -860,25 +860,8 @@ function comptePoserBoutonCopie() {
     if (invite) invite.hidden = false;
     var slot = document.getElementById('googleBtnSlot');
     if (!slot) return;
-    var garde = document.getElementById('compteGmail');
-    var valeur = garde ? garde.value : '';
     slot.innerHTML = '';
-    var champ = document.createElement('input');
-    champ.id = 'compteGmail';
-    champ.type = 'email';
-    champ.autocomplete = 'email';
-    champ.maxLength = 120;
-    champ.placeholder = 'prenom@gmail.com';
-    champ.value = valeur;
-    champ.style.cssText = 'width:100%;box-sizing:border-box;border:1.5px solid #a7f3d0;border-radius:0.85rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.95rem;';
-    slot.appendChild(champ);
-    var bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.id = 'compteCopieBtn';
-    bouton.className = 'compte-google';
-    bouton.textContent = 'Retrouver ma progression';
-    bouton.onclick = function () { compteChargerCopieGoogle(bouton); };
-    slot.appendChild(bouton);
+    compteAfficherBoutonGoogle();
 }
 
 function compteAfficherBoutonCopie() {
@@ -888,20 +871,8 @@ function compteAfficherBoutonCopie() {
     comptePoserBoutonCopie();
 }
 
-function compteChargerCopieGoogle(bouton) {
-    if (bouton) {
-        bouton.disabled = true;
-        bouton.textContent = 'Récupération…';
-    }
-    compteMessage('');
-    compteConnexionGoogle({ currentTarget: bouton }).catch(function () {
-        compteMessage('La récupération n’a pas abouti. Réessaie.');
-    }).then(function () {
-        if (bouton && document.body.contains(bouton)) {
-            bouton.disabled = false;
-            bouton.textContent = 'Retrouver ma progression';
-        }
-    });
+function compteChargerCopieGoogle() {
+    compteAfficherBoutonGoogle();
 }
 
 function compteOuvrirPlanning() {
@@ -1024,25 +995,38 @@ function compteRestaurerTout(session, token) {
     });
 }
 
-function compteEmailSaisi() {
-    var el = document.getElementById('compteGmail');
-    return el ? String(el.value || '').trim() : '';
-}
-
-function compteEmailValide(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
-}
-
-function compteSessionDepuisGmail(email) {
-    var cle = compteEmailCle(email);
-    var connu = compteSubDeEmail(cle);
+function compteOptionsBoutonGoogle(slot) {
+    var largeur = 280;
+    if (slot && slot.clientWidth) largeur = Math.max(200, Math.min(280, slot.clientWidth));
     return {
-        sub: connu || ('gmail:' + cle),
-        email: cle,
-        name: '',
-        given_name: '',
-        picture: ''
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        logo_alignment: 'left',
+        width: largeur,
+        locale: 'fr'
     };
+}
+
+function compteAfficherBoutonGoogle() {
+    if (window.compteSession && window.compteSession.sub) return Promise.resolve(false);
+    var slot = document.getElementById('googleBtnSlot');
+    if (!slot) return Promise.resolve(false);
+    return comptePreparerGoogle().then(function () {
+        if (window.compteSession && window.compteSession.sub) return false;
+        if (!window.google || !google.accounts || !google.accounts.id || !google.accounts.id.renderButton) {
+            compteMessage('La connexion Google n’a pas pu s’ouvrir. Réessaie.');
+            return false;
+        }
+        slot.innerHTML = '';
+        google.accounts.id.renderButton(slot, compteOptionsBoutonGoogle(slot));
+        return true;
+    }).catch(function () {
+        compteMessage('La connexion Google n’a pas pu s’ouvrir. Réessaie.');
+        return false;
+    });
 }
 
 function comptePublierPartage(session) {
@@ -1082,41 +1066,8 @@ function compteRestaurerPartage(session) {
     }).catch(function () { return 'local'; });
 }
 
-function compteConnexionGoogle(origine) {
-    var bouton = (origine && origine.currentTarget) || document.getElementById('compteGoogleBtn') || document.getElementById('compteCopieBtn');
-    var libelle = bouton ? bouton.textContent : 'Continuer avec ce Gmail';
-    var email = compteEmailSaisi();
-    if (!compteEmailValide(email)) {
-        compteMessage('Indique le Gmail de ce compte.');
-        return Promise.resolve();
-    }
-    if (bouton) {
-        bouton.disabled = true;
-        bouton.textContent = 'Connexion…';
-    }
-    compteMessage('');
-    if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
-        var instant = sauvegardeCapturer();
-        if (instant) sauvegardeEcrireLocal('locale', instant, false);
-    }
-    function fin() {
-        if (bouton && document.body.contains(bouton)) {
-            bouton.disabled = false;
-            bouton.textContent = libelle;
-        }
-    }
-    var session = compteSessionDepuisGmail(email);
-    return compteRestaurerTout(session, null).then(function () {
-        return compteRestaurerPartage(session);
-    }).then(function () {
-        return comptePublierPartage(session);
-    }).then(function () {
-        fin();
-        if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 400);
-    }, function () {
-        fin();
-        compteMessage('La connexion n’a pas abouti. Réessaie.');
-    });
+function compteConnexionGoogle() {
+    return compteAfficherBoutonGoogle();
 }
 
 function compteOnCredential(resp) {
@@ -1133,7 +1084,11 @@ function compteOnCredential(resp) {
         var instant = sauvegardeCapturer();
         if (instant) sauvegardeEcrireLocal('locale', instant, false);
     }
-    compteRestaurerTout(session, null);
+    compteRestaurerTout(session, null).then(function () {
+        return compteRestaurerPartage(session);
+    }).then(function () {
+        return comptePublierPartage(session);
+    });
 }
 
 function comptePreparerGoogle() {
@@ -1215,7 +1170,7 @@ var nomLie = compteNomLie(session.sub) || (typeof userName !== 'undefined' ? use
     var menuDetail = document.getElementById('menuCompteDetail');
     var nomMenu = session ? ((typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || session.given_name || 'Mon compte') : 'Mon compte';
     if (menuNom) menuNom.textContent = nomMenu;
-    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté') : 'Gmail';
+    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Connexion Google';
     var setup = document.getElementById('compteSetup');
     if (setup && !compteClientId()) setup.open = true;
 }
@@ -1240,6 +1195,7 @@ function ouvrirCompte(depuisSection) {
     compteMessage('');
     compteRafraichir();
     if (compteCopieEnAttente) comptePoserBoutonCopie();
+    else if (!(window.compteSession && window.compteSession.sub)) compteAfficherBoutonGoogle();
 }
 
 function fermerCompte() {

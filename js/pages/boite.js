@@ -12,7 +12,7 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom rayyan',
     'ouedraogo wendsom ryyan'
 ];
-var BOITE_EXPEDITEUR = 'studyplanib@gmail.com';
+var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
 var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
 var boiteJetonMail = '';
 var boiteJetonMailFin = 0;
@@ -777,14 +777,9 @@ function boiteRendreRetours(fusion) {
         });
     });
     fusion.questions.forEach(function (item) {
-        var email = item.email || item.google || '';
         cartes.push({
             at: item.at || '',
-            html: boiteCarte(
-                'Question · ' + boiteEchap(item.nom || 'Sans nom'),
-                boiteEchap(boiteDate(item.at)) + ' · ' + (email ? boiteEchap(email) : 'E-mail non renseigné'),
-                boiteEchap(item.texte || '')
-            )
+            html: boiteCarteQuestion(item, boiteReponsesLiees(fusion, item.id))
         });
     });
     cartes.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
@@ -805,9 +800,15 @@ function boiteEmailQuestion(item) {
     return String((item && (item.email || item.google)) || '').trim();
 }
 
-function boiteReponsesDe(fusion, questionId) {
+function boiteReponsesLiees(fusion, questionId) {
     return (fusion.reponses || []).filter(function (rep) {
-        return rep && rep.questionId === questionId && (rep.mail || rep.partage);
+        return rep && rep.questionId === questionId;
+    });
+}
+
+function boiteReponsesDe(fusion, questionId) {
+    return boiteReponsesLiees(fusion, questionId).filter(function (rep) {
+        return rep.mail;
     });
 }
 
@@ -819,7 +820,7 @@ function boiteCarteQuestion(item, reponses) {
     var compte = item.google ? boiteEchap(item.google) : 'Sans compte Google';
     if (item.googleNom) compte += ' · ' + boiteEchap(item.googleNom);
     var email = boiteEmailQuestion(item);
-    var cochee = reponses.length > 0;
+    var cochee = reponses.some(function (rep) { return rep && rep.mail; });
     var html = '<article style="background:white;border:1.5px solid ' + (cochee ? '#a7f3d0' : '#e5e7eb') + ';border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
         + '<div style="display:flex;align-items:flex-start;gap:0.65rem;">'
         + boiteCase(cochee)
@@ -831,7 +832,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (rep.mail ? 'Message envoyé' : 'Réponse enregistrée') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Visible pour les quatre comptes admin' + (rep.mail ? ', mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) : '') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) + ' à ' + boiteEchap(rep.destinataire || email) : 'Pas encore envoyé par mail') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -855,9 +856,10 @@ function boiteRendreQuestions(fusion) {
     var attente = [];
     var repondues = [];
     (fusion.questions || []).forEach(function (item) {
-        var reps = boiteReponsesDe(fusion, item.id);
-        if (reps.length) repondues.push(boiteCarteQuestion(item, reps));
-        else attente.push(boiteCarteQuestion(item, []));
+        var reps = boiteReponsesLiees(fusion, item.id);
+        var carte = boiteCarteQuestion(item, reps);
+        if (boiteReponsesDe(fusion, item.id).length) repondues.push(carte);
+        else attente.push(carte);
     });
     function bloc(titre, cartes, vide) {
         return '<section style="margin-bottom:1.25rem;">'
@@ -870,7 +872,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part de ' + boiteEchap(BOITE_EXPEDITEUR) + '.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part de ' + boiteEchap(BOITE_EXPEDITEUR) + ' vers la personne qui a posé la question.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -930,6 +932,13 @@ function boiteDemanderJetonMail() {
     return Promise.reject(new Error('google-ferme'));
 }
 
+function boiteCorpsMail(message, question) {
+    var corps = String(message || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    if (question) corps += '\n\n—\nTa question :\n' + String(question).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    corps += '\n\n— Study Plan IB';
+    return corps.slice(0, 4000);
+}
+
 function boiteCompteExpediteur(token) {
     return boiteFetch('https://www.googleapis.com/oauth2/v3/userinfo', {
         headers: { Authorization: 'Bearer ' + token }
@@ -951,7 +960,7 @@ function boiteCompteExpediteur(token) {
 function boiteMessageEchecMail(err, data) {
     var type = err && (err.type || err.message) || '';
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
-    if (type === 'compte') return 'Choisis studyplanib@gmail.com. La question reste en attente.';
+    if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
     if (/SERVICE_DISABLED|accessNotConfigured|has not been used/i.test(api)) {
@@ -991,20 +1000,46 @@ function boiteConnecterPartage() {
     });
 }
 
-function boiteMajConnexion(fusion) {
+function boiteMajConnexion() {
     var texte = document.getElementById('retoursPartageTexte');
-    var bouton = document.getElementById('retoursConnecter');
-    var lie = boiteConnexionPartagee(fusion);
-    if (texte) {
-        texte.textContent = lie
-            ? 'Boîte partagée : ' + BOITE_EXPEDITEUR
-            : 'Boîte non connectée';
-    }
-    if (bouton) bouton.hidden = !!lie;
+    if (texte) texte.textContent = 'Les réponses partent de ' + BOITE_EXPEDITEUR + '.';
 }
 
-function boiteEnvoyerMail() {
-    return Promise.resolve({ partage: true });
+function boiteMailAccepte(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (data.success === true || String(data.success).toLowerCase() === 'true') return true;
+    if (data.id && !data.error) return true;
+    return false;
+}
+
+function boiteEnvoyerMail(destinataire, message, question) {
+    var email = String(destinataire || '').trim();
+    if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
+    return boiteFetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json'
+        },
+        body: JSON.stringify({
+            name: 'Study Plan IB',
+            email: BOITE_EXPEDITEUR,
+            _replyto: BOITE_EXPEDITEUR,
+            _subject: 'Réponse à ta question — Study Plan IB',
+            _template: 'box',
+            _captcha: 'false',
+            message: boiteCorpsMail(message, question)
+        })
+    }, 20000).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+            if (!res.ok || !boiteMailAccepte(data)) {
+                var err = new Error('mail');
+                err.api = data;
+                throw err;
+            }
+            return data;
+        });
+    });
 }
 
 function boiteDireDans(el, texte, erreur) {
@@ -1013,16 +1048,17 @@ function boiteDireDans(el, texte, erreur) {
     el.style.color = erreur ? '#b45309' : '#047857';
 }
 
-function boiteRepondre(questionId) {
+function boiteRepondre(questionId, origine) {
     if (!boiteEstAdmin() || !boiteListesCache) return;
     var question = null;
     (boiteListesCache.questions || []).some(function (item) {
         if (item.id === questionId) { question = item; return true; }
         return false;
     });
-    var zone = document.querySelector('[data-reponse-statut="' + questionId + '"]');
-    var champ = document.querySelector('[data-reponse-texte="' + questionId + '"]');
-    var bouton = document.querySelector('[data-repondre="' + questionId + '"]');
+    var article = origine && origine.closest ? origine.closest('article') : null;
+    var zone = article ? article.querySelector('[data-reponse-statut]') : document.querySelector('[data-reponse-statut="' + questionId + '"]');
+    var champ = article ? article.querySelector('[data-reponse-texte]') : document.querySelector('[data-reponse-texte="' + questionId + '"]');
+    var bouton = origine || document.querySelector('[data-repondre="' + questionId + '"]');
     if (!question) return;
     var email = boiteEmailQuestion(question);
     var texte = champ ? champ.value.trim() : '';
@@ -1036,24 +1072,29 @@ function boiteRepondre(questionId) {
     }
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
-    boiteDireDans(zone, 'Enregistrement pour les quatre comptes…', false);
-    var record = {
-        type: 'reponse',
-        id: boiteId('r'),
-        questionId: question.id,
-        at: new Date().toISOString(),
-        nom: boiteNom(),
-        email: BOITE_EXPEDITEUR,
-        destinataire: email,
-        texte: texte.slice(0, 800),
-        mail: false,
-        partage: true
-    };
-    boiteGarderVu(record);
-    boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
-    boiteRendreQuestions(boiteListesCache);
-    boiteEnvoyer(record).catch(function () {});
-    boiteConnecterPartage().catch(function () {});
+    boiteDireDans(zone, 'Envoi vers ' + email + '…', false);
+    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function () {
+        var record = {
+            type: 'reponse',
+            id: boiteId('r'),
+            questionId: question.id,
+            at: new Date().toISOString(),
+            nom: boiteNom(),
+            email: BOITE_EXPEDITEUR,
+            destinataire: email,
+            texte: texte.slice(0, 800),
+            mail: true,
+            partage: true
+        };
+        boiteGarderVu(record);
+        boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+        boiteRendreQuestions(boiteListesCache);
+        boiteRendreRetours(boiteListesCache);
+        boiteEnvoyer(record).catch(function () {});
+    }).catch(function (err) {
+        if (bouton) bouton.disabled = false;
+        boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
+    });
 }
 
 function boiteRendreEmplois(fusion) {
@@ -1183,15 +1224,16 @@ function boiteBrancherAdmin() {
     if (filtre) filtre.oninput = function () {
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
     };
-    var questions = document.getElementById('questionsListe');
-    if (questions && !questions.__boite) {
-        questions.__boite = true;
-        questions.addEventListener('click', function (e) {
+    ['questionsListe', 'retoursListe'].forEach(function (id) {
+        var liste = document.getElementById(id);
+        if (!liste || liste.__boite) return;
+        liste.__boite = true;
+        liste.addEventListener('click', function (e) {
             var btn = e.target && e.target.closest ? e.target.closest('[data-repondre]') : null;
             if (!btn) return;
-            boiteRepondre(btn.getAttribute('data-repondre'));
+            boiteRepondre(btn.getAttribute('data-repondre'), btn);
         });
-    }
+    });
 }
 
 function boiteNom() {
@@ -1233,14 +1275,22 @@ function boiteQuestion(session) {
     if (boiteEnvoiEnCours) return;
     boiteEnvoiEnCours = true;
     boiteDire('aideStatut', 'Envoi…', false);
+    var champMail = document.getElementById('aideEmail');
+    var emailSaisi = champMail ? String(champMail.value || '').trim() : '';
+    var email = boiteEmailValide(emailSaisi) ? emailSaisi : (session && session.email ? session.email : '');
+    if (!boiteEmailValide(email)) {
+        boiteEnvoiEnCours = false;
+        boiteDire('aideStatut', 'Indique ton e-mail pour recevoir la réponse.', true);
+        return;
+    }
     var record = {
         type: 'question',
         id: boiteId('q'),
         at: new Date().toISOString(),
         nom: boiteNom(),
         texte: valeur.slice(0, 800),
-        email: session && session.email ? session.email : '',
-        google: session && session.email ? session.email : '',
+        email: email,
+        google: email,
         googleNom: session && session.name ? session.name : ''
     };
     boiteEnvoyer(record).then(function () {
@@ -1260,6 +1310,9 @@ function initAide() {
     boiteReessayerUneFois();
     var nom = document.getElementById('aideNom');
     if (nom) nom.textContent = boiteNom() || 'Ton prénom';
+    var mailAide = document.getElementById('aideEmail');
+    var sessionAide = boiteSession();
+    if (mailAide && !mailAide.value && sessionAide && sessionAide.email) mailAide.value = sessionAide.email;
     var choix = document.getElementById('aideChoix');
     if (choix) choix.style.display = 'none';
     if (aideBranchee) return;
