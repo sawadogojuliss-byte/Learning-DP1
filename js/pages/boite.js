@@ -1133,12 +1133,37 @@ function boiteAttendreConfirmation(nonce) {
     return essai();
 }
 
+function boitePosterChamps(url, payload) {
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8');
+        xhr.onload = function () {
+            var data = {};
+            try { data = JSON.parse(xhr.responseText); } catch (e) {}
+            if (xhr.status === 200 && boiteMailAccepte(data, payload.nonce)) resolve(data);
+            else reject(new Error('mail'));
+        };
+        xhr.onerror = function () { reject(new Error('mail')); };
+        xhr.send(Object.keys(payload).map(function (cle) {
+            return encodeURIComponent(cle) + '=' + encodeURIComponent(payload[cle]);
+        }).join('&'));
+    });
+}
+
 function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var nonce = boiteNonce();
     return boiteUrlScript().then(function (url) {
         var payload = boitePayloadMail(email, message, question, nonce);
+        function secours() {
+            return boitePosterChamps(url, payload).catch(function () {
+                return boitePosterFormulaire(url, payload).then(function () {
+                    return boiteAttendreConfirmation(nonce);
+                });
+            });
+        }
         return fetch(url, {
             method: 'POST',
             redirect: 'follow',
@@ -1147,15 +1172,9 @@ function boiteEnvoyerMail(destinataire, message, question) {
         }).then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (data) {
                 if (res.ok && boiteMailAccepte(data, nonce)) return data;
-                return boitePosterFormulaire(url, payload).then(function () {
-                    return boiteAttendreConfirmation(nonce);
-                });
+                return secours();
             });
-        }).catch(function () {
-            return boitePosterFormulaire(url, payload).then(function () {
-                return boiteAttendreConfirmation(nonce);
-            });
-        });
+        }).catch(secours);
     });
 }
 
