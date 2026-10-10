@@ -1,10 +1,28 @@
-proprio proprio1791644730@maxxspace.com
-activation_http 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
-activation_mail oui
-confirmations 2
-clic 200 https://formsubmit.co/confirm/80cbd20bf71a499e0b52f87b9c9ea024] <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" cont
-clic 200 https://formsubmit.co/confirm/80cbd20bf71a499e0b52f87b9c9ea024 <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" cont
-eleve eleve1791644747@maxxspace.com
-envoi_form 200 <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" content="text/html" charset=utf-8">              <meta name="description" content="FormSubmit is a form backend, API and email service
-envoi_ajax 200 {"success":"true","message":"The form was submitted successfully."}
-livre
+eleve eleve1791644820@maxxspace.com
+Traceback (most recent call last):
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 84, in <module>
+    main()
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 61, in main
+    status, raw = ouvrir(
+                  ^^^^^^^
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 20, in ouvrir
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 521, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 630, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 559, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 639, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
