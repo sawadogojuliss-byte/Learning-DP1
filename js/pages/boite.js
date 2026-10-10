@@ -308,7 +308,7 @@ function boiteEnvoyerDistant(record) {
 function boiteLireVus() {
     var vus = boiteLireJson(BOITE_VUS);
     if (!vus || typeof vus !== 'object') return [];
-    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || []);
+    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || [], vus.profils || [], vus.connexions || []);
 }
 
 function boiteMemoriserVus(fusion) {
@@ -316,7 +316,9 @@ function boiteMemoriserVus(fusion) {
         questions: (fusion.questions || []).slice(0, 80),
         feedbacks: (fusion.feedbacks || []).slice(0, 80),
         emplois: (fusion.emplois || []).slice(0, 200),
-        reponses: (fusion.reponses || []).slice(0, 80)
+        reponses: (fusion.reponses || []).slice(0, 80),
+        profils: (fusion.profils || []).slice(0, 40),
+        connexions: (fusion.connexions || []).slice(0, 4)
     });
 }
 
@@ -465,7 +467,7 @@ function boiteLireArchive(url) {
         })
         .then(function (doc) {
             doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || []);
+            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || []);
         });
 }
 
@@ -473,10 +475,14 @@ function boiteFusionner(items) {
     var questions = [];
     var feedbacks = [];
     var reponses = [];
+    var profils = [];
+    var connexions = [];
     var emplois = {};
     var vusQ = {};
     var vusF = {};
     var vusR = {};
+    var vusP = {};
+    var vusC = {};
     (items || []).forEach(function (item) {
         if (!item || !item.type || item.type === 'coffre') return;
         if (item.type === 'question' && item.id && !vusQ[item.id]) {
@@ -488,6 +494,24 @@ function boiteFusionner(items) {
         } else if (item.type === 'reponse' && item.id && !vusR[item.id]) {
             vusR[item.id] = 1;
             reponses.push(item);
+        } else if (item.type === 'profil' && item.id) {
+            if (!vusP[item.id]) {
+                vusP[item.id] = 1;
+                profils.push(item);
+            } else if (item.data) {
+                profils.forEach(function (deja, index) {
+                    if (deja.id === item.id && !deja.data) profils[index] = item;
+                });
+            }
+        } else if (item.type === 'connexion' && item.id) {
+            if (!vusC[item.id]) {
+                vusC[item.id] = 1;
+                connexions.push(item);
+            } else if (item.partage) {
+                connexions.forEach(function (deja, index) {
+                    if (deja.id === item.id && !deja.partage) connexions[index] = item;
+                });
+            }
         } else if (item.type === 'emploi') {
             if (boiteEmploiRetire(item)) return;
             var cle = boiteCleEmploi(item);
@@ -517,10 +541,13 @@ function boiteFusionner(items) {
     feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
     listeEmplois.sort(function (a, b) { return boiteNormaliser(a.nom).localeCompare(boiteNormaliser(b.nom), 'fr'); });
+    connexions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     return {
         questions: questions.slice(0, 120),
         feedbacks: feedbacks.slice(0, 120),
         reponses: reponses.slice(0, 120),
+        profils: profils.slice(0, 80),
+        connexions: connexions.slice(0, 8),
         emplois: listeEmplois.slice(0, 300)
     };
 }
@@ -543,19 +570,28 @@ function boiteDocument(fusion) {
             jours: item.jours || [],
             questionId: item.questionId || '',
             destinataire: item.destinataire || '',
-            mail: !!item.mail
+            mail: !!item.mail,
+            partage: !!item.partage,
+            data: item.data || null
         };
     }
     var doc = {
         questions: fusion.questions.slice(0, 60).map(leger),
         feedbacks: fusion.feedbacks.slice(0, 60).map(leger),
         reponses: (fusion.reponses || []).slice(0, 60).map(leger),
-        emplois: fusion.emplois.slice(0, 30).map(leger)
+        emplois: fusion.emplois.slice(0, 30).map(leger),
+        profils: (fusion.profils || []).slice(0, 20).map(leger),
+        connexions: (fusion.connexions || []).slice(0, 4).map(leger)
     };
     if (JSON.stringify(doc).length > 60000) {
         doc.emplois = doc.emplois.slice(0, 12);
         doc.questions = doc.questions.slice(0, 30);
         doc.feedbacks = doc.feedbacks.slice(0, 30);
+        doc.profils = (doc.profils || []).map(function (item) {
+            var copie = item;
+            delete copie.data;
+            return copie;
+        });
     }
     return doc;
 }
@@ -568,8 +604,8 @@ function boiteArchiver(cfg, fusion) {
     }).then(function (doc) {
         doc = doc && typeof doc === 'object' ? doc : {};
         var mix = boiteFusionner([].concat(
-            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [],
-            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || []
+            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [],
+            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || []
         ));
         return boiteFetch(cfg.archive, {
             method: 'PUT',
@@ -582,10 +618,12 @@ function boiteArchiver(cfg, fusion) {
 function boiteAjouterArchive(record) {
     if (!record) return Promise.resolve();
     return boiteLireConfig().then(function (cfg) {
-        var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [] };
+        var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [] };
         if (record.type === 'feedback') fusion.feedbacks = [record];
         else if (record.type === 'reponse') fusion.reponses = [record];
         else if (record.type === 'question') fusion.questions = [record];
+        else if (record.type === 'profil') fusion.profils = [record];
+        else if (record.type === 'connexion') fusion.connexions = [record];
         else fusion.emplois = [record];
         return boiteArchiver(cfg, fusion);
     });
@@ -760,6 +798,7 @@ function boiteRendreRetours(fusion) {
             ? 'Une partie des messages n\'a pas pu être rechargée.'
             : (cartes.length + ' message' + (cartes.length > 1 ? 's' : ''));
     }
+    boiteMajConnexion(fusion);
 }
 
 function boiteEmailQuestion(item) {
@@ -768,7 +807,7 @@ function boiteEmailQuestion(item) {
 
 function boiteReponsesDe(fusion, questionId) {
     return (fusion.reponses || []).filter(function (rep) {
-        return rep && rep.questionId === questionId && rep.mail;
+        return rep && rep.questionId === questionId && (rep.mail || rep.partage);
     });
 }
 
@@ -790,9 +829,9 @@ function boiteCarteQuestion(item, reponses) {
         + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
     reponses.forEach(function (rep) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
-            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">Message envoyé · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (rep.mail ? 'Message envoyé' : 'Réponse enregistrée') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) + ' à ' + boiteEchap(rep.destinataire || email) + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">Visible pour les quatre comptes admin' + (rep.mail ? ', mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) : '') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -888,31 +927,7 @@ function boiteOublierJetonMail() {
 }
 
 function boiteDemanderJetonMail() {
-    if (boiteJetonMail && Date.now() < boiteJetonMailFin - 60000) return Promise.resolve(boiteJetonMail);
-    if (!window.google || !google.accounts || !google.accounts.oauth2 || typeof compteClientId !== 'function' || !compteClientId()) {
-        return Promise.reject(new Error('google'));
-    }
-    return new Promise(function (resolve, reject) {
-        var fini = false;
-        function ok(token) { if (!fini) { fini = true; resolve(token); } }
-        function ko(err) { if (!fini) { fini = true; reject(err || new Error('jeton')); } }
-        var client = google.accounts.oauth2.initTokenClient({
-            client_id: compteClientId(),
-            scope: BOITE_GMAIL_SCOPE,
-            hint: BOITE_EXPEDITEUR,
-            include_granted_scopes: false,
-            callback: function (resp) {
-                if (resp && resp.access_token) {
-                    boiteJetonMail = resp.access_token;
-                    boiteJetonMailFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
-                    ok(boiteJetonMail);
-                } else ko(resp || new Error('jeton'));
-            },
-            error_callback: function (err) { ko(err || new Error('jeton')); }
-        });
-        try { client.requestAccessToken({ prompt: 'select_account', hint: BOITE_EXPEDITEUR }); }
-        catch (e) { ko(e); }
-    });
+    return Promise.reject(new Error('google-ferme'));
 }
 
 function boiteCompteExpediteur(token) {
@@ -945,27 +960,51 @@ function boiteMessageEchecMail(err, data) {
     return 'Le mail n\'a pas pu partir. La question reste en attente.';
 }
 
-function boiteEnvoyerMail(destinataire, message, question) {
-    return boiteDemanderJetonMail().then(boiteCompteExpediteur).then(function (token) {
-        return boiteFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: {
-                Authorization: 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ raw: boiteBase64Url(boiteLettre(destinataire, message, question)) })
-        }, 20000).then(function (res) {
-            return res.json().catch(function () { return {}; }).then(function (data) {
-                if (!res.ok || !data || !data.id) {
-                    if (res.status === 401 || res.status === 403) boiteOublierJetonMail();
-                    var err = new Error('mail');
-                    err.api = data;
-                    throw err;
-                }
-                return data;
-            });
-        });
+function boiteConnexionPartagee(fusion) {
+    var liste = (fusion && fusion.connexions) || [];
+    var i;
+    for (i = 0; i < liste.length; i++) {
+        if (liste[i] && liste[i].partage && compteEmailCleSafe(liste[i].email) === compteEmailCleSafe(BOITE_EXPEDITEUR)) return liste[i];
+    }
+    return null;
+}
+
+function compteEmailCleSafe(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+function boiteConnecterPartage() {
+    var record = {
+        type: 'connexion',
+        id: 'connexion-admins',
+        at: new Date().toISOString(),
+        email: BOITE_EXPEDITEUR,
+        partage: true,
+        nom: boiteNom()
+    };
+    return boiteEnvoyer(record).then(function () {
+        if (boiteListesCache) {
+            boiteListesCache.connexions = [record].concat(boiteListesCache.connexions || []);
+        }
+        boiteMajConnexion(boiteListesCache || { connexions: [record] });
+        return record;
     });
+}
+
+function boiteMajConnexion(fusion) {
+    var texte = document.getElementById('retoursPartageTexte');
+    var bouton = document.getElementById('retoursConnecter');
+    var lie = boiteConnexionPartagee(fusion);
+    if (texte) {
+        texte.textContent = lie
+            ? 'Boîte partagée : ' + BOITE_EXPEDITEUR
+            : 'Boîte non connectée';
+    }
+    if (bouton) bouton.hidden = !!lie;
+}
+
+function boiteEnvoyerMail() {
+    return Promise.resolve({ partage: true });
 }
 
 function boiteDireDans(el, texte, erreur) {
@@ -997,27 +1036,24 @@ function boiteRepondre(questionId) {
     }
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
-    boiteDireDans(zone, 'Envoi depuis studyplanib@gmail.com…', false);
-    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function () {
-        var record = {
-            type: 'reponse',
-            id: boiteId('r'),
-            questionId: question.id,
-            at: new Date().toISOString(),
-            nom: boiteNom(),
-            email: BOITE_EXPEDITEUR,
-            destinataire: email,
-            texte: texte.slice(0, 800),
-            mail: true
-        };
-        boiteGarderVu(record);
-        boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
-        boiteRendreQuestions(boiteListesCache);
-        boiteEnvoyer(record).catch(function () {});
-    }).catch(function (err) {
-        if (bouton) bouton.disabled = false;
-        boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
-    });
+    boiteDireDans(zone, 'Enregistrement pour les quatre comptes…', false);
+    var record = {
+        type: 'reponse',
+        id: boiteId('r'),
+        questionId: question.id,
+        at: new Date().toISOString(),
+        nom: boiteNom(),
+        email: BOITE_EXPEDITEUR,
+        destinataire: email,
+        texte: texte.slice(0, 800),
+        mail: false,
+        partage: true
+    };
+    boiteGarderVu(record);
+    boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+    boiteRendreQuestions(boiteListesCache);
+    boiteEnvoyer(record).catch(function () {});
+    boiteConnecterPartage().catch(function () {});
 }
 
 function boiteRendreEmplois(fusion) {
@@ -1125,13 +1161,24 @@ function boiteRafraichirAdmin() {
 }
 
 function boiteBrancherAdmin() {
-    if (typeof compteChargerGIS === 'function') compteChargerGIS().catch(function () {});
     if (boiteAdminBranche) return;
     boiteAdminBranche = true;
     ['retoursRafraichir', 'questionsRafraichir', 'emploisRafraichir'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.onclick = boiteRafraichirAdmin;
     });
+    var partager = document.getElementById('retoursConnecter');
+    if (partager) partager.onclick = function () {
+        partager.disabled = true;
+        boiteConnecterPartage().then(function () {
+            partager.disabled = false;
+            if (boiteListesCache) boiteRendreRetours(boiteListesCache);
+        }).catch(function () {
+            partager.disabled = false;
+            var texte = document.getElementById('retoursPartageTexte');
+            if (texte) texte.textContent = 'La boîte n’a pas pu être connectée. Réessaie.';
+        });
+    };
     var filtre = document.getElementById('emploisFiltre');
     if (filtre) filtre.oninput = function () {
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
@@ -1173,37 +1220,7 @@ function boiteSession() {
 }
 
 function boiteLierGoogle() {
-    var deja = boiteSession();
-    if (deja) return Promise.resolve(deja);
-    if (typeof compteChargerGIS !== 'function' || typeof compteDemanderJeton !== 'function') {
-        return Promise.reject(new Error('google'));
-    }
-    var scope = typeof COMPTE_IDENTITE_SCOPE !== 'undefined' ? COMPTE_IDENTITE_SCOPE : 'openid email profile';
-    return compteChargerGIS().then(function () {
-        return compteDemanderJeton('select_account', scope);
-    }).then(function (token) {
-        return boiteFetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: 'Bearer ' + token }
-        }, 12000).then(function (res) {
-            if (!res.ok) throw new Error('profil');
-            return res.json();
-        });
-    }).then(function (profil) {
-        var session = typeof compteSessionDepuis === 'function' ? compteSessionDepuis(profil) : {
-            sub: profil.sub || '',
-            email: profil.email || '',
-            name: profil.name || '',
-            picture: profil.picture || ''
-        };
-        window.compteSession = session;
-        var cle = typeof COMPTE_SESSION_KEY !== 'undefined' ? COMPTE_SESSION_KEY : 'studyPlanIB_googleSession';
-        boiteEcrireJson(cle, session);
-        if (typeof compteRafraichir === 'function') {
-            try { compteRafraichir(); } catch (e) {}
-        }
-        setTimeout(function () { boitePublierEmploi(true); }, 600);
-        return session;
-    });
+    return Promise.resolve(boiteSession());
 }
 
 function boiteQuestion(session) {
@@ -1255,22 +1272,12 @@ function initAide() {
             boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
             return;
         }
-        var session = boiteSession();
-        if (session) {
-            if (choix) choix.style.display = 'none';
-            boiteQuestion(session);
-            return;
-        }
-        if (choix) choix.style.display = 'block';
-        boiteDire('aideStatut', '', false);
+        if (choix) choix.style.display = 'none';
+        boiteQuestion(boiteSession());
     };
     if (avec) avec.onclick = function () {
-        boiteDire('aideStatut', 'Connexion Google…', false);
-        boiteLierGoogle().then(function (session) {
-            boiteQuestion(session);
-        }).catch(function () {
-            boiteDire('aideStatut', 'La connexion Google n\'a pas abouti.', true);
-        });
+        if (choix) choix.style.display = 'none';
+        boiteQuestion(boiteSession());
     };
 }
 

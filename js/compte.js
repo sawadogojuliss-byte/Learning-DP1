@@ -446,33 +446,8 @@ function compteCleDrive() {
     return window.compteSession && window.compteSession.sub ? 'studyPlanIB_driveFileId:' + window.compteSession.sub : '';
 }
 
-function compteDemanderJeton(prompt, scope) {
-    return new Promise(function (resolve, reject) {
-        if (!window.google || !google.accounts || !google.accounts.oauth2) {
-            reject(new Error('google'));
-            return;
-        }
-        var fini = false;
-        function ok(token) { if (fini) return; fini = true; resolve(token); }
-        function ko(err) { if (fini) return; fini = true; reject(err || new Error('jeton')); }
-        var client = google.accounts.oauth2.initTokenClient({
-            client_id: compteClientId(),
-            scope: scope || COMPTE_IDENTITE_SCOPE,
-            include_granted_scopes: false,
-            callback: function (resp) {
-                if (resp && resp.access_token) {
-                    compteJeton = resp.access_token;
-                    compteJetonFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
-                    ok(compteJeton);
-                } else ko(resp || new Error('jeton'));
-            },
-            error_callback: function (err) { ko(err); }
-        });
-        try {
-            if (prompt) client.requestAccessToken({ prompt: prompt });
-            else client.requestAccessToken();
-        } catch (e) { ko(e); }
-    });
+function compteDemanderJeton() {
+    return Promise.reject(new Error('google-ferme'));
 }
 
 function compteObtenirJeton(interactif) {
@@ -633,7 +608,7 @@ function compteNuageEffacer() {
 }
 
 var compteCopieEnAttente = false;
-var COMPTE_INVITE = 'Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.';
+var COMPTE_INVITE = 'Entre ton Gmail pour retrouver ton emploi du temps et tes informations.';
 
 function compteSessionDepuis(payload) {
     return {
@@ -880,12 +855,23 @@ function compteBasculer(data, session) {
 function comptePoserBoutonCopie() {
     if (window.compteSession && window.compteSession.sub) return;
     var texte = document.getElementById('compteInviteTexte');
-    if (texte) texte.textContent = 'Confirme Google pour ouvrir ton emploi du temps et tes informations.';
+    if (texte) texte.textContent = COMPTE_INVITE;
     var invite = document.getElementById('compteInvite');
     if (invite) invite.hidden = false;
     var slot = document.getElementById('googleBtnSlot');
     if (!slot) return;
+    var garde = document.getElementById('compteGmail');
+    var valeur = garde ? garde.value : '';
     slot.innerHTML = '';
+    var champ = document.createElement('input');
+    champ.id = 'compteGmail';
+    champ.type = 'email';
+    champ.autocomplete = 'email';
+    champ.maxLength = 120;
+    champ.placeholder = 'prenom@gmail.com';
+    champ.value = valeur;
+    champ.style.cssText = 'width:100%;box-sizing:border-box;border:1.5px solid #a7f3d0;border-radius:0.85rem;padding:0.75rem 0.9rem;font:inherit;font-size:0.95rem;';
+    slot.appendChild(champ);
     var bouton = document.createElement('button');
     bouton.type = 'button';
     bouton.id = 'compteCopieBtn';
@@ -1038,9 +1024,72 @@ function compteRestaurerTout(session, token) {
     });
 }
 
+function compteEmailSaisi() {
+    var el = document.getElementById('compteGmail');
+    return el ? String(el.value || '').trim() : '';
+}
+
+function compteEmailValide(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function compteSessionDepuisGmail(email) {
+    var cle = compteEmailCle(email);
+    var connu = compteSubDeEmail(cle);
+    return {
+        sub: connu || ('gmail:' + cle),
+        email: cle,
+        name: '',
+        given_name: '',
+        picture: ''
+    };
+}
+
+function comptePublierPartage(session) {
+    if (!session || !session.email || typeof boiteEnvoyer !== 'function' || typeof memoireLireEtat !== 'function') return Promise.resolve();
+    var data = null;
+    try { data = memoireLireEtat(); } catch (e) { data = null; }
+    if (!data || typeof compteUtile !== 'function' || !compteUtile(data)) return Promise.resolve();
+    var record = {
+        type: 'profil',
+        id: 'p_' + compteEmailCle(session.email).replace(/[^a-z0-9]/g, '').slice(0, 48),
+        at: new Date().toISOString(),
+        email: session.email,
+        google: session.email,
+        googleSub: session.sub,
+        nom: data.userName || '',
+        data: compteEstampiller(data, session)
+    };
+    return boiteEnvoyer(record).catch(function () {});
+}
+
+function compteRestaurerPartage(session) {
+    if (!session || !session.email || typeof boiteChargerListes !== 'function') return Promise.resolve('local');
+    return boiteChargerListes(true).then(function (fusion) {
+        var cle = compteEmailCle(session.email);
+        var meilleur = null;
+        (fusion.profils || []).forEach(function (item) {
+            if (!item || !item.data) return;
+            if (compteEmailCle(item.email || item.google) !== cle) return;
+            if (!meilleur || compteRichesse(item.data) > compteRichesse(meilleur)) meilleur = item.data;
+        });
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (meilleur && compteUtile(meilleur) && compteRichesse(meilleur) > compteRichesse(courant)) {
+            compteBasculer(compteEstampiller(meilleur, session), session);
+            return 'restored';
+        }
+        return 'local';
+    }).catch(function () { return 'local'; });
+}
+
 function compteConnexionGoogle(origine) {
     var bouton = (origine && origine.currentTarget) || document.getElementById('compteGoogleBtn') || document.getElementById('compteCopieBtn');
-    var libelle = bouton ? bouton.textContent : 'Continuer avec Google';
+    var libelle = bouton ? bouton.textContent : 'Continuer avec ce Gmail';
+    var email = compteEmailSaisi();
+    if (!compteEmailValide(email)) {
+        compteMessage('Indique le Gmail de ce compte.');
+        return Promise.resolve();
+    }
     if (bouton) {
         bouton.disabled = true;
         bouton.textContent = 'Connexion…';
@@ -1056,23 +1105,14 @@ function compteConnexionGoogle(origine) {
             bouton.textContent = libelle;
         }
     }
-    if (!window.google || !google.accounts || !google.accounts.oauth2) {
-        compteChargerGIS().then(function () {
-            fin();
-            compteMessage('Google est prêt. Appuie encore sur Continuer avec Google.');
-        }, function (e) {
-            compteMessage((e && e.message) || 'La connexion Google n’a pas abouti. Réessaie.');
-            fin();
-        });
-        return;
-    }
-    var scope = (typeof COMPTE_RESTAURATION_SCOPE === 'string' && COMPTE_RESTAURATION_SCOPE) || COMPTE_DRIVE_SCOPE;
-    return compteDemanderJeton('', scope).then(function (token) {
-        return compteSessionDepuisJeton(token).then(function (session) {
-            return compteRestaurerTout(session, token);
-        });
+    var session = compteSessionDepuisGmail(email);
+    return compteRestaurerTout(session, null).then(function () {
+        return compteRestaurerPartage(session);
+    }).then(function () {
+        return comptePublierPartage(session);
     }).then(function () {
         fin();
+        if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 400);
     }, function () {
         fin();
         compteMessage('La connexion n’a pas abouti. Réessaie.');
@@ -1175,7 +1215,7 @@ var nomLie = compteNomLie(session.sub) || (typeof userName !== 'undefined' ? use
     var menuDetail = document.getElementById('menuCompteDetail');
     var nomMenu = session ? ((typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || session.given_name || 'Mon compte') : 'Mon compte';
     if (menuNom) menuNom.textContent = nomMenu;
-    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Connexion Google';
+    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté') : 'Gmail';
     var setup = document.getElementById('compteSetup');
     if (setup && !compteClientId()) setup.open = true;
 }
@@ -1199,13 +1239,7 @@ function ouvrirCompte(depuisSection) {
     modal.classList.add('active');
     compteMessage('');
     compteRafraichir();
-    if (compteCopieEnAttente) {
-        comptePoserBoutonCopie();
-        return;
-    }
-    comptePreparerGoogle().catch(function (e) {
-        compteMessage(e.message || 'Connexion Google indisponible pour le moment.');
-    });
+    if (compteCopieEnAttente) comptePoserBoutonCopie();
 }
 
 function fermerCompte() {
@@ -1224,13 +1258,7 @@ function compteEnregistrerClientId() {
     window.STUDYPLAN_GOOGLE_CLIENT_ID = id;
     compteGisPret = false;
     compteMessage('Client ID enregistré. Choisis ton compte Google.');
-    comptePreparerGoogle().then(function (ok) {
-        if (ok && window.google && google.accounts && google.accounts.id.prompt) {
-            google.accounts.id.prompt();
-        }
-    }).catch(function (e) {
-        compteMessage(e.message || 'Google n’a pas pu s’ouvrir.');
-    });
+    comptePreparerGoogle().catch(function () {});
 }
 
 function compteDeconnecter() {

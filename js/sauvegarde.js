@@ -169,6 +169,9 @@ function sauvegardePlanifierNuage(sub, data) {
     sauvegardeNuageTimer = setTimeout(function () {
         sauvegardeNuageTimer = null;
         if (typeof compteNuageSynchroniser === 'function') compteNuageSynchroniser(false);
+        if (window.compteSession && window.compteSession.email && typeof comptePublierPartage === 'function') {
+            comptePublierPartage(window.compteSession);
+        }
     }, 4000);
 }
 
