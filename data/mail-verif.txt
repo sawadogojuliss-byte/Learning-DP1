@@ -1,8 +1,6 @@
-version 200 {"success":false,"service":"study-plan-ib","version":2}
-eleve eleve1791650517@maxxspace.com
-envoi 200 {"success":true,"id":"lettre1791650519abcdef"}
+retours [{"type":"reponse","at":"2026-10-10T14:12:19.477Z","email":"studyplanib@gmail.com","destinataire":"ilboudo.kenza@enkoschools.com","mail":false,"gmailId":"","texte":"C'est reglé"},{"type":"question","at":"2026-10-10T14:13:17.490Z","email":"sawadogoowen797@gmail.com","destinataire":"","mail":false,"gmailId":"","texte":"Ca mache comment"},{"type":"reponse","at":"2026-10-10T14:13:51.909Z","email":"studyplanib@gmail.com","destinataire":"sawadogoowen797@gmail.com","mail":false,"gmailId":"","texte":"Actualise la page"},{"type":"reponse","at":"2026-10-10T15:22:34.569Z","email":"ibstudyplan@gmail.com","destinataire":"sawadogoowen797@gmail.com","mail":true,"gmailId":"","texte":"c'est bon"},{"type":"question","at":"2026-10-10T15:48:47.705Z","email":"sawadogoowen797@gmail.com","destinataire":"","mail":false,"gmailId":"","texte":"C'est bon merci"}]
+eleve nav1791651459281@maxxspace.com
+navigateur {"ok":true,"status":200,"texte":"{\"success\":true,\"id\":\"nav1791651460161abcdef\"}"}
 messages 1
-from {"address": "ibstudyplan@gmail.com", "name": "Équipe Study Plan IB"}
-formsubmit False
-alerte False
-livre
+from {"address":"ibstudyplan@gmail.com","name":"Équipe Study Plan IB"}
+livre_navigateur
