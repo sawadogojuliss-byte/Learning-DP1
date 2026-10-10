@@ -10,6 +10,11 @@ import urllib.request
 
 MARQUE = 'REPONSE-STUDYPLAN-' + str(int(time.time()))
 AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+SITE = {
+    'User-Agent': AGENT,
+    'Origin': 'https://sawadogojuliss-byte.github.io',
+    'Referer': 'https://sawadogojuliss-byte.github.io/',
+}
 
 
 def ouvrir(url, data=None, headers=None, method=None, timeout=40):
@@ -84,7 +89,7 @@ def main():
     status, _headers, raw = ouvrir(
         'https://formsubmit.co/ajax/' + urllib.parse.quote(proprio),
         data=json.dumps({'name': 'Study Plan IB', 'message': 'activation ' + MARQUE}).encode(),
-        headers={'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': AGENT},
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json', **SITE},
         method='POST'
     )
     print('activation_http', status, raw.decode('utf-8', 'replace')[:400])
@@ -111,7 +116,7 @@ def main():
     status, _headers, raw = ouvrir(
         'https://formsubmit.co/' + urllib.parse.quote(proprio),
         data=formulaire,
-        headers={'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': AGENT, 'Accept': 'text/html'},
+        headers={'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'text/html', **SITE},
         method='POST'
     )
     print('envoi_form', status, raw.decode('utf-8', 'replace')[:350].replace('\n', ' '))
@@ -127,7 +132,7 @@ def main():
             '_captcha': 'false',
             'message': MARQUE + '\nReponse ajax.',
         }).encode(),
-        headers={'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': AGENT},
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json', **SITE},
         method='POST'
     )
     print('envoi_ajax', status, raw.decode('utf-8', 'replace')[:350])
