@@ -1,6 +1,44 @@
 {
   "groupes": [
     {
+      "cle": "anglais b hl",
+      "matiere": "Anglais B HL",
+      "eleves": [
+        {
+          "appareil": "a1a113207989199d5d45",
+          "nom": "Sawadogo Juliss Bill Owen",
+          "classe": "DP2"
+        },
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
+      "cle": "biologie",
+      "matiere": "Biologie",
+      "eleves": [
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
+      "cle": "chimie",
+      "matiere": "Chimie",
+      "eleves": [
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
       "cle": "ess",
       "matiere": "ESS",
       "eleves": [
@@ -23,6 +61,17 @@
       ]
     },
     {
+      "cle": "francais b",
+      "matiere": "Français B",
+      "eleves": [
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
       "cle": "geographie",
       "matiere": "Géographie",
       "eleves": [
@@ -34,6 +83,17 @@
       ]
     },
     {
+      "cle": "histoire",
+      "matiere": "Histoire",
+      "eleves": [
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
       "cle": "mathematiques aa",
       "matiere": "Mathématiques AA",
       "eleves": [
@@ -41,6 +101,11 @@
           "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
+        },
+        {
+          "appareil": "a1a11c0ee01878c1524f",
+          "nom": "u",
+          "classe": "DP1"
         }
       ]
     },
