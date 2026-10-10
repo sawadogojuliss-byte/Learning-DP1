@@ -1083,34 +1083,78 @@ function boiteUrlScript() {
     });
 }
 
+function boitePayloadMail(email, message, question, nonce) {
+    return {
+        secret: BOITE_SCRIPT_SECRET,
+        nonce: nonce,
+        to: email,
+        replyTo: BOITE_EXPEDITEUR,
+        subject: 'Réponse à ta question — Study Plan IB',
+        text: boiteTexteMail(message, question),
+        html: boiteHtmlMail(message, question)
+    };
+}
+
+function boitePosterFormulaire(url, payload) {
+    var nom = 'boiteMail' + Date.now();
+    var cadre = document.createElement('iframe');
+    cadre.name = nom;
+    cadre.title = '';
+    cadre.setAttribute('style', 'position:absolute;width:1px;height:1px;left:-9999px;border:0;');
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = nom;
+    form.acceptCharset = 'UTF-8';
+    var champ = document.createElement('input');
+    champ.type = 'hidden';
+    champ.name = 'payload';
+    champ.value = JSON.stringify(payload);
+    form.appendChild(champ);
+    document.body.appendChild(cadre);
+    document.body.appendChild(form);
+    form.submit();
+    return new Promise(function (resolve) { setTimeout(resolve, 400); });
+}
+
+function boiteAttendreConfirmation(nonce) {
+    var fin = Date.now() + 28000;
+    var depuis = Math.floor(Date.now() / 1000) - 600;
+    function essai() {
+        return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=' + depuis, { cache: 'no-store' }, 12000)
+            .then(function (res) { return res.ok ? res.text() : ''; })
+            .catch(function () { return ''; })
+            .then(function (texte) {
+                if (texte.indexOf(nonce) !== -1 && texte.indexOf('mail-ok') !== -1) return { id: nonce };
+                if (Date.now() >= fin) throw new Error('mail');
+                return new Promise(function (resolve) { setTimeout(resolve, 2000); }).then(essai);
+            });
+    }
+    return essai();
+}
+
 function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
-    var sujet = 'Réponse à ta question — Study Plan IB';
     var nonce = boiteNonce();
     return boiteUrlScript().then(function (url) {
+        var payload = boitePayloadMail(email, message, question, nonce);
         return fetch(url, {
             method: 'POST',
             redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify({
-                secret: BOITE_SCRIPT_SECRET,
-                nonce: nonce,
-                to: email,
-                replyTo: BOITE_EXPEDITEUR,
-                subject: sujet,
-                text: boiteTexteMail(message, question),
-                html: boiteHtmlMail(message, question)
-            })
-        });
-    }).then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-            if (!res.ok || !boiteMailAccepte(data, nonce)) {
-                var err = new Error('mail');
-                err.api = data;
-                throw err;
-            }
-            return data;
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+                if (res.ok && boiteMailAccepte(data, nonce)) return data;
+                return boitePosterFormulaire(url, payload).then(function () {
+                    return boiteAttendreConfirmation(nonce);
+                });
+            });
+        }).catch(function () {
+            return boitePosterFormulaire(url, payload).then(function () {
+                return boiteAttendreConfirmation(nonce);
+            });
         });
     });
 }

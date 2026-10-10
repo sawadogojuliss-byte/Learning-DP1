@@ -18,7 +18,7 @@ permissions:
 jobs:
   creer:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,18 +30,11 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
-      - name: Rejouer le clic depuis le site
-        continue-on-error: true
-        run: |
-          npm install playwright@1.49.1
-          npx playwright install --with-deps chromium
-          node tools/tester-navigateur.mjs > data/mail-verif.txt 2>&1 || true
-
       - name: Enregistrer l'adresse
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/boite-url.json data/boite-statut.txt data/emplois.json data/rappels.json data/mail-verif.txt
+          git add data/boite-url.json data/boite-statut.txt data/emplois.json data/rappels.json
           git diff --cached --quiet && exit 0
           git commit -m "Met à jour les emplois du temps reçus."
           git push origin HEAD:arena/01a0bac7-learning-dp1
