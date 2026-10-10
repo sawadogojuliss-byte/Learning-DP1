@@ -30,11 +30,15 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
+      - name: Vérifier la livraison du mail
+        continue-on-error: true
+        run: python3 tools/verifier-livraison.py > data/mail-verif.txt 2>&1 || true
+
       - name: Enregistrer l'adresse
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/boite-url.json data/boite-statut.txt data/emplois.json data/rappels.json
+          git add data/boite-url.json data/boite-statut.txt data/emplois.json data/rappels.json data/mail-verif.txt
           git diff --cached --quiet && exit 0
           git commit -m "Met à jour les emplois du temps reçus."
           git push origin HEAD:arena/01a0bac7-learning-dp1

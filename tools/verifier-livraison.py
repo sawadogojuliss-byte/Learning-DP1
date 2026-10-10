@@ -1,130 +1,143 @@
 #!/usr/bin/env python3
-"""Envoie le même appel que la page des retours, puis vérifie que le texte arrive."""
+"""Active un formulaire, envoie une réponse, et vérifie qu'elle arrive."""
 
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
-EXPEDITEUR = 'ibstudyplan@gmail.com'
-SUJET = 'Réponse à ta question — Study Plan IB'
 MARQUE = 'REPONSE-STUDYPLAN-' + str(int(time.time()))
-CORPS = MARQUE + '\n\n—\nTa question :\nQuestion de vérification\n\n— Study Plan IB'
+AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
 
 
-def ouvrir(url, data=None, headers=None, method=None, timeout=30):
+def ouvrir(url, data=None, headers=None, method=None, timeout=40):
     req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
-    with urllib.request.urlopen(req, timeout=timeout) as res:
-        return res.status, res.read()
-
-
-def poster(url, data, headers):
     try:
-        status, raw = ouvrir(url, data=data, headers=headers, method='POST')
-        return status, raw.decode('utf-8', 'replace')
+        with urllib.request.urlopen(req, timeout=timeout) as res:
+            return res.status, dict(res.headers), res.read()
     except urllib.error.HTTPError as exc:
-        corps = ''
+        corps = b''
         try:
-            corps = exc.read().decode('utf-8', 'replace')
+            corps = exc.read()
         except Exception:
-            corps = ''
-        return exc.code, corps
+            corps = b''
+        return exc.code, dict(exc.headers or {}), corps
 
 
-def boite(adresse):
-    payload = {
-        'name': 'Study Plan IB',
-        'email': EXPEDITEUR,
-        '_replyto': EXPEDITEUR,
-        '_subject': SUJET,
-        '_template': 'box',
-        '_captcha': 'false',
-        'message': CORPS,
-    }
-    entetes = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36',
-        'Origin': 'https://sawadogojuliss-byte.github.io',
-        'Referer': 'https://sawadogojuliss-byte.github.io/',
-    }
-    status_n, texte_n = poster(
-        'https://ntfy.sh/ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b',
-        CORPS.encode('utf-8'),
-        {
-            'Email': adresse,
-            'Title': 'Reponse Study Plan IB',
-            'Content-Type': 'text/plain; charset=utf-8',
-            'User-Agent': 'StudyPlanIB',
-        }
-    )
-    print('ntfy', status_n, texte_n[:500])
-    return status_n, texte_n
-
-
-def creer_boite():
-    status, raw = ouvrir('https://api.mail.tm/domains')
+def creer_boite(prefix):
+    status, _headers, raw = ouvrir('https://api.mail.tm/domains')
     domaines = json.loads(raw.decode()).get('hydra:member') or []
     if not domaines:
-        raise SystemExit('aucun domaine temporaire')
-    domaine = domaines[0]['domain']
-    adresse = 'spib' + str(int(time.time())) + '@' + domaine
-    secret = 'Verification-' + str(int(time.time()))
+        raise SystemExit('aucun domaine')
+    adresse = prefix + str(int(time.time())) + '@' + domaines[0]['domain']
+    secret = 'Verification-' + prefix + str(int(time.time()))
     ouvrir('https://api.mail.tm/accounts', data=json.dumps({
         'address': adresse, 'password': secret
     }).encode(), headers={'Content-Type': 'application/json'}, method='POST')
-    status, raw = ouvrir('https://api.mail.tm/token', data=json.dumps({
+    status, _headers, raw = ouvrir('https://api.mail.tm/token', data=json.dumps({
         'address': adresse, 'password': secret
     }).encode(), headers={'Content-Type': 'application/json'}, method='POST')
     jeton = json.loads(raw.decode()).get('token') or ''
     if not jeton:
-        raise SystemExit('jeton temporaire absent')
+        raise SystemExit('jeton absent ' + adresse)
     return adresse, jeton
 
 
-def lire(jeton):
-    status, raw = ouvrir('https://api.mail.tm/messages', headers={'Authorization': 'Bearer ' + jeton})
-    return json.loads(raw.decode())
+def lire_messages(jeton):
+    status, _headers, raw = ouvrir('https://api.mail.tm/messages', headers={'Authorization': 'Bearer ' + jeton})
+    data = json.loads(raw.decode() or '{}')
+    return data.get('hydra:member') or []
 
 
-def main():
-    adresse, jeton = creer_boite()
-    print('destinataire', adresse)
-    try:
-        boite(adresse)
-    except Exception as exc:
-        print('envoi', type(exc).__name__, exc)
-        raise SystemExit(1)
-    fin = time.time() + 90
+def lire_un(jeton, ident):
+    status, _headers, raw = ouvrir('https://api.mail.tm/messages/' + ident, headers={'Authorization': 'Bearer ' + jeton})
+    return raw.decode('utf-8', 'replace')
+
+
+def attendre(jeton, secondes, mot=''):
+    fin = time.time() + secondes
     while time.time() < fin:
-        time.sleep(8)
-        try:
-            messages = lire(jeton)
-        except Exception as exc:
-            print('lecture', type(exc).__name__)
-            continue
-        membres = messages.get('hydra:member') or []
-        print('messages', len(membres))
-        for item in membres:
-            intro = str(item.get('intro') or '') + ' ' + str(item.get('subject') or '')
-            print('recu', item.get('subject'), intro[:180])
-            if MARQUE in intro or MARQUE in str(item):
-                print('livre')
-                return
+        time.sleep(6)
+        for item in lire_messages(jeton):
             ident = item.get('id')
             if not ident:
                 continue
-            try:
-                status, raw = ouvrir('https://api.mail.tm/messages/' + ident, headers={'Authorization': 'Bearer ' + jeton})
-            except Exception:
-                continue
-            detail = raw.decode('utf-8', 'replace')
-            if MARQUE in detail:
-                print('livre')
-                return
-            print('contenu', detail[:240])
-    raise SystemExit('le message n’est pas arrivé')
+            detail = lire_un(jeton, ident)
+            if not mot or mot in detail or mot in str(item.get('intro') or '') or mot in str(item.get('subject') or ''):
+                return item, detail
+    return None, ''
+
+
+def lien_activation(texte):
+    liens = re.findall(r'https://formsubmit\.co/[^\s\"\'<>]+', texte or '')
+    for lien in liens:
+        if 'activate' in lien or 'confirm' in lien:
+            return lien.rstrip(').,')
+    return liens[0].rstrip(').,') if liens else ''
+
+
+def main():
+    proprio, jeton_p = creer_boite('proprio')
+    print('proprio', proprio)
+    status, _headers, raw = ouvrir(
+        'https://formsubmit.co/ajax/' + urllib.parse.quote(proprio),
+        data=json.dumps({'name': 'Study Plan IB', 'message': 'activation ' + MARQUE}).encode(),
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': AGENT},
+        method='POST'
+    )
+    print('activation_http', status, raw.decode('utf-8', 'replace')[:400])
+    _item, detail = attendre(jeton_p, 70)
+    print('activation_mail', 'oui' if detail else 'non')
+    lien = lien_activation(detail)
+    print('lien', 'present' if lien else 'absent')
+    if lien:
+        status, headers, raw = ouvrir(lien, headers={'User-Agent': AGENT})
+        print('clic', status, raw.decode('utf-8', 'replace')[:300].replace('\n', ' '))
+    eleve, jeton_e = creer_boite('eleve')
+    print('eleve', eleve)
+    formulaire = urllib.parse.urlencode({
+        'name': 'Study Plan IB',
+        'email': eleve,
+        '_replyto': 'ibstudyplan@gmail.com',
+        '_subject': 'Reponse a ta question - Study Plan IB',
+        '_cc': eleve,
+        '_autoresponse': MARQUE,
+        '_captcha': 'false',
+        '_template': 'box',
+        'message': MARQUE + '\nReponse de verification.',
+    }).encode()
+    status, _headers, raw = ouvrir(
+        'https://formsubmit.co/' + urllib.parse.quote(proprio),
+        data=formulaire,
+        headers={'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': AGENT, 'Accept': 'text/html'},
+        method='POST'
+    )
+    print('envoi_form', status, raw.decode('utf-8', 'replace')[:350].replace('\n', ' '))
+    status, _headers, raw = ouvrir(
+        'https://formsubmit.co/ajax/' + urllib.parse.quote(proprio),
+        data=json.dumps({
+            'name': 'Study Plan IB',
+            'email': eleve,
+            '_replyto': 'ibstudyplan@gmail.com',
+            '_subject': 'Reponse a ta question - Study Plan IB',
+            '_cc': eleve,
+            '_autoresponse': MARQUE,
+            '_captcha': 'false',
+            'message': MARQUE + '\nReponse ajax.',
+        }).encode(),
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json', 'User-Agent': AGENT},
+        method='POST'
+    )
+    print('envoi_ajax', status, raw.decode('utf-8', 'replace')[:350])
+    _item, recu = attendre(jeton_e, 80, MARQUE)
+    if MARQUE in recu:
+        print('livre')
+        return
+    print('pas_livre')
+    print('apercu', recu[:240].replace('\n', ' '))
+    raise SystemExit(1)
 
 
 if __name__ == '__main__':
