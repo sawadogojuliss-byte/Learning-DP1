@@ -703,7 +703,36 @@ function generateDayEvents(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return verrouillerTrajets(planningBalayer(jour), dayIndex);
+    return planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex));
+}
+
+function planningTravailFinalise(ev) {
+    if (!ev || typeof eeEstFinalise !== 'function') return false;
+    var titre = String(ev.title || '');
+    var sous = String(ev.subtitle || '');
+    var task = ev.planTask || null;
+    if (ev.type === 'memoir' || (task && task.kind === 'memoir') || titre === 'Mémoire' || sous === 'Mémoire' || String(ev.id || '').indexOf('memoir') === 0) {
+        return eeEstFinalise('memoir');
+    }
+    var ia = ev.type === 'ia' || (task && task.kind === 'ia') || String(ev.id || '').indexOf('ia-') === 0 || titre.indexOf('Évaluation interne') === 0 || sous.indexOf('Évaluation interne') === 0;
+    if (!ia) return false;
+    var nom = task && task.subject ? task.subject : '';
+    if (!nom) {
+        var m = (titre + ' ' + sous).match(/Évaluation interne\s·\s(.+)/);
+        if (m) nom = m[1].trim();
+    }
+    if (!nom && typeof eeSujets === 'function') {
+        eeSujets().some(function (s) {
+            if (nom || !s || !s.name) return false;
+            if (titre.indexOf(s.name) !== -1 || sous.indexOf(s.name) !== -1) nom = s.name;
+            return !!nom;
+        });
+    }
+    return nom ? eeEstFinalise('ia', nom) : false;
+}
+
+function planningRetirerTravauxFinis(events) {
+    return (events || []).filter(function (ev) { return !planningTravailFinalise(ev); });
 }
 
 function emploiDuTemps(jour) {
@@ -804,20 +833,18 @@ function planningManquesDuJour(events, dayIndex) {
         var subj = sujets[dayIndex % sujets.length];
         manques.push(planningBlocManquant('study-page', 'Révisions ' + subj.name, typeof sousTitreMatiere === 'function' ? sousTitreMatiere(subj) : (subj.level || ''), dureeEtude(subj, 45, 30), typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study', subj.icon || '📚'));
     }
-    var memoirSaisi = (typeof memoirLevel === 'string' && memoirLevel) || (typeof memoirPlan !== 'undefined' && Array.isArray(memoirPlan) && memoirPlan.some(function (p) { return p && !p.done; }));
-    if (memoirSaisi && dayIndex === 6 && !ids['memoir-page'] && titres.indexOf('Mémoire') === -1) {
+    var textes = (events || []).map(function (ev) {
+        return String(ev && ev.title || '') + ' ' + String(ev && ev.subtitle || '');
+    }).join(' | ');
+    var memoirSaisi = typeof eeMemoirActif === 'function'
+        ? eeMemoirActif()
+        : ((typeof memoirLevel === 'string' && memoirLevel && memoirLevel !== 'final') || (typeof memoirPlan !== 'undefined' && Array.isArray(memoirPlan) && memoirPlan.some(function (p) { return p && !p.done; })));
+    if (memoirSaisi && dayIndex === 6 && !ids['memoir-page'] && textes.indexOf('Mémoire') === -1) {
         manques.push(planningBlocManquant('memoir-page', 'Mémoire', typeof memoirLevelLabel === 'function' ? memoirLevelLabel() : '', 40, 'memoir', '📖'));
     }
-    var iaSujets = typeof eeSujets === 'function' ? eeSujets() : sujets;
-    if (iaSujets.length) {
-        var idx = dayIndex % iaSujets.length;
-        var sujetIa = iaSujets[idx];
-        var niveau = sujetIa && typeof iaStageId === 'function' ? iaStageId(sujetIa.name) : '';
-        var plan = sujetIa && typeof iaPlans !== 'undefined' && iaPlans ? iaPlans[sujetIa.name] : null;
-        var iaSaisi = !!niveau || (Array.isArray(plan) && plan.some(function (p) { return p && !p.done; }));
-        if (iaSaisi && titres.indexOf(sujetIa.name) === -1) {
-            manques.push(planningBlocManquant('ia-page-' + sujetIa.name, 'Évaluation interne · ' + sujetIa.name, typeof iaLevelLabel === 'function' ? iaLevelLabel(sujetIa.name) : '', 35, 'ia', sujetIa.icon || '📋'));
-        }
+    var sujetIa = typeof eeIaDuJour === 'function' ? eeIaDuJour(dayIndex) : null;
+    if (sujetIa && textes.indexOf('Évaluation interne · ' + sujetIa.name) === -1) {
+        manques.push(planningBlocManquant('ia-page-' + sujetIa.name, 'Évaluation interne · ' + sujetIa.name, typeof iaLevelLabel === 'function' ? iaLevelLabel(sujetIa.name) : '', 40, 'ia', sujetIa.icon || '📋'));
     }
     var phoneDu = typeof phoneDays !== 'undefined' && phoneDays && phoneDays.indexOf(dayIndex) !== -1;
     var phoneMin = phoneDu ? (typeof samePhoneDuration !== 'undefined' && samePhoneDuration ? phoneDuration : (phoneDayDurations && (phoneDayDurations[dayIndex] || phoneDayDurations[String(dayIndex)]) || 0)) : 0;
@@ -999,64 +1026,73 @@ function academicGapBlocks(start, end, dayIndex, seq) {
     function clock(mins) {
         return addMinutes('00:00', ((mins % 1440) + 1440) % 1440);
     }
+    function sujetRevision() {
+        if (!all.length) return null;
+        if (typeof sujetDuJour === 'function') return sujetDuJour(all, dayIndex + turn.rev);
+        return all[(dayIndex + turn.rev) % all.length];
+    }
     while (end - cursor >= 15) {
         const cap = weekend ? 90 : 75;
         let dur = Math.min(cap, end - cursor);
         const remain = end - (cursor + dur);
         if (remain > 0 && remain < 20) dur += remain;
-        let kind = (all.length === 0 || turn.n % 2 === 1) ? 'memoir' : 'ia';
-        if (weekend) {
-            if (dur >= 45 && turn.memoir < 1) kind = 'memoir';
-            else if (dur >= 45 && turn.ia < 1) kind = 'ia';
-            else kind = 'revision';
+        var iaSujet = turn.ia < 1 && dur >= 40 && typeof eeIaDuJour === 'function' ? eeIaDuJour(dayIndex) : null;
+        if (iaSujet && !planningTravailFinalise({ type: 'ia', title: 'Évaluation interne · ' + iaSujet.name })) {
+            var durIa = 40;
+            if (dur - durIa > 0 && dur - durIa < 15) durIa = dur;
+            var tacheIa = typeof eeTacheEgale === 'function' ? eeTacheEgale('ia', iaSujet.name, turn) : null;
+            turn.ia++;
+            if (tacheIa) blocks.push(eeBlocTache(tacheIa, cursor, durIa, clock));
+            else blocks.push({
+                id: 'ia-' + cursor,
+                title: 'Évaluation interne · ' + iaSujet.name,
+                subtitle: typeof iaLevelLabel === 'function' ? iaLevelLabel(iaSujet.name) : '',
+                startTime: clock(cursor),
+                endTime: clock(cursor + durIa),
+                type: 'ia',
+                icon: iaSujet.icon || '📋',
+                editable: true,
+                kind: 'flex'
+            });
+            cursor += durIa;
+            turn.n++;
+            continue;
         }
-        const subj = all.length ? (typeof sujetDuJour === 'function' ? sujetDuJour(all, dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) : all[(dayIndex + (kind === 'revision' ? turn.rev : Math.floor(turn.n / 2))) % all.length]) : null;
-        var tachePlan = null;
-        if ((kind === 'memoir' || kind === 'ia') && typeof eeProchaineTache === 'function') tachePlan = eeProchaineTache(dayIndex, turn);
-        if (tachePlan && typeof eeBlocTache === 'function') {
-            if (tachePlan.kind === 'memoir') turn.memoir++;
-            else turn.ia++;
-            blocks.push(eeBlocTache(tachePlan, cursor, dur, clock));
-        } else if (kind === 'memoir') {
+        var memoirOk = turn.memoir < 1 && dur >= 40 && dayIndex === 6 && typeof eeMemoirActif === 'function' && eeMemoirActif();
+        if (memoirOk) {
+            var durM = 40;
+            if (dur - durM > 0 && dur - durM < 15) durM = dur;
+            var tacheM = typeof eeTacheEgale === 'function' ? eeTacheEgale('memoir', '', turn) : null;
             turn.memoir++;
-            blocks.push({
+            if (tacheM) blocks.push(eeBlocTache(tacheM, cursor, durM, clock));
+            else blocks.push({
                 id: 'memoir-' + cursor,
                 title: 'Mémoire',
-                subtitle: typeof memoirLevelLabel === 'function' ? memoirLevelLabel() : 'Recherche et rédaction',
+                subtitle: typeof memoirLevelLabel === 'function' ? memoirLevelLabel() : '',
                 startTime: clock(cursor),
-                endTime: clock(cursor + dur),
+                endTime: clock(cursor + durM),
                 type: 'memoir',
                 icon: '📖',
                 editable: true,
                 kind: 'flex'
             });
-        } else if (kind === 'ia' && subj) {
-            turn.ia++;
-            blocks.push({
-                id: 'ia-' + cursor,
-                title: 'Évaluation interne · ' + subj.name,
-                subtitle: (typeof iaLevelLabel === 'function' ? iaLevelLabel(subj.name) : 'critères et brouillon'),
-                startTime: clock(cursor),
-                endTime: clock(cursor + dur),
-                type: 'ia',
-                icon: subj.icon || '📋',
-                editable: true,
-                kind: 'flex'
-            });
-        } else {
-            turn.rev++;
-            blocks.push({
-                id: 'revgap-' + cursor,
-                title: subj ? 'Révisions · ' + subj.name : 'Révisions',
-                subtitle: subj ? (sousTitreMatiere(subj) || 'Cours et exercices') : 'Cours et exercices',
-                startTime: clock(cursor),
-                endTime: clock(cursor + dur),
-                type: subj && typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study',
-                icon: subj && subj.icon ? subj.icon : '📚',
-                editable: true,
-                kind: 'flex'
-            });
+            cursor += durM;
+            turn.n++;
+            continue;
         }
+        var subj = sujetRevision();
+        turn.rev++;
+        blocks.push({
+            id: 'revgap-' + cursor,
+            title: subj ? 'Révisions · ' + subj.name : 'Révisions',
+            subtitle: subj ? (sousTitreMatiere(subj) || 'Cours et exercices') : 'Cours et exercices',
+            startTime: clock(cursor),
+            endTime: clock(cursor + dur),
+            type: subj && typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study',
+            icon: subj && subj.icon ? subj.icon : '📚',
+            editable: true,
+            kind: 'flex'
+        });
         cursor += dur;
         turn.n++;
     }

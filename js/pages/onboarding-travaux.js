@@ -187,12 +187,88 @@ function eeAvancement(plan) {
     return { n: plan.length, nFait: nFait, pourcent: fait, parts: parts };
 }
 
+function eeEstFinalise(kind, subject) {
+    if (kind === 'memoir') return memoirLevel === 'final';
+    if (!subject || typeof iaStageId !== 'function') return false;
+    return iaStageId(subject) === 'final';
+}
+
+function eeMemoirActif() {
+    if (eeEstFinalise('memoir')) return false;
+    if (typeof memoirLevel === 'string' && memoirLevel) return true;
+    return Array.isArray(memoirPlan) && memoirPlan.some(function (p) { return p && !p.done; });
+}
+
+function eeIaCommencee(name) {
+    if (!name || eeEstFinalise('ia', name)) return false;
+    var niveau = typeof iaStageId === 'function' ? iaStageId(name) : '';
+    if (niveau) return true;
+    var plan = iaPlans && iaPlans[name];
+    return Array.isArray(plan) && plan.some(function (p) { return p && !p.done; });
+}
+
+function eeIasActives() {
+    return eeSujets().filter(function (s) { return s && eeIaCommencee(s.name); });
+}
+
+function eeIaDuJour(dayIndex) {
+    var sujets = eeIasActives();
+    if (!sujets.length) return null;
+    var jour = Number(dayIndex);
+    if (!isFinite(jour) || jour < 0) jour = 0;
+    if (jour === 6 && eeMemoirActif()) return null;
+    return sujets[jour % sujets.length];
+}
+
+function eeTacheEgale(kind, subject, turn) {
+    var ouvertes = eePartiesOuvertes().filter(function (p) {
+        return p.kind === kind && (kind === 'memoir' || p.subject === subject);
+    });
+    if (ouvertes.length) {
+        if (turn && !turn.partiesVues) turn.partiesVues = {};
+        var cle = kind + '|' + (subject || '');
+        var i = turn && turn.partiesVues ? (turn.partiesVues[cle] || 0) : 0;
+        if (turn && turn.partiesVues) turn.partiesVues[cle] = i + 1;
+        return ouvertes[i % ouvertes.length];
+    }
+    if (kind === 'memoir') return { kind: 'memoir', subject: '', partId: 'memoir-suivi', text: 'Avancer le mémoire', icon: '📖' };
+    var sujet = eeSujets().filter(function (s) { return s && s.name === subject; })[0];
+    return { kind: 'ia', subject: subject, partId: 'ia-suivi', text: 'Avancer l’évaluation interne', icon: (sujet && sujet.icon) || '📋' };
+}
+
+function eeTraceTravail(e, kind, subject) {
+    if (!e) return false;
+    var titre = String(e.title || '');
+    var sous = String(e.subtitle || '');
+    var id = String(e.id || '');
+    var remplace = String(e.replacesId || '');
+    if (kind === 'memoir') {
+        return e.type === 'memoir' || (e.planTask && e.planTask.kind === 'memoir') || titre === 'Mémoire' || sous === 'Mémoire' || id.indexOf('memoir') === 0 || remplace.indexOf('memoir') === 0;
+    }
+    if (e.planTask && e.planTask.kind === 'ia' && (!subject || e.planTask.subject === subject)) return true;
+    if ((e.type === 'ia' || id.indexOf('ia-') === 0 || remplace.indexOf('ia-') === 0) && (!subject || titre.indexOf(subject) !== -1 || sous.indexOf(subject) !== -1 || id.indexOf(subject) !== -1 || remplace.indexOf(subject) !== -1)) return true;
+    return (titre.indexOf('Évaluation interne') === 0 || sous.indexOf('Évaluation interne') === 0) && (!subject || titre.indexOf(subject) !== -1 || sous.indexOf(subject) !== -1);
+}
+
+function eeRetirerDuPlanning(kind, subject) {
+    if (typeof customEvents !== 'undefined' && Array.isArray(customEvents)) {
+        customEvents = customEvents.filter(function (e) { return !eeTraceTravail(e, kind, subject); });
+        if (typeof v3Save === 'function') v3Save();
+        else {
+            try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents)); } catch (e) {}
+        }
+    }
+}
+
 function eePartiesOuvertes() {
     var list = [];
-    eeNormaliserPlan(memoirPlan).forEach(function (p) {
-        if (!p.done) list.push({ kind: 'memoir', subject: '', partId: p.id, text: p.text, icon: '📖' });
-    });
+    if (!eeEstFinalise('memoir')) {
+        eeNormaliserPlan(memoirPlan).forEach(function (p) {
+            if (!p.done) list.push({ kind: 'memoir', subject: '', partId: p.id, text: p.text, icon: '📖' });
+        });
+    }
     eeSujets().forEach(function (sujet) {
+        if (eeEstFinalise('ia', sujet.name)) return;
         eeNormaliserPlan(iaPlans && iaPlans[sujet.name]).forEach(function (p) {
             if (!p.done) list.push({ kind: 'ia', subject: sujet.name, partId: p.id, text: p.text, icon: sujet.icon || '📋' });
         });
@@ -201,22 +277,22 @@ function eePartiesOuvertes() {
 }
 
 function eeProchaineTache(dayIndex, turn) {
-    var ouvertes = eePartiesOuvertes();
-    if (!ouvertes.length) return null;
-    if (!turn || typeof turn.tacheN !== 'number') {
-        if (turn) turn.tacheN = 0;
-        else turn = { tacheN: 0 };
-    }
-    var tache = ouvertes[(Number(dayIndex) + turn.tacheN) % ouvertes.length];
+    if (!turn) turn = { tacheN: 0 };
+    if (typeof turn.tacheN !== 'number') turn.tacheN = 0;
+    var file = eeIasActives().map(function (s) { return { kind: 'ia', subject: s.name }; });
+    if (eeMemoirActif()) file.push({ kind: 'memoir', subject: '' });
+    if (!file.length) return null;
+    if (!turn.tacheN) turn.tacheN = Number(dayIndex) || 0;
+    var meta = file[turn.tacheN % file.length];
     turn.tacheN++;
-    return tache;
+    return eeTacheEgale(meta.kind, meta.subject, turn);
 }
 
 function eeBlocTache(tache, cursor, dur, clock) {
     return {
         id: 'plantask-' + tache.partId + '-' + cursor,
-        title: 'tâche (' + tache.text + ')',
-        subtitle: tache.kind === 'memoir' ? 'Mémoire' : ('Évaluation interne · ' + tache.subject),
+        title: tache.kind === 'memoir' ? ('Mémoire · ' + tache.text) : ('Évaluation interne · ' + tache.subject),
+        subtitle: tache.kind === 'memoir' ? 'Mémoire' : tache.text,
         startTime: clock(cursor),
         endTime: clock(cursor + dur),
         type: tache.kind === 'memoir' ? 'memoir' : 'ia',
@@ -377,10 +453,12 @@ function eeChoisirPlan(kind, index) {
 function eeChoisirFinal(kind, index) {
     if (!eeDefinirNiveau(kind, index, 'final')) return;
     var nom = 'ton mémoire';
+    var sujet = null;
     if (kind !== 'memoir') {
-        var sujet = eeSujets()[index];
+        sujet = eeSujets()[index];
         nom = sujet ? ('l’évaluation interne de ' + sujet.name) : 'cette évaluation interne';
     }
+    eeRetirerDuPlanning(kind === 'memoir' ? 'memoir' : 'ia', sujet ? sujet.name : '');
     eeOuvrirMessage(eeHtmlFinal(nom));
     eeApresChangement();
 }

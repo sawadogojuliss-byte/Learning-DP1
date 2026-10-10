@@ -416,8 +416,8 @@ async function iaAppelerTexte(messages, onToken, signal) {
         if (m.role === 'user') user = String(m.content || '');
     });
     var prompt = [
-        'Tu es l\'ami proche d\'un élève du Baccalauréat International à Enko Ouaga. Réponds dans la langue de la question, en français par défaut. Sois très amical, doux et un vrai soutien, jamais froid.',
-        iaMomentJournee() ? 'C\'est le soir après les cours : tu peux demander une seule fois comment s\'est passée la journée.' : 'Ne demande pas comment s\'est passée la journée. Seulement après 16h35, le soir, du lundi au vendredi. Jamais le week-end.',
+        'Tu es l\'ami proche d\'un élève du Baccalauréat International à Enko Ouaga. Parle comme un ami fiable : clair, posé, chaleureux. Pas de ton de service, pas de familiarité forcée.',
+        iaMomentJournee() ? 'C\'est le soir, en semaine. Tu peux demander une seule fois comment s\'est passée la journée. N\'emploie jamais la phrase « Après les cours, tu peux me dire comment s\'est passée la journée. »' : 'Ne demande pas comment s\'est passée la journée. Seulement le soir, après 18h, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le week-end.',
         'Réponds d\'abord en une phrase, puis un seul fait utile, puis une seule suite. N\'annonce pas la question. Si elle est floue, pose une seule question.',
         'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, donner une correction ou les étapes d\'un devoir. Propose seulement d\'organiser un créneau.',
         'Il n\'y a aucun cours d\'économie le samedi. N\'invente ni notes, ni planning, ni PDF.',
@@ -716,8 +716,7 @@ async function iaTextePdf(buffer, onStatut) {
 }
 
 function iaChoisirPdf() {
-    var input = document.getElementById('iaFichier');
-    if (input) input.click();
+    return;
 }
 
 function iaVeutSolution(texte) {
@@ -1247,29 +1246,67 @@ function iaReformuler(brut) {
     return String(avant).replace(/\s+/g, ' ').trim() + ' ' + brut;
 }
 
-function iaTrouverSujet(n) {
+function iaAliasSujet(name) {
+    var n = iaNormaliser(name);
+    var alias = [n];
+    if (n.indexOf('mathematique') !== -1) alias.push('mathematiques', 'maths', 'math');
+    if (n.indexOf('biologie') !== -1) alias.push('biologie', 'bio');
+    if (n.indexOf('physique') !== -1) alias.push('physique');
+    if (n.indexOf('chimie') !== -1) alias.push('chimie');
+    if (n.indexOf('economie') !== -1) alias.push('economie', 'eco');
+    if (n.indexOf('histoire') !== -1) alias.push('histoire');
+    if (n.indexOf('geographie') !== -1) alias.push('geographie', 'geo');
+    if (n.indexOf('philosophie') !== -1) alias.push('philosophie', 'philo');
+    if (n.indexOf('anglais') !== -1) alias.push('anglais');
+    if (n.indexOf('francais') !== -1) alias.push('francais');
+    return alias;
+}
+
+function iaContientMot(texte, mot) {
+    if (!texte || !mot) return false;
+    var i = texte.indexOf(mot);
+    while (i !== -1) {
+        var avant = i === 0 || /[^a-z0-9]/.test(texte.charAt(i - 1));
+        var apres = i + mot.length >= texte.length || /[^a-z0-9]/.test(texte.charAt(i + mot.length));
+        if (avant && apres) return true;
+        i = texte.indexOf(mot, i + 1);
+    }
+    return false;
+}
+
+function iaTrouverSujet(n, souple) {
     var sujet = null;
+    var taille = 0;
     iaMatieres().forEach(function (s) {
-        if (sujet || !s || !s.name) return;
-        if (n.indexOf(iaNormaliser(s.name)) !== -1) sujet = s;
+        if (!s || !s.name) return;
+        var noms = souple ? iaAliasSujet(s.name) : [iaNormaliser(s.name)];
+        noms.forEach(function (alias) {
+            if (!alias || alias.length < 3) return;
+            if (iaContientMot(n, alias) && alias.length > taille) {
+                sujet = s;
+                taille = alias.length;
+            }
+        });
     });
     return sujet;
 }
-
 function iaClasserIntention(brut, n) {
+    if (typeof iaVeutExerciceSlot === 'function' && iaVeutExerciceSlot(n) && !iaVeutSolution(brut)) return 'exo';
     if (iaVeutSolution(brut)) return 'exercice';
     if (/^(salut|bonjour|bonsoir|coucou|hello|hey|merci)\b/.test(n) && n.length < 32) return 'accueil';
     if (iaPorteSurFichier(n) || iaVeutActionPdf(n)) return 'pdf';
     if (/(stress|anxie|fatigue|triste|decourage|perdu|peur|honte|seul|pleure|vide|ecrase|depasse)/.test(n)) return 'emotion';
     if (typeof iaVeutOuvrir === 'function' && iaVeutOuvrir(n)) return 'page';
+    if (typeof iaVeutModifier === 'function' && iaVeutModifier(n)) return 'planning';
     if (typeof iaVeutActivite === 'function' && iaVeutActivite(n)) return 'creneau';
     if (/(planning|aujourd|demain|semaine|deadline|rendre|horaire|creneau|organise|qu.ai.je|qu.est-ce que j.ai|j.ai quoi)/.test(n)) return 'planning';
-    if (/(tok|cas|memoire|diplome|\bib\b|hl|sl|bulletin)/.test(n)) return 'programme';
+    if (/(evaluation interne|internal assessment)/.test(n) || (/\bia\b/.test(n) && /(priorit|laquelle|laquel|avant|dabord|egal|planning)/.test(n))) return 'programme';
+    if (/(tok|cas|memoire|diplome|\bib\b|hl|sl|bulletin|evaluation interne)/.test(n)) return 'programme';
     return 'question';
 }
 
 function iaConfiance(lecture) {
-    if (/exercice|emotion|page|pdf|programme|accueil/.test(lecture.intention)) return 'haute';
+    if (/exercice|exo|emotion|page|pdf|programme|accueil/.test(lecture.intention)) return 'haute';
     if (lecture.intention === 'creneau' && iaHeuresTrouvees(lecture.n).length >= 1 && lecture.jourIndex >= 0) return 'haute';
     if (lecture.intention === 'planning' || lecture.intention === 'creneau') return 'moyenne';
     if (lecture.sujet || lecture.jour || iaMotsMarquants(lecture.reformule || lecture.brut).length >= 3) return 'moyenne';
@@ -1337,17 +1374,26 @@ function iaMomentJournee() {
     var maintenant = new Date();
     var index = iaIndexJour(maintenant);
     if (index >= 5) return false;
-    return maintenant.getHours() * 60 + maintenant.getMinutes() >= 16 * 60 + 35;
+    return maintenant.getHours() >= 18;
 }
 
 function iaPhraseJournee() {
     var formes = [
-        'Si tu veux, comment s\'est passée ta journée ?',
-        'Je suis là. Ta journée, elle a été comment ?',
-        'Après les cours, tu peux me dire comment s\'est passée la journée.',
-        'Le soir, je peux t\'écouter : la journée a été comment ?'
+        'La journée est finie. Elle s\'est passée comment ?',
+        'Si tu veux m\'en parler, ta journée a été comment ?',
+        'Je suis là ce soir. Comment s\'est passée ta journée ?'
     ];
     return formes[(iaHistorique.length + new Date().getHours()) % formes.length];
+}
+
+function iaPhraseJourneeInterdite(texte) {
+    return /apres les cours[, ]+tu peux me dire comment/.test(iaNormaliser(texte));
+}
+
+function iaRetirerPhraseJourneeInterdite(texte) {
+    return String(texte || '').split('\n').filter(function (ligne) {
+        return !iaPhraseJourneeInterdite(ligne);
+    }).join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function iaRetirerQuestionJournee(texte, lecture) {
@@ -1407,10 +1453,24 @@ function iaFaitProgramme(lecture) {
     if (/tok/.test(n)) return 'Le TOK est la théorie de la connaissance. Avec le mémoire, il peut ajouter au plus 3 points. Je ne le rédige pas à ta place.';
     if (/\bcas\b/.test(n)) return 'Le CAS est obligatoire et ne donne pas de points au diplôme.';
     if (/econom/.test(n) && /samedi/.test(n)) return 'Il n\'y a pas de cours d\'économie le samedi.';
-    if (/\bhl\b/.test(n) && /\bsl\b/.test(n)) return 'HL demande plus d\'heures que SL. Anglais B HL et Anglais B SL ne se mélangent pas.';
-    if (/\bhl\b/.test(n)) return 'Une matière HL demande plus de temps de révision qu\'une SL.';
-    if (/\bsl\b/.test(n)) return 'Une matière SL a moins d\'heures qu\'une HL, mais elle compte aussi dans les 6 matières.';
-    if (/memoire|extended/.test(n)) return 'Le mémoire peut, avec le TOK, ajouter au plus 3 points. Je ne l\'écris pas à ta place.';
+    if (/evaluation interne|internal assessment/.test(n) || (/\bia\b/.test(n) && !/via/.test(n))) {
+        var actives = typeof eeIasActives === 'function' ? eeIasActives() : [];
+        var noms = actives.map(function (s) { return s.name; }).filter(Boolean);
+        var sujet = iaTrouverSujet(n);
+        if (/priorit|laquelle|laquel|dabord|en premier|plus important|avant/.test(n)) {
+            return noms.length
+                ? 'Aucune. ' + noms.join(', ') + ' avancent ensemble, avec le même type de créneau. Une évaluation interne finalisée sort des jours à venir. Je n\'en rédige aucune.'
+                : 'Aucune évaluation interne ne passe devant une autre. Elles ont le même type de créneau, et je n\'en rédige aucune.';
+        }
+        if (sujet) return 'L\'évaluation interne de ' + sujet.name + ' avance au même rythme que les autres. Aucune matière ne passe devant. Je ne la rédige pas.';
+        return noms.length
+            ? 'Tes évaluations internes sont traitées de la même façon : ' + noms.join(', ') + '. Je n\'en mets aucune en avant, et je n\'en rédige aucune.'
+            : 'Chaque matière a son évaluation interne, au même titre que les autres. Je n\'en rédige aucune.';
+    }
+    if (/\bhl\b/.test(n) && /\bsl\b/.test(n)) return 'HL demande plus d\'heures de révision que SL. Ça ne change pas les évaluations internes : elles avancent ensemble. Anglais B HL et Anglais B SL ne se mélangent pas.';
+    if (/\bhl\b/.test(n)) return 'Une matière HL demande plus de temps de révision qu\'une SL. Pour les évaluations internes, aucune matière ne passe devant une autre.';
+    if (/\bsl\b/.test(n)) return 'Une matière SL a moins d\'heures de révision qu\'une HL, mais elle compte aussi. Son évaluation interne a le même type de créneau que les autres.';
+    if (/memoire|extended/.test(n)) return 'Le mémoire peut, avec le TOK, ajouter au plus 3 points. Je ne l\'écris pas.';
     if (/note|bulletin/.test(n)) return 'Les matières sont notées de 1 à 7. Le diplôme va jusqu\'à 45.';
     return 'Le diplôme compte six matières, souvent trois HL et trois SL. Je peux organiser le temps, pas faire le travail.';
 }
@@ -1457,8 +1517,9 @@ function iaComposer(lecture, action) {
     else if (lecture.intention === 'accueil') corps = 'Je suis là. Dis-moi ce que tu veux organiser, ou simplement ce qui ne va pas.';
     else if (lecture.intention === 'exercice') corps = iaRefusExercice(lecture.brut);
     else if (lecture.intention === 'emotion') corps = iaFaitEmotion(lecture);
-    else if (lecture.intention === 'pdf') corps = iaRepondrePdf(lecture.brut) || action || 'Je n\'ai pas encore de fichier analysé. Ajoute-le, puis dis-moi ce que tu veux que j\'en fasse.';
+    else if (lecture.intention === 'pdf') corps = 'Je ne prends pas de fichier ici. Dis-moi le jour et la matière, je m\'en occupe dans le planning.';
     else if (lecture.intention === 'page') corps = action || ('Tu veux la page ' + (lecture.page || 'demandée') + '.');
+    else if (lecture.intention === 'exo') corps = action || 'Il me faut la matière et la date limite. Je place le créneau, je ne fais pas l\'exercice.';
     else if (lecture.intention === 'creneau') corps = action || 'Pour le créneau, il me faut le nom, le jour, et l\'heure de début et de fin.';
     else if (lecture.intention === 'planning') corps = iaFaitPlanning(lecture) || 'Je ne vois pas encore de créneau qui corresponde à cette question.';
     else if (lecture.intention === 'programme') corps = iaFaitProgramme(lecture);
@@ -1483,8 +1544,9 @@ function iaReponseFinale(texte, lecture, modele, action) {
     if (!corps || corps.length < 24 || iaReponseGenerique(corps) || iaDejaDit(corps)) corps = iaComposer(lecture, action);
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     if (action && lecture.intention !== 'exercice' && corps.indexOf(action) === -1) corps = action + '\n\n' + corps;
+    corps = iaRetirerPhraseJourneeInterdite(corps);
     if (iaDoitDemanderJournee(lecture) && !/journ/.test(iaNormaliser(corps))) corps += '\n\n' + iaPhraseJournee();
-    return iaRetirerQuestionJournee(iaRetirerAnnonce(corps), lecture);
+    return iaRetirerPhraseJourneeInterdite(iaRetirerQuestionJournee(iaRetirerAnnonce(corps), lecture));
 }
 
 function iaReponseSure(texte, action) {
@@ -1615,13 +1677,16 @@ function iaPages() {
         { page: 'legende', mots: ['legendes', 'legende', 'couleurs', 'couleur'] },
         { page: 'aide', mots: ['aide', 'question au site'] },
         { page: 'feedback', mots: ['feedback', 'suggestion', 'idee pour le site'] },
-        { page: 'emplois', mots: ['emplois des autres', 'emplois du temps des', 'inscriptions'] }
+        { page: 'emplois', mots: ['emplois des autres', 'emplois du temps des', 'inscriptions'] },
+        { page: 'questions', mots: ['questions recues', 'questions des eleves'] },
+        { page: 'retours', mots: ['retours recus', 'boite de retours'] },
+        { page: 'compte', mots: ['mon compte', 'compte', 'profil'] }
     ];
 }
 
 function iaVeutOuvrir(n) {
-    if (/(comment|pourquoi|explique|resoudre|resous|formule|calcul)/.test(n) && !/(ouvre|ouvrir|va sur|va au|la page)/.test(n)) return false;
-    if (/(ouvre|ouvrir|emmene|amene|va sur|va au|va a la|va a mon|va a mes|accede|acces a|ramene|je veux voir)/.test(n)) return true;
+    if (/(comment|pourquoi|explique|resoudre|resous|formule|calcul)/.test(n) && !/(ouvre|ouvrir|va sur|va au|la page|redirige)/.test(n)) return false;
+    if (/(ouvre|ouvrir|emmene|amene|redirige|conduis|va sur|va au|va a la|va a mon|va a mes|accede|acces a|ramene|je veux voir|affiche)/.test(n)) return true;
     return /(montre)/.test(n) && !!iaPageDemandee(n);
 }
 
@@ -1641,11 +1706,17 @@ function iaPageDemandee(n) {
 }
 
 function iaOuvrirPage(page) {
-    if (!page || typeof navigateTo !== 'function') return '';
+    if (!page) return '';
     if ((page === 'emplois' || page === 'questions' || page === 'retours') && typeof boiteEstAdmin === 'function' && !boiteEstAdmin()) {
         return 'Cette partie reste réservée aux comptes admin.';
     }
-    var noms = { planning: 'le planning', exercices: 'les exercices', soutien: 'le soutien', eeia: 'le mémoire', feries: 'les jours fériés', legende: 'la légende', aide: 'l\'aide', feedback: 'le feedback', emplois: 'les emplois du temps' };
+    if (page === 'compte') {
+        if (typeof ouvrirCompte !== 'function') return '';
+        setTimeout(function () { ouvrirCompte(); }, 350);
+        return 'J\'ouvre ton compte.';
+    }
+    if (typeof navigateTo !== 'function') return '';
+    var noms = { planning: 'le planning', exercices: 'les exercices', soutien: 'le soutien', eeia: 'le mémoire et les évaluations internes', feries: 'les jours fériés', legende: 'la légende', aide: 'l\'aide', feedback: 'le feedback', emplois: 'les emplois du temps', questions: 'les questions', retours: 'les retours', assistant: 'l\'assistant' };
     setTimeout(function () { navigateTo(page); }, 350);
     return 'J\'ouvre ' + (noms[page] || 'la page') + '.';
 }
@@ -1695,6 +1766,7 @@ function iaNomActivite(texte) {
 }
 
 function iaVeutActivite(n) {
+    if (iaVeutExerciceSlot(n) || iaVeutModifier(n)) return false;
     if (!/(ajoute|ajouter|mets|mettre|planifie|planifier|insere|inserer)/.test(n)) return false;
     if (iaVeutOuvrir(n) && !iaHeuresTrouvees(n).length) return false;
     return /(activite|creneau|seance)/.test(n) || iaHeuresTrouvees(n).length > 0 || iaJourDemande(n) !== -1 || iaNomActivite(n).length > 1;
@@ -1738,6 +1810,330 @@ function iaAjouterActivite(nom, jour, debut, fin) {
     return 'Activité ajoutée : « ' + nom + ' », chaque ' + jourNom + ', de ' + debut + ' à ' + fin + '. Le planning de ce jour est à jour.';
 }
 
+function iaListeActivites() {
+    return (typeof selectedActivities !== 'undefined' && Array.isArray(selectedActivities) ? selectedActivities : []).filter(function (a) { return a && a.name; });
+}
+
+function iaTrouverActivite(n) {
+    var best = null;
+    var taille = 0;
+    iaListeActivites().forEach(function (a) {
+        var nom = iaNormaliser(a.name);
+        if (nom && iaContientMot(n, nom) && nom.length > taille) {
+            best = a;
+            taille = nom.length;
+        }
+    });
+    return best;
+}
+
+function iaVeutModifier(n) {
+    if (!/(deplace|deplacer|decale|decaler|change|changer|modifie|modifier|renomme|renommer|supprime|supprimer|enleve|enlever|retire|retirer|raccourcis|rallonge)/.test(n)) return false;
+    if (iaVeutSolution(n)) return false;
+    return !!(iaTrouverActivite(n) || /(activite|creneau|seance|planning|revision|revisions)/.test(n));
+}
+
+function iaVeutExerciceSlot(n) {
+    if (!n || iaVeutSolution(n)) return false;
+    if (!/(exercice|devoir|\bdm\b)/.test(n)) return false;
+    return /(ajoute|ajouter|place|placer|planifie|planifier|mets|mettre|insere|inserer|jai un|jai une|j ai un|j ai une|nouveau|nouvelle|cree|creer)/.test(n);
+}
+
+function iaCreneauProtege(ev) {
+    if (!ev) return true;
+    if (ev.id === 'sleep' || ev.id === 'wakeup' || ev.id === 'commute1' || ev.id === 'commute2') return true;
+    return ev.type === 'school' || ev.type === 'transport';
+}
+
+function iaSauverPlanning() {
+    if (typeof v3Save === 'function') v3Save();
+    else if (typeof customEvents !== 'undefined') {
+        try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents)); } catch (e) {}
+    }
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    if (typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e2) {}
+    }
+    if (typeof renderActivities === 'function') {
+        try { renderActivities(); } catch (e3) {}
+    }
+}
+
+function iaDureeDemandee(n, defaut) {
+    var pendant = String(n || '').match(/pendant\s+(\d{1,2})\s*h(?:\s*(\d{1,2}))?/);
+    if (pendant) return Number(pendant[1]) * 60 + Number(pendant[2] || 0);
+    var min = String(n || '').match(/(\d{1,3})\s*min/);
+    if (min) return Number(min[1]);
+    return defaut || 45;
+}
+
+function iaFinDepuis(debut, duree) {
+    var total = timeToMinutes(debut) + duree;
+    if (total >= 24 * 60) return '';
+    return iaHeureCourte(total);
+}
+
+function iaDeadlineDemandee(n) {
+    var date = typeof iaDateDepuisTexte === 'function' ? iaDateDepuisTexte(n, new Date().getFullYear()) : null;
+    if (date) return iaIsoDate(date);
+    var jour = iaJourDemande(n);
+    if (jour < 0) return '';
+    var maintenant = new Date();
+    var index = iaIndexJour(maintenant);
+    var delta = (jour - index + 7) % 7;
+    var d = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate() + delta);
+    return iaIsoDate(d);
+}
+
+function iaEvenementNomme(n, jour) {
+    var events = [];
+    try { events = generateDayEvents(jour) || []; } catch (e) { return null; }
+    var cible = null;
+    var taille = 0;
+    events.forEach(function (ev) {
+        if (!ev || !ev.title || iaCreneauProtege(ev)) return;
+        var titre = iaNormaliser(ev.title);
+        if (titre && iaContientMot(n, titre) && titre.length > taille) {
+            cible = ev;
+            taille = titre.length;
+        }
+    });
+    if (cible) return cible;
+    var sujet = iaTrouverSujet(n, true);
+    if (!sujet) return null;
+    events.forEach(function (ev) {
+        if (cible || !ev || !ev.title || iaCreneauProtege(ev)) return;
+        if (iaContientMot(iaNormaliser(ev.title), iaNormaliser(sujet.name)) || iaContientMot(iaNormaliser(ev.title), iaNormaliser(sujet.name).split(' ')[0])) cible = ev;
+    });
+    return cible;
+}
+
+function iaPoserActivite(act, jour, debut, fin) {
+    var jours = jour >= 0 ? [jour] : (act.days && act.days.length ? act.days.slice() : []);
+    if (!jours.length) return 'Sur quel jour je place « ' + act.name + ' » ?';
+    var i;
+    for (i = 0; i < jours.length; i++) {
+        if (typeof validateNewEventTime === 'function') {
+            var validation = validateNewEventTime(debut, fin, jours[i]);
+            if (!validation.valid) return validation.error;
+        }
+        if (typeof v3FindConflict === 'function') {
+            var conflit = v3FindConflict(jours[i], debut, fin, ['activity-' + act.name]);
+            if (conflit && iaNormaliser(conflit.title) !== iaNormaliser(act.name)) {
+                return typeof v3ConflictMessage === 'function' ? v3ConflictMessage(conflit) : 'Ce créneau est déjà pris.';
+            }
+        }
+    }
+    if (jours.length === 1) {
+        act.sameTime = false;
+        if (!act.dayTimes) act.dayTimes = {};
+        act.dayTimes[jours[0]] = { start: debut, end: fin };
+        if (!act.days) act.days = [];
+        if (act.days.indexOf(jours[0]) === -1) act.days.push(jours[0]);
+    } else {
+        act.sameTime = true;
+        act.startTime = debut;
+        act.endTime = fin;
+    }
+    iaSauverPlanning();
+    if (jour >= 0 && typeof selectDay === 'function') selectDay(jour);
+    return 'C\'est noté. « ' + act.name + ' » est de ' + debut + ' à ' + fin + (jour >= 0 ? ', le ' + iaNomJour(jour) : '') + '.';
+}
+
+function iaRetirerCreneau(texte) {
+    var n = iaNormaliser(texte);
+    var act = iaTrouverActivite(n);
+    var jour = iaJourDemande(n);
+    if (act) {
+        if (jour >= 0 && act.days && act.days.length > 1) {
+            act.days = act.days.filter(function (d) { return d !== jour; });
+            if (act.dayTimes) delete act.dayTimes[jour];
+            iaSauverPlanning();
+            return 'C\'est fait. « ' + act.name + ' » n\'est plus le ' + iaNomJour(jour) + '.';
+        }
+        if (typeof removeActivity === 'function') removeActivity(act.name);
+        else selectedActivities = selectedActivities.filter(function (a) { return a && a.name !== act.name; });
+        if (typeof customEvents !== 'undefined') {
+            customEvents = customEvents.filter(function (e) { return !(e && iaNormaliser(e.title) === iaNormaliser(act.name)); });
+        }
+        iaSauverPlanning();
+        return 'C\'est fait. « ' + act.name + ' » n\'est plus dans le planning.';
+    }
+    if (jour < 0) return 'Dis-moi le jour, et le créneau à retirer.';
+    var cible = iaEvenementNomme(n, jour);
+    if (!cible) return 'Je ne vois pas ce créneau. Donne-moi son nom.';
+    if (iaCreneauProtege(cible)) return 'Les cours et les trajets restent en place.';
+    if (typeof customEvents !== 'undefined') {
+        customEvents = customEvents.filter(function (e) {
+            return !(e && e.day === jour && !e.replacesId && iaNormaliser(e.title) === iaNormaliser(cible.title));
+        });
+        customEvents.push({
+            id: 'del-' + cible.id + '-' + jour,
+            replacesId: cible.id,
+            day: jour,
+            deleted: true,
+            title: cible.title,
+            startTime: cible.startTime,
+            endTime: cible.endTime,
+            type: cible.type || 'study'
+        });
+    }
+    iaSauverPlanning();
+    if (typeof selectDay === 'function') selectDay(jour);
+    return 'C\'est retiré : « ' + cible.title + ' », le ' + iaNomJour(jour) + '.';
+}
+
+function iaDeplacerCreneau(texte) {
+    var n = iaNormaliser(texte);
+    var act = iaTrouverActivite(n);
+    var jour = iaJourDemande(n);
+    var heures = iaHeuresTrouvees(n);
+    if (/(renomme|renommer)/.test(n) && act) {
+        var nouveau = iaNomActivite(texte);
+        if (!nouveau || iaNormaliser(nouveau) === iaNormaliser(act.name)) return 'Quel nouveau nom pour « ' + act.name + ' » ?';
+        act.name = nouveau;
+        iaSauverPlanning();
+        return 'C\'est noté. L\'activité s\'appelle maintenant « ' + nouveau + ' ».';
+    }
+    if (!heures.length) return act ? 'Pour « ' + act.name + ' », dis-moi l\'heure, ou si tu veux la retirer.' : 'Dis-moi l\'heure, et ce que tu veux déplacer.';
+    var debut = heures[0];
+    if (act) {
+        var dureeAct = 60;
+        if (act.startTime && act.endTime && typeof timeToMinutes === 'function') dureeAct = Math.max(15, timeToMinutes(act.endTime) - timeToMinutes(act.startTime));
+        var finAct = heures[1] || iaFinDepuis(debut, iaDureeDemandee(n, dureeAct));
+        if (!finAct) return 'Ce créneau dépasse la journée. Donne-moi une heure de fin.';
+        return iaPoserActivite(act, jour, debut, finAct);
+    }
+    if (jour < 0) jour = iaIndexJour(new Date());
+    var cible = iaEvenementNomme(n, jour);
+    if (!cible) return 'Je ne vois pas ce créneau ce jour-là.';
+    if (iaCreneauProtege(cible)) return 'Les cours et les trajets restent à leur heure.';
+    var duree = 40;
+    if (typeof timeToMinutes === 'function') duree = Math.max(15, timeToMinutes(cible.endTime) - timeToMinutes(cible.startTime));
+    var fin = heures[1] || iaFinDepuis(debut, iaDureeDemandee(n, duree));
+    if (!fin) return 'Ce créneau dépasse la journée. Donne-moi une heure de fin.';
+    if (typeof validateNewEventTime === 'function') {
+        var validation = validateNewEventTime(debut, fin, jour);
+        if (!validation.valid) return validation.error;
+    }
+    if (typeof v3FindConflict === 'function') {
+        var conflit = v3FindConflict(jour, debut, fin, [cible.id]);
+        if (conflit) return typeof v3ConflictMessage === 'function' ? v3ConflictMessage(conflit) : 'Ce créneau est déjà pris.';
+    }
+    if (typeof customEvents === 'undefined') return 'Je ne peux pas modifier le planning depuis ici.';
+    customEvents.push({
+        id: 'del-' + cible.id + '-' + jour + '-' + Date.now(),
+        replacesId: cible.id,
+        day: jour,
+        deleted: true,
+        title: cible.title,
+        startTime: cible.startTime,
+        endTime: cible.endTime,
+        type: cible.type || 'study'
+    });
+    customEvents.push({
+        id: typeof generateEventId === 'function' ? generateEventId(cible.type || 'study', cible.title, jour) : 'study-' + Date.now(),
+        day: jour,
+        title: cible.title,
+        startTime: debut,
+        endTime: fin,
+        type: cible.type || 'study',
+        icon: cible.icon || '📌',
+        source: 'custom',
+        pinned: true,
+        timestamp: Date.now()
+    });
+    iaSauverPlanning();
+    if (typeof selectDay === 'function') selectDay(jour);
+    return 'C\'est fait. « ' + cible.title + ' » est le ' + iaNomJour(jour) + ', de ' + debut + ' à ' + fin + '.';
+}
+
+function iaModifierPlanning(texte) {
+    var n = iaNormaliser(texte);
+    if (/(supprime|supprimer|enleve|enlever|retire|retirer)/.test(n)) return iaRetirerCreneau(texte);
+    return iaDeplacerCreneau(texte);
+}
+
+function iaSlotExercice(exo, jour, heures) {
+    if (heures && heures.length && jour >= 0) {
+        var debut = heures[0];
+        var fin = heures[1] || iaFinDepuis(debut, exo.duration || 45);
+        if (!fin) return { erreur: 'Ce créneau dépasse la journée. Donne-moi une heure de fin.' };
+        if (typeof validateNewEventTime === 'function') {
+            var validation = validateNewEventTime(debut, fin, jour);
+            if (!validation.valid) return { erreur: validation.error };
+        }
+        if (typeof v3FindConflict === 'function' && v3FindConflict(jour, debut, fin)) return { erreur: 'Ce créneau est déjà pris. Donne-moi une autre heure.' };
+        return { slot: { planDay: jour, startTime: debut, endTime: fin, dateStr: iaNomJour(jour), replace: false, isSplit: false, availDur: exo.duration } };
+    }
+    if (typeof findAvailableSlots !== 'function') return { erreur: 'Je ne peux pas encore poser ce créneau.' };
+    var slots = [];
+    try { slots = findAvailableSlots(exo) || []; } catch (e) { slots = []; }
+    var libre = slots.filter(function (s) {
+        if (!s || s.conflict || s.replace) return false;
+        if (jour >= 0 && s.planDay !== jour) return false;
+        if (s.planDay < 5 && timeToMinutes(s.startTime) < 16 * 60 + 36) return false;
+        return true;
+    });
+    if (libre[0]) return { slot: libre[0] };
+    return { erreur: 'Je ne trouve pas de trou libre en dehors des cours. Donne-moi un jour et une heure.' };
+}
+
+function iaAjouterExercice(texte) {
+    var n = iaNormaliser(texte);
+    if (typeof exercices === 'undefined' || !Array.isArray(exercices)) return 'Je ne peux pas enregistrer l\'exercice depuis ici.';
+    var sujet = iaTrouverSujet(n, true);
+    if (!sujet) return 'Pour quelle matière est cet exercice ?';
+    var deadline = iaDeadlineDemandee(n);
+    if (!deadline) return 'Pour quelle date tu dois le rendre ?';
+    var duree = iaDureeDemandee(n, 45);
+    if (duree < 15) duree = 15;
+    if (duree > 180) duree = 180;
+    var exo = {
+        id: 'exo-' + Date.now(),
+        subject: sujet.name,
+        subjectIcon: sujet.icon || '📝',
+        subjectGrade: sujet.grade || sujet.level || '',
+        text: 'Exercice de ' + sujet.name,
+        filename: null,
+        duration: duree,
+        deadline: deadline,
+        done: false,
+        addedAt: new Date().toISOString(),
+        scheduledSlot: null
+    };
+    var choix = iaSlotExercice(exo, iaJourDemande(n), iaHeuresTrouvees(n));
+    if (!choix.slot) return choix.erreur || 'Je ne trouve pas de créneau libre.';
+    exercices.push(exo);
+    try {
+        if (typeof applyExerciseSlot === 'function') applyExerciseSlot(exo, choix.slot, 'Exercices ' + sujet.name);
+        else customEvents.push({
+            id: 'study-' + Date.now(),
+            day: choix.slot.planDay,
+            title: 'Exercices ' + sujet.name,
+            startTime: choix.slot.startTime,
+            endTime: choix.slot.endTime,
+            type: 'study',
+            icon: sujet.icon || '📝',
+            source: 'exercice',
+            exoId: exo.id,
+            pinned: true,
+            timestamp: Date.now()
+        });
+    } catch (e) {
+        exercices.pop();
+        return 'Je n\'ai pas pu placer le créneau. On peut réessayer avec une autre heure.';
+    }
+    exo.scheduledSlot = (choix.slot.dateStr || iaNomJour(choix.slot.planDay)) + ' · ' + choix.slot.startTime + '–' + choix.slot.endTime;
+    if (typeof refreshPlanningAfterExercise === 'function') refreshPlanningAfterExercise(choix.slot.planDay);
+    else iaSauverPlanning();
+    try { localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices)); } catch (e2) {}
+    if (typeof renderExoList === 'function') { try { renderExoList(); } catch (e3) {} }
+    if (typeof rappelPublierExercice === 'function') { try { rappelPublierExercice(exo, choix.slot); } catch (e4) {} }
+    if (typeof selectDay === 'function') selectDay(choix.slot.planDay);
+    return 'Exercice de ' + sujet.name + ' ajouté, à rendre le ' + deadline + '. Créneau placé le ' + iaNomJour(choix.slot.planDay) + ', de ' + choix.slot.startTime + ' à ' + choix.slot.endTime + '. Je ne fais pas l\'exercice.';
+}
+
 function iaAgir(texte) {
     var n = iaNormaliser(texte);
     var notes = [];
@@ -1745,11 +2141,12 @@ function iaAgir(texte) {
         var page = iaPageDemandee(n);
         if (page) notes.push(iaOuvrirPage(page));
     }
-    if (iaVeutActionPdf(n)) {
-        notes.push(iaActionPdf(texte));
-        return notes.filter(Boolean).join('\n');
+    if (/(pdf|piece jointe|upload|joindre)/.test(n) && /(fichier|document|pdf)/.test(n)) {
+        notes.push('Je ne prends pas de fichier ici. Dis-moi le jour et la matière.');
     }
-    if (iaVeutActivite(n)) {
+    if (iaVeutModifier(n)) notes.push(iaModifierPlanning(texte));
+    else if (iaVeutExerciceSlot(n)) notes.push(iaAjouterExercice(texte));
+    else if (iaVeutActivite(n)) {
         var nom = iaNomActivite(texte);
         var jour = iaJourDemande(n);
         var heures = iaHeuresTrouvees(n);
@@ -1759,19 +2156,17 @@ function iaAgir(texte) {
             var pendant = n.match(/pendant\s+(\d{1,2})\s*h(?:\s*(\d{1,2}))?/);
             if (pendant) {
                 var mins = Number(pendant[1]) * 60 + Number(pendant[2] || 0);
-                var total = timeToMinutes(debut) + mins;
-                if (total < 24 * 60) fin = String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+                fin = iaFinDepuis(debut, mins);
             }
         }
-        if (!nom || jour < 0 || !debut || !fin) {
+        var connue = iaTrouverActivite(iaNormaliser(nom));
+        if (connue && debut && fin) notes.push(iaPoserActivite(connue, jour, debut, fin));
+        else if (!nom || jour < 0 || !debut || !fin) {
             notes.push('Pour ajouter l\'activité, il me manque ' + [!nom ? 'le nom' : '', jour < 0 ? 'le jour' : '', !debut || !fin ? 'le créneau de début et de fin' : ''].filter(Boolean).join(', ') + '.');
-        } else {
-            notes.push(iaAjouterActivite(nom, jour, debut, fin));
-        }
+        } else notes.push(iaAjouterActivite(nom, jour, debut, fin));
     }
     return notes.filter(Boolean).join(' ');
 }
-
 function iaNettoyer(texte) {
     return String(texte || '').replace(/\[\[action:[^\]]+\]\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -1804,18 +2199,19 @@ function iaMessages(question, action, lecture) {
     var qui = iaIdentite();
     lecture = lecture || iaLireQuestion(question);
     var systeme = [
-        'Tu es l\'ami proche de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu réponds de façon très amicale, tu écoutes, tu encourages et tu soutiens, sans jugement. Tu aides aussi à s\'organiser : tu ouvres la page demandée, et tu places une activité au créneau choisi.',
-        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Le ton est doux, chaleureux et proche, jamais froid ni sec.',
+        'Tu es l\'ami proche de ' + qui.complet + ', élève du Baccalauréat International à Enko Ouaga. Tu parles comme un ami fiable : clair, posé, chaleureux, sans jugement. Tu ouvres la page demandée, tu modifies le planning et les activités, et tu places un créneau d\'exercice. Tu n\'annonces pas cette liste.',
+        'Appelle cette personne ' + qui.prenom + '. Ne suppose pas son genre. Réponds dans la langue de la question, en français par défaut. Le ton est celui d\'un ami professionnel : phrases courtes, précises, humaines. Pas d\'emoji, pas de « super », pas de « avec plaisir », pas de formule de service client.',
         'Avant de répondre, comprends le but, pas seulement les mots. Ne l\'annonce pas. Interdit : « Lecture : », « Voici ce que tu demandes », « Tu me demandes ». ' + iaConsigneReponse(lecture),
         'Ne recopie jamais une réponse précédente. Change l\'angle, les exemples et la première phrase. Dernière réponse à ne pas répéter : ' + (iaDernieresReponses(1)[0] || 'aucune').slice(0, 240),
         'Tu ne fais jamais le travail à sa place. Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire, une IA, donner une réponse, une correction ou les étapes d\'un devoir. Si on te le demande, refuse et propose seulement de placer un créneau ou de rappeler la deadline.',
         'Ce que tu connais du programme : six matières, en général trois HL et trois SL, notes de 1 à 7, maximum 45 avec au plus 3 points de TOK et de mémoire. Le CAS est obligatoire et ne donne pas de points. HL demande plus de temps que SL. Anglais B SL et Anglais B HL ne se mélangent pas. Il n\'y a aucun cours d\'économie le samedi : n\'en invente jamais un.',
         iaMomentJournee()
-            ? 'C\'est après les cours, un soir de semaine. Tu peux demander une seule fois, gentiment, comment s\'est passée la journée.'
-            : 'Ne demande jamais comment s\'est passée la journée. Ce n\'est permis qu\'après 16h35, le soir, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le samedi, jamais le dimanche.',
-        'Pour les notes : commence par les HL et par les matières à 4/7 ou moins. Préfère des séances courtes avant la deadline, protège le sommeil, et allège la journée si la personne est fatiguée ou stressée.',
-        'N\'invente jamais ses notes, ses exercices, son planning, ni le contenu d\'un fichier. Si une action a déjà été faite, confirme-la telle quelle. Ne demande pas de la refaire.',
-        'Si un fichier a été analysé, traite cette analyse pour faire exactement ce qui est demandé : répondre à la question, résumer par jours et échéances, ou confirmer le créneau déjà placé. Ne recopie pas le texte brut. N\'invente aucun horaire absent de l\'analyse. Ne résous aucun exercice du fichier.',
+            ? 'C\'est le soir, en semaine, après 18h. Tu peux demander une seule fois comment s\'est passée la journée. Interdit, même maintenant : « Après les cours, tu peux me dire comment s\'est passée la journée. »'
+            : 'Ne demande jamais comment s\'est passée la journée. Ce n\'est permis que le soir, après 18h, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le samedi, jamais le dimanche.',
+        'Les évaluations internes sont égales. N\'en recommande jamais une avant une autre, ni parce qu\'une matière est HL, ni parce qu\'une note est basse. Cette priorité, HL puis notes à 4/7 ou moins, ne vaut que pour les révisions. Une évaluation interne ou un mémoire finalisé ne se propose plus dans les jours à venir.',
+        'Pour les révisions seulement : commence par les HL et par les matières à 4/7 ou moins. Préfère des séances courtes avant la deadline, protège le sommeil, et allège la journée si la personne est fatiguée ou stressée.',
+        'N\'invente jamais ses notes, ses exercices, son planning. Si une action a déjà été faite, confirme-la telle quelle. Ne demande pas de la refaire.',
+        'Il n\'y a pas d\'envoi de fichier. Ne propose jamais un PDF, une pièce jointe ou un upload. Si on te le demande, dis de donner le jour et la matière.',
         'Si la personne demande d\'ouvrir une page, tu peux ajouter à la fin une ligne [[action:ouvrir:planning]], exercices, soutien, eeia, feries, legende, aide ou feedback.',
         'Si la personne demande d\'ajouter une activité avec un jour et un créneau, et que ce n\'est pas déjà fait, tu peux ajouter [[action:activite:Nom|0|17:00|18:30]] où 0 est lundi et 6 dimanche. N\'invente jamais un horaire qui n\'a pas été dit.',
         'Quand la personne parle de stress, fatigue, honte, peur, solitude ou découragement : accueille d\'abord le ressenti. Ne pose aucun diagnostic. Propose au plus une petite étape. Tu n\'es pas un professionnel de santé.',
@@ -1845,12 +2241,8 @@ function iaMessages(question, action, lecture) {
 }
 
 function iaQuestion(texte) {
-    if (texte === 'Analyse mon PDF' && !iaDocs().length) {
-        iaChoisirPdf();
-        return;
-    }
     if (texte === 'Analyse mon PDF') {
-        iaBulle('assistant', iaDocs().map(function (doc) { return iaResumePdf(doc.nom, doc.texte); }).join('\n\n'));
+        iaBulle('assistant', 'Je ne prends pas de fichier ici. Dis-moi le jour et la matière.');
         return;
     }
     if (texte === 'Je suis stressé') texte = 'Je suis stressé. Écoute-moi d\'abord, sans me donner une longue liste de devoirs.';
