@@ -49,4 +49,9 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Envoyer et lire la boîte temporaire
-        run: python3 tools/verifier-livraison.py
+        run: |
+          set +e
+          python3 tools/verifier-livraison.py > /tmp/verif.txt 2>&1
+          code=$?
+          python3 -c 'import pathlib; t=pathlib.Path("/tmp/verif.txt").read_text(errors="replace")[-3500:]; print(t); print("::error::"+t.replace("\n"," | ")[-1800:])'
+          exit $code
