@@ -30,9 +30,9 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
-      - name: Lire les dernières réponses
+      - name: Sonder la livraison Gmail
         continue-on-error: true
-        run: python3 tools/lire-retours.py > data/mail-verif.txt 2>&1 || true
+        run: python3 tools/sonder-gmail.py > data/mail-verif.txt 2>&1 || true
 
       - name: Enregistrer l'adresse
         run: |

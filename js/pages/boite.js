@@ -257,7 +257,9 @@ function boiteCorpsNtfy(record) {
         return JSON.stringify({
             type: record.type, id: record.id, at: record.at, nom: record.nom,
             texte: String(record.texte || '').slice(0, 700),
-            email: record.email || '', google: record.google || '', googleNom: record.googleNom || ''
+            email: record.email || '', google: record.google || '', googleNom: record.googleNom || '',
+            questionId: record.questionId || '', destinataire: record.destinataire || '',
+            mail: !!record.mail, gmailId: record.gmailId || ''
         });
     }
     var jours = (record.jours || []).slice(0, 6);
@@ -571,6 +573,7 @@ function boiteDocument(fusion) {
             jours: item.jours || [],
             questionId: item.questionId || '',
             destinataire: item.destinataire || '',
+            gmailId: item.gmailId || '',
             mail: !!item.mail,
             partage: !!item.partage,
             data: item.data || null
@@ -807,10 +810,12 @@ function boiteReponsesLiees(fusion, questionId) {
     });
 }
 
+function boiteMailConfirme(rep) {
+    return !!(rep && rep.gmailId && String(rep.gmailId).length >= 16);
+}
+
 function boiteReponsesDe(fusion, questionId) {
-    return boiteReponsesLiees(fusion, questionId).filter(function (rep) {
-        return rep.mail;
-    });
+    return boiteReponsesLiees(fusion, questionId).filter(boiteMailConfirme);
 }
 
 function boiteCase(cochee) {
@@ -821,7 +826,7 @@ function boiteCarteQuestion(item, reponses) {
     var compte = item.google ? boiteEchap(item.google) : 'Sans compte Google';
     if (item.googleNom) compte += ' · ' + boiteEchap(item.googleNom);
     var email = boiteEmailQuestion(item);
-    var cochee = reponses.some(function (rep) { return rep && rep.mail; });
+    var cochee = reponses.some(boiteMailConfirme);
     var html = '<article style="background:white;border:1.5px solid ' + (cochee ? '#a7f3d0' : '#e5e7eb') + ';border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
         + '<div style="display:flex;align-items:flex-start;gap:0.65rem;">'
         + boiteCase(cochee)
@@ -831,9 +836,9 @@ function boiteCarteQuestion(item, reponses) {
         + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
     reponses.forEach(function (rep) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
-            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (rep.mail ? 'Message envoyé' : 'Réponse enregistrée') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (boiteMailConfirme(rep) ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Pas encore envoyé par mail') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -975,35 +980,14 @@ function boiteTexteMail(message, question) {
 function boiteHtmlMail(message, question) {
     var questionHtml = '';
     if (boiteLignes(question)) {
-        questionHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;background:#f8faf9;border-radius:12px;">'
-            + '<tr><td style="padding:14px 16px;border-left:3px solid #34d399;">'
-            + '<p style="margin:0 0 6px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#047857;">Ta question</p>'
-            + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.5;color:#4b5563;">' + boiteEchapHtml(boiteLignes(question)) + '</p>'
-            + '</td></tr></table>';
+        questionHtml = '<p style="margin:18px 0 0;color:#4b5563;">Ta question :<br>' + boiteEchapHtml(boiteLignes(question)) + '</p>';
     }
-    return '<!DOCTYPE html><html><body style="margin:0;padding:0;background:#f3f4f6;">'
-        + '<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#f3f4f6;">Réponse de l\'équipe Study Plan IB</div>'
-        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:28px 12px;">'
-        + '<tr><td align="center">'
-        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
-        + '<tr><td style="background:#059669;padding:22px 28px;">'
-        + '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
-        + '<td style="padding-right:12px;vertical-align:middle;"><img src="https://sawadogojuliss-byte.github.io/Learning-DP1/images/logo.png" width="42" height="42" alt="" style="display:block;border:0;border-radius:12px;"></td>'
-        + '<td style="vertical-align:middle;">'
-        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#d1fae5;">Study Plan IB</p>'
-        + '<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:22px;line-height:1.25;font-weight:700;color:#ffffff;">Réponse à ta question</p>'
-        + '</td></tr></table></td></tr>'
-        + '<tr><td style="padding:28px 28px 8px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#111827;">'
+    return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#111827;">'
         + '<p style="margin:0 0 16px;">Bonjour,</p>'
         + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
         + questionHtml
-        + '<p style="margin:26px 0 0;">À bientôt,</p>'
-        + '<p style="margin:2px 0 0;font-weight:700;color:#047857;">L\'équipe Study Plan IB</p>'
-        + '</td></tr>'
-        + '<tr><td style="padding:8px 28px 26px;">'
-        + '<p style="margin:18px 0 0;padding-top:16px;border-top:1px solid #f3f4f6;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.5;color:#9ca3af;">Tu peux répondre à ce message. Il sera lu par l\'équipe Study Plan IB.</p>'
-        + '</td></tr>'
-        + '</table></td></tr></table></body></html>';
+        + '<p style="margin:22px 0 0;">À bientôt,<br><strong style="color:#047857;">L\'équipe Study Plan IB</strong></p>'
+        + '</div>';
 }
 
 function boiteCompteExpediteur(token) {
@@ -1034,7 +1018,7 @@ function boiteMessageEchecMail(err, data) {
     if (/SERVICE_DISABLED|accessNotConfigured|has not been used/i.test(api)) {
         return 'Le service Gmail n\'est pas activé. La question reste en attente.';
     }
-    return 'Le mail n\'a pas pu partir. La question reste en attente.';
+    return 'Gmail n\'a pas confirmé l\'envoi. La question reste en attente.';
 }
 
 function boiteConnexionPartagee(fusion) {
@@ -1073,8 +1057,16 @@ function boiteMajConnexion() {
     if (texte) texte.textContent = 'Les réponses partent au nom de l\'équipe Study Plan IB.';
 }
 
-function boiteMailAccepte(data) {
-    return !!(data && (data.success === true || String(data.success) === 'true'));
+function boiteNonce() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    var s = '';
+    var i;
+    for (i = 0; i < 24; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+}
+
+function boiteMailAccepte(data, nonce) {
+    return !!(data && nonce && String(data.id || '') === String(nonce));
 }
 
 function boiteUrlScript() {
@@ -1095,6 +1087,7 @@ function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var sujet = 'Réponse à ta question — Study Plan IB';
+    var nonce = boiteNonce();
     return boiteUrlScript().then(function (url) {
         return fetch(url, {
             method: 'POST',
@@ -1102,6 +1095,7 @@ function boiteEnvoyerMail(destinataire, message, question) {
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify({
                 secret: BOITE_SCRIPT_SECRET,
+                nonce: nonce,
                 to: email,
                 replyTo: BOITE_EXPEDITEUR,
                 subject: sujet,
@@ -1111,7 +1105,7 @@ function boiteEnvoyerMail(destinataire, message, question) {
         });
     }).then(function (res) {
         return res.json().catch(function () { return {}; }).then(function (data) {
-            if (!res.ok || !boiteMailAccepte(data)) {
+            if (!res.ok || !boiteMailAccepte(data, nonce)) {
                 var err = new Error('mail');
                 err.api = data;
                 throw err;
@@ -1152,7 +1146,7 @@ function boiteRepondre(questionId, origine) {
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
     boiteDireDans(zone, 'Envoi vers ' + email + '…', false);
-    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function () {
+    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function (data) {
         var record = {
             type: 'reponse',
             id: boiteId('r'),
@@ -1163,6 +1157,7 @@ function boiteRepondre(questionId, origine) {
             destinataire: email,
             texte: texte.slice(0, 800),
             mail: true,
+            gmailId: String(data && data.id || ''),
             partage: true
         };
         boiteGarderVu(record);
