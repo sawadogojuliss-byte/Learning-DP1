@@ -75,12 +75,8 @@ def attendre(jeton, secondes, mot=''):
     return None, ''
 
 
-def lien_activation(texte):
-    liens = re.findall(r'https://formsubmit\.co/[^\s\"\'<>]+', texte or '')
-    for lien in liens:
-        if 'activate' in lien or 'confirm' in lien:
-            return lien.rstrip(').,')
-    return liens[0].rstrip(').,') if liens else ''
+def liens_http(texte):
+    return [lien.rstrip(').,>') for lien in re.findall(r'https?://[^\s\"\'<>]+', texte or '')]
 
 
 def main():
@@ -95,11 +91,15 @@ def main():
     print('activation_http', status, raw.decode('utf-8', 'replace')[:400])
     _item, detail = attendre(jeton_p, 70)
     print('activation_mail', 'oui' if detail else 'non')
-    lien = lien_activation(detail)
-    print('lien', 'present' if lien else 'absent')
-    if lien:
+    liens = liens_http(detail)
+    print('liens', len(liens))
+    for lien in liens[:8]:
+        print('url', lien[:180])
+    if detail and not liens:
+        print('extrait', re.sub(r'\s+', ' ', detail)[:500])
+    for lien in liens[:4]:
         status, headers, raw = ouvrir(lien, headers={'User-Agent': AGENT})
-        print('clic', status, raw.decode('utf-8', 'replace')[:300].replace('\n', ' '))
+        print('clic', status, lien[:80], raw.decode('utf-8', 'replace')[:180].replace('\n', ' '))
     eleve, jeton_e = creer_boite('eleve')
     print('eleve', eleve)
     formulaire = urllib.parse.urlencode({
