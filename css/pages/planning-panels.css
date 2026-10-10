@@ -355,31 +355,26 @@
     gap: 0.75rem;
     margin-bottom: 1.1rem;
 }
-.add-kicker {
-    margin: 0;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #059669;
+.add-kicker { display: none; }
+.add-sheet, .add-sheet h3, .add-sheet p, .add-sheet button, .add-sheet input, .add-sheet label {
+    font-family: 'Inter', sans-serif;
 }
 .add-head h3 {
-    margin: 0.15rem 0 0;
-    font-family: "Playfair Display", Georgia, serif;
-    font-size: 1.55rem;
-    font-weight: 650;
-    letter-spacing: -0.03em;
-    color: #14211c;
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #111827;
 }
 .add-day {
-    display: inline-flex;
-    margin: 0.45rem 0 0;
-    padding: 0.18rem 0.55rem;
-    border-radius: 999px;
-    background: #ecfdf5;
-    color: #047857;
-    font-size: 0.75rem;
-    font-weight: 700;
+    display: block;
+    margin: 0.2rem 0 0;
+    padding: 0;
+    background: none;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 400;
 }
 .add-close, .add-back, .add-cancel, .add-confirm, .add-choice {
     font: inherit;
@@ -389,20 +384,21 @@
     width: 2.15rem;
     height: 2.15rem;
     flex: 0 0 auto;
-    border: 1px solid #e7eeea;
+    border: 1px solid #a7f3d0;
     border-radius: 0.8rem;
-    background: white;
-    color: #52615b;
+    background: #ecfdf5;
+    color: #047857;
     display: flex;
     align-items: center;
     justify-content: center;
 }
-.add-close:hover { background: #f3f7f5; }
+.add-close:hover { background: #d1fae5; }
 .add-label {
     margin: 0 0 0.7rem;
-    font-size: 0.92rem;
-    font-weight: 650;
-    color: #1f2933;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #374151;
 }
 .add-choices {
     display: grid;
@@ -416,9 +412,9 @@
     text-align: left;
     padding: 0.85rem 0.9rem;
     border-radius: 1.15rem;
-    border: 1px solid #e5eeea;
-    background: white;
-    color: #14211c;
+    border: 1px solid #a7f3d0;
+    background: #f0fdf4;
+    color: #111827;
     box-shadow: 0 1px 0 rgba(17, 24, 20, 0.03);
 }
 .add-choice:hover {
@@ -437,21 +433,22 @@
     color: #047857;
 }
 .add-choice-alt .add-choice-icon {
-    background: #f4f1ea;
-    color: #57534e;
+    background: #ecfdf5;
+    color: #047857;
 }
 .add-choice-text { display: flex; flex-direction: column; gap: 0.12rem; }
-.add-choice-text strong { font-size: 0.98rem; font-weight: 750; }
-.add-choice-text small { font-size: 0.78rem; color: #6b7280; }
+.add-choice-text strong { font-size: 0.9rem; font-weight: 700; color: #111827; }
+.add-choice-text small { font-size: 0.75rem; color: #6b7280; }
 .add-cancel {
     display: block;
     width: 100%;
     margin-top: 0.35rem;
     padding: 0.75rem;
-    border: none;
-    background: transparent;
-    color: #6b7280;
-    font-weight: 650;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.75rem;
+    background: #ecfdf5;
+    color: #047857;
+    font-weight: 600;
 }
 .add-back {
     display: inline-flex;
@@ -467,14 +464,15 @@
 .add-confirm {
     width: 100%;
     margin: 0.35rem 0 0.15rem;
-    padding: 0.9rem 1rem;
+    padding: 0.875rem 1rem;
     border: none;
-    border-radius: 0.95rem;
-    background: #111c18;
+    border-radius: 0.75rem;
+    background: linear-gradient(to right, #10b981, #14b8a6);
     color: white;
-    font-weight: 750;
+    font-weight: 700;
+    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.25);
 }
-.add-confirm:hover { background: #059669; }
+.add-confirm:hover { background: linear-gradient(to right, #059669, #0d9488); }
 .add-step .preset-act-btn {
     border-color: #e7eeea !important;
     background: white;
