@@ -30,7 +30,7 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
-      - name: Confirmer FormSubmit puis vérifier la boîte de l'élève
+      - name: Revérifier la livraison vers une nouvelle boîte
         continue-on-error: true
         run: python3 tools/verifier-livraison.py > data/mail-verif.txt 2>&1 || true
 
