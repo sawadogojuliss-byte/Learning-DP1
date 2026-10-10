@@ -58,7 +58,18 @@ def lire_messages(jeton):
 
 def lire_un(jeton, ident):
     status, _headers, raw = ouvrir('https://api.mail.tm/messages/' + ident, headers={'Authorization': 'Bearer ' + jeton})
-    return raw.decode('utf-8', 'replace')
+    texte = raw.decode('utf-8', 'replace')
+    try:
+        data = json.loads(texte)
+    except Exception:
+        return texte
+    parties = [str(data.get('subject') or ''), str(data.get('intro') or ''), str(data.get('text') or '')]
+    html = data.get('html')
+    if isinstance(html, list):
+        parties.extend(str(part) for part in html)
+    elif html:
+        parties.append(str(html))
+    return '\n'.join(parties)
 
 
 def attendre(jeton, secondes, mot=''):
