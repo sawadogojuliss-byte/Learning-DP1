@@ -102,15 +102,16 @@ def main():
     print('activation_http', status, raw.decode('utf-8', 'replace')[:400])
     _item, detail = attendre(jeton_p, 70)
     print('activation_mail', 'oui' if detail else 'non')
-    liens = liens_http(detail)
-    print('liens', len(liens))
-    for lien in liens[:8]:
-        print('url', lien[:180])
-    if detail and not liens:
-        print('extrait', re.sub(r'\s+', ' ', detail)[:500])
-    for lien in liens[:4]:
-        status, headers, raw = ouvrir(lien, headers={'User-Agent': AGENT})
-        print('clic', status, lien[:80], raw.decode('utf-8', 'replace')[:180].replace('\n', ' '))
+    liens = [lien for lien in liens_http(detail) if lien.startswith('https://formsubmit.co/confirm/')]
+    print('confirmations', len(liens))
+    confirme = False
+    for lien in liens[:2]:
+        propre = lien.encode('ascii', 'ignore').decode('ascii')
+        status, headers, raw = ouvrir(propre, headers={'User-Agent': AGENT})
+        corps = raw.decode('utf-8', 'replace')[:220].replace('\n', ' ')
+        print('clic', status, propre, corps)
+        if status < 400:
+            confirme = True
     eleve, jeton_e = creer_boite('eleve')
     print('eleve', eleve)
     formulaire = urllib.parse.urlencode({

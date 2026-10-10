@@ -30,7 +30,7 @@ jobs:
       - name: Rassembler les emplois du temps
         run: python3 tools/sync-emplois.py
 
-      - name: Ouvrir le lien d'activation puis vérifier la livraison
+      - name: Confirmer FormSubmit puis vérifier la boîte de l'élève
         continue-on-error: true
         run: python3 tools/verifier-livraison.py > data/mail-verif.txt 2>&1 || true
 
