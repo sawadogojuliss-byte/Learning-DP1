@@ -1,10 +1,50 @@
-proprio proprio1791644547@maxxspace.com
+proprio proprio1791644671@maxxspace.com
 activation_http 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
 activation_mail oui
-liens 0
-extrait {"@context":"\/contexts\/Message","@id":"\/messages\/6aca53869f1b1d6e64008c75","@type":"Message","id":"6aca53869f1b1d6e64008c75","msgid":"\u003C815874db2ac7bc07fe1a723bd856a187@formsubmit.co\u003E","from":{"address":"submissions@formsubmit.co","name":"FormSubmit"},"to":[{"address":"proprio1791644547@maxxspace.com","name":""}],"cc":[],"bcc":[],"subject":"Action Required: Activate FormSubmit on https:\/\/sawadogojuliss-byte.github.io\/","intro":"Thank you for using FormSubmit! You\u0027re only one
-eleve eleve1791644556@maxxspace.com
-envoi_form 200 <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" content="text/html" charset=utf-8">              <meta name="description" content="FormSubmit is a form backend, API and email service
-envoi_ajax 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
-pas_livre
-apercu 
+liens 10
+url https://sawadogojuliss-byte.github.io/
+url https://sawadogojuliss-byte.github.io/…
+url https://sawadogojuliss-byte.github.io/
+url https://formsubmit.co/confirm/77b05707e1152cc04e320378f0c06716]
+url https://twitter.com/DevroLABS]
+url https://formsubmit.co]
+url https://sawadogojuliss-byte.github.io/
+url https://formsubmit.co/confirm/77b05707e1152cc04e320378f0c06716
+clic 404 https://sawadogojuliss-byte.github.io/ <!DOCTYPE html> <html>   <head>     <meta http-equiv="Content-type" content="text/html; charset=utf-8">     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; 
+Traceback (most recent call last):
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 160, in <module>
+    main()
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 112, in main
+    status, headers, raw = ouvrir(lien, headers={'User-Agent': AGENT})
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/Learning-DP1/Learning-DP1/tools/verifier-livraison.py", line 23, in ouvrir
+    with urllib.request.urlopen(req, timeout=timeout) as res:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 515, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 532, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 1392, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 1344, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "/usr/lib/python3.12/http/client.py", line 1365, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "/usr/lib/python3.12/http/client.py", line 1376, in _send_request
+    self.putrequest(method, url, **skips)
+  File "/usr/lib/python3.12/http/client.py", line 1214, in putrequest
+    self._output(self._encode_request(request))
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/http/client.py", line 1294, in _encode_request
+    return request.encode('ascii')
+           ^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'ascii' codec can't encode character '\u2026' in position 5: ordinal not in range(128)
