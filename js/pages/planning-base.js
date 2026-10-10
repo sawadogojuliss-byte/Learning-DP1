@@ -540,11 +540,11 @@ function setStudyType(type) {
     const btnRev = document.getElementById('btnRevision');
     const btnEx = document.getElementById('btnExercices');
     if (type === 'revision') {
-        btnRev.style.border = '2px solid #fb923c'; btnRev.style.background = '#fff7ed'; btnRev.style.color = '#c2410c';
-        btnEx.style.border = '2px solid #e5e7eb'; btnEx.style.background = 'white'; btnEx.style.color = '#374151';
+        btnRev.style.border = '1px solid #a7f3d0'; btnRev.style.background = '#ecfdf5'; btnRev.style.color = '#047857';
+        btnEx.style.border = '1px solid #e7eeea'; btnEx.style.background = 'white'; btnEx.style.color = '#374151';
     } else {
-        btnEx.style.border = '2px solid #3b82f6'; btnEx.style.background = '#eff6ff'; btnEx.style.color = '#1d4ed8';
-        btnRev.style.border = '2px solid #e5e7eb'; btnRev.style.background = 'white'; btnRev.style.color = '#374151';
+        btnEx.style.border = '1px solid #a7f3d0'; btnEx.style.background = '#ecfdf5'; btnEx.style.color = '#047857';
+        btnRev.style.border = '1px solid #e7eeea'; btnRev.style.background = 'white'; btnRev.style.color = '#374151';
     }
 }
 

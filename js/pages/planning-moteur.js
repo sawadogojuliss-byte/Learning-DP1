@@ -703,7 +703,100 @@ function generateDayEvents(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex));
+    return planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex);
+}
+
+function planningCleActivite(ev) {
+    if (!ev || !ev.title) return '';
+    return String(ev.title).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[·•|]/g, ' ')
+        .replace(/^revisions?\s+/, 'revision ')
+        .replace(/^exercices?\s+/, 'exercices ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function planningEstProtege(ev) {
+    if (!ev) return true;
+    if (ev.id === 'sleep' || ev.id === 'wakeup' || ev.id === 'commute1' || ev.id === 'commute2') return true;
+    return ev.type === 'school' || ev.type === 'transport';
+}
+
+function planningEstActiviteEleve(ev) {
+    return !!(ev && (ev.type === 'activity' || ev.source === 'custom' || ev.source === 'exercice'));
+}
+
+function planningSujetDeRemplacement(dayIndex, interdit, list) {
+    var all = planningSujetsSaisis();
+    var uses = {};
+    (list || []).forEach(function (ev) {
+        var cle = planningCleActivite(ev);
+        if (cle) uses[cle] = (uses[cle] || 0) + 1;
+    });
+    var i;
+    for (i = 0; i < all.length; i++) {
+        var sujet = all[(Number(dayIndex) + i + 1) % all.length];
+        if (!sujet || !sujet.name) continue;
+        var cle = planningCleActivite({ title: 'Révisions ' + sujet.name });
+        if (cle && cle !== interdit && !uses[cle]) return sujet;
+    }
+    return null;
+}
+
+function planningRemplacerDoublon(ev, list, dayIndex) {
+    var interdit = planningCleActivite(ev);
+    var sujet = planningSujetDeRemplacement(dayIndex, interdit, list);
+    if (sujet) {
+        ev.title = 'Révisions · ' + sujet.name;
+        ev.subtitle = typeof sousTitreMatiere === 'function' ? (sousTitreMatiere(sujet) || '') : (sujet.level || '');
+        ev.type = typeof couleurMatiere === 'function' ? couleurMatiere(sujet) : 'study';
+        ev.icon = sujet.icon || '📚';
+        ev.id = 'rev-autre-' + dayIndex + '-' + sujet.name.replace(/\s+/g, '-');
+        return;
+    }
+    if (interdit !== 'temps libre') {
+        ev.title = 'Temps libre';
+        ev.subtitle = '';
+        ev.type = 'free';
+        ev.icon = '🎮';
+        ev.id = 'libre-autre-' + dayIndex;
+    }
+}
+
+function planningCondenserConsecutifs(events, dayIndex) {
+    var list = (events || []).filter(function (ev) { return ev; }).map(function (ev) { return Object.assign({}, ev); });
+    list.sort(function (a, b) { return planningMinutes(a.startTime) - planningMinutes(b.startTime); });
+    var i = 0;
+    while (i < list.length - 1) {
+        var a = list[i];
+        var b = list[i + 1];
+        var cle = planningCleActivite(a);
+        if (!cle || cle !== planningCleActivite(b) || planningEstProtege(a) || planningEstProtege(b)) {
+            i++;
+            continue;
+        }
+        var finA = planningMinutes(a.endTime);
+        var debutA = planningMinutes(a.startTime);
+        var debutB = planningMinutes(b.startTime);
+        var finB = planningMinutes(b.endTime);
+        if (!(finA > debutA) || !(finB > debutB) || debutB < finA - 1 || debutB > finA + 10) {
+            i++;
+            continue;
+        }
+        var total = finB - debutA;
+        var eleve = planningEstActiviteEleve(a) || planningEstActiviteEleve(b);
+        var repas = a.type === 'meal' || b.type === 'meal';
+        var fragment = (finA - debutA) < 25 || (finB - debutB) < 25;
+        if (eleve || repas || fragment || total <= 50) {
+            a.endTime = b.endTime;
+            if (typeof formatDuration === 'function' && (a.type === 'free' || a.type === 'phone')) a.subtitle = formatDuration(total);
+            list.splice(i + 1, 1);
+            continue;
+        }
+        planningRemplacerDoublon(b, list, dayIndex);
+        i++;
+    }
+    return list;
 }
 
 function planningTravailFinalise(ev) {
@@ -1082,6 +1175,7 @@ function academicGapBlocks(start, end, dayIndex, seq) {
         }
         var subj = sujetRevision();
         turn.rev++;
+        derniereCle = planningCleActivite({ title: subj ? ('Révisions ' + subj.name) : 'Révisions' });
         blocks.push({
             id: 'revgap-' + cursor,
             title: subj ? 'Révisions · ' + subj.name : 'Révisions',

@@ -164,46 +164,55 @@
         </div>
 
         <!-- Add Modal — Étape 1 : Choix du type -->
-        <div id="addEventModal" style="display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); backdrop-filter: blur(4px); align-items: flex-start; justify-content: center; padding: 0.75rem; overflow-y: auto;">
-            <div style="background: white; border-radius: 1.25rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); max-width: 30rem; width: 100%; padding: 1.75rem; margin: auto; box-sizing: border-box; animation: fadeInUp 0.25s ease-out;">
-                <!-- Header -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+        <div id="addEventModal" class="add-modal">
+            <div class="add-sheet">
+                <div class="add-head">
                     <div>
-                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #111827;">Ajouter au planning</h3>
-                        <p id="addModalDayLabel" style="font-size: 0.875rem; color: #6b7280; margin-top: 0.2rem;"></p>
+                        <p class="add-kicker">Planning</p>
+                        <h3>Ajouter au planning</h3>
+                        <p id="addModalDayLabel" class="add-day"></p>
                     </div>
-                    <button onclick="closeAddModal()" style="width: 2rem; height: 2rem; background: #f3f4f6; border: none; border-radius: 50%; cursor: pointer; font-size: 1rem; color: #6b7280; display: flex; align-items: center; justify-content: center;">✕</button>
+                    <button type="button" class="add-close" onclick="closeAddModal()" aria-label="Fermer">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+                    </button>
                 </div>
 
-                <!-- Étape 1 : Choix du type -->
                 <div id="addStep1">
-                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Que veux-tu ajouter ?</p>
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.875rem; margin-bottom: 1rem;">
-                        <button onclick="selectAddType('matiere')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #fff7ed, #fef3c7); border: 2px solid #fed7aa; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📚</span>
-                            <span style="font-size: 0.9rem; font-weight: 700; color: #92400e; display: block;">Matière</span>
-                            <span style="font-size: 0.75rem; color: #b45309;">Révisions / Exercices</span>
+                    <p class="add-label">Que veux-tu ajouter ?</p>
+                    <div class="add-choices">
+                        <button type="button" class="add-choice" onclick="selectAddType('matiere')">
+                            <span class="add-choice-icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 5.5h9.5A2.5 2.5 0 0 1 17 8v11.5H7.5A2.5 2.5 0 0 1 5 17V5.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M17 8h2.2A1.8 1.8 0 0 1 21 9.8V19a2 2 0 0 1-2 2h-2" stroke="currentColor" stroke-width="1.7"/><path d="M8 9h6M8 12.5h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                            </span>
+                            <span class="add-choice-text">
+                                <strong>Matière</strong>
+                                <small>Révisions ou exercices</small>
+                            </span>
                         </button>
-                        <button onclick="selectAddType('activite')" style="padding: 1.25rem 1rem; background: linear-gradient(135deg, #faf5ff, #f0fdf4); border: 2px solid #d8b4fe; border-radius: 1rem; cursor: pointer; transition: all 0.2s; text-align: center;">
-                            <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🎯</span>
-                            <span style="font-size: 0.9rem; font-weight: 700; color: #6b21a8; display: block;">Activité</span>
-                            <span style="font-size: 0.75rem; color: #7c3aed;">Sport / Loisir / Autre</span>
+                        <button type="button" class="add-choice add-choice-alt" onclick="selectAddType('activite')">
+                            <span class="add-choice-icon" aria-hidden="true">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7.2" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.1" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                            </span>
+                            <span class="add-choice-text">
+                                <strong>Activité</strong>
+                                <small>Sport, loisir ou autre</small>
+                            </span>
                         </button>
                     </div>
-                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.75rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                    <button type="button" class="add-cancel" onclick="closeAddModal()">Annuler</button>
                 </div>
 
                 <!-- Étape 2 : Config Matière -->
-                <div id="addStep2Matiere" style="display: none;">
-                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
-                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Choix de la matière</p>
+                <div id="addStep2Matiere" class="add-step" style="display: none;">
+                    <button type="button" class="add-back" onclick="backToStep1()">Retour</button>
+                    <p class="add-label">Choix de la matière</p>
                     <div id="subjectPickerGrid" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 220px; overflow-y: auto;"></div>
 
                     <div id="studyTypeRow" style="display: none; margin-bottom: 1rem;">
                         <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.5rem;">Type de session</p>
                         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem;">
-                            <button id="btnRevision" onclick="setStudyType('revision')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #fb923c; background: #fff7ed; color: #c2410c; font-weight: 600; font-size: 0.8rem; cursor: pointer;">📖 Révision</button>
-                            <button id="btnExercices" onclick="setStudyType('exercices')" style="padding: 0.625rem; border-radius: 0.75rem; border: 2px solid #e5e7eb; background: white; color: #374151; font-weight: 600; font-size: 0.8rem; cursor: pointer;">✏️ Exercices</button>
+                            <button id="btnRevision" onclick="setStudyType('revision')" style="padding: 0.7rem; border-radius: 0.85rem; border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; font-weight: 700; font-size: 0.84rem; cursor: pointer;">Révision</button>
+                            <button id="btnExercices" onclick="setStudyType('exercices')" style="padding: 0.7rem; border-radius: 0.85rem; border: 1px solid #e7eeea; background: white; color: #374151; font-weight: 700; font-size: 0.84rem; cursor: pointer;">Exercices</button>
                         </div>
                     </div>
 
@@ -224,14 +233,14 @@
                     </div>
 
                     <div id="studyDupWarning" class="v3-warn-box"></div>
-                    <button id="btnConfirmStudy" onclick="confirmAddStudy()" style="display: none; width: 100%; padding: 0.875rem; background: linear-gradient(to right, #f59e0b, #d97706); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
-                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                    <button id="btnConfirmStudy" class="add-confirm" onclick="confirmAddStudy()" style="display: none;">Ajouter au planning</button>
+                    <button type="button" class="add-cancel" onclick="closeAddModal()">Annuler</button>
                 </div>
 
                 <!-- Étape 2 : Config Activité -->
-                <div id="addStep2Activite" style="display: none;">
-                    <button onclick="backToStep1()" style="display: flex; align-items: center; gap: 0.5rem; background: none; border: none; color: #6b7280; cursor: pointer; font-size: 0.875rem; margin-bottom: 1rem; padding: 0;">← Retour</button>
-                    <p style="font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Nom de l'activité</p>
+                <div id="addStep2Activite" class="add-step" style="display: none;">
+                    <button type="button" class="add-back" onclick="backToStep1()">Retour</button>
+                    <p class="add-label">Nom de l'activité</p>
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
                         <button type="button" onclick="pickActivityPreset('Football','⚽')" data-name="Football" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">⚽ Football</button>
                         <button type="button" onclick="pickActivityPreset('Basketball','🏀')" data-name="Basketball" class="preset-act-btn" style="padding: 0.4rem 0.75rem; border-radius: 9999px; border: 2px solid #e5e7eb; background: white; font-size: 0.8rem; cursor: pointer;">🏀 Basketball</button>
@@ -263,8 +272,8 @@
                     <p id="activityTimeError" style="color: #ef4444; font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 0.75rem; display: none;"></p>
 
                     <div id="activityDupWarning" class="v3-warn-box"></div>
-                    <button onclick="confirmAddActivity()" style="width: 100%; padding: 0.875rem; background: linear-gradient(to right, #10b981, #059669); color: white; font-weight: 700; border-radius: 0.75rem; border: none; cursor: pointer; margin-bottom: 0.5rem;">✅ Ajouter au planning</button>
-                    <button onclick="closeAddModal()" style="width: 100%; padding: 0.625rem; background: #f3f4f6; color: #6b7280; font-weight: 500; border-radius: 0.75rem; border: none; cursor: pointer;">Annuler</button>
+                    <button type="button" class="add-confirm" onclick="confirmAddActivity()">Ajouter au planning</button>
+                    <button type="button" class="add-cancel" onclick="closeAddModal()">Annuler</button>
                 </div>
             </div>
         </div>
