@@ -1,3 +1,15 @@
-destinataire spib1791642975@maxxspace.com
-formsubmit 200 {"success":"false","message":"This form needs Activation. We've sent you an email containing an 'Activate Form' link. Just click it and your form will be actived!"}
-envoi UnicodeEncodeError 'latin-1' codec can't encode character '\u2014' in position 22: ordinal not in range(256)
+destinataire spib1791643052@maxxspace.com
+ntfy 400 {"code":40053,"http":400,"error":"invalid request: anonymous email sending is not allowed","link":"https://ntfy.sh/docs/publish/#e-mail-notifications"}
+
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+messages 0
+le message n’est pas arrivé
