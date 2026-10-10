@@ -1,15 +1,9 @@
-destinataire spib1791643052@maxxspace.com
-ntfy 400 {"code":40053,"http":400,"error":"invalid request: anonymous email sending is not allowed","link":"https://ntfy.sh/docs/publish/#e-mail-notifications"}
-
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-messages 0
-le message n’est pas arrivé
+proprio proprio1791644206@maxxspace.com
+activation_http 200 {"success":"false","message":"Make sure you open this page through a web server, FormSubmit will not work in pages browsed as HTML files."}
+activation_mail non
+lien absent
+eleve eleve1791644282@maxxspace.com
+envoi_form 200 <!DOCTYPE html> <html lang="en"> <head>     <meta name="viewport" content="width=device-width, initial-scale=1">     <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">     <meta http-equiv="Content-Type" content="text/html" charset=utf-8">              <meta name="description" content="FormSubmit is a form backend, API and email service
+envoi_ajax 200 {"success":"false","message":"Make sure you open this page through a web server, FormSubmit will not work in pages browsed as HTML files."}
+pas_livre
+apercu 
