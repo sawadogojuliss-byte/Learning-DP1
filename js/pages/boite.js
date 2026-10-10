@@ -929,7 +929,31 @@ function boiteOublierJetonMail() {
 }
 
 function boiteDemanderJetonMail() {
-    return Promise.reject(new Error('google-ferme'));
+    if (boiteJetonMail && Date.now() < boiteJetonMailFin - 60000) return Promise.resolve(boiteJetonMail);
+    if (!window.google || !google.accounts || !google.accounts.oauth2 || typeof compteClientId !== 'function' || !compteClientId()) {
+        return Promise.reject(new Error('google'));
+    }
+    return new Promise(function (resolve, reject) {
+        var fini = false;
+        function ok(token) { if (!fini) { fini = true; resolve(token); } }
+        function ko(err) { if (!fini) { fini = true; reject(err || new Error('jeton')); } }
+        var client = google.accounts.oauth2.initTokenClient({
+            client_id: compteClientId(),
+            scope: BOITE_GMAIL_SCOPE,
+            hint: BOITE_EXPEDITEUR,
+            include_granted_scopes: false,
+            callback: function (resp) {
+                if (resp && resp.access_token) {
+                    boiteJetonMail = resp.access_token;
+                    boiteJetonMailFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+                    ok(boiteJetonMail);
+                } else ko(resp || new Error('jeton'));
+            },
+            error_callback: function (err) { ko(err || new Error('jeton')); }
+        });
+        try { client.requestAccessToken({ prompt: 'select_account', hint: BOITE_EXPEDITEUR }); }
+        catch (e) { ko(e); }
+    });
 }
 
 function boiteCorpsMail(message, question) {
@@ -1005,39 +1029,27 @@ function boiteMajConnexion() {
     if (texte) texte.textContent = 'Les réponses partent de ' + BOITE_EXPEDITEUR + '.';
 }
 
-function boiteMailAccepte(data) {
-    if (!data || typeof data !== 'object') return false;
-    if (data.success === true || String(data.success).toLowerCase() === 'true') return true;
-    if (data.id && !data.error) return true;
-    return false;
-}
-
 function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
-    return boiteFetch('https://formsubmit.co/ajax/' + encodeURIComponent(email), {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json'
-        },
-        body: JSON.stringify({
-            name: 'Study Plan IB',
-            email: BOITE_EXPEDITEUR,
-            _replyto: BOITE_EXPEDITEUR,
-            _subject: 'Réponse à ta question — Study Plan IB',
-            _template: 'box',
-            _captcha: 'false',
-            message: boiteCorpsMail(message, question)
-        })
-    }, 20000).then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-            if (!res.ok || !boiteMailAccepte(data)) {
-                var err = new Error('mail');
-                err.api = data;
-                throw err;
-            }
-            return data;
+    return boiteDemanderJetonMail().then(boiteCompteExpediteur).then(function (token) {
+        return boiteFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+            method: 'POST',
+            headers: {
+                Authorization: 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ raw: boiteBase64Url(boiteLettre(email, message, question)) })
+        }, 20000).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+                if (!res.ok || !data || !data.id) {
+                    if (res.status === 401 || res.status === 403) boiteOublierJetonMail();
+                    var err = new Error('mail');
+                    err.api = data;
+                    throw err;
+                }
+                return data;
+            });
         });
     });
 }

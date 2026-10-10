@@ -5,6 +5,7 @@ const assert = require('assert');
 
 const store = {};
 const appels = [];
+let jetons = 0;
 const slot = { innerHTML: '', clientWidth: 320 };
 const zone = { textContent: '', style: {} };
 const bouton = {
@@ -68,17 +69,38 @@ context.google = {
         }
     }
 };
+context.google.accounts.oauth2 = {
+    initTokenClient: function (opts) {
+        jetons += 1;
+        appels.push({ token: true });
+        return {
+            requestAccessToken: function () {
+                opts.callback({ access_token: 'jeton-test', expires_in: 3600 });
+            }
+        };
+    }
+};
 context.fetch = function (url, opts) {
-    appels.push({ url: url, opts: opts });
-    var corps = opts && opts.body ? JSON.parse(opts.body) : {};
-    var ok = String(url).indexOf('eleve%40example.com') !== -1 && String(corps.message || '').indexOf('La réponse est prête.') !== -1;
-    return Promise.resolve({
-        ok: ok,
-        status: ok ? 200 : 422,
-        json: function () {
-            return Promise.resolve(ok ? { success: 'true' } : { success: 'false', message: 'refusé' });
-        }
-    });
+    appels.push({ url: String(url), opts: opts });
+    if (String(url).indexOf('userinfo') !== -1) {
+        return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: function () { return Promise.resolve({ email: 'ibstudyplan@gmail.com' }); }
+        });
+    }
+    if (String(url).indexOf('messages/send') !== -1) {
+        var brut = '';
+        try { brut = JSON.parse(opts.body).raw; } catch (e) { brut = ''; }
+        var lettre = Buffer.from(String(brut).replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+        var ok = lettre.indexOf('To: eleve@example.com') !== -1 && lettre.indexOf('ibstudyplan@gmail.com') !== -1;
+        return Promise.resolve({
+            ok: ok,
+            status: ok ? 200 : 400,
+            json: function () { return Promise.resolve(ok ? { id: 'gmail-1' } : { error: { message: 'refusé' } }); }
+        });
+    }
+    return Promise.resolve({ ok: false, status: 404, json: function () { return Promise.resolve({}); } });
 };
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('js/pages/boite.js', 'utf8'), context);
@@ -88,7 +110,6 @@ const html = fs.readFileSync('pages/compte.html', 'utf8');
 assert.strictEqual(html.indexOf('compteGmail'), -1, 'le champ e-mail de connexion est encore là');
 assert.strictEqual(html.indexOf('type="email"'), -1, 'la connexion demande encore de taper un e-mail');
 assert.strictEqual(fs.readFileSync('js/compte.js', 'utf8').indexOf('requestAccessToken'), -1);
-assert.strictEqual(fs.readFileSync('js/pages/boite.js', 'utf8').indexOf('requestAccessToken'), -1);
 assert.strictEqual(context.BOITE_EXPEDITEUR, 'ibstudyplan@gmail.com');
 
 context.compteAfficherBoutonGoogle().then(function (ok) {
@@ -116,14 +137,15 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
             appels.length = 0;
             context.boiteRepondre('q1', bouton);
             return new Promise(function (resolve) { setTimeout(resolve, 80); }).then(function () {
-                const envoi = appels.filter(function (item) { return item && item.url; })[0];
+                const envoi = appels.filter(function (item) { return item && item.url && item.url.indexOf('messages/send') !== -1; })[0];
                 assert.ok(envoi, nom + ' n’a pas envoyé');
-                assert.ok(envoi.url.indexOf('https://formsubmit.co/ajax/eleve%40example.com') === 0, envoi.url);
-                const corps = JSON.parse(envoi.opts.body);
-                assert.strictEqual(corps.email, 'ibstudyplan@gmail.com');
-                assert.strictEqual(corps._replyto, 'ibstudyplan@gmail.com');
-                assert.ok(corps.message.indexOf('La réponse est prête.') !== -1);
-                assert.ok(corps.message.indexOf('Où est le mémoire ?') !== -1);
+                const lettre = Buffer.from(JSON.parse(envoi.opts.body).raw.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
+                assert.ok(lettre.indexOf('To: eleve@example.com') !== -1, lettre);
+                assert.ok(lettre.indexOf('From: Study Plan IB <ibstudyplan@gmail.com>') !== -1, lettre);
+                const morceau = lettre.split('\r\n\r\n').pop().replace(/\s/g, '');
+                const texte = Buffer.from(morceau, 'base64').toString('utf8');
+                assert.ok(texte.indexOf('La réponse est prête.') !== -1, texte);
+                assert.ok(texte.indexOf('Où est le mémoire ?') !== -1, texte);
                 const enregistre = (context.boiteListesCache.reponses || []).some(function (rep) {
                     return rep.mail && rep.destinataire === 'eleve@example.com' && rep.email === 'ibstudyplan@gmail.com';
                 });
@@ -148,7 +170,8 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
     const parti = (context.boiteListesCache.reponses || []).some(function (rep) { return rep.mail; });
     assert.strictEqual(parti, false, 'un échec a été marqué comme envoyé');
     assert.strictEqual(bouton.disabled, false);
-    console.log('ok bouton-google et mail vers eleve@example.com depuis ibstudyplan@gmail.com');
+    assert.strictEqual(jetons, 1, 'chaque admin a rouvert Google');
+    console.log('ok bouton-google et mail Gmail vers eleve@example.com depuis ibstudyplan@gmail.com');
 }).catch(function (err) {
     console.error(err);
     process.exit(1);
