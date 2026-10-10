@@ -1,9 +1,7 @@
-eleve eleve1791648525@maxxspace.com
-envoi 200 {"success":true}
-acao *
-messages 1
-from {"address": "ibstudyplan@gmail.com", "name": "Équipe Study Plan IB"}
-sujet_recu Réponse à ta question — Study Plan IB
-formsubmit False
-equipe True
-livre
+lignes 294
+utiles 5
+{"type": "reponse", "at": "2026-10-10T14:12:19.477Z", "nom": "Sawadogo Juliss Bill Owen", "email": "studyplanib@gmail.com", "google": null, "destinataire": "ilboudo.kenza@enkoschools.com", "mail": false, "questionId": "q1a11f542b292f6a3b35", "texte": "C'est reglé"}
+{"type": "question", "at": "2026-10-10T14:13:17.490Z", "nom": "u", "email": "sawadogoowen797@gmail.com", "google": "sawadogoowen797@gmail.com", "destinataire": null, "mail": null, "questionId": null, "texte": "Ca mache comment"}
+{"type": "reponse", "at": "2026-10-10T14:13:51.909Z", "nom": "Sawadogo Juliss Bill Owen", "email": "studyplanib@gmail.com", "google": null, "destinataire": "sawadogoowen797@gmail.com", "mail": false, "questionId": "q1a126293631e540f064", "texte": "Actualise la page"}
+{"type": "reponse", "at": "2026-10-10T15:22:34.569Z", "nom": "Sawadogo Juliss Bill Owen", "email": "ibstudyplan@gmail.com", "google": null, "destinataire": "sawadogoowen797@gmail.com", "mail": true, "questionId": "q1a126293631e540f064", "texte": "c'est bon"}
+{"type": "question", "at": "2026-10-10T15:48:47.705Z", "nom": "u", "email": "sawadogoowen797@gmail.com", "google": "sawadogoowen797@gmail.com", "destinataire": null, "mail": null, "questionId": null, "texte": "C'est bon merci"}
