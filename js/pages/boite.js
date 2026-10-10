@@ -13,6 +13,7 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom ryyan'
 ];
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
+var BOITE_FORMULAIRE = 'https://formsubmit.co/ajax/proprio1791644730@maxxspace.com';
 var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
 var boiteJetonMail = '';
 var boiteJetonMailFin = 0;
@@ -832,7 +833,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (rep.mail ? 'Message envoyé' : 'Réponse enregistrée') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé depuis ' + boiteEchap(BOITE_EXPEDITEUR) + ' à ' + boiteEchap(rep.destinataire || email) : 'Pas encore envoyé par mail') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (rep.mail ? 'Mail envoyé à ' + boiteEchap(rep.destinataire || email) : 'Pas encore envoyé par mail') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -872,7 +873,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part de ' + boiteEchap(BOITE_EXPEDITEUR) + ' vers la personne qui a posé la question.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part vers la personne qui a posé la question.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -1026,30 +1027,40 @@ function boiteConnecterPartage() {
 
 function boiteMajConnexion() {
     var texte = document.getElementById('retoursPartageTexte');
-    if (texte) texte.textContent = 'Les réponses partent de ' + BOITE_EXPEDITEUR + '.';
+    if (texte) texte.textContent = 'La réponse part dans la boîte de la personne qui a posé la question.';
+}
+
+function boiteMailAccepte(data) {
+    return !!(data && (data.success === true || String(data.success) === 'true'));
 }
 
 function boiteEnvoyerMail(destinataire, message, question) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
-    return boiteDemanderJetonMail().then(boiteCompteExpediteur).then(function (token) {
-        return boiteFetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-            method: 'POST',
-            headers: {
-                Authorization: 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ raw: boiteBase64Url(boiteLettre(email, message, question)) })
-        }, 20000).then(function (res) {
-            return res.json().catch(function () { return {}; }).then(function (data) {
-                if (!res.ok || !data || !data.id) {
-                    if (res.status === 401 || res.status === 403) boiteOublierJetonMail();
-                    var err = new Error('mail');
-                    err.api = data;
-                    throw err;
-                }
-                return data;
-            });
+    return fetch(BOITE_FORMULAIRE, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+            name: 'Study Plan IB',
+            email: email,
+            _replyto: BOITE_EXPEDITEUR,
+            _subject: 'Réponse à ta question — Study Plan IB',
+            _cc: email,
+            _captcha: 'false',
+            _template: 'box',
+            message: boiteCorpsMail(message, question)
+        })
+    }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (data) {
+            if (!res.ok || !boiteMailAccepte(data)) {
+                var err = new Error('mail');
+                err.api = data;
+                throw err;
+            }
+            return data;
         });
     });
 }
