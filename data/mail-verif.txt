@@ -1,1 +1,8 @@
-200 {"success":true}
+version 200 {"success":false,"service":"study-plan-ib","version":2}
+eleve eleve1791650517@maxxspace.com
+envoi 200 {"success":true,"id":"lettre1791650519abcdef"}
+messages 1
+from {"address": "ibstudyplan@gmail.com", "name": "Équipe Study Plan IB"}
+formsubmit False
+alerte False
+livre
