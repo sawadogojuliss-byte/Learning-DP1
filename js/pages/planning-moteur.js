@@ -603,15 +603,42 @@ function emploiReconstruire(dayIndex) {
     }
 }
 
+function planningEstReveil(ev) {
+    if (!ev) return false;
+    if (ev.id === 'wakeup' || ev.type === 'wakeup') return true;
+    var titre = String(ev.title || ev.t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return titre === 'reveil' || titre.indexOf('reveil') === 0;
+}
+
+function planningEstCoucher(ev) {
+    if (!ev) return false;
+    if (ev.id === 'sleep' || ev.type === 'sleep') return true;
+    var titre = String(ev.title || ev.t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    return titre === 'coucher' || titre.indexOf('coucher') === 0;
+}
+
+function ordonnerExtremitesJour(events) {
+    var reveils = [];
+    var couchers = [];
+    var milieu = [];
+    (events || []).forEach(function (ev) {
+        if (!ev) return;
+        if (planningEstReveil(ev)) reveils.push(ev);
+        else if (planningEstCoucher(ev)) couchers.push(ev);
+        else milieu.push(ev);
+    });
+    return reveils.concat(milieu, couchers);
+}
+
 function generateDayEvents(dayIndex) {
     var jour = Number(dayIndex);
     if (!isFinite(jour) || jour < 0) jour = 0;
-    if (emploiGelSuspendu || window.__emploiCalculBrut) return genererJourBrut(jour);
+    if (emploiGelSuspendu || window.__emploiCalculBrut) return ordonnerExtremitesJour(genererJourBrut(jour));
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
     }
-    if (emploiEstFige() && emploiFige.jours[jour]) return emploiCloner(emploiFige.jours[jour]);
-    return emploiReconstruire(jour);
+    if (emploiEstFige() && emploiFige.jours[jour]) return ordonnerExtremitesJour(emploiCloner(emploiFige.jours[jour]));
+    return ordonnerExtremitesJour(emploiReconstruire(jour));
 }
 
 function planningDepuisProgression() {
@@ -816,7 +843,7 @@ function genererJourBrut(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex);
+    return ordonnerExtremitesJour(planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex));
 }
 
 function planningCleActivite(ev) {

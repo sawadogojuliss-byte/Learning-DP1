@@ -231,9 +231,8 @@ function exportDessinerJour(ctx, x, y, w, h, jour) {
         ctx.fillText('libre', areaX + 6, y + h / 2);
         return;
     }
-    var events = (data.events || []).slice().sort(function (a, b) {
-        return String(a.startTime || '').localeCompare(String(b.startTime || ''));
-    });
+    var events = (data.events || []).slice();
+    if (typeof ordonnerExtremitesJour === 'function') events = ordonnerExtremitesJour(events);
     var cols = 5;
     var gapX = 5;
     var gapY = 4;

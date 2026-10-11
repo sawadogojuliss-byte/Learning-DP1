@@ -364,6 +364,38 @@ function boiteSlotsJour(jour) {
     return (jour && jour.s && jour.s.length) || 0;
 }
 
+function boiteEstReveil(slot) {
+    return boiteNormaliser(slot && (slot.t || slot.title) || '').indexOf('reveil') === 0;
+}
+
+function boiteEstCoucher(slot) {
+    return boiteNormaliser(slot && (slot.t || slot.title) || '').indexOf('coucher') === 0;
+}
+
+function boiteOrdonnerCreneaux(slots) {
+    var reveils = [];
+    var couchers = [];
+    var milieu = [];
+    (slots || []).forEach(function (slot) {
+        if (boiteEstReveil(slot)) reveils.push(slot);
+        else if (boiteEstCoucher(slot)) couchers.push(slot);
+        else milieu.push(slot);
+    });
+    return reveils.concat(milieu, couchers);
+}
+
+function boiteJourIncomplet(slots) {
+    var fin = '';
+    (slots || []).forEach(function (slot) {
+        if (!slot || boiteEstCoucher(slot) || boiteEstReveil(slot)) return;
+        var debut = String(slot.d || '');
+        var heureFin = String(slot.f || '');
+        if (debut > fin) fin = debut;
+        if (heureFin > fin) fin = heureFin;
+    });
+    return !!(fin && fin <= '12:30');
+}
+
 function boiteJoursOrdonnes(jours) {
     var map = {};
     (jours || []).forEach(function (jour) {
@@ -1562,14 +1594,13 @@ function boiteRendreEmplois(fusion) {
             return boiteNormaliser(slot && slot.t).indexOf('cours d economie') === -1;
         });
     }
-    var fin = slots.length ? String(slots[slots.length - 1].f || '') : '';
-    var incomplet = fin && fin <= '12:30';
+    var incomplet = boiteJourIncomplet(slots);
     if (incomplet) {
         [{ d: '12:30', f: '13:30', t: 'Déjeuner' }, { d: '13:30', f: '16:35', t: 'Cours' }].forEach(function (slot) {
-            if (!slots.some(function (s) { return s.d === slot.d; })) slots.push(slot);
+            if (!slots.some(function (s) { return s.d === slot.d; })) slots.push(Object.assign({ ajoute: true }, slot));
         });
     }
-    return { slots: slots, incomplet: incomplet };
+    return { slots: boiteOrdonnerCreneaux(slots), incomplet: incomplet };
 }
     var rows = personnes.filter(function (item) {
         if (!item || boiteEmploiRetire(item)) return false;
@@ -1584,9 +1615,8 @@ function boiteRendreEmplois(fusion) {
             var jours = (item.jours || []).map(function (jour) {
                 var affiche = boiteJourAffiche(jour);
                 if (affiche.incomplet) incomplet = true;
-                var recus = (jour.s || []).length;
-                var slots = affiche.slots.map(function (slot, index) {
-                    var ajoute = index >= recus;
+                var slots = affiche.slots.map(function (slot) {
+                    var ajoute = !!(slot && slot.ajoute);
                     return '<p style="font-size:0.84rem;color:' + (ajoute ? '#6b7280' : '#1f2937') + ';margin:0.15rem 0;">' + boiteEchap(slot.d || '') + '–' + boiteEchap(slot.f || '') + '  ' + boiteEchap(slot.t || '') + (ajoute ? ' · cours fixe' : '') + '</p>';
                 }).join('');
                 return '<div style="margin-top:0.55rem;"><p style="font-size:0.75rem;font-weight:800;color:#047857;text-transform:uppercase;">' + boiteEchap(jour.j || '') + '</p>' + slots + '</div>';
