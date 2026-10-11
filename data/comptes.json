@@ -1,3 +1,124 @@
 {
-  "comptes": []
+  "comptes": [
+    {
+      "type": "profil",
+      "email": "sawadogojuliss@gmail.com",
+      "google": "sawadogojuliss@gmail.com",
+      "googleSub": "116965022060639990571",
+      "nom": "S",
+      "at": "2026-10-11T09:39:09.766Z",
+      "data": {
+        "v": 1,
+        "savedAt": "2026-10-11T09:39:09.766Z",
+        "etape": "accueil",
+        "profilComplet": false,
+        "userName": "S",
+        "targetScore": 40,
+        "weekdayWakeup": "06:00",
+        "saturdayWakeup": "07:00",
+        "sundayWakeup": "08:00",
+        "subjects": [
+          {
+            "name": "Mathématiques AA",
+            "level": "HL",
+            "grade": 5,
+            "icon": "🔢"
+          },
+          {
+            "name": "Français A",
+            "level": "SL",
+            "grade": 5,
+            "icon": "🇫🇷"
+          },
+          {
+            "name": "Histoire",
+            "level": "SL",
+            "grade": 5,
+            "icon": "📜"
+          },
+          {
+            "name": "Biologie",
+            "level": "HL",
+            "grade": 5,
+            "icon": "🧬"
+          },
+          {
+            "name": "Économie",
+            "level": "SL",
+            "grade": 5,
+            "icon": "💹"
+          },
+          {
+            "name": "Chimie",
+            "level": "HL",
+            "grade": 5,
+            "icon": "🧪"
+          }
+        ],
+        "optionalSubjects": [],
+        "ibYear": "DP1",
+        "memoirLevel": "",
+        "iaLevel": "",
+        "iaLevels": {},
+        "memoirPlan": [],
+        "iaPlans": {},
+        "eeVus": {},
+        "eeDemandes": {},
+        "transportMode": "",
+        "carDeparture": "07:30",
+        "carToSchool": 30,
+        "carFromSchool": 40,
+        "motoDeparture": "07:30",
+        "motoReturn": "17:00",
+        "motoToSchool": 25,
+        "motoFromSchool": 25,
+        "selectedActivities": [],
+        "holidayDays": [],
+        "holidayModes": {},
+        "holidayDropped": {},
+        "sameFreeTime": true,
+        "freeTimeMinutes": 60,
+        "freeTimeByDay": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "weekdaySleepHours": 8,
+        "saturdaySleepHours": 8,
+        "sundaySleepHours": 8,
+        "phoneDays": [],
+        "samePhoneDuration": true,
+        "phoneDuration": 60,
+        "phoneDayDurations": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "selectedDay": 0,
+        "customEvents": [],
+        "exercices": [],
+        "currentMood": null,
+        "joursConnectes": 1,
+        "dernierJour": "Sun Oct 11 2026",
+        "flammes": 1,
+        "flammeJour": "2026-10-11",
+        "utilisateurId": "116965022060639990571",
+        "google": {
+          "sub": "116965022060639990571",
+          "email": "sawadogojuliss@gmail.com",
+          "name": "Juliss Sawadogo",
+          "given_name": "Juliss",
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocLSXsS2ePqP7YD0QuxGbQ9yOzECOmTckNtfctxCy46izGBK0KUc=s96-c"
+        }
+      }
+    }
+  ]
 }

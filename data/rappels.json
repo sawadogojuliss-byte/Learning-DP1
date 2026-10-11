@@ -12,6 +12,39 @@
       ]
     },
     {
+      "cle": "biologie",
+      "matiere": "Biologie",
+      "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
+      "cle": "chimie",
+      "matiere": "Chimie",
+      "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
+      "cle": "economie",
+      "matiere": "Économie",
+      "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
       "cle": "ess",
       "matiere": "ESS",
       "eleves": [
@@ -26,6 +59,11 @@
       "cle": "francais a",
       "matiere": "Français A",
       "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        },
         {
           "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
@@ -45,9 +83,25 @@
       ]
     },
     {
+      "cle": "histoire",
+      "matiere": "Histoire",
+      "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        }
+      ]
+    },
+    {
       "cle": "mathematiques aa",
       "matiere": "Mathématiques AA",
       "eleves": [
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "S",
+          "classe": "DP1"
+        },
         {
           "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
