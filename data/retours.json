@@ -2,16 +2,6 @@
   "questions": [
     {
       "type": "question",
-      "id": "q1a1295cf770631c475a",
-      "at": "2026-10-11T05:08:40.944Z",
-      "nom": "u",
-      "texte": "Ca marche enfin",
-      "email": "sawadogoowen797@gmail.com",
-      "google": "sawadogoowen797@gmail.com",
-      "googleNom": "Owen Sawadogo"
-    },
-    {
-      "type": "question",
       "id": "q1a129ee50df5cc6af97",
       "at": "2026-10-11T07:47:26.559Z",
       "nom": "u",
@@ -722,57 +712,6 @@
     }
   ],
   "reponses": [
-    {
-      "type": "reponse",
-      "id": "r1a1269603452c7aa10c",
-      "questionId": "q1a12680a5d978cfc881",
-      "at": "2026-10-10T16:12:07.877Z",
-      "nom": "Sawadogo Juliss Bill Owen",
-      "email": "ibstudyplan@gmail.com",
-      "destinataire": "sawadogoowen797@gmail.com",
-      "texte": "Content de vous avoir servi",
-      "mail": true,
-      "partage": true
-    },
-    {
-      "type": "reponse",
-      "id": "r1a126bb85a976dfda07",
-      "questionId": "q1a12680a5d978cfc881",
-      "at": "2026-10-10T16:53:06.089Z",
-      "nom": "Sawadogo Juliss Bill Owen",
-      "email": "ibstudyplan@gmail.com",
-      "destinataire": "sawadogoowen797@gmail.com",
-      "texte": "OKAY",
-      "mail": true,
-      "gmailId": "nrtxcw42660vnta11qnzron2",
-      "partage": true
-    },
-    {
-      "type": "reponse",
-      "id": "r1a1295d8dc1f0cfe9c5",
-      "questionId": "q1a1295cf770631c475a",
-      "at": "2026-10-11T05:09:19.425Z",
-      "nom": "Sawadogo Juliss Bill Owen",
-      "email": "ibstudyplan@gmail.com",
-      "destinataire": "sawadogoowen797@gmail.com",
-      "texte": "okay",
-      "mail": true,
-      "gmailId": "vlk6s58az2gyue80qu8d5fvw",
-      "partage": true
-    },
-    {
-      "type": "reponse",
-      "id": "r1a129d16eaf7049d9c4",
-      "questionId": "q1a11f542b292f6a3b35",
-      "at": "2026-10-11T07:15:53.647Z",
-      "nom": "Sawadogo Juliss Bill Owen",
-      "email": "ibstudyplan@gmail.com",
-      "destinataire": "ilboudo.kenza@enkoschools.com",
-      "texte": "Nous avons veuillez résolu votre problème. Merci de faire confiance à l'équipe StudyPlan",
-      "mail": true,
-      "gmailId": "pvywaxpkodp7h997d2p70vbc",
-      "partage": true
-    },
     {
       "type": "reponse",
       "id": "r1a129eeda01b5851f0d",
