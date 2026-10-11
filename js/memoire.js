@@ -369,6 +369,7 @@ function memoireReinitialiser() {
     phoneDayDurations = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
     selectedDay = 0;
     window.__jourCourantPose = false;
+    window.__jourCourantCle = '';
     customEvents = [];
     if (typeof exercices !== 'undefined') exercices = [];
     if (typeof currentMood !== 'undefined') currentMood = null;

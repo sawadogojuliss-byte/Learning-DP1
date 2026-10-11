@@ -51,13 +51,18 @@ function getGreeting() {
     return 'Bonsoir';
 }
 
+function cleJourLocal(date) {
+    var d = date || new Date();
+    return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+}
+
 function indexJourCourant(date) {
     var jour = (date || new Date()).getDay();
     return jour === 0 ? 6 : jour - 1;
 }
 
-function getWeekDates() {
-    const today = new Date();
+function getWeekDates(aujourd) {
+    const today = aujourd || new Date();
     const lundi = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     lundi.setDate(lundi.getDate() - indexJourCourant(today));
     return Array.from({ length: 7 }, function (_, i) {
@@ -71,9 +76,27 @@ function getWeekDates() {
 }
 
 function poserJourCourant() {
-    if (window.__jourCourantPose) return;
+    var cle = cleJourLocal();
+    if (window.__jourCourantPose && window.__jourCourantCle === cle) return;
     window.__jourCourantPose = true;
+    window.__jourCourantCle = cle;
     selectedDay = indexJourCourant();
+}
+
+function suivreSemaineCalendrier() {
+    var cle = cleJourLocal();
+    if (!window.__jourCourantCle || window.__jourCourantCle === cle) return;
+    window.__jourCourantPose = false;
+    if (typeof renderPlanning !== 'function' || !document.getElementById('dayNavigation')) return;
+    try { renderPlanning(); } catch (e) {}
+}
+
+if (!window.__suiviSemaine) {
+    window.__suiviSemaine = true;
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) suivreSemaineCalendrier();
+    });
+    window.addEventListener('focus', suivreSemaineCalendrier);
 }
 
 function addMinutes(time, mins) {
@@ -328,6 +351,7 @@ function getNextActivity() {
 
 function selectDay(index) {
     window.__jourCourantPose = true;
+    window.__jourCourantCle = cleJourLocal();
     selectedDay = index;
     renderPlanning();
 }
@@ -373,6 +397,7 @@ function initPlanning() {
     // Refresh next activity banner every minute
     if (typeof boitePublierEmploi === 'function') boitePublierEmploi();
     if (!window.__planningTicker) window.__planningTicker = setInterval(function() {
+        if (typeof suivreSemaineCalendrier === 'function') suivreSemaineCalendrier();
         const nextActivity = getNextActivity();
         if (nextActivity) {
             document.getElementById('nextActivityBanner').style.display = 'block';
