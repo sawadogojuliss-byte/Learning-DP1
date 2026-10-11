@@ -372,8 +372,12 @@ function eePanneauPlan(kind, index, plan, accent) {
 
 function eeCarteTravail(opts) {
     var plan = eePlanDe(opts.kind, opts.index);
-    var av = eeAvancement(plan);
     var niveau = eeNiveauDe(opts.kind, opts.index);
+    var av = eeAvancement(plan);
+    if (niveau === 'final') {
+        av.pourcent = 100;
+        av.nFait = av.n;
+    }
     var html = '<article style="margin-bottom:0.9rem;padding:0.95rem;border-radius:1.1rem;background:white;border:1px solid #e7e5e4;">'
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">'
         + '<div style="min-width:0;"><p style="margin:0 0 0.15rem;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:' + opts.accent + ';">' + eeEchap(opts.kicker) + '</p>'
@@ -381,8 +385,8 @@ function eeCarteTravail(opts) {
         + '<span style="font-size:1.35rem;font-weight:800;color:' + opts.accent + ';white-space:nowrap;">' + av.pourcent + ' %</span>'
         + '</div>'
         + eeBarre(av.pourcent, opts.accent)
-        + (av.n ? '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n + '</p>' : '')
-        + '<div style="display:flex;flex-direction:column;gap:0.4rem;' + (av.n ? '' : 'margin-top:0.8rem;') + '">'
+        + (niveau !== 'final' && av.n ? '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n + '</p>' : '')
+        + '<div style="display:flex;flex-direction:column;gap:0.4rem;' + (niveau === 'final' || !av.n ? 'margin-top:0.8rem;' : '') + '">'
         + eeBoutonChoix('Pas commencé', niveau === 'debut', opts.accent, opts.wash, 'eeChoisirDebut(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Plan', niveau === 'plan', opts.accent, opts.wash, 'eeChoisirPlan(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Finalisation', niveau === 'final', opts.accent, opts.wash, 'eeChoisirFinal(\'' + opts.kind + '\',' + opts.index + ')')
@@ -452,6 +456,7 @@ function eeChoisirPlan(kind, index) {
 
 function eeChoisirFinal(kind, index) {
     if (!eeDefinirNiveau(kind, index, 'final')) return;
+    eePlanDe(kind, index).forEach(function (p) { if (p) p.done = true; });
     var nom = 'ton mémoire';
     var sujet = null;
     if (kind !== 'memoir') {

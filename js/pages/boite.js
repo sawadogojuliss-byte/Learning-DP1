@@ -132,6 +132,7 @@ function boiteRetirerFile(id) {
 
 function boiteMajMenu() {
     var admin = boiteEstAdmin();
+    if (admin && typeof boiteSignalerOuverture === 'function') boiteSignalerOuverture();
     ['menuRetours', 'menuQuestions', 'menuEmplois'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.style.display = admin ? 'flex' : 'none';
@@ -2233,10 +2234,131 @@ function boiteApresMemoire() {
     }, 1500);
 }
 
+var boiteVisiteAlertee = false;
+var boiteAlerteEnCours = false;
+var boiteAlerteApres = 0;
+
+function boiteCleAlertes() {
+    return 'studyPlanIB_alertesVues:' + boiteNormaliser(boiteNom());
+}
+
+function boiteAlertesVues() {
+    var doc = boiteLireJson(boiteCleAlertes());
+    if (!doc || typeof doc !== 'object' || !doc.ids) return {};
+    return doc.ids;
+}
+
+function boiteMarquerAlertes(ids) {
+    var vus = boiteAlertesVues();
+    (ids || []).forEach(function (id) { if (id) vus[id] = 1; });
+    var cles = Object.keys(vus);
+    if (cles.length > 400) {
+        var garde = {};
+        cles.slice(-300).forEach(function (cle) { garde[cle] = 1; });
+        vus = garde;
+    }
+    boiteEcrireJson(boiteCleAlertes(), { ids: vus });
+}
+
+function boitePhraseAlerte(groupe) {
+    var nom = groupe.nom;
+    var f = groupe.feedbacks;
+    var q = groupe.questions;
+    var feedback = f > 1 ? 'a fait des feedbacks' : 'a fait un feedback';
+    var question = q > 1 ? 'a des questions' : 'a une question';
+    if (f && q) return nom + ' ' + feedback + ' et ' + question + '.';
+    if (f) return nom + ' ' + feedback + '.';
+    return nom + ' ' + question + '.';
+}
+
+function boiteNouveauxRetours(fusion) {
+    var vus = boiteAlertesVues();
+    var moi = boiteNormaliser(boiteNom());
+    var groupes = {};
+    var ordre = [];
+    var ids = [];
+    function ajouter(item, genre) {
+        if (!item || !item.id || vus[item.id]) return;
+        var nom = String(item.nom || item.googleNom || '').trim() || 'Un utilisateur';
+        if (moi && boiteNormaliser(nom) === moi) return;
+        ids.push(item.id);
+        var cle = boiteNormaliser(nom) || nom;
+        if (!groupes[cle]) {
+            groupes[cle] = { nom: nom, feedbacks: 0, questions: 0 };
+            ordre.push(cle);
+        }
+        groupes[cle][genre] += 1;
+    }
+    (fusion && fusion.feedbacks || []).forEach(function (item) { ajouter(item, 'feedbacks'); });
+    (fusion && fusion.questions || []).forEach(function (item) { ajouter(item, 'questions'); });
+    return {
+        ids: ids,
+        lignes: ordre.map(function (cle) { return boitePhraseAlerte(groupes[cle]); }),
+        questions: ordre.some(function (cle) { return groupes[cle].questions > 0; }),
+        feedbacks: ordre.some(function (cle) { return groupes[cle].feedbacks > 0; })
+    };
+}
+
+function boiteFermerAlerte(ids) {
+    boiteMarquerAlertes(ids || []);
+    var el = document.getElementById('boiteAlerteRetours');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function boiteOuvrirAlerte(neuf) {
+    if (!neuf || !neuf.lignes.length || !boiteEstAdmin()) return;
+    if (document.getElementById('boiteAlerteRetours')) return;
+    var page = neuf.feedbacks ? 'retours' : 'questions';
+    var el = document.createElement('div');
+    el.id = 'boiteAlerteRetours';
+    el.style.cssText = 'position:fixed;inset:0;z-index:220;background:rgba(17,24,39,0.55);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    var lignes = neuf.lignes.slice(0, 8).map(function (ligne) {
+        return '<p style="margin:0.35rem 0;color:#1c1917;font-size:1rem;line-height:1.4;">' + boiteEchap(ligne) + '</p>';
+    }).join('');
+    if (neuf.lignes.length > 8) {
+        lignes += '<p style="margin:0.45rem 0 0;color:#78716c;font-size:0.88rem;">Et ' + (neuf.lignes.length - 8) + ' autre' + (neuf.lignes.length - 8 > 1 ? 's' : '') + '.</p>';
+    }
+    el.innerHTML = '<div style="max-width:26rem;width:100%;background:white;border-radius:1.25rem;padding:1.35rem 1.2rem;box-shadow:0 24px 60px rgba(0,0,0,0.18);">'
+        + '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Study Plan IB</p>'
+        + '<h3 style="margin:0 0 0.7rem;font-size:1.22rem;color:#1c1917;">Nouveaux messages</h3>'
+        + lignes
+        + '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.1rem;">'
+        + '<button type="button" id="boiteAlerteVoir" style="width:100%;border:none;background:#059669;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Voir</button>'
+        + '<button type="button" id="boiteAlerteFermer" style="width:100%;border:1.5px solid #e7e5e4;background:white;color:#44403c;border-radius:0.85rem;padding:0.75rem 1rem;font-weight:700;cursor:pointer;">Fermer</button>'
+        + '</div></div>';
+    document.body.appendChild(el);
+    boiteMarquerAlertes(neuf.ids);
+    document.getElementById('boiteAlerteFermer').onclick = function () { boiteFermerAlerte(); };
+    document.getElementById('boiteAlerteVoir').onclick = function () {
+        boiteFermerAlerte();
+        if (typeof navigateTo === 'function') navigateTo(page);
+    };
+}
+
+function boiteSignalerOuverture() {
+    if (boiteVisiteAlertee || boiteAlerteEnCours || Date.now() < boiteAlerteApres) return;
+    if (!boiteEstAdmin() || typeof document === 'undefined') return;
+    if (document.getElementById('boiteAlerteRetours')) return;
+    boiteAlerteEnCours = true;
+    boiteChargerListes(true).then(function (fusion) {
+        boiteAlerteEnCours = false;
+        boiteVisiteAlertee = true;
+        if (!boiteEstAdmin()) return;
+        boiteOuvrirAlerte(boiteNouveauxRetours(fusion));
+    }).catch(function () {
+        boiteAlerteEnCours = false;
+        boiteAlerteApres = Date.now() + 30000;
+    });
+}
+
 if (typeof document !== 'undefined') {
     boiteMajMenu();
     document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState !== 'visible') return;
+        if (document.visibilityState === 'hidden') {
+            boiteVisiteAlertee = false;
+            return;
+        }
+        boiteSignalerOuverture();
         boiteVerifierFiche();
         var panneau = document.getElementById('panelEmplois');
         if (panneau && panneau.classList.contains('active') && boiteEstAdmin()) {
