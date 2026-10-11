@@ -604,10 +604,21 @@ function boiteChoisirNom(recent, ancien) {
     return String(recent && recent.at || '') >= String(ancien && ancien.at || '') ? nr : na;
 }
 
+function boiteNomInterdit(nom) {
+    var n = boiteNormaliser(nom);
+    if (!n) return true;
+    return n.indexOf('acces bloque') !== -1
+        || n.indexOf('na pas termine') !== -1
+        || n.indexOf('procedure de validation') !== -1
+        || n.indexOf('access blocked') !== -1
+        || n.indexOf('has not completed') !== -1
+        || n.indexOf('verification process') !== -1;
+}
+
 function boiteNomUtile(item) {
     var nom = String(item && item.nom || '').trim();
     var n = boiteNormaliser(nom);
-    if (!n || n === 'u' || n === 'julia' || n === 'sans nom') return '';
+    if (!n || n === 'u' || n === 'julia' || n === 'sans nom' || boiteNomInterdit(nom)) return '';
     return nom;
 }
 

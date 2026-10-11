@@ -1105,7 +1105,7 @@ function compteChoisirNom(session, copies) {
     var estampilles = [];
     var libres = [];
     (copies || []).forEach(function (data) {
-        if (!data || !compteNormaliserNom(data.userName)) return;
+        if (!data || !compteNormaliserNom(data.userName) || compteNomInterdit(data.userName)) return;
         var sub = (data.google && data.google.sub) || data.utilisateurId || data.googleSub;
         var mail = compteEmailCle((data.google && data.google.email) || data.email || data.google);
         if ((sub && session && compteMemeCompte(sub, session.sub)) || (mail && session && mail === compteEmailCle(session.email))) estampilles.push(data);
@@ -1371,7 +1371,18 @@ function compteChargerFirebase() {
         });
 }
 
+function compteNomInterdit(nom) {
+    var n = String(nom || '').toLowerCase();
+    return n.indexOf('accès bloqué') !== -1 || n.indexOf('acces bloque') !== -1
+        || n.indexOf("n'a pas terminé") !== -1 || n.indexOf('na pas termine') !== -1
+        || n.indexOf('validation de google') !== -1
+        || n.indexOf('access blocked') !== -1
+        || n.indexOf('has not completed') !== -1;
+}
+
 function compteGarderNom(stocke, candidat) {
+    if (compteNomInterdit(candidat)) candidat = '';
+    if (compteNomInterdit(stocke)) stocke = '';
     var s = compteNormaliserNom(stocke);
     var c = compteNormaliserNom(candidat);
     if (!s) return c;

@@ -239,10 +239,25 @@ def normaliser(texte):
     return re.sub(r'[^a-z0-9]+', ' ', valeur).strip()
 
 
+def nom_interdit(nom):
+    cle = normaliser(nom)
+    if not cle:
+        return True
+    marques = (
+        'acces bloque',
+        'na pas termine',
+        'procedure de validation',
+        'access blocked',
+        'has not completed',
+        'verification process',
+    )
+    return any(marque in cle for marque in marques)
+
+
 def nom_utile(item):
     nom = str(item.get('nom') or '').strip()
     cle = normaliser(nom)
-    if not cle or cle in ('u', 'julia', 'sans nom'):
+    if not cle or cle in ('u', 'julia', 'sans nom') or nom_interdit(nom):
         return ''
     return nom
 
