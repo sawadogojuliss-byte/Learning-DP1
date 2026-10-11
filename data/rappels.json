@@ -1,23 +1,12 @@
 {
   "groupes": [
     {
-      "cle": "anglais b hl",
-      "matiere": "Anglais B HL",
-      "eleves": [
-        {
-          "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        }
-      ]
-    },
-    {
       "cle": "biologie",
       "matiere": "Biologie",
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP1"
         }
       ]
@@ -28,7 +17,7 @@
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP1"
         }
       ]
@@ -39,19 +28,8 @@
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
-          "classe": "DP1"
-        }
-      ]
-    },
-    {
-      "cle": "ess",
-      "matiere": "ESS",
-      "eleves": [
-        {
-          "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
+          "classe": "DP1"
         }
       ]
     },
@@ -61,24 +39,8 @@
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP1"
-        },
-        {
-          "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        }
-      ]
-    },
-    {
-      "cle": "geographie",
-      "matiere": "Géographie",
-      "eleves": [
-        {
-          "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
         }
       ]
     },
@@ -88,7 +50,7 @@
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP1"
         }
       ]
@@ -99,24 +61,8 @@
       "eleves": [
         {
           "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "S",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP1"
-        },
-        {
-          "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        }
-      ]
-    },
-    {
-      "cle": "physique",
-      "matiere": "Physique",
-      "eleves": [
-        {
-          "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
         }
       ]
     }
