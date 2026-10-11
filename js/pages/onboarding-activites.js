@@ -20,13 +20,23 @@ const availableActivitiesList = [
     { name: 'Cours particuliers', icon: '📚' }
 ];
 
+var ACTIVITE_COURS_DEBUT = 8 * 60;
+var ACTIVITE_COURS_FIN = 16 * 60 + 35;
+
+function creneauPendantCours(start, end, dayIndex) {
+    if (dayIndex == null || Number(dayIndex) >= 5) return false;
+    if (typeof timeToMinutes !== 'function') return false;
+    var s = timeToMinutes(start);
+    var e = timeToMinutes(end);
+    if (!(e > s)) return false;
+    return s < ACTIVITE_COURS_FIN && ACTIVITE_COURS_DEBUT < e;
+}
+
 function isSchoolHours(time, dayIndex) {
     if (dayIndex >= 5) return false;
     const [hours, minutes] = time.split(':').map(Number);
     const timeInMinutes = hours * 60 + minutes;
-    var debutCours = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
-    var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
-    return timeInMinutes >= debutCours && timeInMinutes <= finCours;
+    return timeInMinutes >= ACTIVITE_COURS_DEBUT && timeInMinutes < ACTIVITE_COURS_FIN;
 }
 
 function showSchoolWarning() {
@@ -50,15 +60,8 @@ function messageChevauchementActivite(start, end, dayIndex, exceptName) {
     const e = timeToMinutes(end);
     if (!(e > s)) return 'L\'heure de fin doit être après l\'heure de début.';
     const busy = [];
-    if (dayIndex < 5) busy.push({ name: 'les cours', start: typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50), end: typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35) });
-    if (typeof bedtimeForDay === 'function' && typeof weekdayWakeup !== 'undefined') {
-        const wakeClock = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
-        const wake = timeToMinutes(wakeClock);
-        let bed = timeToMinutes(bedtimeForDay(dayIndex));
-        if (bed <= wake) bed += 1440;
-        if (s < wake + 10 || e > bed) {
-            return '⚠️ Ce créneau chevauche le sommeil ou le réveil (' + bedtimeForDay(dayIndex) + ' → ' + wakeClock + ').';
-        }
+    if (creneauPendantCours(start, end, dayIndex)) {
+        return 'cours';
     }
     (selectedActivities || []).forEach(function (act) {
         if (!act || act.name === exceptName || !act.days || act.days.indexOf(dayIndex) === -1) return;
@@ -93,8 +96,10 @@ function toggleActivityDay(name, dayIndex) {
             activity.days = activity.days.filter(d => d !== dayIndex);
         } else {
             const slot = creneauActivite(activity, dayIndex) || { start: '17:00', end: '19:00' };
+            if (creneauPendantCours(slot.start, slot.end, dayIndex)) { showSchoolWarning(); return; }
             const conflit = messageChevauchementActivite(slot.start, slot.end, dayIndex, activity.name);
-            if (conflit) { if (dayIndex < 5) showSchoolWarning(); return; }
+            if (conflit === 'cours') { showSchoolWarning(); return; }
+            if (conflit) return;
             activity.days.push(dayIndex);
             if (!activity.dayTimes[dayIndex]) {
                 activity.dayTimes[dayIndex] = { start: slot.start || '17:00', end: slot.end || '19:00' };
@@ -115,14 +120,14 @@ function toggleSameTime(name) {
 function updateActivityTime(name, field, value, days) {
     const activity = selectedActivities.find(a => a.name === name);
     if (!activity) return;
-    const start = field === 'startTime' ? value : activity.startTime;
-    const end = field === 'endTime' ? value : activity.endTime;
+    activity[field] = value;
+    const start = activity.startTime;
+    const end = activity.endTime;
     const jours = (days && days.length) ? days : activity.days;
     for (let i = 0; i < jours.length; i++) {
-        const conflit = messageChevauchementActivite(start, end, jours[i], name);
-        if (conflit) { if (jours[i] < 5) showSchoolWarning(); renderActivities(); return; }
+        if (creneauPendantCours(start, end, jours[i])) { showSchoolWarning(); break; }
     }
-    activity[field] = value;
+    renderActivities();
 }
 
 function updateActivityDayTime(name, dayIndex, field, value) {
@@ -131,10 +136,10 @@ function updateActivityDayTime(name, dayIndex, field, value) {
     const current = activity.dayTimes[dayIndex] || { start: activity.startTime || '17:00', end: activity.endTime || '19:00' };
     const start = field === 'start' ? value : current.start;
     const end = field === 'end' ? value : current.end;
-    const conflit = messageChevauchementActivite(start, end, dayIndex, name);
-    if (conflit) { if (dayIndex < 5) showSchoolWarning(); renderActivities(); return; }
     if (!activity.dayTimes[dayIndex]) activity.dayTimes[dayIndex] = { start: current.start, end: current.end };
     activity.dayTimes[dayIndex][field] = value;
+    if (creneauPendantCours(start, end, dayIndex)) showSchoolWarning();
+    renderActivities();
 }
 
 function removeActivity(name) {

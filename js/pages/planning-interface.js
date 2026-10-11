@@ -10,6 +10,7 @@
 //    📌 sur les créneaux fixés, ouverture de l'édition par index
 // ═══════════════════════════════════════════════════════════════════
 function renderPlanning() {
+    if (typeof poserJourCourant === 'function') poserJourCourant();
     const weekDates = getWeekDates();
 
     let dayNavHtml = '';

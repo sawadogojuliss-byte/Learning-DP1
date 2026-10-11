@@ -256,7 +256,7 @@ function memoireAppliquer(data, opts) {
     if (typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
     if (data.phoneDuration) phoneDuration = data.phoneDuration;
     if (data.phoneDayDurations && typeof data.phoneDayDurations === 'object') phoneDayDurations = data.phoneDayDurations;
-    if (typeof data.selectedDay === 'number') selectedDay = data.selectedDay;
+    if (!window.__jourCourantPose && typeof indexJourCourant === 'function') selectedDay = indexJourCourant();
     if (typeof currentMood !== 'undefined' && data.currentMood) currentMood = data.currentMood;
     if (data.profilComplet) window.__profilComplet = true;
     if (data.joursConnectes != null) {
@@ -368,6 +368,7 @@ function memoireReinitialiser() {
     phoneDuration = 60;
     phoneDayDurations = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
     selectedDay = 0;
+    window.__jourCourantPose = false;
     customEvents = [];
     if (typeof exercices !== 'undefined') exercices = [];
     if (typeof currentMood !== 'undefined') currentMood = null;

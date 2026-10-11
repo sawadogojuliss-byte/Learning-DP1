@@ -51,20 +51,29 @@ function getGreeting() {
     return 'Bonsoir';
 }
 
+function indexJourCourant(date) {
+    var jour = (date || new Date()).getDay();
+    return jour === 0 ? 6 : jour - 1;
+}
+
 function getWeekDates() {
     const today = new Date();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - today.getDay() + 1);
-    
-    return Array.from({ length: 7 }, (_, i) => {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + i);
+    const lundi = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    lundi.setDate(lundi.getDate() - indexJourCourant(today));
+    return Array.from({ length: 7 }, function (_, i) {
+        const date = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
         return {
             dayName: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][i],
             dayNumber: date.getDate(),
-            isToday: date.toDateString() === today.toDateString()
+            isToday: date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
         };
     });
+}
+
+function poserJourCourant() {
+    if (window.__jourCourantPose) return;
+    window.__jourCourantPose = true;
+    selectedDay = indexJourCourant();
 }
 
 function addMinutes(time, mins) {
@@ -318,6 +327,7 @@ function getNextActivity() {
 }
 
 function selectDay(index) {
+    window.__jourCourantPose = true;
     selectedDay = index;
     renderPlanning();
 }
@@ -384,6 +394,7 @@ function buildNextActivityHTML(nextActivity) {
 }
 
 function renderPlanning() {
+    poserJourCourant();
     const weekDates = getWeekDates();
     
     // Render day navigation
