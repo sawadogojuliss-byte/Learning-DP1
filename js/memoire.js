@@ -611,7 +611,9 @@ function memoireSauvegarder() {
             if (!garder && dataSub && typeof compteMemeCompte === 'function' && !compteMemeCompte(dataSub, canon)) garder = true;
             if (!garder) localStorage.setItem(cleLie, json);
             if (!garder && typeof compteLierCompte === 'function') {
-                compteLierCompte(window.compteSession, data.userName || '');
+                compteLierCompte(window.compteSession, data.userName || '', {
+                    definir: !!(data.profilComplet && data.userName && !window.compteRestaurationEnCours)
+                });
             }
             if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
         }

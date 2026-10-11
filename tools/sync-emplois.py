@@ -17,6 +17,7 @@ import urllib.request
 
 DEST_URL = pathlib.Path('data/boite-url.json')
 DEST_EMPLOIS = pathlib.Path('data/emplois.json')
+DEST_COMPTES = pathlib.Path('data/comptes.json')
 DEST_RETOURS = pathlib.Path('data/retours.json')
 DEST_RAPPELS = pathlib.Path('data/rappels.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
@@ -552,6 +553,156 @@ def groupes_et_exercices(items, emplois):
     return lots, exos[-500:]
 
 
+def email_cle(email):
+    return str(email or '').strip().lower()
+
+
+def identite_compte(item):
+    if not isinstance(item, dict):
+        return '', ''
+    data = item.get('data') if isinstance(item.get('data'), dict) else item
+    google = data.get('google') if isinstance(data.get('google'), dict) else {}
+    mail = email_cle(item.get('email') or item.get('google') or google.get('email') or data.get('email'))
+    sub = str(item.get('googleSub') or item.get('utilisateurId') or google.get('sub') or data.get('utilisateurId') or '')
+    return mail, sub
+
+
+def richesse_profil(data):
+    if not isinstance(data, dict) or data.get('efface'):
+        return 0
+    n = 40 if data.get('profilComplet') else 0
+    if data.get('userName'):
+        n += 4
+    if isinstance(data.get('subjects'), list):
+        n += len(data.get('subjects')) * 3
+    if isinstance(data.get('customEvents'), list):
+        n += min(len(data.get('customEvents')), 12)
+    if isinstance(data.get('exercices'), list):
+        n += min(len(data.get('exercices')), 8)
+    return n
+
+
+def sans_documents(data):
+    if not isinstance(data, dict):
+        return {}
+    copie = dict(data)
+    copie.pop('iaDocs', None)
+    return copie
+
+
+def reassembler_parts(items):
+    groupes = {}
+    for item in items or []:
+        if not isinstance(item, dict) or item.get('type') != 'profilpart':
+            continue
+        ident = item.get('profilId') or item.get('id')
+        if not ident:
+            continue
+        groupe = groupes.setdefault(ident, {'total': 0, 'parts': {}, 'meta': item})
+        try:
+            index = int(item.get('index') or 0)
+        except Exception:
+            index = 0
+        groupe['parts'][index] = str(item.get('part') or '')
+        if item.get('total'):
+            try:
+                groupe['total'] = int(item.get('total') or 0)
+            except Exception:
+                pass
+    copies = []
+    for groupe in groupes.values():
+        total = groupe['total']
+        if not total or any(i not in groupe['parts'] for i in range(total)):
+            continue
+        try:
+            data = json.loads(''.join(groupe['parts'][i] for i in range(total)))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        meta = groupe['meta']
+        data = sans_documents(data)
+        copies.append({
+            'type': 'profil',
+            'email': meta.get('email') or meta.get('google') or '',
+            'google': meta.get('google') or meta.get('email') or '',
+            'googleSub': meta.get('googleSub') or '',
+            'nom': data.get('userName') or meta.get('nom') or '',
+            'at': data.get('savedAt') or meta.get('at') or '',
+            'data': data,
+        })
+    for item in items or []:
+        if isinstance(item, dict) and item.get('type') == 'profil' and isinstance(item.get('data'), dict):
+            data = sans_documents(item['data'])
+            copies.append({
+                'type': 'profil',
+                'email': item.get('email') or item.get('google') or '',
+                'google': item.get('google') or item.get('email') or '',
+                'googleSub': item.get('googleSub') or '',
+                'nom': data.get('userName') or item.get('nom') or '',
+                'at': data.get('savedAt') or item.get('at') or '',
+                'data': data,
+            })
+    return copies
+
+
+def meme_compte_profil(a, b):
+    mail_a, sub_a = identite_compte(a)
+    mail_b, sub_b = identite_compte(b)
+    if mail_a and mail_b and mail_a == mail_b:
+        return True
+    return bool(sub_a and sub_b and sub_a == sub_b)
+
+
+def joindre_compte(ancien, nouveau):
+    da = ancien.get('data') if isinstance(ancien.get('data'), dict) else {}
+    dn = nouveau.get('data') if isinstance(nouveau.get('data'), dict) else {}
+    ra, rn = richesse_profil(da), richesse_profil(dn)
+    ancien_at = str(ancien.get('at') or da.get('savedAt') or '')
+    nouveau_at = str(nouveau.get('at') or dn.get('savedAt') or '')
+    if rn > ra or (rn == ra and nouveau_at >= ancien_at):
+        garde, autre = nouveau, ancien
+    else:
+        garde, autre = ancien, nouveau
+    data = sans_documents(garde.get('data') or {})
+    if not data.get('userName'):
+        data['userName'] = garde.get('nom') or autre.get('nom') or (autre.get('data') or {}).get('userName') or ''
+    return {
+        'type': 'profil',
+        'email': garde.get('email') or autre.get('email') or '',
+        'google': garde.get('google') or autre.get('google') or garde.get('email') or '',
+        'googleSub': garde.get('googleSub') or autre.get('googleSub') or '',
+        'nom': data.get('userName') or garde.get('nom') or autre.get('nom') or '',
+        'at': data.get('savedAt') or garde.get('at') or autre.get('at') or '',
+        'data': data,
+    }
+
+
+def fusionner_comptes(existants, nouveaux):
+    gardes = []
+    for item in list(existants or []) + list(nouveaux or []):
+        if not isinstance(item, dict) or not isinstance(item.get('data'), dict):
+            continue
+        mail, sub = identite_compte(item)
+        if not mail and not sub:
+            continue
+        trouve = next((i for i, deja in enumerate(gardes) if meme_compte_profil(deja, item)), -1)
+        if trouve == -1:
+            gardes.append(item)
+        else:
+            gardes[trouve] = joindre_compte(gardes[trouve], item)
+    gardes.sort(key=lambda item: email_cle(item.get('email') or item.get('nom')))
+    return gardes
+
+
+def enregistrer_comptes(items):
+    existants = lire_json(DEST_COMPTES, {}).get('comptes') or []
+    comptes = fusionner_comptes(existants, reassembler_parts(items))
+    ecrire(DEST_COMPTES, {'comptes': comptes})
+    print('comptes', len(comptes))
+    return comptes
+
+
 def main():
     config = lire_json(DEST_URL, {'sujet': SUJET, 'kvdb': '', 'archive': ''})
     config.setdefault('sujet', SUJET)
@@ -591,6 +742,7 @@ def main():
     anciens = lire_json(DEST_RAPPELS, {}).get('exercices') or []
     lots, exos = groupes_et_exercices(list(anciens) + items, emplois)
     ecrire(DEST_RAPPELS, {'groupes': lots, 'exercices': exos})
+    enregistrer_comptes(items)
     print('emplois', len(emplois), 'groupes', len(lots), 'rappels', len(exos))
 
 

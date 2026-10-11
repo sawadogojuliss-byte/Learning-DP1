@@ -164,7 +164,7 @@ function sauvegardeApresMemoire() {
 }
 
 function sauvegardePlanifierNuage(sub, data) {
-    if (!sub || !data) return;
+    if (!sub || !data || window.compteRestaurationEnCours) return;
     if (sauvegardeNuageTimer) clearTimeout(sauvegardeNuageTimer);
     sauvegardeNuageTimer = setTimeout(function () {
         sauvegardeNuageTimer = null;
