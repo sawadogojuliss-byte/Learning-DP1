@@ -1831,8 +1831,26 @@ function boiteSnapshotEmploi() {
         matieres: matieres,
         jours: jours,
         flammes: boiteFlammes(),
-        complet: jours.length ? 1 : 0
+        complet: 0
     };
+}
+
+var boiteStabiliseTimer = null;
+function boiteStabiliserComplet(record) {
+    if (!record) return record;
+    if (!(record.jours || []).length) {
+        record.complet = 0;
+        return record;
+    }
+    var sig = boiteSignatureJours(record);
+    var deja = boiteLireJson('studyPlanIB_boiteEmploiStable') || {};
+    record.complet = deja.sig === sig ? 1 : 0;
+    if (!record.complet) {
+        boiteEcrireJson('studyPlanIB_boiteEmploiStable', { sig: sig, at: Date.now() });
+        clearTimeout(boiteStabiliseTimer);
+        boiteStabiliseTimer = setTimeout(function () { boiteVerifierFiche(); }, 1500);
+    }
+    return record;
 }
 
 function boiteInscrit() {
@@ -1845,7 +1863,7 @@ function boiteInscrit() {
 function boitePublierEmploi(force) {
     if (!boiteNom()) return;
     if (!force && !boiteInscrit()) return;
-    var record = boiteSnapshotEmploi();
+    var record = boiteStabiliserComplet(boiteSnapshotEmploi());
     if (!record) return;
     var empreinte = JSON.stringify({
         nom: record.nom,
@@ -2079,7 +2097,7 @@ function boiteFicheCourante() {
         };
     }
     record.flammes = boiteFlammes();
-    if (!record.jours || !record.jours.length) record.complet = 0;
+    boiteStabiliserComplet(record);
     record.at = new Date().toISOString();
     if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
     if (!record.google && session.email) {
