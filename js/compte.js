@@ -1326,6 +1326,57 @@ function compteConnexionGoogle() {
     return compteAfficherBoutonGoogle();
 }
 
+function compteChargerScript(url) {
+    return new Promise(function (resolve, reject) {
+        var deja = document.querySelector('script[src="' + url + '"]');
+        if (deja) { resolve(); return; }
+        var s = document.createElement('script');
+        s.src = url;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('script')); };
+        document.head.appendChild(s);
+    });
+}
+
+function compteChargerFirebase() {
+    if (window.firebase && firebase.apps && firebase.apps.length) return Promise.resolve(firebase);
+    var cfg = window.STUDYPLAN_FIREBASE_CONFIG;
+    if (!cfg || !cfg.apiKey) return Promise.reject(new Error('firebase'));
+    var base = 'https://www.gstatic.com/firebasejs/10.14.1/';
+    return compteChargerScript(base + 'firebase-app-compat.js')
+        .then(function () { return compteChargerScript(base + 'firebase-auth-compat.js'); })
+        .then(function () { return compteChargerScript(base + 'firebase-firestore-compat.js'); })
+        .then(function () {
+            if (!firebase.apps.length) firebase.initializeApp(cfg);
+            return firebase;
+        });
+}
+
+function compteFirebaseEcrire(user, nom) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
+    var session = window.compteSession || {};
+    return firebase.firestore().collection('comptes').doc(user.uid).set({
+        email: user.email || session.email || '',
+        nom: nom || user.displayName || session.name || '',
+        googleNom: user.displayName || session.name || '',
+        photo: user.photoURL || session.picture || '',
+        fournisseur: 'google',
+        dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+}
+
+function compteFirebaseEnregistrer(session, idToken) {
+    if (!idToken) return Promise.resolve();
+    return compteChargerFirebase().then(function () {
+        var cred = firebase.auth.GoogleAuthProvider.credential(idToken);
+        return firebase.auth().signInWithCredential(cred);
+    }).then(function (result) {
+        var user = result && result.user;
+        var nom = (session && compteNomLie(session.sub)) || (typeof userName !== 'undefined' ? userName : '') || (user && user.displayName) || '';
+        return compteFirebaseEcrire(user, nom);
+    }).catch(function () {});
+}
+
 function compteOnCredential(resp) {
     if (!resp || !resp.credential) return;
     var payload;
@@ -1336,6 +1387,7 @@ function compteOnCredential(resp) {
         return;
     }
     var session = compteSessionDepuis(payload);
+    compteFirebaseEnregistrer(session, resp.credential);
     if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
         var instant = sauvegardeCapturer();
         if (instant) sauvegardeEcrireLocal('locale', instant, false);
@@ -1346,7 +1398,10 @@ function compteOnCredential(resp) {
         return compteRestaurerTout(session, null, distantes);
     }).then(function () {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
-        compteFigerNom(session, [courant]);
+        var nomLie = compteFigerNom(session, [courant]);
+        if (window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser) {
+            compteFirebaseEcrire(firebase.auth().currentUser, nomLie).catch(function () {});
+        }
         window.compteRestaurationEnCours = false;
         compteRafraichir();
         return comptePublierProgression(session);
@@ -1578,6 +1633,14 @@ if (sauve && sauve.sub) {
             sauvegardeMeilleure(sub).then(appliquer).catch(function () {});
         }
         setTimeout(function () { compteRetrouverApresChargement(0); }, 400);
+        setTimeout(function () {
+            compteChargerFirebase().then(function () {
+                firebase.auth().onAuthStateChanged(function (user) {
+                    if (!user || !window.compteSession) return;
+                    compteFirebaseEcrire(user, compteNomLie(window.compteSession.sub) || user.displayName || '');
+                });
+            }).catch(function () {});
+        }, 1200);
     }
     if (typeof openSideMenu === 'function' && !openSideMenu.__compte) {
         var original = openSideMenu;
