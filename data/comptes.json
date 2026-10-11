@@ -426,18 +426,6 @@
             "level": "HL",
             "grade": 6,
             "icon": "🇫🇷"
-          },
-          {
-            "name": "Économie",
-            "level": "SL",
-            "grade": 5,
-            "icon": "💹"
-          },
-          {
-            "name": "Chimie",
-            "level": "HL",
-            "grade": 5,
-            "icon": "🧪"
           }
         ],
         "optionalSubjects": [],

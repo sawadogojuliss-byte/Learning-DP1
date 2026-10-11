@@ -195,6 +195,90 @@ def lire_archive(url):
 
 
 JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
+NIVEAU_MATIERE = re.compile(r'\s+(HL|SL)$')
+
+
+def plafonner_sujets(data):
+    if not isinstance(data, dict):
+        return data
+    liste = []
+    for groupe in (data.get('subjects'), data.get('optionalSubjects')):
+        if not isinstance(groupe, list):
+            continue
+        for sujet in groupe:
+            if isinstance(sujet, dict) and sujet.get('name'):
+                liste.append(sujet)
+    vus = []
+    noms = set()
+    for sujet in liste:
+        if sujet['name'] in noms:
+            continue
+        noms.add(sujet['name'])
+        vus.append(sujet)
+    if len(vus) > 6:
+        signaux = set()
+        for cle in ('iaPlans', 'iaLevels'):
+            bloc = data.get(cle)
+            if isinstance(bloc, dict):
+                signaux.update(nom for nom in bloc if nom)
+        for exo in data.get('exercices') or []:
+            if isinstance(exo, dict) and exo.get('subject'):
+                signaux.add(exo['subject'])
+        choisis = [sujet for sujet in vus if sujet['name'] in signaux]
+        vus = choisis if len(choisis) == 6 else vus[:6]
+    data['subjects'] = vus
+    data['optionalSubjects'] = []
+    return data
+
+
+def plafonner_matieres(liste):
+    vus = []
+    for raw in liste or []:
+        nom = str(raw or '').strip()
+        if not nom or nom in vus:
+            continue
+        vus.append(nom)
+        if len(vus) == 6:
+            break
+    return vus
+
+
+def corriger_emploi(item):
+    if not isinstance(item, dict):
+        return item
+    toutes = [str(m).strip() for m in (item.get('matieres') or []) if str(m).strip()]
+    gardes = plafonner_matieres(toutes)
+    retires = {NIVEAU_MATIERE.sub('', nom).strip() for nom in toutes if nom not in gardes}
+    item['matieres'] = gardes
+    jours = []
+    for jour in item.get('jours') or []:
+        if not isinstance(jour, dict):
+            continue
+        slots = []
+        for slot in jour.get('s') or []:
+            if not isinstance(slot, dict):
+                continue
+            titre = str(slot.get('t') or '')
+            if any(nom and nom in titre for nom in retires):
+                continue
+            copie = slot
+            debut = str(slot.get('d') or '')
+            fin = str(slot.get('f') or '')
+            if titre == 'Cours' and debut == '08:15':
+                copie = dict(slot)
+                copie['d'] = '07:50'
+            elif fin == '08:15' and debut and debut < '07:50':
+                copie = dict(slot)
+                copie['f'] = '07:50'
+            elif debut == '08:15':
+                copie = dict(slot)
+                copie['d'] = '07:50'
+            slots.append(copie)
+        suivant = dict(jour)
+        suivant['s'] = slots
+        jours.append(suivant)
+    item['jours'] = jours
+    return item
 
 
 def joindre_jours(anciens, nouveaux, nouveau_complet=False):
@@ -361,9 +445,18 @@ def joindre_personne(a, b):
             else recent.get('googleSub') or ancien.get('googleSub') or ''
         ),
         'flammes': flammes,
-        'matieres': recent.get('matieres') or ancien.get('matieres') or [],
-        'jours': joindre_jours(ancien.get('jours'), recent.get('jours'), complet),
-        'complet': 1 if complet else 0,
+        'matieres': (
+            recent.get('matieres') or ancien.get('matieres') or []
+            if complet or recent.get('fige') or not (est_complet(ancien) or ancien.get('fige'))
+            else (ancien.get('matieres') or recent.get('matieres') or [])
+        ),
+        'jours': (
+            joindre_jours(ancien.get('jours'), recent.get('jours'), True)
+            if complet or recent.get('fige')
+            else (ancien.get('jours') or [] if (est_complet(ancien) or ancien.get('fige')) else joindre_jours(ancien.get('jours'), recent.get('jours')))
+        ),
+        'complet': 1 if complet or recent.get('fige') or est_complet(ancien) or ancien.get('fige') else 0,
+        'fige': 1 if recent.get('fige') or ancien.get('fige') or complet else 0,
     }
 
 
@@ -505,7 +598,7 @@ def conserver(existants, fusionnes):
 
 
 def leger(item):
-    return {
+    record = {
         'type': 'emploi',
         'id': item.get('id') or '',
         'appareil': item.get('appareil') or '',
@@ -519,8 +612,10 @@ def leger(item):
         'flammes': int(item.get('flammes') or 0),
         'matieres': item.get('matieres') or [],
         'complet': 1 if item.get('complet') else 0,
+        'fige': 1 if item.get('fige') else 0,
         'jours': item.get('jours') or [],
     }
+    return corriger_emploi(record)
 
 
 def ecrire_archive(url, emplois):
@@ -673,7 +768,7 @@ def richesse_profil(data):
     if data.get('userName'):
         n += 4
     if isinstance(data.get('subjects'), list):
-        n += len(data.get('subjects')) * 3
+        n += min(len(data.get('subjects')), 6) * 3
     if isinstance(data.get('customEvents'), list):
         n += min(len(data.get('customEvents')), 12)
     if isinstance(data.get('exercices'), list):
@@ -765,6 +860,7 @@ def joindre_compte(ancien, nouveau):
         garde, autre = ancien, nouveau
     data = sans_documents(garde.get('data') or {})
     autre_data = autre.get('data') if isinstance(autre.get('data'), dict) else {}
+    data = plafonner_sujets(data)
     data['userName'] = choisir_nom_texte(
         data.get('userName') or garde.get('nom'),
         autre_data.get('userName') or autre.get('nom'),
@@ -802,6 +898,9 @@ def fusionner_comptes(existants, nouveaux):
 def enregistrer_comptes(items):
     existants = lire_json(DEST_COMPTES, {}).get('comptes') or []
     comptes = fusionner_comptes(existants, reassembler_parts(items))
+    for item in comptes:
+        if isinstance(item, dict) and isinstance(item.get('data'), dict):
+            plafonner_sujets(item['data'])
     ecrire(DEST_COMPTES, {'comptes': comptes})
     print('comptes', len(comptes))
     return comptes

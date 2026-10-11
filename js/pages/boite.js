@@ -1885,7 +1885,7 @@ function boiteSnapshotEmploi() {
     if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
     if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
     liste.forEach(function (s) {
-        if (!s || !s.name || matieres.length >= 12) return;
+        if (!s || !s.name || matieres.length >= 6) return;
         matieres.push((s.name + (s.level ? ' ' + s.level : '')).trim());
     });
     if (!jours.length && !matieres.length && !window.__profilComplet) return null;
@@ -1916,7 +1916,8 @@ function boiteStabiliserComplet(record) {
     }
     var sig = boiteSignatureJours(record);
     var deja = boiteLireJson('studyPlanIB_boiteEmploiStable') || {};
-    record.complet = deja.sig === sig ? 1 : 0;
+    record.complet = (typeof emploiEstFige === 'function' && emploiEstFige()) || deja.sig === sig ? 1 : 0;
+    record.fige = record.complet ? 1 : 0;
     if (!record.complet) {
         boiteEcrireJson('studyPlanIB_boiteEmploiStable', { sig: sig, at: Date.now() });
         clearTimeout(boiteStabiliseTimer);
@@ -1985,6 +1986,7 @@ function boitePoserEtat(data) {
     if (typeof sundayWakeup !== 'undefined') sundayWakeup = data.sundayWakeup || '08:00';
     if (typeof subjects !== 'undefined') subjects = Array.isArray(data.subjects) ? data.subjects : [];
     if (typeof optionalSubjects !== 'undefined') optionalSubjects = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    if (typeof emploiFige !== 'undefined') emploiFige = data.emploiFige && data.emploiFige.jours ? data.emploiFige : null;
     if (typeof selectedActivities !== 'undefined') selectedActivities = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
     if (typeof customEvents !== 'undefined') customEvents = Array.isArray(data.customEvents) ? data.customEvents.slice() : [];
     if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear || '';
@@ -2007,15 +2009,17 @@ function boiteEmploiDepuisProfil(data, appareil) {
     if (!data || typeof generateDayEvents !== 'function') return null;
     var backup = boiteCopierEtat();
     var record = null;
+    var ancienBrut = window.__emploiCalculBrut;
+    window.__emploiCalculBrut = true;
+    if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
     try {
         boitePoserEtat(data);
-        if (typeof customEvents !== 'undefined' && !customEvents.length) {
-            customEvents.push({ id: 'boite-garde', day: -1, title: '', startTime: '00:00', endTime: '00:00' });
-        }
         record = boiteSnapshotEmploi();
     } catch (e) {
         record = null;
     }
+    window.__emploiCalculBrut = ancienBrut;
+    if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver = Math.max(0, emploiNePasSauver - 1);
     if (backup) {
         try { boitePoserEtat(backup); } catch (e2) {}
     }

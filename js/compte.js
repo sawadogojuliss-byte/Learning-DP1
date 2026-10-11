@@ -59,8 +59,8 @@ function compteRichesse(data) {
     var n = data.profilComplet ? 40 : 0;
     if (data.userName) n += 4;
     if (data.ibYear) n += 2;
-    if (Array.isArray(data.subjects)) n += data.subjects.length * 3;
-    if (Array.isArray(data.optionalSubjects)) n += data.optionalSubjects.length * 2;
+    if (Array.isArray(data.subjects)) n += Math.min(data.subjects.length, 6) * 3;
+    if (Array.isArray(data.optionalSubjects)) n += Math.min(data.optionalSubjects.length, 6) * 2;
     if (Array.isArray(data.selectedActivities)) n += data.selectedActivities.length;
     if (Array.isArray(data.customEvents)) n += Math.min(data.customEvents.length, 12);
     if (Array.isArray(data.exercices)) n += Math.min(data.exercices.length, 8);
@@ -149,9 +149,6 @@ function compteFusionnerProfils(copies) {
     var base;
     try { base = JSON.parse(JSON.stringify(utiles[0])); } catch (e) { base = utiles[0]; }
     var tableaux = {
-        subjects: 'name',
-        optionalSubjects: 'name',
-        selectedActivities: 'name',
         customEvents: 'id',
         exercices: 'id',
         memoirPlan: 'id',
@@ -159,7 +156,7 @@ function compteFusionnerProfils(copies) {
     };
     utiles.slice(1).forEach(function (src) {
         Object.keys(src).forEach(function (k) {
-            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour') return;
+            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             if (Array.isArray(b)) {
                 if (k === 'holidayDays') {
@@ -217,6 +214,48 @@ function compteFusionnerProfils(copies) {
         base.flammes = flammes;
     }
     if (!base.savedAt) base.savedAt = new Date().toISOString();
+    var sourceSujets = null;
+    var quandSujets = -1;
+    utiles.forEach(function (src) {
+        var n = (Array.isArray(src.subjects) ? src.subjects.length : 0) + (Array.isArray(src.optionalSubjects) ? src.optionalSubjects.length : 0);
+        if (!n) return;
+        var t = Date.parse(src.savedAt) || 0;
+        if (!sourceSujets || t >= quandSujets) {
+            sourceSujets = src;
+            quandSujets = t;
+        }
+    });
+    var listeSujets = sourceSujets ? [].concat(sourceSujets.subjects || [], sourceSujets.optionalSubjects || []) : [].concat(base.subjects || [], base.optionalSubjects || []);
+    base.subjects = typeof plafonnerSujetsChoisis === 'function'
+        ? plafonnerSujetsChoisis(listeSujets, sourceSujets || base)
+        : listeSujets.filter(function (s) { return s && s.name; }).slice(0, 6);
+    base.optionalSubjects = [];
+    var sourceFige = null;
+    var quandFige = -1;
+    utiles.forEach(function (src) {
+        if (!src.emploiFige || !src.emploiFige.jours) return;
+        var t = Date.parse(src.emploiFige.at || src.savedAt) || 0;
+        if (!sourceFige || t >= quandFige) {
+            sourceFige = src.emploiFige;
+            quandFige = t;
+        }
+    });
+    if (sourceFige) {
+        try { base.emploiFige = JSON.parse(JSON.stringify(sourceFige)); } catch (e) { base.emploiFige = sourceFige; }
+    }
+    var sourceRecent = null;
+    var quandRecent = -1;
+    utiles.forEach(function (src) {
+        var t = Date.parse(src.savedAt) || 0;
+        if (!sourceRecent || t >= quandRecent) {
+            sourceRecent = src;
+            quandRecent = t;
+        }
+    });
+    if (sourceRecent) {
+        if (Array.isArray(sourceRecent.selectedActivities)) base.selectedActivities = sourceRecent.selectedActivities;
+        if (Array.isArray(sourceRecent.phoneDays)) base.phoneDays = sourceRecent.phoneDays;
+    }
     return base;
 }
 

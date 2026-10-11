@@ -69,6 +69,9 @@ function memoireLireEtat() {
 
     var etape = memoireEtapeActive();
     if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
 
     return {
         v: 1,
@@ -114,6 +117,7 @@ function memoireLireEtat() {
         phoneDayDurations: phoneDayDurations,
         selectedDay: selectedDay,
         customEvents: customEvents,
+        emploiFige: typeof emploiFige !== 'undefined' && emploiFige ? emploiFige : null,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
         joursConnectes: (function () {
@@ -301,6 +305,12 @@ function memoireAppliquer(data, opts) {
         else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
     }
     if (depuisCompte) memoireEcrireMiroir(customEvents, typeof exercices !== 'undefined' ? exercices : []);
+    if (data.emploiFige && typeof data.emploiFige === 'object' && Array.isArray(data.emploiFige.jours)) {
+        emploiFige = data.emploiFige;
+    }
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
 
     memoireSyncChamps();
 }
@@ -329,6 +339,7 @@ function memoireReinitialiser() {
     }
     subjects = [];
     optionalSubjects = [];
+    if (typeof emploiFige !== 'undefined') emploiFige = null;
     if (typeof ibYear !== 'undefined') ibYear = '';
     if (typeof memoirLevel !== 'undefined') memoirLevel = '';
     if (typeof iaLevel !== 'undefined') iaLevel = '';

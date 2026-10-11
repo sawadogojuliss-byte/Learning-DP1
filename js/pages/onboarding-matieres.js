@@ -57,6 +57,26 @@ function studentTakesEconomics() {
     return chosenSubjects().some(function (s) { return s && s.name === 'Économie'; });
 }
 
+function signauxSujets(data) {
+    var noms = {};
+    var plans = data && data.iaPlans ? data.iaPlans : (typeof iaPlans !== 'undefined' ? iaPlans : null);
+    var niveaux = data && data.iaLevels ? data.iaLevels : (typeof iaLevels !== 'undefined' ? iaLevels : null);
+    var exos = data && data.exercices ? data.exercices : (typeof exercices !== 'undefined' ? exercices : []);
+    if (plans && typeof plans === 'object') Object.keys(plans).forEach(function (n) { if (n) noms[n] = true; });
+    if (niveaux && typeof niveaux === 'object') Object.keys(niveaux).forEach(function (n) { if (n) noms[n] = true; });
+    (exos || []).forEach(function (exo) { if (exo && exo.subject) noms[exo.subject] = true; });
+    return noms;
+}
+
+function plafonnerSujetsChoisis(list, data) {
+    var kept = (list || []).filter(function (s) { return s && s.name; });
+    if (kept.length <= 6) return kept;
+    var signaux = signauxSujets(data);
+    var choisis = kept.filter(function (s) { return signaux[s.name]; });
+    if (choisis.length === 6) return choisis;
+    return kept.slice(0, 6);
+}
+
 function enforceSubjectRules() {
     const blocked = {};
     function keep(list) {
@@ -74,6 +94,15 @@ function enforceSubjectRules() {
     }
     subjects = keep(subjects);
     optionalSubjects = keep(optionalSubjects);
+    var tout = subjects.concat(optionalSubjects);
+    if (tout.length > 6) {
+        subjects = plafonnerSujetsChoisis(tout);
+        optionalSubjects = [];
+    }
+}
+
+function verrouillerSujetsChoisis() {
+    enforceSubjectRules();
 }
 
 function getAvailableSubjects() {

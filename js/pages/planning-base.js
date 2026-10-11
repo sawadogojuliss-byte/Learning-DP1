@@ -4,7 +4,29 @@
    Vue : pages/planning.html
    ============================================================ */
 
+var COURS_DEBUT = 7 * 60 + 50;
+var COURS_FIN_MATIN = 12 * 60 + 30;
+var COURS_DEBUT_APRES = 13 * 60 + 30;
+var COURS_FIN = 16 * 60 + 35;
+
+function coursTexte(mins) {
+    var total = ((Number(mins) % 1440) + 1440) % 1440;
+    var h = Math.floor(total / 60);
+    var m = total % 60;
+    return h + 'h' + (m < 10 ? '0' : '') + m;
+}
+
+function coursHorloge(mins) {
+    var total = ((Number(mins) % 1440) + 1440) % 1440;
+    var h = Math.floor(total / 60);
+    var m = total % 60;
+    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+
 function generatePlanning() {
+    if (typeof planningDepuisProgression === 'function') {
+        try { planningDepuisProgression(); } catch (e) {}
+    }
     const screen = document.getElementById('screenTimeModal');
     const holidays = document.getElementById('holidaysModal');
     const libre = document.getElementById('freeTimeModal');
@@ -171,7 +193,7 @@ function generateDayEvents(dayIndex) {
         chain('prep', 'Préparation', '', getDuration('prep', 30), 'prep', '🚿', true);
         chain('commute1', 'Trajet école', commuteToSchool + ' min', getDuration('commute1', commuteToSchool), 'transport', '🚗', true);
         // Cours fixes
-        fixed('school1', 'Cours', '8h15 → 12h30', '08:15', '12:30', 'school', '🏫');
+        fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
         fixed('school2', 'Cours', '13h30 → 16h35', '13:30', '16:35', 'school', '🏫');
         // Retour maison (chaîné depuis 16:35)
@@ -641,8 +663,8 @@ function validateNewEventTime(startTime, endTime, dayIndex) {
     if (endMins <= startMins) return { valid: false, error: "L'heure de fin doit être après l'heure de début" };
     function coupe(debut, fin) { return startMins < fin && debut < endMins; }
     if (dayIndex < 5) {
-        if (coupe(8 * 60 + 15, 12 * 60 + 30))
-            return { valid: false, error: "⏰ Impossible pendant les cours du matin (8h15-12h30)" };
+        if (coupe(COURS_DEBUT, COURS_FIN_MATIN))
+            return { valid: false, error: "⏰ Impossible pendant les cours du matin (" + coursTexte(COURS_DEBUT) + "-" + coursTexte(COURS_FIN_MATIN) + ")" };
         if (coupe(13 * 60 + 30, 16 * 60 + 35))
             return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-16h35)" };
     }

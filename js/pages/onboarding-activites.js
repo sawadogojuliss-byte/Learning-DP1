@@ -24,7 +24,9 @@ function isSchoolHours(time, dayIndex) {
     if (dayIndex >= 5) return false;
     const [hours, minutes] = time.split(':').map(Number);
     const timeInMinutes = hours * 60 + minutes;
-    return timeInMinutes >= 480 && timeInMinutes <= 995; // 8:00 - 16:35
+    var debutCours = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
+    var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
+    return timeInMinutes >= debutCours && timeInMinutes <= finCours;
 }
 
 function showSchoolWarning() {
@@ -48,7 +50,7 @@ function messageChevauchementActivite(start, end, dayIndex, exceptName) {
     const e = timeToMinutes(end);
     if (!(e > s)) return 'L\'heure de fin doit être après l\'heure de début.';
     const busy = [];
-    if (dayIndex < 5) busy.push({ name: 'les cours', start: 8 * 60 + 15, end: 16 * 60 + 35 });
+    if (dayIndex < 5) busy.push({ name: 'les cours', start: typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50), end: typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35) });
     if (typeof bedtimeForDay === 'function' && typeof weekdayWakeup !== 'undefined') {
         const wakeClock = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
         const wake = timeToMinutes(wakeClock);

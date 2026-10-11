@@ -184,8 +184,8 @@ function verrouillerTrajets(events, dayIndex) {
     if (dayIndex == null || Number(dayIndex) >= 5 || !events) return events;
     var trajet = typeof trajetProfil === 'function' ? trajetProfil() : { aller: 30, retour: 40, depart: '07:30', retourHeure: '', icon: '🚗' };
     var plancher = 16 * 60 + 25;
-    var finEcole = 8 * 60 + 15;
-    var finCours = 16 * 60 + 35;
+    var finEcole = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
+    var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
     var list = events;
     function trouver(id) {
         var i;
@@ -330,7 +330,7 @@ function annoterPlages(events, dayIndex, wakeupTime, bedtime) {
     var wake = planningMinutes(wakeupTime);
     var bed = planningMinutes(bedtime);
     if (bed <= wake) bed += 1440;
-    var matinFin = dayIndex < 5 ? 8 * 60 + 15 : Math.min(bed, wake + 4 * 60);
+    var matinFin = dayIndex < 5 ? (typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50)) : Math.min(bed, wake + 4 * 60);
     var apres = dayIndex < 5 ? 16 * 60 + 35 : wake + 60;
     (events || []).forEach(function (ev) {
         if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return;
@@ -467,8 +467,8 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
         rest.forEach(function (ev) {
             if (!pred(ev)) { next.push(ev); return; }
             if (!poserMobile(ev)) { next.push(ev); return; }
-            if (ev.id === 'commute1' && ev._fin > 8 * 60 + 15) {
-                ev._fin = 8 * 60 + 15;
+            if (ev.id === 'commute1' && ev._fin > (typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50))) {
+                ev._fin = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
                 ev._debut = Math.max(0, ev._fin - (ev._dur || 5));
             }
             if (ev.id === 'commute2' && ev._debut <= 16 * 60 + 25) {
@@ -508,7 +508,120 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
 }
 
 
+var emploiFige = null;
+var emploiGelSuspendu = 0;
+var emploiNePasSauver = 0;
+
+function emploiCloner(val) {
+    try { return JSON.parse(JSON.stringify(val)); } catch (e) { return val; }
+}
+
+function emploiFaitsSignature() {
+    function sujet(s) {
+        if (!s) return null;
+        return { name: s.name || '', level: s.level || '', grade: s.grade == null ? '' : s.grade };
+    }
+    function liste(arr, map) {
+        return (arr || []).map(map);
+    }
+    var phone = {};
+    var libre = {};
+    var i;
+    for (i = 0; i < 7; i++) {
+        phone[i] = typeof phoneDayDurations !== 'undefined' && phoneDayDurations ? (phoneDayDurations[i] != null ? phoneDayDurations[i] : phoneDayDurations[String(i)]) : null;
+        libre[i] = typeof freeTimeByDay !== 'undefined' && freeTimeByDay ? (freeTimeByDay[i] != null ? freeTimeByDay[i] : freeTimeByDay[String(i)]) : null;
+    }
+    var faits = {
+        horaireCours: typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50),
+        finCours: typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35),
+        subjects: liste(typeof subjects !== 'undefined' ? subjects : [], sujet),
+        optionalSubjects: liste(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [], sujet),
+        ibYear: typeof ibYear !== 'undefined' ? ibYear : '',
+        targetScore: typeof targetScore !== 'undefined' ? targetScore : null,
+        weekdayWakeup: typeof weekdayWakeup !== 'undefined' ? weekdayWakeup : '',
+        saturdayWakeup: typeof saturdayWakeup !== 'undefined' ? saturdayWakeup : '',
+        sundayWakeup: typeof sundayWakeup !== 'undefined' ? sundayWakeup : '',
+        weekdaySleepHours: typeof weekdaySleepHours !== 'undefined' ? weekdaySleepHours : null,
+        saturdaySleepHours: typeof saturdaySleepHours !== 'undefined' ? saturdaySleepHours : null,
+        sundaySleepHours: typeof sundaySleepHours !== 'undefined' ? sundaySleepHours : null,
+        transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
+        carDeparture: typeof carDeparture !== 'undefined' ? carDeparture : '',
+        carToSchool: typeof carToSchool !== 'undefined' ? carToSchool : null,
+        carFromSchool: typeof carFromSchool !== 'undefined' ? carFromSchool : null,
+        motoDeparture: typeof motoDeparture !== 'undefined' ? motoDeparture : '',
+        motoReturn: typeof motoReturn !== 'undefined' ? motoReturn : '',
+        motoToSchool: typeof motoToSchool !== 'undefined' ? motoToSchool : null,
+        motoFromSchool: typeof motoFromSchool !== 'undefined' ? motoFromSchool : null,
+        selectedActivities: liste(typeof selectedActivities !== 'undefined' ? selectedActivities : [], function (a) {
+            if (!a) return null;
+            return { name: a.name, days: a.days || [], sameTime: !!a.sameTime, startTime: a.startTime || '', endTime: a.endTime || '', dayTimes: a.dayTimes || {} };
+        }),
+        phoneDays: liste(typeof phoneDays !== 'undefined' ? phoneDays : [], function (n) { return Number(n); }).sort(),
+        samePhoneDuration: typeof samePhoneDuration !== 'undefined' ? !!samePhoneDuration : true,
+        phoneDuration: typeof phoneDuration !== 'undefined' ? phoneDuration : null,
+        phoneDayDurations: phone,
+        sameFreeTime: typeof sameFreeTime !== 'undefined' ? !!sameFreeTime : true,
+        freeTimeMinutes: typeof freeTimeMinutes !== 'undefined' ? freeTimeMinutes : null,
+        freeTimeByDay: libre,
+        holidayDays: liste(typeof holidayDays !== 'undefined' ? holidayDays : [], function (n) { return Number(n); }).sort(),
+        holidayModes: typeof holidayModes !== 'undefined' ? holidayModes : {},
+        holidayDropped: typeof holidayDropped !== 'undefined' ? holidayDropped : {},
+        memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
+        iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
+        iaLevels: typeof iaLevels !== 'undefined' ? iaLevels : {},
+        memoirPlan: liste(typeof memoirPlan !== 'undefined' ? memoirPlan : [], function (p) {
+            return p ? { id: p.id, text: p.text, done: !!p.done } : null;
+        }),
+        iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
+        customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
+            if (!e || e.id === 'boite-garde') return null;
+            return {
+                id: e.id, day: e.day, title: e.title, startTime: e.startTime, endTime: e.endTime,
+                type: e.type, replacesId: e.replacesId || '', deleted: !!e.deleted, source: e.source || '', exoId: e.exoId || ''
+            };
+        }).filter(Boolean)
+    };
+    try { return JSON.stringify(faits); } catch (e) { return ''; }
+}
+
+function emploiEstFige() {
+    return !!(emploiFige && emploiFige.sig && emploiFige.sig === emploiFaitsSignature() && Array.isArray(emploiFige.jours) && emploiFige.jours.length === 7);
+}
+
+function emploiReconstruire(dayIndex) {
+    emploiGelSuspendu++;
+    var jours = [];
+    var i;
+    try {
+        for (i = 0; i < 7; i++) jours.push(genererJourBrut(i) || []);
+        if (!emploiNePasSauver) {
+            emploiFige = { sig: emploiFaitsSignature(), at: new Date().toISOString(), jours: emploiCloner(jours) };
+        }
+        return emploiCloner(jours[dayIndex] || []);
+    } finally {
+        emploiGelSuspendu--;
+    }
+}
+
 function generateDayEvents(dayIndex) {
+    var jour = Number(dayIndex);
+    if (!isFinite(jour) || jour < 0) jour = 0;
+    if (emploiGelSuspendu || window.__emploiCalculBrut) return genererJourBrut(jour);
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
+    if (emploiEstFige() && emploiFige.jours[jour]) return emploiCloner(emploiFige.jours[jour]);
+    return emploiReconstruire(jour);
+}
+
+function planningDepuisProgression() {
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
+    if (typeof planningActualiser === 'function') planningActualiser();
+}
+
+function genererJourBrut(dayIndex) {
     const isWeekend = dayIndex >= 5;
     const isSaturday = dayIndex === 5;
     const isSunday = dayIndex === 6;
@@ -522,7 +635,7 @@ function generateDayEvents(dayIndex) {
 
     // Chargement des modifications sauvegardées (comme avant)
     const savedEvents = localStorage.getItem(V3_STORAGE_KEY);
-    if (savedEvents && customEvents.length === 0) {
+    if (savedEvents && customEvents.length === 0 && !window.__emploiCalculBrut) {
         try { customEvents = JSON.parse(savedEvents) || []; } catch (e) { customEvents = []; }
     }
 
@@ -619,11 +732,11 @@ function generateDayEvents(dayIndex) {
         const trajet = trajetProfil();
         chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
         chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
-        fixed('school1', 'Cours', '8h15 → 12h30', '08:15', '12:30', 'school', '🏫');
+        fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
         fixed('school2', 'Cours', '13h30 → 16h35', '13:30', '16:35', 'school', '🏫');
         chain('commute2', 'Trajet maison', trajet.retour + ' min' + (trajet.retourHeure ? ' · ' + trajet.retourHeure : ''), trajet.retour, 'transport', trajet.icon, true);
-        fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, 8 * 60 + 15), trajet.aller);
+        fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, COURS_DEBUT), trajet.aller);
         calerPreparation(events, 'commute1');
         fixerTrajet(events, 'commute2', debutTrajetRetour(16 * 60 + 35, trajet.retourHeure), trajet.retour);
         const mainSubj = typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % Math.max(1, allSubj.length)];
@@ -840,6 +953,9 @@ function emploiDuTempsSemaine() {
 }
 
 function planningActualiser() {
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
     var planning = document.getElementById('planningModal');
     if (planning && planning.classList.contains('active') && typeof renderPlanning === 'function') {
         try { renderPlanning(); } catch (e) {}
