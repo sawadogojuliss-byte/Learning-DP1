@@ -3,6 +3,7 @@ name: Boîte partagée
 on:
   workflow_dispatch:
   schedule:
+    # Deux fois par heure, uniquement parce que cette branche est la branche par défaut.
     - cron: '7,37 * * * *'
   push:
     branches:
