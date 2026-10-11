@@ -547,6 +547,20 @@ function boiteMailPersonne(item) {
     return String((item && (item.google || item.email)) || '').trim().toLowerCase();
 }
 
+function boiteChoisirNom(recent, ancien) {
+    var nr = boiteNomUtile(recent) || String(recent && recent.googleNom || '').trim();
+    var na = boiteNomUtile(ancien) || String(ancien && ancien.googleNom || '').trim();
+    if (!nr) return na;
+    if (!na) return nr;
+    var r = boiteNormaliser(nr);
+    var a = boiteNormaliser(na);
+    if (r.length < 3 && a.length >= 3) return na;
+    if (a.length < 3 && r.length >= 3) return nr;
+    if (a.indexOf(r) === 0 && a.length > r.length) return na;
+    if (r.indexOf(a) === 0 && r.length > a.length) return nr;
+    return String(recent && recent.at || '') >= String(ancien && ancien.at || '') ? nr : na;
+}
+
 function boiteNomUtile(item) {
     var nom = String(item && item.nom || '').trim();
     var n = boiteNormaliser(nom);
@@ -582,7 +596,7 @@ function boiteJoindrePersonne(a, b) {
     if (!b) return a;
     var recent = String(b.at || '') >= String(a.at || '') ? b : a;
     var ancien = recent === b ? a : b;
-    var nom = boiteNomUtile(recent) || boiteNomUtile(ancien) || String(recent.googleNom || ancien.googleNom || '').trim();
+    var nom = boiteChoisirNom(recent, ancien);
     var complet = boiteEstComplet(recent);
     return {
         type: 'emploi',

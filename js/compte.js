@@ -1122,6 +1122,12 @@ function compteChoisirNom(session, copies) {
             meilleur = compteNormaliserNom(data.userName);
         }
     });
+    pool.forEach(function (data) {
+        var nom = compteNormaliserNom(data.userName);
+        if (!nom || !meilleur) return;
+        if (meilleur.length < 3 && nom.length >= 3) meilleur = nom;
+        if (nom.indexOf(meilleur) === 0 && nom.length > meilleur.length) meilleur = nom;
+    });
     return meilleur || (session ? compteNomLie(session.sub) : '');
 }
 

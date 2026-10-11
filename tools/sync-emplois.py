@@ -247,6 +247,29 @@ def nom_utile(item):
     return nom
 
 
+def choisir_nom_texte(recent_nom, ancien_nom, recent_at='', ancien_at=''):
+    nr = str(recent_nom or '').strip()
+    na = str(ancien_nom or '').strip()
+    if normaliser(nr) in ('', 'u', 'julia', 'sans nom'):
+        nr = ''
+    if normaliser(na) in ('', 'u', 'julia', 'sans nom'):
+        na = ''
+    if not nr:
+        return na
+    if not na:
+        return nr
+    r, a = normaliser(nr), normaliser(na)
+    if len(r) < 3 <= len(a):
+        return na
+    if len(a) < 3 <= len(r):
+        return nr
+    if a.startswith(r) and len(a) > len(r):
+        return na
+    if r.startswith(a) and len(r) > len(a):
+        return nr
+    return nr if str(recent_at) >= str(ancien_at) else na
+
+
 def mail_personne(item):
     return str(item.get('google') or item.get('email') or '').strip().lower()
 
@@ -298,12 +321,21 @@ def joindre_personne(a, b):
         'id': recent.get('id') or ancien.get('id') or '',
         'appareil': recent.get('appareil') or ancien.get('appareil') or '',
         'at': recent.get('at') or ancien.get('at') or '',
-        'nom': nom_utile(recent) or nom_utile(ancien) or str(recent.get('googleNom') or ancien.get('googleNom') or '').strip(),
+        'nom': choisir_nom_texte(
+            nom_utile(recent) or recent.get('googleNom'),
+            nom_utile(ancien) or ancien.get('googleNom'),
+            recent.get('at'),
+            ancien.get('at'),
+        ),
         'classe': recent.get('classe') or ancien.get('classe') or '',
         'email': recent.get('email') or ancien.get('email') or recent.get('google') or ancien.get('google') or '',
         'google': recent.get('google') or ancien.get('google') or recent.get('email') or ancien.get('email') or '',
         'googleNom': recent.get('googleNom') or ancien.get('googleNom') or '',
-        'googleSub': recent.get('googleSub') or ancien.get('googleSub') or '',
+        'googleSub': (
+            ancien.get('googleSub')
+            if str(recent.get('googleSub') or '').startswith('gmail:') and ancien.get('googleSub')
+            else recent.get('googleSub') or ancien.get('googleSub') or ''
+        ),
         'flammes': flammes,
         'matieres': recent.get('matieres') or ancien.get('matieres') or [],
         'jours': joindre_jours(ancien.get('jours'), recent.get('jours'), complet),
@@ -665,8 +697,13 @@ def joindre_compte(ancien, nouveau):
     else:
         garde, autre = ancien, nouveau
     data = sans_documents(garde.get('data') or {})
-    if not data.get('userName'):
-        data['userName'] = garde.get('nom') or autre.get('nom') or (autre.get('data') or {}).get('userName') or ''
+    autre_data = autre.get('data') if isinstance(autre.get('data'), dict) else {}
+    data['userName'] = choisir_nom_texte(
+        data.get('userName') or garde.get('nom'),
+        autre_data.get('userName') or autre.get('nom'),
+        data.get('savedAt') or garde.get('at'),
+        autre_data.get('savedAt') or autre.get('at'),
+    )
     return {
         'type': 'profil',
         'email': garde.get('email') or autre.get('email') or '',
