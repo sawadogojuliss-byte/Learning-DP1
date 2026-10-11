@@ -285,6 +285,7 @@ function boiteCorpsNtfy(record) {
             copie.jours = [];
             copie.texte = String(copie.texte || '').slice(0, 240);
         }
+        copie.complet = 0;
         return JSON.stringify(copie);
     }
     var jours = (record.jours || []).slice(0, 6);
@@ -297,6 +298,7 @@ function boiteCorpsNtfy(record) {
             google: record.google || '', googleNom: record.googleNom || '', googleSub: record.googleSub || '',
             flammes: Number(record.flammes || 0),
             matieres: record.matieres || [],
+            complet: 0,
             jours: jours.map(function (jour) {
                 return {
                     j: jour.j,
@@ -320,11 +322,12 @@ function boiteEcrireNtfy(record) {
     });
 }
 
-function boiteEnvoyerDistant(record) {
+function boiteEnvoyerDistant(record, options) {
+    options = options || {};
     return boiteLireConfig().then(function (cfg) {
         return boiteResoudreKvdb(cfg).then(function (kvdb) {
             var essais = [boiteEcrireNtfy(record).then(function () { return true; }).catch(function () { return false; })];
-            if (kvdb) essais.push(boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return false; }));
+            if (kvdb && !options.sansKvdb && !(record && record.partie)) essais.push(boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return false; }));
             return Promise.all(essais);
         });
     }).then(function (resultats) {
@@ -360,18 +363,43 @@ function boiteSlotsJour(jour) {
     return (jour && jour.s && jour.s.length) || 0;
 }
 
-function boiteJoindreJours(anciens, nouveaux) {
+function boiteJoursOrdonnes(jours) {
     var map = {};
-    function poser(jour, recent) {
-        if (!jour || !jour.j) return;
-        var deja = map[jour.j];
-        if (!deja || boiteSlotsJour(jour) > boiteSlotsJour(deja) || (recent && boiteSlotsJour(jour) === boiteSlotsJour(deja))) map[jour.j] = jour;
-    }
-    (anciens || []).forEach(function (jour) { poser(jour, false); });
-    (nouveaux || []).forEach(function (jour) { poser(jour, true); });
+    (jours || []).forEach(function (jour) {
+        if (jour && jour.j) map[jour.j] = jour;
+    });
     return ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].filter(function (nom) {
         return map[nom];
     }).map(function (nom) { return map[nom]; });
+}
+
+function boiteJoindreJours(anciens, nouveaux, nouveauComplet) {
+    if (nouveauComplet && nouveaux && nouveaux.length) return boiteJoursOrdonnes(nouveaux);
+    var map = {};
+    (anciens || []).forEach(function (jour) {
+        if (jour && jour.j) map[jour.j] = jour;
+    });
+    (nouveaux || []).forEach(function (jour) {
+        if (!jour || !jour.j) return;
+        var deja = map[jour.j];
+        if (!deja || boiteSlotsJour(jour) > boiteSlotsJour(deja)) map[jour.j] = jour;
+    });
+    return boiteJoursOrdonnes(Object.keys(map).map(function (nom) { return map[nom]; }));
+}
+
+function boiteSignatureJours(item) {
+    return JSON.stringify(boiteJoursOrdonnes(item && item.jours).map(function (jour) {
+        return {
+            j: jour.j,
+            s: (jour.s || []).map(function (slot) {
+                return { d: slot.d || '', f: slot.f || '', t: slot.t || '' };
+            })
+        };
+    }));
+}
+
+function boiteEstComplet(item) {
+    return !!(item && Number(item.complet) && !item.partie && (item.jours || []).length);
 }
 
 var BOITE_EMPLOIS_RETIRES = {
@@ -414,21 +442,35 @@ function boiteDecouperEmploi(record) {
             google: record.google || '',
             googleNom: record.googleNom || '',
             googleSub: record.googleSub || '',
+            flammes: Number(record.flammes || 0),
             matieres: record.matieres || [],
             jours: [jour],
-            partie: index
+            complet: 0,
+            partie: index + 1
         };
     });
 }
 
 function boiteEnvoyer(record) {
     var morceaux = boiteDecouperEmploi(record);
+    var decoupe = !!(record && record.type === 'emploi' && morceaux.length > 1);
     morceaux.forEach(boiteGarderFile);
-    return morceaux.reduce(function (chaine, morceau) {
-        return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
-    }, Promise.resolve(true)).then(function (ok) {
+    var envoi = morceaux.reduce(function (chaine, morceau) {
+        return chaine.then(function () { return boiteEnvoyerDistant(morceau, { sansKvdb: decoupe }); });
+    }, Promise.resolve(true));
+    if (decoupe) {
+        envoi = envoi.then(function () {
+            return boiteLireConfig().then(function (cfg) {
+                return boiteResoudreKvdb(cfg).then(function (kvdb) {
+                    if (!kvdb) return true;
+                    return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return true; });
+                });
+            }).catch(function () { return true; });
+        });
+    }
+    return envoi.then(function (ok) {
         boiteGarderVu(record);
-        if (record.type === 'emploi') boiteAjouterArchive(record);
+        if (record && record.type === 'emploi') boiteAjouterArchive(record);
         return ok;
     });
 }
@@ -538,23 +580,25 @@ function boiteRichesseEmploi(item) {
 function boiteJoindrePersonne(a, b) {
     if (!a) return b;
     if (!b) return a;
-    var garde = (boiteRichesseEmploi(b) > boiteRichesseEmploi(a) || (boiteRichesseEmploi(b) === boiteRichesseEmploi(a) && String(b.at || '') >= String(a.at || ''))) ? b : a;
-    var autre = garde === b ? a : b;
-    var nom = boiteNomUtile(garde) || boiteNomUtile(autre) || String(garde.googleNom || autre.googleNom || '').trim();
+    var recent = String(b.at || '') >= String(a.at || '') ? b : a;
+    var ancien = recent === b ? a : b;
+    var nom = boiteNomUtile(recent) || boiteNomUtile(ancien) || String(recent.googleNom || ancien.googleNom || '').trim();
+    var complet = boiteEstComplet(recent);
     return {
         type: 'emploi',
-        id: garde.id || autre.id || '',
-        appareil: garde.appareil || autre.appareil || '',
-        at: String(garde.at || '') >= String(autre.at || '') ? (garde.at || '') : (autre.at || ''),
+        id: recent.id || ancien.id || '',
+        appareil: recent.appareil || ancien.appareil || '',
+        at: recent.at || ancien.at || '',
         nom: nom,
-        classe: garde.classe || autre.classe || '',
-        email: garde.email || autre.email || garde.google || autre.google || '',
-        google: garde.google || autre.google || garde.email || autre.email || '',
-        googleNom: garde.googleNom || autre.googleNom || '',
-        googleSub: garde.googleSub || autre.googleSub || '',
-        flammes: String(garde.at || '') >= String(autre.at || '') && garde.flammes != null ? Number(garde.flammes || 0) : Number(autre.flammes != null ? autre.flammes : (garde.flammes || 0)),
-        matieres: (garde.matieres && garde.matieres.length) ? garde.matieres : (autre.matieres || []),
-        jours: boiteJoindreJours(autre.jours, garde.jours)
+        classe: recent.classe || ancien.classe || '',
+        email: recent.email || ancien.email || recent.google || ancien.google || '',
+        google: recent.google || ancien.google || recent.email || ancien.email || '',
+        googleNom: recent.googleNom || ancien.googleNom || '',
+        googleSub: recent.googleSub || ancien.googleSub || '',
+        flammes: recent.flammes != null ? Number(recent.flammes || 0) : Number(ancien.flammes || 0),
+        matieres: (recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || []),
+        jours: boiteJoindreJours(ancien.jours, recent.jours, complet),
+        complet: complet ? 1 : 0
     };
 }
 
@@ -714,6 +758,7 @@ function boiteDocument(fusion) {
             googleSub: item.googleSub || '',
             flammes: Number(item.flammes || 0),
             matieres: item.matieres || [],
+            complet: item.complet ? 1 : 0,
             jours: item.jours || [],
             questionId: item.questionId || '',
             destinataire: item.destinataire || '',
@@ -727,12 +772,11 @@ function boiteDocument(fusion) {
         questions: fusion.questions.slice(0, 60).map(leger),
         feedbacks: fusion.feedbacks.slice(0, 60).map(leger),
         reponses: (fusion.reponses || []).slice(0, 60).map(leger),
-        emplois: fusion.emplois.slice(0, 30).map(leger),
+        emplois: fusion.emplois.map(leger),
         profils: (fusion.profils || []).slice(0, 20).map(leger),
         connexions: (fusion.connexions || []).slice(0, 4).map(leger)
     };
     if (JSON.stringify(doc).length > 60000) {
-        doc.emplois = doc.emplois.slice(0, 12);
         doc.questions = doc.questions.slice(0, 30);
         doc.feedbacks = doc.feedbacks.slice(0, 30);
         doc.profils = (doc.profils || []).map(function (item) {
@@ -766,15 +810,19 @@ function boiteArchiver(cfg, fusion) {
 function boiteAjouterArchive(record) {
     if (!record) return Promise.resolve();
     return boiteLireConfig().then(function (cfg) {
-        var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [] };
-        if (record.type === 'feedback') fusion.feedbacks = [record];
-        else if (record.type === 'reponse') fusion.reponses = [record];
-        else if (record.type === 'question') fusion.questions = [record];
-        else if (record.type === 'profil') fusion.profils = [record];
-        else if (record.type === 'connexion') fusion.connexions = [record];
-        else fusion.emplois = [record];
-        return boiteArchiver(cfg, fusion);
-    });
+        var connu = cfg && cfg.archive ? Promise.resolve(cfg.archive) : boiteCreerArchive();
+        return connu.then(function (url) {
+            if (!url) return;
+            var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [] };
+            if (record.type === 'feedback') fusion.feedbacks = [record];
+            else if (record.type === 'reponse') fusion.reponses = [record];
+            else if (record.type === 'question') fusion.questions = [record];
+            else if (record.type === 'profil') fusion.profils = [record];
+            else if (record.type === 'connexion') fusion.connexions = [record];
+            else fusion.emplois = [record];
+            return boiteArchiver({ archive: url }, fusion);
+        });
+    }).catch(function () {});
 }
 
 function boiteUrlsKvdb(cfg, messages) {
@@ -1496,6 +1544,29 @@ function boiteRendreEmplois(fusion) {
         var n = personnes.length;
         statut.textContent = (fusion.partiel ? 'Une partie des plannings n\'a pas pu être rechargée. ' : '') + n + ' personne' + (n > 1 ? 's' : '');
     }
+    boiteEmploisSignature = boiteSignatureEmplois(fusion);
+}
+
+function boiteSignatureEmplois(fusion) {
+    return JSON.stringify(boitePersonnes(fusion).map(function (item) {
+        return [item.nom || '', item.classe || '', item.google || item.email || '', item.flammes || 0, item.jours || []];
+    }));
+}
+
+var boiteEmploisTimer = null;
+var boiteEmploisSignature = '';
+function boiteSurveillerEmplois() {
+    if (boiteEmploisTimer) return;
+    boiteEmploisTimer = setInterval(function () {
+        var panneau = document.getElementById('panelEmplois');
+        if (!panneau || !panneau.classList.contains('active') || !boiteEstAdmin()) return;
+        boiteChargerListes(true).then(function (fusion) {
+            if (!document.getElementById('panelEmplois') || !document.getElementById('panelEmplois').classList.contains('active')) return;
+            var sig = boiteSignatureEmplois(fusion);
+            if (sig === boiteEmploisSignature) return;
+            boiteRendreEmplois(fusion);
+        }).catch(function () {});
+    }, 10000);
 }
 
 function boiteOuvrirAdmin(page) {
@@ -1515,6 +1586,7 @@ function boiteOuvrirAdmin(page) {
         else if (page === 'questions') boiteRendreQuestions(fusion);
         else boiteRendreEmplois(fusion);
     });
+    if (page !== 'retours' && page !== 'questions') boiteSurveillerEmplois();
 }
 
 function boiteRafraichirAdmin() {
@@ -1758,7 +1830,8 @@ function boiteSnapshotEmploi() {
         googleSub: session.sub || '',
         matieres: matieres,
         jours: jours,
-        flammes: boiteFlammes()
+        flammes: boiteFlammes(),
+        complet: jours.length ? 1 : 0
     };
 }
 
@@ -2001,10 +2074,12 @@ function boiteFicheCourante() {
             googleNom: session.name || session.given_name || '',
             googleSub: session.sub || '',
             matieres: [],
-            jours: []
+            jours: [],
+            complet: 0
         };
     }
     record.flammes = boiteFlammes();
+    if (!record.jours || !record.jours.length) record.complet = 0;
     record.at = new Date().toISOString();
     if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
     if (!record.google && session.email) {
@@ -2023,6 +2098,7 @@ function boiteFicheIncomplete(fusion, record) {
         return false;
     });
     if (!trouve) return true;
+    if (boiteEstComplet(record) && boiteSignatureJours(record) !== boiteSignatureJours(trouve)) return true;
     if ((record.jours || []).length && boiteRichesseEmploi(trouve) < boiteRichesseEmploi(record)) return true;
     if (record.classe && !trouve.classe) return true;
     if ((record.google || record.email) && !(trouve.google || trouve.email)) return true;
@@ -2037,7 +2113,7 @@ function boiteVerifierFiche() {
     if (!boiteNom() || boiteVerifEnCours) return;
     var record = boiteFicheCourante();
     if (!record) return;
-    var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteRichesseEmploi(record);
+    var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteSignatureJours(record);
     if (cle === boiteVerifCle) return;
     boiteVerifEnCours = true;
     boiteChargerListes(false).then(function (fusion) {
@@ -2066,6 +2142,11 @@ function boiteApresMemoire() {
 if (typeof document !== 'undefined') {
     boiteMajMenu();
     document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') boiteVerifierFiche();
+        if (document.visibilityState !== 'visible') return;
+        boiteVerifierFiche();
+        var panneau = document.getElementById('panelEmplois');
+        if (panneau && panneau.classList.contains('active') && boiteEstAdmin()) {
+            boiteChargerListes(true).then(function (fusion) { boiteRendreEmplois(fusion); }).catch(function () {});
+        }
     });
 }

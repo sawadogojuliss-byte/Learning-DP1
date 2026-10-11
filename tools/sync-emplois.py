@@ -137,7 +137,7 @@ def creer_archive():
         )
     except Exception as exc:
         print('archive indisponible', type(exc).__name__)
-        return ''
+        return creer_jsonblob()
     uri = ''
     try:
         data = json.loads(raw.decode('utf-8', 'replace'))
@@ -147,11 +147,36 @@ def creer_archive():
         uri = ''
     if uri.startswith('/'):
         uri = 'https://api.jsonstorage.net' + uri
-    if not uri.startswith('https://'):
-        print('archive sans adresse')
+    if uri.startswith('https://'):
+        print('archive prete')
+        return uri
+    return creer_jsonblob()
+
+
+def creer_jsonblob():
+    payload = json.dumps({'questions': [], 'feedbacks': [], 'emplois': [], 'reponses': []}).encode()
+    req = urllib.request.Request(
+        'https://jsonblob.com/api/jsonBlob',
+        data=payload,
+        headers={'Content-Type': 'application/json', 'Accept': 'application/json'},
+        method='POST',
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=40) as res:
+            loc = res.headers.get('Location') or ''
+            ident = res.headers.get('X-jsonblob') or ''
+    except Exception as exc:
+        print('jsonblob indisponible', type(exc).__name__)
         return ''
-    print('archive prete')
-    return uri
+    if loc.startswith('/'):
+        loc = 'https://jsonblob.com' + loc
+    if not loc and ident:
+        loc = 'https://jsonblob.com/api/jsonBlob/' + ident
+    if not loc.startswith('https://jsonblob.com/api/jsonBlob/'):
+        print('jsonblob sans adresse')
+        return ''
+    print('archive jsonblob prete')
+    return loc
 
 
 def lire_archive(url):
@@ -171,15 +196,28 @@ def lire_archive(url):
 JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
 
-def joindre_jours(anciens, nouveaux):
+def joindre_jours(anciens, nouveaux, nouveau_complet=False):
+    if nouveau_complet and nouveaux:
+        carte = {}
+        for jour in nouveaux:
+            if isinstance(jour, dict) and jour.get('j'):
+                carte[jour['j']] = jour
+        return [carte[nom] for nom in JOURS if nom in carte]
     carte = {}
     for jour in anciens or []:
         if isinstance(jour, dict) and jour.get('j'):
             carte[jour['j']] = jour
     for jour in nouveaux or []:
-        if isinstance(jour, dict) and jour.get('j'):
+        if not isinstance(jour, dict) or not jour.get('j'):
+            continue
+        deja = carte.get(jour['j'])
+        if not deja or len(jour.get('s') or []) > len(deja.get('s') or []):
             carte[jour['j']] = jour
     return [carte[nom] for nom in JOURS if nom in carte]
+
+
+def est_complet(item):
+    return bool(item and item.get('complet') and not item.get('partie') and item.get('jours'))
 
 
 def completer(ancien, nouveau):
@@ -245,31 +283,31 @@ def joindre_personne(a, b):
         return b
     if not b:
         return a
-    if richesse(b) > richesse(a) or (richesse(b) == richesse(a) and str(b.get('at') or '') >= str(a.get('at') or '')):
-        garde, autre = dict(b), a
+    recent = a if str(a.get('at') or '') >= str(b.get('at') or '') else b
+    ancien = b if recent is a else a
+    complet = est_complet(recent)
+    if complet:
+        flammes = int(recent.get('flammes') or 0)
+    elif recent.get('flammes'):
+        flammes = int(recent.get('flammes') or 0)
     else:
-        garde, autre = dict(a), b
-    nom = nom_utile(garde) or nom_utile(autre) or str(garde.get('googleNom') or autre.get('googleNom') or '').strip()
-    garde['nom'] = nom
-    garde['classe'] = garde.get('classe') or autre.get('classe') or ''
-    garde['email'] = garde.get('email') or autre.get('email') or garde.get('google') or autre.get('google') or ''
-    garde['google'] = garde.get('google') or autre.get('google') or garde.get('email') or autre.get('email') or ''
-    garde['googleNom'] = garde.get('googleNom') or autre.get('googleNom') or ''
-    garde['googleSub'] = garde.get('googleSub') or autre.get('googleSub') or ''
-    garde['appareil'] = garde.get('appareil') or autre.get('appareil') or ''
-    recent = garde if str(garde.get('at') or '') >= str(autre.get('at') or '') else autre
-    autre_flamme = autre if recent is garde else garde
-    if recent.get('flammes') is not None:
-        garde['flammes'] = int(recent.get('flammes') or 0)
-    else:
-        garde['flammes'] = int(autre_flamme.get('flammes') or 0)
-    if not garde.get('matieres') and autre.get('matieres'):
-        garde['matieres'] = autre.get('matieres')
-    garde['jours'] = joindre_jours(autre.get('jours'), garde.get('jours'))
-    if str(autre.get('at') or '') > str(garde.get('at') or ''):
-        garde['at'] = autre.get('at')
-    garde['type'] = 'emploi'
-    return garde
+        flammes = int(ancien.get('flammes') or 0)
+    return {
+        'type': 'emploi',
+        'id': recent.get('id') or ancien.get('id') or '',
+        'appareil': recent.get('appareil') or ancien.get('appareil') or '',
+        'at': recent.get('at') or ancien.get('at') or '',
+        'nom': nom_utile(recent) or nom_utile(ancien) or str(recent.get('googleNom') or ancien.get('googleNom') or '').strip(),
+        'classe': recent.get('classe') or ancien.get('classe') or '',
+        'email': recent.get('email') or ancien.get('email') or recent.get('google') or ancien.get('google') or '',
+        'google': recent.get('google') or ancien.get('google') or recent.get('email') or ancien.get('email') or '',
+        'googleNom': recent.get('googleNom') or ancien.get('googleNom') or '',
+        'googleSub': recent.get('googleSub') or ancien.get('googleSub') or '',
+        'flammes': flammes,
+        'matieres': recent.get('matieres') or ancien.get('matieres') or [],
+        'jours': joindre_jours(ancien.get('jours'), recent.get('jours'), complet),
+        'complet': 1 if complet else 0,
+    }
 
 
 def depuis_message(item):
@@ -336,6 +374,36 @@ def fusionner(items):
     return groupes[:300]
 
 
+RETIRES = {
+    'a1a112dcf4ed266ce751',
+    'a1a112dd6ac2adcf6166',
+    'a1a11c0ee01878c1524f',
+}
+
+
+def est_retire(item):
+    if not isinstance(item, dict):
+        return True
+    if normaliser(item.get('nom')) in ('u', 'julia'):
+        return True
+    appareil = str(item.get('appareil') or '')
+    ident = str(item.get('id') or '')
+    if ident.startswith('e_'):
+        ident = ident[2:]
+    return appareil in RETIRES or ident in RETIRES
+
+
+def conserver(existants, fusionnes):
+    gardes = [item for item in fusionnes or [] if isinstance(item, dict) and not est_retire(item)]
+    for ancien in existants or []:
+        if est_retire(ancien):
+            continue
+        if not any(meme_personne(ancien, item) for item in gardes):
+            gardes.append(dict(ancien))
+    gardes.sort(key=lambda item: normaliser(item.get('nom') or item.get('googleNom')))
+    return gardes
+
+
 def leger(item):
     return {
         'type': 'emploi',
@@ -350,6 +418,7 @@ def leger(item):
         'googleSub': item.get('googleSub') or '',
         'flammes': int(item.get('flammes') or 0),
         'matieres': item.get('matieres') or [],
+        'complet': 1 if item.get('complet') else 0,
         'jours': item.get('jours') or [],
     }
 
@@ -502,11 +571,16 @@ def main():
             url = str(item.get('archive') or '') if isinstance(item, dict) else ''
             if item.get('type') == 'coffre' and url.startswith('https://'):
                 config['archive'] = url
+                ecrire(DEST_URL, {
+                    'sujet': config.get('sujet') or SUJET,
+                    'kvdb': config.get('kvdb') or '',
+                    'archive': url,
+                })
                 break
     items = list(existants) + messages
     items.extend(lire_kvdb(config.get('kvdb') or ''))
     items.extend(lire_archive(config.get('archive') or ''))
-    emplois = [leger(item) for item in fusionner(items)]
+    emplois = [leger(item) for item in conserver(existants, fusionner(items))]
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
     ecrire(DEST_RETOURS, {
         'questions': [item for item in items if isinstance(item, dict) and item.get('type') == 'question'][-120:],
