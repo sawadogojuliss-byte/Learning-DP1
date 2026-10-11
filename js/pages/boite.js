@@ -250,17 +250,41 @@ function boiteEcrireKvdb(url, record) {
     return envoyer(31536000).catch(function () { return envoyer(604800); });
 }
 
+function boiteJoursCompacts(jours, maxSlots) {
+    return (jours || []).slice(0, 7).map(function (jour) {
+        return {
+            j: jour.j,
+            s: (jour.s || []).slice(0, maxSlots || 12).map(function (slot) {
+                return { d: slot.d, f: slot.f, t: String(slot.t || '').slice(0, 28) };
+            })
+        };
+    });
+}
+
 function boiteCorpsNtfy(record) {
     var json = JSON.stringify(record);
     if (json.length <= 3800) return json;
     if (record.type !== 'emploi') {
-        return JSON.stringify({
+        var jours = boiteJoursCompacts(record.jours, 8);
+        var copie = {
             type: record.type, id: record.id, at: record.at, nom: record.nom,
-            texte: String(record.texte || '').slice(0, 700),
+            appareil: record.appareil || '', classe: record.classe || '',
+            texte: String(record.texte || '').slice(0, 500),
             email: record.email || '', google: record.google || '', googleNom: record.googleNom || '',
+            googleSub: record.googleSub || '', matieres: record.matieres || [],
+            jours: jours,
             questionId: record.questionId || '', destinataire: record.destinataire || '',
             mail: !!record.mail, gmailId: record.gmailId || ''
-        });
+        };
+        while (jours.length && JSON.stringify(copie).length > 3800) {
+            jours = jours.slice(0, -1);
+            copie.jours = jours;
+        }
+        if (JSON.stringify(copie).length > 3800) {
+            copie.jours = [];
+            copie.texte = String(copie.texte || '').slice(0, 240);
+        }
+        return JSON.stringify(copie);
     }
     var jours = (record.jours || []).slice(0, 6);
     var copie = record;
@@ -474,13 +498,149 @@ function boiteLireArchive(url) {
         });
 }
 
+
+function boiteMailPersonne(item) {
+    return String((item && (item.google || item.email)) || '').trim().toLowerCase();
+}
+
+function boiteNomUtile(item) {
+    var nom = String(item && item.nom || '').trim();
+    var n = boiteNormaliser(nom);
+    if (!n || n === 'u' || n === 'julia' || n === 'sans nom') return '';
+    return nom;
+}
+
+function boiteMemePersonne(a, b) {
+    if (!a || !b) return false;
+    var subA = String(a.googleSub || '').trim();
+    var subB = String(b.googleSub || '').trim();
+    if (subA && subA === subB) return true;
+    var mailA = boiteMailPersonne(a);
+    var mailB = boiteMailPersonne(b);
+    if (mailA && mailB && mailA === mailB) return true;
+    var nomA = boiteNormaliser(boiteNomUtile(a));
+    var nomB = boiteNormaliser(boiteNomUtile(b));
+    if (nomA && nomB && nomA === nomB) return true;
+    var appA = String(a.appareil || '').trim();
+    var appB = String(b.appareil || '').trim();
+    if (appA && appA === appB && (!nomA || !nomB || nomA === nomB)) return true;
+    return false;
+}
+
+function boiteRichesseEmploi(item) {
+    var n = 0;
+    (item && item.jours || []).forEach(function (jour) { n += (jour && jour.s ? jour.s.length : 0); });
+    return n;
+}
+
+function boiteJoindrePersonne(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var garde = (boiteRichesseEmploi(b) > boiteRichesseEmploi(a) || (boiteRichesseEmploi(b) === boiteRichesseEmploi(a) && String(b.at || '') >= String(a.at || ''))) ? b : a;
+    var autre = garde === b ? a : b;
+    var nom = boiteNomUtile(garde) || boiteNomUtile(autre) || String(garde.googleNom || autre.googleNom || '').trim();
+    return {
+        type: 'emploi',
+        id: garde.id || autre.id || '',
+        appareil: garde.appareil || autre.appareil || '',
+        at: String(garde.at || '') >= String(autre.at || '') ? (garde.at || '') : (autre.at || ''),
+        nom: nom,
+        classe: garde.classe || autre.classe || '',
+        email: garde.email || autre.email || garde.google || autre.google || '',
+        google: garde.google || autre.google || garde.email || autre.email || '',
+        googleNom: garde.googleNom || autre.googleNom || '',
+        googleSub: garde.googleSub || autre.googleSub || '',
+        matieres: (garde.matieres && garde.matieres.length) ? garde.matieres : (autre.matieres || []),
+        jours: boiteJoindreJours(autre.jours, garde.jours)
+    };
+}
+
+function boiteFusionnerPersonnes(liste) {
+    var groupes = [];
+    (liste || []).forEach(function (item) {
+        if (!item || boiteEmploiRetire(item)) return;
+        var trouve = -1;
+        var i;
+        for (i = 0; i < groupes.length; i++) {
+            if (boiteMemePersonne(groupes[i], item)) { trouve = i; break; }
+        }
+        if (trouve === -1) groupes.push(item);
+        else groupes[trouve] = boiteJoindrePersonne(groupes[trouve], item);
+    });
+    var stable = false;
+    while (!stable) {
+        stable = true;
+        var i;
+        for (i = 0; i < groupes.length; i++) {
+            var j;
+            for (j = i + 1; j < groupes.length; j++) {
+                if (!boiteMemePersonne(groupes[i], groupes[j])) continue;
+                groupes[i] = boiteJoindrePersonne(groupes[i], groupes[j]);
+                groupes.splice(j, 1);
+                stable = false;
+                break;
+            }
+            if (!stable) break;
+        }
+    }
+    return groupes;
+}
+
+function boitePersonneDepuisMessage(item) {
+    if (!item || (item.type !== 'question' && item.type !== 'feedback')) return null;
+    if (boiteEmploiRetire(item)) return null;
+    if (!boiteNomUtile(item) && !boiteMailPersonne(item) && !item.googleSub) return null;
+    return {
+        type: 'emploi',
+        id: 'msg_' + (item.id || ''),
+        appareil: item.appareil || '',
+        at: item.at || '',
+        nom: item.nom || '',
+        classe: item.classe || '',
+        email: item.email || '',
+        google: item.google || item.email || '',
+        googleNom: item.googleNom || '',
+        googleSub: item.googleSub || '',
+        matieres: item.matieres || [],
+        jours: item.jours || []
+    };
+}
+
+function boitePersonnes(fusion) {
+    var liste = (fusion && fusion.emplois || []).slice();
+    (fusion && fusion.questions || []).concat(fusion && fusion.feedbacks || []).forEach(function (item) {
+        var personne = boitePersonneDepuisMessage(item);
+        if (personne) liste.push(personne);
+    });
+    return boiteFusionnerPersonnes(liste);
+}
+
+function boiteCompleterIdentite(record) {
+    var session = boiteSession() || {};
+    var snap = null;
+    try { snap = boiteSnapshotEmploi(); } catch (e) { snap = null; }
+    record.appareil = record.appareil || boiteAppareil();
+    if (!record.nom) record.nom = boiteNom();
+    if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
+    if (!record.googleSub && session.sub) record.googleSub = session.sub;
+    if (!record.googleNom && (session.name || session.given_name)) record.googleNom = session.name || session.given_name;
+    if (!record.google && session.email) record.google = session.email;
+    if (snap) {
+        if (!(record.matieres && record.matieres.length)) record.matieres = snap.matieres || [];
+        if (!(record.jours && record.jours.length)) record.jours = snap.jours || [];
+        if (!record.nom) record.nom = snap.nom || '';
+        if (!record.classe) record.classe = snap.classe || '';
+    }
+    return record;
+}
+
 function boiteFusionner(items) {
     var questions = [];
     var feedbacks = [];
     var reponses = [];
     var profils = [];
     var connexions = [];
-    var emplois = {};
+    var brutsEmplois = [];
     var vusQ = {};
     var vusF = {};
     var vusR = {};
@@ -516,30 +676,10 @@ function boiteFusionner(items) {
                 });
             }
         } else if (item.type === 'emploi') {
-            if (boiteEmploiRetire(item)) return;
-            var cle = boiteCleEmploi(item);
-            if (!cle) return;
-            var deja = emplois[cle];
-            if (!deja) {
-                emplois[cle] = item;
-                return;
-            }
-            var recent = String(item.at || '') >= String(deja.at || '');
-            var garde = recent ? item : deja;
-            var autre = recent ? deja : item;
-            if (!garde.nom && autre.nom) garde.nom = autre.nom;
-            if (!garde.google && autre.google) garde.google = autre.google;
-            if (!garde.googleSub && autre.googleSub) garde.googleSub = autre.googleSub;
-            if (!garde.googleNom && autre.googleNom) garde.googleNom = autre.googleNom;
-            if (!garde.email && autre.email) garde.email = autre.email;
-            if (!(garde.matieres && garde.matieres.length) && autre.matieres) garde.matieres = autre.matieres;
-            if (!garde.classe && autre.classe) garde.classe = autre.classe;
-            if (!garde.appareil && autre.appareil) garde.appareil = autre.appareil;
-            garde.jours = boiteJoindreJours(autre.jours, garde.jours);
-            emplois[cle] = garde;
+            if (!boiteEmploiRetire(item)) brutsEmplois.push(item);
         }
     });
-    var listeEmplois = Object.keys(emplois).map(function (cle) { return emplois[cle]; });
+    var listeEmplois = boiteFusionnerPersonnes(brutsEmplois);
     questions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
@@ -647,6 +787,19 @@ function boiteUrlsKvdb(cfg, messages) {
     return urls.slice(0, 6);
 }
 
+function boiteLireRetoursFichier() {
+    return boiteFetch('data/retours.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
+        .then(function (res) {
+            if (!res.ok) throw new Error('retours');
+            return res.json();
+        })
+        .then(function (doc) {
+            doc = doc || {};
+            return [].concat(doc.questions || [], doc.feedbacks || [], doc.reponses || [], doc.emplois || []);
+        })
+        .catch(function () { return []; });
+}
+
 function boiteLireEmploisFichier() {
     function une() {
         return boiteFetch('data/emplois.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
@@ -672,7 +825,8 @@ function boiteChargerListes(force) {
         return Promise.all([
             archiveP,
             boiteLireNtfy().catch(function () { return boiteLireNtfy(); }).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
-            boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; })
+            boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; }),
+            boiteLireRetoursFichier().then(function (items) { return { ok: true, items: items }; })
         ]).then(function (premiers) {
             archiveOk = premiers[0].ok;
             var messages = premiers[1].items || [];
@@ -985,17 +1139,39 @@ function boiteSujetMail(question) {
 }
 
 function boiteTexteMail(message, question, nom) {
-    var salut = boitePrenom(nom) ? 'Bonjour ' + boitePrenom(nom) + ',' : 'Bonjour,';
-    var texte = salut + '\n\n' + boiteLignes(message);
+    var texte = 'Bonjour,\n\n' + boiteLignes(message);
     if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
     texte += '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
     return texte.slice(0, 4000);
 }
 
 function boiteHtmlMail(message, question, nom) {
-    return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#222222;">'
-        + boiteEchapHtml(boiteTexteMail(message, question, nom))
-        + '</div>';
+    var questionHtml = '';
+    if (boiteLignes(question)) {
+        questionHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;background:#f7f8f7;border-radius:12px;">'
+            + '<tr><td style="padding:16px 18px;border-left:3px solid #34d399;">'
+            + '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#047857;">Ta question</p>'
+            + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#4b5563;">' + boiteEchapHtml(boiteLignes(question)) + '</p>'
+            + '</td></tr></table>';
+    }
+    return '<div style="display:none;max-height:0;overflow:hidden;">Réponse de l\'équipe Study Plan IB</div>'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">'
+        + '<tr><td align="center" style="padding:24px 12px;">'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
+        + '<tr><td style="background:#059669;padding:22px 28px;">'
+        + '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        + '<td style="padding-right:14px;vertical-align:middle;"><img src="https://sawadogojuliss-byte.github.io/Learning-DP1/images/logo.png" width="46" height="46" alt="" style="display:block;border:0;border-radius:12px;background:#ecfdf5;"></td>'
+        + '<td style="vertical-align:middle;">'
+        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#d1fae5;">Study Plan IB</p>'
+        + '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:700;color:#ffffff;">Réponse à ta question</p>'
+        + '</td></tr></table></td></tr>'
+        + '<tr><td style="padding:32px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1f2937;">'
+        + '<p style="margin:0 0 18px;">Bonjour,</p>'
+        + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
+        + questionHtml
+        + '<p style="margin:28px 0 0;">À bientôt,</p>'
+        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;">L\'équipe Study Plan IB</p>'
+        + '</td></tr></table></td></tr></table>';
 }
 
 function boiteCompteExpediteur(token) {
@@ -1097,7 +1273,7 @@ function boitePayloadMail(email, message, question, nonce, nom) {
         nonce: nonce,
         to: email,
         replyTo: BOITE_EXPEDITEUR,
-        subject: boiteSujetMail(question),
+        subject: 'Réponse à ta question — Study Plan IB',
         text: boiteTexteMail(message, question, nom),
         html: boiteHtmlMail(message, question, nom)
     };
@@ -1248,8 +1424,9 @@ function boiteRendreEmplois(fusion) {
     var filtre = document.getElementById('emploisFiltre');
     if (!liste) return;
     var mot = boiteNormaliser(filtre ? filtre.value : '');
+    var personnes = boitePersonnes(fusion);
     var doublons = {};
-    (fusion.emplois || []).forEach(function (item) {
+    personnes.forEach(function (item) {
         var g = boiteNormaliser(item.google || item.email || '');
         if (g) doublons[g] = (doublons[g] || 0) + 1;
     });
@@ -1269,13 +1446,13 @@ function boiteRendreEmplois(fusion) {
     }
     return { slots: slots, incomplet: incomplet };
 }
-    var rows = (fusion.emplois || []).filter(function (item) {
+    var rows = personnes.filter(function (item) {
         if (!item || boiteEmploiRetire(item)) return false;
         if (!mot) return true;
         return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
     });
     if (!rows.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.emplois.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici dès qu\'elle rouvre le site, même sans Google.')) + '</p>';
+        liste.innerHTML = '<p style="color:#6b7280;">' + (personnes.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici une seule fois, dès qu\'elle génère son planning ou envoie une question.')) + '</p>';
     } else {
         liste.innerHTML = rows.map(function (item) {
             var incomplet = false;
@@ -1290,18 +1467,18 @@ function boiteRendreEmplois(fusion) {
                 return '<div style="margin-top:0.55rem;"><p style="font-size:0.75rem;font-weight:800;color:#047857;text-transform:uppercase;">' + boiteEchap(jour.j || '') + '</p>' + slots + '</div>';
             }).join('');
             if (incomplet) jours += '<p style="font-size:0.78rem;color:#b45309;margin-top:0.55rem;">La fin de journée n\'avait pas été reçue. Elle s\'ajoute dès que cet appareil rouvre le site.</p>';
-            if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Inscrit. Le planning n\'a pas encore été généré sur son appareil.</p>';
+            if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Le planning n\'est pas encore arrivé. Il s\'affiche ici dès que cette personne rouvre Study Plan IB.</p>';
+            var nomAffiche = item.nom || item.googleNom || 'Sans nom';
             var google = item.google || item.email || '';
             var googleLigne = google
                 ? 'Compte Google : ' + boiteEchap(google) + (item.googleNom ? ' · ' + boiteEchap(item.googleNom) : '')
                 : 'Compte Google : pas encore connecté';
-            if (google && doublons[boiteNormaliser(google)] > 1) googleLigne += ' · ce Gmail apparaît sur un autre planning';
-            var meta = boiteEchap(item.classe || 'Classe non indiquée') + ' · ' + googleLigne + ' · ' + boiteEchap(boiteDate(item.at));
+            var meta = boiteEchap(item.classe || 'Classe non indiquée') + ' · Nom : ' + boiteEchap(nomAffiche) + ' · ' + googleLigne + ' · ' + boiteEchap(boiteDate(item.at));
             var matieres = (item.matieres || []).length
                 ? '<p style="font-size:0.8rem;color:#374151;margin-top:0.35rem;">Matières : ' + boiteEchap(item.matieres.join(', ')) + '</p>'
                 : '';
             return '<details open style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
-                + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || '') + '</span></summary>'
+                + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(nomAffiche) + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || '') + '</span></summary>'
                 + '<p style="font-size:0.78rem;color:#6b7280;margin-top:0.35rem;">' + meta + '</p>'
                 + matieres
                 + jours
@@ -1309,7 +1486,7 @@ function boiteRendreEmplois(fusion) {
         }).join('');
     }
     if (statut) {
-        var n = fusion.emplois.length;
+        var n = personnes.length;
         statut.textContent = (fusion.partiel ? 'Une partie des plannings n\'a pas pu être rechargée. ' : '') + n + ' personne' + (n > 1 ? 's' : '');
     }
 }
@@ -1428,7 +1605,7 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'Indique ton e-mail pour recevoir la réponse.', true);
         return;
     }
-    var record = {
+    var record = boiteCompleterIdentite({
         type: 'question',
         id: boiteId('q'),
         at: new Date().toISOString(),
@@ -1436,8 +1613,10 @@ function boiteQuestion(session) {
         texte: valeur.slice(0, 800),
         email: email,
         google: email,
-        googleNom: session && session.name ? session.name : ''
-    };
+        googleNom: session && session.name ? session.name : '',
+        googleSub: session && session.sub ? session.sub : ''
+    });
+    boitePublierEmploi(true);
     boiteEnvoyer(record).then(function () {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
@@ -1507,16 +1686,18 @@ function initFeedback() {
         boiteEnvoiEnCours = true;
         boiteDire('feedbackStatut', 'Envoi…', false);
         var sessionEnvoi = boiteSession();
-        var record = {
+        var record = boiteCompleterIdentite({
             type: 'feedback',
             id: boiteId('f'),
             at: new Date().toISOString(),
             nom: boiteNom(),
             texte: texte.slice(0, 800),
             email: adresse.slice(0, 120),
-            google: sessionEnvoi && sessionEnvoi.email ? sessionEnvoi.email : '',
-            googleNom: sessionEnvoi && sessionEnvoi.name ? sessionEnvoi.name : ''
-        };
+            google: sessionEnvoi && sessionEnvoi.email ? sessionEnvoi.email : adresse.slice(0, 120),
+            googleNom: sessionEnvoi && sessionEnvoi.name ? sessionEnvoi.name : '',
+            googleSub: sessionEnvoi && sessionEnvoi.sub ? sessionEnvoi.sub : ''
+        });
+        boitePublierEmploi(true);
         boiteEnvoyer(record).then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);

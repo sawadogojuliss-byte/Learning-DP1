@@ -17,6 +17,7 @@ import urllib.request
 
 DEST_URL = pathlib.Path('data/boite-url.json')
 DEST_EMPLOIS = pathlib.Path('data/emplois.json')
+DEST_RETOURS = pathlib.Path('data/retours.json')
 DEST_RAPPELS = pathlib.Path('data/rappels.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
@@ -193,22 +194,139 @@ def completer(ancien, nouveau):
     return nouveau
 
 
+def normaliser(texte):
+    valeur = unicodedata.normalize('NFD', str(texte or '').lower())
+    valeur = ''.join(ch for ch in valeur if unicodedata.category(ch) != 'Mn')
+    return re.sub(r'[^a-z0-9]+', ' ', valeur).strip()
+
+
+def nom_utile(item):
+    nom = str(item.get('nom') or '').strip()
+    cle = normaliser(nom)
+    if not cle or cle in ('u', 'julia', 'sans nom'):
+        return ''
+    return nom
+
+
+def mail_personne(item):
+    return str(item.get('google') or item.get('email') or '').strip().lower()
+
+
+def meme_personne(a, b):
+    sub_a = str(a.get('googleSub') or '').strip()
+    sub_b = str(b.get('googleSub') or '').strip()
+    if sub_a and sub_a == sub_b:
+        return True
+    mail_a = mail_personne(a)
+    mail_b = mail_personne(b)
+    if mail_a and mail_b and mail_a == mail_b:
+        return True
+    nom_a = normaliser(nom_utile(a))
+    nom_b = normaliser(nom_utile(b))
+    if nom_a and nom_b and nom_a == nom_b:
+        return True
+    app_a = str(a.get('appareil') or '').strip()
+    app_b = str(b.get('appareil') or '').strip()
+    if app_a and app_a == app_b and (not nom_a or not nom_b or nom_a == nom_b):
+        return True
+    return False
+
+
+def richesse(item):
+    total = 0
+    for jour in item.get('jours') or []:
+        if isinstance(jour, dict):
+            total += len(jour.get('s') or [])
+    return total
+
+
+def joindre_personne(a, b):
+    if not a:
+        return b
+    if not b:
+        return a
+    if richesse(b) > richesse(a) or (richesse(b) == richesse(a) and str(b.get('at') or '') >= str(a.get('at') or '')):
+        garde, autre = dict(b), a
+    else:
+        garde, autre = dict(a), b
+    nom = nom_utile(garde) or nom_utile(autre) or str(garde.get('googleNom') or autre.get('googleNom') or '').strip()
+    garde['nom'] = nom
+    garde['classe'] = garde.get('classe') or autre.get('classe') or ''
+    garde['email'] = garde.get('email') or autre.get('email') or garde.get('google') or autre.get('google') or ''
+    garde['google'] = garde.get('google') or autre.get('google') or garde.get('email') or autre.get('email') or ''
+    garde['googleNom'] = garde.get('googleNom') or autre.get('googleNom') or ''
+    garde['googleSub'] = garde.get('googleSub') or autre.get('googleSub') or ''
+    garde['appareil'] = garde.get('appareil') or autre.get('appareil') or ''
+    if not garde.get('matieres') and autre.get('matieres'):
+        garde['matieres'] = autre.get('matieres')
+    garde['jours'] = joindre_jours(autre.get('jours'), garde.get('jours'))
+    if str(autre.get('at') or '') > str(garde.get('at') or ''):
+        garde['at'] = autre.get('at')
+    garde['type'] = 'emploi'
+    return garde
+
+
+def depuis_message(item):
+    if item.get('type') not in ('question', 'feedback'):
+        return None
+    if normaliser(item.get('nom')) in ('u', 'julia'):
+        return None
+    if not (nom_utile(item) or mail_personne(item) or item.get('googleSub')):
+        return None
+    return {
+        'type': 'emploi',
+        'id': 'msg_' + str(item.get('id') or ''),
+        'appareil': item.get('appareil') or '',
+        'at': item.get('at') or '',
+        'nom': item.get('nom') or '',
+        'classe': item.get('classe') or '',
+        'email': item.get('email') or '',
+        'google': item.get('google') or item.get('email') or '',
+        'googleNom': item.get('googleNom') or '',
+        'googleSub': item.get('googleSub') or '',
+        'matieres': item.get('matieres') or [],
+        'jours': item.get('jours') or [],
+    }
+
+
 def fusionner(items):
-    emplois = {}
+    bruts = []
     for item in items:
-        if not isinstance(item, dict) or item.get('type') != 'emploi':
+        if not isinstance(item, dict):
             continue
-        cle = str(item.get('appareil') or item.get('id') or '')
-        if not cle:
-            continue
-        deja = emplois.get(cle)
-        if not deja or str(item.get('at') or '') >= str(deja.get('at') or ''):
-            emplois[cle] = completer(deja, dict(item))
+        if item.get('type') == 'emploi':
+            if normaliser(item.get('nom')) in ('u', 'julia'):
+                continue
+            bruts.append(dict(item))
         else:
-            emplois[cle] = completer(item, deja)
-    liste = list(emplois.values())
-    liste.sort(key=lambda item: str(item.get('nom') or '').lower())
-    return liste[:300]
+            personne = depuis_message(item)
+            if personne:
+                bruts.append(personne)
+    groupes = []
+    for item in bruts:
+        trouve = next((i for i, deja in enumerate(groupes) if meme_personne(deja, item)), -1)
+        if trouve == -1:
+            groupes.append(item)
+        else:
+            groupes[trouve] = joindre_personne(groupes[trouve], item)
+    stable = False
+    while not stable:
+        stable = True
+        i = 0
+        while i < len(groupes):
+            j = i + 1
+            while j < len(groupes):
+                if meme_personne(groupes[i], groupes[j]):
+                    groupes[i] = joindre_personne(groupes[i], groupes[j])
+                    del groupes[j]
+                    stable = False
+                    break
+                j += 1
+            if not stable:
+                break
+            i += 1
+    groupes.sort(key=lambda item: normaliser(item.get('nom') or item.get('googleNom')))
+    return groupes[:300]
 
 
 def leger(item):
@@ -382,6 +500,11 @@ def main():
     items.extend(lire_archive(config.get('archive') or ''))
     emplois = [leger(item) for item in fusionner(items)]
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
+    ecrire(DEST_RETOURS, {
+        'questions': [item for item in items if isinstance(item, dict) and item.get('type') == 'question'][-120:],
+        'feedbacks': [item for item in items if isinstance(item, dict) and item.get('type') == 'feedback'][-120:],
+        'reponses': [item for item in items if isinstance(item, dict) and item.get('type') == 'reponse'][-120:],
+    })
     ecrire_archive(config.get('archive') or '', emplois)
     anciens = lire_json(DEST_RAPPELS, {}).get('exercices') or []
     lots, exos = groupes_et_exercices(list(anciens) + items, emplois)
