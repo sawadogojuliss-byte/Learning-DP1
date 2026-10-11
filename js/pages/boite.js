@@ -838,7 +838,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (boiteMailConfirme(rep) ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB. S\'il est dans les indésirables, un clic sur Non indésirable le laisse ensuite dans la boîte.' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -878,7 +878,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Study Plan IB.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Study Plan IB. La première fois, Gmail peut le classer en indésirable.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -970,23 +970,31 @@ function boiteEchapHtml(s) {
     return boiteEchap(s).replace(/\n/g, '<br>');
 }
 
-function boiteTexteMail(message, question) {
-    var texte = 'Bonjour,\n\n' + boiteLignes(message);
+function boitePrenom(nom) {
+    var mot = String(nom || '').trim().split(/\s+/)[0] || '';
+    if (mot.length < 2 || mot.length > 40) return '';
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'\u2019-]+$/.test(mot)) return '';
+    return mot.charAt(0).toUpperCase() + mot.slice(1);
+}
+
+function boiteSujetMail(question) {
+    var extrait = String(question || '').replace(/\s+/g, ' ').trim();
+    if (extrait.length > 48) extrait = extrait.slice(0, 48).trim();
+    if (!extrait) return 'Réponse à ta question — Study Plan IB';
+    return ('Re: ' + extrait + ' — Study Plan IB').slice(0, 180);
+}
+
+function boiteTexteMail(message, question, nom) {
+    var salut = boitePrenom(nom) ? 'Bonjour ' + boitePrenom(nom) + ',' : 'Bonjour,';
+    var texte = salut + '\n\n' + boiteLignes(message);
     if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
     texte += '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
     return texte.slice(0, 4000);
 }
 
-function boiteHtmlMail(message, question) {
-    var questionHtml = '';
-    if (boiteLignes(question)) {
-        questionHtml = '<p style="margin:18px 0 0;color:#4b5563;">Ta question :<br>' + boiteEchapHtml(boiteLignes(question)) + '</p>';
-    }
-    return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#111827;">'
-        + '<p style="margin:0 0 16px;">Bonjour,</p>'
-        + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
-        + questionHtml
-        + '<p style="margin:22px 0 0;">À bientôt,<br><strong style="color:#047857;">L\'équipe Study Plan IB</strong></p>'
+function boiteHtmlMail(message, question, nom) {
+    return '<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#222222;">'
+        + boiteEchapHtml(boiteTexteMail(message, question, nom))
         + '</div>';
 }
 
@@ -1083,15 +1091,15 @@ function boiteUrlScript() {
     });
 }
 
-function boitePayloadMail(email, message, question, nonce) {
+function boitePayloadMail(email, message, question, nonce, nom) {
     return {
         secret: BOITE_SCRIPT_SECRET,
         nonce: nonce,
         to: email,
         replyTo: BOITE_EXPEDITEUR,
-        subject: 'Réponse à ta question — Study Plan IB',
-        text: boiteTexteMail(message, question),
-        html: boiteHtmlMail(message, question)
+        subject: boiteSujetMail(question),
+        text: boiteTexteMail(message, question, nom),
+        html: boiteHtmlMail(message, question, nom)
     };
 }
 
@@ -1151,12 +1159,12 @@ function boitePosterChamps(url, payload) {
     });
 }
 
-function boiteEnvoyerMail(destinataire, message, question) {
+function boiteEnvoyerMail(destinataire, message, question, nom) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var nonce = boiteNonce();
     return boiteUrlScript().then(function (url) {
-        var payload = boitePayloadMail(email, message, question, nonce);
+        var payload = boitePayloadMail(email, message, question, nonce, nom);
         function secours() {
             return boitePosterChamps(url, payload).catch(function () {
                 return boitePosterFormulaire(url, payload).then(function () {
@@ -1209,7 +1217,7 @@ function boiteRepondre(questionId, origine) {
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
     boiteDireDans(zone, 'Envoi vers ' + email + '…', false);
-    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '').then(function (data) {
+    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', question.nom || question.googleNom || '').then(function (data) {
         var record = {
             type: 'reponse',
             id: boiteId('r'),
@@ -1434,7 +1442,7 @@ function boiteQuestion(session) {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
-        boiteDire('aideStatut', 'Question envoyée.', false);
+        boiteDire('aideStatut', 'Question envoyée. La réponse viendra de ibstudyplan@gmail.com. Si elle est dans les indésirables, choisis Non indésirable une fois.', false);
     }).catch(function () {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
     }).then(function () {
