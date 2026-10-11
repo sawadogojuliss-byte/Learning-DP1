@@ -2,45 +2,391 @@
   "comptes": [
     {
       "type": "profil",
-      "email": "sawadogojuliss@gmail.com",
-      "google": "sawadogojuliss@gmail.com",
-      "googleSub": "116965022060639990571",
-      "nom": "Sawadogo Juliss Bill Owen",
-      "at": "2026-10-11T09:39:09.766Z",
+      "email": "doriilboudo235@gmail.com",
+      "google": "doriilboudo235@gmail.com",
+      "googleSub": "102249607109048181085",
+      "nom": "Kenzah",
+      "at": "2026-10-11T13:13:21.165Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-11T09:39:09.766Z",
-        "etape": "accueil",
-        "profilComplet": false,
-        "userName": "Sawadogo Juliss Bill Owen",
-        "targetScore": 40,
-        "weekdayWakeup": "06:00",
-        "saturdayWakeup": "07:00",
-        "sundayWakeup": "08:00",
+        "savedAt": "2026-10-11T13:13:21.165Z",
+        "etape": "planning",
+        "profilComplet": true,
+        "userName": "Kenzah",
+        "targetScore": 42,
+        "weekdayWakeup": "05:00",
+        "saturdayWakeup": "06:10",
+        "sundayWakeup": "06:05",
         "subjects": [
           {
             "name": "Mathématiques AA",
-            "level": "HL",
-            "grade": 5,
+            "level": "SL",
+            "grade": 7,
             "icon": "🔢"
           },
           {
+            "name": "Anglais B",
+            "level": "HL",
+            "grade": 7,
+            "icon": "🇬🇧"
+          },
+          {
             "name": "Français A",
-            "level": "SL",
-            "grade": 5,
+            "level": "HL",
+            "grade": 6,
             "icon": "🇫🇷"
           },
           {
             "name": "Histoire",
             "level": "SL",
-            "grade": 5,
+            "grade": 6,
             "icon": "📜"
           },
           {
-            "name": "Biologie",
+            "name": "Physique",
+            "level": "SL",
+            "grade": 6,
+            "icon": "⚛️"
+          },
+          {
+            "name": "Économie",
+            "level": "HL",
+            "grade": 6,
+            "icon": "💹"
+          }
+        ],
+        "optionalSubjects": [],
+        "ibYear": "DP2",
+        "memoirLevel": "final",
+        "iaLevel": "",
+        "iaLevels": {
+          "Mathématiques AA": "plan"
+        },
+        "memoirPlan": [],
+        "iaPlans": {
+          "Mathématiques AA": [],
+          "Anglais B": [],
+          "Français A": [],
+          "Histoire": [],
+          "Physique": [],
+          "Économie": []
+        },
+        "eeVus": {
+          "2026-10-11|ia-suivi|10:45": {
+            "date": "2026-10-11",
+            "kind": "ia",
+            "subject": "Mathématiques AA",
+            "partId": "ia-suivi",
+            "text": "Avancer l’évaluation interne",
+            "startTime": "10:05",
+            "endTime": "10:45"
+          }
+        },
+        "eeDemandes": {
+          "2026-10-11|ia-suivi|10:45": "oui"
+        },
+        "transportMode": "voiture",
+        "carDeparture": "07:15",
+        "carToSchool": 50,
+        "carFromSchool": 45,
+        "motoDeparture": "07:30",
+        "motoReturn": "17:00",
+        "motoToSchool": 25,
+        "motoFromSchool": 25,
+        "selectedActivities": [
+          {
+            "name": "Cours particuliers",
+            "icon": "📚",
+            "days": [
+              5
+            ],
+            "sameTime": true,
+            "startTime": "08:30",
+            "endTime": "15:00",
+            "dayTimes": {
+              "1": {
+                "start": "17:00",
+                "end": "19:00"
+              },
+              "4": {
+                "start": "17:00",
+                "end": "19:00"
+              },
+              "5": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          },
+          {
+            "name": "Natation",
+            "icon": "🏊",
+            "days": [
+              6
+            ],
+            "sameTime": true,
+            "startTime": "14:00",
+            "endTime": "16:30",
+            "dayTimes": {
+              "6": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          },
+          {
+            "name": "Arts",
+            "icon": "🎨",
+            "days": [
+              6,
+              4
+            ],
+            "sameTime": true,
+            "startTime": "22:00",
+            "endTime": "23:00",
+            "dayTimes": {
+              "4": {
+                "start": "17:00",
+                "end": "19:00"
+              },
+              "6": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          }
+        ],
+        "holidayDays": [],
+        "holidayModes": {},
+        "holidayDropped": {},
+        "sameFreeTime": true,
+        "freeTimeMinutes": 150,
+        "freeTimeByDay": {
+          "0": 150,
+          "1": 150,
+          "2": 150,
+          "3": 150,
+          "4": 150,
+          "5": 150,
+          "6": 150
+        },
+        "weekdaySleepHours": 5,
+        "saturdaySleepHours": 5,
+        "sundaySleepHours": 5,
+        "phoneDays": [],
+        "samePhoneDuration": true,
+        "phoneDuration": 90,
+        "phoneDayDurations": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "selectedDay": 3,
+        "customEvents": [
+          {
+            "id": "meal-petit-déjeuner-0-1791265740478",
+            "day": 0,
+            "title": "Petit-déjeuner",
+            "startTime": "05:10",
+            "endTime": "05:40",
+            "type": "meal",
+            "icon": "🥐",
+            "source": "custom",
+            "replacesId": "breakfast",
+            "deleted": true,
+            "timestamp": 1791265740478
+          },
+          {
+            "id": "transport-trajet-école-0-1791265817861",
+            "day": 0,
+            "title": "Trajet école",
+            "startTime": "07:00",
+            "endTime": "07:50",
+            "type": "transport",
+            "icon": "🚗",
+            "source": "custom",
+            "replacesId": "commute1",
+            "pinned": true,
+            "timestamp": 1791265817861
+          },
+          {
+            "id": "study-révisions-économie-0-1791265865418",
+            "day": 0,
+            "title": "Révisions Économie",
+            "startTime": "07:50",
+            "endTime": "08:05",
+            "type": "study",
+            "icon": "💹",
+            "source": "custom",
+            "replacesId": "study1",
+            "pinned": false,
+            "timestamp": 1791265865418
+          },
+          {
+            "id": "meal-dîner-0-1791314127726",
+            "day": 0,
+            "title": "Dîner",
+            "startTime": "19:35",
+            "endTime": "20:20",
+            "type": "meal",
+            "icon": "🍝",
+            "source": "custom",
+            "replacesId": "dinner",
+            "pinned": true,
+            "timestamp": 1791314127726
+          },
+          {
+            "id": "transport-trajet-école-2-1791468452112",
+            "day": 2,
+            "title": "Trajet école",
+            "startTime": "07:00",
+            "endTime": "07:50",
+            "type": "transport",
+            "icon": "🚗",
+            "source": "custom",
+            "replacesId": "commute1",
+            "pinned": true,
+            "timestamp": 1791468452112
+          },
+          {
+            "id": "meal-petit-déjeuner-2-1791526989205",
+            "day": 2,
+            "title": "Petit-déjeuner",
+            "startTime": "05:10",
+            "endTime": "05:25",
+            "type": "meal",
+            "icon": "🥐",
+            "source": "custom",
+            "replacesId": "breakfast",
+            "deleted": true,
+            "timestamp": 1791526989205
+          },
+          {
+            "id": "meal-petit-déjeuner-4-1791527003842",
+            "day": 4,
+            "title": "Petit-déjeuner",
+            "startTime": "05:10",
+            "endTime": "05:40",
+            "type": "meal",
+            "icon": "🥐",
+            "source": "custom",
+            "replacesId": "breakfast",
+            "deleted": true,
+            "timestamp": 1791527003842
+          },
+          {
+            "id": "transport-trajet-école-4-1791527039959",
+            "day": 4,
+            "title": "Trajet école",
+            "startTime": "07:00",
+            "endTime": "07:50",
+            "type": "transport",
+            "icon": "🚗",
+            "source": "custom",
+            "replacesId": "commute1",
+            "pinned": true,
+            "timestamp": 1791527039959
+          },
+          {
+            "id": "study-révision-économie-4-1791558246324",
+            "day": 4,
+            "title": "Révision Économie",
+            "startTime": "20:00",
+            "endTime": "22:30",
+            "type": "study",
+            "icon": "💹",
+            "subjectGrade": 6,
+            "source": "custom",
+            "timestamp": 1791558246324
+          }
+        ],
+        "exercices": [
+          {
+            "id": "exo-1791527342780",
+            "subject": "Mathématiques AA",
+            "subjectIcon": "🔢",
+            "subjectGrade": 7,
+            "text": "Activit-EnsemblesetdiagrammedeVenn.pdf",
+            "filename": "Activit-EnsemblesetdiagrammedeVenn.pdf",
+            "duration": 90,
+            "deadline": "2026-10-11",
+            "done": false,
+            "addedAt": "2026-10-09T06:29:02.780Z",
+            "scheduledSlot": null
+          }
+        ],
+        "currentMood": "bien",
+        "joursConnectes": 2,
+        "dernierJour": "Sun Oct 11 2026",
+        "flammes": 1,
+        "flammeJour": "2026-10-11",
+        "utilisateurId": "102249607109048181085",
+        "google": {
+          "sub": "102249607109048181085",
+          "email": "doriilboudo235@gmail.com",
+          "name": "Kenzah ILBOUDO",
+          "given_name": "Kenzah",
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocI3gCKlNhKnZnnIqZYJS_chxnRmuH-yZ5Iu-b9BeB92u0m7CmsN=s96-c"
+        }
+      }
+    },
+    {
+      "type": "profil",
+      "email": "sawadogojuliss@gmail.com",
+      "google": "sawadogojuliss@gmail.com",
+      "googleSub": "116965022060639990571",
+      "nom": "Sawadogo Juliss Bill Owen",
+      "at": "2026-10-11T14:30:19.999Z",
+      "data": {
+        "v": 1,
+        "savedAt": "2026-10-11T14:30:19.999Z",
+        "etape": "emplois",
+        "profilComplet": true,
+        "userName": "Sawadogo Juliss Bill Owen",
+        "targetScore": 43,
+        "weekdayWakeup": "05:00",
+        "saturdayWakeup": "05:00",
+        "sundayWakeup": "05:00",
+        "subjects": [
+          {
+            "name": "Mathématiques AA",
+            "level": "SL",
+            "grade": 4,
+            "icon": "🔢"
+          },
+          {
+            "name": "ESS",
+            "level": "SL",
+            "grade": 5,
+            "icon": "🌱"
+          },
+          {
+            "name": "Physique",
+            "level": "HL",
+            "grade": 4,
+            "icon": "⚛️"
+          },
+          {
+            "name": "Anglais B",
             "level": "HL",
             "grade": 5,
-            "icon": "🧬"
+            "icon": "🇬🇧"
+          },
+          {
+            "name": "Géographie",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🌍"
+          },
+          {
+            "name": "Français A",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🇫🇷"
           },
           {
             "name": "Économie",
@@ -56,43 +402,64 @@
           }
         ],
         "optionalSubjects": [],
-        "ibYear": "DP1",
-        "memoirLevel": "",
+        "ibYear": "DP2",
+        "memoirLevel": "plan",
         "iaLevel": "",
-        "iaLevels": {},
+        "iaLevels": {
+          "Mathématiques AA": "final"
+        },
         "memoirPlan": [],
-        "iaPlans": {},
-        "eeVus": {},
-        "eeDemandes": {},
-        "transportMode": "",
+        "iaPlans": {
+          "Mathématiques AA": [],
+          "ESS": [],
+          "Physique": [],
+          "Anglais B": [],
+          "Géographie": [],
+          "Français A": []
+        },
+        "eeVus": {
+          "2026-10-11|memoir-suivi|11:30": {
+            "date": "2026-10-11",
+            "kind": "memoir",
+            "subject": "",
+            "partId": "memoir-suivi",
+            "text": "Avancer le mémoire",
+            "startTime": "10:50",
+            "endTime": "11:30"
+          }
+        },
+        "eeDemandes": {
+          "2026-10-11|memoir-suivi|11:30": "oui"
+        },
+        "transportMode": "moto",
         "carDeparture": "07:30",
         "carToSchool": 30,
         "carFromSchool": 40,
-        "motoDeparture": "07:30",
-        "motoReturn": "17:00",
-        "motoToSchool": 25,
-        "motoFromSchool": 25,
+        "motoDeparture": "07:15",
+        "motoReturn": "16:35",
+        "motoToSchool": 20,
+        "motoFromSchool": 20,
         "selectedActivities": [],
         "holidayDays": [],
         "holidayModes": {},
         "holidayDropped": {},
         "sameFreeTime": true,
-        "freeTimeMinutes": 60,
+        "freeTimeMinutes": 30,
         "freeTimeByDay": {
-          "0": 60,
-          "1": 60,
-          "2": 60,
-          "3": 60,
-          "4": 60,
-          "5": 60,
-          "6": 60
+          "0": 30,
+          "1": 30,
+          "2": 30,
+          "3": 30,
+          "4": 30,
+          "5": 30,
+          "6": 30
         },
-        "weekdaySleepHours": 8,
-        "saturdaySleepHours": 8,
-        "sundaySleepHours": 8,
+        "weekdaySleepHours": 7,
+        "saturdaySleepHours": 7,
+        "sundaySleepHours": 7,
         "phoneDays": [],
         "samePhoneDuration": true,
-        "phoneDuration": 60,
+        "phoneDuration": 15,
         "phoneDayDurations": {
           "0": 60,
           "1": 60,
@@ -102,17 +469,45 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 0,
-        "customEvents": [],
-        "exercices": [],
-        "currentMood": null,
-        "joursConnectes": 1,
+        "selectedDay": 6,
+        "customEvents": [
+          {
+            "id": "meal-petit-déjeuner-6-1791591776276",
+            "day": 6,
+            "title": "Petit-déjeuner",
+            "startTime": "05:10",
+            "endTime": "06:10",
+            "type": "meal",
+            "icon": "🥐",
+            "source": "custom",
+            "replacesId": "breakfast",
+            "pinned": false,
+            "timestamp": 1791591776276
+          }
+        ],
+        "exercices": [
+          {
+            "id": "exo-1791496129350",
+            "subject": "Mathématiques AA",
+            "subjectIcon": "🔢",
+            "subjectGrade": 4,
+            "level": "SL",
+            "text": "Exercice de Mathématiques AA",
+            "duration": 60,
+            "deadline": "2026-10-11",
+            "done": false,
+            "addedAt": "2026-10-08T21:48:49.350Z",
+            "scheduledSlot": null
+          }
+        ],
+        "currentMood": "ennuye",
+        "joursConnectes": 4,
         "dernierJour": "Sun Oct 11 2026",
         "flammes": 1,
         "flammeJour": "2026-10-11",
-        "utilisateurId": "116965022060639990571",
+        "utilisateurId": "gmail:sawadogojuliss@gmail.com",
         "google": {
-          "sub": "116965022060639990571",
+          "sub": "gmail:sawadogojuliss@gmail.com",
           "email": "sawadogojuliss@gmail.com",
           "name": "Juliss Sawadogo",
           "given_name": "Juliss",
