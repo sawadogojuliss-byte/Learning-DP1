@@ -496,9 +496,8 @@ function compteDemanderJeton(prompt, scope) {
 
 function compteObtenirJeton(interactif) {
     if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
-    var silencieux = compteDemanderJeton('', COMPTE_DRIVE_SCOPE);
-    if (!interactif) return silencieux;
-    return silencieux.catch(function () { return compteDemanderJeton('consent', COMPTE_DRIVE_SCOPE); });
+    if (!interactif) return Promise.reject(new Error('silence'));
+    return compteDemanderJeton('consent', COMPTE_DRIVE_SCOPE);
 }
 
 function compteDriveTrouver(token) {
@@ -1343,17 +1342,8 @@ function compteOnCredential(resp) {
     }
     compteMemoriserSession(session);
     window.compteRestaurationEnCours = true;
-    var jeton = Promise.race([
-        compteObtenirJeton(false).catch(function () { return ''; }),
-        new Promise(function (resolve) { setTimeout(function () { resolve(''); }, 8000); })
-    ]);
     compteLireCopiesPartagees(session).then(function (distantes) {
         return compteRestaurerTout(session, null, distantes);
-    }).then(function () {
-        return jeton;
-    }).then(function (token) {
-        if (!token) return 'local';
-        return compteNuageFusionner(token).catch(function () { return 'echec'; });
     }).then(function () {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         compteFigerNom(session, [courant]);
