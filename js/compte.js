@@ -158,7 +158,7 @@ function compteFusionnerProfils(copies) {
     };
     utiles.slice(1).forEach(function (src) {
         Object.keys(src).forEach(function (k) {
-            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour') return;
+            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour') return;
             var b = src[k];
             if (Array.isArray(b)) {
                 if (k === 'holidayDays') {
@@ -203,6 +203,18 @@ function compteFusionnerProfils(copies) {
     });
     if (maxJours) base.joursConnectes = maxJours;
     if (dernier) base.dernierJour = dernier;
+    var flammeJour = '';
+    var flammes = 0;
+    tous.forEach(function (src) {
+        if (src.flammeJour && String(src.flammeJour) >= flammeJour) {
+            flammeJour = src.flammeJour;
+            flammes = Number(src.flammes) || 0;
+        }
+    });
+    if (flammeJour) {
+        base.flammeJour = flammeJour;
+        base.flammes = flammes;
+    }
     if (!base.savedAt) base.savedAt = new Date().toISOString();
     return base;
 }

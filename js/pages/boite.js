@@ -272,6 +272,7 @@ function boiteCorpsNtfy(record) {
             texte: String(record.texte || '').slice(0, 500),
             email: record.email || '', google: record.google || '', googleNom: record.googleNom || '',
             googleSub: record.googleSub || '', matieres: record.matieres || [],
+            flammes: Number(record.flammes || 0),
             jours: jours,
             questionId: record.questionId || '', destinataire: record.destinataire || '',
             mail: !!record.mail, gmailId: record.gmailId || ''
@@ -294,6 +295,7 @@ function boiteCorpsNtfy(record) {
             type: 'emploi', id: record.id, appareil: record.appareil, at: record.at,
             nom: record.nom, classe: record.classe || '', email: record.email || '',
             google: record.google || '', googleNom: record.googleNom || '', googleSub: record.googleSub || '',
+            flammes: Number(record.flammes || 0),
             matieres: record.matieres || [],
             jours: jours.map(function (jour) {
                 return {
@@ -550,6 +552,7 @@ function boiteJoindrePersonne(a, b) {
         google: garde.google || autre.google || garde.email || autre.email || '',
         googleNom: garde.googleNom || autre.googleNom || '',
         googleSub: garde.googleSub || autre.googleSub || '',
+        flammes: String(garde.at || '') >= String(autre.at || '') && garde.flammes != null ? Number(garde.flammes || 0) : Number(autre.flammes != null ? autre.flammes : (garde.flammes || 0)),
         matieres: (garde.matieres && garde.matieres.length) ? garde.matieres : (autre.matieres || []),
         jours: boiteJoindreJours(autre.jours, garde.jours)
     };
@@ -709,6 +712,7 @@ function boiteDocument(fusion) {
             google: item.google || '',
             googleNom: item.googleNom || '',
             googleSub: item.googleSub || '',
+            flammes: Number(item.flammes || 0),
             matieres: item.matieres || [],
             jours: item.jours || [],
             questionId: item.questionId || '',
@@ -992,7 +996,7 @@ function boiteCarteQuestion(item, reponses) {
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
             + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (boiteMailConfirme(rep) ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB. S\'il est dans les indésirables, un clic sur Non indésirable le laisse ensuite dans la boîte.' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -1473,13 +1477,16 @@ function boiteRendreEmplois(fusion) {
             var googleLigne = google
                 ? 'Compte Google : ' + boiteEchap(google) + (item.googleNom ? ' · ' + boiteEchap(item.googleNom) : '')
                 : 'Compte Google : pas encore connecté';
-            var meta = boiteEchap(item.classe || 'Classe non indiquée') + ' · Nom : ' + boiteEchap(nomAffiche) + ' · ' + googleLigne + ' · ' + boiteEchap(boiteDate(item.at));
+            var flammes = Number(item.flammes || 0);
+            var flammeTexte = flammes ? (flammes + ' jour' + (flammes > 1 ? 's' : '') + " d'affilée") : 'pas encore de série';
+            var meta = 'Classe : ' + boiteEchap(item.classe || 'non indiquée') + ' · Nom : ' + boiteEchap(nomAffiche) + ' · ' + googleLigne;
             var matieres = (item.matieres || []).length
                 ? '<p style="font-size:0.8rem;color:#374151;margin-top:0.35rem;">Matières : ' + boiteEchap(item.matieres.join(', ')) + '</p>'
                 : '';
             return '<details open style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
-                + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(nomAffiche) + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || '') + '</span></summary>'
+                + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(nomAffiche) + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || 'Classe non indiquée') + '</span> <span style="font-weight:800;color:#c2410c;">· 🔥 ' + boiteEchap(flammeTexte) + '</span></summary>'
                 + '<p style="font-size:0.78rem;color:#6b7280;margin-top:0.35rem;">' + meta + '</p>'
+                + '<p style="font-size:0.84rem;font-weight:800;color:#c2410c;margin-top:0.25rem;">🔥 ' + boiteEchap(flammeTexte) + '</p>'
                 + matieres
                 + jours
                 + '</details>';
@@ -1750,7 +1757,8 @@ function boiteSnapshotEmploi() {
         googleNom: session.name || session.given_name || '',
         googleSub: session.sub || '',
         matieres: matieres,
-        jours: jours
+        jours: jours,
+        flammes: boiteFlammes()
     };
 }
 
@@ -1772,7 +1780,8 @@ function boitePublierEmploi(force) {
         jours: record.jours,
         matieres: record.matieres,
         google: record.google,
-        googleSub: record.googleSub
+        googleSub: record.googleSub,
+        flammes: record.flammes
     });
     var deja = boiteLireJson(BOITE_EMPLOI_HASH);
     var dejaComplet = '';
@@ -1856,6 +1865,7 @@ function boiteEmploiDepuisProfil(data, appareil) {
         record.googleNom = data.google.name || '';
         record.googleSub = data.google.sub || '';
     }
+    record.flammes = Number(data.flammes || 0);
     return record;
 }
 
@@ -1932,15 +1942,130 @@ function boiteRejouerPasses() {
     boiteIdbProfils().then(publier).catch(function () {});
 }
 
+function boiteJourCle(date) {
+    var d = date || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function boiteJourAvant(cle) {
+    var parts = String(cle || '').split('-');
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (isNaN(d.getTime())) return '';
+    d.setDate(d.getDate() - 1);
+    return boiteJourCle(d);
+}
+
+function boiteFlammes() {
+    var aujourd = boiteJourCle(new Date());
+    var hier = boiteJourAvant(aujourd);
+    var n = 1;
+    try {
+        n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
+        if (!isFinite(n) || n < 0) n = 0;
+        var dernier = localStorage.getItem('studyPlanIB_flammeJour') || '';
+        if (!dernier) {
+            var ancien = localStorage.getItem('studyPlanIB_dernierJour') || '';
+            var parsed = ancien ? new Date(ancien) : null;
+            if (parsed && !isNaN(parsed.getTime())) dernier = boiteJourCle(parsed);
+        }
+        if (dernier === aujourd) {
+            if (!n) n = 1;
+        } else if (dernier === hier) {
+            n = (n || 0) + 1;
+        } else {
+            n = 1;
+        }
+        localStorage.setItem('studyPlanIB_flamme', String(n));
+        localStorage.setItem('studyPlanIB_flammeJour', aujourd);
+    } catch (e) {
+        n = 1;
+    }
+    return n;
+}
+
+function boiteFicheCourante() {
+    var record = null;
+    try { record = boiteSnapshotEmploi(); } catch (e) { record = null; }
+    var session = (typeof boiteSession === 'function' ? boiteSession() : null) || window.compteSession || {};
+    if (!record) {
+        if (!boiteNom()) return null;
+        record = {
+            type: 'emploi',
+            id: 'e_' + boiteAppareil(),
+            appareil: boiteAppareil(),
+            at: new Date().toISOString(),
+            nom: boiteNom(),
+            classe: typeof ibYear !== 'undefined' ? (ibYear || '') : '',
+            email: session.email || '',
+            google: session.email || '',
+            googleNom: session.name || session.given_name || '',
+            googleSub: session.sub || '',
+            matieres: [],
+            jours: []
+        };
+    }
+    record.flammes = boiteFlammes();
+    record.at = new Date().toISOString();
+    if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
+    if (!record.google && session.email) {
+        record.google = session.email;
+        record.email = record.email || session.email;
+        record.googleNom = record.googleNom || session.name || session.given_name || '';
+        record.googleSub = record.googleSub || session.sub || '';
+    }
+    return record;
+}
+
+function boiteFicheIncomplete(fusion, record) {
+    var trouve = null;
+    boitePersonnes(fusion || {}).some(function (item) {
+        if (boiteMemePersonne(item, record)) { trouve = item; return true; }
+        return false;
+    });
+    if (!trouve) return true;
+    if ((record.jours || []).length && boiteRichesseEmploi(trouve) < boiteRichesseEmploi(record)) return true;
+    if (record.classe && !trouve.classe) return true;
+    if ((record.google || record.email) && !(trouve.google || trouve.email)) return true;
+    if (record.nom && !boiteNomUtile(trouve)) return true;
+    if (Number(record.flammes || 0) > 0 && Number(trouve.flammes || 0) !== Number(record.flammes)) return true;
+    return false;
+}
+
+var boiteVerifEnCours = false;
+var boiteVerifCle = '';
+function boiteVerifierFiche() {
+    if (!boiteNom() || boiteVerifEnCours) return;
+    var record = boiteFicheCourante();
+    if (!record) return;
+    var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteRichesseEmploi(record);
+    if (cle === boiteVerifCle) return;
+    boiteVerifEnCours = true;
+    boiteChargerListes(false).then(function (fusion) {
+        if (!boiteFicheIncomplete(fusion, record)) return null;
+        return boiteEnvoyer(record);
+    }).catch(function () {
+        return boiteEnvoyer(record);
+    }).then(function () {
+        boiteVerifCle = cle;
+        boiteVerifEnCours = false;
+    }, function () {
+        boiteVerifEnCours = false;
+    });
+}
+
 function boiteApresMemoire() {
     boiteMajMenu();
     boiteReessayerUneFois();
-    if (!boiteInscrit() && !boiteSession()) return;
     clearTimeout(boiteEmploiTimer);
     boiteEmploiTimer = setTimeout(function () {
-        boitePublierEmploi(false);
+        boiteVerifierFiche();
         boiteRejouerPasses();
-    }, 2000);
+    }, 1500);
 }
 
-if (typeof document !== 'undefined') boiteMajMenu();
+if (typeof document !== 'undefined') {
+    boiteMajMenu();
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') boiteVerifierFiche();
+    });
+}

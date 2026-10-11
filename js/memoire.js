@@ -123,6 +123,13 @@ function memoireLireEtat() {
         dernierJour: (function () {
             try { return localStorage.getItem('studyPlanIB_dernierJour') || ''; } catch (e) { return ''; }
         })(),
+        flammes: (function () {
+            var n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
+            return isFinite(n) && n > 0 ? n : 0;
+        })(),
+        flammeJour: (function () {
+            try { return localStorage.getItem('studyPlanIB_flammeJour') || ''; } catch (e) { return ''; }
+        })(),
         iaDocs: (function () {
             var out = [];
             try {
@@ -258,6 +265,15 @@ function memoireAppliquer(data, opts) {
                 if (data.dernierJour) localStorage.setItem('studyPlanIB_dernierJour', data.dernierJour);
             } catch (e) {}
         }
+    }
+    if (data.flammeJour) {
+        try {
+            var jourLocal = localStorage.getItem('studyPlanIB_flammeJour') || '';
+            if (String(data.flammeJour) >= jourLocal) {
+                localStorage.setItem('studyPlanIB_flammeJour', data.flammeJour);
+                localStorage.setItem('studyPlanIB_flamme', String(Number(data.flammes) || 0));
+            }
+        } catch (e2) {}
     }
     if (Array.isArray(data.iaDocs) && data.iaDocs.length && data.userName) {
         var cleDocs = 'ia-docs-' + String(data.userName).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').slice(0, 80);

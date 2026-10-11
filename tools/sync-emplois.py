@@ -257,6 +257,12 @@ def joindre_personne(a, b):
     garde['googleNom'] = garde.get('googleNom') or autre.get('googleNom') or ''
     garde['googleSub'] = garde.get('googleSub') or autre.get('googleSub') or ''
     garde['appareil'] = garde.get('appareil') or autre.get('appareil') or ''
+    recent = garde if str(garde.get('at') or '') >= str(autre.get('at') or '') else autre
+    autre_flamme = autre if recent is garde else garde
+    if recent.get('flammes') is not None:
+        garde['flammes'] = int(recent.get('flammes') or 0)
+    else:
+        garde['flammes'] = int(autre_flamme.get('flammes') or 0)
     if not garde.get('matieres') and autre.get('matieres'):
         garde['matieres'] = autre.get('matieres')
     garde['jours'] = joindre_jours(autre.get('jours'), garde.get('jours'))
@@ -284,6 +290,7 @@ def depuis_message(item):
         'google': item.get('google') or item.get('email') or '',
         'googleNom': item.get('googleNom') or '',
         'googleSub': item.get('googleSub') or '',
+        'flammes': int(item.get('flammes') or 0),
         'matieres': item.get('matieres') or [],
         'jours': item.get('jours') or [],
     }
@@ -341,6 +348,7 @@ def leger(item):
         'google': item.get('google') or '',
         'googleNom': item.get('googleNom') or '',
         'googleSub': item.get('googleSub') or '',
+        'flammes': int(item.get('flammes') or 0),
         'matieres': item.get('matieres') or [],
         'jours': item.get('jours') or [],
     }
