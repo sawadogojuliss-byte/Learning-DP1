@@ -2,8 +2,6 @@ name: Emplois du temps
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 * * * *'
 
 permissions:
   contents: write

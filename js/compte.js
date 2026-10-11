@@ -1125,6 +1125,7 @@ function compteChoisirNom(session, copies) {
         var nom = compteNormaliserNom(data.userName);
         if (!nom || !meilleur) return;
         if (meilleur.length < 3 && nom.length >= 3) meilleur = nom;
+        if (nom.toLowerCase().indexOf(meilleur.toLowerCase()) !== -1 && nom.length > meilleur.length && meilleur.length >= 3) meilleur = nom;
         if (nom.indexOf(meilleur) === 0 && nom.length > meilleur.length) meilleur = nom;
     });
     return meilleur || (session ? compteNomLie(session.sub) : '');
@@ -1269,9 +1270,27 @@ function compteRetrouverApresChargement(essai) {
         return;
     }
     window.compteRestaurationEnCours = true;
-    compteLireCopiesPartagees(session).then(function (distantes) {
-        if (distantes && distantes.length) return compteRestaurerTout(session, null, distantes, { silencieux: true });
-        return 'local';
+    var lireFirebase = compteChargerFirebase().then(function () {
+        return new Promise(function (resolve) {
+            var fini = false;
+            var timer = setTimeout(function () {
+                if (!fini) { fini = true; resolve(null); }
+            }, 4000);
+            firebase.auth().onAuthStateChanged(function (user) {
+                if (fini || !user) return;
+                fini = true;
+                clearTimeout(timer);
+                compteFirebaseLireDoc(user).then(resolve, function () { resolve(null); });
+            });
+        });
+    }).catch(function () { return null; });
+    lireFirebase.then(function (doc) {
+        return compteLireCopiesPartagees(session).then(function (distantes) {
+            var firebaseCopie = compteProgressionFirebase(doc);
+            if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
+            if (distantes && distantes.length) return compteRestaurerTout(session, null, distantes, { silencieux: true });
+            return 'local';
+        });
     }).then(function () {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         if (courant) compteFigerNom(session, [courant]);
@@ -1352,29 +1371,85 @@ function compteChargerFirebase() {
         });
 }
 
-function compteFirebaseEcrire(user, nom) {
-    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
-    var session = window.compteSession || {};
-    return firebase.firestore().collection('comptes').doc(user.uid).set({
-        email: user.email || session.email || '',
-        nom: nom || user.displayName || session.name || '',
-        googleNom: user.displayName || session.name || '',
-        photo: user.photoURL || session.picture || '',
-        fournisseur: 'google',
-        dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+function compteGarderNom(stocke, candidat) {
+    var s = compteNormaliserNom(stocke);
+    var c = compteNormaliserNom(candidat);
+    if (!s) return c;
+    if (!c) return s;
+    var sl = s.toLowerCase();
+    var cl = c.toLowerCase();
+    if (sl.length < 3 && cl.length >= 3) return c;
+    if (cl.length < 3 && sl.length >= 3) return s;
+    if (sl.indexOf(cl) !== -1 && sl.length > cl.length && cl.length >= 3) return s;
+    if (cl.indexOf(sl) !== -1 && cl.length > sl.length && sl.length >= 3) return c;
+    if (cl.length + 3 < sl.length) return s;
+    return c;
 }
 
-function compteFirebaseEnregistrer(session, idToken) {
-    if (!idToken) return Promise.resolve();
+function compteProgressionFirebase(doc) {
+    if (!doc || typeof doc !== 'object') return null;
+    var data = doc.progression;
+    if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { data = null; }
+    }
+    if (!data || typeof data !== 'object') return null;
+    if (doc.nom && !data.userName) data.userName = doc.nom;
+    if (doc.nom) data.userName = compteGarderNom(doc.nom, data.userName);
+    return compteUtile(data) ? data : null;
+}
+
+function compteFirebaseLireDoc(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve(null);
+    return firebase.firestore().collection('comptes').doc(user.uid).get().then(function (snap) {
+        return snap && snap.exists ? (snap.data() || null) : null;
+    }).catch(function () { return null; });
+}
+
+function compteFirebaseEcrire(user, nom, data) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
+    var session = window.compteSession || {};
+    return compteFirebaseLireDoc(user).then(function (deja) {
+        var nomGarde = compteGarderNom(deja && deja.nom, nom || '');
+        if (!nomGarde && deja && deja.progression && deja.progression.userName) nomGarde = deja.progression.userName;
+        var payload = {
+            email: user.email || session.email || (deja && deja.email) || '',
+            nom: nomGarde || (deja && deja.nom) || '',
+            googleNom: user.displayName || session.name || (deja && deja.googleNom) || '',
+            photo: user.photoURL || session.picture || (deja && deja.photo) || '',
+            fournisseur: 'google',
+            googleSub: session.sub || (deja && deja.googleSub) || '',
+            dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        var neuve = data && compteUtile(data) ? compteSansDocuments(data) : null;
+        var ancienne = compteProgressionFirebase(deja);
+        if (neuve) {
+            if (nomGarde) neuve.userName = nomGarde;
+            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) payload.progression = neuve;
+        }
+        return firebase.firestore().collection('comptes').doc(user.uid).set(payload, { merge: true });
+    }).catch(function () {});
+}
+
+function compteFirebaseOuvrir(session, idToken) {
+    if (!idToken) return Promise.resolve(null);
     return compteChargerFirebase().then(function () {
         var cred = firebase.auth.GoogleAuthProvider.credential(idToken);
         return firebase.auth().signInWithCredential(cred);
     }).then(function (result) {
         var user = result && result.user;
-        var nom = (session && compteNomLie(session.sub)) || (typeof userName !== 'undefined' ? userName : '') || (user && user.displayName) || '';
-        return compteFirebaseEcrire(user, nom);
-    }).catch(function () {});
+        if (!user) return null;
+        return compteFirebaseLireDoc(user).then(function (doc) {
+            return { user: user, doc: doc };
+        });
+    }).catch(function () { return null; });
+}
+
+function compteFirebaseEnregistrer(session, idToken) {
+    return compteFirebaseOuvrir(session, idToken).then(function (ouvert) {
+        if (!ouvert || !ouvert.user) return null;
+        var nom = (session && compteNomLie(session.sub)) || (typeof userName !== 'undefined' ? userName : '') || '';
+        return compteFirebaseEcrire(ouvert.user, nom).then(function () { return ouvert; });
+    });
 }
 
 function compteOnCredential(resp) {
@@ -1387,24 +1462,30 @@ function compteOnCredential(resp) {
         return;
     }
     var session = compteSessionDepuis(payload);
-    compteFirebaseEnregistrer(session, resp.credential);
     if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
         var instant = sauvegardeCapturer();
         if (instant) sauvegardeEcrireLocal('locale', instant, false);
     }
     compteMemoriserSession(session);
     window.compteRestaurationEnCours = true;
-    compteLireCopiesPartagees(session).then(function (distantes) {
-        return compteRestaurerTout(session, null, distantes);
-    }).then(function () {
+    compteFirebaseOuvrir(session, resp.credential).then(function (ouvert) {
+        return compteLireCopiesPartagees(session).then(function (distantes) {
+            var firebaseCopie = compteProgressionFirebase(ouvert && ouvert.doc);
+            if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
+            return compteRestaurerTout(session, null, distantes).then(function () {
+                return ouvert;
+            });
+        });
+    }).then(function (ouvert) {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
-        var nomLie = compteFigerNom(session, [courant]);
-        if (window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser) {
-            compteFirebaseEcrire(firebase.auth().currentUser, nomLie).catch(function () {});
-        }
-        window.compteRestaurationEnCours = false;
-        compteRafraichir();
-        return comptePublierProgression(session);
+        var nomLie = compteFigerNom(session, courant ? [courant] : []);
+        var user = (ouvert && ouvert.user) || (window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser);
+        var suite = user ? compteFirebaseEcrire(user, nomLie, courant) : Promise.resolve();
+        return suite.then(function () {
+            window.compteRestaurationEnCours = false;
+            compteRafraichir();
+            return comptePublierProgression(session);
+        });
     }).catch(function () {
         window.compteRestaurationEnCours = false;
     });

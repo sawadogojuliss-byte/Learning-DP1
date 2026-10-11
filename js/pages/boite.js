@@ -431,7 +431,7 @@ function boiteDecouperEmploi(record) {
     var jours = record.jours || [];
     if (!jours.length || JSON.stringify(record).length <= 3200) return [record];
     return jours.map(function (jour, index) {
-        return {
+        var morceau = {
             type: 'emploi',
             id: record.id,
             appareil: record.appareil,
@@ -446,9 +446,52 @@ function boiteDecouperEmploi(record) {
             matieres: record.matieres || [],
             jours: [jour],
             complet: 0,
-            partie: index + 1
+            partie: index + 1,
+            total: jours.length
         };
+        if (JSON.stringify(morceau).length > 3600) morceau.coupee = 1;
+        return morceau;
     });
+}
+
+function boiteReassemblerEmplois(items) {
+    var groupes = {};
+    var autres = [];
+    (items || []).forEach(function (item) {
+        var total = Number(item && item.total || 0);
+        var partie = Number(item && item.partie || 0);
+        if (!item || item.type !== 'emploi' || !partie || !total) {
+            autres.push(item);
+            return;
+        }
+        var cle = String(item.appareil || item.id || '') + '|' + String(item.at || '') + '|' + total;
+        if (!groupes[cle]) groupes[cle] = { total: total, parts: {}, base: item, coupee: false };
+        if (item.coupee) groupes[cle].coupee = true;
+        groupes[cle].parts[partie] = item;
+    });
+    Object.keys(groupes).forEach(function (cle) {
+        var g = groupes[cle];
+        var i;
+        var jours = [];
+        var complet = !g.coupee && g.total > 0;
+        for (i = 1; i <= g.total; i++) {
+            if (!g.parts[i]) { complet = false; break; }
+            jours = jours.concat(g.parts[i].jours || []);
+        }
+        if (!complet) {
+            for (i = 1; i <= g.total; i++) if (g.parts[i]) autres.push(g.parts[i]);
+            return;
+        }
+        var plein = {};
+        Object.keys(g.base).forEach(function (k) { plein[k] = g.base[k]; });
+        plein.jours = jours;
+        plein.complet = 1;
+        delete plein.partie;
+        delete plein.total;
+        delete plein.coupee;
+        autres.push(plein);
+    });
+    return autres;
 }
 
 function boiteEnvoyer(record) {
@@ -581,7 +624,10 @@ function boiteMemePersonne(a, b) {
     if (nomA && nomB && nomA === nomB) return true;
     var appA = String(a.appareil || '').trim();
     var appB = String(b.appareil || '').trim();
-    if (appA && appA === appB && (!nomA || !nomB || nomA === nomB)) return true;
+    if (appA && appA === appB) {
+        if (!nomA || !nomB || nomA === nomB) return true;
+        if (nomA.length >= 3 && nomB.length >= 3 && (nomA.indexOf(nomB) !== -1 || nomB.indexOf(nomA) !== -1)) return true;
+    }
     return false;
 }
 
@@ -740,6 +786,7 @@ function boiteFusionner(items) {
             if (!boiteEmploiRetire(item)) brutsEmplois.push(item);
         }
     });
+    brutsEmplois = boiteReassemblerEmplois(brutsEmplois);
     var listeEmplois = boiteFusionnerPersonnes(brutsEmplois);
     questions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });

@@ -263,10 +263,16 @@ def choisir_nom_texte(recent_nom, ancien_nom, recent_at='', ancien_at=''):
         return na
     if len(a) < 3 <= len(r):
         return nr
+    if len(r) >= 3 and r in a and len(a) > len(r):
+        return na
+    if len(a) >= 3 and a in r and len(r) > len(a):
+        return nr
     if a.startswith(r) and len(a) > len(r):
         return na
     if r.startswith(a) and len(r) > len(a):
         return nr
+    if len(r) + 3 < len(a):
+        return na
     return nr if str(recent_at) >= str(ancien_at) else na
 
 
@@ -289,8 +295,11 @@ def meme_personne(a, b):
         return True
     app_a = str(a.get('appareil') or '').strip()
     app_b = str(b.get('appareil') or '').strip()
-    if app_a and app_a == app_b and (not nom_a or not nom_b or nom_a == nom_b):
-        return True
+    if app_a and app_a == app_b:
+        if not nom_a or not nom_b or nom_a == nom_b:
+            return True
+        if len(nom_a) >= 3 and len(nom_b) >= 3 and (nom_a in nom_b or nom_b in nom_a):
+            return True
     return False
 
 
@@ -367,7 +376,50 @@ def depuis_message(item):
     }
 
 
+def reassembler_emplois(items):
+    groupes = {}
+    autres = []
+    for item in items or []:
+        if not isinstance(item, dict) or item.get('type') != 'emploi':
+            autres.append(item)
+            continue
+        try:
+            partie = int(item.get('partie') or 0)
+            total = int(item.get('total') or 0)
+        except Exception:
+            partie, total = 0, 0
+        if not partie or not total:
+            autres.append(item)
+            continue
+        cle = '|'.join([
+            str(item.get('appareil') or item.get('id') or ''),
+            str(item.get('at') or ''),
+            str(total),
+        ])
+        groupe = groupes.setdefault(cle, {'total': total, 'parts': {}, 'base': item, 'coupee': False})
+        if item.get('coupee'):
+            groupe['coupee'] = True
+        groupe['parts'][partie] = item
+    for groupe in groupes.values():
+        total = groupe['total']
+        if groupe['coupee'] or not total or any(i not in groupe['parts'] for i in range(1, total + 1)):
+            autres.extend(groupe['parts'].values())
+            continue
+        jours = []
+        for i in range(1, total + 1):
+            jours.extend(groupe['parts'][i].get('jours') or [])
+        plein = dict(groupe['base'])
+        plein['jours'] = jours
+        plein['complet'] = 1
+        plein.pop('partie', None)
+        plein.pop('total', None)
+        plein.pop('coupee', None)
+        autres.append(plein)
+    return autres
+
+
 def fusionner(items):
+    items = reassembler_emplois(items)
     bruts = []
     for item in items:
         if not isinstance(item, dict):
