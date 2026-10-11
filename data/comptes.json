@@ -6,10 +6,10 @@
       "google": "doriilboudo235@gmail.com",
       "googleSub": "102249607109048181085",
       "nom": "Kenzah",
-      "at": "2026-10-11T13:13:21.165Z",
+      "at": "2026-10-11T15:01:39.830Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-11T13:13:21.165Z",
+        "savedAt": "2026-10-11T15:01:39.830Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Kenzah",
@@ -185,7 +185,7 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 3,
+        "selectedDay": 6,
         "customEvents": [
           {
             "id": "meal-petit-déjeuner-0-1791265740478",
@@ -302,9 +302,48 @@
             "subjectGrade": 6,
             "source": "custom",
             "timestamp": 1791558246324
+          },
+          {
+            "id": "meal-petit-déjeuner-6-1791725423436",
+            "day": 6,
+            "title": "Petit-déjeuner",
+            "startTime": "06:15",
+            "endTime": "06:45",
+            "type": "meal",
+            "icon": "🥐",
+            "source": "custom",
+            "replacesId": "breakfast",
+            "deleted": true,
+            "timestamp": 1791725423436
           }
         ],
         "exercices": [
+          {
+            "id": "exo-1791725243516",
+            "subject": "Anglais B",
+            "subjectIcon": "🇬🇧",
+            "subjectGrade": 7,
+            "text": "Homework\nTask 1:Write five sentences that reveal a character's traits implicitly (indirect characterization) using each element of the STEAL acronym: Speech, Thoughts, Effect on others, Actions, and Looks.\n\n\n\nTask 2: Find on toddle an extract from chapter two of  Things Fall Apart (extract A1), read the passage, and analyse how the author used indirect characterisation to convey important messages.\n\n\n\nTask 3: For the next class, do research on different types of characters based on their complexity and how they change over time.",
+            "filename": null,
+            "duration": 105,
+            "deadline": "2026-10-13",
+            "done": false,
+            "addedAt": "2026-10-11T13:27:23.516Z",
+            "scheduledSlot": null
+          },
+          {
+            "id": "exo-1791725303306",
+            "subject": "Mathématiques AA",
+            "subjectIcon": "🔢",
+            "subjectGrade": 7,
+            "text": "Activit-EnsemblesetdiagrammedeVenn.pdf",
+            "filename": "Activit-EnsemblesetdiagrammedeVenn.pdf",
+            "duration": 90,
+            "deadline": "2026-10-13",
+            "done": false,
+            "addedAt": "2026-10-11T13:28:23.306Z",
+            "scheduledSlot": null
+          },
           {
             "id": "exo-1791527342780",
             "subject": "Mathématiques AA",
@@ -340,10 +379,10 @@
       "google": "sawadogojuliss@gmail.com",
       "googleSub": "116965022060639990571",
       "nom": "Sawadogo Juliss Bill Owen",
-      "at": "2026-10-11T14:30:19.999Z",
+      "at": "2026-10-11T14:52:49.622Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-11T14:30:19.999Z",
+        "savedAt": "2026-10-11T14:52:49.622Z",
         "etape": "emplois",
         "profilComplet": true,
         "userName": "Sawadogo Juliss Bill Owen",
