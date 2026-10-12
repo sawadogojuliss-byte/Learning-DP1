@@ -2759,6 +2759,2714 @@
     },
     {
       "type": "profil",
+      "email": "mathis.kafando@enkoschools.com",
+      "google": "mathis.kafando@enkoschools.com",
+      "googleSub": "117579065401460802672",
+      "nom": "Mathis",
+      "at": "2026-10-12T08:56:51.193Z",
+      "data": {
+        "v": 1,
+        "savedAt": "2026-10-12T08:56:51.193Z",
+        "etape": "planning",
+        "profilComplet": true,
+        "userName": "Mathis",
+        "targetScore": 38,
+        "weekdayWakeup": "06:00",
+        "saturdayWakeup": "07:00",
+        "sundayWakeup": "06:00",
+        "subjects": [
+          {
+            "name": "Mathématiques AA",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🔢"
+          },
+          {
+            "name": "Anglais B",
+            "level": "HL",
+            "grade": 7,
+            "icon": "🇬🇧"
+          },
+          {
+            "name": "Français A",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🇫🇷"
+          },
+          {
+            "name": "Géographie",
+            "level": "SL",
+            "grade": 7,
+            "icon": "🌍"
+          },
+          {
+            "name": "Économie",
+            "level": "HL",
+            "grade": 6,
+            "icon": "💹"
+          },
+          {
+            "name": "Physique",
+            "level": "HL",
+            "grade": 6,
+            "icon": "⚛️"
+          }
+        ],
+        "optionalSubjects": [],
+        "ibYear": "DP2",
+        "memoirLevel": "",
+        "iaLevel": "",
+        "iaLevels": {},
+        "memoirPlan": [],
+        "iaPlans": {},
+        "eeVus": {},
+        "eeDemandes": {},
+        "transportMode": "moto",
+        "carDeparture": "07:30",
+        "carToSchool": 30,
+        "carFromSchool": 40,
+        "motoDeparture": "07:00",
+        "motoReturn": "17:00",
+        "motoToSchool": 30,
+        "motoFromSchool": 30,
+        "selectedActivities": [
+          {
+            "name": "Église",
+            "icon": "⛪",
+            "days": [
+              5
+            ],
+            "sameTime": true,
+            "startTime": "17:00",
+            "endTime": "21:00",
+            "dayTimes": {
+              "5": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          },
+          {
+            "name": "equitation",
+            "icon": "✨",
+            "days": [
+              4
+            ],
+            "sameTime": true,
+            "startTime": "17:00",
+            "endTime": "19:00",
+            "dayTimes": {
+              "0": {
+                "start": "17:00",
+                "end": "19:00"
+              },
+              "4": {
+                "start": "17:00",
+                "end": "19:00"
+              },
+              "6": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          },
+          {
+            "name": "Kung FU",
+            "icon": "✨",
+            "days": [
+              6
+            ],
+            "sameTime": true,
+            "startTime": "18:00",
+            "endTime": "20:00",
+            "dayTimes": {
+              "6": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          }
+        ],
+        "holidayDays": [],
+        "holidayModes": {},
+        "holidayDropped": {},
+        "sameFreeTime": true,
+        "freeTimeMinutes": 150,
+        "freeTimeByDay": {
+          "0": 150,
+          "1": 150,
+          "2": 150,
+          "3": 150,
+          "4": 150,
+          "5": 150,
+          "6": 150
+        },
+        "weekdaySleepHours": 5,
+        "saturdaySleepHours": 6,
+        "sundaySleepHours": 6,
+        "phoneDays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "samePhoneDuration": true,
+        "phoneDuration": 90,
+        "phoneDayDurations": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "selectedDay": 0,
+        "customEvents": [
+          {
+            "id": "study-révision-mathématiques-aa-0-1791743215536",
+            "day": 0,
+            "title": "Révision Mathématiques AA",
+            "startTime": "00:35",
+            "endTime": "01:35",
+            "type": "study",
+            "icon": "🔢",
+            "subjectGrade": 6,
+            "source": "custom",
+            "timestamp": 1791743215536
+          },
+          {
+            "id": "study-révisions-·-physique-0-1791743245610",
+            "day": 0,
+            "title": "Révisions · Physique",
+            "startTime": "19:45",
+            "endTime": "21:15",
+            "type": "study",
+            "icon": "⚛️",
+            "source": "custom",
+            "replacesId": "revgap-1185",
+            "pinned": false,
+            "timestamp": 1791743245610
+          },
+          {
+            "id": "study-révisions-·-économie-0-1791760705943",
+            "day": 0,
+            "title": "Révisions · Économie",
+            "startTime": "16:35",
+            "endTime": "17:00",
+            "type": "study",
+            "icon": "💹",
+            "source": "custom",
+            "replacesId": "revgap-995",
+            "deleted": true,
+            "timestamp": 1791760705943
+          },
+          {
+            "id": "transport-trajet-maison-0-1791760767479",
+            "day": 0,
+            "title": "Trajet maison",
+            "startTime": "16:45",
+            "endTime": "17:15",
+            "type": "transport",
+            "icon": "🏍️",
+            "source": "custom",
+            "replacesId": "commute2",
+            "pinned": true,
+            "timestamp": 1791760767479
+          }
+        ],
+        "modifsSemaine": {
+          "semaine": "2026-10-12",
+          "events": [
+            {
+              "id": "study-révision-mathématiques-aa-0-1791743215536",
+              "day": 0,
+              "title": "Révision Mathématiques AA",
+              "startTime": "00:35",
+              "endTime": "01:35",
+              "type": "study",
+              "icon": "🔢",
+              "subjectGrade": 6,
+              "source": "custom",
+              "timestamp": 1791743215536
+            },
+            {
+              "id": "study-révisions-·-physique-0-1791743245610",
+              "day": 0,
+              "title": "Révisions · Physique",
+              "startTime": "19:45",
+              "endTime": "21:15",
+              "type": "study",
+              "icon": "⚛️",
+              "source": "custom",
+              "replacesId": "revgap-1185",
+              "pinned": false,
+              "timestamp": 1791743245610
+            },
+            {
+              "id": "study-révisions-·-économie-0-1791760705943",
+              "day": 0,
+              "title": "Révisions · Économie",
+              "startTime": "16:35",
+              "endTime": "17:00",
+              "type": "study",
+              "icon": "💹",
+              "source": "custom",
+              "replacesId": "revgap-995",
+              "deleted": true,
+              "timestamp": 1791760705943
+            },
+            {
+              "id": "transport-trajet-maison-0-1791760767479",
+              "day": 0,
+              "title": "Trajet maison",
+              "startTime": "16:45",
+              "endTime": "17:15",
+              "type": "transport",
+              "icon": "🏍️",
+              "source": "custom",
+              "replacesId": "commute2",
+              "pinned": true,
+              "timestamp": 1791760767479
+            }
+          ]
+        },
+        "emploiFige": {
+          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":7},{\"name\":\"Français A\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Géographie\",\"level\":\"SL\",\"grade\":7},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Physique\",\"level\":\"HL\",\"grade\":6}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":38,\"weekdayWakeup\":\"06:00\",\"saturdayWakeup\":\"07:00\",\"sundayWakeup\":\"06:00\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":6,\"sundaySleepHours\":6,\"transportMode\":\"moto\",\"carDeparture\":\"07:30\",\"carToSchool\":30,\"carFromSchool\":40,\"motoDeparture\":\"07:00\",\"motoReturn\":\"17:00\",\"motoToSchool\":30,\"motoFromSchool\":30,\"selectedActivities\":[{\"name\":\"Église\",\"days\":[5],\"sameTime\":true,\"startTime\":\"17:00\",\"endTime\":\"21:00\",\"dayTimes\":{\"5\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"equitation\",\"days\":[4],\"sameTime\":true,\"startTime\":\"17:00\",\"endTime\":\"19:00\",\"dayTimes\":{\"0\":{\"start\":\"17:00\",\"end\":\"19:00\"},\"4\":{\"start\":\"17:00\",\"end\":\"19:00\"},\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Kung FU\",\"days\":[6],\"sameTime\":true,\"startTime\":\"18:00\",\"endTime\":\"20:00\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[],\"holidayModes\":{},\"holidayDropped\":{},\"memoirLevel\":\"\",\"iaLevel\":\"\",\"iaLevels\":{},\"memoirPlan\":[],\"iaPlans\":{},\"reglesPlanning\":\"20261012c\",\"customEvents\":[{\"id\":\"study-révision-mathématiques-aa-0-1791743215536\",\"day\":0,\"title\":\"Révision Mathématiques AA\",\"startTime\":\"00:35\",\"endTime\":\"01:35\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\"},{\"id\":\"study-révisions-·-physique-0-1791743245610\",\"day\":0,\"title\":\"Révisions · Physique\",\"startTime\":\"19:45\",\"endTime\":\"21:15\",\"type\":\"study\",\"replacesId\":\"revgap-1185\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\"},{\"id\":\"study-révisions-·-économie-0-1791760705943\",\"day\":0,\"title\":\"Révisions · Économie\",\"startTime\":\"16:35\",\"endTime\":\"17:00\",\"type\":\"study\",\"replacesId\":\"revgap-995\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\"},{\"id\":\"transport-trajet-maison-0-1791760767479\",\"day\":0,\"title\":\"Trajet maison\",\"startTime\":\"16:45\",\"endTime\":\"17:15\",\"type\":\"transport\",\"replacesId\":\"commute2\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\"}]}",
+          "at": "2026-10-12T08:56:43.832Z",
+          "jours": [
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:30",
+                "endTime": "07:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 390,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "30 min",
+                "startTime": "07:00",
+                "endTime": "07:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 420,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "revgap-450",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "07:30",
+                "endTime": "07:50",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    450,
+                    470
+                  ]
+                ],
+                "preferMin": 450,
+                "minimum": 20
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:05",
+                "endTime": "17:35",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 370,
+                "shifted": true
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "18:00",
+                "endTime": "18:01",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:01",
+                "endTime": "18:51",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1500
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "20:00",
+                "endTime": "21:30",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:30",
+                "endTime": "23:10",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:10",
+                "endTime": "00:35",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study-révision-mathématiques-aa-0-1791743215536",
+                "title": "Révision Mathématiques AA",
+                "subtitle": "",
+                "startTime": "00:35",
+                "endTime": "01:35",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "pinned",
+                "source": "custom",
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 35
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "30 min",
+                "startTime": "00:35",
+                "endTime": "01:05",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": true,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ]
+                ],
+                "preferMin": 995
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "t": "Coucher",
+                "type": "sleep",
+                "icon": "😴",
+                "d": "01:05",
+                "f": "06:00",
+                "startTime": "01:05",
+                "endTime": "06:00"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:30",
+                "endTime": "07:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 390,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "30 min",
+                "startTime": "07:00",
+                "endTime": "07:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 420,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "revgap-450",
+                "title": "Révisions · Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "07:30",
+                "endTime": "07:50",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    450,
+                    470
+                  ]
+                ],
+                "preferMin": 450,
+                "minimum": 20
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "revgap-995",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "16:35",
+                "endTime": "17:00",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    995,
+                    1020
+                  ]
+                ],
+                "preferMin": 995,
+                "minimum": 25
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "30 min",
+                "startTime": "17:00",
+                "endTime": "17:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 1020,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:30",
+                "endTime": "18:00",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 370,
+                "shifted": true
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "18:00",
+                "endTime": "18:01",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:01",
+                "endTime": "18:51",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1500
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "20:00",
+                "endTime": "21:30",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:30",
+                "endTime": "23:10",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:10",
+                "endTime": "00:35",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "06:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:30",
+                "endTime": "07:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 390,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "30 min",
+                "startTime": "07:00",
+                "endTime": "07:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 420,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "revgap-450",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "07:30",
+                "endTime": "07:50",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    450,
+                    470
+                  ]
+                ],
+                "preferMin": 450,
+                "minimum": 20
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "revgap-995",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "16:35",
+                "endTime": "17:00",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    995,
+                    1020
+                  ]
+                ],
+                "preferMin": 995,
+                "minimum": 25
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "30 min",
+                "startTime": "17:00",
+                "endTime": "17:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 1020,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:30",
+                "endTime": "18:00",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 370,
+                "shifted": true
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "18:00",
+                "endTime": "18:01",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080
+              },
+              {
+                "id": "revgap-1081",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "18:01",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1081,
+                    1140
+                  ]
+                ],
+                "preferMin": 1081,
+                "minimum": 59
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1500
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "20:00",
+                "endTime": "21:30",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:30",
+                "endTime": "23:10",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "23:10",
+                "endTime": "00:35",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "06:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:30",
+                "endTime": "07:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 390,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "30 min",
+                "startTime": "07:00",
+                "endTime": "07:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 420,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "revgap-450",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "07:30",
+                "endTime": "07:50",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    450,
+                    470
+                  ]
+                ],
+                "preferMin": 450,
+                "minimum": 20
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "revgap-995",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "16:35",
+                "endTime": "17:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    995,
+                    1020
+                  ]
+                ],
+                "preferMin": 995,
+                "minimum": 25
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "30 min",
+                "startTime": "17:00",
+                "endTime": "17:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 1020,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:30",
+                "endTime": "18:00",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 370,
+                "shifted": true
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "18:00",
+                "endTime": "18:01",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080
+              },
+              {
+                "id": "revgap-1081",
+                "title": "Révisions · Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "18:01",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1081,
+                    1140
+                  ]
+                ],
+                "preferMin": 1081,
+                "minimum": 59
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1500
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Mathématiques AA",
+                "subtitle": "SL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "20:00",
+                "endTime": "21:30",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:30",
+                "endTime": "23:10",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "23:10",
+                "endTime": "00:35",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "06:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:30",
+                "endTime": "07:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 390,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "30 min",
+                "startTime": "07:00",
+                "endTime": "07:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 420,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "revgap-450",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 7/7",
+                "startTime": "07:30",
+                "endTime": "07:50",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    450,
+                    470
+                  ]
+                ],
+                "preferMin": 450,
+                "minimum": 20
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "16:35",
+                "endTime": "17:00",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 370,
+                "shifted": true
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "30 min",
+                "startTime": "17:00",
+                "endTime": "17:30",
+                "type": "transport",
+                "icon": "🏍️",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 1020,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ]
+                ]
+              },
+              {
+                "id": "activity-equitation",
+                "title": "equitation",
+                "subtitle": "Activité",
+                "startTime": "17:30",
+                "endTime": "19:30",
+                "type": "activity",
+                "icon": "✨",
+                "editable": true,
+                "kind": "pinned",
+                "minimum": 30,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1020,
+                "shifted": true
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:30",
+                "endTime": "20:15",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1500
+                  ]
+                ],
+                "preferMin": 1140,
+                "shifted": true
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "20:15",
+                "endTime": "20:16",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080,
+                "shifted": true
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "20:16",
+                "endTime": "21:46",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 1200,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "21:46",
+                "endTime": "22:31",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "22:31",
+                "endTime": "00:11",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "00:11",
+                "endTime": "01:00",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1500
+                  ],
+                  [
+                    360,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "06:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "07:00",
+                "endTime": "07:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "07:10",
+                "endTime": "07:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    420,
+                    660
+                  ],
+                  [
+                    480,
+                    660
+                  ]
+                ],
+                "preferMin": 430
+              },
+              {
+                "id": "revgap-460",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "07:40",
+                "endTime": "09:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    460,
+                    540
+                  ]
+                ],
+                "preferMin": 460,
+                "minimum": 80
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "09:00",
+                "endTime": "10:30",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    420,
+                    660
+                  ]
+                ],
+                "preferMin": 1200,
+                "shifted": true
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "10:30",
+                "endTime": "11:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 10,
+                "plages": [
+                  [
+                    420,
+                    660
+                  ]
+                ],
+                "preferMin": 630
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "11:00",
+                "endTime": "12:05",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    480,
+                    1500
+                  ],
+                  [
+                    420,
+                    660
+                  ]
+                ],
+                "preferMin": 480,
+                "shifted": true
+              },
+              {
+                "id": "rev-autre-5-Économie",
+                "title": "Révisions · Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "12:05",
+                "endTime": "12:30",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    725,
+                    750
+                  ]
+                ],
+                "preferMin": 725,
+                "minimum": 25
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    660,
+                    900
+                  ]
+                ],
+                "preferMin": 750
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 7/7",
+                "startTime": "13:30",
+                "endTime": "15:10",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    480,
+                    1500
+                  ],
+                  [
+                    420,
+                    660
+                  ]
+                ],
+                "preferMin": 480,
+                "shifted": true
+              },
+              {
+                "id": "revgap-910",
+                "title": "Révisions · Mathématiques AA",
+                "subtitle": "SL · 6/7",
+                "startTime": "15:10",
+                "endTime": "16:30",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    910,
+                    990
+                  ]
+                ],
+                "preferMin": 910,
+                "minimum": 80
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "16:30",
+                "endTime": "19:00",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    420,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080,
+                "shifted": true
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    1140,
+                    1185
+                  ]
+                ],
+                "preferMin": 1140,
+                "minimum": 45
+              },
+              {
+                "id": "activity-Église",
+                "title": "Église",
+                "subtitle": "Activité",
+                "startTime": "19:45",
+                "endTime": "23:45",
+                "type": "activity",
+                "icon": "⛪",
+                "editable": true,
+                "kind": "pinned",
+                "minimum": 30,
+                "plages": [
+                  [
+                    420,
+                    1500
+                  ]
+                ],
+                "preferMin": 1020,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1425",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 7/7",
+                "startTime": "23:45",
+                "endTime": "01:00",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1425,
+                    1500
+                  ]
+                ],
+                "preferMin": 1425,
+                "minimum": 75
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "07:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:00",
+                "endTime": "06:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "06:10",
+                "endTime": "06:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    600
+                  ],
+                  [
+                    420,
+                    600
+                  ]
+                ],
+                "preferMin": 370
+              },
+              {
+                "id": "revgap-400",
+                "title": "Révisions · Français A",
+                "subtitle": "SL · 6/7",
+                "startTime": "06:40",
+                "endTime": "08:05",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    400,
+                    420
+                  ]
+                ],
+                "preferMin": 400,
+                "minimum": 20
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Mathématiques AA",
+                "subtitle": "SL · 6/7",
+                "startTime": "08:05",
+                "endTime": "09:30",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    420,
+                    1440
+                  ],
+                  [
+                    360,
+                    600
+                  ]
+                ],
+                "preferMin": 420,
+                "shifted": true
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "09:30",
+                "endTime": "10:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 10,
+                "plages": [
+                  [
+                    360,
+                    600
+                  ]
+                ],
+                "preferMin": 570
+              },
+              {
+                "id": "revgap-600",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 7/7",
+                "startTime": "10:00",
+                "endTime": "11:30",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    600,
+                    690
+                  ]
+                ],
+                "preferMin": 600,
+                "minimum": 90
+              },
+              {
+                "id": "revgap-690",
+                "title": "Révisions · Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "11:30",
+                "endTime": "12:30",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    690,
+                    750
+                  ]
+                ],
+                "preferMin": 690,
+                "minimum": 60
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    660,
+                    900
+                  ]
+                ],
+                "preferMin": 750
+              },
+              {
+                "id": "revgap-810",
+                "title": "Révisions · Économie",
+                "subtitle": "HL · 6/7",
+                "startTime": "13:30",
+                "endTime": "15:00",
+                "type": "study",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    810,
+                    900
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 90
+              },
+              {
+                "id": "revgap-900",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "15:00",
+                "endTime": "16:30",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    900,
+                    990
+                  ]
+                ],
+                "preferMin": 900,
+                "minimum": 90
+              },
+              {
+                "id": "freetime",
+                "title": "Temps libre",
+                "subtitle": "2h30",
+                "startTime": "16:30",
+                "endTime": "19:00",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    360,
+                    1440
+                  ]
+                ],
+                "preferMin": 1080,
+                "shifted": true
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    1140,
+                    1185
+                  ]
+                ],
+                "preferMin": 1140,
+                "minimum": 45
+              },
+              {
+                "id": "activity-Kung FU",
+                "title": "Kung FU",
+                "subtitle": "Activité",
+                "startTime": "19:45",
+                "endTime": "21:45",
+                "type": "activity",
+                "icon": "✨",
+                "editable": true,
+                "kind": "pinned",
+                "minimum": 30,
+                "plages": [
+                  [
+                    360,
+                    1440
+                  ]
+                ],
+                "preferMin": 1080,
+                "shifted": true
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "1h30",
+                "startTime": "21:45",
+                "endTime": "23:15",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1440
+                  ],
+                  [
+                    360,
+                    600
+                  ]
+                ],
+                "preferMin": 1200,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1395",
+                "title": "Révisions · Physique",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:15",
+                "endTime": "00:00",
+                "type": "study",
+                "icon": "⚛️",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1395,
+                    1440
+                  ]
+                ],
+                "preferMin": 1395,
+                "minimum": 45
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:00",
+                "endTime": "06:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ]
+          ]
+        },
+        "exercices": [],
+        "currentMood": null,
+        "joursConnectes": 3,
+        "dernierJour": "Mon Oct 12 2026",
+        "flammes": 1,
+        "flammeJour": "2026-10-12",
+        "utilisateurId": "117579065401460802672",
+        "google": {
+          "sub": "117579065401460802672",
+          "email": "mathis.kafando@enkoschools.com",
+          "name": "Aimery Mathis D. S Kafando",
+          "given_name": "Aimery Mathis D. S",
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocI7X3Q6dooTZ4C-qaW2x6GDrJzgcho3rC7hYeV_NynFb3Zedd4=s96-c"
+        }
+      }
+    },
+    {
+      "type": "profil",
       "email": "rayyanouedraogo87@gmail.com",
       "google": "rayyanouedraogo87@gmail.com",
       "googleSub": "108029295239679260667",
@@ -5832,6 +8540,2435 @@
           "name": "Rayyan Ouedraogo",
           "given_name": "Rayyan",
           "picture": "https://lh3.googleusercontent.com/a/ACg8ocKeJm8KEu2V2802B6se_xv_SYhFIVWEoSxZd4meMkxYtD-_wA=s96-c"
+        }
+      }
+    },
+    {
+      "type": "profil",
+      "email": "redminote13u@gmail.com",
+      "google": "redminote13u@gmail.com",
+      "googleSub": "101043752652133995164",
+      "nom": "Yohann",
+      "at": "2026-10-12T08:24:30.377Z",
+      "data": {
+        "v": 1,
+        "savedAt": "2026-10-12T08:24:30.377Z",
+        "etape": "planning",
+        "profilComplet": true,
+        "userName": "Yohann",
+        "targetScore": 42,
+        "weekdayWakeup": "06:40",
+        "saturdayWakeup": "08:00",
+        "sundayWakeup": "10:00",
+        "subjects": [
+          {
+            "name": "ESS",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🌱"
+          },
+          {
+            "name": "Biologie",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🧬"
+          },
+          {
+            "name": "Français A",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🇫🇷"
+          },
+          {
+            "name": "Mathématiques AA",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🔢"
+          },
+          {
+            "name": "Anglais B",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🇬🇧"
+          },
+          {
+            "name": "Géographie",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🌍"
+          }
+        ],
+        "optionalSubjects": [],
+        "ibYear": "DP2",
+        "memoirLevel": "",
+        "iaLevel": "",
+        "iaLevels": {},
+        "memoirPlan": [],
+        "iaPlans": {},
+        "eeVus": {},
+        "eeDemandes": {},
+        "transportMode": "voiture",
+        "carDeparture": "07:20",
+        "carToSchool": 20,
+        "carFromSchool": 35,
+        "motoDeparture": "07:30",
+        "motoReturn": "17:00",
+        "motoToSchool": 25,
+        "motoFromSchool": 25,
+        "selectedActivities": [
+          {
+            "name": "Église",
+            "icon": "⛪",
+            "days": [
+              6
+            ],
+            "sameTime": true,
+            "startTime": "18:00",
+            "endTime": "20:30",
+            "dayTimes": {
+              "6": {
+                "start": "17:00",
+                "end": "19:00"
+              }
+            }
+          }
+        ],
+        "holidayDays": [],
+        "holidayModes": {},
+        "holidayDropped": {},
+        "sameFreeTime": true,
+        "freeTimeMinutes": 0,
+        "freeTimeByDay": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0,
+          "6": 0
+        },
+        "weekdaySleepHours": 6,
+        "saturdaySleepHours": 8,
+        "sundaySleepHours": 9,
+        "phoneDays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "samePhoneDuration": true,
+        "phoneDuration": 180,
+        "phoneDayDurations": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "selectedDay": 0,
+        "customEvents": [],
+        "modifsSemaine": {
+          "semaine": "2026-10-12",
+          "events": []
+        },
+        "emploiFige": {
+          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"ESS\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Biologie\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Géographie\",\"level\":\"SL\",\"grade\":6}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"06:40\",\"saturdayWakeup\":\"08:00\",\"sundayWakeup\":\"10:00\",\"weekdaySleepHours\":6,\"saturdaySleepHours\":8,\"sundaySleepHours\":9,\"transportMode\":\"voiture\",\"carDeparture\":\"07:20\",\"carToSchool\":20,\"carFromSchool\":35,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Église\",\"days\":[6],\"sameTime\":true,\"startTime\":\"18:00\",\"endTime\":\"20:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":180,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":0,\"freeTimeByDay\":{\"0\":0,\"1\":0,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0},\"holidayDays\":[],\"holidayModes\":{},\"holidayDropped\":{},\"memoirLevel\":\"\",\"iaLevel\":\"\",\"iaLevels\":{},\"memoirPlan\":[],\"iaPlans\":{},\"reglesPlanning\":\"20261012b\",\"customEvents\":[]}",
+          "at": "2026-10-12T08:24:18.445Z",
+          "jours": [
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:40",
+                "endTime": "06:50",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:50",
+                "endTime": "07:20",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 410,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "20 min",
+                "startTime": "07:20",
+                "endTime": "07:40",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 440,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "35 min",
+                "startTime": "16:35",
+                "endTime": "17:10",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 995,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:10",
+                "endTime": "17:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 410,
+                "shifted": true
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "17:40",
+                "endTime": "18:35",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1115",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:35",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1115,
+                    1140
+                  ]
+                ],
+                "preferMin": 1115,
+                "minimum": 25
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1480
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "20:01",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "20:01",
+                "endTime": "21:46",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:46",
+                "endTime": "23:16",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1396",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:16",
+                "endTime": "00:40",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1396,
+                    1480
+                  ]
+                ],
+                "preferMin": 1396,
+                "minimum": 84
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:40",
+                "endTime": "06:40",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:40",
+                "endTime": "06:50",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:50",
+                "endTime": "07:20",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 410,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "20 min",
+                "startTime": "07:20",
+                "endTime": "07:40",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 440,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "35 min",
+                "startTime": "16:35",
+                "endTime": "17:10",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 995,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:10",
+                "endTime": "17:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 410,
+                "shifted": true
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "17:40",
+                "endTime": "18:35",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1115",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:35",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1115,
+                    1140
+                  ]
+                ],
+                "preferMin": 1115,
+                "minimum": 25
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1480
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "20:01",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "20:01",
+                "endTime": "21:46",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:46",
+                "endTime": "23:16",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1396",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:16",
+                "endTime": "00:40",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1396,
+                    1480
+                  ]
+                ],
+                "preferMin": 1396,
+                "minimum": 84
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:40",
+                "endTime": "06:40",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:40",
+                "endTime": "06:50",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:50",
+                "endTime": "07:20",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 410,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "20 min",
+                "startTime": "07:20",
+                "endTime": "07:40",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 440,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "35 min",
+                "startTime": "16:35",
+                "endTime": "17:10",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 995,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:10",
+                "endTime": "17:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 410,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1060",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "17:40",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1060,
+                    1140
+                  ]
+                ],
+                "preferMin": 1060,
+                "minimum": 80
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1480
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "20:01",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "20:01",
+                "endTime": "21:46",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:46",
+                "endTime": "23:16",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1396",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:16",
+                "endTime": "00:40",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1396,
+                    1480
+                  ]
+                ],
+                "preferMin": 1396,
+                "minimum": 84
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:40",
+                "endTime": "06:40",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:40",
+                "endTime": "06:50",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:50",
+                "endTime": "07:20",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 410,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "20 min",
+                "startTime": "07:20",
+                "endTime": "07:40",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 440,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "35 min",
+                "startTime": "16:35",
+                "endTime": "17:10",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 995,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:10",
+                "endTime": "17:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 410,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1060",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "17:40",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1060,
+                    1140
+                  ]
+                ],
+                "preferMin": 1060,
+                "minimum": 80
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1480
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "20:01",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "20:01",
+                "endTime": "21:46",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "21:46",
+                "endTime": "23:16",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1396",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:16",
+                "endTime": "00:40",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1396,
+                    1480
+                  ]
+                ],
+                "preferMin": 1396,
+                "minimum": 84
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:40",
+                "endTime": "06:40",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "06:40",
+                "endTime": "06:50",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "06:50",
+                "endTime": "07:20",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 410,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "commute1",
+                "title": "Trajet école",
+                "subtitle": "20 min",
+                "startTime": "07:20",
+                "endTime": "07:40",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 440,
+                "minimum": 10,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ]
+                ]
+              },
+              {
+                "id": "school1",
+                "title": "Cours",
+                "subtitle": "7h50 → 12h30",
+                "startTime": "07:50",
+                "endTime": "12:30",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    470,
+                    750
+                  ]
+                ],
+                "preferMin": 470,
+                "minimum": 280
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    750,
+                    810
+                  ]
+                ],
+                "preferMin": 750,
+                "minimum": 60
+              },
+              {
+                "id": "school2",
+                "title": "Cours",
+                "subtitle": "13h30 → 16h35",
+                "startTime": "13:30",
+                "endTime": "16:35",
+                "type": "school",
+                "icon": "🏫",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    810,
+                    995
+                  ]
+                ],
+                "preferMin": 810,
+                "minimum": 185
+              },
+              {
+                "id": "commute2",
+                "title": "Trajet maison",
+                "subtitle": "35 min",
+                "startTime": "16:35",
+                "endTime": "17:10",
+                "type": "transport",
+                "icon": "🚗",
+                "editable": true,
+                "kind": "pinned",
+                "ovPinned": false,
+                "horaireEntre": true,
+                "preferMin": 995,
+                "minimum": 10,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ]
+                ]
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "17:10",
+                "endTime": "17:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    400,
+                    470
+                  ],
+                  [
+                    995,
+                    1175
+                  ]
+                ],
+                "preferMin": 410,
+                "shifted": true
+              },
+              {
+                "id": "exercises",
+                "title": "Exercices Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "17:40",
+                "endTime": "18:35",
+                "type": "study",
+                "icon": "✏️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "revgap-1115",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:35",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1115,
+                    1140
+                  ]
+                ],
+                "preferMin": 1115,
+                "minimum": 25
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    1020,
+                    1480
+                  ]
+                ],
+                "preferMin": 1140
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "20:01",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "study1",
+                "title": "Révisions Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "20:01",
+                "endTime": "21:46",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "study2",
+                "title": "Révisions ESS",
+                "subtitle": "SL · 6/7",
+                "startTime": "21:46",
+                "endTime": "22:41",
+                "type": "study",
+                "icon": "🌱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    995,
+                    1480
+                  ],
+                  [
+                    400,
+                    470
+                  ]
+                ],
+                "preferMin": 995,
+                "shifted": true
+              },
+              {
+                "id": "rev-autre-4-Biologie",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "22:41",
+                "endTime": "23:56",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1361,
+                    1436
+                  ]
+                ],
+                "preferMin": 1361,
+                "minimum": 75
+              },
+              {
+                "id": "revgap-1436",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 6/7",
+                "startTime": "23:56",
+                "endTime": "00:40",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1436,
+                    1480
+                  ]
+                ],
+                "preferMin": 1436,
+                "minimum": 44
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:40",
+                "endTime": "06:40",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "08:00",
+                "endTime": "08:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "08:10",
+                "endTime": "08:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    480,
+                    720
+                  ],
+                  [
+                    540,
+                    720
+                  ]
+                ],
+                "preferMin": 490
+              },
+              {
+                "id": "revgap-520",
+                "title": "Révisions · Français A",
+                "subtitle": "HL · 6/7",
+                "startTime": "08:40",
+                "endTime": "10:45",
+                "type": "study",
+                "icon": "🇫🇷",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    520,
+                    540
+                  ]
+                ],
+                "preferMin": 520,
+                "minimum": 20
+              },
+              {
+                "id": "revgap-645",
+                "title": "Révisions · ESS",
+                "subtitle": "SL · 6/7",
+                "startTime": "10:45",
+                "endTime": "11:30",
+                "type": "study",
+                "icon": "🌱",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    645,
+                    690
+                  ]
+                ],
+                "preferMin": 645,
+                "minimum": 45
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "11:30",
+                "endTime": "12:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 10,
+                "plages": [
+                  [
+                    480,
+                    720
+                  ]
+                ],
+                "preferMin": 690
+              },
+              {
+                "id": "revgap-720",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 6/7",
+                "startTime": "12:00",
+                "endTime": "12:30",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    720,
+                    750
+                  ]
+                ],
+                "preferMin": 720,
+                "minimum": 30
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    660,
+                    900
+                  ]
+                ],
+                "preferMin": 750
+              },
+              {
+                "id": "study2",
+                "title": "Révisions ESS",
+                "subtitle": "SL · 6/7",
+                "startTime": "13:30",
+                "endTime": "14:40",
+                "type": "study",
+                "icon": "🌱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    540,
+                    1440
+                  ],
+                  [
+                    480,
+                    720
+                  ]
+                ],
+                "preferMin": 540,
+                "shifted": true
+              },
+              {
+                "id": "revgap-880",
+                "title": "Révisions · Mathématiques AA",
+                "subtitle": "SL · 6/7",
+                "startTime": "14:40",
+                "endTime": "16:10",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    880,
+                    970
+                  ]
+                ],
+                "preferMin": 880,
+                "minimum": 90
+              },
+              {
+                "id": "revgap-970",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "16:10",
+                "endTime": "17:40",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    970,
+                    1060
+                  ]
+                ],
+                "preferMin": 970,
+                "minimum": 90
+              },
+              {
+                "id": "libre-autre-5",
+                "title": "Temps libre",
+                "subtitle": "",
+                "startTime": "17:40",
+                "endTime": "19:00",
+                "type": "free",
+                "icon": "🎮",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1060,
+                    1140
+                  ]
+                ],
+                "preferMin": 1060,
+                "minimum": 80
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    1140,
+                    1185
+                  ]
+                ],
+                "preferMin": 1140,
+                "minimum": 45
+              },
+              {
+                "id": "revgap-1185",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "19:45",
+                "endTime": "20:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1185,
+                    1200
+                  ]
+                ],
+                "preferMin": 1185,
+                "minimum": 15
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "20:00",
+                "endTime": "23:00",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1440
+                  ],
+                  [
+                    480,
+                    720
+                  ]
+                ],
+                "preferMin": 1200
+              },
+              {
+                "id": "revgap-1380",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "23:00",
+                "endTime": "00:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1380,
+                    1440
+                  ]
+                ],
+                "preferMin": 1380,
+                "minimum": 60
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "00:00",
+                "endTime": "08:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ],
+            [
+              {
+                "id": "wakeup",
+                "title": "Réveil",
+                "subtitle": "",
+                "startTime": "10:00",
+                "endTime": "10:10",
+                "type": "wakeup",
+                "icon": "🌅",
+                "editable": false,
+                "kind": "fixed"
+              },
+              {
+                "id": "breakfast",
+                "title": "Petit-déjeuner",
+                "subtitle": "",
+                "startTime": "10:10",
+                "endTime": "10:40",
+                "type": "meal",
+                "icon": "🥐",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    600,
+                    840
+                  ],
+                  [
+                    660,
+                    840
+                  ]
+                ],
+                "preferMin": 610
+              },
+              {
+                "id": "revgap-640",
+                "title": "Révisions · ESS",
+                "subtitle": "SL · 6/7",
+                "startTime": "10:40",
+                "endTime": "12:10",
+                "type": "study",
+                "icon": "🌱",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    640,
+                    660
+                  ]
+                ],
+                "preferMin": 640,
+                "minimum": 20
+              },
+              {
+                "id": "revgap-730",
+                "title": "Révisions · Géographie",
+                "subtitle": "SL · 6/7",
+                "startTime": "12:10",
+                "endTime": "12:30",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    730,
+                    750
+                  ]
+                ],
+                "preferMin": 730,
+                "minimum": 20
+              },
+              {
+                "id": "lunch",
+                "title": "Déjeuner",
+                "subtitle": "",
+                "startTime": "12:30",
+                "endTime": "13:30",
+                "type": "meal",
+                "icon": "🍽️",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    660,
+                    900
+                  ]
+                ],
+                "preferMin": 750
+              },
+              {
+                "id": "prep",
+                "title": "Préparation",
+                "subtitle": "",
+                "startTime": "13:30",
+                "endTime": "14:00",
+                "type": "prep",
+                "icon": "🚿",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 10,
+                "plages": [
+                  [
+                    600,
+                    840
+                  ]
+                ],
+                "preferMin": 810
+              },
+              {
+                "id": "study2",
+                "title": "Révisions Géographie",
+                "subtitle": "SL · 6/7",
+                "startTime": "14:00",
+                "endTime": "15:10",
+                "type": "study",
+                "icon": "🌍",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 20,
+                "plages": [
+                  [
+                    660,
+                    1500
+                  ],
+                  [
+                    600,
+                    840
+                  ]
+                ],
+                "preferMin": 660,
+                "shifted": true
+              },
+              {
+                "id": "revgap-910",
+                "title": "Révisions · Mathématiques AA",
+                "subtitle": "SL · 6/7",
+                "startTime": "15:10",
+                "endTime": "16:40",
+                "type": "study",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    910,
+                    1000
+                  ]
+                ],
+                "preferMin": 910,
+                "minimum": 90
+              },
+              {
+                "id": "revgap-1000",
+                "title": "Révisions · Anglais B",
+                "subtitle": "HL · 6/7",
+                "startTime": "16:40",
+                "endTime": "18:10",
+                "type": "study",
+                "icon": "🇬🇧",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1000,
+                    1090
+                  ]
+                ],
+                "preferMin": 1000,
+                "minimum": 90
+              },
+              {
+                "id": "rev-autre-6-Biologie",
+                "title": "Révisions · Biologie",
+                "subtitle": "HL · 6/7",
+                "startTime": "18:10",
+                "endTime": "19:00",
+                "type": "study",
+                "icon": "🧬",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1090,
+                    1140
+                  ]
+                ],
+                "preferMin": 1090,
+                "minimum": 50
+              },
+              {
+                "id": "dinner",
+                "title": "Dîner",
+                "subtitle": "",
+                "startTime": "19:00",
+                "endTime": "19:45",
+                "type": "meal",
+                "icon": "🍝",
+                "editable": false,
+                "kind": "fixed",
+                "plages": [
+                  [
+                    1140,
+                    1185
+                  ]
+                ],
+                "preferMin": 1140,
+                "minimum": 45
+              },
+              {
+                "id": "activity-Église",
+                "title": "Église",
+                "subtitle": "Activité",
+                "startTime": "19:45",
+                "endTime": "22:15",
+                "type": "activity",
+                "icon": "⛪",
+                "editable": true,
+                "kind": "pinned",
+                "minimum": 30,
+                "plages": [
+                  [
+                    600,
+                    1500
+                  ]
+                ],
+                "preferMin": 1080,
+                "shifted": true
+              },
+              {
+                "id": "phone",
+                "title": "Téléphone",
+                "subtitle": "3h",
+                "startTime": "22:15",
+                "endTime": "01:00",
+                "type": "phone",
+                "icon": "📱",
+                "editable": true,
+                "kind": "flex",
+                "ovPinned": false,
+                "minimum": 15,
+                "plages": [
+                  [
+                    1080,
+                    1500
+                  ],
+                  [
+                    600,
+                    840
+                  ]
+                ],
+                "preferMin": 1200,
+                "shifted": true
+              },
+              {
+                "id": "sleep",
+                "title": "Coucher",
+                "subtitle": "",
+                "startTime": "01:00",
+                "endTime": "10:00",
+                "type": "sleep",
+                "icon": "😴",
+                "editable": false,
+                "kind": "fixed"
+              }
+            ]
+          ]
+        },
+        "exercices": [],
+        "currentMood": "ennuye",
+        "joursConnectes": 2,
+        "dernierJour": "Mon Oct 12 2026",
+        "flammes": 0,
+        "flammeJour": "",
+        "utilisateurId": "101043752652133995164",
+        "google": {
+          "sub": "101043752652133995164",
+          "email": "redminote13u@gmail.com",
+          "name": "Redmi Note13",
+          "given_name": "Redmi",
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocK7Su1CtRdBK5fM-ID8yAaTrXhWlgqSGYKRk3sI1N4luqyagg=s96-c"
         }
       }
     },
