@@ -335,8 +335,13 @@ function calerPreparation(events, commuteId) {
     var end = timeToMinutes(commute.startTime);
     var dur = timeToMinutes(prep.endTime) - timeToMinutes(prep.startTime);
     if (!(dur > 0)) dur = 30;
-    dur = Math.max(10, Math.min(30, dur));
-    if (end - dur < 0) return;
+    if (prep.habitudeFixe) {
+        dur = Math.max(5, dur);
+        if (end - dur < 0) dur = Math.max(5, end);
+    } else {
+        dur = Math.max(10, Math.min(30, dur));
+        if (end - dur < 0) return;
+    }
     prep.startTime = v3M2T(end - dur);
     prep.endTime = v3M2T(end);
     prep.kind = 'pinned';
@@ -390,6 +395,13 @@ function annoterPlages(events, dayIndex, wakeupTime, bedtime) {
     var apres = dayIndex < 5 ? 16 * 60 + 35 : wake + 60;
     (events || []).forEach(function (ev) {
         if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return;
+        if (ev.habitudeFixe) {
+            var dureeFixe = planningDuree(ev);
+            ev.plages = [[wake, bed]];
+            ev.preferMin = planningMinutes(ev.startTime);
+            ev.minimum = dureeFixe;
+            return;
+        }
         var dur = planningDuree(ev);
         ev.minimum = 15;
         if (ev.id === 'breakfast') {
@@ -650,6 +662,16 @@ function emploiFaitsSignature() {
             };
         }).filter(Boolean)
     };
+    if (typeof habitudesActives === 'function' && habitudesActives()) {
+        faits.habitudes = {
+            prepMatin: typeof prepMatinMinutes === 'number' ? prepMatinMinutes : 30,
+            prepSoir: typeof prepSoirMinutes === 'number' ? prepSoirMinutes : 30,
+            petitDej: typeof petitDejHeure === 'string' ? petitDejHeure : '',
+            petitDejDuree: typeof petitDejMinutes === 'number' ? petitDejMinutes : 30,
+            diner: typeof dinerHeure === 'string' ? dinerHeure : '',
+            dinerDuree: typeof dinerMinutes === 'number' ? dinerMinutes : 45
+        };
+    }
     try { return JSON.stringify(faits); } catch (e) { return ''; }
 }
 
@@ -709,8 +731,10 @@ function planningTitreNu(ev) {
 
 function planningEstPreparation(ev) {
     if (!ev) return false;
+    if (ev.id === 'prepSoir' || ev.type === 'prep-soir') return false;
     if (ev.id === 'prep' || ev.type === 'prep') return true;
     var titre = planningTitreNu(ev);
+    if (titre.indexOf('preparation du soir') === 0) return false;
     return titre === 'preparation' || titre.indexOf('preparation') === 0;
 }
 
@@ -797,7 +821,7 @@ function planningGarantirJour(events) {
     function ordreJour(ev) {
         var minute = planningLireMinute(ev, false);
         if (minute == null) return 1440;
-        if (minute < minuteReveil) minute += 1440;
+        if (minute < minuteReveil && !(ev && ev.habitudeFixe)) minute += 1440;
         return minute;
     }
     function minuteRelative(ev, fin) {
@@ -871,13 +895,21 @@ function planningGarantirJour(events) {
         var finPrep = planningLireMinute(prep, true);
         var duree = debutPrep == null || finPrep == null ? 30 : finPrep - debutPrep;
         if (duree <= 0) duree += 1440;
-        if (duree < 10 || duree > 40) duree = 30;
+        var habitudePrep = !!(prep.habitudeFixe || (typeof habitudesActives === 'function' && habitudesActives()));
+        if (habitudePrep && typeof habitudesDureeMatin === 'function') {
+            var consignePrep = habitudesDureeMatin();
+            if (consignePrep && consignePrep.mode === 'fixe' && !prep.ovPinned) duree = consignePrep.duree;
+        } else if (duree < 10 || duree > 40) {
+            duree = 30;
+        }
         var nouveauDebut = debutTrajet - duree;
-        var finReveil = planningLireMinute(reveil, true);
-        if (finReveil != null && nouveauDebut < finReveil && finReveil < debutTrajet) nouveauDebut = finReveil;
-        if (nouveauDebut < minuteReveil && minuteReveil < debutTrajet) nouveauDebut = minuteReveil;
+        if (!habitudePrep) {
+            var finReveil = planningLireMinute(reveil, true);
+            if (finReveil != null && nouveauDebut < finReveil && finReveil < debutTrajet) nouveauDebut = finReveil;
+            if (nouveauDebut < minuteReveil && minuteReveil < debutTrajet) nouveauDebut = minuteReveil;
+        }
         if (nouveauDebut < 0) nouveauDebut = 0;
-        if (nouveauDebut >= debutTrajet) nouveauDebut = Math.max(0, debutTrajet - 10);
+        if (!habitudePrep && nouveauDebut >= debutTrajet) nouveauDebut = Math.max(0, debutTrajet - 10);
         planningPoserHoraire(prep, planningHorlogeSimple(nouveauDebut), planningHorlogeSimple(debutTrajet));
     }
     milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
@@ -992,6 +1024,71 @@ function genererJourBrut(dayIndex) {
         return cursor;
     }
 
+    function repasSelonHabitude(id, title, icon, dureeDefaut, heureDefaut, finDefaut) {
+        var consigne = typeof habitudesRepas === 'function' ? habitudesRepas(id) : null;
+        if (consigne && consigne.mode === 'omis') return;
+        if (consigne && consigne.mode === 'fixe') {
+            var ov = ovFor(id);
+            if (ov && ov.deleted) return;
+            var heure = consigne.heure;
+            var duree = consigne.duree;
+            var titre = title;
+            var icone = icon;
+            if (ov) {
+                if (ov.title) titre = ov.title;
+                if (ov.icon && ov.icon !== '📌') icone = ov.icon;
+                var ovDur = timeToMinutes(ov.endTime) - timeToMinutes(ov.startTime);
+                if (ovDur > 0) duree = ovDur;
+                if (ov.pinned && ov.startTime) heure = ov.startTime;
+            }
+            events.push({
+                id: id, title: titre, subtitle: duree + ' min', startTime: heure, endTime: addMinutes(heure, duree),
+                type: 'meal', icon: icone, editable: true, kind: 'pinned', habitudeFixe: true, horaireEntre: true,
+                ovPinned: !!(ov && ov.pinned), preferMin: timeToMinutes(heure)
+            });
+            return;
+        }
+        if (heureDefaut && finDefaut) fixed(id, title, '', heureDefaut, finDefaut, 'meal', icon);
+        else chain(id, title, '', dureeDefaut, 'meal', icon, true);
+    }
+
+    function poserPreparationMatin() {
+        var consigne = typeof habitudesDureeMatin === 'function' ? habitudesDureeMatin() : null;
+        var duree = consigne && consigne.mode === 'fixe' ? consigne.duree : 30;
+        chain('prep', 'Préparation', consigne && consigne.mode === 'fixe' ? (duree + ' min') : '', duree, 'prep', '🚿', true);
+        if (!(consigne && consigne.mode === 'fixe')) return;
+        var prepEv = events.find(function (e) { return e && e.id === 'prep'; });
+        if (prepEv && !prepEv.ovPinned) {
+            prepEv.habitudeFixe = true;
+            prepEv.kind = 'pinned';
+            prepEv.horaireEntre = true;
+        }
+    }
+
+    function poserPreparationSoir() {
+        var consigne = typeof habitudesDureeSoir === 'function' ? habitudesDureeSoir() : null;
+        if (!consigne || consigne.mode !== 'fixe' || !(consigne.duree > 0)) return;
+        var ov = ovFor('prepSoir');
+        if (ov && ov.deleted) return;
+        var duree = consigne.duree;
+        var fin = timeToMinutes(bedtime);
+        var debut = fin - duree;
+        if (debut < 0) debut = 0;
+        var startTime = v3M2T(debut);
+        var endTime = v3M2T(fin);
+        if (ov && ov.pinned && ov.startTime) {
+            startTime = ov.startTime;
+            endTime = ov.endTime || addMinutes(startTime, duree);
+            var ovDur = timeToMinutes(endTime) - timeToMinutes(startTime);
+            if (ovDur > 0) duree = ovDur;
+        }
+        events.push({
+            id: 'prepSoir', title: 'Préparation du soir', subtitle: duree + ' min', startTime: startTime, endTime: endTime,
+            type: 'prep-soir', icon: '🌙', editable: true, kind: 'pinned', habitudeFixe: true, horaireEntre: true,
+            ovPinned: !!(ov && ov.pinned), preferMin: timeToMinutes(startTime)
+        });
+    }
+
     // Temps libre élastique (week-end) : remplit jusqu'à `endMins` (19h00)
     function elastic(id, title, type, icon, endMins) {
         const ov = ovFor(id);
@@ -1015,10 +1112,10 @@ function genererJourBrut(dayIndex) {
     const wakeupEvt = { id: 'wakeup', title: 'Réveil', subtitle: '', startTime: wakeupTime, endTime: addMinutes(wakeupTime, 10), type: 'wakeup', icon: '🌅', editable: false, kind: 'fixed' };
     cursor = wakeupEvt.endTime;
 
-    chain('breakfast', 'Petit-déjeuner', '', 30, 'meal', '🥐', true);
+    repasSelonHabitude('breakfast', 'Petit-déjeuner', '🥐', 30);
 
     if (isSunday) {
-        chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
+        poserPreparationMatin();
         const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
@@ -1035,11 +1132,11 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureeEtude(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
-        fixed('dinner', 'Dîner', '', '19:00', '19:45', 'meal', '🍝');
+        repasSelonHabitude('dinner', 'Dîner', '🍝', 45, '19:00', '19:45');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else if (isSaturday) {
-        chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
+        poserPreparationMatin();
         const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
@@ -1056,13 +1153,13 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureeEtude(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
-        fixed('dinner', 'Dîner', '', '19:00', '19:45', 'meal', '🍝');
+        repasSelonHabitude('dinner', 'Dîner', '🍝', 45, '19:00', '19:45');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else {
         // ── SEMAINE Lun-Ven ──
         const trajet = trajetProfil();
-        chain('prep', 'Préparation', '', 30, 'prep', '🚿', true);
+        poserPreparationMatin();
         chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
         fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
@@ -1090,7 +1187,7 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2sem) chain('study2', 'Révisions ' + s2sem.name, sousTitreMatiere(s2sem), dureeEtude(s2sem, 75, 45), couleurMatiere(s2sem), s2sem.icon, true);
-        chain('dinner', 'Dîner', '', 45, 'meal', '🍝', true);
+        repasSelonHabitude('dinner', 'Dîner', '🍝', 45);
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
     }
 
@@ -1124,6 +1221,8 @@ function genererJourBrut(dayIndex) {
         events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
             type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole });
     });
+
+    poserPreparationSoir();
 
     // ── COUCHER ──
     const sleepEvt = { id: 'sleep', title: 'Coucher', subtitle: '', startTime: bedtime, endTime: wakeupTime, type: 'sleep', icon: '😴', editable: false, kind: 'fixed' };
@@ -1414,7 +1513,7 @@ function planningCompleterPages(events, dayIndex, wakeupTime, bedtime) {
     planningManquesDuJour(list, dayIndex).forEach(function (bloc) {
         var donor = null;
         list.forEach(function (ev) {
-            if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school' || ev.type === 'activity') return;
+            if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school' || ev.type === 'activity' || ev.habitudeFixe) return;
             var dur = planningMinutes(ev.endTime) - planningMinutes(ev.startTime);
             if (dur < bloc.duree + 15) return;
             if (!donor || dur > (planningMinutes(donor.endTime) - planningMinutes(donor.startTime))) donor = ev;
@@ -1664,6 +1763,7 @@ function v3Schedule(dayEvents, wakeupEvt) {
         for (let i = 1; i < blocks.length; i++) {
             const prev = blocks[i - 1], cur = blocks[i];
             if (t(cur.startTime) >= t(prev.endTime)) continue;
+            if (cur.habitudeFixe || prev.habitudeFixe) continue;
             const mover = cur.kind === 'pinned' ? cur : (prev.kind === 'pinned' ? prev : null);
             if (!mover) continue;
             const other = mover === cur ? prev : cur;

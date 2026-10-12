@@ -662,7 +662,8 @@ function setIaLevel(id) {
 }
 
 function showTravauxPage() {
-    if (typeof showTransportPage === 'function') showTransportPage();
+    if (typeof showHabitsPage === 'function') showHabitsPage('transport');
+    else if (typeof showTransportPage === 'function') showTransportPage();
 }
 
 function hideTravauxPage() {
@@ -673,7 +674,8 @@ function hideTravauxPage() {
 function renderTravaux() {}
 
 function validateTravaux() {
-    if (typeof showTransportPage === 'function') showTransportPage();
+    if (typeof showHabitsPage === 'function') showHabitsPage('transport');
+    else if (typeof showTransportPage === 'function') showTransportPage();
 }
 
 if (typeof document !== 'undefined') {

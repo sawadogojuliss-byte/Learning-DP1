@@ -32,6 +32,7 @@ var MEMOIRE_PAGES = {
     contextModal: 'prenom',
     objectivesModal: 'objectif',
     sleepModal: 'sommeil',
+    habitsModal: 'habitudes',
     classeModal: 'classe',
     subjectsModal: 'matieres',
     travauxModal: 'travaux',
@@ -112,6 +113,13 @@ function memoireLireEtat() {
         weekdaySleepHours: weekdaySleepHours,
         saturdaySleepHours: saturdaySleepHours,
         sundaySleepHours: sundaySleepHours,
+        habitudesDefinies: typeof habitudesDefinies !== 'undefined' ? !!habitudesDefinies : false,
+        prepMatinMinutes: typeof prepMatinMinutes !== 'undefined' ? prepMatinMinutes : 30,
+        prepSoirMinutes: typeof prepSoirMinutes !== 'undefined' ? prepSoirMinutes : 30,
+        petitDejHeure: typeof petitDejHeure !== 'undefined' ? petitDejHeure : '',
+        petitDejMinutes: typeof petitDejMinutes !== 'undefined' ? petitDejMinutes : 30,
+        dinerHeure: typeof dinerHeure !== 'undefined' ? dinerHeure : '',
+        dinerMinutes: typeof dinerMinutes !== 'undefined' ? dinerMinutes : 45,
         phoneDays: phoneDays,
         samePhoneDuration: samePhoneDuration,
         phoneDuration: phoneDuration,
@@ -256,6 +264,7 @@ function memoireAppliquer(data, opts) {
         if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
         if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
     }
+    if (typeof appliquerHabitudes === 'function') appliquerHabitudes(data);
     if (Array.isArray(data.phoneDays)) phoneDays = data.phoneDays;
     if (typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
     if (data.phoneDuration) phoneDuration = data.phoneDuration;
@@ -443,6 +452,7 @@ function memoireAller(etape) {
         prenom: 'contextModal',
         objectif: 'objectivesModal',
         sommeil: 'sleepModal',
+        habitudes: 'habitsModal',
         classe: 'classeModal',
         matieres: 'subjectsModal',
         travaux: 'travauxModal',
@@ -464,6 +474,7 @@ function memoireAller(etape) {
     try {
         if (etape === 'objectif') updateScoreUI();
         if (etape === 'sommeil') updateBedtimes();
+        if (etape === 'habitudes' && typeof renderHabitudes === 'function') renderHabitudes();
         if (etape === 'classe' && typeof renderClasse === 'function') renderClasse();
         if (etape === 'matieres') updateSubjectsUI();
         if (etape === 'travaux' && typeof renderTravaux === 'function') renderTravaux();
@@ -483,7 +494,7 @@ var memoireNavSilence = false;
 
 function memoireEtapeConnue(etape) {
     var connues = {
-        accueil: 1, prenom: 1, objectif: 1, sommeil: 1, classe: 1, matieres: 1,
+        accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
         libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
         eeia: 1, tutoriel: 1, aide: 1, feedback: 1, retours: 1, questions: 1, emplois: 1, assistant: 1
@@ -538,7 +549,8 @@ function memoirePagePrecedente(etape) {
         objectif: 'classe',
         matieres: 'objectif',
         sommeil: 'matieres',
-        transport: 'sommeil',
+        habitudes: 'sommeil',
+        transport: 'habitudes',
         voiture: 'transport',
         moto: 'transport',
         ecran: 'activites',
@@ -743,7 +755,7 @@ function memoireDemarrer() {
         try { memoireAller(etape); } catch (e) { console.error(e); }
     }
     [
-        'handleContinue', 'validateObjective', 'validateSleep', 'setIbYear', 'validateClasse', 'validateSubjects',
+        'handleContinue', 'validateObjective', 'validateSleep', 'validateHabits', 'showHabitsPage', 'setIbYear', 'validateClasse', 'validateSubjects',
         'selectTransport', 'saveCarConfig', 'saveMotoConfig', 'goToScreenTime',
         'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
         'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',

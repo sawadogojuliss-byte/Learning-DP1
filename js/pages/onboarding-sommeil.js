@@ -5,7 +5,7 @@
    ============================================================ */
 
 function showSleepPage() {
-    ['objectivesModal', 'subjectsModal', 'classeModal'].forEach(function (id) {
+    ['objectivesModal', 'subjectsModal', 'classeModal', 'habitsModal'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.classList.remove('active');
     });
@@ -143,5 +143,6 @@ function validateSleep() {
         if (sleepHoursOf(which) < SLEEP_MIN_HOURS) setSleepHours(which, SLEEP_MIN_HOURS);
     });
     updateBedtimes();
-    if (typeof showTransportPage === 'function') showTransportPage();
+    if (typeof showHabitsPage === 'function') showHabitsPage('transport');
+    else if (typeof showTransportPage === 'function') showTransportPage();
 }
