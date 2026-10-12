@@ -732,11 +732,8 @@ function planningEstCours(ev) {
     return planningTitreNu(ev) === 'cours';
 }
 
-function planningResteEcole(ev) {
-    if (!ev || planningEstCours(ev) || planningEstTrajetEcole(ev) || planningEstTrajetMaison(ev) || planningEstReveil(ev) || planningEstCoucher(ev)) return false;
-    if (ev.resteEcole) return true;
-    var titre = planningTitreNu(ev) + ' ' + planningTitreNu({ title: ev.subtitle || '' });
-    return (/reste/.test(titre) && /ecole/.test(titre)) || (/etudi/.test(titre) && /ecole/.test(titre));
+function planningResteEcole() {
+    return false;
 }
 
 function planningLireMinute(ev, fin) {

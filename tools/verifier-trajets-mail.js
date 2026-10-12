@@ -45,12 +45,10 @@ function verifierJour(nom, jour, events) {
     var cours = [];
     var ecole = -1;
     var maison = -1;
-    var sejour = -1;
     out.forEach(function (ev, i) {
         if (titre(ev) === 'cours' || ev.id === 'school1' || ev.id === 'school2' || ev.type === 'school') cours.push(i);
         if (ecole < 0 && (ev.id === 'commute1' || titre(ev).indexOf('trajet ecole') === 0)) ecole = i;
         if (maison < 0 && (ev.id === 'commute2' || titre(ev).indexOf('trajet maison') === 0)) maison = i;
-        if (ev.resteEcole) sejour = i;
     });
     if (!cours.length) return erreurs;
     var premier = cours[0];
@@ -60,8 +58,8 @@ function verifierJour(nom, jour, events) {
     else if (minute(fin(out[ecole])) > minute(debut(out[premier]))) erreurs.push('Trajet école empiète sur les cours');
     if (maison < 0) erreurs.push('Trajet maison absent');
     else {
-        var ancre = sejour > dernier ? sejour : dernier;
-        if (maison !== ancre + 1) erreurs.push('Trajet maison pas juste après ' + (sejour > dernier ? 'la session à l’école' : 'les cours') + ' (index ' + maison + ' attendu ' + (ancre + 1) + ')');
+        var ancre = dernier;
+        if (maison !== ancre + 1) erreurs.push('Trajet maison pas juste après les cours (index ' + maison + ' attendu ' + (ancre + 1) + ')');
         var finAncre = minute(fin(out[ancre]));
         if (minute(debut(out[maison])) !== finAncre) erreurs.push('Trajet maison ne commence pas à ' + fin(out[ancre]) + ' mais à ' + debut(out[maison]));
     }
@@ -109,7 +107,7 @@ if (sejour.length) {
         { d: '22:00', f: '22:40', t: 'Trajet maison' }
     ]);
     var maison = corrige.filter(function (ev) { return titre(ev).indexOf('trajet maison') === 0; })[0];
-    if (!maison || debut(maison) !== '17:35') {
+    if (!maison || debut(maison) !== '16:35') {
         echecs += 1;
         console.log('ECHEC horaire séjour', maison && debut(maison));
     }
