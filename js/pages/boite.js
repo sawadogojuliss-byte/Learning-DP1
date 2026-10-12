@@ -384,11 +384,12 @@ function boiteCorrigerCours(slot) {
 }
 
 function boiteOrdonnerCreneaux(slots) {
+    var corriges = (slots || []).map(boiteCorrigerCours);
+    if (typeof planningGarantirJour === 'function') return planningGarantirJour(corriges);
     var reveils = [];
     var couchers = [];
     var milieu = [];
-    (slots || []).forEach(function (slot) {
-        slot = boiteCorrigerCours(slot);
+    corriges.forEach(function (slot) {
         if (boiteEstReveil(slot)) reveils.push(slot);
         else if (boiteEstCoucher(slot)) couchers.push(slot);
         else milieu.push(slot);
