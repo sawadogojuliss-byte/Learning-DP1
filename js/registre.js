@@ -56,6 +56,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/memoire.js',
     'js/sauvegarde.js',
     'js/compte.js',
+    'js/pages/langue.js',
     'js/pages/boite.js',
     'js/pages/assistant.js',
     'js/pages/rappels.js'

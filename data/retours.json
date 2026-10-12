@@ -1,5 +1,25 @@
 {
   "questions": [],
   "feedbacks": [],
-  "reponses": []
+  "reponses": [
+    {
+      "type": "reponse",
+      "id": "r-kenzah-ilboudo-repondue",
+      "questionId": "",
+      "at": "2026-10-11T18:00:00.000Z",
+      "nom": "Sere Farid Abdourrahman",
+      "email": "ibstudyplan@gmail.com",
+      "destinataire": "doriilboudo235@gmail.com",
+      "destinataires": [
+        "doriilboudo235@gmail.com",
+        "ilboudo.kenza@enkoschools.com"
+      ],
+      "personne": "kenzah ilboudo",
+      "texte": "Réponse envoyée par Farid.",
+      "mail": true,
+      "repondu": true,
+      "gmailId": "kenzahfaridreponse20261011",
+      "partage": true
+    }
+  ]
 }

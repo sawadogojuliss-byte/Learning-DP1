@@ -276,7 +276,8 @@ function boiteCorpsNtfy(record) {
             flammes: Number(record.flammes || 0),
             jours: jours,
             questionId: record.questionId || '', destinataire: record.destinataire || '',
-            mail: !!record.mail, gmailId: record.gmailId || ''
+            destinataires: record.destinataires || [], personne: record.personne || '',
+            mail: !!record.mail, repondu: !!record.repondu, gmailId: record.gmailId || ''
         };
         while (jours.length && JSON.stringify(copie).length > 3800) {
             jours = jours.slice(0, -1);
@@ -816,9 +817,15 @@ function boiteFusionner(items) {
         } else if (item.type === 'feedback' && item.id && !vusF[item.id]) {
             vusF[item.id] = 1;
             feedbacks.push(item);
-        } else if (item.type === 'reponse' && item.id && !vusR[item.id]) {
-            vusR[item.id] = 1;
-            reponses.push(item);
+        } else if (item.type === 'reponse' && item.id) {
+            if (!vusR[item.id]) {
+                vusR[item.id] = 1;
+                reponses.push(item);
+            } else if (boiteMailConfirme(item)) {
+                reponses.forEach(function (deja, index) {
+                    if (deja.id === item.id && !boiteMailConfirme(deja)) reponses[index] = item;
+                });
+            }
         } else if (item.type === 'profil' && item.id) {
             if (!vusP[item.id]) {
                 vusP[item.id] = 1;
@@ -878,8 +885,11 @@ function boiteDocument(fusion) {
             jours: item.jours || [],
             questionId: item.questionId || '',
             destinataire: item.destinataire || '',
+            destinataires: item.destinataires || [],
+            personne: item.personne || '',
             gmailId: item.gmailId || '',
             mail: !!item.mail,
+            repondu: !!item.repondu,
             partage: !!item.partage,
             data: item.data || null
         };
@@ -1126,14 +1136,86 @@ function boiteEmailQuestion(item) {
     return String((item && (item.email || item.google)) || '').trim();
 }
 
-function boiteReponsesLiees(fusion, questionId) {
-    return (fusion.reponses || []).filter(function (rep) {
-        return rep && rep.questionId === questionId;
+function boiteEmailsDe(item) {
+    var brut = [].concat(item && item.email, item && item.google, item && item.destinataire, item && item.destinataires);
+    var out = [];
+    brut.forEach(function (email) {
+        var v = String(email || '').trim().toLowerCase();
+        if (v && out.indexOf(v) === -1) out.push(v);
     });
+    return out;
+}
+
+function boiteIdentiteQuestion(item) {
+    return boiteNormaliser([item && item.nom, item && item.googleNom, item && item.email, item && item.google].join(' '));
+}
+
+function boiteMotPresent(id, mot) {
+    if (!mot) return false;
+    if (id.indexOf(mot) !== -1) return true;
+    if ((mot === 'kenzah' || mot === 'kenza') && (id.indexOf('kenzah') !== -1 || id.indexOf('kenza') !== -1)) return true;
+    return false;
+}
+
+function boiteMemePersonneMarquee(rep, question) {
+    var marque = boiteNormaliser(rep && rep.personne);
+    if (!marque) return false;
+    var mots = marque.split(' ').filter(function (mot) { return mot.length >= 4; });
+    if (mots.length < 2) return false;
+    var id = boiteIdentiteQuestion(question);
+    return mots.every(function (mot) { return boiteMotPresent(id, mot); });
+}
+
+function boiteMemeDestinataire(rep, question) {
+    var dest = boiteEmailsDe(rep);
+    var src = boiteEmailsDe(question);
+    if (!dest.length || !src.length) return false;
+    return src.some(function (email) { return dest.indexOf(email) !== -1; });
 }
 
 function boiteMailConfirme(rep) {
-    return !!(rep && rep.gmailId && String(rep.gmailId).length >= 16);
+    if (!rep) return false;
+    if (rep.repondu) return true;
+    if (rep.gmailId && String(rep.gmailId).length >= 16) return true;
+    if (rep.mail === true && (rep.questionId || rep.destinataire || (rep.destinataires && rep.destinataires.length))) return true;
+    return false;
+}
+
+function boiteIndexQuestions(fusion) {
+    var ids = {};
+    (fusion && fusion.questions || []).forEach(function (item) {
+        if (item && item.id) ids[item.id] = 1;
+    });
+    return ids;
+}
+
+function boiteReponseLiee(rep, question, questions) {
+    if (!rep || !question) return false;
+    if (rep.questionId && rep.questionId === question.id) return true;
+    if (rep.questionId && questions && questions[rep.questionId]) return false;
+    if (!boiteMailConfirme(rep)) return false;
+    return boiteMemeDestinataire(rep, question) || boiteMemePersonneMarquee(rep, question);
+}
+
+function boiteReponsesPour(fusion, question) {
+    var ids = boiteIndexQuestions(fusion);
+    return (fusion && fusion.reponses || []).filter(function (rep) {
+        return boiteReponseLiee(rep, question, ids);
+    });
+}
+
+function boiteReponsesLiees(fusion, questionId) {
+    var question = null;
+    (fusion && fusion.questions || []).some(function (item) {
+        if (item && item.id === questionId) { question = item; return true; }
+        return false;
+    });
+    if (!question) {
+        return (fusion && fusion.reponses || []).filter(function (rep) {
+            return rep && rep.questionId === questionId;
+        });
+    }
+    return boiteReponsesPour(fusion, question);
 }
 
 function boiteReponsesDe(fusion, questionId) {
@@ -1157,10 +1239,12 @@ function boiteCarteQuestion(item, reponses) {
         + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte + '</p>'
         + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
     reponses.forEach(function (rep) {
+        if (!String(rep.texte || '').trim()) return;
+        var ok = boiteMailConfirme(rep) || cochee;
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
-            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (boiteMailConfirme(rep) ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (ok ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + (rep.nom ? ' · ' + boiteEchap(rep.nom) : '') + '</p>'
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (boiteMailConfirme(rep) ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (ok ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -1169,6 +1253,8 @@ function boiteCarteQuestion(item, reponses) {
         } else {
             html += '<label style="display:block;margin-top:0.85rem;font-size:0.8rem;font-weight:700;color:#374151;">Message pour ' + boiteEchap(email) + '</label>'
                 + '<textarea data-reponse-texte="' + boiteEchap(item.id) + '" maxlength="800" rows="4" placeholder="Écris le message…" style="width:100%;box-sizing:border-box;margin-top:0.35rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.7rem 0.8rem;font:inherit;font-size:0.9rem;resize:vertical;outline:none;"></textarea>'
+                + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.35rem;">Avant l\'envoi, le message est relu : orthographe, grammaire et conjugaison.</p>'
+                + '<div data-reponse-analyse="' + boiteEchap(item.id) + '"></div>'
                 + '<button type="button" data-repondre="' + boiteEchap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.75rem 1rem;border:none;border-radius:0.8rem;background:#059669;color:white;font-weight:800;cursor:pointer;">Envoyer le mail et le message</button>'
                 + '<p data-reponse-statut="' + boiteEchap(item.id) + '" style="min-height:1.1rem;margin-top:0.4rem;font-size:0.8rem;color:#047857;"></p>';
         }
@@ -1536,7 +1622,30 @@ function boiteDireDans(el, texte, erreur) {
     el.style.color = erreur ? '#b45309' : '#047857';
 }
 
-function boiteRepondre(questionId, origine) {
+function boiteMontrerAnalyse(questionId, article, texte, erreurs) {
+    var zone = article ? article.querySelector('[data-reponse-analyse]') : document.querySelector('[data-reponse-analyse="' + questionId + '"]');
+    if (!zone) return;
+    if (!erreurs || !erreurs.length) {
+        zone.innerHTML = '';
+        return;
+    }
+    var lignes = erreurs.map(function (err) {
+        var extrait = texte.slice(err.debut, err.fin);
+        var suggestion = err.suggestions && err.suggestions.length ? ' Suggestion : « ' + err.suggestions[0] + ' ».' : '';
+        var etiquette = typeof langueEtiquette === 'function' ? langueEtiquette(err.type) : 'À corriger';
+        return '<li style="margin:0.35rem 0;"><strong>' + boiteEchap(etiquette) + '.</strong> « ' + boiteEchap(extrait) + ' » — ' + boiteEchap(err.message) + boiteEchap(suggestion) + '</li>';
+    }).join('');
+    var apercu = typeof langueMarquer === 'function' ? langueMarquer(texte, erreurs) : boiteEchap(texte);
+    zone.innerHTML = '<div style="margin-top:0.7rem;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:0.8rem;padding:0.75rem 0.8rem;">'
+        + '<p style="font-weight:800;color:#92400e;margin:0;">Corrige ces points avant l\'envoi. Le mail n\'est pas parti.</p>'
+        + '<p style="font-size:0.9rem;line-height:1.45;white-space:pre-wrap;margin:0.55rem 0 0;color:#1f2937;">' + apercu + '</p>'
+        + '<ul style="margin:0.55rem 0 0;padding-left:1.1rem;color:#78350f;font-size:0.84rem;">' + lignes + '</ul>'
+        + '<button type="button" data-repondre-quand-meme="' + boiteEchap(questionId) + '" style="width:100%;margin-top:0.7rem;padding:0.7rem 1rem;border:1.5px solid #d97706;border-radius:0.8rem;background:white;color:#92400e;font-weight:800;cursor:pointer;">Envoyer malgré ces remarques</button>'
+        + '</div>';
+    if (zone.scrollIntoView) zone.scrollIntoView({ block: 'nearest' });
+}
+
+function boiteRepondre(questionId, origine, forcer) {
     if (!boiteEstAdmin() || !boiteListesCache) return;
     var question = null;
     (boiteListesCache.questions || []).some(function (item) {
@@ -1546,7 +1655,7 @@ function boiteRepondre(questionId, origine) {
     var article = origine && origine.closest ? origine.closest('article') : null;
     var zone = article ? article.querySelector('[data-reponse-statut]') : document.querySelector('[data-reponse-statut="' + questionId + '"]');
     var champ = article ? article.querySelector('[data-reponse-texte]') : document.querySelector('[data-reponse-texte="' + questionId + '"]');
-    var bouton = origine || document.querySelector('[data-repondre="' + questionId + '"]');
+    var bouton = article ? article.querySelector('[data-repondre]') : document.querySelector('[data-repondre="' + questionId + '"]');
     if (!question) return;
     var email = boiteEmailQuestion(question);
     var texte = champ ? champ.value.trim() : '';
@@ -1560,29 +1669,50 @@ function boiteRepondre(questionId, origine) {
     }
     if (bouton && bouton.disabled) return;
     if (bouton) bouton.disabled = true;
-    boiteDireDans(zone, 'Envoi vers ' + email + '…', false);
-    boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', question.nom || question.googleNom || '').then(function (data) {
-        var record = {
-            type: 'reponse',
-            id: boiteId('r'),
-            questionId: question.id,
-            at: new Date().toISOString(),
-            nom: boiteNom(),
-            email: BOITE_EXPEDITEUR,
-            destinataire: email,
-            texte: texte.slice(0, 800),
-            mail: true,
-            gmailId: String(data && data.id || ''),
-            partage: true
-        };
-        boiteGarderVu(record);
-        boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
-        boiteRendreQuestions(boiteListesCache);
-        boiteRendreRetours(boiteListesCache);
-        boiteEnvoyer(record).catch(function () {});
-    }).catch(function (err) {
-        if (bouton) bouton.disabled = false;
-        boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
+    function envoyer() {
+        boiteMontrerAnalyse(questionId, article, texte, []);
+        boiteDireDans(zone, 'Envoi vers ' + email + '…', false);
+        boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', question.nom || question.googleNom || '').then(function (data) {
+            var gmailId = String(data && data.id || '');
+            var record = {
+                type: 'reponse',
+                id: boiteId('r'),
+                questionId: question.id,
+                at: new Date().toISOString(),
+                nom: boiteNom(),
+                email: BOITE_EXPEDITEUR,
+                destinataire: email,
+                texte: texte.slice(0, 800),
+                mail: true,
+                repondu: true,
+                gmailId: gmailId.length >= 16 ? gmailId : '',
+                partage: true
+            };
+            boiteGarderVu(record);
+            boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+            boiteRendreQuestions(boiteListesCache);
+            boiteRendreRetours(boiteListesCache);
+            boiteEnvoyer(record).catch(function () {});
+        }).catch(function (err) {
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
+        });
+    }
+    if (forcer || typeof langueAnalyser !== 'function') {
+        envoyer();
+        return;
+    }
+    boiteDireDans(zone, 'Vérification de l\'orthographe, de la grammaire et de la conjugaison…', false);
+    langueAnalyser(texte.slice(0, 800)).then(function (erreurs) {
+        if (erreurs && erreurs.length) {
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le message n\'a pas été envoyé. Les erreurs sont indiquées ci-dessus.', true);
+            boiteMontrerAnalyse(questionId, article, texte.slice(0, 800), erreurs);
+            return;
+        }
+        envoyer();
+    }).catch(function () {
+        envoyer();
     });
 }
 
@@ -1744,9 +1874,10 @@ function boiteBrancherAdmin() {
         if (!liste || liste.__boite) return;
         liste.__boite = true;
         liste.addEventListener('click', function (e) {
-            var btn = e.target && e.target.closest ? e.target.closest('[data-repondre]') : null;
+            var force = e.target && e.target.closest ? e.target.closest('[data-repondre-quand-meme]') : null;
+            var btn = force || (e.target && e.target.closest ? e.target.closest('[data-repondre]') : null);
             if (!btn) return;
-            boiteRepondre(btn.getAttribute('data-repondre'), btn);
+            boiteRepondre(btn.getAttribute('data-repondre') || btn.getAttribute('data-repondre-quand-meme'), btn, !!force);
         });
     });
 }
