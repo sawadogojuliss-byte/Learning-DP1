@@ -26,6 +26,7 @@ var MEMOIRE_PAGES = {
     panelTutoriel: 'tutoriel',
     panelAide: 'aide',
     panelFeedback: 'feedback',
+    panelAnnonce: 'annonce',
     panelRetours: 'retours',
     panelQuestions: 'questions',
     panelEmplois: 'emplois',
@@ -434,7 +435,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'assistant') {
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'assistant') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         document.querySelectorAll('.context-modal').forEach(function (el) {
             if (el.id !== 'planningModal') el.classList.remove('active');
@@ -497,7 +498,7 @@ function memoireEtapeConnue(etape) {
         accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
         libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
-        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, retours: 1, questions: 1, emplois: 1, assistant: 1
+        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1, assistant: 1
     };
     return !!connues[etape];
 }
@@ -564,6 +565,7 @@ function memoirePagePrecedente(etape) {
         assistant: 'planning',
         aide: 'planning',
         feedback: 'planning',
+        annonce: 'planning',
         retours: 'planning',
         questions: 'planning',
         emplois: 'planning'

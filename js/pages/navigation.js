@@ -62,6 +62,10 @@ function navigateTo(page) {
         var feedback = document.getElementById('panelFeedback');
         if (typeof initFeedback === 'function') initFeedback();
         if (feedback) feedback.classList.add('active');
+    } else if (page === 'annonce') {
+        var annonce = document.getElementById('panelAnnonce');
+        if (typeof initAnnonce === 'function') initAnnonce();
+        if (annonce) annonce.classList.add('active');
     } else if (page === 'retours' || page === 'questions' || page === 'emplois') {
         if (typeof boiteOuvrirAdmin === 'function') boiteOuvrirAdmin(page);
     }

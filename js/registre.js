@@ -28,6 +28,7 @@ window.STUDYPLAN_HTML = [
     'pages/tutoriel.html',
     'pages/aide.html',
     'pages/feedback.html',
+    'pages/annonce.html',
     'pages/boite.html',
     'pages/compte.html'
 ];
@@ -61,6 +62,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/compte.js',
     'js/pages/langue.js',
     'js/pages/boite.js',
+    'js/pages/annonce.js',
     'js/pages/tutoriel.js',
     'js/pages/assistant.js',
     'js/pages/rappels.js'

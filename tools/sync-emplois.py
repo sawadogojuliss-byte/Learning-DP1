@@ -20,6 +20,7 @@ DEST_EMPLOIS = pathlib.Path('data/emplois.json')
 DEST_COMPTES = pathlib.Path('data/comptes.json')
 DEST_RETOURS = pathlib.Path('data/retours.json')
 DEST_TUTOS = pathlib.Path('data/tutoriels.json')
+DEST_ANNONCES = pathlib.Path('data/annonces.json')
 DEST_RAPPELS = pathlib.Path('data/rappels.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
@@ -192,7 +193,9 @@ def lire_archive(url):
         return []
     if not isinstance(doc, dict):
         return []
-    return [item for item in (doc.get('emplois') or []) if isinstance(item, dict)]
+    emplois = [item for item in (doc.get('emplois') or []) if isinstance(item, dict)]
+    annonces = [item for item in (doc.get('annonces') or []) if isinstance(item, dict)]
+    return emplois + annonces
 
 
 JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -643,7 +646,52 @@ def fusionner_tutoriels(items, existants):
     return sorted(gardes.values(), key=lambda item: str(item.get('at') or ''))
 
 
-def ecrire_archive(url, emplois):
+def fusionner_annonces(items, existants):
+    gardes = {}
+    for item in list(existants or []) + list(items or []):
+        if not isinstance(item, dict) or item.get('type') != 'annonce' or not item.get('id'):
+            continue
+        if not item.get('titre') or not item.get('texte'):
+            continue
+        ident = str(item.get('id'))
+        deja = gardes.get(ident)
+        acceptations = {}
+        if deja:
+            acceptations.update(deja.get('acceptations') or {})
+        acceptations.update(item.get('acceptations') or {})
+        envoyes = []
+        for source in ((deja or {}).get('envoyes') or [], item.get('envoyes') or []):
+            for email in source:
+                propre = str(email or '').strip().lower()
+                if propre and propre not in envoyes:
+                    envoyes.append(propre)
+        recent = item
+        ancien = deja or item
+        if deja and str(deja.get('at') or '') > str(item.get('at') or ''):
+            recent = deja
+            ancien = item
+        fusion = dict(ancien)
+        fusion.update(recent)
+        fusion.update({
+            'type': 'annonce',
+            'id': ident,
+            'acceptations': acceptations,
+            'publie': 1 if (item.get('publie') or (deja or {}).get('publie')) else 0,
+            'retire': 1 if (item.get('retire') or (deja or {}).get('retire')) else 0,
+            'programmeActif': 1 if (item.get('programmeActif') or (deja or {}).get('programmeActif')) else 0,
+            'envoyes': envoyes[:80],
+            'envoyeAt': (deja or {}).get('envoyeAt') or item.get('envoyeAt') or '',
+            'publieAt': (deja or {}).get('publieAt') or item.get('publieAt') or '',
+        })
+        gardes[ident] = fusion
+    return sorted(
+        (item for item in gardes.values() if not item.get('retire')),
+        key=lambda item: str(item.get('at') or ''),
+        reverse=True,
+    )
+
+
+def ecrire_archive(url, emplois, annonces=None):
     if not url:
         return
     try:
@@ -655,6 +703,8 @@ def ecrire_archive(url, emplois):
     if not isinstance(doc, dict):
         doc = {}
     doc['emplois'] = emplois
+    if annonces is not None:
+        doc['annonces'] = annonces
     doc.setdefault('questions', [])
     doc.setdefault('feedbacks', [])
     doc.setdefault('reponses', [])
@@ -968,7 +1018,10 @@ def main():
     })
     anciens_tutos = lire_json(DEST_TUTOS, {}).get('tutoriels') or []
     ecrire(DEST_TUTOS, {'tutoriels': fusionner_tutoriels(items, anciens_tutos)})
-    ecrire_archive(config.get('archive') or '', emplois)
+    anciennes_annonces = lire_json(DEST_ANNONCES, {}).get('annonces') or []
+    annonces = fusionner_annonces(items, anciennes_annonces)
+    ecrire(DEST_ANNONCES, {'annonces': annonces})
+    ecrire_archive(config.get('archive') or '', emplois, annonces)
     anciens = lire_json(DEST_RAPPELS, {}).get('exercices') or []
     lots, exos = groupes_et_exercices(list(anciens) + items, emplois)
     ecrire(DEST_RAPPELS, {'groupes': lots, 'exercices': exos})

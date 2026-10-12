@@ -234,7 +234,7 @@ function boiteResoudreKvdb(cfg) {
 
 function boiteCleKvdb(record) {
     if (record.type === 'emploi') return 'e_' + String(record.appareil || record.id || 'x').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
-    var prefix = record.type === 'feedback' ? 'f_' : 'q_';
+    var prefix = record.type === 'feedback' ? 'f_' : (record.type === 'annonce' ? 'a_' : (record.type === 'tutoriel' ? 't_' : 'q_'));
     return prefix + String(record.id || boiteId(prefix)).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
 }
 
@@ -266,6 +266,18 @@ function boiteJoursCompacts(jours, maxSlots) {
 function boiteCorpsNtfy(record) {
     var json = JSON.stringify(record);
     if (json.length <= 3800) return json;
+    if (record.type === 'annonce') {
+        var annonce = {
+            type: 'annonce', id: record.id, at: record.at, titre: String(record.titre || '').slice(0, 80),
+            texte: String(record.texte || '').slice(0, 1500), nom: record.nom || '', auteurCle: record.auteurCle || '',
+            programme: record.programme || '', programmeActif: record.programmeActif ? 1 : 0,
+            acceptations: record.acceptations || {}, publie: record.publie ? 1 : 0, publieAt: record.publieAt || '',
+            envoyeAt: record.envoyeAt || '', envoyes: (record.envoyes || []).slice(0, 40),
+            envoiVerrou: record.envoiVerrou || '', retire: record.retire ? 1 : 0
+        };
+        if (JSON.stringify(annonce).length > 3800) annonce.texte = String(annonce.texte || '').slice(0, 700);
+        return JSON.stringify(annonce);
+    }
     if (record.type !== 'emploi') {
         var jours = boiteJoursCompacts(record.jours, 8);
         var copie = {
@@ -343,7 +355,7 @@ function boiteEnvoyerDistant(record, options) {
 function boiteLireVus() {
     var vus = boiteLireJson(BOITE_VUS);
     if (!vus || typeof vus !== 'object') return [];
-    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || [], vus.profils || [], vus.connexions || []);
+    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || [], vus.profils || [], vus.connexions || [], vus.annonces || []);
 }
 
 function boiteMemoriserVus(fusion) {
@@ -353,7 +365,8 @@ function boiteMemoriserVus(fusion) {
         emplois: (fusion.emplois || []).slice(0, 200),
         reponses: (fusion.reponses || []).slice(0, 80),
         profils: (fusion.profils || []).slice(0, 40),
-        connexions: (fusion.connexions || []).slice(0, 4)
+        connexions: (fusion.connexions || []).slice(0, 4),
+        annonces: (fusion.annonces || []).slice(0, 40)
     });
 }
 
@@ -560,7 +573,7 @@ function boiteEnvoyer(record) {
     }
     return envoi.then(function (ok) {
         boiteGarderVu(record);
-        if (record && (record.type === 'emploi' || record.type === 'tutoriel')) boiteAjouterArchive(record);
+        if (record && (record.type === 'emploi' || record.type === 'tutoriel' || record.type === 'annonce')) boiteAjouterArchive(record);
         return ok;
     });
 }
@@ -628,7 +641,7 @@ function boiteLireArchive(url) {
         })
         .then(function (doc) {
             doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || []);
+            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [], doc.annonces || []);
         });
 }
 
@@ -806,6 +819,7 @@ function boiteFusionner(items) {
     var profils = [];
     var connexions = [];
     var tutoriels = [];
+    var annonces = [];
     var brutsEmplois = [];
     var vusQ = {};
     var vusF = {};
@@ -850,6 +864,8 @@ function boiteFusionner(items) {
             }
         } else if (item.type === 'tutoriel' && item.id) {
             if (!vusT[item.id] || String(item.at || '') >= String(vusT[item.id].at || '')) vusT[item.id] = item;
+        } else if (item.type === 'annonce' && item.id) {
+            annonces.push(item);
         } else if (item.type === 'emploi') {
             if (!boiteEmploiRetire(item)) brutsEmplois.push(item);
         }
@@ -863,6 +879,7 @@ function boiteFusionner(items) {
     connexions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     Object.keys(vusT).forEach(function (id) { tutoriels.push(vusT[id]); });
     tutoriels.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
+    if (typeof annonceFusionner === 'function') annonces = annonceFusionner(annonces);
     return {
         questions: questions.slice(0, 120),
         feedbacks: feedbacks.slice(0, 120),
@@ -870,7 +887,8 @@ function boiteFusionner(items) {
         profils: profils.slice(0, 80),
         connexions: connexions.slice(0, 8),
         emplois: listeEmplois.slice(0, 300),
-        tutoriels: tutoriels.slice(0, 40)
+        tutoriels: tutoriels.slice(0, 40),
+        annonces: annonces.slice(0, 40)
     };
 }
 
@@ -904,7 +922,15 @@ function boiteDocument(fusion) {
             titre: item.titre || '',
             url: item.url || '',
             publie: item.publie ? 1 : 0,
-            retire: item.retire ? 1 : 0
+            retire: item.retire ? 1 : 0,
+            auteurCle: item.auteurCle || '',
+            acceptations: item.acceptations || null,
+            programme: item.programme || '',
+            programmeActif: item.programmeActif ? 1 : 0,
+            publieAt: item.publieAt || '',
+            envoyeAt: item.envoyeAt || '',
+            envoyes: item.envoyes || [],
+            envoiVerrou: item.envoiVerrou || ''
         };
     }
     var doc = {
@@ -914,7 +940,8 @@ function boiteDocument(fusion) {
         emplois: fusion.emplois.map(leger),
         profils: (fusion.profils || []).slice(0, 20).map(leger),
         connexions: (fusion.connexions || []).slice(0, 4).map(leger),
-        tutoriels: (fusion.tutoriels || []).slice(0, 40).map(leger)
+        tutoriels: (fusion.tutoriels || []).slice(0, 40).map(leger),
+        annonces: (fusion.annonces || []).slice(0, 40).map(leger)
     };
     if (JSON.stringify(doc).length > 60000) {
         doc.questions = doc.questions.slice(0, 30);
@@ -936,8 +963,8 @@ function boiteArchiver(cfg, fusion) {
     }).then(function (doc) {
         doc = doc && typeof doc === 'object' ? doc : {};
         var mix = boiteFusionner([].concat(
-            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [],
-            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || [], fusion.tutoriels || []
+            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [], doc.annonces || [],
+            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || [], fusion.tutoriels || [], fusion.annonces || []
         ));
         return boiteFetch(cfg.archive, {
             method: 'PUT',
@@ -953,8 +980,9 @@ function boiteAjouterArchive(record) {
         var connu = cfg && cfg.archive ? Promise.resolve(cfg.archive) : boiteCreerArchive();
         return connu.then(function (url) {
             if (!url) return;
-            var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [] };
-            if (record.type === 'tutoriel') fusion.tutoriels = [record];
+            var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [], annonces: [] };
+            if (record.type === 'annonce') fusion.annonces = [record];
+            else if (record.type === 'tutoriel') fusion.tutoriels = [record];
             else if (record.type === 'feedback') fusion.feedbacks = [record];
             else if (record.type === 'reponse') fusion.reponses = [record];
             else if (record.type === 'question') fusion.questions = [record];
@@ -978,6 +1006,18 @@ function boiteUrlsKvdb(cfg, messages) {
         if (item && item.type === 'coffre') ajouter(item.kvdb);
     });
     return urls.slice(0, 6);
+}
+
+function boiteLireAnnoncesFichier() {
+    return boiteFetch('data/annonces.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
+        .then(function (res) {
+            if (!res.ok) throw new Error('annonces');
+            return res.json();
+        })
+        .then(function (doc) {
+            return ((doc || {}).annonces || []).filter(function (item) { return item && item.type === 'annonce'; });
+        })
+        .catch(function () { return []; });
 }
 
 function boiteLireRetoursFichier() {
@@ -1019,7 +1059,8 @@ function boiteChargerListes(force) {
             archiveP,
             boiteLireNtfy().catch(function () { return boiteLireNtfy(); }).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
             boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; }),
-            boiteLireRetoursFichier().then(function (items) { return { ok: true, items: items }; })
+            boiteLireRetoursFichier().then(function (items) { return { ok: true, items: items }; }),
+            boiteLireAnnoncesFichier().then(function (items) { return { ok: true, items: items }; })
         ]).then(function (premiers) {
             archiveOk = premiers[0].ok;
             var messages = premiers[1].items || [];
