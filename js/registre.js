@@ -24,6 +24,7 @@ window.STUDYPLAN_HTML = [
     'pages/ee-ia.html',
     'pages/feries.html',
     'pages/assistant.html',
+    'pages/tutoriel.html',
     'pages/aide.html',
     'pages/feedback.html',
     'pages/boite.html',
@@ -58,6 +59,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/compte.js',
     'js/pages/langue.js',
     'js/pages/boite.js',
+    'js/pages/tutoriel.js',
     'js/pages/assistant.js',
     'js/pages/rappels.js'
 ];

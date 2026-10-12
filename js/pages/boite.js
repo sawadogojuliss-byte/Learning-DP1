@@ -137,6 +137,7 @@ function boiteMajMenu() {
         var el = document.getElementById(id);
         if (el) el.style.display = admin ? 'flex' : 'none';
     });
+    if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
     if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
     else {
         var assistant = document.getElementById('menuAssistant');
@@ -559,7 +560,7 @@ function boiteEnvoyer(record) {
     }
     return envoi.then(function (ok) {
         boiteGarderVu(record);
-        if (record && record.type === 'emploi') boiteAjouterArchive(record);
+        if (record && (record.type === 'emploi' || record.type === 'tutoriel')) boiteAjouterArchive(record);
         return ok;
     });
 }
@@ -627,7 +628,7 @@ function boiteLireArchive(url) {
         })
         .then(function (doc) {
             doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || []);
+            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || []);
         });
 }
 
@@ -804,12 +805,14 @@ function boiteFusionner(items) {
     var reponses = [];
     var profils = [];
     var connexions = [];
+    var tutoriels = [];
     var brutsEmplois = [];
     var vusQ = {};
     var vusF = {};
     var vusR = {};
     var vusP = {};
     var vusC = {};
+    var vusT = {};
     (items || []).forEach(function (item) {
         if (!item || !item.type || item.type === 'coffre') return;
         if (item.type === 'question' && item.id && !vusQ[item.id]) {
@@ -845,6 +848,8 @@ function boiteFusionner(items) {
                     if (deja.id === item.id && !deja.partage) connexions[index] = item;
                 });
             }
+        } else if (item.type === 'tutoriel' && item.id) {
+            if (!vusT[item.id] || String(item.at || '') >= String(vusT[item.id].at || '')) vusT[item.id] = item;
         } else if (item.type === 'emploi') {
             if (!boiteEmploiRetire(item)) brutsEmplois.push(item);
         }
@@ -856,13 +861,16 @@ function boiteFusionner(items) {
     reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
     listeEmplois.sort(function (a, b) { return boiteNormaliser(a.nom).localeCompare(boiteNormaliser(b.nom), 'fr'); });
     connexions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    Object.keys(vusT).forEach(function (id) { tutoriels.push(vusT[id]); });
+    tutoriels.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
     return {
         questions: questions.slice(0, 120),
         feedbacks: feedbacks.slice(0, 120),
         reponses: reponses.slice(0, 120),
         profils: profils.slice(0, 80),
         connexions: connexions.slice(0, 8),
-        emplois: listeEmplois.slice(0, 300)
+        emplois: listeEmplois.slice(0, 300),
+        tutoriels: tutoriels.slice(0, 40)
     };
 }
 
@@ -892,7 +900,11 @@ function boiteDocument(fusion) {
             mail: !!item.mail,
             repondu: !!item.repondu,
             partage: !!item.partage,
-            data: item.data || null
+            data: item.data || null,
+            titre: item.titre || '',
+            url: item.url || '',
+            publie: item.publie ? 1 : 0,
+            retire: item.retire ? 1 : 0
         };
     }
     var doc = {
@@ -901,7 +913,8 @@ function boiteDocument(fusion) {
         reponses: (fusion.reponses || []).slice(0, 60).map(leger),
         emplois: fusion.emplois.map(leger),
         profils: (fusion.profils || []).slice(0, 20).map(leger),
-        connexions: (fusion.connexions || []).slice(0, 4).map(leger)
+        connexions: (fusion.connexions || []).slice(0, 4).map(leger),
+        tutoriels: (fusion.tutoriels || []).slice(0, 40).map(leger)
     };
     if (JSON.stringify(doc).length > 60000) {
         doc.questions = doc.questions.slice(0, 30);
@@ -923,8 +936,8 @@ function boiteArchiver(cfg, fusion) {
     }).then(function (doc) {
         doc = doc && typeof doc === 'object' ? doc : {};
         var mix = boiteFusionner([].concat(
-            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [],
-            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || []
+            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [],
+            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || [], fusion.tutoriels || []
         ));
         return boiteFetch(cfg.archive, {
             method: 'PUT',
@@ -941,7 +954,8 @@ function boiteAjouterArchive(record) {
         return connu.then(function (url) {
             if (!url) return;
             var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [] };
-            if (record.type === 'feedback') fusion.feedbacks = [record];
+            if (record.type === 'tutoriel') fusion.tutoriels = [record];
+            else if (record.type === 'feedback') fusion.feedbacks = [record];
             else if (record.type === 'reponse') fusion.reponses = [record];
             else if (record.type === 'question') fusion.questions = [record];
             else if (record.type === 'profil') fusion.profils = [record];

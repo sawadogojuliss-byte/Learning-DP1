@@ -49,6 +49,11 @@ function navigateTo(page) {
         var assistant = document.getElementById('panelAssistant');
         if (assistant) assistant.classList.add('active');
         if (typeof iaOuvrir === 'function') iaOuvrir();
+    } else if (page === 'tutoriel') {
+        if (typeof tutorielSectionVisible === 'function' && !tutorielSectionVisible()) return;
+        var tutoriel = document.getElementById('panelTutoriel');
+        if (typeof initTutoriel === 'function') initTutoriel();
+        if (tutoriel) tutoriel.classList.add('active');
     } else if (page === 'aide') {
         var aide = document.getElementById('panelAide');
         if (typeof initAide === 'function') initAide();

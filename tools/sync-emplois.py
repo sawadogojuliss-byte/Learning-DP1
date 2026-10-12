@@ -19,6 +19,7 @@ DEST_URL = pathlib.Path('data/boite-url.json')
 DEST_EMPLOIS = pathlib.Path('data/emplois.json')
 DEST_COMPTES = pathlib.Path('data/comptes.json')
 DEST_RETOURS = pathlib.Path('data/retours.json')
+DEST_TUTOS = pathlib.Path('data/tutoriels.json')
 DEST_RAPPELS = pathlib.Path('data/rappels.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
@@ -621,6 +622,27 @@ def leger(item):
     return corriger_emploi(record)
 
 
+def fusionner_tutoriels(items, existants):
+    gardes = {}
+    for item in list(existants or []) + list(items or []):
+        if not isinstance(item, dict) or item.get('type') != 'tutoriel' or not item.get('id'):
+            continue
+        ident = str(item.get('id'))
+        deja = gardes.get(ident)
+        if not deja or str(item.get('at') or '') >= str(deja.get('at') or ''):
+            gardes[ident] = {
+                'type': 'tutoriel',
+                'id': ident,
+                'at': item.get('at') or '',
+                'titre': item.get('titre') or '',
+                'url': item.get('url') or '',
+                'nom': item.get('nom') or '',
+                'publie': 1 if item.get('publie') else 0,
+                'retire': 1 if item.get('retire') else 0,
+            }
+    return sorted(gardes.values(), key=lambda item: str(item.get('at') or ''))
+
+
 def ecrire_archive(url, emplois):
     if not url:
         return
@@ -944,6 +966,8 @@ def main():
         'feedbacks': [item for item in items if isinstance(item, dict) and item.get('type') == 'feedback'][-120:],
         'reponses': [item for item in items if isinstance(item, dict) and item.get('type') == 'reponse'][-120:],
     })
+    anciens_tutos = lire_json(DEST_TUTOS, {}).get('tutoriels') or []
+    ecrire(DEST_TUTOS, {'tutoriels': fusionner_tutoriels(items, anciens_tutos)})
     ecrire_archive(config.get('archive') or '', emplois)
     anciens = lire_json(DEST_RAPPELS, {}).get('exercices') or []
     lots, exos = groupes_et_exercices(list(anciens) + items, emplois)
