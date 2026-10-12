@@ -435,6 +435,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
+    if (etape === 'assistant') etape = 'planning';
     if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'assistant') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         document.querySelectorAll('.context-modal').forEach(function (el) {
@@ -521,6 +522,7 @@ function memoirePoserHash(etape) {
 
 function memoireDepuisHistorique(etape) {
     if (!memoireEtapeConnue(etape)) etape = memoireEtapeHash() || 'accueil';
+    if (etape === 'assistant') etape = 'planning';
     if (!memoireEtapeConnue(etape)) etape = 'accueil';
     memoireNavSilence = true;
     try {
@@ -753,6 +755,7 @@ function memoireDemarrer() {
     memoirePret = true;
     if (aRestaurer) {
         var etape = data.etape || 'accueil';
+        if (etape === 'assistant') etape = 'planning';
         if (data.profilComplet && etape === 'accueil') etape = 'planning';
         try { memoireAller(etape); } catch (e) { console.error(e); }
     }

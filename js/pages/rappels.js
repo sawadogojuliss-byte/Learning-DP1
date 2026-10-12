@@ -465,18 +465,8 @@ function rappelPublierCohorte() {
 }
 
 function rappelOuvrirSiBesoin() {
-    if (!window.__profilComplet || !rappelPeutOuvrir()) return;
-    var raison = rappelCompte() > 0 ? 'exo' : 'journee';
-    try {
-        if (raison === 'exo' && sessionStorage.getItem('studyPlanIB_chatOuvert_exo') === '1' && !rappelJourneeDue()) return;
-        if (raison === 'exo') sessionStorage.setItem('studyPlanIB_chatOuvert_exo', '1');
-    } catch (e) {}
     var panel = document.getElementById('panelAssistant');
-    if (panel && panel.classList.contains('active')) {
-        rappelPoser();
-        return;
-    }
-    if (typeof navigateTo === 'function') navigateTo('assistant');
+    if (panel && panel.classList.contains('active') && typeof rappelPoser === 'function') rappelPoser();
 }
 
 function rappelAfficher() {
