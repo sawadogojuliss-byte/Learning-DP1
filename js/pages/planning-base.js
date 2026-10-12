@@ -393,6 +393,7 @@ function initPlanning() {
     const greeting = getGreeting();
     document.getElementById('greetingText').textContent = greeting + ', ' + (userName || 'là') + ' ! 👋';
     if (typeof compterJourConnecte === 'function') compterJourConnecte();
+    if (typeof reporterModificationsSemaine === 'function' && reporterModificationsSemaine() && typeof v3Save === 'function') v3Save();
     renderPlanning();
     // Refresh next activity banner every minute
     if (typeof boitePublierEmploi === 'function') boitePublierEmploi();

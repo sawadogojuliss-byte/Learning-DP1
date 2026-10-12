@@ -264,7 +264,10 @@ def corriger_emploi(item):
             copie = slot
             debut = str(slot.get('d') or '')
             fin = str(slot.get('f') or '')
-            if titre == 'Cours' and debut == '08:15':
+            if titre == 'Cours' and debut and debut < '12:00' and fin == '12:30' and debut != '07:50':
+                copie = dict(slot)
+                copie['d'] = '07:50'
+            elif titre == 'Cours' and debut == '08:15':
                 copie = dict(slot)
                 copie['d'] = '07:50'
             elif fin == '08:15' and debut and debut < '07:50':

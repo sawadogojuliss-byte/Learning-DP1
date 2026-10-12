@@ -188,6 +188,25 @@ function saveEditedEventCascade() {
     errEl.style.display = 'none';
 
     const day = selectedDay;
+    if (!window.__ignorerChevauchementActivite && v3EstActivite(editingEvent)) {
+        const activites = v3ActivitesChevauchees(day, newStart, newEnd, [editingEvent.id]);
+        if (activites.length) {
+            v3OuvrirChoixChevauchement({
+                mode: 'edition',
+                day: day,
+                title: newTitle,
+                icon: editingEvent.icon,
+                type: editingEvent.type,
+                start: newStart,
+                end: newEnd,
+                origineStart: editingEvent.startTime,
+                origineEnd: editingEvent.endTime,
+                excludeIds: [editingEvent.id],
+                conflits: activites
+            });
+            return;
+        }
+    }
     const startChanged = newStart !== editingEvent.startTime;
     const customIdx = customEvents.findIndex(e => e && e.id === editingEvent.id && !e.replacesId);
     const isCustom = customIdx !== -1;
@@ -222,7 +241,7 @@ function saveEditedEventCascade() {
     }
 
     // Réajustement : les créneaux fixés qui suivent sont décalés de la variation de durée
-    if (delta !== 0) {
+    if (delta !== 0 && !window.__ignorerDecalagePlanning) {
         const editStartMins = timeToMinutes(newStart);
         customEvents = customEvents.map(ev => {
             if (!ev || ev.day !== day || ev.id === recordId || !v3IsPinnedRecord(ev)) return ev;
@@ -413,6 +432,25 @@ function confirmAddActivity() {
     if (!startTime || !endTime) { showErr('Remplis les horaires.'); return; }
     const validation = validateNewEventTime(startTime, endTime, selectedDay);
     if (!validation.valid) { showErr(validation.error); return; }
+    if (!window.__ignorerChevauchementActivite) {
+        const activites = v3ActivitesChevauchees(selectedDay, startTime, endTime, []);
+        if (activites.length) {
+            v3OuvrirChoixChevauchement({
+                mode: 'ajout',
+                day: selectedDay,
+                title: name,
+                icon: icon,
+                type: 'activity',
+                start: startTime,
+                end: endTime,
+                origineStart: startTime,
+                origineEnd: endTime,
+                excludeIds: [],
+                conflits: activites
+            });
+            return;
+        }
+    }
     const conflict = v3FindConflict(selectedDay, startTime, endTime);
     if (conflict) { showErr(v3ConflictMessage(conflict)); return; }
     errEl.style.display = 'none';
@@ -458,6 +496,261 @@ function addCustomActivity() {
 }
 
 // ── Surcharges légères (on garde le comportement d'origine + ajout) ──
+function v3EstActivite(ev) {
+    if (!ev) return false;
+    if (ev.type === 'activity') return true;
+    return String(ev.id || '').indexOf('activity-') === 0;
+}
+
+function v3IntervallesSeCroisent(debut, fin, autreDebut, autreFin) {
+    if (typeof timeToMinutes !== 'function') return false;
+    var s = timeToMinutes(debut);
+    var e = timeToMinutes(fin);
+    var os = timeToMinutes(autreDebut);
+    var oe = timeToMinutes(autreFin);
+    if (!(e > s) || !(oe > os)) return false;
+    return s < oe && os < e;
+}
+
+function v3ActivitesChevauchees(day, start, end, excludeIds) {
+    var exclus = {};
+    (excludeIds || []).forEach(function (id) { if (id) exclus[id] = true; });
+    return (generateDayEvents(day) || []).filter(function (ev) {
+        if (!ev || exclus[ev.id] || !v3EstActivite(ev)) return false;
+        return v3IntervallesSeCroisent(start, end, ev.startTime, ev.endTime);
+    });
+}
+
+function v3Horloge(mins) {
+    return typeof v3M2T === 'function' ? v3M2T(((mins % 1440) + 1440) % 1440) : '00:00';
+}
+
+function v3PropositionsCreneau(day, duree, excludeIds, occupesEnPlus) {
+    if (!(duree > 0) || typeof timeToMinutes !== 'function') return [];
+    var reveil = day === 5 ? saturdayWakeup : day === 6 ? sundayWakeup : weekdayWakeup;
+    var debutJour = timeToMinutes(reveil || '06:00');
+    var finJour = timeToMinutes(typeof bedtimeForDay === 'function' ? bedtimeForDay(day) : '22:00');
+    if (finJour <= debutJour) finJour += 1440;
+    var exclus = {};
+    (excludeIds || []).forEach(function (id) { if (id) exclus[id] = true; });
+    var occupe = [];
+    if (day < 5) {
+        occupe.push([7 * 60 + 50, 12 * 60 + 30]);
+        occupe.push([13 * 60 + 30, 16 * 60 + 35]);
+    }
+    (occupesEnPlus || []).forEach(function (plage) {
+        if (plage && plage.length === 2) occupe.push(plage);
+    });
+    (generateDayEvents(day) || []).forEach(function (ev) {
+        if (!ev || exclus[ev.id] || ev.id === 'wakeup' || ev.id === 'sleep') return;
+        var s = timeToMinutes(ev.startTime);
+        var e = timeToMinutes(ev.endTime);
+        if (e <= s) e += 1440;
+        occupe.push([s, e]);
+    });
+    occupe.sort(function (a, b) { return a[0] - b[0]; });
+    var fusion = [];
+    occupe.forEach(function (plage) {
+        if (!fusion.length || plage[0] > fusion[fusion.length - 1][1]) fusion.push(plage.slice());
+        else fusion[fusion.length - 1][1] = Math.max(fusion[fusion.length - 1][1], plage[1]);
+    });
+    var propositions = [];
+    var curseur = debutJour;
+    function ajouter(depart) {
+        if (propositions.length >= 4) return;
+        var debut = v3Horloge(depart);
+        var fin = v3Horloge(depart + duree);
+        if (propositions.some(function (p) { return p.start === debut; })) return;
+        propositions.push({ start: debut, end: fin });
+    }
+    fusion.forEach(function (plage) {
+        if (plage[0] - curseur >= duree) ajouter(curseur);
+        if (plage[1] > curseur) curseur = plage[1];
+    });
+    if (finJour - curseur >= duree) ajouter(curseur);
+    return propositions;
+}
+
+function v3DestinationEchange(ctx, conflit) {
+    var placeAutre = { start: conflit.startTime, end: conflit.endTime };
+    var placeModif = ctx.mode === 'edition'
+        ? { start: ctx.origineStart, end: ctx.origineEnd }
+        : { start: ctx.start, end: ctx.end };
+    var duree = timeToMinutes(conflit.endTime) - timeToMinutes(conflit.startTime);
+    if (!(duree > 0)) duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    if (v3IntervallesSeCroisent(placeModif.start, placeModif.end, placeAutre.start, placeAutre.end)) {
+        var libres = v3PropositionsCreneau(ctx.day, duree, [conflit.id].concat(ctx.excludeIds || []), [[timeToMinutes(placeAutre.start), timeToMinutes(placeAutre.end)]]);
+        if (libres.length) return { utilisateur: placeAutre, autre: libres[0], ajuste: true };
+    }
+    return { utilisateur: placeAutre, autre: placeModif, ajuste: false };
+}
+
+function v3DeplacerEvenement(ev, day, start, end) {
+    if (!ev) return;
+    var direct = customEvents.findIndex(function (item) { return item && item.id === ev.id && !item.replacesId; });
+    if (direct !== -1) {
+        customEvents[direct] = Object.assign({}, customEvents[direct], {
+            startTime: start, endTime: end, pinned: true, timestamp: Date.now()
+        });
+        return;
+    }
+    customEvents = customEvents.filter(function (item) {
+        return !(item && item.replacesId === ev.id && item.day === day);
+    });
+    customEvents.push({
+        id: generateEventId(ev.type || 'activity', ev.title || 'activite', day),
+        day: day,
+        title: ev.title,
+        startTime: start,
+        endTime: end,
+        type: ev.type || 'activity',
+        icon: ev.icon || '📌',
+        source: 'custom',
+        replacesId: ev.id,
+        pinned: true,
+        timestamp: Date.now()
+    });
+}
+
+function v3FermerChoixChevauchement() {
+    var el = document.getElementById('chevauchementPopup');
+    if (el) el.remove();
+}
+
+function v3AppliquerCreneauChoisi(start, end) {
+    var ctx = window.__chevauchementCtx;
+    if (!ctx || !start || !end) return;
+    var erreur = document.getElementById('chevauchementErreur');
+    if (timeToMinutes(end) <= timeToMinutes(start)) {
+        if (erreur) erreur.textContent = 'L\'heure de fin doit être après le début.';
+        return;
+    }
+    var validation = validateNewEventTime(start, end, ctx.day);
+    if (!validation.valid) {
+        if (erreur) erreur.textContent = validation.error;
+        return;
+    }
+    if (v3ActivitesChevauchees(ctx.day, start, end, ctx.excludeIds).length || v3FindConflict(ctx.day, start, end, ctx.excludeIds)) {
+        if (erreur) erreur.textContent = 'Ce créneau tombe encore sur une autre activité. Choisis-en un autre.';
+        return;
+    }
+    v3PoserHoraireFormulaire(ctx, start, end);
+    v3FermerChoixChevauchement();
+    window.__ignorerChevauchementActivite = true;
+    try {
+        if (ctx.mode === 'edition') saveEditedEventCascade();
+        else confirmAddActivity();
+    } finally {
+        window.__ignorerChevauchementActivite = false;
+    }
+}
+
+function v3PoserHoraireFormulaire(ctx, start, end) {
+    if (ctx.mode === 'edition') {
+        var debut = document.getElementById('editEventStart');
+        var fin = document.getElementById('editEventEnd');
+        if (debut) debut.value = start;
+        if (fin) fin.value = end;
+        return;
+    }
+    var ajoutDebut = document.getElementById('activityStartInput');
+    var ajoutFin = document.getElementById('activityEndInput');
+    if (ajoutDebut) ajoutDebut.value = start;
+    if (ajoutFin) ajoutFin.value = end;
+}
+
+function v3DireChevauchement(message) {
+    var erreur = document.getElementById('chevauchementErreur');
+    var zone = document.getElementById('chevauchementChoix');
+    if (zone) zone.hidden = false;
+    if (erreur) erreur.textContent = message;
+}
+
+function v3RemplacerActiviteChevauchee(index) {
+    var ctx = window.__chevauchementCtx;
+    if (!ctx || !ctx.conflits || !ctx.conflits[index]) return;
+    var conflit = ctx.conflits[index];
+    var dest = v3DestinationEchange(ctx, conflit);
+    var exclus = [conflit.id].concat(ctx.excludeIds || []);
+    var validation = validateNewEventTime(dest.utilisateur.start, dest.utilisateur.end, ctx.day);
+    var validationAutre = validateNewEventTime(dest.autre.start, dest.autre.end, ctx.day);
+    if (!validation.valid || !validationAutre.valid) {
+        v3DireChevauchement((validation.valid ? validationAutre : validation).error);
+        return;
+    }
+    var reste = v3FindConflict(ctx.day, dest.utilisateur.start, dest.utilisateur.end, exclus);
+    var resteAutre = v3FindConflict(ctx.day, dest.autre.start, dest.autre.end, exclus);
+    if (reste || resteAutre) {
+        v3DireChevauchement('Cet échange tomberait encore sur « ' + (reste || resteAutre).title + ' ». Choisis un autre créneau.');
+        return;
+    }
+    v3DeplacerEvenement(conflit, ctx.day, dest.autre.start, dest.autre.end);
+    v3PoserHoraireFormulaire(ctx, dest.utilisateur.start, dest.utilisateur.end);
+    v3FermerChoixChevauchement();
+    window.__ignorerChevauchementActivite = true;
+    window.__ignorerDecalagePlanning = true;
+    try {
+        if (ctx.mode === 'edition') saveEditedEventCascade();
+        else confirmAddActivity();
+    } finally {
+        window.__ignorerChevauchementActivite = false;
+        window.__ignorerDecalagePlanning = false;
+    }
+    if (typeof v3Toast === 'function') {
+        v3Toast(dest.ajuste
+            ? '« ' + ctx.title + ' » prend la place de « ' + conflit.title + ' ». « ' + conflit.title + ' » est placé à ' + dest.autre.start + '.'
+            : '« ' + ctx.title + ' » et « ' + conflit.title + ' » ont échangé leur place.', 'success');
+    }
+}
+
+function v3OuvrirChoixChevauchement(ctx) {
+    window.__chevauchementCtx = ctx;
+    v3FermerChoixChevauchement();
+    var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    if (!(duree > 0)) duree = 60;
+    var propositions = v3PropositionsCreneau(ctx.day, duree, ctx.excludeIds || []);
+    var noms = ctx.conflits.map(function (ev) {
+        return '« ' + ev.title + ' » (' + ev.startTime + ' → ' + ev.endTime + ')';
+    }).join(', ');
+    var liste = ctx.conflits.map(function (ev) {
+        return '<p style="margin:0.35rem 0;font-weight:700;color:#111827;">' + v3Escape(ev.icon || '🎯') + ' ' + v3Escape(ev.title) + ' <span style="font-weight:600;color:#6b7280;">' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + '</span></p>';
+    }).join('');
+    var puces = propositions.map(function (p) {
+        return '<button type="button" onclick="v3AppliquerCreneauChoisi(\'' + p.start + '\',\'' + p.end + '\')" style="padding:0.55rem 0.7rem;border-radius:0.75rem;border:1.5px solid #a7f3d0;background:#f0fdf4;color:#047857;font-weight:700;cursor:pointer;">' + p.start + ' → ' + p.end + '</button>';
+    }).join('');
+    var remplacements = ctx.conflits.map(function (ev, index) {
+        var dest = v3DestinationEchange(ctx, ev);
+        var detail = dest.ajuste
+            ? v3Escape(ctx.title) + ' prend la place de ' + v3Escape(ev.title) + ' (' + v3Escape(dest.utilisateur.start) + ' → ' + v3Escape(dest.utilisateur.end) + '). ' + v3Escape(ev.title) + ' passe à ' + v3Escape(dest.autre.start) + ' → ' + v3Escape(dest.autre.end) + ', pour ne plus se superposer.'
+            : v3Escape(ctx.title) + ' prend la place de ' + v3Escape(ev.title) + '. ' + v3Escape(ev.title) + ' passe à l\'horaire de ta modification (' + v3Escape(dest.autre.start) + ' → ' + v3Escape(dest.autre.end) + ').';
+        return '<button type="button" onclick="v3RemplacerActiviteChevauchee(' + index + ')" style="width:100%;text-align:left;padding:0.75rem;border-radius:0.85rem;border:1.5px solid #fcd34d;background:#fffbeb;color:#92400e;font-weight:700;cursor:pointer;">Remplacer « ' + v3Escape(ev.title) + ' » par cette activité<p style="font-weight:500;font-size:0.78rem;margin:0.3rem 0 0;">' + detail + '</p></button>';
+    }).join('');
+    var el = document.createElement('div');
+    el.id = 'chevauchementPopup';
+    el.style.cssText = 'position:fixed;inset:0;z-index:80;background:rgba(17,24,39,0.55);display:flex;align-items:flex-end;justify-content:center;padding:0.75rem;';
+    el.innerHTML = '<div style="background:white;border-radius:1.25rem;max-width:32rem;width:100%;padding:1.1rem;max-height:calc(100dvh - 1.5rem);overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);">'
+        + '<h3 style="font-size:1.05rem;font-weight:800;color:#111827;margin:0 0 0.45rem;">Ces activités se chevauchent</h3>'
+        + '<p style="font-size:0.86rem;color:#374151;line-height:1.45;margin:0 0 0.7rem;">« ' + v3Escape(ctx.title) + ' » (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ') tombe en même temps que ' + v3Escape(noms) + '. Tu peux choisir un autre créneau, ou échanger les places.</p>'
+        + liste
+        + '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.85rem;">'
+        + '<button type="button" onclick="document.getElementById(\'chevauchementChoix\').hidden=!document.getElementById(\'chevauchementChoix\').hidden" style="width:100%;padding:0.75rem;border:none;border-radius:0.85rem;background:linear-gradient(to right,#10b981,#14b8a6);color:white;font-weight:800;cursor:pointer;">Choisir un autre créneau</button>'
+        + '<div id="chevauchementChoix" hidden style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.85rem;padding:0.75rem;">'
+        + '<p style="font-size:0.78rem;color:#047857;font-weight:700;margin:0 0 0.45rem;">Propositions sans chevauchement</p>'
+        + '<div style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.7rem;">' + (puces || '<span style="font-size:0.78rem;color:#6b7280;">Aucun créneau libre de cette durée. Choisis les heures toi-même.</span>') + '</div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">'
+        + '<label style="font-size:0.75rem;color:#6b7280;">Début<input id="chevauchementDebut" type="time" value="' + v3Escape(ctx.start) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '<label style="font-size:0.75rem;color:#6b7280;">Fin<input id="chevauchementFin" type="time" value="' + v3Escape(ctx.end) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '</div>'
+        + '<p id="chevauchementErreur" style="color:#b91c1c;font-size:0.78rem;min-height:1.1rem;margin:0.4rem 0;"></p>'
+        + '<button type="button" onclick="v3AppliquerCreneauChoisi(document.getElementById(\'chevauchementDebut\').value, document.getElementById(\'chevauchementFin\').value)" style="width:100%;padding:0.65rem;border:none;border-radius:0.75rem;background:#047857;color:white;font-weight:700;cursor:pointer;">Placer à cet horaire</button>'
+        + '</div>'
+        + remplacements
+        + '<button type="button" onclick="v3FermerChoixChevauchement()" style="width:100%;padding:0.65rem;border:none;border-radius:0.85rem;background:#f3f4f6;color:#6b7280;font-weight:600;cursor:pointer;">Annuler</button>'
+        + '</div></div>';
+    el.addEventListener('click', function (event) { if (event.target === el) v3FermerChoixChevauchement(); });
+    document.body.appendChild(el);
+}
+
 (function () {
     const origReset = window.resetAddWorkflow;
     window.resetAddWorkflow = function () {

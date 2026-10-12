@@ -372,11 +372,22 @@ function boiteEstCoucher(slot) {
     return boiteNormaliser(slot && (slot.t || slot.title) || '').indexOf('coucher') === 0;
 }
 
+function boiteCorrigerCours(slot) {
+    if (!slot || String(slot.t || '') !== 'Cours') return slot;
+    var debut = String(slot.d || '');
+    var fin = String(slot.f || '');
+    if (!debut || debut >= '12:00' || fin !== '12:30' || debut === '07:50') return slot;
+    var copie = Object.assign({}, slot);
+    copie.d = '07:50';
+    return copie;
+}
+
 function boiteOrdonnerCreneaux(slots) {
     var reveils = [];
     var couchers = [];
     var milieu = [];
     (slots || []).forEach(function (slot) {
+        slot = boiteCorrigerCours(slot);
         if (boiteEstReveil(slot)) reveils.push(slot);
         else if (boiteEstCoucher(slot)) couchers.push(slot);
         else milieu.push(slot);

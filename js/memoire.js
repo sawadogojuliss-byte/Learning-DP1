@@ -371,6 +371,7 @@ function memoireReinitialiser() {
     window.__jourCourantPose = false;
     window.__jourCourantCle = '';
     customEvents = [];
+    try { localStorage.removeItem('studyPlanIB_modifsSemaine'); } catch (e) {}
     if (typeof exercices !== 'undefined') exercices = [];
     if (typeof currentMood !== 'undefined') currentMood = null;
     window.__profilComplet = false;

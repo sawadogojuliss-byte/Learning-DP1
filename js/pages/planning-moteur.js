@@ -32,7 +32,84 @@ const V3_DAY_NAMES = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi
 // ── PETITS UTILITAIRES ──────────────────────────────────────────────
 function v3IsStudyType(type) { return V3_STUDY_TYPES.includes(type); }
 function v3M2T(mins) { return addMinutes('00:00', Math.max(0, Math.round(mins))); }
-function v3Save() { localStorage.setItem(V3_STORAGE_KEY, JSON.stringify(customEvents)); }
+function v3Save() {
+    if (!window.__v3SaveEnCours && typeof reporterModificationsSemaine === 'function') {
+        window.__v3SaveEnCours = true;
+        try { reporterModificationsSemaine(); } catch (e) {}
+        window.__v3SaveEnCours = false;
+    }
+    localStorage.setItem(V3_STORAGE_KEY, JSON.stringify(customEvents));
+    if (typeof memoireSauvegarder === 'function' && !window.__v3SaveMemoire) {
+        window.__v3SaveMemoire = true;
+        try { memoireSauvegarder(); } catch (e) {}
+        window.__v3SaveMemoire = false;
+    }
+}
+
+function cleSemaineCourante(date) {
+    var d = date || new Date();
+    var lundi = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    var decalage = lundi.getDay() === 0 ? 6 : lundi.getDay() - 1;
+    lundi.setDate(lundi.getDate() - decalage);
+    return lundi.getFullYear() + '-' + (lundi.getMonth() + 1) + '-' + lundi.getDate();
+}
+
+function cleModification(ev) {
+    if (!ev) return '';
+    if (ev.replacesId) return 'ov:' + ev.day + ':' + ev.replacesId;
+    if (ev.id) return 'id:' + ev.id;
+    return [ev.day, ev.title || '', ev.startTime || '', ev.endTime || ''].join('|');
+}
+
+function reporterModificationsSemaine() {
+    if (typeof customEvents === 'undefined' || window.__emploiCalculBrut || (typeof emploiGelSuspendu !== 'undefined' && emploiGelSuspendu)) return 0;
+    var cle = cleSemaineCourante();
+    var archive = null;
+    try { archive = JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { archive = null; }
+    var ajoute = 0;
+    if (archive && archive.semaine && archive.semaine !== cle && Array.isArray(archive.events)) {
+        var vus = {};
+        customEvents.forEach(function (ev) { vus[cleModification(ev)] = true; });
+        archive.events.forEach(function (ev) {
+            if (!ev || ev.id === 'boite-garde') return;
+            var copie = Object.assign({}, ev);
+            if (vus[cleModification(copie)]) return;
+            copie.reporte = true;
+            copie.depuisSemaine = archive.semaine;
+            customEvents.push(copie);
+            vus[cleModification(copie)] = true;
+            ajoute++;
+        });
+    }
+    try {
+        localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify({
+            semaine: cle,
+            events: (customEvents || []).filter(function (ev) { return ev && ev.id !== 'boite-garde'; })
+        }));
+    } catch (e) {}
+    return ajoute;
+}
+
+function planningCorrigerCours(events) {
+    return (events || []).map(function (ev) {
+        if (!ev) return ev;
+        var titre = String(ev.title || ev.t || '');
+        if (titre !== 'Cours' && ev.id !== 'school1') return ev;
+        var debut = String(ev.startTime || ev.d || '');
+        var fin = String(ev.endTime || ev.f || '');
+        if (!debut || debut >= '12:00' || fin === '16:35') return ev;
+        if (debut === '07:50' && fin === '12:30') return ev;
+        if (fin && fin <= '09:30' && fin !== '12:30') return ev;
+        var copie = Object.assign({}, ev);
+        if (copie.startTime != null) copie.startTime = '07:50';
+        if (copie.d != null) copie.d = '07:50';
+        if (!copie.endTime && !copie.f) copie.endTime = '12:30';
+        if (copie.subtitle && /8h15|08:15|8h00|08:00/.test(copie.subtitle)) {
+            copie.subtitle = (typeof coursTexte === 'function' ? coursTexte(7 * 60 + 50) : '7h50') + ' → 12h30';
+        }
+        return copie;
+    });
+}
 function v3Escape(str) {
     return String(str == null ? '' : str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -637,8 +714,8 @@ function generateDayEvents(dayIndex) {
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
     }
-    if (emploiEstFige() && emploiFige.jours[jour]) return ordonnerExtremitesJour(emploiCloner(emploiFige.jours[jour]));
-    return ordonnerExtremitesJour(emploiReconstruire(jour));
+    if (emploiEstFige() && emploiFige.jours[jour]) return ordonnerExtremitesJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour])));
+    return ordonnerExtremitesJour(planningCorrigerCours(emploiReconstruire(jour)));
 }
 
 function planningDepuisProgression() {
@@ -843,7 +920,7 @@ function genererJourBrut(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return ordonnerExtremitesJour(planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex));
+    return ordonnerExtremitesJour(planningCorrigerCours(planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex)));
 }
 
 function planningCleActivite(ev) {
