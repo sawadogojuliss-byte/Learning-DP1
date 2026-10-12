@@ -154,6 +154,11 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
     document.getElementById('editTimeError').style.display = 'none';
     const pomoBtn = document.getElementById('editPomodoroBtn');
     if (pomoBtn) pomoBtn.style.display = v3IsStudyType(type) ? 'block' : 'none';
+    var resteLabel = document.getElementById('editResteEcoleLabel');
+    var resteInput = document.getElementById('editResteEcoleInput');
+    var etude = v3IsStudyType(type) || /^(revision|exercice)/.test(String(title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+    if (resteLabel) resteLabel.style.display = (etude && selectedDay < 5) ? 'flex' : 'none';
+    if (resteInput) resteInput.checked = !!(record && record.resteEcole) || !!(evt && evt.resteEcole);
     v3UpdateEditPinHint();
     document.getElementById('editEventModal').style.display = 'flex';
 }
@@ -224,8 +229,16 @@ function saveEditedEventCascade() {
     const delta = newDur - oldDur;
     let recordId;
 
+    var resteCoche = !!(document.getElementById('editResteEcoleInput') && document.getElementById('editResteEcoleInput').checked && day < 5);
+    if (resteCoche) {
+        var finCoursEdit = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
+        var dureeEdit = timeToMinutes(newEnd) - timeToMinutes(newStart);
+        if (!(dureeEdit >= 10)) dureeEdit = 60;
+        newStart = v3M2T(finCoursEdit);
+        newEnd = v3M2T(finCoursEdit + dureeEdit);
+    }
     if (isCustom) {
-        customEvents[customIdx] = { ...customEvents[customIdx], title: newTitle, startTime: newStart, endTime: newEnd, timestamp: Date.now() };
+        customEvents[customIdx] = { ...customEvents[customIdx], title: newTitle, startTime: newStart, endTime: newEnd, timestamp: Date.now(), resteEcole: resteCoche };
         recordId = customEvents[customIdx].id;
     } else {
         // Une seule modification par créneau généré et par jour (la 2e modification remplace la 1re)
@@ -234,7 +247,8 @@ function saveEditedEventCascade() {
             id: generateEventId(editingEvent.type, newTitle, day),
             day, title: newTitle, startTime: newStart, endTime: newEnd,
             type: editingEvent.type, icon: editingEvent.icon || '📌',
-            source: 'custom', replacesId: editingEvent.id, pinned: willBePinned, timestamp: Date.now()
+            source: 'custom', replacesId: editingEvent.id, pinned: willBePinned, timestamp: Date.now(),
+            resteEcole: resteCoche
         };
         customEvents.push(rec);
         recordId = rec.id;
@@ -336,10 +350,19 @@ function confirmAddStudy() {
     v3DupAck = null;
     if (warnEl) warnEl.style.display = 'none';
 
+    var resteEcole = !!(document.getElementById('studyResteEcoleInput') && document.getElementById('studyResteEcoleInput').checked && selectedDay < 5);
+    if (resteEcole) {
+        var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
+        var dureeSejour = timeToMinutes(endTime) - timeToMinutes(startTime);
+        if (!(dureeSejour >= 10)) dureeSejour = 60;
+        startTime = v3M2T(finCours);
+        endTime = v3M2T(finCours + dureeSejour);
+    }
     customEvents.push({
         id: generateEventId('study', title, selectedDay),
         day: selectedDay, title, startTime, endTime, type: 'study', icon,
-        subjectGrade: newEventSelectedSubject.grade, source: 'custom', timestamp: Date.now()
+        subjectGrade: newEventSelectedSubject.grade, source: 'custom', timestamp: Date.now(),
+        resteEcole: resteEcole
     });
     v3Save();
     closeAddModal();
@@ -820,12 +843,19 @@ function v3OuvrirChoixChevauchement(ctx) {
     window.resetAddWorkflow = function () {
         origReset();
         v3DupAck = null;
-        ['studyDupWarning', 'activityDupWarning', 'studyPomodoroHint'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        ['studyDupWarning', 'activityDupWarning', 'studyPomodoroHint', 'studyResteEcoleLabel'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        var resteAjout = document.getElementById('studyResteEcoleInput');
+        if (resteAjout) resteAjout.checked = false;
     };
     const origPickSubject = window.pickSubject;
     window.pickSubject = function (idx) { origPickSubject(idx); v3UpdateStudyPomodoroHint(); };
     const origSetStudyType = window.setStudyType;
-    window.setStudyType = function (type) { origSetStudyType(type); v3UpdateStudyPomodoroHint(); };
+    window.setStudyType = function (type) {
+        origSetStudyType(type);
+        v3UpdateStudyPomodoroHint();
+        var label = document.getElementById('studyResteEcoleLabel');
+        if (label) label.style.display = (typeof selectedDay === 'number' && selectedDay < 5) ? 'flex' : 'none';
+    };
 
     const origSyncStart = window.syncEditEndFromStart;
     window.syncEditEndFromStart = function () { origSyncStart(); v3UpdateEditPinHint(); };

@@ -1393,14 +1393,34 @@ function boiteSujetMail(question) {
     return ('Re: ' + extrait + ' — Study Plan IB').slice(0, 180);
 }
 
-function boiteTexteMail(message, question, nom) {
-    var texte = 'Bonjour,\n\n' + boiteLignes(message);
+function boitePeriodeSalutation(quand) {
+    var date = quand instanceof Date ? quand : new Date();
+    var heure = date.getHours();
+    return (heure >= 5 && heure < 18) ? 'Bonjour' : 'Bonsoir';
+}
+
+function boiteNomCourrier(nom) {
+    var propre = String(nom || '').replace(/\s+/g, ' ').trim();
+    if (!propre || propre.indexOf('@') !== -1 || propre.length < 2) return '';
+    if (propre.length > 48) propre = propre.slice(0, 48).trim();
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+$/.test(propre)) return '';
+    return propre;
+}
+
+function boiteSalutation(nom, quand) {
+    var mot = boitePeriodeSalutation(quand);
+    var qui = boiteNomCourrier(nom);
+    return qui ? (mot + ' ' + qui + ',') : (mot + ',');
+}
+
+function boiteTexteMail(message, question, nom, quand) {
+    var texte = boiteSalutation(nom, quand) + '\n\n' + boiteLignes(message);
     if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
     texte += '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
     return texte.slice(0, 4000);
 }
 
-function boiteHtmlMail(message, question, nom) {
+function boiteHtmlMail(message, question, nom, quand) {
     var questionHtml = '';
     if (boiteLignes(question)) {
         questionHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;background:#f7f8f7;border-radius:12px;">'
@@ -1421,7 +1441,7 @@ function boiteHtmlMail(message, question, nom) {
         + '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:700;color:#ffffff;">Réponse à ta question</p>'
         + '</td></tr></table></td></tr>'
         + '<tr><td style="padding:32px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1f2937;">'
-        + '<p style="margin:0 0 18px;">Bonjour,</p>'
+        + '<p style="margin:0 0 18px;">' + boiteEchap(boiteSalutation(nom, quand)) + '</p>'
         + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
         + questionHtml
         + '<p style="margin:28px 0 0;">À bientôt,</p>'

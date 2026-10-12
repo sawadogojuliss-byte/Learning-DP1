@@ -302,52 +302,21 @@ function verrouillerTrajets(events, dayIndex) {
         aller.subtitle = durA + ' min';
     }
     if (retour) {
-        var debutR = Math.max(finCours, plancher + 1);
-        if (trajet.retourHeure && typeof timeToMinutes === 'function') {
-            var asked = timeToMinutes(trajet.retourHeure);
-            if (asked > plancher) debutR = Math.max(debutR, asked);
-        }
-        var actuel = typeof timeToMinutes === 'function' ? timeToMinutes(retour.startTime) : 0;
-        if (actuel > debutR && actuel > plancher) debutR = actuel;
-        if (debutR <= plancher) debutR = plancher + 1;
+        var debutR = finCours;
+        list.forEach(function (ev) {
+            if (!planningResteEcole(ev) || typeof timeToMinutes !== 'function') return;
+            var sejourDebut = timeToMinutes(ev.startTime);
+            var sejourFin = timeToMinutes(ev.endTime);
+            if (sejourFin <= sejourDebut) sejourFin += 1440;
+            if (sejourDebut <= finCours + 20 && sejourFin > debutR) debutR = sejourFin;
+        });
+        if (debutR < finCours) debutR = finCours;
         retour.startTime = v3M2T(debutR % 1440);
         retour.endTime = v3M2T((debutR + durR) % 1440);
         retour.title = 'Trajet maison';
         retour.type = 'transport';
         retour.kind = 'pinned';
         retour.subtitle = durR + ' min';
-    }
-    if (aller && retour && typeof timeToMinutes === 'function') {
-        var finAller = timeToMinutes(aller.endTime);
-        var debutRetour = timeToMinutes(retour.startTime);
-        if (debutRetour <= plancher || debutRetour <= finAller) {
-            var corrige = Math.max(finCours, plancher + 1, finAller);
-            retour.startTime = v3M2T(corrige % 1440);
-            retour.endTime = v3M2T((corrige + durR) % 1440);
-        }
-    }
-    function bornesTrajet(ev) {
-        var s = timeToMinutes(ev.startTime);
-        var e = timeToMinutes(ev.endTime);
-        if (e <= s) e += 1440;
-        return { s: s, e: e };
-    }
-    if (retour && typeof timeToMinutes === 'function') {
-        var tours = 0;
-        while (tours++ < 8) {
-            var bloque = null;
-            list.forEach(function (ev) {
-                if (bloque || !ev || ev === retour || ev.id === 'sleep' || ev.id === 'commute1') return;
-                var a = bornesTrajet(retour);
-                var b = bornesTrajet(ev);
-                if (a.s < b.e && b.s < a.e) bloque = ev;
-            });
-            if (!bloque) break;
-            var apresBloque = bornesTrajet(bloque).e;
-            if (apresBloque <= plancher) apresBloque = plancher + 1;
-            retour.startTime = v3M2T(apresBloque % 1440);
-            retour.endTime = v3M2T((apresBloque + durR) % 1440);
-        }
     }
     list.sort(function (a, b) {
         if (!a || a.id === 'wakeup') return -1;
@@ -671,12 +640,13 @@ function emploiFaitsSignature() {
             return p ? { id: p.id, text: p.text, done: !!p.done } : null;
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
-        reglesPlanning: '20261012c',
+        reglesPlanning: '20261012d',
         customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
             if (!e || e.id === 'boite-garde') return null;
             return {
                 id: e.id, day: e.day, title: e.title, startTime: e.startTime, endTime: e.endTime,
-                type: e.type, replacesId: e.replacesId || '', deleted: !!e.deleted, source: e.source || '', exoId: e.exoId || ''
+                type: e.type, replacesId: e.replacesId || '', deleted: !!e.deleted, source: e.source || '', exoId: e.exoId || '',
+                resteEcole: !!e.resteEcole
             };
         }).filter(Boolean)
     };
@@ -750,6 +720,25 @@ function planningEstTrajetEcole(ev) {
     return planningTitreNu(ev).indexOf('trajet ecole') === 0;
 }
 
+function planningEstTrajetMaison(ev) {
+    if (!ev) return false;
+    if (ev.id === 'commute2') return true;
+    return planningTitreNu(ev).indexOf('trajet maison') === 0;
+}
+
+function planningEstCours(ev) {
+    if (!ev) return false;
+    if (ev.id === 'school1' || ev.id === 'school2' || ev.type === 'school') return true;
+    return planningTitreNu(ev) === 'cours';
+}
+
+function planningResteEcole(ev) {
+    if (!ev || planningEstCours(ev) || planningEstTrajetEcole(ev) || planningEstTrajetMaison(ev) || planningEstReveil(ev) || planningEstCoucher(ev)) return false;
+    if (ev.resteEcole) return true;
+    var titre = planningTitreNu(ev) + ' ' + planningTitreNu({ title: ev.subtitle || '' });
+    return (/reste/.test(titre) && /ecole/.test(titre)) || (/etudi/.test(titre) && /ecole/.test(titre));
+}
+
 function planningLireMinute(ev, fin) {
     var brut = String(fin ? ((ev && (ev.endTime || ev.f)) || '') : ((ev && (ev.startTime || ev.d)) || ''));
     var parts = brut.split(':');
@@ -814,13 +803,66 @@ function planningGarantirJour(events) {
         if (minute < minuteReveil) minute += 1440;
         return minute;
     }
+    function minuteRelative(ev, fin) {
+        var minute = planningLireMinute(ev, !!fin);
+        if (minute == null) return null;
+        var debut = planningLireMinute(ev, false);
+        if (fin && debut != null && minute <= debut) minute += 1440;
+        if (debut != null && debut < minuteReveil) minute += 1440;
+        else if (minute < minuteReveil) minute += 1440;
+        return minute;
+    }
+    function dureeGardee(ev, defaut, min, max) {
+        var debut = planningLireMinute(ev, false);
+        var fin = planningLireMinute(ev, true);
+        var duree = debut == null || fin == null ? defaut : fin - debut;
+        if (duree <= 0) duree += 1440;
+        if (duree < min || duree > max) return defaut;
+        return duree;
+    }
     milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
-    var trajet = null;
-    var prep = null;
-    milieu.forEach(function (ev) {
-        if (!trajet && planningEstTrajetEcole(ev)) trajet = ev;
-        if (!prep && planningEstPreparation(ev)) prep = ev;
-    });
+    var cours = milieu.filter(planningEstCours);
+    var trajet = milieu.filter(planningEstTrajetEcole)[0] || null;
+    var retour = milieu.filter(planningEstTrajetMaison)[0] || null;
+    var prep = milieu.filter(planningEstPreparation)[0] || null;
+    if (cours.length) {
+        var debutCours = null;
+        var finCours = null;
+        cours.forEach(function (ev) {
+            var debut = minuteRelative(ev, false);
+            var fin = minuteRelative(ev, true);
+            if (debut != null && (debutCours == null || debut < debutCours)) debutCours = debut;
+            if (fin != null && (finCours == null || fin > finCours)) finCours = fin;
+        });
+        if (debutCours == null) debutCours = 7 * 60 + 50;
+        if (finCours == null || finCours <= debutCours) finCours = 16 * 60 + 35;
+        if (!trajet) {
+            trajet = { id: 'commute1', title: 'Trajet école', t: 'Trajet école', type: 'transport', icon: '🚗' };
+            milieu.push(trajet);
+        }
+        var finAller = minuteRelative(trajet, true);
+        var debutAller = minuteRelative(trajet, false);
+        if (finAller == null || finAller > debutCours || debutAller == null || debutAller >= debutCours) {
+            var dureeAller = dureeGardee(trajet, 30, 5, 90);
+            var nouveauAller = debutCours - dureeAller;
+            if (nouveauAller < minuteReveil) nouveauAller = minuteReveil;
+            if (nouveauAller >= debutCours) nouveauAller = Math.max(0, debutCours - 10);
+            planningPoserHoraire(trajet, planningHorlogeSimple(nouveauAller), planningHorlogeSimple(debutCours));
+        }
+        var sejours = milieu.filter(planningResteEcole).sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
+        var ancreFin = finCours;
+        sejours.forEach(function (ev) {
+            var dureeSejour = dureeGardee(ev, 60, 10, 180);
+            planningPoserHoraire(ev, planningHorlogeSimple(ancreFin), planningHorlogeSimple(ancreFin + dureeSejour));
+            ancreFin += dureeSejour;
+        });
+        if (!retour) {
+            retour = { id: 'commute2', title: 'Trajet maison', t: 'Trajet maison', type: 'transport', icon: '🚗' };
+            milieu.push(retour);
+        }
+        var dureeRetour = dureeGardee(retour, 40, 5, 120);
+        planningPoserHoraire(retour, planningHorlogeSimple(ancreFin), planningHorlogeSimple(ancreFin + dureeRetour));
+    }
     if (trajet) {
         var debutTrajet = planningLireMinute(trajet, false);
         if (debutTrajet == null) debutTrajet = minuteReveil + 30;
@@ -840,11 +882,49 @@ function planningGarantirJour(events) {
         if (nouveauDebut < 0) nouveauDebut = 0;
         if (nouveauDebut >= debutTrajet) nouveauDebut = Math.max(0, debutTrajet - 10);
         planningPoserHoraire(prep, planningHorlogeSimple(nouveauDebut), planningHorlogeSimple(debutTrajet));
-        milieu = milieu.filter(function (ev) { return !planningEstPreparation(ev); });
-        milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
-        var place = milieu.indexOf(trajet);
-        if (place < 0) milieu.push(prep);
-        else milieu.splice(place, 0, prep);
+    }
+    milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
+    function retirer(pred) {
+        var gardes = [];
+        var suite = [];
+        milieu.forEach(function (ev) {
+            if (pred(ev) && !gardes.length) gardes.push(ev);
+            else if (!pred(ev)) suite.push(ev);
+            else suite.push(ev);
+        });
+        if (gardes.length) milieu = milieu.filter(function (ev) { return ev !== gardes[0]; });
+        return gardes[0] || null;
+    }
+    if (trajet) prep = retirer(planningEstPreparation) || prep;
+    trajet = retirer(planningEstTrajetEcole) || trajet;
+    retour = retirer(planningEstTrajetMaison) || retour;
+    if (trajet) {
+        var indiceCours = -1;
+        var iCours;
+        for (iCours = 0; iCours < milieu.length; iCours++) {
+            if (planningEstCours(milieu[iCours])) { indiceCours = iCours; break; }
+        }
+        if (prep) {
+            if (indiceCours < 0) milieu.push(prep);
+            else milieu.splice(indiceCours, 0, prep);
+            if (indiceCours >= 0) indiceCours += 1;
+        }
+        if (indiceCours < 0) milieu.push(trajet);
+        else milieu.splice(indiceCours, 0, trajet);
+    }
+    if (retour) {
+        var ancre = -1;
+        var iAncre;
+        for (iAncre = 0; iAncre < milieu.length; iAncre++) {
+            if (planningResteEcole(milieu[iAncre])) ancre = iAncre;
+        }
+        if (ancre < 0) {
+            for (iAncre = 0; iAncre < milieu.length; iAncre++) {
+                if (planningEstCours(milieu[iAncre])) ancre = iAncre;
+            }
+        }
+        if (ancre < 0) milieu.push(retour);
+        else milieu.splice(ancre + 1, 0, retour);
     }
     var coucher = (couchers.filter(function (ev) { return ev.id === 'sleep' || ev.type === 'sleep'; })[0]) || couchers.slice().sort(function (a, b) { return ordreJour(b) - ordreJour(a); })[0];
     if (!coucher) {
@@ -910,7 +990,7 @@ function genererJourBrut(dayIndex) {
             if (ov.pinned && ov.startTime) { pinned = true; startTime = ov.startTime; }
         }
         const endTime = addMinutes(startTime, duration);
-        events.push({ id, title, subtitle, startTime, endTime, type, icon, editable, kind: pinned ? 'pinned' : 'flex', ovPinned: pinned });
+        events.push({ id, title, subtitle, startTime, endTime, type, icon, editable, kind: pinned ? 'pinned' : 'flex', ovPinned: pinned, resteEcole: !!(ov && ov.resteEcole) });
         if (!pinned) cursor = endTime; // un créneau fixé ne décale pas la chaîne nominale
         return cursor;
     }
@@ -1045,7 +1125,7 @@ function genererJourBrut(dayIndex) {
     // ── CRÉNEAUX AJOUTÉS PAR L'ÉLÈVE (heure choisie → fixés 📌) ──
     customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex)).forEach(event => {
         events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
-            type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId });
+            type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole });
     });
 
     // ── COUCHER ──
