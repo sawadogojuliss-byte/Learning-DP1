@@ -81,13 +81,23 @@ function reporterModificationsSemaine() {
             ajoute++;
         });
     }
+    var actuels = (customEvents || []).filter(function (ev) { return ev && ev.id !== 'boite-garde'; });
+    if (!actuels.length && archive && archive.events && archive.events.length && archive.semaine && archive.semaine !== cle) return ajoute;
     try {
         localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify({
             semaine: cle,
-            events: (customEvents || []).filter(function (ev) { return ev && ev.id !== 'boite-garde'; })
+            events: actuels
         }));
     } catch (e) {}
     return ajoute;
+}
+
+function planningChoixUtilisateur(ev) {
+    if (!ev || ev.deleted) return false;
+    if (ev.id === 'wakeup' || ev.id === 'sleep' || ev.type === 'school' || ev.type === 'transport') return false;
+    if (ev.type === 'activity' || ev.source === 'custom' || ev.source === 'exercice') return true;
+    if (ev.kind === 'pinned' || ev.ovPinned) return true;
+    return false;
 }
 
 function planningCorrigerCours(events) {
@@ -485,6 +495,17 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
         } else movable.push(copy);
     });
     var placed = [];
+    var choisis = [];
+    movable = movable.filter(function (ev) {
+        if (!planningChoixUtilisateur(ev)) return true;
+        choisis.push(ev);
+        return false;
+    });
+    choisis.forEach(function (ev) {
+        ev.startTime = v3M2T(ev._debut % 1440);
+        ev.endTime = v3M2T(ev._fin % 1440);
+        placed.push(ev);
+    });
     fixed.sort(function (a, b) { return a._debut - b._debut || a._index - b._index; });
     fixed.forEach(function (ev) {
         if (!planningOccupe(placed, ev._debut, ev._fin)) { placed.push(ev); return; }
@@ -573,7 +594,7 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
     var clean = [];
     placed.sort(function (a, b) { return a._debut - b._debut || a._index - b._index; });
     placed.forEach(function (ev) {
-        if (!planningOccupe(clean, ev._debut, ev._fin)) clean.push(ev);
+        if (planningChoixUtilisateur(ev) || !planningOccupe(clean, ev._debut, ev._fin)) clean.push(ev);
     });
     return clean.map(function (ev) {
         delete ev._debut;
@@ -650,6 +671,7 @@ function emploiFaitsSignature() {
             return p ? { id: p.id, text: p.text, done: !!p.done } : null;
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
+        reglesPlanning: '20261012b',
         customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
             if (!e || e.id === 'boite-garde') return null;
             return {
@@ -1230,6 +1252,7 @@ function planningBalayer(events) {
     }
     function rang(ev) {
         if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return 0;
+        if (planningChoixUtilisateur(ev)) return 0;
         if (ev.type === 'activity') return 1;
         if (ev.type === 'transport' || ev.type === 'prep') return 2;
         if (ev.type === 'meal') return 3;
@@ -1242,7 +1265,7 @@ function planningBalayer(events) {
         while (tours++ < 12 && gardes.some(function (autre) { return chevauche(ev, autre); })) {
             var autre = null;
             gardes.forEach(function (candidat) { if (!autre && chevauche(ev, candidat)) autre = candidat; });
-            if (!autre || rang(ev) === 0) break;
+            if (!autre || rang(ev) === 0 || planningChoixUtilisateur(ev)) break;
             var finAutre = planningMinutes(autre.endTime);
             if (finAutre <= planningMinutes(autre.startTime)) finAutre += 1440;
             var dur = Math.max(10, planningDuree(ev));
@@ -1251,7 +1274,7 @@ function planningBalayer(events) {
             ev.endTime = v3M2T((debut + dur) % 1440);
             ev.shifted = true;
         }
-        if (!gardes.some(function (autre) { return chevauche(ev, autre); })) gardes.push(ev);
+        if (planningChoixUtilisateur(ev) || !gardes.some(function (autre) { return chevauche(ev, autre); })) gardes.push(ev);
     });
     gardes.sort(function (a, b) {
         if (a.id === 'wakeup') return -1;

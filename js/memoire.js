@@ -117,6 +117,9 @@ function memoireLireEtat() {
         phoneDayDurations: phoneDayDurations,
         selectedDay: selectedDay,
         customEvents: customEvents,
+        modifsSemaine: (function () {
+            try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
+        })(),
         emploiFige: typeof emploiFige !== 'undefined' && emploiFige ? emploiFige : null,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
@@ -291,6 +294,14 @@ function memoireAppliquer(data, opts) {
         } catch (e) {}
     }
 
+    if (data.modifsSemaine && data.modifsSemaine.semaine && Array.isArray(data.modifsSemaine.events)) {
+        try {
+            var archiveLocale = JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null');
+            if (!archiveLocale || !archiveLocale.events || archiveLocale.events.length < data.modifsSemaine.events.length) {
+                localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify(data.modifsSemaine));
+            }
+        } catch (e) {}
+    }
     if (depuisCompte && Array.isArray(data.customEvents)) customEvents = data.customEvents;
     else if (!depuisCompte) {
         var events = memoireJson('studyPlanIB_customEvents_juliss');
@@ -310,6 +321,11 @@ function memoireAppliquer(data, opts) {
     }
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
+    if (typeof reporterModificationsSemaine === 'function') {
+        try {
+            if (reporterModificationsSemaine() && typeof emploiFige !== 'undefined') emploiFige = null;
+        } catch (e) {}
     }
 
     memoireSyncChamps();
