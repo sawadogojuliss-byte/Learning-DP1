@@ -964,7 +964,22 @@ function planningGarantirJour(events) {
         coucher = { id: 'sleep', title: 'Coucher', t: 'Coucher', type: 'sleep', icon: '😴' };
         planningPoserHoraire(coucher, planningHorlogeSimple(debutCoucher), planningHorlogeSimple(minuteReveil));
     }
+    planningReveilApresCoucher(reveil, coucher);
     return [reveil].concat(milieu, [coucher]);
+}
+
+function planningReveilApresCoucher(reveil, coucher) {
+    if (!reveil || !coucher) return;
+    var debutReveil = planningLireMinute(reveil, false);
+    var finCoucher = planningLireMinute(coucher, true);
+    var debutCoucher = planningLireMinute(coucher, false);
+    if (debutReveil == null || finCoucher == null) return;
+    if (debutCoucher == null) debutCoucher = 22 * 60;
+    var fin = finCoucher <= debutCoucher ? finCoucher + 1440 : finCoucher;
+    var reveilAbs = debutReveil <= debutCoucher ? debutReveil + 1440 : debutReveil;
+    if (fin > reveilAbs) {
+        planningPoserHoraire(coucher, planningHorlogeSimple(debutCoucher), planningHorlogeSimple(debutReveil));
+    }
 }
 
 function generateDayEvents(dayIndex) {

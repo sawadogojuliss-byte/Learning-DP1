@@ -42,6 +42,12 @@ function verifier(nom, jour, events) {
     }
     if (titre(out[0]).indexOf('reveil') !== 0) erreurs.push('ne commence pas par Réveil: ' + titre(out[0]));
     if (titre(out[out.length - 1]).indexOf('coucher') !== 0) erreurs.push('ne finit pas par Coucher: ' + titre(out[out.length - 1]));
+    var debutReveil = minute(debut(out[0]));
+    var debutCoucher = minute(debut(out[out.length - 1]));
+    var finCoucher = minute(fin(out[out.length - 1]));
+    var finAbs = finCoucher <= debutCoucher ? finCoucher + 1440 : finCoucher;
+    var reveilAbs = debutReveil <= debutCoucher ? debutReveil + 1440 : debutReveil;
+    if (finAbs > reveilAbs) erreurs.push('Réveil commence avant la fin du coucher: ' + debut(out[0]) + ' / ' + fin(out[out.length - 1]));
     var prep = -1;
     var trajet = -1;
     out.forEach(function (ev, i) {

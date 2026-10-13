@@ -10,6 +10,8 @@
 //    📌 sur les créneaux fixés, ouverture de l'édition par index
 // ═══════════════════════════════════════════════════════════════════
 function renderPlanning() {
+    var ancienChevauchement = document.getElementById('chevauchementJour');
+    if (ancienChevauchement && ancienChevauchement.parentNode) ancienChevauchement.parentNode.removeChild(ancienChevauchement);
     if (typeof poserJourCourant === 'function') poserJourCourant();
     const weekDates = getWeekDates();
 
@@ -43,6 +45,7 @@ function renderPlanning() {
         return;
     }
     if (addBtn) addBtn.style.display = 'flex';
+    v3SignalerChevauchementJour(events, selectedDay);
     let eventsHtml = '';
     if (typeof holidayMode === 'function' && holidayMode(selectedDay) === 'keep') {
         eventsHtml += '<div style="margin-bottom: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.85rem; font-weight: 600;">🎉 Jour férié — emploi du temps conservé</div>';
@@ -747,6 +750,48 @@ function v3RemplacerActiviteChevauchee(index) {
             ? '« ' + ctx.title + ' » prend la place de « ' + conflit.title + ' ». « ' + conflit.title + ' » est placé à ' + dest.autre.start + '.'
             : '« ' + ctx.title + ' » prend la place de « ' + conflit.title + ' ». « ' + conflit.title + ' » passe à ' + dest.autre.start + '.', 'success');
     }
+}
+
+function v3SignalerChevauchementJour(events, day) {
+    var anciens = document.getElementById('chevauchementJour');
+    if (anciens && anciens.parentNode) anciens.parentNode.removeChild(anciens);
+    var activites = (events || []).filter(v3EstActivite);
+    var conflit = null;
+    var i, j;
+    for (i = 0; i < activites.length && !conflit; i++) {
+        for (j = i + 1; j < activites.length; j++) {
+            if (v3IntervallesSeCroisent(activites[i].startTime, activites[i].endTime, activites[j].startTime, activites[j].endTime)) {
+                conflit = { voulu: activites[i], autre: activites[j] };
+                break;
+            }
+        }
+    }
+    if (!conflit) return;
+    var barre = document.createElement('button');
+    barre.type = 'button';
+    barre.id = 'chevauchementJour';
+    barre.style.cssText = 'width:100%;margin:0 0 0.75rem;padding:0.8rem 0.9rem;border:1.5px solid #fdba74;border-radius:0.9rem;background:#fff7ed;color:#9a3412;font-weight:800;cursor:pointer;text-align:left;';
+    barre.textContent = '« ' + conflit.voulu.title + ' » et « ' + conflit.autre.title + ' » se chevauchent. Choisis un autre créneau ou remplace l\'activité.';
+    barre.onclick = function () {
+        if (typeof openEditModal === 'function') {
+            openEditModal(conflit.voulu.id, conflit.voulu.title, conflit.voulu.startTime, conflit.voulu.endTime, conflit.voulu.type || 'activity', conflit.voulu.icon, conflit.voulu);
+        }
+        v3OuvrirChoixChevauchement({
+            mode: 'edition',
+            day: day,
+            title: conflit.voulu.title,
+            icon: conflit.voulu.icon,
+            type: conflit.voulu.type || 'activity',
+            start: conflit.voulu.startTime,
+            end: conflit.voulu.endTime,
+            origineStart: conflit.voulu.startTime,
+            origineEnd: conflit.voulu.endTime,
+            excludeIds: [conflit.voulu.id],
+            conflits: [conflit.autre]
+        });
+    };
+    var conteneur = document.getElementById('eventsContainer');
+    if (conteneur && conteneur.parentNode) conteneur.parentNode.insertBefore(barre, conteneur);
 }
 
 function v3OuvrirChoixChevauchement(ctx) {

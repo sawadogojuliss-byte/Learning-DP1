@@ -54,6 +54,190 @@ function creneauActivite(act, dayIndex) {
     return { start: (dt && dt.start) || act.startTime || '17:00', end: (dt && dt.end) || act.endTime || '19:00' };
 }
 
+function activitesQuiChevauchent(start, end, dayIndex, exceptName) {
+    if (typeof timeToMinutes !== 'function') return [];
+    var s = timeToMinutes(start);
+    var e = timeToMinutes(end);
+    if (!(e > s)) return [];
+    var out = [];
+    (selectedActivities || []).forEach(function (act) {
+        if (!act || act.name === exceptName || !act.days || act.days.indexOf(dayIndex) === -1) return;
+        var slot = creneauActivite(act, dayIndex);
+        if (!slot || !slot.start || !slot.end) return;
+        var os = timeToMinutes(slot.start);
+        var oe = timeToMinutes(slot.end);
+        if (s < oe && os < e) out.push({ name: act.name, icon: act.icon || '🎯', start: slot.start, end: slot.end, day: dayIndex });
+    });
+    return out;
+}
+
+function poserCreneauActivite(activity, dayIndex, start, end) {
+    if (!activity || !start || !end) return;
+    if (!activity.dayTimes) activity.dayTimes = {};
+    if (activity.days.indexOf(dayIndex) === -1) activity.days.push(dayIndex);
+    activity.sameTime = false;
+    activity.days.forEach(function (jour) {
+        if (!activity.dayTimes[jour]) activity.dayTimes[jour] = { start: activity.startTime || '17:00', end: activity.endTime || '19:00' };
+    });
+    activity.dayTimes[dayIndex] = { start: start, end: end };
+    activity.startTime = start;
+    activity.endTime = end;
+    renderActivities();
+}
+
+function propositionsCreneauActivite(dayIndex, duree, exceptName) {
+    if (!(duree > 0) || typeof timeToMinutes !== 'function') return [];
+    var debut = 5 * 60;
+    var fin = 23 * 60;
+    if (typeof bedtimeForDay === 'function' && typeof weekdayWakeup !== 'undefined') {
+        var reveil = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
+        debut = timeToMinutes(reveil || '06:00');
+        fin = timeToMinutes(bedtimeForDay(dayIndex) || '22:00');
+        if (fin <= debut) fin += 1440;
+    }
+    var occupe = [];
+    if (dayIndex < 5) occupe.push([8 * 60, 16 * 60 + 35]);
+    (selectedActivities || []).forEach(function (act) {
+        if (!act || act.name === exceptName || !act.days || act.days.indexOf(dayIndex) === -1) return;
+        var slot = creneauActivite(act, dayIndex);
+        if (!slot) return;
+        var os = timeToMinutes(slot.start);
+        var oe = timeToMinutes(slot.end);
+        if (oe > os) occupe.push([os, oe]);
+    });
+    occupe.sort(function (a, b) { return a[0] - b[0]; });
+    var propositions = [];
+    var curseur = debut;
+    function horloge(mins) {
+        var total = ((Math.round(mins) % 1440) + 1440) % 1440;
+        return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+    }
+    occupe.forEach(function (plage) {
+        if (propositions.length >= 4) return;
+        if (plage[0] - curseur >= duree) propositions.push({ start: horloge(curseur), end: horloge(curseur + duree) });
+        if (plage[1] > curseur) curseur = plage[1];
+    });
+    if (propositions.length < 4 && fin - curseur >= duree) propositions.push({ start: horloge(curseur), end: horloge(curseur + duree) });
+    return propositions;
+}
+
+function fermerChoixChevauchementActivite() {
+    var el = document.getElementById('activiteChevauchement');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function echapperActivite(s) {
+    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function ouvrirChoixChevauchementActivite(ctx) {
+    if (!ctx || !ctx.conflits || !ctx.conflits.length || typeof document === 'undefined') return;
+    fermerChoixChevauchementActivite();
+    window.__activiteChevauchement = ctx;
+    var premier = ctx.conflits[0];
+    var noms = ctx.conflits.map(function (item) {
+        return '« ' + item.name + ' » (' + item.start + ' → ' + item.end + ')';
+    }).join(', ');
+    var liste = ctx.conflits.map(function (item) {
+        return '<p style="margin:0.35rem 0;font-weight:700;color:#111827;">' + echapperActivite(item.icon || '🎯') + ' ' + echapperActivite(item.name) + ' <span style="font-weight:600;color:#6b7280;">' + echapperActivite(item.start) + ' → ' + echapperActivite(item.end) + '</span></p>';
+    }).join('');
+    var el = document.createElement('div');
+    el.id = 'activiteChevauchement';
+    el.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(17,24,39,0.55);display:flex;align-items:flex-end;justify-content:center;padding:0.75rem;';
+    el.innerHTML = '<div style="background:white;border-radius:1.25rem;max-width:32rem;width:100%;padding:1.1rem;max-height:calc(100dvh - 1.5rem);overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);">'
+        + '<h3 style="font-size:1.05rem;font-weight:800;color:#111827;margin:0 0 0.45rem;">Ces activités se chevauchent</h3>'
+        + '<p style="font-size:0.86rem;color:#374151;line-height:1.45;margin:0 0 0.7rem;">« ' + echapperActivite(ctx.name) + ' » (' + echapperActivite(ctx.start) + ' → ' + echapperActivite(ctx.end) + ') tombe en même temps que ' + echapperActivite(noms) + '. Choisis un autre créneau, ou remplace l\'activité qui se chevauche.</p>'
+        + liste
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.85rem;">'
+        + '<button type="button" data-autre style="padding:0.75rem 0.55rem;border:none;border-radius:0.85rem;background:linear-gradient(to right,#10b981,#14b8a6);color:white;font-weight:800;cursor:pointer;">Choisir un autre créneau</button>'
+        + '<button type="button" data-remplacer style="padding:0.75rem 0.55rem;border:none;border-radius:0.85rem;background:#d97706;color:white;font-weight:800;cursor:pointer;">Remplacer l\'activité</button>'
+        + '</div>'
+        + '<div data-choix hidden style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.85rem;padding:0.75rem;margin-top:0.65rem;">'
+        + '<p style="font-size:0.78rem;color:#047857;font-weight:700;margin:0 0 0.45rem;">Propositions sans chevauchement</p>'
+        + '<div data-propositions style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.7rem;"></div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">'
+        + '<label style="font-size:0.75rem;color:#6b7280;">Début<input data-debut type="time" value="' + echapperActivite(ctx.start) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '<label style="font-size:0.75rem;color:#6b7280;">Fin<input data-fin type="time" value="' + echapperActivite(ctx.end) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '</div>'
+        + '<button type="button" data-placer style="width:100%;margin-top:0.55rem;padding:0.65rem;border:none;border-radius:0.75rem;background:#047857;color:white;font-weight:700;cursor:pointer;">Placer à cet horaire</button>'
+        + '</div>'
+        + '<p data-erreur style="color:#b91c1c;font-size:0.78rem;min-height:1.1rem;margin:0.55rem 0 0;"></p>'
+        + '<button type="button" data-annuler style="width:100%;margin-top:0.35rem;padding:0.65rem;border:none;border-radius:0.85rem;background:#f3f4f6;color:#6b7280;font-weight:600;cursor:pointer;">Annuler</button>'
+        + '</div>';
+    var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    var propositions = propositionsCreneauActivite(ctx.day, duree > 0 ? duree : 60, ctx.name);
+    var zone = el.querySelector('[data-propositions]');
+    if (!propositions.length) zone.innerHTML = '<span style="font-size:0.78rem;color:#6b7280;">Aucun créneau libre de cette durée. Choisis les heures toi-même.</span>';
+    propositions.forEach(function (p) {
+        var bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.textContent = p.start + ' → ' + p.end;
+        bouton.style.cssText = 'padding:0.55rem 0.7rem;border-radius:0.75rem;border:1.5px solid #a7f3d0;background:#f0fdf4;color:#047857;font-weight:700;cursor:pointer;';
+        bouton.onclick = function () { appliquerCreneauActivite(p.start, p.end); };
+        zone.appendChild(bouton);
+    });
+    el.querySelector('[data-autre]').onclick = function () { el.querySelector('[data-choix]').hidden = false; };
+    el.querySelector('[data-remplacer]').onclick = function () { remplacerActiviteChevauchee(premier); };
+    el.querySelector('[data-placer]').onclick = function () {
+        appliquerCreneauActivite(el.querySelector('[data-debut]').value, el.querySelector('[data-fin]').value);
+    };
+    el.querySelector('[data-annuler]').onclick = fermerChoixChevauchementActivite;
+    el.addEventListener('click', function (event) { if (event.target === el) fermerChoixChevauchementActivite(); });
+    document.body.appendChild(el);
+}
+
+function direChevauchementActivite(message) {
+    var el = document.getElementById('activiteChevauchement');
+    var erreur = el && el.querySelector('[data-erreur]');
+    var zone = el && el.querySelector('[data-choix]');
+    if (zone) zone.hidden = false;
+    if (erreur) erreur.textContent = message;
+}
+
+function appliquerCreneauActivite(start, end) {
+    var ctx = window.__activiteChevauchement;
+    if (!ctx || !start || !end) return;
+    if (timeToMinutes(end) <= timeToMinutes(start)) {
+        direChevauchementActivite('L\'heure de fin doit être après le début.');
+        return;
+    }
+    if (creneauPendantCours(start, end, ctx.day)) {
+        direChevauchementActivite('Ce créneau tombe pendant les cours, de 8 h 00 à 16 h 35.');
+        return;
+    }
+    if (activitesQuiChevauchent(start, end, ctx.day, ctx.name).length) {
+        direChevauchementActivite('Ce créneau tombe encore sur une autre activité. Choisis-en un autre.');
+        return;
+    }
+    var activity = (selectedActivities || []).find(function (act) { return act && act.name === ctx.name; });
+    fermerChoixChevauchementActivite();
+    if (ctx.appliquer) ctx.appliquer(start, end);
+    else if (activity) poserCreneauActivite(activity, ctx.day, start, end);
+}
+
+function remplacerActiviteChevauchee(conflit) {
+    var ctx = window.__activiteChevauchement;
+    if (!ctx || !conflit) return;
+    var voulue = (selectedActivities || []).find(function (act) { return act && act.name === ctx.name; });
+    var autre = (selectedActivities || []).find(function (act) { return act && act.name === conflit.name; });
+    if (!voulue || !autre) return;
+    var destAutre = { start: ctx.start, end: ctx.end };
+    if (creneauPendantCours(conflit.start, conflit.end, ctx.day) || creneauPendantCours(destAutre.start, destAutre.end, ctx.day)) {
+        direChevauchementActivite('Cet échange tomberait pendant les cours. Choisis un autre créneau.');
+        return;
+    }
+    var reste = activitesQuiChevauchent(destAutre.start, destAutre.end, ctx.day, autre.name).filter(function (item) {
+        return item.name !== voulue.name;
+    });
+    if (reste.length) {
+        direChevauchementActivite('Cet échange tomberait encore sur « ' + reste[0].name + ' ». Choisis un autre créneau.');
+        return;
+    }
+    poserCreneauActivite(autre, ctx.day, destAutre.start, destAutre.end);
+    poserCreneauActivite(voulue, ctx.day, conflit.start, conflit.end);
+    fermerChoixChevauchementActivite();
+}
+
 function messageChevauchementActivite(start, end, dayIndex, exceptName) {
     if (typeof timeToMinutes !== 'function') return '';
     const s = timeToMinutes(start);
@@ -97,9 +281,18 @@ function toggleActivityDay(name, dayIndex) {
         } else {
             const slot = creneauActivite(activity, dayIndex) || { start: '17:00', end: '19:00' };
             if (creneauPendantCours(slot.start, slot.end, dayIndex)) { showSchoolWarning(); return; }
-            const conflit = messageChevauchementActivite(slot.start, slot.end, dayIndex, activity.name);
-            if (conflit === 'cours') { showSchoolWarning(); return; }
-            if (conflit) return;
+            const conflits = activitesQuiChevauchent(slot.start, slot.end, dayIndex, activity.name);
+            if (conflits.length) {
+                ouvrirChoixChevauchementActivite({
+                    name: activity.name,
+                    day: dayIndex,
+                    start: slot.start,
+                    end: slot.end,
+                    conflits: conflits,
+                    appliquer: function (start, end) { poserCreneauActivite(activity, dayIndex, start, end); }
+                });
+                return;
+            }
             activity.days.push(dayIndex);
             if (!activity.dayTimes[dayIndex]) {
                 activity.dayTimes[dayIndex] = { start: slot.start || '17:00', end: slot.end || '19:00' };
@@ -120,13 +313,26 @@ function toggleSameTime(name) {
 function updateActivityTime(name, field, value, days) {
     const activity = selectedActivities.find(a => a.name === name);
     if (!activity) return;
-    activity[field] = value;
-    const start = activity.startTime;
-    const end = activity.endTime;
+    const start = field === 'startTime' ? value : activity.startTime;
+    const end = field === 'endTime' ? value : activity.endTime;
     const jours = (days && days.length) ? days : activity.days;
     for (let i = 0; i < jours.length; i++) {
-        if (creneauPendantCours(start, end, jours[i])) { showSchoolWarning(); break; }
+        if (creneauPendantCours(start, end, jours[i])) { showSchoolWarning(); renderActivities(); return; }
+        const conflits = activitesQuiChevauchent(start, end, jours[i], activity.name);
+        if (conflits.length) {
+            ouvrirChoixChevauchementActivite({
+                name: activity.name,
+                day: jours[i],
+                start: start,
+                end: end,
+                conflits: conflits,
+                appliquer: function (debut, fin) { poserCreneauActivite(activity, jours[i], debut, fin); }
+            });
+            renderActivities();
+            return;
+        }
     }
+    activity[field] = value;
     renderActivities();
 }
 
@@ -136,9 +342,22 @@ function updateActivityDayTime(name, dayIndex, field, value) {
     const current = activity.dayTimes[dayIndex] || { start: activity.startTime || '17:00', end: activity.endTime || '19:00' };
     const start = field === 'start' ? value : current.start;
     const end = field === 'end' ? value : current.end;
+    if (creneauPendantCours(start, end, dayIndex)) { showSchoolWarning(); renderActivities(); return; }
+    const conflits = activitesQuiChevauchent(start, end, dayIndex, activity.name);
+    if (conflits.length) {
+        ouvrirChoixChevauchementActivite({
+            name: activity.name,
+            day: dayIndex,
+            start: start,
+            end: end,
+            conflits: conflits,
+            appliquer: function (debut, fin) { poserCreneauActivite(activity, dayIndex, debut, fin); }
+        });
+        renderActivities();
+        return;
+    }
     if (!activity.dayTimes[dayIndex]) activity.dayTimes[dayIndex] = { start: current.start, end: current.end };
     activity.dayTimes[dayIndex][field] = value;
-    if (creneauPendantCours(start, end, dayIndex)) showSchoolWarning();
     renderActivities();
 }
 
@@ -176,7 +395,38 @@ function renderActivities() {
     }
 
     const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-    config.innerHTML = '<h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem;">Configuration des activités</h3>' +
+    var chevauchements = [];
+    selectedActivities.forEach(function (act) {
+        (act.days || []).forEach(function (jour) {
+            var slot = creneauActivite(act, jour);
+            if (!slot) return;
+            activitesQuiChevauchent(slot.start, slot.end, jour, act.name).forEach(function (autre) {
+                var cle = [act.name, autre.name, jour].sort().join('|');
+                if (chevauchements.some(function (item) { return item.cle === cle; })) return;
+                chevauchements.push({ cle: cle, act: act, autre: autre, jour: jour, slot: slot });
+            });
+        });
+    });
+    var bandeau = '';
+    if (chevauchements.length) {
+        var premierChevauchement = chevauchements[0];
+        bandeau = '<button type="button" id="resoudreChevauchementActivite" style="width:100%;margin-bottom:1rem;padding:0.85rem 1rem;border:1.5px solid #fdba74;border-radius:0.9rem;background:#fff7ed;color:#9a3412;font-weight:800;cursor:pointer;text-align:left;">Ces activités se chevauchent. Choisis un autre créneau ou remplace l\'activité.</button>';
+        setTimeout(function () {
+            var bouton = document.getElementById('resoudreChevauchementActivite');
+            if (!bouton) return;
+            bouton.onclick = function () {
+                ouvrirChoixChevauchementActivite({
+                    name: premierChevauchement.act.name,
+                    day: premierChevauchement.jour,
+                    start: premierChevauchement.slot.start,
+                    end: premierChevauchement.slot.end,
+                    conflits: [premierChevauchement.autre],
+                    appliquer: function (debut, fin) { poserCreneauActivite(premierChevauchement.act, premierChevauchement.jour, debut, fin); }
+                });
+            };
+        }, 0);
+    }
+    config.innerHTML = bandeau + '<h3 style="font-size: 1.125rem; font-weight: 700; color: #1f2937; margin-bottom: 1rem;">Configuration des activités</h3>' +
         selectedActivities.map(act => {
             let timesHtml = '';
             if (act.sameTime) {
