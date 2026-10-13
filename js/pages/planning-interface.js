@@ -81,7 +81,7 @@ function renderPlanning() {
         const pinBadge = event.kind === 'pinned' ? '<span title="Heure fixée par toi" style="font-size:0.7rem;margin-right:0.2rem;">📌</span>' : '';
 
         eventsHtml += '<div onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
-            '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + event.icon + '</span></div>' +
+            '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
                 '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(event.title) + '</h3>' +
                 (subtitle ? '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.1rem;">' + v3Escape(subtitle) + '</p>' : '') +
@@ -806,7 +806,7 @@ function v3OuvrirChoixChevauchement(ctx) {
         return '« ' + ev.title + ' » (' + ev.startTime + ' → ' + ev.endTime + ')';
     }).join(', ');
     var liste = ctx.conflits.map(function (ev) {
-        return '<p style="margin:0.35rem 0;font-weight:700;color:#111827;">' + v3Escape(ev.icon || '🎯') + ' ' + v3Escape(ev.title) + ' <span style="font-weight:600;color:#6b7280;">' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + '</span></p>';
+        return '<p style="margin:0.35rem 0;font-weight:700;color:#111827;">' + iconeHtml(ev.icon || '🎯', '1.15rem') + ' ' + v3Escape(ev.title) + ' <span style="font-weight:600;color:#6b7280;">' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + '</span></p>';
     }).join('');
     var explication = dest.ajuste
         ? v3Escape(ctx.title) + ' prend la place de ' + v3Escape(premier.title) + ' (' + v3Escape(dest.utilisateur.start) + ' → ' + v3Escape(dest.utilisateur.end) + '). ' + v3Escape(premier.title) + ' passe à ' + v3Escape(dest.autre.start) + ' → ' + v3Escape(dest.autre.end) + ', pour ne plus se superposer.'

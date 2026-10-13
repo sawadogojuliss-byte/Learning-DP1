@@ -215,7 +215,7 @@ function v3RenderPomodoro() {
     const focusBlocks = p.plan.filter(s => s.type === 'focus');
     const doneFocus = p.plan.slice(0, p.idx).filter(s => s.type === 'focus').length;
 
-    document.getElementById('pomoTitle').textContent = (p.icon ? p.icon + ' ' : '') + p.title + ' · ' + p.range;
+    document.getElementById('pomoTitle').innerHTML = (p.icon ? iconeHtml(p.icon, '1.05rem') + ' ' : '') + iconeEchap(p.title) + ' · ' + iconeEchap(p.range);
     const card = document.getElementById('pomoPhaseCard');
     card.className = 'pomo-phase ' + kind + (p.running ? ' running' : '');
     const labels = { focus: phase ? 'Focus ' + phase.n + '/' + focusBlocks.length : '', short: 'Pause courte ☕', long: 'Pause longue 🌿', finished: 'Session terminée 🎉' };

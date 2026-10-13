@@ -412,7 +412,7 @@ function initPlanning() {
 function buildNextActivityHTML(nextActivity) {
     return '<div style="max-width: 56rem; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem;">'
         + '<div style="display: flex; align-items: center; gap: 0.75rem;">'
-        + '<div style="width: 2.5rem; height: 2.5rem; background: rgba(255,255,255,0.2); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;"><span style="font-size: 1.25rem;">' + nextActivity.icon + '</span></div>'
+        + '<div style="width: 2.5rem; height: 2.5rem; background: rgba(255,255,255,0.2); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;"><span style="font-size: 1.25rem;">' + iconeHtml(nextActivity.icon, '1.35rem') + '</span></div>'
         + '<div><p style="font-weight: 600; font-size: 0.95rem;">⏰ Prochaine : ' + nextActivity.title + '</p>'
         + '<p style="font-size: 0.8rem; color: rgba(255,255,255,0.85);">' + nextActivity.startTime + ' → ' + nextActivity.endTime + '</p></div></div>'
         + '<div style="background: rgba(255,255,255,0.2); border-radius: 0.5rem; padding: 0.375rem 0.75rem;"><p style="font-weight: 700; font-size: 0.9rem;">' + nextActivity.countdown + '</p></div>'
@@ -467,7 +467,7 @@ function renderPlanning() {
             : '';
 
         eventsHtml += '<div onclick="' + (event.editable ? 'openEditModal(\'' + event.id + '\',\'' + event.title.replace(/'/g,'\\\'') + '\',\'' + event.startTime + '\',\'' + event.endTime + '\',\'' + event.type + '\')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:'+bBg+';border-radius:0.875rem;border-left:4px solid '+bColor+';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:'+(event.editable?'pointer':'default')+';transition:all 0.2s;margin-bottom:0.5rem;" '+(event.editable?'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"':'')+'>'+
-            '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">'+event.icon+'</span></div>'+
+            '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">'+iconeHtml(event.icon, '1.45rem')+'</span></div>'+
             '<div style="flex:1;min-width:0;">'+
                 '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+event.title+'</h3>'+
                 (event.subtitle ? '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.1rem;">'+event.subtitle+'</p>' : '')+
@@ -558,7 +558,7 @@ function buildSubjectPicker() {
         const noteHtml = note == null ? '' : '<div style="text-align: right;"><span style="font-size: 1.125rem; font-weight: 700; color: ' + gradeColor + ';">' + note + '/7</span></div>';
         html += '<button onclick="pickSubject(' + i + ')" data-subj-idx="' + i + '" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: ' + gradeBg + '; border: 2px solid ' + gradeBorder + '; border-radius: 0.75rem; cursor: pointer; text-align: left; width: 100%; transition: all 0.2s;">'
             + '<div style="display: flex; align-items: center; gap: 0.75rem;">'
-            + '<span style="font-size: 1.5rem;">' + s.icon + '</span>'
+            + '<span style="font-size: 1.5rem;">' + iconeHtml(s.icon, '1.5rem') + '</span>'
             + '<div>'
             + '<span style="font-weight: 600; color: #111827; font-size: 0.9rem;">' + s.name + '</span>'
             + '<div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.1rem;">' + s.level + '</div>'

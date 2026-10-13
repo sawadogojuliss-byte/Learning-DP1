@@ -28,7 +28,7 @@ function buildExoSubjectGrid() {
     if (!grid) return;
     grid.innerHTML = allSubj.map((s, i) =>
         '<button onclick="selectExoSubject(' + i + ')" data-exo-idx="' + i + '" style="display:flex;align-items:center;gap:0.375rem;padding:0.5rem 0.875rem;border-radius:9999px;border:2px solid #e5e7eb;background:white;cursor:pointer;font-size:0.8rem;font-weight:600;color:#374151;transition:all 0.2s;">' +
-        '<span>' + s.icon + '</span><span>' + s.name + '</span>' +
+        '<span>' + iconeHtml(s.icon, '1.15rem') + '</span><span>' + s.name + '</span>' +
         '</button>'
     ).join('');
 }
@@ -162,7 +162,7 @@ function renderExoList() {
         return '<div class="exo-card" style="margin-bottom:0.875rem;">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;">' +
             '<div style="display:flex;align-items:center;gap:0.625rem;">' +
-            '<span style="font-size:1.5rem;">' + exo.subjectIcon + '</span>' +
+            '<span style="font-size:1.5rem;">' + iconeHtml(exo.subjectIcon, '1.5rem') + '</span>' +
             '<div><p style="font-weight:700;color:#111827;font-size:0.9rem;">' + exo.subject + '</p>' +
             '<p style="font-size:0.75rem;color:#6b7280;">' + (exo.filename ? '📎 ' + exo.filename : exo.text.substring(0,50) + (exo.text.length>50?'...':'')) + '</p></div></div>' +
             '<button onclick="deleteExo(\'' + exo.id + '\')" style="background:#fef2f2;border:none;border-radius:0.5rem;width:1.75rem;height:1.75rem;cursor:pointer;color:#dc2626;font-size:0.75rem;">✕</button>' +
@@ -221,7 +221,7 @@ function renderPlanifier() {
 
         html += '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">' +
             '<div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:1rem;">' +
-            '<span style="font-size:1.25rem;">' + exo.subjectIcon + '</span>' +
+            '<span style="font-size:1.25rem;">' + iconeHtml(exo.subjectIcon, '1.25rem') + '</span>' +
             '<div><p style="font-weight:700;color:#111827;font-size:0.875rem;">' + exo.subject + ' · ' + (exo.filename || exo.text.substring(0,30)) + '</p>' +
             '<p style="font-size:0.75rem;color:' + urgency + ';font-weight:600;">⏱️ ' + dur + ' · Deadline : ' + dl.toLocaleDateString('fr-FR', {day:'numeric',month:'long'}) + '</p></div></div>' +
             '<p style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.625rem;">Créneaux disponibles :</p>';

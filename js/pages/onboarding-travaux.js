@@ -381,7 +381,7 @@ function eeCarteTravail(opts) {
     var html = '<article style="margin-bottom:0.9rem;padding:0.95rem;border-radius:1.1rem;background:white;border:1px solid #e7e5e4;">'
         + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">'
         + '<div style="min-width:0;"><p style="margin:0 0 0.15rem;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:' + opts.accent + ';">' + eeEchap(opts.kicker) + '</p>'
-        + '<h3 style="margin:0;font-size:1.02rem;color:#1c1917;">' + (opts.icon ? '<span style="margin-right:0.35rem;">' + eeEchap(opts.icon) + '</span>' : '') + eeEchap(opts.titre) + '</h3></div>'
+        + '<h3 style="margin:0;font-size:1.02rem;color:#1c1917;">' + (opts.icon ? '<span style="margin-right:0.35rem;">' + iconeHtml(opts.icon, '1.15rem') + '</span>' : '') + eeEchap(opts.titre) + '</h3></div>'
         + '<span style="font-size:1.35rem;font-weight:800;color:' + opts.accent + ';white-space:nowrap;">' + av.pourcent + ' %</span>'
         + '</div>'
         + eeBarre(av.pourcent, opts.accent)

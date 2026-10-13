@@ -270,7 +270,7 @@ function subjectCardHTML(subject) {
         var valeur = subject.grade == null || subject.grade === '' ? '' : subject.grade;
         note = '<div class="grade-input-wrapper"><input type="number" min="1" max="7" value="' + valeur + '" onchange="updateSubjectGrade(\'' + subject.name + '\', this.value)" class="grade-input" inputmode="numeric"><span class="grade-suffix">/7</span></div>';
     }
-    return '<div class="subject-card"><div class="subject-info"><div class="subject-icon">' + subject.icon + '</div><span class="subject-name">' + subject.name + '</span></div><div class="subject-controls">' + levelChoiceHTML(subject) + note + removeBtn + '</div></div>';
+    return '<div class="subject-card"><div class="subject-info"><div class="subject-icon">' + iconeHtml(subject.icon, '1.7rem') + '</div><span class="subject-name">' + subject.name + '</span></div><div class="subject-controls">' + levelChoiceHTML(subject) + note + removeBtn + '</div></div>';
 }
 
 function updateSubjectsUI() {
@@ -301,11 +301,15 @@ function updateSubjectsUI() {
     if (!notesSur7()) {
         list.querySelectorAll('.grade-input-wrapper').forEach(function (el) { el.remove(); });
     }
-    const addSubjectSelect = document.getElementById('addSubjectSelect');
     const available = getAvailableSubjects();
-    addSubjectSelect.innerHTML = '<option value="">+ Ajouter une matière...</option>' + available.map(s =>
-        '<option value="' + s.name + '">' + s.icon + ' ' + s.name + '</option>'
-    ).join('');
+    const addSubjectListe = document.getElementById('addSubjectListe');
+    if (addSubjectListe) {
+        addSubjectListe.innerHTML = available.map(function (s) {
+            return '<button type="button" onclick="addOptionalSubject(decodeURIComponent(\'' + encodeURIComponent(s.name) + '\'))" style="width:100%;display:flex;align-items:center;gap:0.75rem;padding:0.75rem 0.9rem;border:1.5px dashed #d1d5db;border-radius:0.9rem;background:white;cursor:pointer;text-align:left;">'
+                + iconeHtml(s.icon, '1.45rem')
+                + '<span style="font-weight:700;color:#374151;">' + iconeEchap(s.name) + '</span></button>';
+        }).join('');
+    }
     const addWrap = document.getElementById('addSubjectWrap');
     if (addWrap) addWrap.style.display = total < 6 ? 'block' : 'none';
     

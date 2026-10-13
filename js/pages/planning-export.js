@@ -163,6 +163,55 @@ function exportChargerLogo() {
     });
 }
 
+function exportDessinerDrapeau(ctx, icon, x, y, w, h) {
+    var code = typeof iconeDrapeau === 'function' ? iconeDrapeau(icon) : '';
+    if (!code) return false;
+    if (code === 'fr') {
+        ctx.fillStyle = '#0055A4';
+        ctx.fillRect(x, y, w / 3, h);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(x + w / 3, y, w / 3, h);
+        ctx.fillStyle = '#EF4135';
+        ctx.fillRect(x + (2 * w) / 3, y, w / 3 + 1, h);
+        return true;
+    }
+    ctx.fillStyle = '#012169';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(2, h / 5);
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w / 2, y + h);
+    ctx.moveTo(x, y + h / 2);
+    ctx.lineTo(x + w, y + h / 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#C8102E';
+    ctx.lineWidth = Math.max(1.2, h / 9);
+    ctx.beginPath();
+    ctx.moveTo(x + w / 2, y);
+    ctx.lineTo(x + w / 2, y + h);
+    ctx.moveTo(x, y + h / 2);
+    ctx.lineTo(x + w, y + h / 2);
+    ctx.stroke();
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.lineWidth = Math.max(1.4, h / 8);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.moveTo(x + w, y);
+    ctx.lineTo(x, y + h);
+    ctx.stroke();
+    ctx.strokeStyle = '#C8102E';
+    ctx.lineWidth = Math.max(1, h / 14);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y + h);
+    ctx.moveTo(x + w, y);
+    ctx.lineTo(x, y + h);
+    ctx.stroke();
+    return true;
+}
+
 function exportPuce(ctx, x, y, w, h, ev) {
     var couleur = exportPuceCouleur(ev);
     exportArrondi(ctx, x, y, w, h, 9);
@@ -173,12 +222,18 @@ function exportPuce(ctx, x, y, w, h, ev) {
     var iy = y + 4;
     if (!ev.plus) {
         exportArrondi(ctx, ix, iy, cote, cote, 5);
-        ctx.fillStyle = couleur.icon;
-        ctx.fill();
-        ctx.font = (cote - 3) + 'px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(ev.icon || '•', ix + cote / 2, iy + cote / 2 + 0.5);
+        ctx.save();
+        ctx.clip();
+        if (!exportDessinerDrapeau(ctx, ev.icon, ix, iy, cote, cote)) {
+            ctx.fillStyle = couleur.icon;
+            ctx.fillRect(ix, iy, cote, cote);
+            ctx.font = (cote - 3) + 'px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#111827';
+            ctx.fillText(ev.icon || '•', ix + cote / 2, iy + cote / 2 + 0.5);
+        }
+        ctx.restore();
     }
     var heure = ev.startTime || '';
     ctx.font = '600 8px Inter, sans-serif';
