@@ -6,10 +6,10 @@
       "google": "doriilboudo235@gmail.com",
       "googleSub": "102249607109048181085",
       "nom": "Kenzah",
-      "at": "2026-10-12T14:30:54.239Z",
+      "at": "2026-10-13T18:41:45.130Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-12T14:30:54.239Z",
+        "savedAt": "2026-10-13T18:41:45.130Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Kenzah",
@@ -107,11 +107,23 @@
             "text": "Avancer l’évaluation interne",
             "startTime": "23:05",
             "endTime": "23:45"
+          },
+          "2026-10-13|ia-suivi|18:00": {
+            "date": "2026-10-13",
+            "kind": "ia",
+            "subject": "Mathématiques AA",
+            "partId": "ia-suivi",
+            "text": "Avancer l’évaluation interne",
+            "startTime": "17:20",
+            "endTime": "18:00"
           }
         },
         "eeDemandes": {
           "2026-10-11|ia-suivi|10:45": "oui",
-          "2026-10-11|ia-suivi|09:35": "oui"
+          "2026-10-11|ia-suivi|09:35": "oui",
+          "2026-10-12|ia-suivi|23:40": "oui",
+          "2026-10-12|ia-suivi|23:45": "oui",
+          "2026-10-13|ia-suivi|18:00": "oui"
         },
         "transportMode": "voiture",
         "carDeparture": "07:15",
@@ -178,6 +190,13 @@
         "weekdaySleepHours": 5,
         "saturdaySleepHours": 5,
         "sundaySleepHours": 5,
+        "habitudesDefinies": false,
+        "prepMatinMinutes": 30,
+        "prepSoirMinutes": 30,
+        "petitDejHeure": "",
+        "petitDejMinutes": 30,
+        "dinerHeure": "",
+        "dinerMinutes": 45,
         "phoneDays": [
           0,
           1,
@@ -198,7 +217,7 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 0,
+        "selectedDay": 1,
         "customEvents": [
           {
             "id": "meal-petit-déjeuner-0-1791265740478",
@@ -492,7 +511,7 @@
         },
         "emploiFige": {
           "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":4},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":4},{\"name\":\"Histoire\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Physique\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":3}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"05:00\",\"saturdayWakeup\":\"06:10\",\"sundayWakeup\":\"06:05\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":5,\"sundaySleepHours\":5,\"transportMode\":\"voiture\",\"carDeparture\":\"07:15\",\"carToSchool\":50,\"carFromSchool\":45,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Natation\",\"days\":[6],\"sameTime\":true,\"startTime\":\"14:00\",\"endTime\":\"16:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Cours particuliers\",\"days\":[5],\"sameTime\":true,\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"dayTimes\":{\"5\":{\"start\":\"08:00\",\"end\":\"16:30\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[0,3],\"holidayModes\":{\"0\":\"free\",\"3\":\"free\"},\"holidayDropped\":{},\"memoirLevel\":\"final\",\"iaLevel\":\"\",\"iaLevels\":{\"Mathématiques AA\":\"plan\"},\"memoirPlan\":[],\"iaPlans\":{\"Mathématiques AA\":[],\"Anglais B\":[],\"Français A\":[],\"Histoire\":[],\"Physique\":[],\"Économie\":[]},\"reglesPlanning\":\"20261012d\",\"customEvents\":[{\"id\":\"meal-petit-déjeuner-0-1791265740478\",\"day\":0,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-0-1791265817861\",\"day\":0,\"title\":\"Trajet école\",\"startTime\":\"06:45\",\"endTime\":\"07:35\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révisions-économie-0-1791265865418\",\"day\":0,\"title\":\"Révisions Économie\",\"startTime\":\"07:50\",\"endTime\":\"08:05\",\"type\":\"study\",\"replacesId\":\"study1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-dîner-0-1791314127726\",\"day\":0,\"title\":\"Dîner\",\"startTime\":\"19:20\",\"endTime\":\"20:05\",\"type\":\"meal\",\"replacesId\":\"dinner\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-2-1791468452112\",\"day\":2,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-2-1791526989205\",\"day\":2,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:25\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-4-1791527003842\",\"day\":4,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-4-1791527039959\",\"day\":4,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révision-économie-4-1791558246324\",\"day\":4,\"title\":\"Révision Économie\",\"startTime\":\"20:00\",\"endTime\":\"22:30\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-6-1791725423436\",\"day\":6,\"title\":\"Petit-déjeuner\",\"startTime\":\"06:15\",\"endTime\":\"06:45\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"prep-préparation-0-1791814734581\",\"day\":0,\"title\":\"Préparation\",\"startTime\":\"06:30\",\"endTime\":\"06:45\",\"type\":\"prep\",\"replacesId\":\"prep\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false}]}",
-          "at": "2026-10-12T14:30:50.861Z",
+          "at": "2026-10-13T18:41:40.663Z",
           "jours": [
             [],
             [
@@ -2173,8 +2192,8 @@
           }
         ],
         "currentMood": "bien",
-        "joursConnectes": 3,
-        "dernierJour": "Mon Oct 12 2026",
+        "joursConnectes": 4,
+        "dernierJour": "Tue Oct 13 2026",
         "flammes": 2,
         "flammeJour": "2026-10-12",
         "utilisateurId": "102249607109048181085",
@@ -8285,10 +8304,10 @@
       "google": "redminote13u@gmail.com",
       "googleSub": "101043752652133995164",
       "nom": "Yohann",
-      "at": "2026-10-12T08:24:30.377Z",
+      "at": "2026-10-13T18:31:06.661Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-12T08:24:30.377Z",
+        "savedAt": "2026-10-13T18:31:06.661Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Yohann",
@@ -8386,6 +8405,13 @@
         "weekdaySleepHours": 6,
         "saturdaySleepHours": 8,
         "sundaySleepHours": 9,
+        "habitudesDefinies": false,
+        "prepMatinMinutes": 30,
+        "prepSoirMinutes": 30,
+        "petitDejHeure": "",
+        "petitDejMinutes": 30,
+        "dinerHeure": "",
+        "dinerMinutes": 45,
         "phoneDays": [
           0,
           1,
@@ -8406,15 +8432,15 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 0,
+        "selectedDay": 1,
         "customEvents": [],
         "modifsSemaine": {
           "semaine": "2026-10-12",
           "events": []
         },
         "emploiFige": {
-          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"ESS\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Biologie\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Géographie\",\"level\":\"SL\",\"grade\":6}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"06:40\",\"saturdayWakeup\":\"08:00\",\"sundayWakeup\":\"10:00\",\"weekdaySleepHours\":6,\"saturdaySleepHours\":8,\"sundaySleepHours\":9,\"transportMode\":\"voiture\",\"carDeparture\":\"07:20\",\"carToSchool\":20,\"carFromSchool\":35,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Église\",\"days\":[6],\"sameTime\":true,\"startTime\":\"18:00\",\"endTime\":\"20:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":180,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":0,\"freeTimeByDay\":{\"0\":0,\"1\":0,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0},\"holidayDays\":[],\"holidayModes\":{},\"holidayDropped\":{},\"memoirLevel\":\"\",\"iaLevel\":\"\",\"iaLevels\":{},\"memoirPlan\":[],\"iaPlans\":{},\"reglesPlanning\":\"20261012b\",\"customEvents\":[]}",
-          "at": "2026-10-12T08:24:18.445Z",
+          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"ESS\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Biologie\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":6},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Géographie\",\"level\":\"SL\",\"grade\":6}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"06:40\",\"saturdayWakeup\":\"08:00\",\"sundayWakeup\":\"10:00\",\"weekdaySleepHours\":6,\"saturdaySleepHours\":8,\"sundaySleepHours\":9,\"transportMode\":\"voiture\",\"carDeparture\":\"07:20\",\"carToSchool\":20,\"carFromSchool\":35,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Église\",\"days\":[6],\"sameTime\":true,\"startTime\":\"18:00\",\"endTime\":\"20:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":180,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":0,\"freeTimeByDay\":{\"0\":0,\"1\":0,\"2\":0,\"3\":0,\"4\":0,\"5\":0,\"6\":0},\"holidayDays\":[],\"holidayModes\":{},\"holidayDropped\":{},\"memoirLevel\":\"\",\"iaLevel\":\"\",\"iaLevels\":{},\"memoirPlan\":[],\"iaPlans\":{},\"reglesPlanning\":\"20261012d\",\"customEvents\":[]}",
+          "at": "2026-10-13T18:31:01.164Z",
           "jours": [
             [
               {
@@ -8439,6 +8465,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 410,
                 "minimum": 10,
@@ -8460,6 +8487,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 440,
                 "minimum": 10,
@@ -8538,6 +8566,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 995,
                 "minimum": 10,
@@ -8559,6 +8588,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -8584,6 +8614,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -8628,6 +8659,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -8667,6 +8699,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -8691,6 +8724,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -8716,6 +8750,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -8784,6 +8819,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 410,
                 "minimum": 10,
@@ -8805,6 +8841,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 440,
                 "minimum": 10,
@@ -8883,6 +8920,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 995,
                 "minimum": 10,
@@ -8904,6 +8942,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -8929,6 +8968,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -8973,6 +9013,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9012,6 +9053,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9036,6 +9078,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9061,6 +9104,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9129,6 +9173,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 410,
                 "minimum": 10,
@@ -9150,6 +9195,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 440,
                 "minimum": 10,
@@ -9228,6 +9274,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 995,
                 "minimum": 10,
@@ -9249,6 +9296,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9293,6 +9341,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9332,6 +9381,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9356,6 +9406,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9381,6 +9432,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9449,6 +9501,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 410,
                 "minimum": 10,
@@ -9470,6 +9523,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 440,
                 "minimum": 10,
@@ -9548,6 +9602,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 995,
                 "minimum": 10,
@@ -9569,6 +9624,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9613,6 +9669,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9652,6 +9709,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9676,6 +9734,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9701,6 +9760,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9769,6 +9829,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 410,
                 "minimum": 10,
@@ -9790,6 +9851,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 440,
                 "minimum": 10,
@@ -9868,6 +9930,7 @@
                 "editable": true,
                 "kind": "pinned",
                 "ovPinned": false,
+                "resteEcole": false,
                 "horaireEntre": true,
                 "preferMin": 995,
                 "minimum": 10,
@@ -9889,6 +9952,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -9914,6 +9978,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9958,6 +10023,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -9997,6 +10063,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10021,6 +10088,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -10046,6 +10114,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -10133,6 +10202,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10195,6 +10265,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 10,
                 "plages": [
                   [
@@ -10234,6 +10305,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10254,6 +10326,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -10374,6 +10447,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10441,6 +10515,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10503,6 +10578,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10523,6 +10599,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 10,
                 "plages": [
                   [
@@ -10543,6 +10620,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 20,
                 "plages": [
                   [
@@ -10664,6 +10742,7 @@
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
+                "resteEcole": false,
                 "minimum": 15,
                 "plages": [
                   [
@@ -10694,10 +10773,10 @@
         },
         "exercices": [],
         "currentMood": "ennuye",
-        "joursConnectes": 2,
-        "dernierJour": "Mon Oct 12 2026",
-        "flammes": 0,
-        "flammeJour": "",
+        "joursConnectes": 3,
+        "dernierJour": "Tue Oct 13 2026",
+        "flammes": 1,
+        "flammeJour": "2026-10-12",
         "utilisateurId": "101043752652133995164",
         "google": {
           "sub": "101043752652133995164",
@@ -10714,11 +10793,11 @@
       "google": "sawadogojuliss@gmail.com",
       "googleSub": "116965022060639990571",
       "nom": "Sawadogo Juliss Bill Owen",
-      "at": "2026-10-11T14:52:49.622Z",
+      "at": "2026-10-11T17:26:03.589Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-11T14:52:49.622Z",
-        "etape": "emplois",
+        "savedAt": "2026-10-11T17:26:03.589Z",
+        "etape": "eeia",
         "profilComplet": true,
         "userName": "Sawadogo Juliss Bill Owen",
         "targetScore": 43,
@@ -10768,7 +10847,7 @@
         "memoirLevel": "plan",
         "iaLevel": "",
         "iaLevels": {
-          "Mathématiques AA": "final"
+          "Mathématiques AA": "plan"
         },
         "memoirPlan": [],
         "iaPlans": {
@@ -10777,7 +10856,9 @@
           "Physique": [],
           "Anglais B": [],
           "Géographie": [],
-          "Français A": []
+          "Français A": [],
+          "Économie": [],
+          "Chimie": []
         },
         "eeVus": {
           "2026-10-11|memoir-suivi|11:30": {
@@ -10867,9 +10948,9 @@
         "dernierJour": "Sun Oct 11 2026",
         "flammes": 1,
         "flammeJour": "2026-10-11",
-        "utilisateurId": "gmail:sawadogojuliss@gmail.com",
+        "utilisateurId": "116965022060639990571",
         "google": {
-          "sub": "gmail:sawadogojuliss@gmail.com",
+          "sub": "116965022060639990571",
           "email": "sawadogojuliss@gmail.com",
           "name": "Juliss Sawadogo",
           "given_name": "Juliss",

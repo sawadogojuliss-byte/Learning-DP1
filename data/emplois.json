@@ -1254,14 +1254,14 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-12T15:18:06.089Z",
+      "at": "2026-10-13T18:53:39.902Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
       "google": "doriilboudo235@gmail.com",
       "googleNom": "Kenzah ILBOUDO",
       "googleSub": "102249607109048181085",
-      "flammes": 2,
+      "flammes": 3,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
@@ -5190,16 +5190,16 @@
     },
     {
       "type": "emploi",
-      "id": "e_a1a113207989199d5d45",
-      "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-13T06:12:15.355Z",
+      "id": "e_a1a12a4f01340eb2bd2d",
+      "appareil": "a1a12a4f01340eb2bd2d",
+      "at": "2026-10-13T18:33:12.192Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
       "google": "sawadogojuliss@gmail.com",
       "googleNom": "Juliss Sawadogo",
       "googleSub": "116965022060639990571",
-      "flammes": 3,
+      "flammes": 1,
       "matieres": [
         "Mathématiques AA SL",
         "ESS SL",
@@ -5215,32 +5215,22 @@
           "j": "Lundi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
-              "f": "05:05",
-              "t": "Activité physique"
-            },
-            {
-              "d": "05:05",
               "f": "05:10",
-              "t": "Petit-déjeuner"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
               "f": "05:40",
-              "t": "Révisions · Physique"
+              "t": "Petit-déjeuner"
             },
             {
               "d": "05:40",
-              "f": "05:55",
-              "t": "Activité physique"
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
             },
             {
-              "d": "05:55",
+              "d": "06:20",
               "f": "06:45",
               "t": "Révisions · Physique"
             },
@@ -5292,21 +5282,26 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions · Physique"
             },
             {
               "d": "19:00",
-              "f": "20:00",
+              "f": "19:45",
               "t": "Dîner"
             },
             {
-              "d": "20:00",
-              "f": "21:50",
+              "d": "19:45",
+              "f": "21:35",
               "t": "Révisions Physique"
             },
             {
+              "d": "21:35",
+              "f": "22:00",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5315,14 +5310,9 @@
           "j": "Mardi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5331,6 +5321,11 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
               "t": "Révisions · Physique"
             },
@@ -5401,7 +5396,7 @@
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5410,14 +5405,9 @@
           "j": "Mercredi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5426,6 +5416,11 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
               "t": "Révisions · Physique"
             },
@@ -5496,7 +5491,7 @@
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5505,14 +5500,9 @@
           "j": "Jeudi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5521,6 +5511,11 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
               "t": "Révisions · Mathématiques AA"
             },
@@ -5591,7 +5586,7 @@
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5600,14 +5595,9 @@
           "j": "Vendredi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5616,6 +5606,11 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
               "t": "Révisions · Mathématiques AA"
             },
@@ -5686,7 +5681,7 @@
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5695,14 +5690,9 @@
           "j": "Samedi",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5711,38 +5701,48 @@
             },
             {
               "d": "05:40",
-              "f": "07:20",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "07:20",
               "f": "07:50",
-              "t": "Préparation"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "07:50",
-              "f": "13:00",
-              "t": "Cours particuliers"
+              "f": "08:30",
+              "t": "Évaluation interne · Mathématiques AA"
             },
             {
-              "d": "13:00",
-              "f": "14:00",
-              "t": "Déjeuner"
+              "d": "08:30",
+              "f": "09:00",
+              "t": "Préparation"
             },
             {
-              "d": "14:00",
-              "f": "15:50",
-              "t": "Révisions Anglais B"
-            },
-            {
-              "d": "15:50",
-              "f": "17:40",
+              "d": "09:00",
+              "f": "10:50",
               "t": "Révisions Français A"
             },
             {
-              "d": "17:40",
-              "f": "18:00",
+              "d": "10:50",
+              "f": "12:30",
               "t": "Révisions · Anglais B"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "15:00",
+              "t": "Révisions · Français A"
+            },
+            {
+              "d": "15:00",
+              "f": "16:30",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "16:30",
+              "f": "18:00",
+              "t": "Révisions · ESS"
             },
             {
               "d": "18:00",
@@ -5752,7 +5752,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Français A"
+              "t": "Révisions · Géographie"
             },
             {
               "d": "19:00",
@@ -5762,16 +5762,16 @@
             {
               "d": "19:45",
               "f": "21:15",
-              "t": "Révisions · Français A"
+              "t": "Révisions · Physique"
             },
             {
               "d": "21:15",
               "f": "22:00",
-              "t": "Révisions · ESS"
+              "t": "Temps libre"
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -5780,14 +5780,9 @@
           "j": "Dimanche",
           "s": [
             {
-              "d": "04:50",
-              "f": "05:00",
-              "t": "Réveil"
-            },
-            {
               "d": "05:00",
               "f": "05:10",
-              "t": "Activité physique"
+              "t": "Réveil"
             },
             {
               "d": "05:10",
@@ -5816,8 +5811,13 @@
             },
             {
               "d": "10:50",
+              "f": "11:30",
+              "t": "Mémoire · Avancer le mémoire"
+            },
+            {
+              "d": "11:30",
               "f": "12:30",
-              "t": "Temps libre"
+              "t": "Révisions · Français A"
             },
             {
               "d": "12:30",
@@ -5866,7 +5866,7 @@
             },
             {
               "d": "22:00",
-              "f": "04:50",
+              "f": "05:00",
               "t": "Coucher"
             }
           ]
@@ -6562,14 +6562,14 @@
       "type": "emploi",
       "id": "e_a1a12f36746321e0e525",
       "appareil": "a1a12f36746321e0e525",
-      "at": "2026-10-12T08:25:02.306Z",
+      "at": "2026-10-13T18:31:07.868Z",
       "nom": "Yohann",
       "classe": "DP2",
       "email": "redminote13u@gmail.com",
       "google": "redminote13u@gmail.com",
       "googleNom": "Redmi Note13",
       "googleSub": "101043752652133995164",
-      "flammes": 1,
+      "flammes": 2,
       "matieres": [
         "ESS SL",
         "Biologie HL",
