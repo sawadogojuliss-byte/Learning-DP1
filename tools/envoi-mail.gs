@@ -34,6 +34,8 @@ function lire(e) {
       secret: secret,
       nonce: valeur(e, 'nonce'),
       to: valeur(e, 'to'),
+      nom: valeur(e, 'nom'),
+      salutation: valeur(e, 'salutation'),
       subject: valeur(e, 'subject'),
       text: valeur(e, 'text'),
       html: valeur(e, 'html')
@@ -53,6 +55,35 @@ function confirmer(nonce, to) {
       muteHttpExceptions: true
     });
   } catch (err) {}
+}
+
+function echapper(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function ligneSalutation(data) {
+  var ligne = String(data && data.salutation || '').replace(/\s+/g, ' ').trim();
+  if (/^(Bonjour|Bonsoir) .+,$/.test(ligne)) return ligne;
+  var nom = String(data && data.nom || '').replace(/\s+/g, ' ').trim();
+  if (nom.indexOf('@') !== -1) nom = nom.split('@')[0].replace(/[._+-]+/g, ' ');
+  nom = nom.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]/g, ' ').replace(/\s+/g, ' ').trim();
+  var heure = new Date().getHours();
+  var mot = (heure >= 5 && heure < 18) ? 'Bonjour' : 'Bonsoir';
+  return nom ? (mot + ' ' + nom + ',') : (mot + ',');
+}
+
+function assurerSalutation(data) {
+  var ligne = ligneSalutation(data);
+  var texte = String(data.text || '');
+  var html = String(data.html || '');
+  if (texte.indexOf('Bonjour') !== 0 && texte.indexOf('Bonsoir') !== 0) texte = ligne + '\n\n' + texte;
+  if (html.indexOf('Bonjour') === -1 && html.indexOf('Bonsoir') === -1) {
+    html = '<p style="margin:0 0 18px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#111827;white-space:nowrap;">' + echapper(ligne) + '</p>' + html;
+  }
+  data.salutation = ligne;
+  data.text = texte.slice(0, 4000);
+  data.html = html.slice(0, 80000);
+  return data;
 }
 
 function doGet() {
@@ -76,6 +107,9 @@ function doPost(e) {
   if (/formsubmit|someone just submitted your form/i.test(html)) {
     return reponse({ success: false, error: 'modele' });
   }
+  data = assurerSalutation(data);
+  texte = data.text;
+  html = data.html;
   var verrou = LockService.getScriptLock();
   try {
     verrou.waitLock(20000);

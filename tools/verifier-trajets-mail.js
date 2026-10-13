@@ -141,6 +141,27 @@ if (boite.boiteSalutation('RYAN', nuit) !== 'Bonsoir RYAN,') {
 }
 if (boite.boitePeriodeSalutation(new Date(2026, 9, 12, 17, 59)) !== 'Bonjour') echecs += 1;
 if (boite.boitePeriodeSalutation(new Date(2026, 9, 12, 18, 0)) !== 'Bonsoir') echecs += 1;
+if (boite.boiteNomCourrier('Farid SERE') !== 'Farid SERE') {
+    echecs += 1;
+    console.log('ECHEC casse', boite.boiteNomCourrier('Farid SERE'));
+}
+boite.boiteListesCache = {
+    emplois: [{ google: 'mathis.kafando@enkoschools.com', nom: 'Mathis', googleNom: 'Aimery Mathis D. S Kafando' }],
+    profils: [],
+    questions: [],
+    feedbacks: []
+};
+var soirMathis = new Date(2026, 9, 12, 20, 58);
+var nomMathis = boite.boiteNomPourMail({ email: 'mathis.kafando@enkoschools.com' });
+if (nomMathis !== 'Mathis' || boite.boiteSalutation(nomMathis, soirMathis) !== 'Bonsoir Mathis,') {
+    echecs += 1;
+    console.log('ECHEC nom Mathis', nomMathis);
+}
+var payload = boite.boitePayloadMail('mathis.kafando@enkoschools.com', 'Merci pour le retour.', 'Assistant', 'nonce', '', soirMathis);
+if (!boite.boiteMailCommenceBien(payload) || payload.text.indexOf('Bonsoir Mathis,\n') !== 0 || payload.html.indexOf('white-space:nowrap') === -1) {
+    echecs += 1;
+    console.log('ECHEC payload', payload && payload.salutation, payload && payload.text.slice(0, 40));
+}
 
 console.log('jours scolaires vérifiés', jours, 'échecs', echecs);
 if (echecs) process.exit(1);
