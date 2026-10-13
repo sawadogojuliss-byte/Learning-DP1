@@ -155,28 +155,35 @@ function annonceEstDue(item, maintenant) {
     return instant <= (maintenant || Date.now());
 }
 
-function annonceTexteMail(item, nom, quand) {
-    var salut = typeof boiteSalutation === 'function' ? boiteSalutation(nom, quand) : 'Bonjour,';
-    return (salut + '\n\n' + String(item.titre || '') + '\n\n' + String(item.texte || '') + '\n\nÀ bientôt,\nL\'équipe Study Plan IB').slice(0, 4000);
+function annonceTexteMail(item) {
+    var titre = String(item && item.titre || '').trim();
+    var corps = String(item && item.texte || '').trim();
+    var texte = 'Annonce\n\nChers utilisateurs\n\n';
+    if (titre) texte += titre + '\n\n';
+    texte += corps + '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
+    return texte.slice(0, 4000);
 }
 
-function annonceHtmlMail(item, nom, quand) {
-    var salut = typeof boiteSalutation === 'function' ? boiteSalutation(nom, quand) : 'Bonjour,';
+function annonceHtmlMail(item) {
     var echap = typeof boiteEchap === 'function' ? boiteEchap : function (s) { return String(s || ''); };
     var lignes = typeof boiteEchapHtml === 'function' ? boiteEchapHtml : echap;
-    return '<div style="display:none;max-height:0;overflow:hidden;">Annonce de l\'équipe Study Plan IB</div>'
+    var titre = String(item && item.titre || '').trim();
+    var titreHtml = titre
+        ? '<p style="margin:0 0 16px;font-family:Arial,Helvetica,sans-serif;font-size:20px;line-height:1.35;font-weight:700;color:#111827;">' + echap(titre) + '</p>'
+        : '';
+    return '<div style="display:none;max-height:0;overflow:hidden;">Annonce — Chers utilisateurs</div>'
         + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">'
         + '<tr><td align="center" style="padding:24px 12px;">'
         + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
-        + '<tr><td style="background:#059669;padding:22px 28px;">'
-        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#d1fae5;">Study Plan IB</p>'
-        + '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:24px;line-height:1.2;font-weight:700;color:#ffffff;">' + echap(item.titre || 'Annonce') + '</p>'
+        + '<tr><td style="background:#059669;padding:28px 28px 22px;">'
+        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:34px;line-height:1.05;font-weight:700;color:#ffffff;">Annonce</p>'
+        + '<p style="margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:18px;line-height:1.3;font-weight:700;color:#d1fae5;">Chers utilisateurs</p>'
         + '</td></tr>'
-        + '<tr><td style="padding:32px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1f2937;">'
-        + '<p style="margin:0 0 18px;">' + echap(salut) + '</p>'
-        + '<p style="margin:0;">' + lignes(String(item.texte || '')) + '</p>'
-        + '<p style="margin:28px 0 0;">À bientôt,</p>'
-        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;">L\'équipe Study Plan IB</p>'
+        + '<tr><td style="padding:28px 28px 32px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.65;color:#1f2937;">'
+        + titreHtml
+        + '<p style="margin:0;">' + lignes(String(item && item.texte || '')) + '</p>'
+        + '<p style="margin:32px 0 0;">À bientôt,</p>'
+        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;"><strong>L\'équipe Study Plan IB</strong></p>'
         + '</td></tr></table></td></tr></table>';
 }
 
@@ -266,10 +273,13 @@ function annonceCarte(item) {
         ? '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">Par ' + echap(item.nom || annonceLabel(item.auteurCle)) + ' · ' + echap(etat) + (accords.length ? ' · accords : ' + echap(accords.join(', ')) : '') + (manquants.length && !item.publie ? ' · il manque : ' + echap(manquants.join(', ')) : '') + (item.programme ? ' · ' + echap(annonceDateLisible(item.programme)) : '') + '</p>'
         : '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">De l\'équipe Study Plan IB · ' + echap(annonceDateLisible(item.publieAt || item.envoyeAt || item.at)) + '</p>';
     return '<article style="background:white;border:1.5px solid #f3f4f6;border-radius:1rem;padding:0.95rem 1rem;margin-bottom:0.75rem;">'
-        + '<p style="margin:0;font-size:0.72rem;font-weight:800;letter-spacing:0.08em;text-transform:uppercase;color:#059669;">Boîte mail</p>'
-        + '<h3 style="margin:0.3rem 0 0;font-size:1rem;color:#111827;">' + echap(item.titre) + '</h3>'
+        + '<p style="margin:0;font-size:1.15rem;font-weight:800;color:#059669;">Annonce</p>'
+        + '<p style="margin:0.35rem 0 0;font-size:0.95rem;font-weight:700;color:#111827;">Chers utilisateurs</p>'
+        + '<h3 style="margin:0.7rem 0 0;font-size:1rem;color:#111827;">' + echap(item.titre) + '</h3>'
         + meta
         + '<p style="margin:0.7rem 0 0;white-space:pre-wrap;line-height:1.5;color:#1f2937;font-size:0.92rem;">' + echap(item.texte) + '</p>'
+        + '<p style="margin:1rem 0 0;color:#1f2937;">À bientôt,</p>'
+        + '<p style="margin:0.15rem 0 0;font-weight:800;color:#047857;">L\'équipe Study Plan IB</p>'
         + actions
         + '</article>';
 }

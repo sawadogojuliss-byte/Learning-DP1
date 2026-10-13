@@ -72,7 +72,14 @@ function ligneSalutation(data) {
   return nom ? (mot + ' ' + nom + ',') : (mot + ',');
 }
 
+function estAnnonce(data) {
+  var sujet = String(data && data.subject || '');
+  var texte = String(data && data.text || '');
+  return sujet.indexOf('Annonce') === 0 || texte.indexOf('Annonce') === 0 || texte.indexOf('Chers utilisateurs') !== -1;
+}
+
 function assurerSalutation(data) {
+  if (estAnnonce(data)) return data;
   var ligne = ligneSalutation(data);
   var texte = String(data.text || '');
   var html = String(data.html || '');
