@@ -6,10 +6,10 @@
       "google": "doriilboudo235@gmail.com",
       "googleSub": "102249607109048181085",
       "nom": "Kenzah",
-      "at": "2026-10-14T06:03:58.450Z",
+      "at": "2026-10-14T13:13:46.985Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-14T06:03:58.450Z",
+        "savedAt": "2026-10-14T13:13:46.985Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Kenzah",
@@ -369,6 +369,20 @@
             "replacesId": "prep",
             "pinned": false,
             "timestamp": 1791814734581
+          },
+          {
+            "id": "free-temps-libre-2-1791958993220",
+            "day": 2,
+            "title": "Temps libre",
+            "startTime": "18:00",
+            "endTime": "19:01",
+            "type": "free",
+            "icon": "🎮",
+            "source": "custom",
+            "replacesId": "freetime",
+            "pinned": false,
+            "timestamp": 1791958993220,
+            "resteEcole": false
           }
         ],
         "modifsSemaine": {
@@ -515,12 +529,26 @@
               "replacesId": "prep",
               "pinned": false,
               "timestamp": 1791814734581
+            },
+            {
+              "id": "free-temps-libre-2-1791958993220",
+              "day": 2,
+              "title": "Temps libre",
+              "startTime": "18:00",
+              "endTime": "19:01",
+              "type": "free",
+              "icon": "🎮",
+              "source": "custom",
+              "replacesId": "freetime",
+              "pinned": false,
+              "timestamp": 1791958993220,
+              "resteEcole": false
             }
           ]
         },
         "emploiFige": {
-          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":4},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":4},{\"name\":\"Histoire\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Physique\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":3}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"05:00\",\"saturdayWakeup\":\"06:10\",\"sundayWakeup\":\"06:05\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":5,\"sundaySleepHours\":5,\"transportMode\":\"voiture\",\"carDeparture\":\"07:15\",\"carToSchool\":50,\"carFromSchool\":45,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Natation\",\"days\":[6],\"sameTime\":true,\"startTime\":\"14:00\",\"endTime\":\"16:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Cours particuliers\",\"days\":[5],\"sameTime\":true,\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"dayTimes\":{\"5\":{\"start\":\"08:00\",\"end\":\"16:30\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[0,3],\"holidayModes\":{\"0\":\"free\",\"3\":\"free\"},\"holidayDropped\":{},\"memoirLevel\":\"final\",\"iaLevel\":\"\",\"iaLevels\":{\"Mathématiques AA\":\"plan\"},\"memoirPlan\":[],\"iaPlans\":{\"Mathématiques AA\":[],\"Anglais B\":[],\"Français A\":[],\"Histoire\":[],\"Physique\":[],\"Économie\":[]},\"reglesPlanning\":\"20261012d\",\"customEvents\":[{\"id\":\"meal-petit-déjeuner-0-1791265740478\",\"day\":0,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-0-1791265817861\",\"day\":0,\"title\":\"Trajet école\",\"startTime\":\"06:45\",\"endTime\":\"07:35\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révisions-économie-0-1791265865418\",\"day\":0,\"title\":\"Révisions Économie\",\"startTime\":\"07:50\",\"endTime\":\"08:05\",\"type\":\"study\",\"replacesId\":\"study1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-dîner-0-1791314127726\",\"day\":0,\"title\":\"Dîner\",\"startTime\":\"19:20\",\"endTime\":\"20:05\",\"type\":\"meal\",\"replacesId\":\"dinner\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-2-1791468452112\",\"day\":2,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-2-1791526989205\",\"day\":2,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:25\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-4-1791527003842\",\"day\":4,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-4-1791527039959\",\"day\":4,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révision-économie-4-1791558246324\",\"day\":4,\"title\":\"Révision Économie\",\"startTime\":\"20:00\",\"endTime\":\"22:30\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-6-1791725423436\",\"day\":6,\"title\":\"Petit-déjeuner\",\"startTime\":\"06:15\",\"endTime\":\"06:45\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"prep-préparation-0-1791814734581\",\"day\":0,\"title\":\"Préparation\",\"startTime\":\"06:30\",\"endTime\":\"06:45\",\"type\":\"prep\",\"replacesId\":\"prep\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false}]}",
-          "at": "2026-10-13T18:41:40.663Z",
+          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":4},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":4},{\"name\":\"Histoire\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Physique\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":3}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"05:00\",\"saturdayWakeup\":\"06:10\",\"sundayWakeup\":\"06:05\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":5,\"sundaySleepHours\":5,\"transportMode\":\"voiture\",\"carDeparture\":\"07:15\",\"carToSchool\":50,\"carFromSchool\":45,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Natation\",\"days\":[6],\"sameTime\":true,\"startTime\":\"14:00\",\"endTime\":\"16:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Cours particuliers\",\"days\":[5],\"sameTime\":true,\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"dayTimes\":{\"5\":{\"start\":\"08:00\",\"end\":\"16:30\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[0,3],\"holidayModes\":{\"0\":\"free\",\"3\":\"free\"},\"holidayDropped\":{},\"memoirLevel\":\"final\",\"iaLevel\":\"\",\"iaLevels\":{\"Mathématiques AA\":\"plan\"},\"memoirPlan\":[],\"iaPlans\":{\"Mathématiques AA\":[],\"Anglais B\":[],\"Français A\":[],\"Histoire\":[],\"Physique\":[],\"Économie\":[]},\"reglesPlanning\":\"20261012d\",\"customEvents\":[{\"id\":\"meal-petit-déjeuner-0-1791265740478\",\"day\":0,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-0-1791265817861\",\"day\":0,\"title\":\"Trajet école\",\"startTime\":\"06:45\",\"endTime\":\"07:35\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révisions-économie-0-1791265865418\",\"day\":0,\"title\":\"Révisions Économie\",\"startTime\":\"07:50\",\"endTime\":\"08:05\",\"type\":\"study\",\"replacesId\":\"study1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-dîner-0-1791314127726\",\"day\":0,\"title\":\"Dîner\",\"startTime\":\"19:20\",\"endTime\":\"20:05\",\"type\":\"meal\",\"replacesId\":\"dinner\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-2-1791468452112\",\"day\":2,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-2-1791526989205\",\"day\":2,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:25\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-4-1791527003842\",\"day\":4,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-4-1791527039959\",\"day\":4,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révision-économie-4-1791558246324\",\"day\":4,\"title\":\"Révision Économie\",\"startTime\":\"20:00\",\"endTime\":\"22:30\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-6-1791725423436\",\"day\":6,\"title\":\"Petit-déjeuner\",\"startTime\":\"06:15\",\"endTime\":\"06:45\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"prep-préparation-0-1791814734581\",\"day\":0,\"title\":\"Préparation\",\"startTime\":\"06:30\",\"endTime\":\"06:45\",\"type\":\"prep\",\"replacesId\":\"prep\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"free-temps-libre-2-1791958993220\",\"day\":2,\"title\":\"Temps libre\",\"startTime\":\"18:00\",\"endTime\":\"19:01\",\"type\":\"free\",\"replacesId\":\"freetime\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false}]}",
+          "at": "2026-10-14T06:23:13.272Z",
           "jours": [
             [],
             [
