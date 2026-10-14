@@ -35,11 +35,6 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        },
-        {
           "appareil": "a1a12c8a4e260da4b22e",
           "nom": "Sere Farid Abdourrahman",
           "classe": "DP2"
@@ -150,11 +145,6 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        },
-        {
           "appareil": "a1a12f36746321e0e525",
           "nom": "Yohann",
           "classe": "DP2"
@@ -169,6 +159,11 @@
           "appareil": "a1a10e333ea26dbae7e5",
           "nom": "Farid SERE",
           "classe": "DP2"
+        },
+        {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "I",
+          "classe": "DP1"
         },
         {
           "appareil": "a1a122fe46e0a346ee30",
@@ -193,11 +188,6 @@
         {
           "appareil": "a1a12c3549c584e7eec0",
           "nom": "RYAN",
-          "classe": "DP2"
-        },
-        {
-          "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
         {
@@ -247,11 +237,6 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        },
-        {
           "appareil": "a1a12f36746321e0e525",
           "nom": "Yohann",
           "classe": "DP2"
@@ -294,6 +279,11 @@
           "classe": "DP2"
         },
         {
+          "appareil": "a1a12a4f01340eb2bd2d",
+          "nom": "I",
+          "classe": "DP1"
+        },
+        {
           "appareil": "a1a122fe46e0a346ee30",
           "nom": "Kenzah",
           "classe": "DP2"
@@ -316,11 +306,6 @@
         {
           "appareil": "a1a12c3549c584e7eec0",
           "nom": "RYAN",
-          "classe": "DP2"
-        },
-        {
-          "appareil": "a1a12a4f01340eb2bd2d",
-          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
         {
@@ -371,11 +356,6 @@
         },
         {
           "appareil": "a1a113207989199d5d45",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        },
-        {
-          "appareil": "a1a12a4f01340eb2bd2d",
           "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },

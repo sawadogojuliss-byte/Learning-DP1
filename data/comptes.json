@@ -6,10 +6,10 @@
       "google": "doriilboudo235@gmail.com",
       "googleSub": "102249607109048181085",
       "nom": "Kenzah",
-      "at": "2026-10-13T18:41:45.130Z",
+      "at": "2026-10-14T06:03:58.450Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-13T18:41:45.130Z",
+        "savedAt": "2026-10-14T06:03:58.450Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Kenzah",
@@ -110,6 +110,15 @@
           },
           "2026-10-13|ia-suivi|18:00": {
             "date": "2026-10-13",
+            "kind": "ia",
+            "subject": "Mathématiques AA",
+            "partId": "ia-suivi",
+            "text": "Avancer l’évaluation interne",
+            "startTime": "17:20",
+            "endTime": "18:00"
+          },
+          "2026-10-14|ia-suivi|18:00": {
+            "date": "2026-10-14",
             "kind": "ia",
             "subject": "Mathématiques AA",
             "partId": "ia-suivi",
@@ -217,7 +226,7 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 1,
+        "selectedDay": 2,
         "customEvents": [
           {
             "id": "meal-petit-déjeuner-0-1791265740478",
@@ -2192,10 +2201,10 @@
           }
         ],
         "currentMood": "bien",
-        "joursConnectes": 4,
-        "dernierJour": "Tue Oct 13 2026",
-        "flammes": 2,
-        "flammeJour": "2026-10-12",
+        "joursConnectes": 5,
+        "dernierJour": "Wed Oct 14 2026",
+        "flammes": 4,
+        "flammeJour": "2026-10-14",
         "utilisateurId": "102249607109048181085",
         "google": {
           "sub": "102249607109048181085",
