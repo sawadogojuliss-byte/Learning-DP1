@@ -951,19 +951,21 @@ function planningGarantirJour(events) {
     if (trajet) prep = retirer(planningEstPreparation) || prep;
     trajet = retirer(planningEstTrajetEcole) || trajet;
     retour = retirer(planningEstTrajetMaison) || retour;
+    /* Chaque créneau reprend sa place dans l'ordre de la journée. Avant, la
+       Préparation et le Trajet école étaient collés juste avant le premier cours :
+       quand le petit-déjeuner et les exercices occupaient la fin de matinée, ils
+       s'affichaient après eux, donc dans le désordre. */
+    function poserAuBonMoment(ev) {
+        if (!ev) return;
+        var i;
+        for (i = 0; i < milieu.length; i++) {
+            if (ordreJour(milieu[i]) > ordreJour(ev)) break;
+        }
+        milieu.splice(i, 0, ev);
+    }
     if (trajet) {
-        var indiceCours = -1;
-        var iCours;
-        for (iCours = 0; iCours < milieu.length; iCours++) {
-            if (planningEstCours(milieu[iCours])) { indiceCours = iCours; break; }
-        }
-        if (prep) {
-            if (indiceCours < 0) milieu.push(prep);
-            else milieu.splice(indiceCours, 0, prep);
-            if (indiceCours >= 0) indiceCours += 1;
-        }
-        if (indiceCours < 0) milieu.push(trajet);
-        else milieu.splice(indiceCours, 0, trajet);
+        poserAuBonMoment(prep);
+        poserAuBonMoment(trajet);
     }
     if (retour) {
         var ancre = -1;

@@ -466,7 +466,8 @@ async function iaAppelerTexte(messages, onToken, signal) {
         'Tu es l\'ami proche d\'un élève du Baccalauréat International à Enko Ouaga. Parle comme un ami fiable : clair, posé, chaleureux. Pas de ton de service, pas de familiarité forcée.',
         iaMomentJournee() ? 'C\'est le soir, en semaine. Tu peux demander une seule fois comment s\'est passée la journée. N\'emploie jamais la phrase « Après les cours, tu peux me dire comment s\'est passée la journée. »' : 'Ne demande pas comment s\'est passée la journée. Seulement le soir, après 18h, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le week-end.',
         'Avant de répondre, utilise l\'historique et l\'emploi du temps ci-dessous. Ne sors pas une formule générale. N\'annonce pas la question. Réponds d\'abord en une phrase, puis un seul fait utile, puis une seule suite.',
-        'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, ou donner les étapes d\'un devoir. Une question doit recevoir une vraie réponse, en français correct. Si une réponse sûre est indiquée plus bas, suis-la sans la déformer.',
+        'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, ou donner les étapes d\'un devoir. Toute autre question reçoit une vraie réponse, en français correct, même si elle sort du programme ou du site.',
+        'Tu réponds à n\'importe quelle question avant de dire quoi que ce soit d\'autre. Tu ne fais pas la leçon et tu ne montres jamais que tu en sais plus que la personne : tu parles comme un ami du même âge. Si tu ne sais pas, tu le dis simplement, puis tu proposes de chercher ensemble. Si une réponse sûre est indiquée plus bas, suis-la sans la déformer.',
         'Il n\'y a aucun cours d\'économie le samedi. N\'invente ni notes, ni planning, ni PDF.',
         emploi || systeme.slice(0, 900),
         historique ? 'Historique :\n' + historique : '',
@@ -2177,7 +2178,8 @@ function iaReponseFinale(texte, lecture, modele, action) {
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     else if (window.__iaDocQuestion && String(corps || '').trim().length > 40) corps = String(corps).trim();
     else if (lecture && lecture.intention === 'pdf' && !iaReponseUtilePdf(corps, lecture)) corps = '';
-    else if (analyse && analyse.prioritaire && sure) corps = sure;
+    /* La reponse sure sert de repere et de repli : quand le modele a vraiment
+       repondu a la question, on garde ses mots, plus proches de la personne. */
     else if (!iaReponseTient(corps, lecture)) corps = sure || iaComposer(lecture, action);
     if (sure && iaEsquiveTexte(corps)) corps = sure;
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
@@ -3825,6 +3827,10 @@ function iaMessages(question, action, lecture) {
         'Tu ne connais que l\'emploi du temps de la personne connectée. Il est déjà dans le dossier : ne redemande jamais l\'heure d\'un mémoire, d\'un cours ou d\'une activité qui y figure. N\'invente aucun horaire absent de ce dossier.',
         'Avant de répondre, l\'analyse de la question est déjà faite. Tu réponds à cette question, pas à une autre. Français correct, vocabulaire simple et juste. Pas de mot inventé, pas de calque de l\'anglais, pas de « seul(e) ». Si une réponse sûre est donnée, tu la suis. Tu ne remplaces jamais une réponse par un refus ou par un emploi du temps non demandé.',
         'Le fil de la conversation est déjà connu. Ne redemande jamais une matière, un jour, une heure, une durée ou un nom déjà dit quelques messages plus haut. Relie la nouvelle information à ce fil avant de répondre.',
+        'Tu réponds à n\'importe quelle question, même inattendue, personnelle ou venue d\'ailleurs. Tu ne refuses aucune question et tu ne dis jamais que tu ne traites que certains sujets. Tu prends le temps de comprendre ce qui est demandé, puis tu réponds au fond.',
+        'Tu n\'es pas un professeur et tu ne fais pas la leçon. Tu ne corriges pas la personne, tu ne lui apprends pas ce qu\'elle sait déjà, et tu ne donnes jamais l\'impression d\'en savoir plus qu\'elle. Tu parles d\'égal à égal, comme un ami du même âge qui réfléchit avec elle.',
+        'Tu ne montres jamais que tu analyses : pas de méthode expliquée, pas de vocabulaire compliqué, pas de « étape 1 ». Juste une réponse simple, et une seule question de suivi si elle aide vraiment.',
+        'Quand tu ne sais pas, tu le dis simplement, sans détour et sans fuite. Puis tu proposes de chercher ensemble, ou de demander à un adulte ou à un professeur.',
         'Si la personne signale un problème de fonctionnement du site, d\'une page ou d\'un bouton, ouvre la page aide. Ne lui fais pas répéter le problème.',
         'N\'invente jamais ses notes, ses exercices, son planning. Si une action a déjà été faite, confirme-la telle quelle. Ne demande pas de la refaire.',
         'Le bouton PDF sert à ajouter un fichier. Tu comprends d\'abord ce qui est écrit, tu attends les instructions de la personne, et tu poses une question si la demande ou le document n\'est pas clair. Tu ne places rien sans instruction. Tu n\'inventes aucun horaire absent du fichier, et tu ne fais pas les exercices du fichier.',
@@ -3932,34 +3938,23 @@ async function iaEnvoyer(event, forcer) {
         var docLie = iaDocActif(questionPropre);
         if (docLie && docLie.texte) {
             var analyseDoc = iaReponseDoc(questionPropre, docLie);
-            // Le document répond vraiment : on répond tout de suite.
-            if (analyseDoc.force === 'fort' && analyseDoc.reponse) {
-                window.__iaDocPret = null;
-                iaRetirerInvitation();
-                iaBulle('assistant', iaCorrigerFrancais(analyseDoc.reponse));
-                iaHistorique.push({ role: 'user', content: texte });
-                iaHistorique.push({ role: 'assistant', content: analyseDoc.reponse });
-                iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
-                return false;
-            }
-            // Sinon le modèle lit le document entier et répond à la question.
+            // Toute question est analysee avant la reponse : le document entier,
+            // les passages qui correspondent et la question partent au modele,
+            // qui relie le document a la question avant de repondre.
             window.__iaDocQuestion = {
                 doc: docLie,
                 question: questionPropre,
                 extraits: iaPassagesPourQuestion(docLie.texte, questionPropre, docLie)
             };
-            window.__iaDocRepli = function () { return iaRepliDoc(questionPropre, docLie); };
+            // Si le modele ne repond pas, la meilleure analyse locale prend le relais.
+            window.__iaDocRepli = function () {
+                if (analyseDoc.force === 'fort' && analyseDoc.reponse) return analyseDoc.reponse;
+                return iaRepliDoc(questionPropre, docLie);
+            };
         }
     }
-    if (!window.__iaDocQuestion && lecture.analyse && lecture.analyse.prioritaire && lecture.analyse.reponse && lecture.intention !== 'creneau' && lecture.intention !== 'exo' && lecture.intention !== 'exercice') {
-        var directe = iaReponseFinale(texte, lecture, '', actionTot);
-        iaBulle('assistant', directe);
-        iaHistorique.push({ role: 'assistant', content: directe });
-        if (iaActionReussie(actionTot) || iaActionReussie(directe)) iaCloreFil();
-        else iaNoterQuestion(directe);
-        iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
-        return false;
-    }
+    // Toute question passe par l'analyse complete avant la reponse : la lecture
+    // de la question part au modele, avec la reponse sure comme repere.
     var bulle = iaBulle('assistant', '', true);
     var bouton = document.getElementById('iaEnvoi');
     iaEnCours = true;
@@ -3979,6 +3974,7 @@ async function iaEnvoyer(event, forcer) {
             return iaActionModele(ligne, texte);
         }).filter(Boolean).join(' ');
         recu = iaReponseFinale(texte, lecture, recu + (extra ? '\n\n' + extra : ''), action);
+        if (window.__iaDocQuestion) iaRetirerInvitation();
         iaHistorique.push({ role: 'assistant', content: recu });
         if (iaActionReussie(action) || iaActionReussie(recu)) iaCloreFil();
         else iaNoterQuestion(recu);

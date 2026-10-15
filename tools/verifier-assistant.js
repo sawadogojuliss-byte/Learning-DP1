@@ -141,11 +141,6 @@ var fautes = sandbox.iaErreursConjugaison('tu va a l ecole');
 ok(fautes.some(function (err) { return err.type === 'conjugaison'; }), 'la conjugaison doit rester vérifiée en interne');
 ok(!sandbox.iaErreursConjugaison('tu vas à l\'école').some(function (err) { return err.type === 'conjugaison'; }), 'une conjugaison juste passe');
 
-if (echecs) {
-    console.error(echecs + ' échec(s)');
-    process.exit(1);
-}
-console.log('assistant: questions analysées, français corrigé');
 
 /* ── Analyse réelle des documents ─────────────────────────────────── */
 var docEssai = {
@@ -186,3 +181,44 @@ var repli = sandbox.iaRepliDoc('Combien de pages ?', docEssai);
 ok(/20\/10\/2026/.test(repli) && /Le document contient/.test(repli), 'le repli doit citer le document : ' + repli);
 ok(typeof sandbox.iaBlocDocQuestion === 'function' && typeof sandbox.iaConsigneDoc === 'function', 'le document doit être transmis au modèle');
 ok(typeof sandbox.iaSyntheseDoc === 'function' && typeof sandbox.iaResumeDocLie === 'function', 'la synthèse du document manque');
+
+/* ── Toute question est analysée avant la réponse ─────────────────── */
+ok(sourceAssistant.indexOf("lecture.analyse.prioritaire && lecture.analyse.reponse && lecture.intention") === -1,
+    'plus de réponse locale servie à la place du modèle');
+ok(sourceAssistant.indexOf("if (analyseDoc.force === 'fort' && analyseDoc.reponse) {") === -1,
+    'le document doit être analysé puis confié au modèle, pas répondre à sa place');
+ok(sourceAssistant.indexOf('else if (analyse && analyse.prioritaire && sure) corps = sure;') === -1,
+    'la réponse du modèle ne doit plus être écrasée par la réponse sûre');
+ok(sourceAssistant.indexOf('if (window.__iaDocQuestion) iaRetirerInvitation();') !== -1,
+    'l\'invitation doit disparaître quand la réponse arrive');
+ok(sourceAssistant.indexOf("if (analyseDoc.force === 'fort' && analyseDoc.reponse) return analyseDoc.reponse;") !== -1,
+    'la meilleure analyse locale doit rester le repli');
+
+/* Le modèle répond avec ses mots quand sa réponse tient debout… */
+var libre = sandbox.iaReponseFinale(
+    "C'est quoi le TOK ?",
+    lecture("C'est quoi le TOK ?"),
+    "Le TOK, c'est la théorie de la connaissance : on y réfléchit à comment on sait ce qu'on sait. Tu le suis cette année ?",
+    ''
+);
+ok(/comment on sait ce qu'on sait/.test(libre), 'la réponse du modèle doit être gardée : ' + libre);
+/* …et la réponse sûre reprend la main quand il esquive ou déballe un horaire. */
+var esquive2 = sandbox.iaReponseFinale(
+    "C'est quoi le CAS ?",
+    lecture("C'est quoi le CAS ?"),
+    "Je n'ai pas cette réponse dans tes données.",
+    ''
+);
+ok(/Créativité/.test(esquive2), 'une esquive reste remplacée par la réponse sûre : ' + esquive2);
+
+/* Le ton : un ami du même âge, jamais un professeur. */
+ok(sourceAssistant.indexOf("importe quelle question") !== -1, 'toute question doit être prise en compte');
+ok(sourceAssistant.indexOf("Tu n\\'es pas un professeur") !== -1, 'le ton ne doit pas etre celui d un professeur');
+ok(sourceAssistant.indexOf("sans jugement") !== -1, 'le ton amical doit rester');
+ok(sourceAssistant.indexOf("montres jamais que tu en sais plus") !== -1, 'l\'assistant ne doit pas paraître plus savant');
+
+if (echecs) {
+    console.error(echecs + ' échec(s)');
+    process.exit(1);
+}
+console.log('assistant: questions analysées, français corrigé (' + echecs + ' échec)');
