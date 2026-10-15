@@ -29,12 +29,25 @@
                 <button type="button" class="focus-glass" onclick="focusRecommencer()" aria-label="Recommencer">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4.5V9h-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </button>
-                <button type="button" class="focus-glass" onclick="focusPleinEcran()" aria-label="Plein écran">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <button type="button" id="focusBtnPip" class="focus-glass" onclick="focusImageDansImage()" aria-label="Image dans l'image" title="Image dans l'image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="11" width="7.5" height="5.2" rx="1" fill="currentColor"/></svg>
                 </button>
             </div>
             <p id="focusAstuce" class="focus-tip" hidden></p>
         </main>
+        <div id="focusPipLocal" class="focus-pip" hidden>
+            <div class="focus-pip-barre">
+                <span>Study Plan IB</span>
+                <button type="button" onclick="focusFermerPip()" aria-label="Fermer l'image dans l'image">×</button>
+            </div>
+            <div class="focus-pip-scene" id="focusPipScene">
+                <p class="focus-pip-temps" id="focusPipTemps">25:00</p>
+                <button type="button" class="focus-pip-play" onclick="focusBasculer()" aria-label="Démarrer">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+                </button>
+                <span class="focus-pip-points" aria-hidden="true"><i></i><i></i><i></i></span>
+            </div>
+        </div>
         <div id="focusFonds" class="focus-fonds" hidden></div>
         <aside id="focusTaches" class="focus-panneau focus-taches" hidden>
             <div class="focus-taches-haut">

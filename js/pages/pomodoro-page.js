@@ -39,6 +39,7 @@ var focusEtat = {
 var focusTaches = [];
 var focusTimer = null;
 var focusAudio = null;
+var focusPip = null;
 var focusBruit = null;
 var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Study Plan IB';
 var focusPret = false;
@@ -274,6 +275,7 @@ function focusPeindre() {
     if (ampoule) ampoule.classList.toggle('is-on', !!focusEtat.astuce);
     focusPeindreFonds();
     focusTitre();
+    focusPipMaj();
 }
 
 function focusPeindreFonds() {
@@ -447,11 +449,106 @@ function focusMemoriserObjectif() {
 function focusMaison() {
     focusSortirPleinEcran();
     focusArreterSon();
+    focusFermerPip();
     focusFermer('focusTaches');
     focusFermer('focusReglages');
     focusFermer('focusFonds');
     focusFermer('focusSons');
     if (typeof navigateTo === 'function') navigateTo('planning');
+}
+
+function focusFondAbsolu() {
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    var src = fond && fond.src ? fond.src : '';
+    try { return new URL(src, location.href).href; } catch (e) { return src; }
+}
+
+function focusPipHtml() {
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Study Plan IB</title><style>' +
+        'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;}' +
+        '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#064e3b center/cover no-repeat;}' +
+        '.time{margin:0;font-size:4.4rem;font-weight:800;letter-spacing:-0.045em;line-height:.9;text-shadow:0 2px 16px rgba(0,0,0,.45);}' +
+        'button{margin-top:.7rem;width:2.8rem;height:2.4rem;border-radius:.7rem;border:1px solid rgba(255,255,255,.28);background:rgba(8,20,16,.4);color:#fff;cursor:pointer;}' +
+        '.dots{position:absolute;right:.8rem;bottom:.65rem;display:flex;gap:.32rem;}' +
+        '.dots i{width:.38rem;height:.38rem;border-radius:50%;background:rgba(255,255,255,.8);display:block;}' +
+        '</style></head><body><div class="scene" id="pipScene"><p class="time" id="pipTime">25:00</p>' +
+        '<button type="button" id="pipPlay" aria-label="Démarrer">▶</button>' +
+        '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div></body></html>';
+}
+
+function focusPipMaj() {
+    var temps = focusTexte(focusEtat.restant);
+    var fond = 'url("' + focusFondAbsolu() + '")';
+    var localTemps = document.getElementById('focusPipTemps');
+    var localScene = document.getElementById('focusPipScene');
+    if (localTemps) localTemps.textContent = temps;
+    if (localScene) localScene.style.backgroundImage = fond;
+    if (!focusPip || focusPip.closed) return;
+    try {
+        var doc = focusPip.document;
+        var el = doc.getElementById('pipTime');
+        var scene = doc.getElementById('pipScene');
+        var play = doc.getElementById('pipPlay');
+        if (el) el.textContent = temps;
+        if (scene) scene.style.backgroundImage = fond;
+        if (play) {
+            play.textContent = focusEtat.running ? '❚❚' : '▶';
+            play.setAttribute('aria-label', focusEtat.running ? 'Pause' : 'Démarrer');
+        }
+    } catch (e) {}
+}
+
+function focusPeindrePipBouton() {
+    var bouton = document.getElementById('focusBtnPip');
+    var ouvert = (focusPip && !focusPip.closed) || (function () {
+        var local = document.getElementById('focusPipLocal');
+        return local && !local.hidden;
+    })();
+    if (bouton) bouton.classList.toggle('is-on', !!ouvert);
+}
+
+function focusFermerPip() {
+    var local = document.getElementById('focusPipLocal');
+    if (local) local.hidden = true;
+    if (focusPip && !focusPip.closed) {
+        try { focusPip.close(); } catch (e) {}
+    }
+    focusPip = null;
+    focusPeindrePipBouton();
+}
+
+function focusOuvrirPipLocal() {
+    var local = document.getElementById('focusPipLocal');
+    if (!local) return;
+    local.hidden = false;
+    focusPipMaj();
+    focusPeindrePipBouton();
+}
+
+function focusImageDansImage() {
+    var local = document.getElementById('focusPipLocal');
+    if ((focusPip && !focusPip.closed) || (local && !local.hidden)) {
+        focusFermerPip();
+        return;
+    }
+    if (window.documentPictureInPicture && documentPictureInPicture.requestWindow) {
+        documentPictureInPicture.requestWindow({ width: 520, height: 300 }).then(function (win) {
+            focusPip = win;
+            win.document.open();
+            win.document.write(focusPipHtml());
+            win.document.close();
+            var play = win.document.getElementById('pipPlay');
+            if (play) play.onclick = function () { focusBasculer(); };
+            win.addEventListener('pagehide', function () {
+                focusPip = null;
+                focusPeindrePipBouton();
+            });
+            focusPipMaj();
+            focusPeindrePipBouton();
+        }).catch(function () { focusOuvrirPipLocal(); });
+        return;
+    }
+    focusOuvrirPipLocal();
 }
 
 function focusPleinEcran() {
@@ -862,6 +959,25 @@ function focusBrancher() {
         champ.__focus = true;
         champ.addEventListener('change', focusMemoriserObjectif);
         champ.addEventListener('blur', focusMemoriserObjectif);
+    }
+    if (!window.__focusCopie) {
+        window.__focusCopie = true;
+        document.addEventListener('copy', function (event) {
+            var panel = document.getElementById('panelPomodoro');
+            if (panel && panel.classList.contains('active')) event.preventDefault();
+        });
+        document.addEventListener('cut', function (event) {
+            var panel = document.getElementById('panelPomodoro');
+            if (panel && panel.classList.contains('active')) event.preventDefault();
+        });
+        document.addEventListener('selectstart', function (event) {
+            var panel = document.getElementById('panelPomodoro');
+            if (panel && panel.classList.contains('active')) event.preventDefault();
+        });
+        document.addEventListener('contextmenu', function (event) {
+            var panel = document.getElementById('panelPomodoro');
+            if (panel && panel.classList.contains('active')) event.preventDefault();
+        });
     }
     if (!window.__focusTouches) {
         window.__focusTouches = true;

@@ -535,10 +535,16 @@
 }
 
 /* ─── POMODORO ─── */
-#panelPomodoro.app-panel {
-    overflow: hidden;
-    background: transparent;
+#panelPomodoro, #panelPomodoro * {
+    -webkit-user-select: none;
+    user-select: none;
+    caret-color: transparent;
 }
+#panelPomodoro input, #panelPomodoro textarea {
+    caret-color: transparent;
+    cursor: default;
+}
+#panelPomodoro.app-panel { overflow: hidden; background: transparent; }
 #panelPomodoro.app-panel.active { display: block; }
 .focus-page {
     position: relative;
@@ -691,7 +697,77 @@
     backdrop-filter: blur(8px);
     transition: background 0.15s ease, border-color 0.15s ease;
 }
-.focus-tip {
+.focus-pip {
+    position: fixed;
+    z-index: 90;
+    right: 1.2rem;
+    bottom: 5.2rem;
+    width: min(28rem, calc(100vw - 2rem));
+    height: 16rem;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+    background: #111;
+    color: #fff;
+}
+.focus-pip[hidden] { display: none; }
+.focus-pip-barre {
+    height: 1.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.45rem 0 0.7rem;
+    background: #2a2d31;
+    font-size: 0.72rem;
+}
+.focus-pip-barre button {
+    border: none;
+    background: none;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+}
+.focus-pip-scene {
+    position: relative;
+    height: calc(100% - 1.7rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #064e3b center / cover no-repeat;
+}
+.focus-pip-temps {
+    margin: 0;
+    font-size: clamp(3rem, 8vw, 4.4rem);
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    line-height: 0.9;
+    text-shadow: 0 2px 16px rgba(0,0,0,0.45);
+}
+.focus-pip-play {
+    margin-top: 0.7rem;
+    width: 2.8rem;
+    height: 2.4rem;
+    border-radius: 0.7rem;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(8, 20, 16, 0.4);
+    color: #fff;
+    cursor: pointer;
+}
+.focus-pip-points {
+    position: absolute;
+    right: 0.8rem;
+    bottom: 0.65rem;
+    display: flex;
+    gap: 0.32rem;
+}
+.focus-pip-points i {
+    width: 0.38rem;
+    height: 0.38rem;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.8);
+}
     margin: 0.2rem 0 0;
     max-width: 28rem;
     font-size: 0.92rem;
