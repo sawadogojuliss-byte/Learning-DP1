@@ -592,7 +592,7 @@ function focusBasculerSons() {
     var panneau = document.getElementById('focusSons');
     if (!panneau) return;
     panneau.hidden = !panneau.hidden;
-    if (!panneau.hidden) focusOngletSon('sons');
+    if (!panneau.hidden) focusPeindreSons();
     focusPeindreSonBouton();
 }
 
@@ -600,24 +600,8 @@ function focusFermerSonsSiFond(event) {
     if (event && event.target && event.target.id === 'focusSons') focusFermer('focusSons');
 }
 
-function focusOngletSon(nom) {
-    var sons = document.getElementById('focusSonsGrille');
-    var listes = document.getElementById('focusSonsListes');
-    var filtre = document.getElementById('focusFiltreSon');
-    if (sons) sons.hidden = nom !== 'sons';
-    if (listes) listes.hidden = nom !== 'listes';
-    if (filtre) filtre.hidden = nom !== 'sons';
-    var onglets = { sons: 'focusOngletSons', listes: 'focusOngletListes' };
-    Object.keys(onglets).forEach(function (cle) {
-        var btn = document.getElementById(onglets[cle]);
-        if (btn) btn.classList.toggle('is-on', cle === nom);
-    });
-    if (nom === 'listes') focusPeindreListes();
-    else focusPeindreSons();
-}
-
 function focusFiltrerSons() {
-    focusOngletSon('sons');
+    focusPeindreSons();
 }
 
 function focusPeindreSons() {

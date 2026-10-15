@@ -50,7 +50,8 @@ var memoire = lire('js/memoire.js');
 ok(memoire.indexOf('__memoirePomodoroEnAttente') !== -1, 'un rafraîchissement sur Pomodoro doit y rester');
 ok(lire('js/pages/pomodoro-page.js').indexOf('function focusReprendreApresRafraichissement') !== -1, 'la reprise Pomodoro manque');
 ok(lire('pages/pomodoro.html').indexOf('Ma musique') === -1, 'Ma musique doit être retirée');
-ok(lire('pages/pomodoro.html').indexOf('Ma playlist') !== -1, 'Ma playlist manque');
+ok(lire('pages/pomodoro.html').indexOf('Ma playlist') === -1, 'la playlist ne doit plus apparaître');
+ok(lire('css/pages/planning-panels.css').indexOf('#7c5cff') === -1, 'l ampoule doit être verte');
 ['audio/pomodoro/pluie.wav', 'audio/pomodoro/ocean.wav', 'audio/pomodoro/cafe.wav', 'audio/pomodoro/beta.wav', 'audio/pomodoro/gamma.wav'].forEach(function (src) {
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
 });
