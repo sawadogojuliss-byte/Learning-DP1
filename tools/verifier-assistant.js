@@ -146,3 +146,43 @@ if (echecs) {
     process.exit(1);
 }
 console.log('assistant: questions analysées, français corrigé');
+
+/* ── Analyse réelle des documents ─────────────────────────────────── */
+var docEssai = {
+    nom: 'semaine-12.pdf',
+    quand: '2026-10-15',
+    texte: [
+        '— page 1 —',
+        'Lundi | 16h25-17h25 | Révisions Mathématiques | Chapitre 4 : suites',
+        'Consigne du professeur : apporter la blouse et le carnet pour le TP.',
+        'À rendre : DM de Mathématiques pour le 20/10/2026 (exercices 12 à 18)',
+        '— page 2 —',
+        'Évaluation d Anglais prévue le 27/10/2026 : commentaire de texte.',
+        'La bibliothèque du campus ferme à 18h00 le vendredi.'
+    ].join('\n')
+};
+sandbox.__doc = docEssai;
+sandbox.iaDocs = function () { return [sandbox.__doc]; };
+vm.runInContext('iaDocs = function () { return [__doc]; };', sandbox);
+
+ok(typeof sandbox.iaIndexDoc === 'function', 'l\'index du document manque');
+var index = sandbox.iaIndexDoc(docEssai);
+ok(index && index.passages.length >= 5, 'le document doit être découpé en passages');
+ok(index.dates.indexOf('20/10/2026') !== -1 && index.dates.indexOf('27/10/2026') !== -1, 'les dates du document doivent être repérées');
+ok(index.heures.indexOf('18h00') !== -1, 'les heures du document doivent être repérées');
+ok(index.heures.indexOf('4:') === -1, 'un numéro de chapitre ne doit pas passer pour une heure');
+ok(index.jours.indexOf('lundi') !== -1, 'les jours écrits doivent être repérés');
+
+var rendu = sandbox.iaReponseDoc('Qu\'est-ce que je dois rendre en maths ?', docEssai);
+ok(rendu.force === 'fort' && /20\/10\/2026/.test(rendu.reponse), 'la question « rendre en maths » doit trouver la ligne du DM : ' + rendu.reponse);
+var anglais = sandbox.iaReponseDoc('Quand est l\'évaluation d\'anglais ?', docEssai);
+ok(/27\/10\/2026/.test(anglais.reponse), '« évaluation » doit être relié au mot du document : ' + anglais.reponse);
+var biblio = sandbox.iaReponseDoc('À quelle heure ferme la bibliothèque ?', docEssai);
+ok(/18h00/.test(biblio.reponse) && /page 2/.test(biblio.reponse), 'la page doit être citée : ' + biblio.reponse);
+var absent = sandbox.iaReponseDoc('Parle-moi de la biologie cellulaire', docEssai);
+ok(absent.force !== 'fort', 'une question hors document doit passer au modèle, pas un refus sec');
+ok(!/je ne trouve rien/i.test(absent.reponse), 'plus de « je ne trouve rien » automatique');
+var repli = sandbox.iaRepliDoc('Combien de pages ?', docEssai);
+ok(/20\/10\/2026/.test(repli) && /Le document contient/.test(repli), 'le repli doit citer le document : ' + repli);
+ok(typeof sandbox.iaBlocDocQuestion === 'function' && typeof sandbox.iaConsigneDoc === 'function', 'le document doit être transmis au modèle');
+ok(typeof sandbox.iaSyntheseDoc === 'function' && typeof sandbox.iaResumeDocLie === 'function', 'la synthèse du document manque');

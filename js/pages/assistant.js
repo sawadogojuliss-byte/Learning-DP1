@@ -1197,23 +1197,74 @@ function iaFiltreCreneaux(creneaux, n) {
     return filtres.length ? filtres : creneaux.filter(function (c) { return jour < 0 || c.jour === jour; });
 }
 
-// Mots vides : ils ne servent pas à retrouver un passage dans le document.
+// ── Mots vides : ils ne servent pas à retrouver un passage ─────────────
 var IA_MOTS_VIDES = ('le la les un une des de du au aux et ou mais donc or ni car que qui quoi dont ou ' +
     'je tu il elle on nous vous ils elles me te se ce cet cette ces mon ma mes ton ta tes son sa ses ' +
     'pour par avec sans sur sous dans entre vers chez est sont etait ete etre avoir ai as a ont avais ' +
-    'quel quelle quels quelles comment pourquoi quand combien combien est-ce es ceci cela ca il-y-a ' +
+    'quel quelle quels quelles comment pourquoi quand combien est-ce es ceci cela ca il-y-a ' +
     'peux peut peut-on dois doit faut faire fais fait dis moi vous tu nous svp stp merci beaucoup ' +
-    'document pdf fichier texte').split(/[\s-]+/);
+    'document pdf fichier texte dedans la-dedans').split(/[\s-]+/);
+
+// ── Synonymes du vocabulaire scolaire : la question peut ne pas reprendre
+//    les mots exacts du document et être comprise quand même. ──────────
+var IA_SYNONYMES = {
+    controle: ['evaluation', 'examen', 'test', 'interrogation', 'devoir', 'ds', 'assessment', 'epreuve'],
+    evaluation: ['controle', 'examen', 'test', 'interrogation', 'assessment', 'epreuve'],
+    examen: ['controle', 'evaluation', 'test', 'epreuve', 'exam'],
+    devoir: ['dm', 'rendre', 'rendu', 'travail', 'maison', 'homework', 'essai', 'essay'],
+    dm: ['devoir', 'rendre', 'rendu', 'maison', 'travail'],
+    rendre: ['devoir', 'dm', 'rendu', 'deadline', 'date', 'limite', 'deposer', 'envoyer'],
+    echeance: ['deadline', 'date', 'limite', 'rendre', 'rendu', 'deposer'],
+    deadline: ['echeance', 'date', 'limite', 'rendre', 'rendu'],
+    note: ['resultat', 'points', 'bareme', 'notation', 'grade'],
+    cours: ['lecon', 'classe', 'matiere', 'seance', 'chap'],
+    matiere: ['cours', 'sujet', 'discipline'],
+    horaire: ['heure', 'emploi', 'planning', 'creneau', 'debut', 'fin', 'moment'],
+    heure: ['horaire', 'moment', 'creneau', 'debut', 'fin'],
+    planning: ['emploi', 'horaire', 'semaine', 'creneau', 'programme'],
+    revision: ['reviser', 'revision', 'etudier', 'etude', 'travail'],
+    exercice: ['exercices', 'probleme', 'activite', 'questions', 'serie'],
+    chapitre: ['chap', 'partie', 'unite', 'module', 'section'],
+    sujet: ['theme', 'question', 'problematique'],
+    bibliotheque: ['biblio', 'salle', 'etude'],
+    professeur: ['prof', 'enseignant', 'teacher', 'monsieur', 'madame'],
+    livre: ['manuel', 'ouvrage', 'roman', 'texte', 'lecture'],
+    question: ['sujet', 'exercice', 'probleme', 'demande'],
+    semaine: ['sem', 'jours'],
+    rendre_le: ['rendre', 'date', 'echeance', 'deadline', 'limite'],
+    ou: ['endroit', 'lieu', 'salle'],
+    salle: ['lieu', 'endroit', 'classe']
+};
+
+var IA_SUFFIXES = ['issements', 'issement', 'ations', 'ation', 'ements', 'ement', 'iques', 'ique',
+    'euses', 'euse', 'aux', 'es', 's', 'e', 'ent', 'ai', 'as', 'ons', 'ez', 'er', 'ee', 'ees'];
 
 function iaRacine(mot) {
     var m = String(mot || '');
-    if (m.length > 4) m = m.replace(/(ements|ement|ations|ation|iques|ique|euses|euse|aux|es|s)$/, '');
-    return m;
+    if (m.length <= 4) return m;
+    var i, racine = m;
+    for (i = 0; i < IA_SUFFIXES.length; i++) {
+        var suffixe = IA_SUFFIXES[i];
+        if (racine.length - suffixe.length >= 4 && racine.slice(-suffixe.length) === suffixe) {
+            racine = racine.slice(0, -suffixe.length);
+            break;
+        }
+    }
+    return racine;
+}
+
+// Découpe en mots : les apostrophes d'élision (l', d', qu') ne collent plus au mot.
+function iaMots(texte) {
+    return iaNormaliser(texte || '')
+        .replace(/[\u2018\u2019\u02bc']/g, ' ')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(function (mot) { return mot.length >= 3; });
 }
 
 function iaMotsQuestion(question) {
     var vus = {};
-    return iaNormaliser(question).replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(function (mot) {
+    return iaMots(question).filter(function (mot) {
         if (mot.length < 3) return false;
         if (IA_MOTS_VIDES.indexOf(mot) !== -1) return false;
         var racine = iaRacine(mot);
@@ -1223,7 +1274,29 @@ function iaMotsQuestion(question) {
     });
 }
 
-// Découpe le document en passages, avec leur page, pour pouvoir les citer.
+// Le mot de la question, ses racines et ses synonymes (tous normalisés).
+function iaTermesRecherche(question) {
+    var termes = [];
+    var vus = {};
+    iaMotsQuestion(question).forEach(function (mot) {
+        var familles = [mot];
+        if (IA_SYNONYMES[mot]) familles = familles.concat(IA_SYNONYMES[mot]);
+        Object.keys(IA_SYNONYMES).forEach(function (cle) {
+            if (IA_SYNONYMES[cle].indexOf(mot) !== -1 && familles.indexOf(cle) === -1) familles.push(cle);
+        });
+        familles.forEach(function (forme, index) {
+            var racine = iaRacine(iaNormaliser(forme).replace(/[^a-z0-9]/g, ''));
+            if (!racine || racine.length < 3) return;
+            var cle = racine + '|' + (index === 0 ? 'exact' : 'proche');
+            if (vus[cle]) return;
+            vus[cle] = true;
+            termes.push({ racine: racine, mot: mot, poids: index === 0 ? 1.6 : 0.75 });
+        });
+    });
+    return termes;
+}
+
+// ── Découpe le document en passages numérotés par page ────────────────
 function iaPassagesDoc(texte) {
     var lignes = String(texte || '').split('\n');
     var passages = [];
@@ -1233,45 +1306,216 @@ function iaPassagesDoc(texte) {
         var entete = propre.match(/^— page (\d+) —$/);
         if (entete) { page = parseInt(entete[1], 10); return; }
         if (propre.length < 3) return;
-        var morceaux = propre.length > 220 ? propre.split(/(?<=[.!?;])\s+/) : [propre];
+        var morceaux = propre.length > 240 ? propre.split(/(?<=[.!?;])\s+|\s\|\s/) : [propre];
         morceaux.forEach(function (morceau) {
             var texteMorceau = String(morceau || '').trim();
             if (texteMorceau.length < 3) return;
-            passages.push({ page: page, texte: texteMorceau, cle: iaNormaliser(texteMorceau) });
+            passages.push({ page: page, ordre: passages.length, texte: texteMorceau, cle: iaNormaliser(texteMorceau) });
         });
     });
     return passages;
 }
 
-// Relie la question au document : passages qui répondent vraiment à la question.
-function iaPassagesPourQuestion(texte, question) {
-    var passages = iaPassagesDoc(texte);
-    var mots = iaMotsQuestion(question);
-    var n = iaNormaliser(question);
-    var veutDate = /(quand|date|echeance|deadline|rendre|rendu|examen|controle|due)/.test(n);
-    var veutHeure = /(heure|horaire|debut|fin|commence|termine|creneau|planning|jour)/.test(n);
-    var veutListe = /(liste|quels|quelles|combien|tous|toutes|qu.est.ce qu.il y a|sujets?|matieres?|chapitres?)/.test(n);
+// ── Index du document : fréquences, fréquence documentaire, repères ───
+function iaIndexDoc(doc) {
+    if (!doc || !doc.texte) return null;
+    var memoire = window.__iaIndexDocs || (window.__iaIndexDocs = {});
+    var signature = String(doc.nom) + '#' + String(doc.texte).length + '#' + String(doc.quand || '');
+    if (memoire[signature]) return memoire[signature];
+
+    var passages = iaPassagesDoc(doc.texte);
+    var frequence = {};
     passages.forEach(function (passage) {
-        var score = 0;
-        var cle = passage.cle;
+        var mots = iaMots(passage.cle);
+        var vus = {};
+        passage.termes = {};
         mots.forEach(function (mot) {
             var racine = iaRacine(mot);
-            if (!racine) return;
-            if (cle.indexOf(racine) !== -1) score += mot.length >= 6 ? 3 : 2;
+            if (!racine || racine.length < 3) return;
+            passage.termes[racine] = (passage.termes[racine] || 0) + 1;
+            if (vus[racine]) return;
+            vus[racine] = true;
+            frequence[racine] = (frequence[racine] || 0) + 1;
         });
-        if (veutDate && /\b(\d{1,2})[\/.\-](\d{1,2})\b|\b\d{1,2}\s*(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|janv|fevr|sept|oct|nov|dec)\b|\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/.test(cle)) score += 2;
-        if (veutHeure && /\b\d{1,2}\s*(h|:)\s*\d{0,2}\b/.test(cle)) score += 2;
-        if (veutListe && (cle.indexOf('|') !== -1 || /^\s*[-•]/.test(passage.texte))) score += 1;
-        if (mots.length && score === 0) {
-            // Un mot de la question apparaît en entier dans le passage
-            var touche = mots.some(function (mot) { return mot.length >= 5 && cle.indexOf(mot) !== -1; });
-            if (touche) score += 1;
-        }
-        passage.score = score;
     });
+
+    // Repères utiles : dates, heures, jours, majuscules répétées (matières)
+    var dates = [], heures = [], jours = [], titres = {};
+    var nomsJours = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+    passages.forEach(function (passage) {
+        var bas = passage.cle;
+        (passage.texte.match(/\b\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b/g) || []).forEach(function (d) {
+            if (dates.indexOf(d) === -1) dates.push(d);
+        });
+        (passage.texte.match(/\b\d{1,2}\s*h\s*\d{0,2}\b|\b\d{1,2}:\d{2}\b/g) || []).forEach(function (h) {
+            var propre = h.replace(/\s+/g, '');
+            if (heures.indexOf(propre) === -1) heures.push(propre);
+        });
+        nomsJours.forEach(function (jour) {
+            if (bas.indexOf(jour) !== -1 && jours.indexOf(jour) === -1) jours.push(jour);
+        });
+        (passage.texte.match(/\b[A-ZÀ-Ý][a-zà-ÿ]{2,}\b/g) || []).forEach(function (mot) {
+            titres[mot] = (titres[mot] || 0) + 1;
+        });
+    });
+    var themes = Object.keys(titres)
+        .filter(function (mot) { return titres[mot] >= 2 && !/^(page|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)$/i.test(mot); })
+        .sort(function (a, b) { return titres[b] - titres[a]; })
+        .slice(0, 12);
+
+    var index = {
+        nom: doc.nom,
+        passages: passages,
+        frequence: frequence,
+        total: passages.length,
+        dates: dates,
+        heures: heures,
+        jours: jours,
+        themes: themes,
+        sujets: iaComprendrePdf(doc.nom, doc.texte).sujets || []
+    };
+    memoire[signature] = index;
+    return index;
+}
+
+// ── Pertinence : un passage qui répond vraiment à la question ─────────
+function iaPassagesPourQuestion(texte, question, doc) {
+    var index = doc ? iaIndexDoc(doc) : null;
+    var passages = index ? index.passages : iaPassagesDoc(texte);
+    var total = index ? index.total : passages.length;
+    var frequence = index ? index.frequence : null;
+    var termes = iaTermesRecherche(question);
+    var n = iaNormaliser(question);
+    var veutDate = /(quand|date|echeance|deadline|rendre|rendu|examen|controle|due|deposer|limite)/.test(n);
+    var veutHeure = /(heure|horaire|debut|fin|commence|termine|creneau|planning|moment)/.test(n);
+    var veutListe = /(liste|quels|quelles|combien|tous|toutes|sujets?|matieres?|chapitres?|contenu|sommaire)/.test(n);
+    var veutLieu = /(ou |salle|lieu|endroit|bibliotheque|batiment|campus)/.test(n);
+
+    passages.forEach(function (passage) {
+        var score = 0;
+        var touches = [];
+        var touchesTermes = 0;
+        var termesPassage = passage.termes || {};
+        termes.forEach(function (terme) {
+            var tf = termesPassage[terme.racine] || 0;
+            if (!tf) {
+                // Tolérance : le passage contient un mot qui commence par la racine
+                var trouve = Object.keys(termesPassage).some(function (racine) {
+                    return racine.length >= 5 && (racine.indexOf(terme.racine) === 0 || terme.racine.indexOf(racine) === 0);
+                });
+                if (!trouve) return;
+                tf = 1;
+            }
+            var df = frequence ? (frequence[terme.racine] || 1) : 1;
+            var idf = Math.log(1 + (total || 1) / (1 + df)) + 0.35;
+            score += terme.poids * idf * Math.min(2.5, 1 + Math.log(tf));
+            touchesTermes += 1;
+            touches.push(terme.mot);
+        });
+        if (veutDate && /\b\d{1,2}[\/.\-]\d{1,2}\b|\b\d{1,2}\s*(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|janv|fevr|sept|oct|nov|dec)\b|\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/.test(passage.cle)) score += 1.4;
+        if (veutHeure && /\b\d{1,2}\s*h\s*\d{0,2}\b|\b\d{1,2}:\d{2}\b/.test(passage.cle)) score += 1.4;
+        if (veutListe && (passage.cle.indexOf('|') !== -1 || /^\s*[-•]/.test(passage.texte))) score += 0.7;
+        if (veutLieu && /(salle|lieu|bibliotheque|campus|batiment|amphi|labo)/.test(passage.cle)) score += 1.1;
+        passage.score = score;
+        passage.touchesTermes = touchesTermes;
+        passage.touches = touches;
+    });
+
     var gardes = passages.filter(function (passage) { return passage.score > 0; });
-    gardes.sort(function (a, b) { return b.score - a.score; });
+    gardes.sort(function (a, b) {
+        if (Math.abs(b.score - a.score) > 0.001) return b.score - a.score;
+        return a.ordre - b.ordre;
+    });
     return gardes;
+}
+
+// ── Ce que le document contient, en clair ────────────────────────────
+function iaCarteDoc(doc) {
+    var index = iaIndexDoc(doc);
+    if (!index) return '';
+    var bouts = [];
+    if (index.sujets.length) bouts.push('matières : ' + index.sujets.join(', '));
+    if (index.themes.length) bouts.push('thèmes : ' + index.themes.slice(0, 8).join(', '));
+    if (index.dates.length) bouts.push('dates : ' + index.dates.slice(0, 6).join(', '));
+    if (index.heures.length) bouts.push('heures : ' + index.heures.slice(0, 8).join(', '));
+    if (index.jours.length) bouts.push('jours cités : ' + index.jours.join(', '));
+    bouts.push(index.total + ' passages sur ' + (index.passages.length ? (Math.max.apply(null, index.passages.map(function (p) { return p.page || 1; }))) : 1) + ' page(s)');
+    return bouts.join(' · ');
+}
+
+// ── Réponse locale quand le document répond vraiment ─────────────────
+function iaReponseDoc(question, doc) {
+    if (!doc || !doc.texte) return { reponse: '', force: 'aucun' };
+    var n = iaNormaliser(question);
+    if (/(resume|resumer|synthese|de quoi ca parle|de quoi parle|presente le|explique le document|explique ce pdf|explique ce document|analyse le)/.test(n)) {
+        return { reponse: iaResumeDocLie(doc), force: 'fort' };
+    }
+    var passages = iaPassagesPourQuestion(doc.texte, question, doc);
+    if (!passages.length) return { reponse: '', force: 'aucun' };
+
+    var meilleur = passages[0];
+    var seuil = Math.max(1.6, meilleur.score * 0.45);
+    var autres = passages.slice(1).filter(function (passage) { return passage.score >= seuil; }).slice(0, 3);
+
+    // Un seul passage faiblement lié : le modèle lit le document et répond mieux.
+    var nbMots = iaMotsQuestion(question).length;
+    var force = (meilleur.touchesTermes >= 1 && (meilleur.score >= 2.2 || nbMots <= 2 || autres.length)) ? 'fort' : 'faible';
+    if (force === 'faible') return { reponse: '', force: force };
+
+    var lignes = [];
+    var vusMots = {};
+    var mots = (meilleur.touches || []).filter(function (mot) {
+        var racine = iaRacine(String(mot || ''));
+        if (!racine || vusMots[racine]) return false;
+        vusMots[racine] = true;
+        return true;
+    }).slice(0, 3);
+    lignes.push('Dans « ' + doc.nom + ' »' + (mots.length ? ', à propos de ' + mots.join(', ') : '')
+        + (meilleur.page ? ' (page ' + meilleur.page + ')' : '') + ' :');
+    lignes.push('« ' + meilleur.texte.slice(0, 400) + ' »');
+    if (autres.length) {
+        lignes.push('Et aussi dans le document :');
+        autres.forEach(function (passage) {
+            lignes.push('• ' + passage.texte.slice(0, 240) + (passage.page ? ' (page ' + passage.page + ')' : ''));
+        });
+    }
+    if (/(quand|date|echeance|deadline|rendre|examen|controle|deposer|limite)/.test(n)) {
+        var dates = passages.map(function (passage) {
+            var m = passage.texte.match(/\b\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b/);
+            return m ? m[0] : '';
+        }).filter(Boolean);
+        if (dates.length) lignes.push('Dates écrites dans le document : ' + dates.slice(0, 5).join(', ') + '.');
+    }
+    if (/(heure|horaire|debut|fin|moment)/.test(n)) {
+        var heures = [];
+        passages.forEach(function (passage) {
+            (passage.texte.match(/\b\d{1,2}\s*h\s*\d{0,2}\b|\b\d{1,2}:\d{2}\b/g) || []).forEach(function (h) {
+                var propre = h.replace(/\s+/g, '');
+                if (heures.indexOf(propre) === -1) heures.push(propre);
+            });
+        });
+        if (heures.length) lignes.push('Heures écrites dans le document : ' + heures.slice(0, 6).join(', ') + '.');
+    }
+    return { reponse: lignes.join('\n'), force: force };
+}
+
+// ── Repli quand le modèle n'est pas joignable : on montre le meilleur
+//    du document, jamais un « je ne trouve rien » sec. ────────────────
+function iaRepliDoc(question, doc) {
+    if (!doc || !doc.texte) return '';
+    var passages = iaPassagesPourQuestion(doc.texte, question, doc).slice(0, 3);
+    var lignes = ['Voici ce que je retrouve dans « ' + doc.nom + ' » :'];
+    if (passages.length) {
+        passages.forEach(function (passage) {
+            lignes.push('• ' + passage.texte.slice(0, 260) + (passage.page ? ' (page ' + passage.page + ')' : ''));
+        });
+    } else {
+        lignes.push('Aucun passage ne correspond mot pour mot à ta question.');
+    }
+    var carte = iaCarteDoc(doc);
+    if (carte) lignes.push('Le document contient : ' + carte + '.');
+    lignes.push('Précise ce que tu cherches, ou demande-moi le résumé du document.');
+    return lignes.join('\n');
 }
 
 function iaResumeDocLie(doc) {
@@ -1291,57 +1535,43 @@ function iaResumeDocLie(doc) {
         });
     }
     if (comp.echeances.length) {
-        lignes.push('Échéances : ' + comp.echeances.slice(0, 6).map(function (e) {
+        lignes.push('Échéances : ' + comp.echeances.slice(0, 8).map(function (e) {
             return e.sujet + ' pour le ' + e.deadline;
         }).join(' · ') + '.');
     }
     if (!comp.sujets.length && !comp.creneaux.length && !comp.echeances.length) {
-        lignes.push('Extrait : ' + iaExtraitLisible(doc.texte, 6));
+        lignes.push(iaExtraitLisible(doc.texte, 8));
     }
-    lignes.push('Si tu veux un point précis, demande-le : je te sors le passage exact du document.');
+    var carte = iaCarteDoc(doc);
+    if (carte) lignes.push('Repères du document : ' + carte + '.');
+    lignes.push('Si tu veux un point précis, demande-le : je te sors le passage exact.');
     return lignes.join('\n');
 }
 
-// Réponse construite en reliant la question posée et le document envoyé.
-function iaReponseLieeAuDoc(question, doc) {
+// ── Lecture du document par le modèle, pour les questions fines ──────
+function iaBlocDocQuestion() {
+    var info = window.__iaDocQuestion;
+    if (!info) return '';
+    var doc = info.doc;
     if (!doc || !doc.texte) return '';
-    var n = iaNormaliser(question);
-    if (/(resume|resumer|synthese|de quoi ca parle|de quoi parle|presente le|explique le document|explique ce pdf|explique ce document)/.test(n)) {
-        return iaResumeDocLie(doc);
-    }
-    var passages = iaPassagesPourQuestion(doc.texte, question);
-    if (!passages.length) {
-        var sujets = iaComprendrePdf(doc.nom, doc.texte).sujets;
-        return 'Dans « ' + doc.nom + ' », je ne trouve rien qui réponde à : « ' + String(question).trim() + ' ».\n'
-            + (sujets.length ? 'Ce que le document contient : ' + sujets.join(', ') + '.\n' : '')
-            + 'Reformule avec un mot du document (une matière, un jour, une date), ou demande-moi le résumé du fichier.';
-    }
-    var meilleur = passages[0];
-    // On ne garde que les passages vraiment liés à la question.
-    var seuil = Math.max(2, Math.ceil(meilleur.score / 2));
-    var autres = passages.slice(1).filter(function (passage) { return passage.score >= seuil; }).slice(0, 3);
-    var lignes = [];
-    var motsVus = iaMotsQuestion(question).filter(function (mot) {
-        return meilleur.cle.indexOf(iaRacine(mot)) !== -1;
-    });
-    lignes.push('Dans « ' + doc.nom + ' »' + (motsVus.length ? ', à propos de ' + motsVus.slice(0, 3).join(', ') : '') + (meilleur.page ? ' (page ' + meilleur.page + ')' : '') + ' :');
-    lignes.push('« ' + meilleur.texte.slice(0, 320) + ' »');
-    if (autres.length) {
-        lignes.push('Et aussi dans le document :');
-        autres.forEach(function (passage) {
-            lignes.push('• ' + passage.texte.slice(0, 220) + (passage.page ? ' (page ' + passage.page + ')' : ''));
-        });
-    }
-    var quand = /(quand|date|echeance|deadline|rendre|examen|controle)/.test(n);
-    if (quand) {
-        var dates = passages.map(function (p) {
-            var m = p.texte.match(/\b\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b/);
-            return m ? m[0] : '';
-        }).filter(Boolean);
-        if (dates.length) lignes.push('Dates écrites dans le document : ' + dates.slice(0, 5).join(', ') + '.');
-    }
-    lignes.push('Dis-moi ce que tu veux faire de ce passage : je peux le placer dans ton planning, ou te le reformuler plus simplement.');
-    return lignes.join('\n');
+    var extraits = (info.extraits || []).slice(0, 8).map(function (passage, index) {
+        return '[' + (index + 1) + '] page ' + (passage.page || 1) + ' : ' + passage.texte.slice(0, 320);
+    }).join('\n');
+    var corps = String(doc.texte).slice(0, 14000);
+    return [
+        'DOCUMENT REÇU — « ' + doc.nom + ' » (texte intégral lu depuis le fichier, ' + String(doc.texte).length + ' caractères) :',
+        corps,
+        '',
+        'Question posée par l élève (à utiliser, sans le dire) :',
+        info.question || '',
+        '',
+        extraits ? 'Passages les plus proches de la question :\n' + extraits : ''
+    ].filter(Boolean).join('\n');
+}
+
+function iaConsigneDoc() {
+    if (!window.__iaDocQuestion) return '';
+    return 'La question porte sur le document ci-dessus. Analyse vraiment le document : relie chaque élément de la question au passage qui y répond, cite la page, et donne les faits écrits (matières, jours, heures, dates, consignes). Si le document ne contient pas cette information, dis-le clairement, puis indique ce qu il contient vraiment. N invente rien, ne recopie pas le document en entier, ne dis pas que tu as lu le fichier : réponds directement.';
 }
 
 function iaSyntheseDoc(doc, texte) {
@@ -1918,7 +2148,7 @@ function iaComposer(lecture, action) {
     else if (lecture.intention === 'pdf') {
         var docPdf = typeof iaDocActif === 'function' ? iaDocActif(lecture.brut) : null;
         corps = docPdf && docPdf.texte
-            ? (iaReponseLieeAuDoc(lecture.brut, docPdf) || iaResumeDocLie(docPdf))
+            ? (iaReponseDoc(lecture.brut, docPdf).reponse || iaResumeDocLie(docPdf))
             : 'Ajoute un document, puis pose ta question dessus.';
     }
     else if (lecture.intention === 'page') corps = [action, sure].filter(Boolean).join('\n\n') || ('Tu veux la page ' + (lecture.page || 'demandée') + '.');
@@ -1945,6 +2175,7 @@ function iaReponseFinale(texte, lecture, modele, action) {
     var sure = analyse && analyse.reponse;
     var corps = iaRetirerAnnonce(iaNettoyer(modele || ''));
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
+    else if (window.__iaDocQuestion && String(corps || '').trim().length > 40) corps = String(corps).trim();
     else if (lecture && lecture.intention === 'pdf' && !iaReponseUtilePdf(corps, lecture)) corps = '';
     else if (analyse && analyse.prioritaire && sure) corps = sure;
     else if (!iaReponseTient(corps, lecture)) corps = sure || iaComposer(lecture, action);
@@ -2290,6 +2521,9 @@ async function iaLireFichier(fichier) {
         // Le fichier est prêt, mais on ne dit rien : l'élève pose sa question.
         window.__iaPdfAttente = null;
         window.__iaDocPret = { nom: fichier.name };
+        window.__iaDocQuestion = null;
+        // Le document est indexé tout de suite : la question suivante sera analysée dessus.
+        try { iaIndexDoc({ nom: fichier.name, texte: texte, quand: iaAujourdhui() }); } catch (e) {}
         iaInviterQuestion(fichier.name);
         iaHistorique.push({ role: 'user', content: 'J\'ai ajouté le fichier « ' + fichier.name + ' ».' });
     })();
@@ -3610,6 +3844,9 @@ function iaMessages(question, action, lecture) {
         '',
         'PDF lus :',
         iaBlocDocuments(),
+        '',
+        iaBlocDocQuestion(),
+        iaConsigneDoc(),
         action ? '\n' + action : ''
     ].join('\n');
     var msgs = [{ role: 'system', content: systeme }];
@@ -3689,22 +3926,32 @@ async function iaEnvoyer(event, forcer) {
     var lecture = iaLireQuestion(questionPropre);
     var lieTot = iaTexteDuFil(questionPropre);
     var actionTot = [iaCocherSiDemande(lieTot), iaAgir(lieTot)].filter(Boolean).join(' ');
-    // Un document attend sa question : on relie la question au fichier avant de répondre.
+    // ── Analyse du document : la question est reliée au fichier reçu ──
+    window.__iaDocQuestion = null;
     if (iaDocs().length && !window.__iaPdfAttente && !iaVeutActionPdf(iaNormaliser(questionPropre)) && !iaVeutSolution(texte)) {
         var docLie = iaDocActif(questionPropre);
         if (docLie && docLie.texte) {
-            var reponseLiee = iaReponseLieeAuDoc(questionPropre, docLie);
-            if (reponseLiee) {
+            var analyseDoc = iaReponseDoc(questionPropre, docLie);
+            // Le document répond vraiment : on répond tout de suite.
+            if (analyseDoc.force === 'fort' && analyseDoc.reponse) {
                 window.__iaDocPret = null;
                 iaRetirerInvitation();
-                iaBulle('assistant', reponseLiee);
-                iaHistorique.push({ role: 'assistant', content: reponseLiee });
+                iaBulle('assistant', iaCorrigerFrancais(analyseDoc.reponse));
+                iaHistorique.push({ role: 'user', content: texte });
+                iaHistorique.push({ role: 'assistant', content: analyseDoc.reponse });
                 iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
                 return false;
             }
+            // Sinon le modèle lit le document entier et répond à la question.
+            window.__iaDocQuestion = {
+                doc: docLie,
+                question: questionPropre,
+                extraits: iaPassagesPourQuestion(docLie.texte, questionPropre, docLie)
+            };
+            window.__iaDocRepli = function () { return iaRepliDoc(questionPropre, docLie); };
         }
     }
-    if (lecture.analyse && lecture.analyse.prioritaire && lecture.analyse.reponse && lecture.intention !== 'creneau' && lecture.intention !== 'exo' && lecture.intention !== 'exercice') {
+    if (!window.__iaDocQuestion && lecture.analyse && lecture.analyse.prioritaire && lecture.analyse.reponse && lecture.intention !== 'creneau' && lecture.intention !== 'exo' && lecture.intention !== 'exercice') {
         var directe = iaReponseFinale(texte, lecture, '', actionTot);
         iaBulle('assistant', directe);
         iaHistorique.push({ role: 'assistant', content: directe });
@@ -3744,6 +3991,9 @@ async function iaEnvoyer(event, forcer) {
         } else {
             var local = '';
             try { local = iaReponseFinale(texte, lecture, '', action); } catch (e2) {}
+            if (!local && typeof window.__iaDocRepli === 'function') {
+                try { local = window.__iaDocRepli() || ''; } catch (e3) { local = ''; }
+            }
             if (!local) local = 'Je n\'ai pas encore la suite. Reformule, je réfléchis et je te réponds.';
             iaMajBulle(bulle, local);
             iaHistorique.push({ role: 'assistant', content: local });
