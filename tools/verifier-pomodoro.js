@@ -64,6 +64,8 @@ ok(lire('js/pages/pomodoro-page.js').indexOf("nom: 'Pluie'") < lire('js/pages/po
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
 });
 ok(memoire.indexOf("panelPomodoro: 'pomodoro'") !== -1, 'le bouton retour du navigateur doit connaître Pomodoro');
+ok(lire('js/compte.js').indexOf("ouverte !== 'pomodoro'") !== -1, 'la synchro ne doit pas renvoyer Pomodoro au planning');
+ok(lire('pages/pomodoro.html').indexOf('title="Image dans') === -1, 'le survol ne doit pas afficher image dans l image');
 ok(memoire.indexOf("etape === 'pomodoro'") !== -1, 'le retour navigateur peut rouvrir Pomodoro');
 
 ok(lire('js/pages/planning-base.js').indexOf('var COURS_FIN = 16 * 60 + 25;') !== -1, 'les cours doivent finir à 16 h 25');

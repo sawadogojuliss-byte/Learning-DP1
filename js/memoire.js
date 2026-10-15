@@ -441,7 +441,10 @@ function memoireAller(etape) {
     }
     if (etape === 'travaux') etape = 'transport';
     if (etape === 'assistant') etape = 'planning';
-    if (etape === 'pomodoro' && (typeof focusEstAdmin !== 'function' || !focusEstAdmin())) etape = 'planning';
+    if (etape === 'pomodoro' && (typeof focusEstAdmin !== 'function' || !focusEstAdmin())) {
+        var dejaPomodoro = document.getElementById('panelPomodoro');
+        if (!(dejaPomodoro && dejaPomodoro.classList.contains('active'))) etape = 'planning';
+    }
     if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'assistant' || etape === 'pomodoro') {
         if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         document.querySelectorAll('.context-modal').forEach(function (el) {

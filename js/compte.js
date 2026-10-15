@@ -396,13 +396,22 @@ function compteSessionDepuisJeton(token) {
     });
 }
 
+function comptePageOuverte() {
+    if (typeof memoireEtapeActive !== 'function') return '';
+    var page = memoireEtapeActive();
+    if (!page || page === 'accueil') return '';
+    return page;
+}
+
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
+    var ouverte = comptePageOuverte();
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
-    var etape = data.profilComplet ? 'planning' : (data.etape || 'accueil');
-    if (typeof memoireAller === 'function') memoireAller(etape);
+    var etape = ouverte || (data.profilComplet ? 'planning' : (data.etape || 'accueil'));
+    if (ouverte === 'pomodoro') etape = 'pomodoro';
+    if (typeof memoireAller === 'function' && ouverte !== 'pomodoro') memoireAller(etape);
     if (data.profilComplet && typeof renderPlanning === 'function') {
         try { renderPlanning(); } catch (e) {}
     }
@@ -1003,7 +1012,7 @@ function compteMontrerProgression(data, forcer) {
         applique = true;
     }
     var ouvrir = !!(data.profilComplet && (forcer || !stocke || !stocke.profilComplet));
-    if (ouvrir) {
+    if (ouvrir && comptePageOuverte() !== 'pomodoro') {
         compteOuvrirPlanning();
         fermerCompte();
     }

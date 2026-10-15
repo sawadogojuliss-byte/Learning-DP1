@@ -482,21 +482,20 @@ function focusFondAbsolu() {
 function focusPipHtml() {
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Study Plan IB</title><style>' +
         'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;overflow:hidden;}' +
-        '.scene{position:relative;height:100%;background:#064e3b center/cover no-repeat;}' +
-        '.hud{position:absolute;right:.95rem;bottom:.55rem;display:flex;flex-direction:column;align-items:flex-end;}' +
-        '.time{margin:0 0 .05rem;font-size:clamp(2.8rem,12vw,4.7rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 16px rgba(0,0,0,.55);}' +
-        '.ligne{width:100%;display:flex;align-items:flex-end;justify-content:space-between;gap:1.6rem;}' +
-        'button{border:none;background:transparent;color:#fff;cursor:pointer;padding:.1rem .15rem .05rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));}' +
-        '.coin{display:flex;flex-direction:column;align-items:flex-end;gap:.28rem;padding-bottom:.15rem;}' +
+        '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111 center/cover no-repeat;}' +
+        '.time{margin:0;font-size:clamp(3.6rem,18vw,6.6rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 18px rgba(0,0,0,.35);}' +
+        'button{margin-top:1.05rem;width:3.35rem;height:3.05rem;border-radius:.8rem;border:1px solid rgba(255,255,255,.18);background:rgba(8,12,20,.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}' +
+        'button:hover{background:#10b981;border-color:#059669;}' +
+        '.coin{position:absolute;right:.85rem;bottom:.65rem;display:flex;flex-direction:column;align-items:flex-end;gap:.28rem;}' +
         '.dots{display:flex;gap:.28rem;}' +
-        '.dots i{width:.34rem;height:.34rem;border-radius:50%;background:#fff;display:block;}' +
-        '</style></head><body><div class="scene" id="pipScene"><div class="hud">' +
-        '<p class="time" id="pipTime">25:00</p><div class="ligne">' +
+        '.dots i{width:.32rem;height:.32rem;border-radius:50%;background:#fff;display:block;}' +
+        '</style></head><body><div class="scene" id="pipScene">' +
+        '<p class="time" id="pipTime">25:00</p>' +
         '<button type="button" id="pipPlay" aria-label="Démarrer">' +
         '<svg class="pip-ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>' +
         '<svg class="pip-ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>' +
         '</button><span class="coin"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f59e0b" d="M13 2 3.5 13.5h7.2L9.2 22 20.5 9.8h-7.2L13 2z"/></svg>' +
-        '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span></div></div></div></body></html>';
+        '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span></div></body></html>';
 }
 
 function focusPipPeindreBouton(bouton) {
@@ -570,7 +569,7 @@ function focusImageDansImage() {
         return;
     }
     if (window.documentPictureInPicture && documentPictureInPicture.requestWindow) {
-        documentPictureInPicture.requestWindow({ width: 680, height: 384 }).then(function (win) {
+        documentPictureInPicture.requestWindow({ width: 760, height: 430 }).then(function (win) {
             focusPip = win;
             win.document.open();
             win.document.write(focusPipHtml());
