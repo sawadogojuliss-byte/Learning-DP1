@@ -43,6 +43,9 @@ ok(page.indexOf('Tes séances du jour') !== -1 && page.indexOf('Continuer') !== 
 ok(script.indexOf('function focusSeancesJour') !== -1, 'les séances du jour ne sont pas lues dans l\'emploi du temps');
 ok(script.indexOf('function focusAfficherAccueil') !== -1, 'l\'accueil ne s\'affiche pas avant le minuteur');
 ok(script.indexOf('function focusEntrerPiece') !== -1, 'le bouton Continuer ne mène pas au minuteur');
+ok(script.indexOf('function focusAjouterEtapeListe') !== -1, 'le retour doit passer par la liste des séances');
+ok(script.indexOf("etape: 'pomodoro', listeSeances: true") !== -1, 'le retour du navigateur doit viser la liste des séances');
+ok(script.indexOf('if (etaitListe) focusAjouterEtapeListe();') !== -1, 'l étape doit être posée en entrant sur le minuteur');
 ['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png', 'images/pomodoro/tente.png', 'images/pomodoro/savane.png', 'images/pomodoro/recif.png', 'images/pomodoro/sentier.png', 'images/pomodoro/pluie-nuit.png', 'images/pomodoro/lecture.png', 'images/pomodoro/cabine.png', 'images/pomodoro/tunnel.png', 'images/pomodoro/stade.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
     var fichier = path.join(__dirname, '..', src);

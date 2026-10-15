@@ -192,8 +192,8 @@ function saveEditedEventCascade() {
 
     const day = selectedDay;
     if (!window.__ignorerChevauchementActivite) {
-        const activites = v3ActivitesChevauchees(day, newStart, newEnd, [editingEvent.id]);
-        if (activites.length && (v3EstActivite(editingEvent) || activites.some(v3EstActivite))) {
+        var voisines = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);
+        if (voisines.length) {
             v3OuvrirChoixChevauchement({
                 mode: 'edition',
                 day: day,
@@ -205,7 +205,7 @@ function saveEditedEventCascade() {
                 origineStart: editingEvent.startTime,
                 origineEnd: editingEvent.endTime,
                 excludeIds: [editingEvent.id],
-                conflits: activites
+                conflits: voisines
             });
             return;
         }
@@ -456,8 +456,23 @@ function confirmAddActivity() {
         }
     }
     if (!window.__ignorerChevauchementActivite) {
-        const conflict = v3FindConflict(selectedDay, startTime, endTime);
-        if (conflict) { showErr(v3ConflictMessage(conflict)); return; }
+        var voisinesAjout = v3ConflitsCreneau(selectedDay, startTime, endTime, []);
+        if (voisinesAjout.length) {
+            v3OuvrirChoixChevauchement({
+                mode: 'ajout',
+                day: selectedDay,
+                title: name,
+                icon: '✨',
+                type: 'activity',
+                start: startTime,
+                end: endTime,
+                origineStart: startTime,
+                origineEnd: endTime,
+                excludeIds: [],
+                conflits: voisinesAjout
+            });
+            return;
+        }
     }
     errEl.style.display = 'none';
 
@@ -608,6 +623,23 @@ function v3PropositionsCreneau(day, duree, excludeIds, occupesEnPlus) {
     });
     if (finJour - curseur >= duree) ajouter(curseur);
     return propositions;
+}
+
+function v3ConflitsCreneau(day, start, end, excludeIds) {
+    var exclus = {};
+    (excludeIds || []).forEach(function (id) { if (id) exclus[id] = true; });
+    var out = [];
+    var vus = {};
+    (generateDayEvents(day) || []).forEach(function (ev) {
+        if (!ev || !ev.id || ev.id === 'wakeup' || ev.id === 'sleep') return;
+        if (exclus[ev.id] || vus[ev.id]) return;
+        if (!ev.startTime || !ev.endTime) return;
+        if (!v3IntervallesSeCroisent(start, end, ev.startTime, ev.endTime)) return;
+        vus[ev.id] = true;
+        out.push(ev);
+    });
+    out.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
+    return out;
 }
 
 function v3CreneauModifie(ctx) {
@@ -800,107 +832,115 @@ function v3OuvrirChoixChevauchement(ctx) {
     var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
     if (!(duree > 0)) duree = 60;
     var propositions = v3PropositionsCreneau(ctx.day, duree, ctx.excludeIds || []);
-    var premier = ctx.conflits[0];
-    var dest = v3DestinationEchange(ctx, premier);
-    var noms = ctx.conflits.map(function (ev) {
-        return '« ' + ev.title + ' » (' + ev.startTime + ' → ' + ev.endTime + ')';
-    }).join(', ');
-    var liste = ctx.conflits.map(function (ev) {
-        return '<p style="margin:0.35rem 0;font-weight:700;color:#111827;">' + iconeHtml(ev.icon || '🎯', '1.15rem') + ' ' + v3Escape(ev.title) + ' <span style="font-weight:600;color:#6b7280;">' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + '</span></p>';
+    var conflits = ctx.conflits || [];
+    var plusieurs = conflits.length > 1;
+    var nomJour = (typeof V3_DAY_NAMES !== 'undefined' && V3_DAY_NAMES[ctx.day]) ? V3_DAY_NAMES[ctx.day] : '';
+    var debut = timeToMinutes(ctx.start);
+    var fin = timeToMinutes(ctx.end);
+    var premier = conflits[0] || null;
+    var avant = premier ? timeToMinutes(premier.startTime) : -1;
+
+    function minutesCourt(mins) {
+        var h = Math.floor(mins / 60), m = Math.round(mins % 60);
+        return h + ' h' + (m > 0 ? ' ' + (m < 10 ? '0' : '') + m : '');
+    }
+    function icone(ev) { return iconeHtml((ev && ev.icon) || '✨', '1.3rem'); }
+
+    // Où va l'activité qui se chevauche si tu prends son créneau
+    function destination(conflit) {
+        var dest = v3DestinationEchange(ctx, conflit);
+        return dest;
+    }
+
+    var lignesConflits = conflits.map(function (conflit, index) {
+        var dest = destination(conflit);
+        var phrase;
+        if (timeToMinutes(conflit.startTime) < debut) {
+            phrase = 'Elle commence avant la tienne : elle passe à ' + dest.autre.start + ' → ' + dest.autre.end + '.';
+        } else if (timeToMinutes(conflit.startTime) >= fin) {
+            phrase = 'Elle commence après la tienne : elle passe à ' + dest.autre.start + ' → ' + dest.autre.end + '.';
+        } else {
+            phrase = 'Elle est au milieu de ta modification : elle passe à ' + dest.autre.start + ' → ' + dest.autre.end + '.';
+        }
+        return '<div style="display:flex;align-items:center;gap:0.7rem;padding:0.7rem 0.75rem;border:1px solid #fde68a;background:#fffbeb;border-radius:0.9rem;margin-top:0.45rem;">'
+            + '<span style="flex:0 0 auto;width:2.4rem;height:2.4rem;border-radius:0.7rem;background:#fff;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;">' + icone(conflit) + '</span>'
+            + '<span style="flex:1 1 auto;min-width:0;">'
+            + '<strong style="display:block;font-size:0.95rem;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(conflit.title) + '</strong>'
+            + '<span style="display:block;font-size:0.78rem;color:#92400e;font-weight:700;">' + v3Escape(conflit.startTime) + ' → ' + v3Escape(conflit.endTime) + '</span>'
+            + '<span style="display:block;font-size:0.78rem;color:#6b7280;margin-top:0.15rem;">' + v3Escape(phrase) + '</span>'
+            + '</span>'
+            + '<button type="button" data-echange="' + index + '" style="flex:0 0 auto;border:none;border-radius:0.75rem;background:#10b981;color:#fff;font-weight:800;font-size:0.78rem;padding:0.55rem 0.7rem;cursor:pointer;">Prendre son créneau</button>'
+            + '</div>';
     }).join('');
-    var explication = dest.ajuste
-        ? v3Escape(ctx.title) + ' prend la place de ' + v3Escape(premier.title) + ' (' + v3Escape(dest.utilisateur.start) + ' → ' + v3Escape(dest.utilisateur.end) + '). ' + v3Escape(premier.title) + ' passe à ' + v3Escape(dest.autre.start) + ' → ' + v3Escape(dest.autre.end) + ', pour ne plus se superposer.'
-        : v3Escape(ctx.title) + ' prend la place de ' + v3Escape(premier.title) + '. ' + v3Escape(premier.title) + ' vient se placer à l\'horaire de ta modification (' + v3Escape(dest.autre.start) + ' → ' + v3Escape(dest.autre.end) + ').';
+
+    var explication = plusieurs
+        ? 'Ton changement place « ' + v3Escape(ctx.title) + ' » de ' + v3Escape(ctx.start) + ' à ' + v3Escape(ctx.end) + ', mais ' + conflits.length + ' activités occupent déjà ce moment' + (nomJour ? ' le ' + v3Escape(nomJour) : '') + '.'
+        : 'Ton changement place « ' + v3Escape(ctx.title) + ' » de ' + v3Escape(ctx.start) + ' à ' + v3Escape(ctx.end) + ' (' + minutesCourt(duree) + '), mais « ' + v3Escape(premier ? premier.title : '') + ' » occupe déjà ' + v3Escape(premier ? premier.startTime : '') + ' → ' + v3Escape(premier ? premier.endTime : '') + (nomJour ? ' le ' + v3Escape(nomJour) : '') + '.';
+
     var el = document.createElement('div');
     el.id = 'chevauchementPopup';
-    el.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(17,24,39,0.55);display:flex;align-items:flex-end;justify-content:center;padding:0.75rem;';
-    el.innerHTML = '<div style="background:white;border-radius:1.25rem;max-width:32rem;width:100%;padding:1.1rem;max-height:calc(100dvh - 1.5rem);overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,0.25);">'
-        + '<h3 style="font-size:1.05rem;font-weight:800;color:#111827;margin:0 0 0.45rem;">Ces activités se chevauchent</h3>'
-        + '<p style="font-size:0.86rem;color:#374151;line-height:1.45;margin:0 0 0.7rem;">« ' + v3Escape(ctx.title) + ' » (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ') tombe en même temps que ' + v3Escape(noms) + '. Choisis un autre créneau, ou remplace l\'activité qui se chevauche.</p>'
-        + liste
-        + '<p style="font-size:0.8rem;color:#92400e;line-height:1.4;margin:0.7rem 0 0;">' + explication + '</p>'
-        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-top:0.85rem;">'
-        + '<button type="button" data-autre-creneau style="padding:0.75rem 0.55rem;border:none;border-radius:0.85rem;background:linear-gradient(to right,#10b981,#14b8a6);color:white;font-weight:800;cursor:pointer;">Choisir un autre créneau</button>'
-        + '<button type="button" data-remplacer style="padding:0.75rem 0.55rem;border:none;border-radius:0.85rem;background:#d97706;color:white;font-weight:800;cursor:pointer;">Remplacer l\'activité</button>'
+    el.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(17,24,39,0.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:0.85rem;';
+    el.innerHTML = '<div style="background:white;border-radius:1.4rem;max-width:34rem;width:100%;padding:1.25rem;max-height:calc(100dvh - 1.7rem);overflow-y:auto;box-shadow:0 25px 60px rgba(0,0,0,0.3);">'
+        + '<div style="display:flex;align-items:flex-start;gap:0.8rem;margin-bottom:0.9rem;">'
+        + '<span style="flex:0 0 auto;width:2.8rem;height:2.8rem;border-radius:0.9rem;background:#fff7ed;border:1px solid #fed7aa;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🔀</span>'
+        + '<div style="flex:1 1 auto;min-width:0;">'
+        + '<h3 style="font-size:1.12rem;font-weight:800;color:#111827;margin:0;">' + (plusieurs ? 'Ces activités se chevauchent' : 'Cette activité se chevauche') + '</h3>'
+        + '<p style="font-size:0.86rem;color:#4b5563;line-height:1.45;margin:0.3rem 0 0;">' + explication + '</p>'
+        + '</div></div>'
+        + '<p style="font-size:0.68rem;letter-spacing:0.09em;text-transform:uppercase;font-weight:800;color:#9ca3af;margin:0.15rem 0 0;">Ta modification</p>'
+        + '<div style="display:flex;align-items:center;gap:0.7rem;padding:0.7rem 0.75rem;border:1px solid #a7f3d0;background:#f0fdf4;border-radius:0.9rem;margin-top:0.4rem;">'
+        + '<span style="flex:0 0 auto;width:2.4rem;height:2.4rem;border-radius:0.7rem;background:#fff;border:1px solid #a7f3d0;display:flex;align-items:center;justify-content:center;">' + icone({ icon: ctx.icon, title: ctx.title }) + '</span>'
+        + '<span style="flex:1 1 auto;min-width:0;">'
+        + '<strong style="display:block;font-size:0.95rem;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(ctx.title) + '</strong>'
+        + '<span style="display:block;font-size:0.78rem;color:#047857;font-weight:700;">' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' · ' + minutesCourt(duree) + '</span>'
+        + '</span>'
+        + '<span style="flex:0 0 auto;border-radius:999px;background:#10b981;color:#fff;font-size:0.68rem;font-weight:800;padding:0.25rem 0.6rem;">Nouveau</span>'
         + '</div>'
-        + '<div id="chevauchementChoix" hidden style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.85rem;padding:0.75rem;margin-top:0.65rem;">'
-        + '<p style="font-size:0.78rem;color:#047857;font-weight:700;margin:0 0 0.45rem;">Propositions sans chevauchement</p>'
-        + '<div data-propositions style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.7rem;"></div>'
+        + '<p style="font-size:0.68rem;letter-spacing:0.09em;text-transform:uppercase;font-weight:800;color:#9ca3af;margin:0.9rem 0 0;">' + (plusieurs ? 'Ce qui est déjà à ce moment' : 'Ce qui est déjà à ce moment') + '</p>'
+        + lignesConflits
+        + '<p style="font-size:0.82rem;color:#4b5563;line-height:1.45;margin:0.9rem 0 0;">Deux solutions : tu prends le créneau de l\'activité (elle se décale juste après), ou tu choisis un autre horaire pour la tienne.</p>'
+        + '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.7rem;">'
+        + '<button type="button" data-autre-creneau style="flex:1 1 12rem;padding:0.8rem 0.7rem;border:none;border-radius:0.9rem;background:#f3f4f6;color:#374151;font-weight:800;cursor:pointer;">Choisir un autre horaire</button>'
+        + '<button type="button" data-annuler style="flex:1 1 8rem;padding:0.8rem 0.7rem;border:none;border-radius:0.9rem;background:white;color:#6b7280;font-weight:700;border:1.5px solid #e5e7eb;cursor:pointer;">Annuler</button>'
+        + '</div>'
+        + '<div id="chevauchementChoix" hidden style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem;margin-top:0.7rem;">'
+        + '<p style="font-size:0.78rem;color:#047857;font-weight:800;margin:0 0 0.5rem;">Horaires libres pour garder ' + minutesCourt(duree) + '</p>'
+        + '<div data-propositions style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-bottom:0.75rem;"></div>'
         + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">'
-        + '<label style="font-size:0.75rem;color:#6b7280;">Début<input id="chevauchementDebut" type="time" value="' + v3Escape(ctx.start) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
-        + '<label style="font-size:0.75rem;color:#6b7280;">Fin<input id="chevauchementFin" type="time" value="' + v3Escape(ctx.end) + '" style="width:100%;margin-top:0.2rem;padding:0.5rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '<label style="font-size:0.75rem;color:#6b7280;font-weight:700;">Début<input id="chevauchementDebut" type="time" value="' + v3Escape(ctx.start) + '" style="width:100%;margin-top:0.25rem;padding:0.55rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
+        + '<label style="font-size:0.75rem;color:#6b7280;font-weight:700;">Fin<input id="chevauchementFin" type="time" value="' + v3Escape(ctx.end) + '" style="width:100%;margin-top:0.25rem;padding:0.55rem;border:2px solid #e5e7eb;border-radius:0.7rem;font-weight:700;"></label>'
         + '</div>'
-        + '<button type="button" data-placer style="width:100%;margin-top:0.55rem;padding:0.65rem;border:none;border-radius:0.75rem;background:#047857;color:white;font-weight:700;cursor:pointer;">Placer à cet horaire</button>'
+        + '<button type="button" data-placer style="width:100%;margin-top:0.6rem;padding:0.7rem;border:none;border-radius:0.8rem;background:#047857;color:white;font-weight:800;cursor:pointer;">Placer à cet horaire</button>'
         + '</div>'
-        + '<p id="chevauchementErreur" style="color:#b91c1c;font-size:0.78rem;min-height:1.1rem;margin:0.55rem 0 0;"></p>'
-        + '<button type="button" data-annuler style="width:100%;margin-top:0.35rem;padding:0.65rem;border:none;border-radius:0.85rem;background:#f3f4f6;color:#6b7280;font-weight:600;cursor:pointer;">Annuler</button>'
+        + '<p id="chevauchementErreur" style="color:#b91c1c;font-size:0.78rem;font-weight:700;min-height:1.1rem;margin:0.6rem 0 0;"></p>'
         + '</div>';
+    document.body.appendChild(el);
     var zoneProps = el.querySelector('[data-propositions]');
     if (!propositions.length) {
-        zoneProps.innerHTML = '<span style="font-size:0.78rem;color:#6b7280;">Aucun créneau libre de cette durée. Choisis les heures toi-même.</span>';
+        zoneProps.innerHTML = '<span style="font-size:0.78rem;color:#6b7280;">Aucun horaire libre de cette durée ce jour-là. Choisis les heures toi-même.</span>';
     } else {
-        propositions.forEach(function (p) {
+        propositions.forEach(function (proposal) {
             var bouton = document.createElement('button');
             bouton.type = 'button';
-            bouton.textContent = p.start + ' → ' + p.end;
-            bouton.style.cssText = 'padding:0.55rem 0.7rem;border-radius:0.75rem;border:1.5px solid #a7f3d0;background:#f0fdf4;color:#047857;font-weight:700;cursor:pointer;';
-            bouton.onclick = function () { v3AppliquerCreneauChoisi(p.start, p.end); };
+            bouton.textContent = proposal.start + ' → ' + proposal.end;
+            bouton.style.cssText = 'padding:0.55rem 0.7rem;border-radius:0.75rem;border:1.5px solid #a7f3d0;background:#f0fdf4;color:#047857;font-weight:800;cursor:pointer;';
+            bouton.onclick = function () { v3AppliquerCreneauChoisi(proposal.start, proposal.end); };
             zoneProps.appendChild(bouton);
         });
     }
+    el.querySelectorAll('[data-echange]').forEach(function (bouton) {
+        bouton.onclick = function () { v3RemplacerActiviteChevauchee(parseInt(bouton.getAttribute('data-echange'), 10)); };
+    });
     el.querySelector('[data-autre-creneau]').onclick = function () {
         var zone = document.getElementById('chevauchementChoix');
         if (zone) zone.hidden = false;
     };
-    el.querySelector('[data-remplacer]').onclick = function () { v3RemplacerActiviteChevauchee(0); };
     el.querySelector('[data-placer]').onclick = function () {
         v3AppliquerCreneauChoisi(document.getElementById('chevauchementDebut').value, document.getElementById('chevauchementFin').value);
     };
     el.querySelector('[data-annuler]').onclick = v3FermerChoixChevauchement;
     el.addEventListener('click', function (event) { if (event.target === el) v3FermerChoixChevauchement(); });
-    document.body.appendChild(el);
 }
-
-(function () {
-    const origReset = window.resetAddWorkflow;
-    window.resetAddWorkflow = function () {
-        origReset();
-        v3DupAck = null;
-        ['studyDupWarning', 'activityDupWarning', 'studyPomodoroHint'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
-    };
-    const origPickSubject = window.pickSubject;
-    window.pickSubject = function (idx) { origPickSubject(idx); v3UpdateStudyPomodoroHint(); };
-    const origSetStudyType = window.setStudyType;
-    window.setStudyType = function (type) { origSetStudyType(type); v3UpdateStudyPomodoroHint(); };
-
-    const origSyncStart = window.syncEditEndFromStart;
-    window.syncEditEndFromStart = function () { origSyncStart(); v3UpdateEditPinHint(); };
-
-    // Exercices : replanifier un exercice déjà planifié remplace l'ancien créneau (pas de doublon)
-    const origScheduleExo = window.scheduleExo;
-    window.scheduleExo = function (exoId, slotIdx) {
-        const exo = exercices.find(e => e.id === exoId);
-        let oldIds = [];
-        if (exo && exo.scheduledSlot) {
-            if (!confirm('⚠️ Cet exercice est déjà planifié (' + exo.scheduledSlot + ').\nVeux-tu remplacer ce créneau par le nouveau ?')) return;
-            oldIds = customEvents.filter(e => e && e.exoId === exoId).map(e => e.id);
-        }
-        origScheduleExo(exoId, slotIdx);
-        if (oldIds.length) {
-            customEvents = customEvents.filter(e => !oldIds.includes(e.id));
-            v3Save();
-            if (document.getElementById('planningModal').classList.contains('active')) renderPlanning();
-        }
-    };
-
-    ['studyStartInput', 'studyEndInput'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.addEventListener('input', v3UpdateStudyPomodoroHint); el.addEventListener('change', v3UpdateStudyPomodoroHint); }
-    });
-    // Fermer le Pomodoro en cliquant sur le fond
-    const pm = document.getElementById('pomodoroModal');
-    if (pm) pm.addEventListener('click', function (e) { if (e.target === pm) v3ClosePomodoro(); });
-})();
 
 // ═══════════════════════════════════════════════════════════════════
 //  4. DÉPLACEMENT D'UNE ACTIVITÉ DANS LA JOURNÉE

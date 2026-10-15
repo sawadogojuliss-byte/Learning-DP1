@@ -318,6 +318,8 @@ function iaTypeFichier(fichier) {
     var ext = point > 0 ? nom.slice(point + 1).toUpperCase() : '';
     if (ext && ext.length <= 4) return ext;
     if (fichier && fichier.type === 'application/pdf') return 'PDF';
+    if (fichier && (/\.docx$/i.test(nom) || /wordprocessingml\.document/.test(fichier.type || ''))) return 'Word';
+    if (fichier && /\.txt$/i.test(nom)) return 'TXT';
     if (fichier && String(fichier.type || '').indexOf('text/') === 0) return 'TXT';
     return 'FILE';
 }
@@ -615,6 +617,23 @@ function iaChargerScript(url, nom) {
     return window[cle];
 }
 
+// Le fichier est prêt : on le signale dans le champ de saisie, sans parler.
+function iaInviterQuestion(nom) {
+    var saisie = document.getElementById('iaSaisie');
+    if (saisie) saisie.setAttribute('placeholder', 'Pose ta question sur « ' + String(nom || 'le document') + ' »…');
+    var zone = document.getElementById('iaDocs');
+    if (zone) zone.classList.add('ia-docs-pret');
+    var carte = document.querySelector('#iaFil .ia-fichier:last-of-type');
+    if (carte && carte.classList) carte.classList.add('ia-fichier-pret');
+}
+
+function iaRetirerInvitation() {
+    var saisie = document.getElementById('iaSaisie');
+    if (saisie) saisie.setAttribute('placeholder', 'Écris ton message…');
+    var zone = document.getElementById('iaDocs');
+    if (zone) zone.classList.remove('ia-docs-pret');
+}
+
 function iaTexteAssez(texte) {
     var brut = String(texte || '').replace(/\(cid:\d+\)/gi, ' ');
     if ((brut.match(/[A-Za-zÀ-ÿ]/g) || []).length < 40) return false;
@@ -650,26 +669,71 @@ async function iaOuvrirPdf(buffer) {
     }
 }
 
+function iaNettoyerTexte(brut) {
+    return String(brut || '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/[\u2018\u2019\u201b]/g, "'")
+        .replace(/[\u201c\u201d]/g, '"')
+        .replace(/[\ufb01]/g, 'fi')
+        .replace(/[\ufb02]/g, 'fl')
+        .replace(/\u2022/g, '- ')
+        .replace(/[ \t]{2,}/g, ' ')
+        .replace(/\s+([,;:.!?])/g, '$1')
+        .trim();
+}
+
+// Regroupe les morceaux de texte d'une page en vraies lignes, dans l'ordre
+// de lecture, en gardant une barre verticale entre les colonnes d'un tableau.
+async function iaLignesPage(page) {
+    var contenu = await page.getTextContent();
+    var morceaux = [];
+    (contenu.items || []).forEach(function (item) {
+        if (!item || !item.str || !String(item.str).trim()) return;
+        var tr = item.transform || [1, 0, 0, 1, 0, 0];
+        morceaux.push({
+            texte: String(item.str),
+            x: tr[4],
+            y: tr[5],
+            largeur: Number(item.width) || Math.max(4, String(item.str).length * 4.2),
+            hauteur: Math.abs(Number(item.height) || Math.abs(tr[3]) || 10)
+        });
+    });
+    morceaux.sort(function (a, b) {
+        if (Math.abs(a.y - b.y) > 2.5) return b.y - a.y;
+        return a.x - b.x;
+    });
+    var lignes = [];
+    var courante = null;
+    morceaux.forEach(function (item) {
+        if (!courante || Math.abs(courante.y - item.y) > Math.max(2.5, item.hauteur * 0.45)) {
+            courante = { y: item.y, items: [] };
+            lignes.push(courante);
+        }
+        var precedent = courante.items[courante.items.length - 1];
+        if (precedent) {
+            var ecart = item.x - (precedent.x + precedent.largeur);
+            if (ecart > Math.max(9, precedent.hauteur * 0.85)) precedent.separateur = ' | ';
+        }
+        courante.items.push(item);
+    });
+    return lignes.map(function (ligne) {
+        return iaNettoyerTexte(ligne.items.map(function (item, index) {
+            return (index > 0 && item.separateur ? item.separateur : (index > 0 ? ' ' : '')) + item.texte.trim();
+        }).join(''));
+    }).filter(function (texte) { return texte.length > 0; });
+}
+
 async function iaTextePages(doc) {
     var pages = [];
     var max = Math.min(doc.numPages, 30);
     var i;
     for (i = 1; i <= max; i++) {
         var page = await doc.getPage(i);
-        var contenu = await page.getTextContent();
-        var ligne = '';
-        var dernierY = null;
-        (contenu.items || []).forEach(function (item) {
-            if (!item || !item.str) return;
-            var y = item.transform ? item.transform[5] : 0;
-            if (dernierY !== null && Math.abs(y - dernierY) > 2) {
-                if (ligne.trim()) pages.push(ligne.replace(/[ \t]+/g, ' ').trim());
-                ligne = '';
-            }
-            ligne += item.str + ' ';
-            dernierY = y;
-        });
-        if (ligne.trim()) pages.push(ligne.replace(/[ \t]+/g, ' ').trim());
+        if (pages.length) pages.push('');
+        var entete = '— page ' + i + ' —';
+        pages.push(entete);
+        var lignes = await iaLignesPage(page);
+        lignes.forEach(function (ligne) { pages.push(ligne); });
         try {
             var notes = await page.getAnnotations();
             (notes || []).forEach(function (note) {
@@ -759,6 +823,68 @@ async function iaTextePdf(buffer, onStatut) {
         try { await doc.destroy(); } catch (e) {}
     }
     return texte;
+}
+
+function iaEstDocx(fichier) {
+    return !!(fichier && (/\.docx$/i.test(fichier.name || '')
+        || /wordprocessingml\.document/.test(fichier.type || '')));
+}
+
+// Un .docx est une archive : on en sort le texte du document.
+async function iaTexteDocx(fichier, onStatut) {
+    if (typeof DecompressionStream !== 'function') return '';
+    var buffer = await fichier.arrayBuffer();
+    var octets = new Uint8Array(buffer);
+    var vue = new DataView(buffer);
+    var i;
+    for (i = octets.length - 22; i >= 0 && i > octets.length - 66000; i--) {
+        if (vue.getUint32(i, true) !== 0x06054b50) continue;
+        var total = vue.getUint16(i + 10, true);
+        var depart = vue.getUint32(i + 16, true);
+        var curseur = depart;
+        var j;
+        for (j = 0; j < total && curseur + 46 <= octets.length; j++) {
+            if (vue.getUint32(curseur, true) !== 0x02014b50) break;
+            var methode = vue.getUint16(curseur + 10, true);
+            var comprime = vue.getUint32(curseur + 20, true);
+            var tailleNom = vue.getUint16(curseur + 28, true);
+            var tailleExtra = vue.getUint16(curseur + 30, true);
+            var tailleCommentaire = vue.getUint16(curseur + 32, true);
+            var decalageLocal = vue.getUint32(curseur + 42, true);
+            var nom = '';
+            for (var k = 0; k < tailleNom; k++) nom += String.fromCharCode(octets[curseur + 46 + k]);
+            curseur += 46 + tailleNom + tailleExtra + tailleCommentaire;
+            if (nom !== 'word/document.xml') continue;
+            if (vue.getUint32(decalageLocal, true) !== 0x04034b50) break;
+            var nomLocal = vue.getUint16(decalageLocal + 26, true);
+            var extraLocal = vue.getUint16(decalageLocal + 28, true);
+            var debut = decalageLocal + 30 + nomLocal + extraLocal;
+            var donnees = octets.subarray(debut, debut + comprime);
+            var xml = '';
+            if (methode === 0) {
+                xml = new TextDecoder('utf-8').decode(donnees);
+            } else if (methode === 8) {
+                if (onStatut) onStatut('Lecture du document Word…');
+                var flux = new Blob([donnees]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+                xml = await new Response(flux).text();
+            } else {
+                break;
+            }
+            return iaTexteDocxXml(xml);
+        }
+        break;
+    }
+    return '';
+}
+
+function iaTexteDocxXml(xml) {
+    var propre = String(xml || '')
+        .replace(/<w:tab\b[^>]*\/?>/g, ' | ')
+        .replace(/<w:br\b[^>]*\/?>/g, '\n')
+        .replace(/<\/w:p>/g, '\n')
+        .replace(/<w:tc\b[^>]*>/g, '')
+        .replace(/<\/w:tc>/g, ' | ');
+    return iaNettoyerTexte(String(propre).replace(/<[^>]+>/g, '').replace(/\n{3,}/g, '\n\n'));
 }
 
 function iaChoisirPdf() {
@@ -1081,6 +1207,153 @@ function iaFiltreCreneaux(creneaux, n) {
         return true;
     });
     return filtres.length ? filtres : creneaux.filter(function (c) { return jour < 0 || c.jour === jour; });
+}
+
+// Mots vides : ils ne servent pas à retrouver un passage dans le document.
+var IA_MOTS_VIDES = ('le la les un une des de du au aux et ou mais donc or ni car que qui quoi dont ou ' +
+    'je tu il elle on nous vous ils elles me te se ce cet cette ces mon ma mes ton ta tes son sa ses ' +
+    'pour par avec sans sur sous dans entre vers chez est sont etait ete etre avoir ai as a ont avais ' +
+    'quel quelle quels quelles comment pourquoi quand combien combien est-ce es ceci cela ca il-y-a ' +
+    'peux peut peut-on dois doit faut faire fais fait dis moi vous tu nous svp stp merci beaucoup ' +
+    'document pdf fichier texte').split(/[\s-]+/);
+
+function iaRacine(mot) {
+    var m = String(mot || '');
+    if (m.length > 4) m = m.replace(/(ements|ement|ations|ation|iques|ique|euses|euse|aux|es|s)$/, '');
+    return m;
+}
+
+function iaMotsQuestion(question) {
+    var vus = {};
+    return iaNormaliser(question).replace(/[^a-z0-9\s']/g, ' ').split(/\s+/).filter(function (mot) {
+        if (mot.length < 3) return false;
+        if (IA_MOTS_VIDES.indexOf(mot) !== -1) return false;
+        var racine = iaRacine(mot);
+        if (!racine || vus[racine]) return false;
+        vus[racine] = true;
+        return true;
+    });
+}
+
+// Découpe le document en passages, avec leur page, pour pouvoir les citer.
+function iaPassagesDoc(texte) {
+    var lignes = String(texte || '').split('\n');
+    var passages = [];
+    var page = 0;
+    lignes.forEach(function (ligne) {
+        var propre = String(ligne || '').trim();
+        var entete = propre.match(/^— page (\d+) —$/);
+        if (entete) { page = parseInt(entete[1], 10); return; }
+        if (propre.length < 3) return;
+        var morceaux = propre.length > 220 ? propre.split(/(?<=[.!?;])\s+/) : [propre];
+        morceaux.forEach(function (morceau) {
+            var texteMorceau = String(morceau || '').trim();
+            if (texteMorceau.length < 3) return;
+            passages.push({ page: page, texte: texteMorceau, cle: iaNormaliser(texteMorceau) });
+        });
+    });
+    return passages;
+}
+
+// Relie la question au document : passages qui répondent vraiment à la question.
+function iaPassagesPourQuestion(texte, question) {
+    var passages = iaPassagesDoc(texte);
+    var mots = iaMotsQuestion(question);
+    var n = iaNormaliser(question);
+    var veutDate = /(quand|date|echeance|deadline|rendre|rendu|examen|controle|due)/.test(n);
+    var veutHeure = /(heure|horaire|debut|fin|commence|termine|creneau|planning|jour)/.test(n);
+    var veutListe = /(liste|quels|quelles|combien|tous|toutes|qu.est.ce qu.il y a|sujets?|matieres?|chapitres?)/.test(n);
+    passages.forEach(function (passage) {
+        var score = 0;
+        var cle = passage.cle;
+        mots.forEach(function (mot) {
+            var racine = iaRacine(mot);
+            if (!racine) return;
+            if (cle.indexOf(racine) !== -1) score += mot.length >= 6 ? 3 : 2;
+        });
+        if (veutDate && /\b(\d{1,2})[\/.\-](\d{1,2})\b|\b\d{1,2}\s*(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre|janv|fevr|sept|oct|nov|dec)\b|\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/.test(cle)) score += 2;
+        if (veutHeure && /\b\d{1,2}\s*(h|:)\s*\d{0,2}\b/.test(cle)) score += 2;
+        if (veutListe && (cle.indexOf('|') !== -1 || /^\s*[-•]/.test(passage.texte))) score += 1;
+        if (mots.length && score === 0) {
+            // Un mot de la question apparaît en entier dans le passage
+            var touche = mots.some(function (mot) { return mot.length >= 5 && cle.indexOf(mot) !== -1; });
+            if (touche) score += 1;
+        }
+        passage.score = score;
+    });
+    var gardes = passages.filter(function (passage) { return passage.score > 0; });
+    gardes.sort(function (a, b) { return b.score - a.score; });
+    return gardes;
+}
+
+function iaResumeDocLie(doc) {
+    var comp = iaComprendrePdf(doc.nom, doc.texte);
+    var lignes = ['Voici ce que dit « ' + doc.nom + ' » :'];
+    if (comp.sujets.length) lignes.push('Matières : ' + comp.sujets.join(', ') + '.');
+    if (comp.jours.length) lignes.push('Jours : ' + comp.jours.join(', ') + '.');
+    if (comp.creneaux.length) {
+        var parJour = {};
+        comp.creneaux.forEach(function (c) {
+            var cle = iaNomJour(c.jour);
+            if (!parJour[cle]) parJour[cle] = [];
+            parJour[cle].push(c.debut + '–' + c.fin + ' ' + c.titre);
+        });
+        Object.keys(parJour).forEach(function (jour) {
+            lignes.push(jour.charAt(0).toUpperCase() + jour.slice(1) + ' : ' + parJour[jour].join(' · ') + '.');
+        });
+    }
+    if (comp.echeances.length) {
+        lignes.push('Échéances : ' + comp.echeances.slice(0, 6).map(function (e) {
+            return e.sujet + ' pour le ' + e.deadline;
+        }).join(' · ') + '.');
+    }
+    if (!comp.sujets.length && !comp.creneaux.length && !comp.echeances.length) {
+        lignes.push('Extrait : ' + iaExtraitLisible(doc.texte, 6));
+    }
+    lignes.push('Si tu veux un point précis, demande-le : je te sors le passage exact du document.');
+    return lignes.join('\n');
+}
+
+// Réponse construite en reliant la question posée et le document envoyé.
+function iaReponseLieeAuDoc(question, doc) {
+    if (!doc || !doc.texte) return '';
+    var n = iaNormaliser(question);
+    if (/(resume|resumer|synthese|de quoi ca parle|de quoi parle|presente le|explique le document|explique ce pdf|explique ce document)/.test(n)) {
+        return iaResumeDocLie(doc);
+    }
+    var passages = iaPassagesPourQuestion(doc.texte, question);
+    if (!passages.length) {
+        var sujets = iaComprendrePdf(doc.nom, doc.texte).sujets;
+        return 'Dans « ' + doc.nom + ' », je ne trouve rien qui réponde à : « ' + String(question).trim() + ' ».\n'
+            + (sujets.length ? 'Ce que le document contient : ' + sujets.join(', ') + '.\n' : '')
+            + 'Reformule avec un mot du document (une matière, un jour, une date), ou demande-moi le résumé du fichier.';
+    }
+    var meilleur = passages[0];
+    // On ne garde que les passages vraiment liés à la question.
+    var seuil = Math.max(2, Math.ceil(meilleur.score / 2));
+    var autres = passages.slice(1).filter(function (passage) { return passage.score >= seuil; }).slice(0, 3);
+    var lignes = [];
+    var motsVus = iaMotsQuestion(question).filter(function (mot) {
+        return meilleur.cle.indexOf(iaRacine(mot)) !== -1;
+    });
+    lignes.push('Dans « ' + doc.nom + ' »' + (motsVus.length ? ', à propos de ' + motsVus.slice(0, 3).join(', ') : '') + (meilleur.page ? ' (page ' + meilleur.page + ')' : '') + ' :');
+    lignes.push('« ' + meilleur.texte.slice(0, 320) + ' »');
+    if (autres.length) {
+        lignes.push('Et aussi dans le document :');
+        autres.forEach(function (passage) {
+            lignes.push('• ' + passage.texte.slice(0, 220) + (passage.page ? ' (page ' + passage.page + ')' : ''));
+        });
+    }
+    var quand = /(quand|date|echeance|deadline|rendre|examen|controle)/.test(n);
+    if (quand) {
+        var dates = passages.map(function (p) {
+            var m = p.texte.match(/\b\d{1,2}[\/.\-]\d{1,2}(?:[\/.\-]\d{2,4})?\b/);
+            return m ? m[0] : '';
+        }).filter(Boolean);
+        if (dates.length) lignes.push('Dates écrites dans le document : ' + dates.slice(0, 5).join(', ') + '.');
+    }
+    lignes.push('Dis-moi ce que tu veux faire de ce passage : je peux le placer dans ton planning, ou te le reformuler plus simplement.');
+    return lignes.join('\n');
 }
 
 function iaSyntheseDoc(doc, texte) {
@@ -1656,7 +1929,9 @@ function iaComposer(lecture, action) {
     else if (lecture.intention === 'emotion') corps = iaFaitEmotion(lecture);
     else if (lecture.intention === 'pdf') {
         var docPdf = typeof iaDocActif === 'function' ? iaDocActif(lecture.brut) : null;
-        corps = docPdf && docPdf.texte ? iaMessageComprehension(iaComprendrePdf(docPdf.nom, docPdf.texte)) : 'Utilise le bouton PDF, puis dis-moi ce que je dois faire.';
+        corps = docPdf && docPdf.texte
+            ? (iaReponseLieeAuDoc(lecture.brut, docPdf) || iaResumeDocLie(docPdf))
+            : 'Ajoute un document, puis pose ta question dessus.';
     }
     else if (lecture.intention === 'page') corps = [action, sure].filter(Boolean).join('\n\n') || ('Tu veux la page ' + (lecture.page || 'demandée') + '.');
     else if (lecture.intention === 'exo') corps = action || 'Il me faut la matière et la date limite. Je place le créneau, je ne fais pas l\'exercice.';
@@ -1976,6 +2251,9 @@ function iaMessageConcernePdf(texte) {
     if (!window.__iaPdfAttente && !iaDocs().length) return false;
     var n = iaNormaliser(texte);
     if (/^(salut|bonjour|bonsoir|merci|coucou)\b/.test(n) && n.length < 28) return false;
+    // Rien en attente : la question de l'élève passe par l'analyse du document,
+    // sauf s'il demande explicitement une action (placer, ajouter, importer…).
+    if (!window.__iaPdfAttente && !iaVeutActionPdf(n)) return false;
     if (window.__iaPdfAttente) {
         if (typeof iaVeutActivite === 'function' && iaVeutActivite(n) && iaHeuresTrouvees(n).length) return false;
         if (typeof iaVeutExerciceSlot === 'function' && iaVeutExerciceSlot(n) && !/(pdf|fichier|document)/.test(n)) return false;
@@ -1993,8 +2271,9 @@ async function iaLireFichier(fichier) {
         iaBulle('assistant', 'Je finis le fichier déjà en cours. Renvoie celui-ci juste après.');
         return;
     }
-    if (!iaEstPdf(fichier) && !iaEstTexte(fichier)) {
-        iaBulle('assistant', 'Je vois le fichier. Je peux traiter un PDF ou un TXT. Ensuite, dis-moi ce que tu veux que j\'en fasse.');
+    var fichierLisible = iaEstPdf(fichier) || iaEstTexte(fichier) || iaEstDocx(fichier);
+    if (!fichierLisible) {
+        iaBulle('assistant', 'Je lis les PDF, les documents Word (.docx) et les fichiers texte (.txt). Envoie-en un, et pose ta question juste après.');
         return;
     }
     if (fichier.size > 20 * 1024 * 1024) {
@@ -2004,33 +2283,34 @@ async function iaLireFichier(fichier) {
     window.__iaLecturePdf = true;
     var bouton = document.getElementById('iaJoindre');
     if (bouton) bouton.disabled = true;
-    iaStatut('Analyse du fichier…', '#059669');
-    var bulle = iaBulle('assistant', 'J\'analyse « ' + fichier.name + ' »…', true);
+    iaStatut('Lecture de « ' + fichier.name + ' »…', '#059669');
     var travail = (async function () {
         var texte = '';
         if (iaEstTexte(fichier)) texte = await fichier.text();
+        else if (iaEstDocx(fichier)) texte = await iaTexteDocx(fichier, function (message) { iaStatut(message, '#059669'); });
         else {
             var buffer = new Uint8Array(await fichier.arrayBuffer());
             texte = await iaTextePdf(buffer, function (message) { iaStatut(message, '#059669'); });
         }
         if (!iaTexteAssez(texte)) {
-            iaMajBulle(bulle, 'Je n\'ai pas réussi à lire ce fichier. Réessaie avec une photo plus nette, ou un fichier dont on peut sélectionner le texte.');
+            iaBulle('assistant', 'Je n\'ai pas réussi à lire « ' + fichier.name + ' ». Réessaie avec un document dont le texte peut être sélectionné.');
             return;
         }
         iaEnregistrerDoc(fichier.name, texte, { type: iaTypeFichier(fichier), taille: iaTailleFichier(fichier.size) });
         iaMajDocs();
         window.__iaFichierPret = true;
-        var pret = iaMessageFichierPret(fichier, texte);
-        iaMajBulle(bulle, pret);
+        // Le fichier est prêt, mais on ne dit rien : l'élève pose sa question.
+        window.__iaPdfAttente = null;
+        window.__iaDocPret = { nom: fichier.name };
+        iaInviterQuestion(fichier.name);
         iaHistorique.push({ role: 'user', content: 'J\'ai ajouté le fichier « ' + fichier.name + ' ».' });
-        iaHistorique.push({ role: 'assistant', content: pret });
     })();
     window.__iaLecturePromesse = travail;
     try {
         await travail;
         iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
     } catch (e) {
-        iaMajBulle(bulle, 'Je n\'ai pas réussi à analyser ce fichier. Réessaie dans un moment.');
+        iaBulle('assistant', 'Je n\'ai pas réussi à lire ce fichier. Réessaie dans un moment.');
         iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
     } finally {
         window.__iaLecturePdf = false;
@@ -3427,6 +3707,21 @@ async function iaEnvoyer(event, forcer) {
     var lecture = iaLireQuestion(texte);
     var lieTot = iaTexteDuFil(texte);
     var actionTot = [iaCocherSiDemande(lieTot), iaAgir(lieTot)].filter(Boolean).join(' ');
+    // Un document attend sa question : on relie la question au fichier avant de répondre.
+    if (iaDocs().length && !window.__iaPdfAttente && !iaVeutActionPdf(iaNormaliser(texte)) && !iaVeutSolution(texte)) {
+        var docLie = iaDocActif(texte);
+        if (docLie && docLie.texte) {
+            var reponseLiee = iaReponseLieeAuDoc(texte, docLie);
+            if (reponseLiee) {
+                window.__iaDocPret = null;
+                iaRetirerInvitation();
+                iaBulle('assistant', reponseLiee);
+                iaHistorique.push({ role: 'assistant', content: reponseLiee });
+                iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
+                return false;
+            }
+        }
+    }
     if (lecture.analyse && lecture.analyse.prioritaire && lecture.analyse.reponse && lecture.intention !== 'creneau' && lecture.intention !== 'exo' && lecture.intention !== 'exercice') {
         var directe = iaReponseFinale(texte, lecture, '', actionTot);
         iaBulle('assistant', directe);

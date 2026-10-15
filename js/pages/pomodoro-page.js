@@ -365,12 +365,24 @@ function focusAfficherAccueil() {
     focusPeindreAccueil();
 }
 
+// Une étape de plus dans l'historique : le retour du navigateur ramène
+// d'abord sur la liste des séances du jour, pas directement au planning.
+function focusAjouterEtapeListe() {
+    try {
+        if (!window.history || typeof history.pushState !== 'function') return;
+        var url = location.pathname + location.search + '#pomodoro';
+        history.pushState({ app: 'studyplan', etape: 'pomodoro', listeSeances: true }, '', url);
+    } catch (e) {}
+}
+
 // Quitte l'accueil pour le minuteur. Sans argument, la séance choisie devient l'objectif.
 function focusEntrerPiece(libre) {
     var accueil = document.getElementById('focusAccueil');
     var page = document.getElementById('focusPage');
+    var etaitListe = !!(accueil && !accueil.hidden);
     if (accueil) accueil.hidden = true;
     if (page) page.hidden = false;
+    if (etaitListe) focusAjouterEtapeListe();
     if (!libre && focusSeanceChoisie) {
         var choisie = null;
         focusSeancesJour().forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
@@ -1438,9 +1450,10 @@ function focusReprendreApresRafraichissement() {
         if (typeof memoireAller === 'function') memoireAller('planning');
         return;
     }
-    window.__focusSansAccueil = true;   // reprise : on revient directement sur le minuteur
+    window.__focusSansAccueil = true;   // reprise après rafraîchissement : on revient sur le minuteur
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+    focusAjouterEtapeListe();
 }
 
 focusAfficherEntree();

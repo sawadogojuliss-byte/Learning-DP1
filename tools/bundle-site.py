@@ -13,6 +13,7 @@ CSS = [
     "style_v2.css",
     "style_v3.css",
     "css/pages/planning-panels.css",
+    "css/pages/retours.css",
     "css/compte.css",
 ]
 
