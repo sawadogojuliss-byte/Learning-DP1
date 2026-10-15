@@ -26,8 +26,11 @@ var page = lire('pages/pomodoro.html');
     ok(page.indexOf(extrait) !== -1, 'page incomplète : ' + extrait);
 });
 ok(page.indexOf('focus-nav') === -1, 'les boutons Retour et Aller de la page sont retirés');
+ok(page.indexOf('focusEditerTache') === -1, 'le crayon doit être retiré');
+ok(page.indexOf('id="focusSons"') !== -1, 'le panneau des sons manque');
 ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
 var script = lire('js/pages/pomodoro-page.js');
+ok(script.indexOf('function focusBasculerSons') !== -1, 'le bouton musique doit ouvrir les sons');
 ['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
     var fichier = path.join(__dirname, '..', src);
