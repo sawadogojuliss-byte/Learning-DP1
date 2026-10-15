@@ -1577,3 +1577,38 @@
     .focus-rond, .focus-flamme { width: 2.2rem; height: 2.2rem; }
     .focus-flamme { width: auto; }
 }
+
+/* ── Déplacement d'une activité : clic droit → poignée ───────────────── */
+#eventsContainer [data-v3-idx] { position: relative; }
+.v3-carte-deplace {
+    box-shadow: 0 0 0 2px #10b981, 0 6px 16px rgba(16, 185, 129, 0.18) !important;
+}
+.v3-pouce {
+    flex: 0 0 auto;
+    width: 1.9rem;
+    height: 1.9rem;
+    margin-left: 0.2rem;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.65rem;
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 0.95rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: grab;
+    touch-action: none;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.18);
+}
+.v3-pouce:active { cursor: grabbing; }
+.v3-carte-glisse { opacity: 0.55; }
+.v3-carte-cible {
+    box-shadow: 0 0 0 2px #10b981, 0 12px 24px rgba(16, 185, 129, 0.24) !important;
+    transform: translateX(3px);
+}
+body.v3-deplacement, body.v3-deplacement * {
+    cursor: grabbing !important;
+    user-select: none;
+}

@@ -80,7 +80,7 @@ function renderPlanning() {
         const pomoBtn = isStudy ? '<button class="v3-pomo-chip' + (pomoRunning ? ' running' : '') + '" onclick="event.stopPropagation();v3OpenPomodoro(' + idx + ')" title="Lancer un Pomodoro pour cette session">🍅</button>' : '';
         const pinBadge = event.kind === 'pinned' ? '<span title="Heure fixée par toi" style="font-size:0.7rem;margin-right:0.2rem;">📌</span>' : '';
 
-        eventsHtml += '<div onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
+        eventsHtml += '<div data-v3-idx="' + idx + '" onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
                 '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(event.title) + '</h3>' +
@@ -900,4 +900,199 @@ function v3OuvrirChoixChevauchement(ctx) {
     // Fermer le Pomodoro en cliquant sur le fond
     const pm = document.getElementById('pomodoroModal');
     if (pm) pm.addEventListener('click', function (e) { if (e.target === pm) v3ClosePomodoro(); });
+})();
+
+// ═══════════════════════════════════════════════════════════════════
+//  4. DÉPLACEMENT D'UNE ACTIVITÉ DANS LA JOURNÉE
+//  Un clic droit sur une activité fait apparaître une poignée : on la
+//  fait glisser sur une autre activité pour lui donner son heure de
+//  début. La durée ne change jamais : seules les heures de début et de
+//  fin suivent. Rien n'est annoncé : si l'endroit est impossible
+//  (pendant les cours, au-delà de minuit), l'activité ne bouge pas.
+// ═══════════════════════════════════════════════════════════════════
+var v3DeplaceIdx = -1;
+var v3DeplaceEnCours = false;
+var v3DeplaceCibleIdx = -1;
+
+function v3CarteEvenement(idx) {
+    var conteneur = document.getElementById('eventsContainer');
+    if (!conteneur || !(idx >= 0)) return null;
+    return conteneur.querySelector('[data-v3-idx="' + idx + '"]');
+}
+
+function v3EvenementAffiche(idx) {
+    if (typeof v3LastRendered === 'undefined' || !v3LastRendered) return null;
+    return v3LastRendered[idx] || null;
+}
+
+function v3CarteDeplacable(carte) {
+    if (!carte) return false;
+    var idx = parseInt(carte.getAttribute('data-v3-idx'), 10);
+    var ev = v3EvenementAffiche(idx);
+    return !!(ev && ev.editable);
+}
+
+function v3RetirerPoignee() {
+    document.querySelectorAll('#eventsContainer .v3-pouce').forEach(function (el) {
+        if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    ['v3-carte-deplace', 'v3-carte-cible', 'v3-carte-glisse'].forEach(function (classe) {
+        document.querySelectorAll('#eventsContainer .' + classe).forEach(function (el) {
+            el.classList.remove(classe);
+        });
+    });
+    document.body.classList.remove('v3-deplacement');
+    v3DeplaceEnCours = false;
+    v3DeplaceCibleIdx = -1;
+}
+
+function v3PoserPoignee(idx) {
+    v3RetirerPoignee();
+    var carte = v3CarteEvenement(idx);
+    if (!v3CarteDeplacable(carte)) return;
+    v3DeplaceIdx = idx;
+    carte.classList.add('v3-carte-deplace');
+    var pouce = document.createElement('button');
+    pouce.type = 'button';
+    pouce.className = 'v3-pouce';
+    pouce.setAttribute('data-v3-pouce', String(idx));
+    pouce.setAttribute('aria-label', 'Déplacer');
+    pouce.textContent = '👍';
+    pouce.addEventListener('click', function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    });
+    pouce.addEventListener('pointerdown', v3DemarrerDeplacement);
+    carte.appendChild(pouce);
+}
+
+function v3DemarrerDeplacement(event) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    var pouce = event.currentTarget;
+    var idx = parseInt(pouce.getAttribute('data-v3-pouce'), 10);
+    if (!(idx >= 0)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    v3DeplaceIdx = idx;
+    v3DeplaceEnCours = true;
+    v3DeplaceCibleIdx = -1;
+    document.body.classList.add('v3-deplacement');
+    var carte = v3CarteEvenement(idx);
+    if (carte) carte.classList.add('v3-carte-glisse');
+    document.addEventListener('pointermove', v3PendantDeplacement, true);
+    document.addEventListener('pointerup', v3TerminerDeplacement, true);
+    document.addEventListener('pointercancel', v3FermerDeplacement, true);
+}
+
+function v3CarteSousPointeur(clientX, clientY) {
+    var conteneur = document.getElementById('eventsContainer');
+    if (!conteneur) return null;
+    var meilleure = null;
+    var meilleureDistance = Infinity;
+    var meilleureHauteur = 0;
+    conteneur.querySelectorAll('[data-v3-idx]').forEach(function (carte) {
+        var idx = parseInt(carte.getAttribute('data-v3-idx'), 10);
+        if (idx === v3DeplaceIdx) return;
+        if (!v3CarteDeplacable(carte)) return;
+        var rect = carte.getBoundingClientRect();
+        if (!rect.height) return;
+        var dx = 0;
+        if (clientX < rect.left) dx = rect.left - clientX;
+        else if (clientX > rect.right) dx = clientX - rect.right;
+        var dy = Math.abs(clientY - (rect.top + rect.height / 2));
+        var distance = dy + dx * 0.7;
+        if (distance < meilleureDistance) {
+            meilleureDistance = distance;
+            meilleure = carte;
+            meilleureHauteur = rect.height;
+        }
+    });
+    if (!meilleure) return null;
+    if (meilleureDistance > meilleureHauteur * 1.35 + 40) return null;
+    return meilleure;
+}
+
+function v3PendantDeplacement(event) {
+    if (!v3DeplaceEnCours) return;
+    event.preventDefault();
+    var carte = v3CarteSousPointeur(event.clientX, event.clientY);
+    var idx = carte ? parseInt(carte.getAttribute('data-v3-idx'), 10) : -1;
+    if (idx === v3DeplaceCibleIdx) return;
+    document.querySelectorAll('#eventsContainer .v3-carte-cible').forEach(function (el) {
+        el.classList.remove('v3-carte-cible');
+    });
+    v3DeplaceCibleIdx = idx;
+    if (carte) carte.classList.add('v3-carte-cible');
+}
+
+function v3FermerDeplacement() {
+    document.removeEventListener('pointermove', v3PendantDeplacement, true);
+    document.removeEventListener('pointerup', v3TerminerDeplacement, true);
+    document.removeEventListener('pointercancel', v3FermerDeplacement, true);
+    v3RetirerPoignee();
+}
+
+function v3TerminerDeplacement() {
+    if (!v3DeplaceEnCours) {
+        v3FermerDeplacement();
+        return;
+    }
+    var source = v3DeplaceIdx;
+    var cible = v3DeplaceCibleIdx;
+    v3FermerDeplacement();
+    if (source >= 0 && cible >= 0) v3DonnerHoraireCible(source, cible);
+}
+
+// L'activité garde exactement la même durée : elle prend l'heure de début
+// de l'activité visée, et l'heure de fin suit.
+function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
+    var voulu = v3EvenementAffiche(sourceIdx);
+    var cible = v3EvenementAffiche(cibleIdx);
+    if (!voulu || !cible || !voulu.editable) return false;
+    if (voulu.startTime === cible.startTime) return false;
+    var duree = timeToMinutes(voulu.endTime) - timeToMinutes(voulu.startTime);
+    if (!(duree > 0)) return false;
+    var debut = cible.startTime;
+    var finMins = timeToMinutes(debut) + duree;
+    if (finMins >= 1440) return false;
+    var fin = addMinutes('00:00', finMins);
+    var validation = validateNewEventTime(debut, fin, selectedDay);
+    if (!validation || !validation.valid) return false;
+    if (typeof v3DeplacerEvenement !== 'function') return false;
+    v3DeplacerEvenement(voulu, selectedDay, debut, fin);
+    if (voulu.exoId && typeof customEvents !== 'undefined') {
+        customEvents.forEach(function (item) {
+            if (item && item.replacesId === voulu.id && item.day === selectedDay && !item.exoId) item.exoId = voulu.exoId;
+        });
+    }
+    try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents)); } catch (e) {}
+    if (typeof v3Save === 'function') v3Save();
+    if (typeof v3SyncExoLabels === 'function') { try { v3SyncExoLabels(); } catch (e) {} }
+    if (typeof renderPlanning === 'function') renderPlanning();
+    return true;
+}
+
+(function v3BrancherDeplacement() {
+    if (typeof document === 'undefined' || window.__v3DeplacementBranche) return;
+    window.__v3DeplacementBranche = true;
+    document.addEventListener('contextmenu', function (event) {
+        var carte = event.target && event.target.closest ? event.target.closest('#eventsContainer [data-v3-idx]') : null;
+        if (!carte || !v3CarteDeplacable(carte)) return;
+        event.preventDefault();
+        v3PoserPoignee(parseInt(carte.getAttribute('data-v3-idx'), 10));
+    });
+    document.addEventListener('pointerdown', function (event) {
+        if (v3DeplaceEnCours || v3DeplaceIdx < 0) return;
+        var dansPoignee = event.target && event.target.closest ? event.target.closest('#eventsContainer .v3-pouce') : null;
+        if (dansPoignee) return;
+        var carte = event.target && event.target.closest ? event.target.closest('#eventsContainer [data-v3-idx]') : null;
+        if (carte && parseInt(carte.getAttribute('data-v3-idx'), 10) === v3DeplaceIdx) return;
+        v3DeplaceIdx = -1;
+        v3RetirerPoignee();
+    }, true);
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape' || v3DeplaceIdx < 0) return;
+        v3DeplaceIdx = -1;
+        v3FermerDeplacement();
+    });
 })();
