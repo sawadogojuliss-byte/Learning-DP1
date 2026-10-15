@@ -97,6 +97,32 @@ var dump = sandbox.iaReponseFinale(
 );
 ok(/réveil/.test(dump), 'un dump d\'horaire ne remplace pas l\'explication : ' + dump);
 
+var htmlAssistant = fs.readFileSync('pages/assistant.html', 'utf8');
+ok(htmlAssistant.indexOf('id="iaJoindre"') !== -1 && htmlAssistant.indexOf('iaChoisirPdf()') !== -1, 'bouton PDF');
+ok(htmlAssistant.indexOf('id="iaFichier"') !== -1, 'sélecteur de fichier');
+ok(htmlAssistant.indexOf('Relire aussi la conjugaison avant d\'envoyer un message') !== -1, 'option conjugaison');
+ok(sandbox.iaChoisirPdf.toString().indexOf('iaFichier') !== -1, 'le bouton ouvre le sélecteur');
+
+var emploiPdf = 'Lundi\nMathématiques 08:00-09:00\nPhysique 09:00-10:00\nDevoir de chimie à rendre le 20 octobre';
+var compris = sandbox.iaComprendrePdf('emploi.pdf', emploiPdf);
+ok(compris.type === 'emploi' && compris.creneaux.length >= 1, 'le PDF est compris comme un emploi');
+var lecturePdf = sandbox.iaMessageComprehension(compris);
+ok(/Je comprends/.test(lecturePdf) && /ne place rien/.test(lecturePdf), 'la lecture attend les instructions : ' + lecturePdf);
+ok(!/C'est placé|ajouté/.test(lecturePdf), 'aucune action avant l\'instruction');
+
+sandbox.localStorage.setItem('ia-docs-toi', JSON.stringify([{ nom: 'emploi.pdf', texte: emploiPdf, quand: '2026-10-15' }]));
+sandbox.window.__iaPdfAttente = { nom: 'emploi.pdf', question: '' };
+var vague = sandbox.iaSuivreInstructionPdf('fais quelque chose avec ce pdf');
+ok(/\?/.test(vague) && !/C'est placé/.test(vague), 'instruction vague : une question : ' + vague);
+var clair = sandbox.iaLireInstructionPdf('place les cours du pdf', compris);
+ok(clair.action === 'placer-creneaux', 'instruction claire : placer les cours');
+var absent = sandbox.iaSuivreInstructionPdf('place le latin du pdf');
+ok(/ne vois pas/.test(absent) && /latin/.test(absent), 'matière absente : une question : ' + absent);
+
+var fautes = sandbox.iaErreursConjugaison('tu va a l ecole');
+ok(fautes.some(function (err) { return err.type === 'conjugaison'; }), 'conjugaison signalée avant l\'envoi');
+ok(!sandbox.iaErreursConjugaison('tu vas à l\'école').some(function (err) { return err.type === 'conjugaison'; }), 'une conjugaison juste passe');
+
 if (echecs) {
     console.error(echecs + ' échec(s)');
     process.exit(1);

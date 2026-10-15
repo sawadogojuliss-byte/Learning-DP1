@@ -761,7 +761,70 @@ async function iaTextePdf(buffer, onStatut) {
 }
 
 function iaChoisirPdf() {
-    return;
+    if (!iaEstAdmin()) return;
+    var input = document.getElementById('iaFichier');
+    if (!input) return;
+    input.click();
+}
+
+function iaConjugaisonActive() {
+    var box = document.getElementById('iaConjugaison');
+    if (box) return !!box.checked;
+    try {
+        var sauve = localStorage.getItem('ia-conjugaison');
+        if (sauve === '0') return false;
+        if (sauve === '1') return true;
+    } catch (e) {}
+    return false;
+}
+
+function iaErreursConjugaison(texte) {
+    if (typeof langueLocale !== 'function') return [];
+    try {
+        return langueLocale(String(texte || '')).filter(function (err) {
+            return err && err.type === 'conjugaison' && err.fin > err.debut;
+        });
+    } catch (e) {
+        return [];
+    }
+}
+
+function iaMontrerRelecture(texte, erreurs) {
+    var zone = document.getElementById('iaRelecture');
+    if (!zone) return;
+    if (!erreurs || !erreurs.length) {
+        zone.hidden = true;
+        zone.innerHTML = '';
+        return;
+    }
+    var lignes = erreurs.map(function (err) {
+        var extrait = String(texte || '').slice(err.debut, err.fin);
+        var suggestion = err.suggestions && err.suggestions[0] ? ' Écris plutôt « ' + err.suggestions[0] + ' ».' : '';
+        return '<li><strong>Conjugaison.</strong> « ' + iaEchap(extrait) + ' » — ' + iaEchap(err.message || 'La conjugaison ne va pas.') + iaEchap(suggestion) + '</li>';
+    }).join('');
+    var apercu = typeof langueMarquer === 'function' ? langueMarquer(texte, erreurs) : iaEchap(texte);
+    zone.hidden = false;
+    zone.innerHTML = '<p class="ia-relecture-titre">Corrige la conjugaison avant l\'envoi. Le message n\'est pas parti.</p>'
+        + '<p class="ia-relecture-apercu">' + apercu + '</p>'
+        + '<ul>' + lignes + '</ul>'
+        + '<button type="button" id="iaEnvoyerQuandMeme">Envoyer quand même</button>';
+    var bouton = document.getElementById('iaEnvoyerQuandMeme');
+    if (bouton) bouton.onclick = function () { iaEnvoyer(null, true); };
+}
+
+function iaBrancherConjugaison() {
+    var box = document.getElementById('iaConjugaison');
+    if (!box || box.dataset.ia) return;
+    box.dataset.ia = '1';
+    try {
+        var sauve = localStorage.getItem('ia-conjugaison');
+        if (sauve === '0') box.checked = false;
+        if (sauve === '1') box.checked = true;
+    } catch (e) {}
+    box.addEventListener('change', function () {
+        try { localStorage.setItem('ia-conjugaison', box.checked ? '1' : '0'); } catch (e2) {}
+        if (!box.checked) iaMontrerRelecture('', []);
+    });
 }
 
 function iaVeutSolution(texte) {
@@ -1590,7 +1653,10 @@ function iaComposer(lecture, action) {
     else if (lecture.intention === 'accueil') corps = 'Je suis là. Dis-moi ce que tu veux organiser, ou simplement ce qui ne va pas.';
     else if (lecture.intention === 'exercice') corps = iaRefusExercice(lecture.brut);
     else if (lecture.intention === 'emotion') corps = iaFaitEmotion(lecture);
-    else if (lecture.intention === 'pdf') corps = 'Je ne prends pas de fichier ici. Dis-moi le jour et la matière, je m\'en occupe dans le planning.';
+    else if (lecture.intention === 'pdf') {
+        var docPdf = typeof iaDocActif === 'function' ? iaDocActif(lecture.brut) : null;
+        corps = docPdf && docPdf.texte ? iaMessageComprehension(iaComprendrePdf(docPdf.nom, docPdf.texte)) : 'Utilise le bouton PDF, puis dis-moi ce que je dois faire.';
+    }
     else if (lecture.intention === 'page') corps = [action, sure].filter(Boolean).join('\n\n') || ('Tu veux la page ' + (lecture.page || 'demandée') + '.');
     else if (lecture.intention === 'exo') corps = action || 'Il me faut la matière et la date limite. Je place le créneau, je ne fais pas l\'exercice.';
     else if (lecture.intention === 'creneau') corps = action || 'Pour le créneau, il me faut le nom, le jour, et l\'heure de début et de fin.';
@@ -1667,18 +1733,256 @@ function iaEstTexte(fichier) {
     return !!(fichier && (fichier.type === 'text/plain' || /\.txt$/i.test(fichier.name || '')));
 }
 
-function iaMessageFichierPret(fichier, texte) {
-    var creneaux = iaCreneauxPdf(texte);
-    var echeances = iaEcheancesPdf(texte);
-    var suite = 'Dis-moi ce que tu veux que j\'en fasse.';
-    if (creneaux.length && echeances.length) {
-        suite = 'J\'y vois ' + creneaux.length + ' créneau' + (creneaux.length > 1 ? 'x' : '') + ' et ' + echeances.length + ' échéance' + (echeances.length > 1 ? 's' : '') + '. Dis-moi ce que tu veux que j\'en fasse.';
-    } else if (creneaux.length) {
-        suite = 'J\'y vois ' + creneaux.length + ' créneau' + (creneaux.length > 1 ? 'x' : '') + '. Dis-moi si tu veux que je les place, ou pose-moi une question.';
-    } else if (echeances.length) {
-        suite = 'J\'y vois ' + echeances.length + ' échéance' + (echeances.length > 1 ? 's' : '') + '. Dis-moi si tu veux que je les place dans ton planning.';
+function iaSujetsDansTexte(texte) {
+    var n = iaNormaliser(texte);
+    var trouves = [];
+    function deja(nom) {
+        var cle = iaNormaliser(nom);
+        return trouves.some(function (autre) { return iaNormaliser(autre).indexOf(cle) !== -1 || cle.indexOf(iaNormaliser(autre)) !== -1; });
     }
-    return 'C\'est reçu. J\'ai analysé « ' + (fichier.name || 'le fichier') + ' ». ' + suite;
+    iaMatieres().forEach(function (s) {
+        if (!s || !s.name) return;
+        if (n.indexOf(iaNormaliser(s.name)) !== -1 && !deja(s.name)) trouves.push(s.name);
+    });
+    [
+        ['mathematiques', 'Mathématiques'],
+        ['maths', 'Maths'],
+        ['francais', 'Français'],
+        ['anglais', 'Anglais'],
+        ['biologie', 'Biologie'],
+        ['physique', 'Physique'],
+        ['chimie', 'Chimie'],
+        ['histoire', 'Histoire'],
+        ['geographie', 'Géographie'],
+        ['economie', 'Économie'],
+        ['philosophie', 'Philosophie'],
+        ['tok', 'TOK']
+    ].forEach(function (pair) {
+        if (n.indexOf(pair[0]) !== -1 && !deja(pair[1])) trouves.push(pair[1]);
+    });
+    return trouves.slice(0, 8);
+}
+
+function iaJoursDansTexte(texte) {
+    var n = iaNormaliser(texte);
+    return ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].filter(function (jour) {
+        return n.indexOf(jour) !== -1;
+    });
+}
+
+function iaComprendrePdf(nom, texte) {
+    var brut = String(texte || '');
+    var n = iaNormaliser(brut);
+    var creneaux = [];
+    var echeances = [];
+    try { creneaux = iaCreneauxPdf(brut) || []; } catch (e) { creneaux = []; }
+    try { echeances = iaEcheancesPdf(brut) || []; } catch (e2) { echeances = []; }
+    var sujets = iaSujetsDansTexte(brut);
+    var jours = iaJoursDansTexte(brut);
+    var questions = (brut.match(/\?/g) || []).length;
+    var lignes = brut.split(/\n/).map(function (l) { return l.replace(/\s+/g, ' ').trim(); }).filter(function (l) { return l.length > 12; });
+    var type = 'texte';
+    if (creneaux.length && jours.length) type = 'emploi';
+    else if (echeances.length && !creneaux.length) type = 'echeances';
+    else if (questions >= 2 || /(exercice|probleme|calculate|solve|montre que)/.test(n)) type = 'exercice';
+    else if (sujets.length && lignes.length >= 2) type = 'cours';
+    var flou = [];
+    if (!creneaux.length && !echeances.length && !sujets.length && lignes.length < 2) flou.push('le sujet du document');
+    if (/(?:\d{1,2}\s*h|\d{1,2}:\d{2})/.test(n) && !jours.length) flou.push('le jour de certaines heures');
+    if (echeances.some(function (item) { return !item.sujet || item.sujet === 'Travail'; })) flou.push('la matière de certaines échéances');
+    if (type === 'exercice') flou.push('ce que tu veux en faire, puisque je ne fais pas le devoir');
+    return {
+        nom: nom || 'le fichier',
+        type: type,
+        creneaux: creneaux,
+        echeances: echeances,
+        sujets: sujets,
+        jours: jours,
+        questions: questions,
+        apercu: lignes.slice(0, 3),
+        flou: flou
+    };
+}
+
+function iaPhraseTypePdf(type) {
+    if (type === 'emploi') return 'un emploi du temps';
+    if (type === 'echeances') return 'une liste d\'échéances';
+    if (type === 'exercice') return 'un exercice ou un devoir';
+    if (type === 'cours') return 'un document de cours';
+    return 'un texte';
+}
+
+function iaQuestionPdf(comp) {
+    if (!comp) return 'Que dois-je faire de ce fichier ?';
+    if (comp.flou.indexOf('le sujet du document') !== -1) return 'C\'est un emploi du temps, une liste de devoirs, ou un cours ?';
+    if (comp.creneaux.length && comp.echeances.length) return 'Je place les cours, les échéances, ou les deux ?';
+    if (comp.creneaux.length) return 'Je place ces créneaux dans ton planning, ou tu veux seulement le résumé ?';
+    if (comp.echeances.length) return 'Je note ces échéances, ou tu veux seulement le résumé ?';
+    if (comp.type === 'exercice') return 'Je ne fais pas l\'exercice. Tu veux un résumé, ou un créneau pour le faire toi-même ?';
+    return 'Que dois-je en faire : le résumer, en sortir une date, ou le laisser de côté ?';
+}
+
+function iaMessageComprehension(comp) {
+    if (!comp) return 'Je n\'ai pas compris ce fichier. Tu peux me dire ce que c\'est ?';
+    if (comp.flou.indexOf('le sujet du document') !== -1 && !comp.apercu.length) return iaQuestionPdf(comp);
+    var lignes = ['J\'ai lu « ' + comp.nom + ' ». Je comprends que c\'est ' + iaPhraseTypePdf(comp.type) + '.'];
+    if (comp.sujets.length) lignes.push('Matières repérées : ' + comp.sujets.join(', ') + '.');
+    if (comp.jours.length) lignes.push('Jours écrits : ' + comp.jours.join(', ') + '.');
+    if (comp.creneaux.length) lignes.push(comp.creneaux.length + ' créneau' + (comp.creneaux.length > 1 ? 'x' : '') + ' avec un jour et une heure.');
+    if (comp.echeances.length) lignes.push(comp.echeances.length + ' échéance' + (comp.echeances.length > 1 ? 's' : '') + '.');
+    if (comp.apercu.length && comp.type !== 'emploi') lignes.push('J\'en retiens : ' + comp.apercu[0].slice(0, 160) + '.');
+    if (comp.flou.length) lignes.push('Ce qui n\'est pas clair : ' + comp.flou.join(', ') + '.');
+    lignes.push('Dis-moi ce que je dois faire. Je ne place rien tant que tu ne me le demandes pas.');
+    return lignes.join('\n');
+}
+
+function iaMessageFichierPret(fichier, texte) {
+    var comp = iaComprendrePdf(fichier && fichier.name, texte);
+    window.__iaPdfAttente = {
+        nom: comp.nom,
+        question: comp.flou.indexOf('le sujet du document') !== -1 ? 'nature' : ''
+    };
+    return iaMessageComprehension(comp);
+}
+
+function iaLireInstructionPdf(texte, comp) {
+    var n = iaNormaliser(texte);
+    var attend = window.__iaPdfAttente && window.__iaPdfAttente.question;
+    if (/(ne fais rien|laisse ca|laisse le|oublie|pas maintenant|rien du tout)/.test(n)) return { action: 'rien' };
+    if (/(resume|resumer|synthese|de quoi parle|qu.est.ce qu.il y a|c.est quoi ce|explique le fichier|explique ce pdf)/.test(n)) return { action: 'resumer' };
+    if (/(les deux|place tout|placer tout)/.test(n) && comp && comp.creneaux.length && comp.echeances.length) return { action: 'les-deux' };
+    if (attend === 'choix' || attend === 'nature') {
+        if (/(deux|tout|tous|toutes)/.test(n)) return { action: 'les-deux' };
+        if (/(echeance|deadline|devoir)/.test(n) && !/(cours|creneau|horaire)/.test(n)) return { action: 'placer-echeances' };
+        if (/(cours|creneau|horaire|emploi|planning)/.test(n) && !/(echeance|deadline)/.test(n)) return { action: 'placer-creneaux' };
+        if (/(resume|resumer)/.test(n)) return { action: 'resumer' };
+        if (attend === 'nature' && /(emploi|horaire|devoir|cours|texte)/.test(n)) return { action: 'resumer' };
+    }
+    if (/(place|placer|ajoute|ajouter|mets|mettre|planifie|planifier|importe|importer|note|noter)/.test(n)) {
+        var echeance = /(echeance|deadline|devoir|revision|a rendre)/.test(n);
+        var cours = /(cours|creneau|horaire|emploi|planning)/.test(n);
+        if (echeance && cours) return { action: 'les-deux' };
+        if (echeance) return { action: 'placer-echeances' };
+        if (cours) return { action: 'placer-creneaux' };
+        if (comp && comp.creneaux.length && comp.echeances.length) return { question: iaQuestionPdf(comp), code: 'choix' };
+        if (comp && comp.creneaux.length) return { action: 'placer-creneaux' };
+        if (comp && comp.echeances.length) return { action: 'placer-echeances' };
+        return { question: 'Je ne vois pas de créneau ni d\'échéance à placer. Tu veux un résumé, ou tu me donnes la matière et la date ?', code: 'but' };
+    }
+    if (/(fais|faire|occupe|traite|traiter|aide|vas-y|vas y|daccord)/.test(n) && n.length < 90) {
+        return { question: iaQuestionPdf(comp), code: 'choix' };
+    }
+    if (iaQuestionInformation(n) || /\?/.test(String(texte || ''))) return { action: 'repondre' };
+    if (n.length < 18) return { question: iaQuestionPdf(comp), code: 'but' };
+    return { action: 'inconnu' };
+}
+
+function iaReponseDansPdf(texte, doc) {
+    var mots = iaMotsMarquants(texte).filter(function (mot) { return mot.length > 4; });
+    if (!mots.length || !doc) return '';
+    var utiles = String(doc.texte || '').split(/\n/).map(function (l) {
+        return l.replace(/\s+/g, ' ').trim();
+    }).filter(function (l) {
+        if (l.length < 8) return false;
+        var n = iaNormaliser(l);
+        return mots.some(function (mot) { return n.indexOf(mot) !== -1; });
+    }).slice(0, 3);
+    if (!utiles.length) return '';
+    return 'Dans « ' + doc.nom + ' », je lis : ' + utiles.join(' · ') + '.';
+}
+
+function iaSujetAbsentPdf(texte, doc, comp) {
+    if (!doc) return '';
+    var n = iaNormaliser(texte);
+    var nDoc = iaNormaliser(doc.texte);
+    var sujet = iaSujetDemande(n);
+    if (sujet) {
+        if (nDoc.indexOf(iaNormaliser(sujet)) !== -1) return '';
+        if ((comp.sujets || []).some(function (nom) {
+            var a = iaNormaliser(nom);
+            var b = iaNormaliser(sujet);
+            return a.indexOf(b) !== -1 || b.indexOf(a) !== -1;
+        })) return '';
+        return sujet;
+    }
+    if (!/(place|placer|ajoute|mets|note)/.test(n)) return '';
+    var generiques = { cours: 1, creneau: 1, creneaux: 1, echeance: 1, echeances: 1, planning: 1, fichier: 1, document: 1, emploi: 1, devoir: 1, devoirs: 1, revision: 1, revisions: 1, horaire: 1, horaires: 1, texte: 1, resume: 1, deux: 1, matin: 1, soir: 1, place: 1, placer: 1, ajoute: 1, ajouter: 1, mettre: 1, note: 1, noter: 1, seulement: 1, dans: 1 };
+    var absent = '';
+    n.split(/[^a-z0-9]+/).some(function (mot) {
+        if (mot.length < 4 || generiques[mot] || nDoc.indexOf(mot) !== -1) return false;
+        absent = mot;
+        return true;
+    });
+    return absent;
+}
+
+function iaSuivreInstructionPdf(texte) {
+    var doc = iaDocActif(texte);
+    if (!doc || !doc.texte) {
+        var docs = iaDocs();
+        doc = docs.length ? docs[docs.length - 1] : null;
+    }
+    if (!doc || !doc.texte) return 'Je n\'ai pas de PDF en cours. Utilise le bouton PDF, puis dis-moi ce que je dois faire.';
+    var comp = iaComprendrePdf(doc.nom, doc.texte);
+    var absent = iaSujetAbsentPdf(texte, doc, comp);
+    if (absent) {
+        window.__iaPdfAttente = { nom: doc.nom, question: 'matiere' };
+        return 'Je ne vois pas « ' + absent + ' » dans « ' + doc.nom + ' ». Tu parles d\'une matière du fichier, ou d\'un autre document ?';
+    }
+    var decision = iaLireInstructionPdf(texte, comp);
+    if (decision.question) {
+        window.__iaPdfAttente = { nom: doc.nom, question: decision.code || 'but' };
+        return decision.question;
+    }
+    if (decision.action === 'rien') {
+        window.__iaPdfAttente = null;
+        return 'D\'accord. Je laisse « ' + doc.nom + ' » de côté. Tu peux me redemander plus tard.';
+    }
+    if (decision.action === 'resumer') {
+        window.__iaPdfAttente = { nom: doc.nom, question: '' };
+        return iaMessageComprehension(comp);
+    }
+    if (decision.action === 'repondre') {
+        var extrait = iaReponseDansPdf(texte, doc);
+        if (extrait) return extrait + '\n\nDis-moi ensuite ce que je dois faire.';
+        window.__iaPdfAttente = { nom: doc.nom, question: 'but' };
+        return 'Je ne vois pas ça dans « ' + doc.nom + ' ». Tu peux préciser le mot, ou me dire ce que je dois faire ?';
+    }
+    if (decision.action === 'placer-creneaux' || decision.action === 'les-deux') {
+        var cours = iaPlacerCreneauxPdf(doc, iaNormaliser(texte));
+        if (/je ne vois pas de creneau/.test(iaNormaliser(cours))) {
+            window.__iaPdfAttente = { nom: doc.nom, question: 'but' };
+            return cours + '\n\n' + iaQuestionPdf(comp);
+        }
+        var suite = decision.action === 'les-deux' ? '\n\n' + iaPlacerEcheancesPdf(doc, iaNormaliser(texte)) : '';
+        window.__iaPdfAttente = null;
+        return cours + suite;
+    }
+    if (decision.action === 'placer-echeances') {
+        var echeances = iaPlacerEcheancesPdf(doc, iaNormaliser(texte));
+        if (/je ne vois pas d.echeance/.test(iaNormaliser(echeances))) {
+            window.__iaPdfAttente = { nom: doc.nom, question: 'but' };
+            return echeances + '\n\n' + iaQuestionPdf(comp);
+        }
+        window.__iaPdfAttente = null;
+        return echeances;
+    }
+    window.__iaPdfAttente = { nom: doc.nom, question: 'but' };
+    return 'Je n\'ai pas compris l\'instruction. ' + iaQuestionPdf(comp);
+}
+
+function iaMessageConcernePdf(texte) {
+    if (!window.__iaPdfAttente && !iaDocs().length) return false;
+    var n = iaNormaliser(texte);
+    if (/^(salut|bonjour|bonsoir|merci|coucou)\b/.test(n) && n.length < 28) return false;
+    if (window.__iaPdfAttente) {
+        if (typeof iaVeutActivite === 'function' && iaVeutActivite(n) && iaHeuresTrouvees(n).length) return false;
+        if (typeof iaVeutExerciceSlot === 'function' && iaVeutExerciceSlot(n) && !/(pdf|fichier|document)/.test(n)) return false;
+        if (iaQuestionInformation(n) && !/(pdf|fichier|document|dedans|texte)/.test(n)) return false;
+        if (typeof iaVeutOuvrir === 'function' && iaVeutOuvrir(n) && !/(pdf|fichier)/.test(n)) return false;
+        return true;
+    }
+    return iaPorteSurFichier(n) || iaVeutActionPdf(n);
 }
 
 async function iaLireFichier(fichier) {
@@ -2560,7 +2864,9 @@ function iaCorrigerFrancais(texte) {
     if (typeof langueLocale === 'function') {
         try {
             var erreurs = langueLocale(s).filter(function (e) {
-                return e && e.suggestions && e.suggestions[0] && e.type === 'orthographe';
+                if (!e || !e.suggestions || !e.suggestions[0]) return false;
+                if (e.type === 'orthographe') return true;
+                return e.type === 'conjugaison' && iaConjugaisonActive() && (e.fin - e.debut) <= 40;
             });
             erreurs.sort(function (a, b) { return b.debut - a.debut; });
             erreurs.forEach(function (e) {
@@ -2943,8 +3249,8 @@ function iaAgir(texte) {
         var page = iaPageDemandee(n);
         if (page) notes.push(iaOuvrirPage(page));
     }
-    if (/(pdf|piece jointe|upload|joindre)/.test(n) && /(fichier|document|pdf)/.test(n)) {
-        notes.push('Je ne prends pas de fichier ici. Dis-moi le jour et la matière.');
+    if (!iaDocs().length && /(pdf|piece jointe|upload|joindre)/.test(n) && /(fichier|document|pdf)/.test(n)) {
+        notes.push('Utilise le bouton PDF, puis dis-moi ce que je dois en faire.');
     }
     if (iaVeutModifier(n)) notes.push(iaModifierPlanning(texte));
     else if (iaVeutExerciceSlot(n)) notes.push(iaAjouterExercice(texte));
@@ -3017,7 +3323,7 @@ function iaMessages(question, action, lecture) {
         'Le fil de la conversation est déjà connu. Ne redemande jamais une matière, un jour, une heure, une durée ou un nom déjà dit quelques messages plus haut. Relie la nouvelle information à ce fil avant de répondre.',
         'Si la personne signale un problème de fonctionnement du site, d\'une page ou d\'un bouton, ouvre la page aide. Ne lui fais pas répéter le problème.',
         'N\'invente jamais ses notes, ses exercices, son planning. Si une action a déjà été faite, confirme-la telle quelle. Ne demande pas de la refaire.',
-        'Il n\'y a pas d\'envoi de fichier. Ne propose jamais un PDF, une pièce jointe ou un upload. Si on te le demande, dis de donner le jour et la matière.',
+        'Le bouton PDF sert à ajouter un fichier. Tu comprends d\'abord ce qui est écrit, tu attends les instructions de la personne, et tu poses une question si la demande ou le document n\'est pas clair. Tu ne places rien sans instruction. Tu n\'inventes aucun horaire absent du fichier, et tu ne fais pas les exercices du fichier.',
         'Si la personne demande d\'ouvrir une page, tu peux ajouter à la fin une ligne [[action:ouvrir:planning]], exercices, soutien, eeia, feries, legende, aide ou feedback.',
         'Si la personne demande d\'ajouter une activité avec un jour et un créneau, et que ce n\'est pas déjà fait, tu peux ajouter [[action:activite:Nom|0|17:00|18:30]] où 0 est lundi et 6 dimanche. N\'invente jamais un horaire qui n\'a pas été dit.',
         'Quand la personne parle de stress, fatigue, honte, peur, solitude ou découragement : accueille d\'abord le ressenti. Ne pose aucun diagnostic. Propose au plus une petite étape. Tu n\'es pas un professionnel de santé.',
@@ -3048,7 +3354,7 @@ function iaMessages(question, action, lecture) {
 
 function iaQuestion(texte) {
     if (texte === 'Analyse mon PDF') {
-        iaBulle('assistant', 'Je ne prends pas de fichier ici. Dis-moi le jour et la matière.');
+        iaChoisirPdf();
         return;
     }
     if (texte === 'Je suis stressé') texte = 'Je suis stressé. Écoute-moi d\'abord, sans me donner une longue liste de devoirs.';
@@ -3060,12 +3366,20 @@ function iaQuestion(texte) {
     iaEnvoyer();
 }
 
-async function iaEnvoyer(event) {
+async function iaEnvoyer(event, forcer) {
     if (event && event.preventDefault) event.preventDefault();
     if (!iaEstAdmin() || iaEnCours) return false;
     var saisie = document.getElementById('iaSaisie');
     var texte = saisie ? saisie.value.trim() : '';
     if (!texte) return false;
+    if (forcer !== true && iaConjugaisonActive()) {
+        var fautes = iaErreursConjugaison(texte);
+        if (fautes.length) {
+            iaMontrerRelecture(texte, fautes);
+            return false;
+        }
+    }
+    iaMontrerRelecture('', []);
     if (saisie) {
         saisie.value = '';
         saisie.style.height = 'auto';
@@ -3088,6 +3402,14 @@ async function iaEnvoyer(event) {
         iaHistorique.push({ role: 'user', content: 'Je ne vais pas bien et j\'ai besoin d\'aide tout de suite.' });
         iaHistorique.push({ role: 'assistant', content: soin });
         iaStatut('Parle à un adulte de confiance', '#b45309');
+        return false;
+    }
+    if (iaMessageConcernePdf(texte)) {
+        var suitePdf = iaSuivreInstructionPdf(texte);
+        iaBulle('assistant', suitePdf);
+        iaHistorique.push({ role: 'user', content: texte });
+        iaHistorique.push({ role: 'assistant', content: suitePdf });
+        iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
         return false;
     }
     iaHistorique.push({ role: 'user', content: texte });
@@ -3189,6 +3511,8 @@ function iaOuvrir() {
     if (iaCompte && iaCompte !== compte) {
         iaHistorique = [];
         iaCloreFil();
+        window.__iaPdfAttente = null;
+        window.__iaFichierPret = false;
         iaOuvert = false;
         var fil = document.getElementById('iaFil');
         if (fil) fil.innerHTML = '';
@@ -3196,7 +3520,11 @@ function iaOuvrir() {
         if (zone) zone.innerHTML = '';
     }
     iaCompte = compte;
-    if (iaDocs().length) window.__iaFichierPret = true;
+    if (iaDocs().length) {
+        window.__iaFichierPret = true;
+        if (!window.__iaPdfAttente) window.__iaPdfAttente = { nom: iaDocs()[iaDocs().length - 1].nom, question: '' };
+    }
+    iaBrancherConjugaison();
     var salut = document.getElementById('iaSalut');
     if (salut) salut.textContent = 'Bonjour, ' + iaIdentite().prenom;
     iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
