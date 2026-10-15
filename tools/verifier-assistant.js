@@ -100,7 +100,25 @@ ok(/réveil/.test(dump), 'un dump d\'horaire ne remplace pas l\'explication : ' 
 var htmlAssistant = fs.readFileSync('pages/assistant.html', 'utf8');
 ok(htmlAssistant.indexOf('id="iaJoindre"') !== -1 && htmlAssistant.indexOf('iaChoisirPdf()') !== -1, 'bouton PDF');
 ok(htmlAssistant.indexOf('id="iaFichier"') !== -1, 'sélecteur de fichier');
-ok(htmlAssistant.indexOf('Relire aussi la conjugaison avant d\'envoyer un message') !== -1, 'option conjugaison');
+// L'option visible a disparu : la relecture est silencieuse.
+ok(htmlAssistant.indexOf('Relire aussi la conjugaison') === -1, 'l\'option visible doit disparaître');
+ok(htmlAssistant.indexOf('iaConjugaison') === -1, 'la case conjugaison doit disparaître');
+ok(htmlAssistant.indexOf('iaRelecture') === -1, 'le panneau de relecture doit disparaître');
+var sourceAssistant = fs.readFileSync('js/pages/assistant.js', 'utf8');
+ok(sourceAssistant.indexOf('Corrige la conjugaison avant l\'envoi') === -1, 'aucun message ne doit prévenir l\'utilisateur');
+ok(sourceAssistant.indexOf('Envoyer quand même') === -1, 'plus de bouton de relecture');
+ok(sourceAssistant.indexOf('function iaQuestionPropre') !== -1, 'la question n\'est plus corrigée en silence');
+ok(sourceAssistant.indexOf('var questionPropre = iaQuestionPropre(texte);') !== -1, 'la correction silencieuse n\'est pas branchée');
+ok(sourceAssistant.indexOf('iaMontrerRelecture') === -1, 'plus aucun panneau de relecture dans le code');
+ok(sourceAssistant.indexOf('var lecture = iaLireQuestion(questionPropre);') !== -1, 'l\'analyse doit utiliser la question corrigée');
+ok(sourceAssistant.indexOf('return iaCorrigerFrancais(corps);') !== -1, 'les réponses doivent toujours être relues');
+ok(sandbox.iaConjugaisonActive() === true, 'la relecture doit être active sans le dire');
+var questionCorrigee = sandbox.iaQuestionPropre('tu va a l ecole demain');
+ok(questionCorrigee.indexOf('vas') !== -1, 'la conjugaison de la question doit être corrigée en silence : ' + questionCorrigee);
+var participe = sandbox.iaQuestionPropre('nous avons manger hier');
+ok(participe.indexOf('mangé') !== -1, 'le participe passé doit être corrigé en silence : ' + participe);
+var reponseRelue = sandbox.iaCorrigerFrancais('tu va a l ecole');
+ok(reponseRelue.indexOf('vas') !== -1, 'la réponse doit être relue : ' + reponseRelue);
 ok(sandbox.iaChoisirPdf.toString().indexOf('iaFichier') !== -1, 'le bouton ouvre le sélecteur');
 
 var emploiPdf = 'Lundi\nMathématiques 08:00-09:00\nPhysique 09:00-10:00\nDevoir de chimie à rendre le 20 octobre';
@@ -120,7 +138,7 @@ var absent = sandbox.iaSuivreInstructionPdf('place le latin du pdf');
 ok(/ne vois pas/.test(absent) && /latin/.test(absent), 'matière absente : une question : ' + absent);
 
 var fautes = sandbox.iaErreursConjugaison('tu va a l ecole');
-ok(fautes.some(function (err) { return err.type === 'conjugaison'; }), 'conjugaison signalée avant l\'envoi');
+ok(fautes.some(function (err) { return err.type === 'conjugaison'; }), 'la conjugaison doit rester vérifiée en interne');
 ok(!sandbox.iaErreursConjugaison('tu vas à l\'école').some(function (err) { return err.type === 'conjugaison'; }), 'une conjugaison juste passe');
 
 if (echecs) {

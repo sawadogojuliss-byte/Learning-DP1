@@ -894,15 +894,37 @@ function iaChoisirPdf() {
     input.click();
 }
 
+// La relecture de la conjugaison se fait sans rien demander à l'utilisateur :
+// elle est toujours active, et jamais affichée.
 function iaConjugaisonActive() {
-    var box = document.getElementById('iaConjugaison');
-    if (box) return !!box.checked;
+    return true;
+}
+
+// Corrige discrètement la question de l'élève (orthographe, grammaire,
+// conjugaison) pour que l'assistant la comprenne bien. Rien n'est montré.
+function iaQuestionPropre(texte) {
+    var brut = String(texte || '');
+    if (!brut.trim()) return brut;
+    if (typeof langueLocale !== 'function') return brut;
     try {
-        var sauve = localStorage.getItem('ia-conjugaison');
-        if (sauve === '0') return false;
-        if (sauve === '1') return true;
-    } catch (e) {}
-    return false;
+        var erreurs = langueLocale(brut).filter(function (e) {
+            if (!e || !e.suggestions || !e.suggestions[0]) return false;
+            if (e.fin <= e.debut) return false;
+            if (e.fin - e.debut > 40) return false;
+            if (e.type === 'conjugaison' || e.type === 'orthographe' || e.type === 'grammaire') return true;
+            return false;
+        });
+        erreurs.sort(function (a, b) { return b.debut - a.debut; });
+        var propre = brut;
+        erreurs.forEach(function (e) {
+            var propose = String(e.suggestions[0]);
+            if (!propose || propose.length > 80) return;
+            propre = propre.slice(0, e.debut) + propose + propre.slice(e.fin);
+        });
+        return propre.replace(/[ \t]{2,}/g, ' ').trim();
+    } catch (e) {
+        return brut;
+    }
 }
 
 function iaErreursConjugaison(texte) {
@@ -916,42 +938,8 @@ function iaErreursConjugaison(texte) {
     }
 }
 
-function iaMontrerRelecture(texte, erreurs) {
-    var zone = document.getElementById('iaRelecture');
-    if (!zone) return;
-    if (!erreurs || !erreurs.length) {
-        zone.hidden = true;
-        zone.innerHTML = '';
-        return;
-    }
-    var lignes = erreurs.map(function (err) {
-        var extrait = String(texte || '').slice(err.debut, err.fin);
-        var suggestion = err.suggestions && err.suggestions[0] ? ' Écris plutôt « ' + err.suggestions[0] + ' ».' : '';
-        return '<li><strong>Conjugaison.</strong> « ' + iaEchap(extrait) + ' » — ' + iaEchap(err.message || 'La conjugaison ne va pas.') + iaEchap(suggestion) + '</li>';
-    }).join('');
-    var apercu = typeof langueMarquer === 'function' ? langueMarquer(texte, erreurs) : iaEchap(texte);
-    zone.hidden = false;
-    zone.innerHTML = '<p class="ia-relecture-titre">Corrige la conjugaison avant l\'envoi. Le message n\'est pas parti.</p>'
-        + '<p class="ia-relecture-apercu">' + apercu + '</p>'
-        + '<ul>' + lignes + '</ul>'
-        + '<button type="button" id="iaEnvoyerQuandMeme">Envoyer quand même</button>';
-    var bouton = document.getElementById('iaEnvoyerQuandMeme');
-    if (bouton) bouton.onclick = function () { iaEnvoyer(null, true); };
-}
-
 function iaBrancherConjugaison() {
-    var box = document.getElementById('iaConjugaison');
-    if (!box || box.dataset.ia) return;
-    box.dataset.ia = '1';
-    try {
-        var sauve = localStorage.getItem('ia-conjugaison');
-        if (sauve === '0') box.checked = false;
-        if (sauve === '1') box.checked = true;
-    } catch (e) {}
-    box.addEventListener('change', function () {
-        try { localStorage.setItem('ia-conjugaison', box.checked ? '1' : '0'); } catch (e2) {}
-        if (!box.checked) iaMontrerRelecture('', []);
-    });
+    // Rien à brancher : la relecture est silencieuse et permanente.
 }
 
 function iaVeutSolution(texte) {
@@ -3654,14 +3642,8 @@ async function iaEnvoyer(event, forcer) {
     var saisie = document.getElementById('iaSaisie');
     var texte = saisie ? saisie.value.trim() : '';
     if (!texte) return false;
-    if (forcer !== true && iaConjugaisonActive()) {
-        var fautes = iaErreursConjugaison(texte);
-        if (fautes.length) {
-            iaMontrerRelecture(texte, fautes);
-            return false;
-        }
-    }
-    iaMontrerRelecture('', []);
+    // Relecture silencieuse : la question est corrigée pour l'analyse, jamais affichée.
+    var questionPropre = iaQuestionPropre(texte);
     if (saisie) {
         saisie.value = '';
         saisie.style.height = 'auto';
@@ -3686,8 +3668,8 @@ async function iaEnvoyer(event, forcer) {
         iaStatut('Parle à un adulte de confiance', '#b45309');
         return false;
     }
-    if (iaMessageConcernePdf(texte)) {
-        var suitePdf = iaSuivreInstructionPdf(texte);
+    if (iaMessageConcernePdf(questionPropre)) {
+        var suitePdf = iaSuivreInstructionPdf(questionPropre);
         iaBulle('assistant', suitePdf);
         iaHistorique.push({ role: 'user', content: texte });
         iaHistorique.push({ role: 'assistant', content: suitePdf });
@@ -3704,14 +3686,14 @@ async function iaEnvoyer(event, forcer) {
         else iaNoterQuestion(suite);
         return false;
     }
-    var lecture = iaLireQuestion(texte);
-    var lieTot = iaTexteDuFil(texte);
+    var lecture = iaLireQuestion(questionPropre);
+    var lieTot = iaTexteDuFil(questionPropre);
     var actionTot = [iaCocherSiDemande(lieTot), iaAgir(lieTot)].filter(Boolean).join(' ');
     // Un document attend sa question : on relie la question au fichier avant de répondre.
-    if (iaDocs().length && !window.__iaPdfAttente && !iaVeutActionPdf(iaNormaliser(texte)) && !iaVeutSolution(texte)) {
-        var docLie = iaDocActif(texte);
+    if (iaDocs().length && !window.__iaPdfAttente && !iaVeutActionPdf(iaNormaliser(questionPropre)) && !iaVeutSolution(texte)) {
+        var docLie = iaDocActif(questionPropre);
         if (docLie && docLie.texte) {
-            var reponseLiee = iaReponseLieeAuDoc(texte, docLie);
+            var reponseLiee = iaReponseLieeAuDoc(questionPropre, docLie);
             if (reponseLiee) {
                 window.__iaDocPret = null;
                 iaRetirerInvitation();
