@@ -217,6 +217,63 @@ ok(sourceAssistant.indexOf("Tu n\\'es pas un professeur") !== -1, 'le ton ne doi
 ok(sourceAssistant.indexOf("sans jugement") !== -1, 'le ton amical doit rester');
 ok(sourceAssistant.indexOf("montres jamais que tu en sais plus") !== -1, 'l\'assistant ne doit pas paraître plus savant');
 
+/* ── Assistant intelligent : jamais de phrase de robot ─────────────── */
+ok(sourceAssistant.indexOf('Pose la question en une phrase') === -1, 'plus de demande de reformuler');
+ok(sourceAssistant.indexOf('avec le mot précis') === -1, 'plus de demande de mot précis');
+ok(typeof sandbox.iaReponseIntelligente === 'function', 'le repli intelligent manque');
+ok(typeof sandbox.iaSuiteUtile === 'function', 'la question de suite manque');
+ok(typeof sandbox.iaMessagesCourts === 'function', 'le prompt court de secours manque');
+ok(sourceAssistant.indexOf("'gpt-4o-mini'") !== -1 && sourceAssistant.indexOf('llama-3.3-70b-instruct') !== -1,
+    'la liste des modèles doit être plus large');
+ok(sourceAssistant.indexOf('iaMessagesCourts(messages)') !== -1, 'le second essai avec prompt court manque');
+
+var intelligentes = [
+    'Comment je révise les maths ?',
+    'Combien de points je peux avoir au maximum ?',
+    'Explique-moi le CAS',
+    'Comment mieux me concentrer ?',
+    'Je n’arrive pas à mémoriser mes leçons',
+    'Je comprends rien au cours de physique',
+    'Tu penses quoi des évaluations internes ?',
+    'Aide-moi'
+];
+intelligentes.forEach(function (q) {
+    var r = sandbox.iaRepondreLocal(q) || '';
+    ok(r.length >= 45, 'réponse trop courte pour « ' + q + ' » : ' + r);
+    ok(!/reformule|pose la question en une phrase|dis-le autrement/i.test(r), 'phrase de robot : ' + r);
+    ok((r.match(/\?/g) || []).length <= 1, 'une seule question de suite maximum : ' + r);
+});
+
+/* La question du soir ne se colle jamais à une réponse de repli. */
+var soir = sandbox.iaReponseFinale('Aide-moi', sandbox.iaLireQuestion('Aide-moi'), '', '');
+ok(!/comment s.est passee ta journee/i.test(sandbox.iaNormaliser(soir)),
+    'pas de question du soir après un repli : ' + soir);
+
+/* Ponctuation française : espace avant ? ! ; et deux-points, heures et liens intacts. */
+var ponct = sandbox.iaCorrigerFrancais('Tu vas bien? Oui: très bien. Cours à 16:25, site https://studyplanib.com');
+ok(ponct.indexOf('bien ?') !== -1 && ponct.indexOf('Oui :') !== -1, 'espace avant ? et : : ' + ponct);
+ok(ponct.indexOf('16:25') !== -1 && ponct.indexOf('https://studyplanib.com') !== -1,
+    'les heures et les liens doivent rester intacts : ' + ponct);
+ok(sandbox.iaCorrigerFrancais('Alors voilà !! Pourquoi ?').indexOf('voilà ! Pourquoi ?') !== -1,
+    'les ! répétés doivent être ramenés à un seul');
+
+/* Le prompt court doit vraiment raccourcir la demande. */
+var longSysteme = 'Tu es l ami proche de quelqu un.' + String.fromCharCode(10) + Array(201).join('Regle interne tres longue.' + String.fromCharCode(10));
+var courts = sandbox.iaMessagesCourts([
+    { role: 'system', content: longSysteme },
+    { role: 'user', content: 'Ma question' }
+]);
+ok(JSON.stringify(courts).length < JSON.stringify([{ role: 'system', content: longSysteme }]).length / 2,
+    'le prompt court doit être au moins deux fois plus court');
+ok(JSON.stringify(courts).indexOf('Ma question') !== -1, 'la question doit rester');
+
+/* Le programme et la méthode sont connus sans le modèle. */
+[['le TOK', /théorie de la connaissance/], ['le CAS', /Créativité/], ['les évaluations internes', /aucune ne passe avant une autre/i],
+ ['le mémoire', /3 points/], ['le maximum de points', /45/]].forEach(function (paire) {
+    var r = sandbox.iaRepondreLocal("C'est quoi " + paire[0] + ' ?');
+    ok(paire[1].test(r), 'réponse locale manquante pour ' + paire[0] + ' : ' + r);
+});
+
 if (echecs) {
     console.error(echecs + ' échec(s)');
     process.exit(1);

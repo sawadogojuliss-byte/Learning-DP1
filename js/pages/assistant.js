@@ -414,10 +414,10 @@ async function iaAppelerHttp(url, modele, cle, messages, onToken, signal, stream
         body: JSON.stringify({
             model: modele,
             messages: messages,
-            temperature: 0.3,
+            temperature: 0.45,
             presence_penalty: 0.1,
             frequency_penalty: 0.1,
-            max_tokens: 900,
+            max_tokens: 1200,
             stream: stream !== false
         })
     });
@@ -486,27 +486,50 @@ async function iaAppelerTexte(messages, onToken, signal) {
     return texte;
 }
 
+/* Variante courte de la demande : si le long message est refusé par le service
+   (trop de texte, délai, panne), on retente avec l'essentiel seulement. */
+function iaMessagesCourts(messages) {
+    var systeme = '';
+    (messages || []).forEach(function (m) {
+        if (m && m.role === 'system') systeme = String(m.content || '');
+    });
+    var gardees = systeme.split('\n').filter(function (ligne) {
+        var n = iaNormaliser(ligne);
+        return /ami proche de|appelle cette personne|importe quelle question|pas un professeur|montres jamais que tu analyses|ne recopie jamais|ne fais jamais le travail/.test(n);
+    });
+    var demande = systeme.split('\n').filter(function (ligne) {
+        return /reponds a la demande comprise/.test(iaNormaliser(ligne));
+    })[0] || '';
+    var courts = [{ role: 'system', content: gardees.concat(demande ? [demande] : []).join('\n') }];
+    var fil = (messages || []).filter(function (m) { return m && m.role !== 'system'; });
+    return courts.concat(fil.slice(-4));
+}
+
 async function iaGenerer(messages, onToken, signal) {
     if (signal && signal.aborted) throw new Error('arrêt');
-    var budget = iaLierSignal(signal, 14000);
-    var modeles = ['default', 'fast', 'DeepSeek-V4-Flash-0731'];
+    var modeles = ['default', 'fast', 'gpt-4o-mini', 'DeepSeek-V4-Flash-0731', 'llama-3.3-70b-instruct'];
+    var essais = [messages, iaMessagesCourts(messages)];
+    var t;
     var i;
-    for (i = 0; i < modeles.length; i++) {
-        if ((signal && signal.aborted) || budget.aborted) break;
+    for (t = 0; t < essais.length; t++) {
+        if (signal && signal.aborted) throw new Error('arrêt');
+        var budget = iaLierSignal(signal, 11000);
+        for (i = 0; i < modeles.length; i++) {
+            if ((signal && signal.aborted) || budget.aborted) break;
+            try {
+                var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', modeles[i], 'unused', essais[t], onToken, budget, false);
+                if (texte && String(texte).trim().length > 1) return String(texte).trim();
+            } catch (e) {
+                if (signal && signal.aborted) throw new Error('arrêt');
+            }
+        }
+        if (signal && signal.aborted) throw new Error('arrêt');
         try {
-            var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', modeles[i], 'unused', messages, onToken, budget, false);
-            if (texte && String(texte).trim()) return String(texte).trim();
-        } catch (e) {
+            var secours = await iaAppelerTexte(essais[t], onToken, budget);
+            if (secours && String(secours).trim().length > 1) return String(secours).trim();
+        } catch (e2) {
             if (signal && signal.aborted) throw new Error('arrêt');
         }
-    }
-    if (signal && signal.aborted) throw new Error('arrêt');
-    if (budget.aborted) throw new Error('modele');
-    try {
-        var secours = await iaAppelerTexte(messages, onToken, budget);
-        if (secours && String(secours).trim()) return String(secours).trim();
-    } catch (e2) {
-        if (signal && signal.aborted) throw new Error('arrêt');
     }
     throw new Error('modele');
 }
@@ -1959,7 +1982,7 @@ function iaLireQuestion(texte) {
 function iaClarifier(lecture) {
     if (lecture.sujet) return 'Tu parles de ' + lecture.sujet.name + '. Tu veux son planning, ou un créneau pour travailler ?';
     if (lecture.jour) return 'Pour ' + lecture.jour + ', tu veux voir le planning, ou ajouter quelque chose ?';
-    return 'Dis-moi en une phrase ce que tu veux : une info, une page, ou un créneau.';
+    return iaReponseIntelligente(lecture);
 }
 
 function iaConsigneForme(lecture) {
@@ -2189,7 +2212,11 @@ function iaReponseFinale(texte, lecture, modele, action) {
     if (!corps && avant) corps = sure || iaConfirmerFil(lecture.fil) || avant;
     corps = iaAjusterLongueur(corps, lecture);
     corps = iaRetirerPhraseJourneeInterdite(corps);
-    if (iaDoitDemanderJournee(lecture) && !/journ/.test(iaNormaliser(corps))) corps += '\n\n' + iaPhraseJournee();
+    /* La question du soir ne se colle jamais à une réponse de repli, ni à une
+       réponse vide : elle vient après une vraie réponse du modele. */
+    var reponseUtileBulle = !!String(modele || '').trim() && !!corps
+        && corps.length >= 60 && !iaEsquiveTexte(corps);
+    if (reponseUtileBulle && iaDoitDemanderJournee(lecture) && !/journ/.test(iaNormaliser(corps))) corps += '\n\n' + iaPhraseJournee();
     corps = iaRetirerPhraseJourneeInterdite(iaRetirerQuestionJournee(iaRetirerAnnonce(corps), lecture));
     return iaCorrigerFrancais(corps);
 }
@@ -3245,15 +3272,36 @@ function iaTypeQuestion(brut, n) {
 }
 function iaDefinitionDepuisQuestion(n) {
     n = iaNormaliser(n);
+    /* Le programme */
+    if (/\btok\b|theorie de la connaissance/.test(n)) return 'Le TOK, c\'est la théorie de la connaissance : on y réfléchit à comment on sait ce qu\'on sait, avec des questions ouvertes et un essai. Avec le mémoire, il peut ajouter au plus 3 points.';
+    if (/\bcas\b|creativite.{0,20}(activite|service)|service/.test(n) && /cas|creativite|activite/.test(n)) return 'Le CAS, c\'est créativité, activité et service. C\'est obligatoire pour le diplôme, ça ne donne aucun point, et ça se suit sur les deux ans.';
+    if (/memoire|extended essay|\bee\b/.test(n)) return 'Le mémoire est un travail de recherche personnel, sur un sujet que tu choisis avec un professeur. Il compte avec le TOK pour au plus 3 points.';
+    if (/evaluations? internes?|eval interne|\bia\b/.test(n)) return 'Les évaluations internes sont des travaux notés par tes professeurs, sur une partie du programme. Elles comptent dans la note de la matière. Aucune ne passe avant une autre : c\'est toi qui choisis par laquelle commencer.';
+    if (/\bhl\b|niveau superieur/.test(n)) return 'HL, c\'est le niveau supérieur : plus d\'heures et un programme plus approfondi que SL. Tu dois en général en avoir trois.';
+    if (/\bsl\b|standard level/.test(n)) return 'SL, c\'est le niveau moyen : moins d\'heures que HL, avec le même diplôme à la clé.';
+    if (/\bess\b|systemes de l.environnement/.test(n)) return 'ESS, c\'est les systèmes de l\'environnement : une matière du groupe des sciences humaines, avec des études de cas.';
+    if (/math.*\bai\b|analyse et approche|analyse et applications/.test(n)) return 'En maths du Baccalauréat International, il y a deux parcours : Analyse et approches, plus algébrique, et Applications et interprétation, plus tournée vers les situations concrètes.';
+    if (/45 points|note maximale|maximum de points|combien de points/.test(n)) return 'Le maximum est 45 : six matières notées de 1 à 7, soit 42, plus au plus 3 points du TOK et du mémoire.';
+    /* La méthode et la vie d'élève */
+    if (/revis|apprendre|memoris|apprendre par coeur/.test(n)) return 'Pour réviser, les séances courtes reviennent mieux que les longues : 25 minutes de travail, une pause, puis on recommence. Écris de mémoire à la fin de la séance, ça fixe beaucoup plus.';
+    if (/concentr|distrai|telephone/.test(n)) return 'Pour se concentrer, une seule chose à la fois : téléphone dans une autre pièce, 25 minutes de travail, puis une vraie pause de 5 minutes.';
+    if (/sommeil|dormir|fatigue/.test(n)) return 'Le sommeil compte autant que le travail : une nuit courte fait perdre plus qu\'une heure de révision gagnée. Le site garde ton réveil et ton coucher comme repères.';
+    if (/stress|anxi|angoisse|peur/.test(n)) return 'Le stress se calme par petits blocs : une seule chose maintenant, pas toute la semaine. Si ça pèse vraiment, parles-en à un adulte de confiance, ou à un professionnel.';
+    if (/motivation|envie|decourage/.test(n)) return 'Quand la motivation manque, commence minuscule : dix minutes sur la chose la plus facile. Le reste vient souvent après.';
+    if (/methode|organisation|organiser|planifier/.test(n)) return 'Pour s\'organiser : le sommeil d\'abord, puis les matières HL et celles notées 4/7 ou moins, en séances courtes avant chaque échéance, et du temps libre gardé exprès.';
+    if (/(tu penses quoi|ton avis|qu.est.ce que tu penses|tu en penses quoi)/.test(n) && /diplome|\bib\b|bac|international|matiere|notes?/.test(n)) return 'Franchement, le Baccalauréat International demande de la régularité plus que du talent. Les notes montent avec des séances courtes et répétées, pas avec une nuit blanche avant le contrôle.';
+    if (/je comprends rien|je ne comprends pas|pas compris|je comprends pas|j.y arrive pas|je n.y arrive pas/.test(n)) return 'Quand une notion ne passe pas, ce n\'est presque jamais toi le problème : c\'est le découpage. Prends la partie la plus petite possible, refais un exemple corrigé à l\'écrit, puis explique-la à voix haute comme si tu la racontais à quelqu\'un. Si ça bloque encore, demande dix minutes à ton professeur, c\'est souvent plus rapide que deux heures seul.';
+    /* Les matières */
     if (/math/.test(n)) return 'Les mathématiques travaillent les nombres, les fonctions et le raisonnement.';
     if (/physi/.test(n)) return 'La physique étudie la matière, l\'énergie et les lois qui les relient.';
     if (/chimi/.test(n)) return 'La chimie étudie la matière, ses éléments et ses transformations.';
-    if (/biolog/.test(n)) return 'La biologie étudie le vivant.';
+    if (/biolog/.test(n)) return 'La biologie étudie le vivant : les cellules, les êtres vivants et leurs équilibres.';
     if (/econom/.test(n)) return 'L\'économie étudie la production, l\'échange et l\'usage des ressources. Il n\'y a pas de cours d\'économie le samedi.';
-    if (/histor/.test(n)) return 'L\'histoire étudie les sociétés et les événements du passé.';
-    if (/geo/.test(n)) return 'La géographie étudie les espaces, les milieux et les sociétés.';
+    if (/histor/.test(n)) return 'L\'histoire étudie les sociétés et les événements du passé, par périodes et par sources.';
+    if (/geo/.test(n)) return 'La géographie étudie les espaces, les milieux et les sociétés, avec des cartes et des études de cas.';
     if (/anglais|english/.test(n)) return 'L\'anglais est une langue vivante du diplôme. Anglais B HL et Anglais B SL ne se mélangent pas.';
-    if (/francais|litterature/.test(n)) return 'Cette matière travaille la langue, la lecture et l\'écrit.';
+    if (/francais|litterature/.test(n)) return 'Cette matière travaille la langue, la lecture et l\'écrit : texte, commentaire et expression.';
+    if (/philosophie/.test(n)) return 'La philosophie travaille les notions et les arguments, mais dans le Baccalauréat International c\'est le TOK qui joue ce rôle.';
     return '';
 }
 function iaReponseMatiere(lecture) {
@@ -3303,17 +3351,58 @@ function iaSavoir(lecture) {
     }
     return '';
 }
-function iaRepliQuestion(lecture) {
+/* Dernier recours : jamais une phrase qui demande de reformuler. On répond
+   avec ce que le site sait vraiment, puis une seule question utile. */
+function iaReponseIntelligente(lecture) {
+    var n = (lecture && (lecture.n || iaNormaliser(lecture.brut))) || '';
+    var bouts = [];
+    var def = iaDefinitionDepuisQuestion(n);
+    if (def) bouts.push(def);
     var perso = lecture ? iaReponseMatiere(lecture) : '';
-    if (perso) return perso;
-    var def = iaDefinitionDepuisQuestion(lecture && lecture.n);
-    if (def) return def;
-    return 'Pose la question en une phrase, avec le mot précis, et je te réponds directement.';
+    if (perso && bouts.indexOf(perso) === -1) bouts.push(perso);
+    if (!bouts.length && lecture && (lecture.intention === 'planning' || lecture.jour || lecture.sujet)) {
+        var fait = '';
+        try { fait = iaFaitPlanning(lecture); } catch (e) { fait = ''; }
+        if (fait && !/je ne vois rien de prevu for|je ne vois rien de prevu pour/i.test(iaNormaliser(fait))) bouts.push(fait);
+    }
+    if (!bouts.length && lecture && lecture.sujet) {
+        var cro = [];
+        try { cro = iaCreneauxSujet(lecture.sujet, lecture.jourIndex) || []; } catch (e2) { cro = []; }
+        if (cro.length) bouts.push(lecture.sujet.name + ' est ici : ' + cro.slice(0, 3).join(', ') + '.');
+    }
+    /* Message tres court ou tres vague : on reste utile, jamais une demande de reformuler. */
+    if (!bouts.length && n.split(/\s+/).filter(Boolean).length <= 3) {
+        return 'Je suis là. Dis-moi juste ce qui t\'occupe : une matière, ton planning, un devoir à caser, ou quelque chose qui te pèse.';
+    }
+    if (!bouts.length) {
+        var prochaine = '';
+        try {
+            var evs = iaEvenements(iaIndexJour(new Date()));
+            var dernier = evs.filter(function (ev) { return ev && ev.id !== 'sleep'; }).slice(-1)[0];
+            if (dernier) prochaine = 'Ce soir, ta dernière ligne est ' + dernier.title + ' à ' + iaHeureCourte(dernier.start) + '.';
+        } catch (e3) { prochaine = ''; }
+        bouts.push(prochaine || 'Je n\'ai pas encore ce fait, et je préfère te le dire plutôt que d\'inventer.');
+    }
+    var suite = iaSuiteUtile(lecture);
+    return bouts.join(' ') + (suite ? ' ' + suite : '');
+}
+
+function iaSuiteUtile(lecture) {
+    var n = (lecture && (lecture.n || iaNormaliser(lecture.brut))) || '';
+    if (lecture && lecture.sujet) return 'Tu veux que je regarde où le placer dans ta semaine ?';
+    if (/revis|apprendre|memoris|concentr/.test(n)) return 'Tu veux une méthode, ou plutôt des créneaux dans ton planning ?';
+    if (/stress|fatigue|peur|anxi/.test(n)) return 'Dis-moi seulement ce qui pèse le plus, en un mot.';
+    if (/note|moyenne|point/.test(n)) return 'Tu veux que je regarde tes matières une par une ?';
+    return 'Tu peux m\'en dire un peu plus, je reste avec toi.';
+}
+
+function iaRepliQuestion(lecture) {
+    return iaReponseIntelligente(lecture);
 }
 function iaEsquiveTexte(corps) {
     var n = iaNormaliser(corps);
     if (!n || n.length < 8) return true;
-    return /je n.ai pas cette reponse|je n.en fabrique|dis-le autrement|pas assez pour repondre|reformule|je prefere te le dire clairement|je n.ai pas encore la suite|je n.ai pas cette information|pas a inventer le reste|je n.ai pas assez|je n.ai pas ce fait/.test(n)
+    return /je n.ai pas cette reponse|je n.en fabrique|dis-le autrement|pas assez pour repondre|reformule|je prefere te le dire clairement|je n.ai pas encore la suite|je n.ai pas cette information|pas a inventer le reste|je n.ai pas assez|je n.ai pas ce fait|pose la question en une phrase|avec le mot precis|je n.ai pas encore ce fait/.test(n)
         || iaReponseGenerique(corps);
 }
 function iaTropAnglais(corps) {
@@ -3383,7 +3472,16 @@ function iaCorrigerFrancais(texte) {
             });
         } catch (e) {}
     }
-    return s.replace(/[ \t]{2,}/g, ' ').replace(/ +([,.;!?])/g, '$1').replace(/\n{3,}/g, '\n\n').trim();
+    return s.replace(/[ \t]{2,}/g, ' ')
+        .replace(/ +([,.;])/g, '$1')
+        /* En français, une espace précède ? ! ; et le deux-points de phrase.
+           Les heures (16:25) et les adresses (https://) restent intactes. */
+        .replace(/([?!;])[?!;]+/g, '$1')
+        .replace(/[ \t]*([?!;])/g, ' $1')
+        .replace(/[ \t]*:(?=[ \t]|$)/gm, ' :')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+\n/g, '\n')
+        .trim();
 }
 function iaAnalyser(lecture) {
     var n = lecture.n || iaNormaliser(lecture.brut || '');
