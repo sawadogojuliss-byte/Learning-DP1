@@ -61,16 +61,19 @@ ok(script.indexOf('if (etaitListe) focusAjouterEtapeListe();') !== -1, 'l étape
     ok(fs.statSync(path.join(__dirname, '..', src)).size < 320000, 'image encore trop lourde : ' + src);
     ok(!fs.existsSync(path.join(__dirname, '..', 'images/pomodoro/' + id + '.png')), 'l ancien PNG reste à charger : ' + id);
 });
-/* Le décor ne doit jamais devenir transparent : sinon le planning apparaît
-   pendant le chargement de l image choisie. */
+/* Le décor ne doit ni devenir transparent (le planning apparaîtrait) ni se
+   croiser en fondu (l ancienne image reviendrait) : l image choisie est posée
+   d un coup, une fois décodée. */
 ok(script.indexOf("opacity = '0.25'") === -1, 'le décor ne doit plus être effacé avant de changer d image');
-ok(page.indexOf('id="focusBgBis"') !== -1, 'le second calque de décor manque');
+ok(script.indexOf('focusBgBis') === -1 && page.indexOf('focusBgBis') === -1, 'le second calque ne doit plus exister');
 ok(script.indexOf('function focusDecoderImage') !== -1, 'l image doit être décodée avant d être affichée');
 ok(script.indexOf('function focusAmorcerFonds') !== -1, 'les images doivent être préparées en avance');
-ok(script.indexOf("prochain.style.opacity = '1'") !== -1 && script.indexOf("visible.style.opacity = '0'") !== -1, 'les deux calques doivent se croiser');
-ok(script.indexOf("prochain.style.zIndex = '1'") !== -1, 'le nouveau décor doit passer au-dessus pendant le fondu');
+ok(script.indexOf('focusPeindreCalque(bg, src)') !== -1, 'la nouvelle image doit être posée directement sur le décor');
+ok(script.indexOf('visible.style.opacity') === -1 && script.indexOf('prochain.style.opacity') === -1, 'aucun fondu entre deux décors');
+ok(script.indexOf('visible.style.zIndex') === -1 && script.indexOf('prochain.style.zIndex') === -1, 'aucun calque superposé pour un fondu');
 var cssFonds = lire('css/pages/planning-panels.css');
-ok(cssFonds.indexOf('.focus-bg-bis') !== -1 && cssFonds.indexOf('opacity: 0;') !== -1, 'le second calque doit démarrer invisible');
+ok(cssFonds.indexOf('.focus-bg-bis') === -1, 'le style du second calque doit disparaître');
+ok(cssFonds.indexOf('transition: none') !== -1, 'le décor ne doit plus changer en fondu');
 ok(cssFonds.indexOf('background: #04140f') !== -1, 'le fond opaque de sécurité manque');
 ok(cssFonds.indexOf('images/pomodoro/lumiere.webp?v=') !== -1, 'le décor de secours doit être en WebP');
 ok(script.indexOf('is-chargement') !== -1, 'la vignette doit montrer qu elle charge');

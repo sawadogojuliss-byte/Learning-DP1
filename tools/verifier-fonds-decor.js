@@ -1,41 +1,19 @@
-/* Vérifie le changement de décor Pomodoro : l'image n'est posée qu'une fois
-   décodée, le décor précédent reste opaque, et les images sont préparées en
-   avance pour que le clic soit instantané. */
+/* Vérifie le changement de décor Pomodoro :
+   - le planning ne peut jamais apparaître (aucune baisse d'opacité) ;
+   - l'ancienne image ne revient jamais (aucun fondu) ;
+   - l'image choisie est posée d'un coup, dès qu'elle est décodée ;
+   - les images sont préparées en avance pour que le clic soit instantané. */
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
 
 var code = fs.readFileSync(path.join(__dirname, '..', 'js/pages/pomodoro-page.js'), 'utf8');
+var page = fs.readFileSync(path.join(__dirname, '..', 'pages/pomodoro.html'), 'utf8');
+var css = fs.readFileSync(path.join(__dirname, '..', 'css/pages/planning-panels.css'), 'utf8');
 var echecs = [];
 
 function ok(cond, message) {
     if (!cond) echecs.push(message);
-}
-
-function creerElement(id) {
-    return {
-        id: id,
-        style: {},
-        hidden: false,
-        childNodes: [],
-        attrs: {},
-        __focus: false,
-        appendChild: function (enfant) { this.childNodes.push(enfant); },
-        addEventListener: function () {},
-        removeEventListener: function () {},
-        setAttribute: function (cle, valeur) { this.attrs[cle] = String(valeur); },
-        getAttribute: function (cle) { return this.attrs[cle]; },
-        removeAttribute: function (cle) { delete this.attrs[cle]; },
-        querySelector: function () { return null; },
-        querySelectorAll: function () { return []; },
-        classList: {
-            _s: {},
-            add: function (c) { this._s[c] = true; },
-            remove: function (c) { delete this._s[c]; },
-            toggle: function (c, on) { if (on) this._s[c] = true; else delete this._s[c]; },
-            contains: function (c) { return !!this._s[c]; }
-        }
-    };
 }
 
 function creerContexte(typeReseau) {
@@ -44,10 +22,49 @@ function creerContexte(typeReseau) {
     var compteur = 0;
     var chargees = [];
     var enAttente = [];
+    var journal = [];
 
     function element(id) {
-        if (!elements[id]) elements[id] = creerElement(id);
-        return elements[id];
+        if (elements[id]) return elements[id];
+        var el = creerElement(id);
+        elements[id] = el;
+        return el;
+    }
+
+    function creerElement(id) {
+        var el = {
+            id: id,
+            style: {},
+            hidden: false,
+            childNodes: [],
+            attrs: {},
+            __focus: false,
+            appendChild: function (enfant) { this.childNodes.push(enfant); },
+            addEventListener: function () {},
+            removeEventListener: function () {},
+            setAttribute: function (cle, valeur) { this.attrs[cle] = String(valeur); },
+            getAttribute: function (cle) { return this.attrs[cle]; },
+            removeAttribute: function (cle) { delete this.attrs[cle]; },
+            querySelector: function () { return null; },
+            querySelectorAll: function () { return []; },
+            classList: {
+                _s: {},
+                add: function (c) { this._s[c] = true; },
+                remove: function (c) { delete this._s[c]; },
+                toggle: function (c, on) { if (on) this._s[c] = true; else delete this._s[c]; },
+                contains: function (c) { return !!this._s[c]; }
+            }
+        };
+        /* On enregistre chaque fois que le décor est réellement repeint. */
+        var image = '';
+        Object.defineProperty(el.style, 'backgroundImage', {
+            get: function () { return image; },
+            set: function (valeur) {
+                image = String(valeur);
+                journal.push({ id: id, src: image });
+            }
+        });
+        return el;
     }
 
     function FausseImage() {
@@ -116,17 +133,15 @@ function creerContexte(typeReseau) {
     var contexte = vm.createContext(sandbox);
     vm.runInContext(code, contexte, { filename: 'pomodoro-page.js' });
 
-    function liberer(avecMinuteurs) {
+    function liberer() {
         return new Promise(function (resoudre) {
             var tours = 0;
             (function suivant() {
                 tours += 1;
                 var fait = false;
-                if (avecMinuteurs) {
-                    while (timers.length) {
-                        timers.shift().fn();
-                        fait = true;
-                    }
+                while (timers.length) {
+                    timers.shift().fn();
+                    fait = true;
                 }
                 if (enAttente.length) {
                     var lot = enAttente.slice();
@@ -147,20 +162,23 @@ function creerContexte(typeReseau) {
         contexte: contexte,
         element: element,
         vignettes: function () { return element('focusFonds').childNodes; },
-        drainer: function () { return liberer(true); },
-        /* l'image arrive, mais les minuteries (fin du fondu) n'ont pas encore tourné */
-        drainerImages: function () { return liberer(false); },
+        drainer: liberer,
+        journal: function (id) {
+            return journal.filter(function (entree) { return entree.id === id; })
+                .map(function (entree) { return entree.src; });
+        },
+        minuteurs: function () { return timers.length; },
         imagesEnAttente: function () { return enAttente.length; },
         imagesChargees: function () { return chargees.length; }
     };
 }
 
 (async function () {
-    /* ── 1. Réseau lent : rien n'est préchargé, le clic est observé en direct ── */
+    /* ── 1. Réseau lent : rien n'est préchargé, chaque clic est observé en direct ── */
     var lent = creerContexte('2g');
     var contexte = lent.contexte;
-    var base = lent.element('focusBg');
-    var bis = lent.element('focusBgBis');
+    var bg = lent.element('focusBg');
+    var source = function (i) { return contexte.FOCUS_FONDS[i].src; };
 
     contexte.focusCharger();
     await lent.drainer();
@@ -168,55 +186,44 @@ function creerContexte(typeReseau) {
     ok(lent.imagesEnAttente() === 0, 'en 2G aucune image ne doit être préchargée d avance');
     ok(String(lent.vignettes()[0].style.backgroundImage).indexOf('mini/lumiere.webp') !== -1,
         'les vignettes doivent utiliser les petites images');
-    ok(contexte.focusFondActif === contexte.FOCUS_FONDS[0].src, 'le décor doit s ouvrir sur la lumière');
+    ok(contexte.focusFondActif === source(0), 'le décor doit s ouvrir sur la lumière');
+    ok(lent.journal('focusBg').length === 1 && lent.journal('focusBg')[0].indexOf('lumiere.webp') !== -1,
+        'la lumière doit être peinte une seule fois');
+    var ancienne = bg.style.backgroundImage;
 
-    /* Le calque affiché est celui dont l'opacité n'est pas mise à zéro : il doit
-       le rester jusqu'à ce que la nouvelle image soit décodée. */
-    function coucheAffichee() {
-        if (base.style.opacity === '0') return bis;
-        if (bis.style.opacity === '0') return base;
-        if (bis.style.opacity === '1') return bis;
-        return base;
-    }
-
-    var affichee = coucheAffichee();
-    var cachee = affichee === base ? bis : base;
-
+    /* Clic sur « Chalet » : tant que l'image n'est pas décodée, le décor ne bouge pas. */
     contexte.focusPoserFond(5);
-    ok(coucheAffichee() === affichee, 'le décor affiché doit rester opaque pendant le chargement');
-    ok(String(cachee.style.backgroundImage).indexOf('chalet') === -1,
-        'la nouvelle image ne doit pas être posée avant d être décodée');
+    ok(bg.style.backgroundImage === ancienne,
+        'le décor ne doit pas être modifié avant que la nouvelle image soit prête');
+    ok(bg.style.opacity === undefined,
+        'le décor ne doit jamais baisser d opacité (le planning apparaîtrait)');
+    ok(lent.journal('focusBg').length === 1, 'aucune image intermédiaire ne doit être peinte');
     ok(lent.vignettes()[5].classList.contains('is-chargement'),
         'la vignette cliquée doit indiquer le chargement');
     ok(lent.vignettes()[5].getAttribute('aria-busy') === 'true', 'la vignette doit être marquée occupée');
 
-    /* pendant le fondu : le nouveau décor par-dessus, l'ancien toujours opaque */
-    await lent.drainerImages();
-    ok(String(cachee.style.backgroundImage).indexOf('chalet.webp') !== -1,
-        'la nouvelle image doit finir sur le calque libre');
-    ok(String(cachee.style.zIndex) === '1', 'le nouveau calque doit passer au-dessus');
-    ok(cachee.style.opacity === '1' && affichee.style.opacity === '1',
-        'pendant le fondu les deux décors doivent rester opaques');
-
     await lent.drainer();
-    ok(cachee.style.opacity === '1' && affichee.style.opacity === '0',
-        'les deux calques doivent se croiser en fondu');
-    ok(cachee.style.zIndex === '0', 'le décor doit repasser sous le voile après le fondu');
+    ok(bg.style.backgroundImage.indexOf('chalet.webp') !== -1,
+        'la nouvelle image doit être posée dès qu elle est décodée');
+    ok(bg.style.opacity === undefined, 'le décor doit rester pleinement opaque');
+    ok(lent.journal('focusBg').length === 2, 'le décor ne doit être peint qu une fois par changement');
+    ok(lent.journal('focusBg')[0].indexOf('lumiere') !== -1 &&
+        lent.journal('focusBg')[1].indexOf('chalet') !== -1,
+        'l ancienne image ne doit jamais réapparaître après la nouvelle');
     ok(!lent.vignettes()[5].classList.contains('is-chargement'),
         'l indicateur de chargement doit disparaître');
-    ok(contexte.focusFondActif === contexte.FOCUS_FONDS[5].src, 'le décor actif doit être le chalet');
+    ok(contexte.focusFondActif === source(5), 'le décor actif doit être le chalet');
+    ok(lent.minuteurs() === 0, 'aucune minuterie de fondu ne doit rester');
 
-    var premiere = cachee;
-    var seconde = affichee;
+    /* Deuxième changement : même comportement. */
     contexte.focusPoserFond(17);
-    ok(coucheAffichee() === premiere, 'le second changement garde aussi le décor en place');
+    ok(bg.style.backgroundImage.indexOf('chalet.webp') !== -1,
+        'le décor garde l image précédente pendant le chargement');
     await lent.drainer();
-    ok(String(seconde.style.backgroundImage).indexOf('sentier.webp') !== -1,
-        'les deux calques doivent alterner');
-    ok(seconde.style.opacity === '1' && premiere.style.opacity === '0',
-        'le retour doit aussi se croiser en fondu');
+    ok(bg.style.backgroundImage.indexOf('sentier.webp') !== -1, 'le nouveau décor doit être posé directement');
+    ok(lent.journal('focusBg').length === 3, 'toujours une seule peinture par changement');
     ok(String(lent.element('focusAccueilFond').style.backgroundImage).indexOf('sentier.webp') !== -1,
-        'le fond de l accueil doit être posé une fois prêt');
+        'le fond de l accueil doit suivre le décor choisi');
 
     contexte.focusArreterFonds();
     var avant = lent.imagesChargees();
@@ -233,23 +240,32 @@ function creerContexte(typeReseau) {
     ok(restantes.length === 0, 'toutes les images doivent être préparées (' + restantes.length + ' restantes)');
     ok(Object.keys(rapide.contexte.focusFondsPrets).length === 23, 'les 23 fonds doivent être prêts');
 
+    /* Image déjà prête : le changement doit être immédiat, sans aucun délai. */
+    var journalAvant = rapide.journal('focusBg').length;
     rapide.contexte.focusPoserFond(9);
-    ok(rapide.element('focusBgBis').style.opacity === '1' ||
-        rapide.element('focusBg').style.opacity === '1',
-        'une image déjà prête doit s afficher tout de suite');
+    ok(rapide.element('focusBg').style.backgroundImage.indexOf('noel.webp') !== -1,
+        'une image déjà prête doit s afficher immédiatement');
+    ok(rapide.journal('focusBg').length === journalAvant + 1, 'un seul repaint, sans passage intermédiaire');
     ok(!rapide.vignettes()[9].classList.contains('is-chargement'),
         'aucun chargement à signaler quand l image est prête');
+    ok(rapide.minuteurs() === 0, 'aucune minuterie ne doit être posée');
 
-    /* ── 3. L'ancien système ne doit plus exister ── */
+    /* ── 3. Le code et le style portent bien la correction ── */
     ok(code.indexOf("opacity = '0.25'") === -1, 'l ancien effacement du décor doit avoir disparu');
-    ok(code.indexOf('setTimeout(appliquer, 160)') === -1, 'l ancien délai de 160 ms doit avoir disparu');
+    ok(code.indexOf('focusBgBis') === -1 && page.indexOf('focusBgBis') === -1, 'plus de second calque');
+    ok(code.indexOf('visible.style.opacity') === -1 && code.indexOf('prochain.style.opacity') === -1,
+        'plus aucun fondu entre deux décors');
+    ok(code.indexOf('focusPeindreCalque(bg, src)') !== -1, 'la nouvelle image est peinte directement');
+    ok(code.split('function focusFondPage').length === 2, 'une seule définition de focusFondPage');
     ok(code.split('function focusPoserFond').length === 2, 'une seule définition de focusPoserFond');
-    ok(code.split('function focusPreparerFonds').length === 2, 'une seule définition de focusPreparerFonds');
+    ok(css.indexOf('transition: none') !== -1, 'le décor ne doit plus changer en fondu');
+    ok(css.indexOf('.focus-bg-bis') === -1, 'le style du second calque doit disparaître');
+    ok(css.indexOf('background: #04140f') !== -1, 'le fond opaque de sécurité doit rester');
 
     if (echecs.length) {
         console.error('échecs ' + echecs.length);
         echecs.forEach(function (e) { console.error('- ' + e); });
         process.exit(1);
     }
-    console.log('décor Pomodoro : aucun trou, images préparées, échecs 0');
+    console.log('décor Pomodoro : changement direct, sans fondu ni trou, échecs 0');
 })();

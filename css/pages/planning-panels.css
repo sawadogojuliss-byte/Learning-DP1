@@ -782,19 +782,12 @@
     height: 100dvh;
     z-index: 0;
 }
+/* Le décor change d'un coup : aucune transition, l'ancienne image ne doit pas
+   revenir pendant que la nouvelle s'installe. */
 .focus-bg {
     background: #064e3b url("../../images/pomodoro/lumiere.webp?v=20261015p") center center / cover no-repeat;
     background-position: center center;
-    transition: opacity 0.35s ease;
-}
-/* Deuxième calque, invisible au départ : les images se croisent en fondu sans
-   jamais laisser voir ce qu'il y a derrière le minuteur. */
-.focus-bg-bis {
-    background: #064e3b center center / cover no-repeat;
-    background-position: center center;
-    opacity: 0;
-    transition: opacity 0.35s ease;
-    will-change: opacity;
+    transition: none;
 }
 .focus-shade {
     background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);

@@ -56,12 +56,12 @@ var focusPip = null;
 var focusBruit = null;
 var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Study Plan IB';
 var focusPret = false;
-/* Fonds : on n affiche une image que lorsqu'elle est décodée, et le calque
-   précédent reste opaque jusque-là (sinon le planning apparaissait dessous). */
+/* Fonds : le décor affiché ne change qu'une fois la nouvelle image décodée,
+   et il change d'un coup (sinon le planning apparaissait dessous, ou bien
+   l'ancienne image revenait pendant le fondu). */
 var focusFondsPrets = {};
 var focusFondActif = '';
 var focusFondDemande = '';
-var focusFondCalque = 0;
 var focusAccueilActif = '';
 var focusFondsFile = null;
 var focusFondsArret = false;
@@ -422,7 +422,9 @@ function focusDecoderImage(src, suite) {
     var finir = function (ok) {
         if (fait) return;
         fait = true;
-        if (ok) focusFondsPrets[src] = true;
+        /* On garde l'image décodée en mémoire : le clic suivant la pose alors
+           sans le moindre délai. */
+        if (ok) focusFondsPrets[src] = img;
         if (suite) suite(!!ok);
     };
     img.onload = function () {
@@ -480,10 +482,6 @@ function focusArreterFonds() {
     }
 }
 
-function focusCalqueFond(numero) {
-    return document.getElementById(numero === 0 ? 'focusBg' : 'focusBgBis');
-}
-
 function focusPeindreCalque(el, src) {
     if (!el || !src) return;
     el.style.backgroundImage = 'url("' + src + '")';
@@ -492,55 +490,26 @@ function focusPeindreCalque(el, src) {
     el.style.backgroundRepeat = 'no-repeat';
 }
 
-/* Change le décor : le calque déjà affiché reste opaque jusqu'à ce que la
-   nouvelle image soit prête, puis les deux se croisent en fondu. */
+/* Change le décor. L'ancienne image reste affichée telle quelle pendant que la
+   nouvelle se charge, puis la nouvelle est posée d'un coup : aucun fondu, donc
+   jamais l'ancienne image qui réapparaît ni le planning derrière. */
 function focusFondPage(src) {
     if (!src || src === focusFondActif) return;
-    var base = focusCalqueFond(0);
-    if (!base) {
+    var bg = document.getElementById('focusBg');
+    if (!bg) {
         focusFondActif = src;
         return;
     }
-    var bis = focusCalqueFond(1);
     focusFondDemande = src;
     focusPeindreFonds();
-    if (!bis) {
-        focusDecoderImage(src, function (ok) {
-            if (!ok) {
-                focusFondDemande = '';
-                focusPeindreFonds();
-                return;
-            }
-            focusPeindreCalque(base, src);
-            focusFondActif = src;
-            focusFondDemande = '';
-            focusPeindreFonds();
-            focusPipMaj();
-        });
-        return;
-    }
-    var visible = focusFondCalque === 0 ? base : bis;
-    var prochain = focusFondCalque === 0 ? bis : base;
     focusDecoderImage(src, function (ok) {
-        if (!ok) {
-            focusFondDemande = '';
-            focusPeindreFonds();
-            return;
-        }
-        /* Le nouveau décor passe au-dessus de l'ancien, qui reste opaque : le
-           fondu ne laisse donc jamais voir le planning derrière. */
-        prochain.style.zIndex = '1';
-        visible.style.zIndex = '0';
-        focusPeindreCalque(prochain, src);
-        prochain.style.opacity = '1';
-        setTimeout(function () {
-            visible.style.opacity = '0';
-            prochain.style.zIndex = '0';   // le décor repasse alors sous le voile du haut
-        }, 400);
-        focusFondCalque = focusFondCalque === 0 ? 1 : 0;
-        focusFondActif = src;
         focusFondDemande = '';
         focusPeindreFonds();
+        if (!ok) return;
+        /* L'image est déjà décodée : le navigateur la peint dans la même image
+           (au sens écran), sans passer par l'ancienne. */
+        focusPeindreCalque(bg, src);
+        focusFondActif = src;
         focusPipMaj();
     });
 }
