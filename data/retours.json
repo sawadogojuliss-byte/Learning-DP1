@@ -1,5 +1,353 @@
 {
   "questions": [],
-  "feedbacks": [],
+  "feedbacks": [
+    {
+      "type": "feedback",
+      "id": "f1a1417fcc73df07c89a",
+      "at": "2026-10-15T21:37:36.883Z",
+      "nom": "Yohann",
+      "appareil": "a1a12f36746321e0e525",
+      "classe": "DP2",
+      "texte": "Helloooooooooooooooooooooooooooooooooooooooooo.Bref, votre application est vraiment top, on est fiers de vous l'Equipe Study plan. \n1. Maintenant, ça pourrait être mieux si vous aviez mis le pomodoro à part. Donc on pourrait créer des sessions de pomodoro quand on le souhaite sans que ce ne soit forcément dans le programme de base.\n2. Je ne sais pas si vous pouvez le faire mais vous voyez l'IA de toddle que les professeurs nous envoient pour voir à quel point on maitrise un thème? Si oui, essaye",
+      "email": "redminote13u@gmail.com",
+      "google": "redminote13u@gmail.com",
+      "googleNom": "Redmi Note13",
+      "googleSub": "101043752652133995164",
+      "matieres": [
+        "ESS SL",
+        "Biologie HL",
+        "Français A HL",
+        "Mathématiques AA SL",
+        "Anglais B HL",
+        "Géographie SL"
+      ],
+      "flammes": 0,
+      "jours": [
+        {
+          "j": "Lundi",
+          "s": [
+            {
+              "d": "06:40",
+              "f": "06:50",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:35",
+              "t": "Cours"
+            },
+            {
+              "d": "16:35",
+              "f": "17:10",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:10",
+              "f": "17:40",
+              "t": "Petit-déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Mardi",
+          "s": [
+            {
+              "d": "06:40",
+              "f": "06:50",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:35",
+              "t": "Cours"
+            },
+            {
+              "d": "16:35",
+              "f": "17:10",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:10",
+              "f": "17:40",
+              "t": "Petit-déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Mercredi",
+          "s": [
+            {
+              "d": "06:40",
+              "f": "06:50",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:35",
+              "t": "Cours"
+            },
+            {
+              "d": "16:35",
+              "f": "17:10",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:10",
+              "f": "17:40",
+              "t": "Petit-déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Jeudi",
+          "s": [
+            {
+              "d": "06:40",
+              "f": "06:50",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:35",
+              "t": "Cours"
+            },
+            {
+              "d": "16:35",
+              "f": "17:10",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:10",
+              "f": "17:40",
+              "t": "Petit-déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Vendredi",
+          "s": [
+            {
+              "d": "06:40",
+              "f": "06:50",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:35",
+              "t": "Cours"
+            },
+            {
+              "d": "16:35",
+              "f": "17:10",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:10",
+              "f": "17:40",
+              "t": "Petit-déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Samedi",
+          "s": [
+            {
+              "d": "08:00",
+              "f": "08:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "08:10",
+              "f": "08:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "08:40",
+              "f": "10:45",
+              "t": "Révisions · Français A"
+            },
+            {
+              "d": "10:45",
+              "f": "11:30",
+              "t": "Révisions · ESS"
+            },
+            {
+              "d": "11:30",
+              "f": "12:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "12:00",
+              "f": "12:30",
+              "t": "Révisions · Géographie"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "14:40",
+              "t": "Révisions ESS"
+            }
+          ]
+        },
+        {
+          "j": "Dimanche",
+          "s": [
+            {
+              "d": "10:00",
+              "f": "10:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "10:10",
+              "f": "10:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "10:40",
+              "f": "12:10",
+              "t": "Révisions · ESS"
+            },
+            {
+              "d": "12:10",
+              "f": "12:30",
+              "t": "Révisions · Géographie"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "14:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "14:00",
+              "f": "15:10",
+              "t": "Révisions Géographie"
+            },
+            {
+              "d": "15:10",
+              "f": "16:40",
+              "t": "Révisions · Mathématiques AA"
+            }
+          ]
+        }
+      ],
+      "questionId": "",
+      "destinataire": "",
+      "destinataires": [],
+      "personne": "",
+      "mail": false,
+      "repondu": false,
+      "gmailId": "",
+      "complet": 0
+    }
+  ],
   "reponses": []
 }
