@@ -32,6 +32,11 @@ ok(page.indexOf('id="focusSons"') !== -1, 'le panneau des sons manque');
 ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
 var script = lire('js/pages/pomodoro-page.js');
 ok(script.indexOf('function focusBasculerSons') !== -1, 'le bouton musique doit ouvrir les sons');
+ok(script.indexOf('Ajouter une sous-tâche') !== -1, 'l option sous-tâche manque');
+ok(script.indexOf('Dupliquer') !== -1, 'l option dupliquer manque');
+ok(script.indexOf('Supprimer la tâche') !== -1, 'l option supprimer manque');
+ok(script.indexOf('function focusBoutonTache') !== -1, 'le bouton a trois points manque');
+ok(script.indexOf('function focusAjouterSousTache') !== -1, 'la sous-tâche ne peut pas être ajoutée');
 ok(lire('pages/pomodoro.html').indexOf('focusDots') === -1, 'la ligne de points doit disparaitre');
 ['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png', 'images/pomodoro/tente.png', 'images/pomodoro/savane.png', 'images/pomodoro/recif.png', 'images/pomodoro/sentier.png', 'images/pomodoro/pluie-nuit.png', 'images/pomodoro/lecture.png', 'images/pomodoro/cabine.png', 'images/pomodoro/tunnel.png', 'images/pomodoro/stade.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);

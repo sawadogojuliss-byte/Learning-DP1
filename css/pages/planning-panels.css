@@ -869,8 +869,10 @@
 #focusListe li {
     background: rgba(255,255,255,0.06);
     border-radius: 0.75rem;
-    padding: 0.55rem 0.65rem;
+    padding: 0.45rem 0.55rem;
+    margin: 0.35rem 0;
 }
+#focusListe .focus-sous li { background: rgba(255,255,255,0.035); }
 .focus-ajout input {
     width: 100%;
     background: rgba(255,255,255,0.06);
@@ -1191,12 +1193,86 @@
     max-height: 11rem;
     overflow: auto;
 }
-#focusListe li {
+.focus-ligne {
     display: flex;
     align-items: center;
     gap: 0.45rem;
-    margin: 0.3rem 0;
 }
+.focus-ligne .focus-tache {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.focus-tache-menu {
+    flex: 0 0 auto;
+    width: 1.7rem;
+    height: 1.7rem;
+    border: none;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: rgba(255,255,255,0.72);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    opacity: 0.55;
+    cursor: pointer;
+}
+.focus-ligne:hover .focus-tache-menu,
+.focus-tache-menu:hover,
+.focus-tache-menu.is-on { opacity: 1; }
+.focus-tache-menu:hover, .focus-tache-menu.is-on { background: rgba(255,255,255,0.12); color: #fff; }
+.focus-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin: 0.4rem 0 0.1rem;
+    padding: 0.28rem;
+    border-radius: 0.7rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(23, 30, 46, 0.98);
+    box-shadow: 0 16px 34px rgba(0,0,0,0.45);
+}
+.focus-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    border: none;
+    background: none;
+    color: #fff;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 650;
+    text-align: left;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+.focus-menu-item svg { flex: 0 0 auto; opacity: 0.85; }
+.focus-menu-item:hover { background: rgba(255,255,255,0.08); }
+.focus-menu-item.is-danger { color: #ef4444; }
+.focus-menu-item.is-danger:hover { background: rgba(239,68,68,0.14); }
+.focus-sous {
+    list-style: none;
+    margin: 0.3rem 0 0 1.85rem;
+    padding: 0;
+}
+.focus-sous .focus-tache { font-size: 0.92rem; }
+.focus-sous-form { margin: 0.35rem 0 0 1.85rem; }
+.focus-sous-form input {
+    width: 100%;
+    border: 1px solid rgba(16,185,129,0.5);
+    background: rgba(255,255,255,0.07);
+    color: #fff;
+    border-radius: 0.6rem;
+    padding: 0.42rem 0.55rem;
+    font: inherit;
+    font-size: 0.9rem;
+}
+.focus-sous-form input:focus { outline: none; border-color: #10b981; }
 .focus-check {
     width: 1.35rem;
     height: 1.35rem;
