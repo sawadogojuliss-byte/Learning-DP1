@@ -554,14 +554,12 @@
     inset: 0;
 }
 .focus-bg {
-    background: #102418 url("../../images/pomodoro/foret.png?v=20261013h") center / cover no-repeat;
-    transform: scale(1.02);
+    background: #102418 url("../../images/pomodoro/foret.png?v=20261013i") center / cover no-repeat;
     transition: opacity 0.35s ease;
 }
 .focus-shade {
     background:
-        radial-gradient(ellipse at center, rgba(0,0,0,0.08), rgba(0,0,0,0.42) 78%),
-        linear-gradient(180deg, rgba(0,0,0,0.28), transparent 22%, transparent 72%, rgba(0,0,0,0.38));
+        linear-gradient(180deg, rgba(0,0,0,0.28), transparent 16%, transparent 78%, rgba(0,0,0,0.32));
     pointer-events: none;
 }
 .focus-top, .focus-center, .focus-bottom, .focus-fonds, .focus-panneau {

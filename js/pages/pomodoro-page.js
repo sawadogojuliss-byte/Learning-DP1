@@ -5,11 +5,11 @@
    ============================================================ */
 
 var FOCUS_FONDS = [
-    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261013h' },
-    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261013h' },
-    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261013h' },
-    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261013h' },
-    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261013h' }
+    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261013i' },
+    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261013i' },
+    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261013i' },
+    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261013i' },
+    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261013i' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
