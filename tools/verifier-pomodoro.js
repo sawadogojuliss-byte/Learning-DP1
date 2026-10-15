@@ -47,7 +47,13 @@ ok(lire('js/registre.js').indexOf('pages/pomodoro.html') !== -1, 'page non enreg
 ok(lire('js/registre.js').indexOf('js/pages/pomodoro-page.js') !== -1, 'script non enregistré');
 
 var memoire = lire('js/memoire.js');
-ok(memoire.indexOf("if (etape === 'assistant' || etape === 'pomodoro') etape = 'planning';") !== -1, 'un rafraîchissement ne doit pas rouvrir Pomodoro');
+ok(memoire.indexOf('__memoirePomodoroEnAttente') !== -1, 'un rafraîchissement sur Pomodoro doit y rester');
+ok(lire('js/pages/pomodoro-page.js').indexOf('function focusReprendreApresRafraichissement') !== -1, 'la reprise Pomodoro manque');
+ok(lire('pages/pomodoro.html').indexOf('Ma musique') === -1, 'Ma musique doit être retirée');
+ok(lire('pages/pomodoro.html').indexOf('Ma playlist') !== -1, 'Ma playlist manque');
+['audio/pomodoro/pluie.wav', 'audio/pomodoro/ocean.wav', 'audio/pomodoro/cafe.wav', 'audio/pomodoro/beta.wav', 'audio/pomodoro/gamma.wav'].forEach(function (src) {
+    ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
+});
 ok(memoire.indexOf("panelPomodoro: 'pomodoro'") !== -1, 'le bouton retour du navigateur doit connaître Pomodoro');
 ok(memoire.indexOf("etape === 'pomodoro'") !== -1, 'le retour navigateur peut rouvrir Pomodoro');
 

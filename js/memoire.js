@@ -762,9 +762,17 @@ function memoireDemarrer() {
     memoirePret = true;
     if (aRestaurer) {
         var etape = data.etape || 'accueil';
-        if (etape === 'assistant' || etape === 'pomodoro') etape = 'planning';
-        if (data.profilComplet && etape === 'accueil') etape = 'planning';
-        try { memoireAller(etape); } catch (e) { console.error(e); }
+        try {
+            var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
+            if (hash === 'pomodoro') etape = 'pomodoro';
+        } catch (e) {}
+        if (etape === 'assistant') etape = 'planning';
+        if (etape === 'pomodoro') {
+            window.__memoirePomodoroEnAttente = true;
+        } else {
+            if (data.profilComplet && etape === 'accueil') etape = 'planning';
+            try { memoireAller(etape); } catch (e) { console.error(e); }
+        }
     }
     [
         'handleContinue', 'validateObjective', 'validateSleep', 'validateHabits', 'showHabitsPage', 'setIbYear', 'validateClasse', 'validateSubjects',

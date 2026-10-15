@@ -306,6 +306,8 @@ function focusBasculerTaches() {
     var panneau = document.getElementById('focusTaches');
     if (!panneau) return;
     panneau.hidden = !panneau.hidden;
+    var bouton = document.getElementById('focusBtnTaches');
+    if (bouton) bouton.classList.toggle('is-on', !panneau.hidden);
     if (!panneau.hidden) focusPeindreTaches();
 }
 
@@ -338,6 +340,16 @@ function focusBasculerAstuce() {
 function focusFermer(id) {
     var el = document.getElementById(id);
     if (el) el.hidden = true;
+    if (id === 'focusTaches') {
+        var bouton = document.getElementById('focusBtnTaches');
+        if (bouton) bouton.classList.remove('is-on');
+    }
+}
+
+function focusAjouterDepuisBouton() {
+    var champ = document.getElementById('focusNouvelle');
+    if (!champ) return;
+    focusAjouterTache({ preventDefault: function () {} });
 }
 
 function focusAjouterTache(event) {
@@ -383,13 +395,7 @@ function focusPeindreTaches() {
     var liste = document.getElementById('focusListe');
     if (!liste) return;
     liste.innerHTML = '';
-    if (!focusTaches.length) {
-        var vide = document.createElement('li');
-        vide.className = 'focus-vide';
-        vide.textContent = 'Aucune tâche pour l’instant.';
-        liste.appendChild(vide);
-        return;
-    }
+    if (!focusTaches.length) return;
     focusTaches.forEach(function (tache) {
         var li = document.createElement('li');
         var check = document.createElement('button');
@@ -470,35 +476,30 @@ function focusSortirPleinEcran() {
 }
 
 var FOCUS_SONS = [
-    { id: 'pluie', nom: 'Pluie', icone: '🌧️', groupe: 'nature', mode: 'bruit', couleur: 'blanc', coupe: 900, gain: 0.04 },
-    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', mode: 'bruit', couleur: 'blanc', coupe: 1400, gain: 0.022 },
-    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', mode: 'bruit', couleur: 'blanc', coupe: 1600, gain: 0.055 },
-    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', mode: 'vague', couleur: 'brun', coupe: 420, gain: 0.05 },
-    { id: 'vent', nom: 'Vent', icone: '💨', groupe: 'nature', mode: 'vent', couleur: 'blanc', coupe: 700, gain: 0.035 },
-    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', mode: 'orage', couleur: 'blanc', coupe: 1100, gain: 0.045 },
-    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', mode: 'crepite', gain: 0.04 },
-    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', mode: 'crepite', gain: 0.032 },
-    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', mode: 'bruit', couleur: 'rose', coupe: 1800, gain: 0.028 },
-    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', mode: 'rythme', couleur: 'brun', coupe: 320, gain: 0.04 },
-    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', mode: 'ronron', couleur: 'brun', coupe: 280, gain: 0.04, freq: 90 },
-    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', mode: 'ronron', couleur: 'rose', coupe: 500, gain: 0.02, freq: 120 },
-    { id: 'salle', nom: 'Salle calme', icone: '🤫', groupe: 'ville', mode: 'bruit', couleur: 'rose', coupe: 600, gain: 0.012 },
-    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', mode: 'bruit', couleur: 'brun', coupe: 350, gain: 0.012 },
-    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', mode: 'bruit', couleur: 'rose', coupe: 900, gain: 0.02 },
-    { id: 'blanc', nom: 'Bruit blanc', icone: '⚪', groupe: 'bruits', mode: 'bruit', couleur: 'blanc', coupe: 8000, gain: 0.02 },
-    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', mode: 'bruit', couleur: 'rose', coupe: 4000, gain: 0.025 },
-    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', mode: 'bruit', couleur: 'brun', coupe: 800, gain: 0.04 },
-    { id: 'beta', nom: 'Binaural bêta', icone: '🧠', groupe: 'concentration', mode: 'binaural', battement: 18, gain: 0.015 },
-    { id: 'gamma', nom: 'Binaural gamma', icone: '✨', groupe: 'concentration', mode: 'binaural', battement: 40, gain: 0.012 }
+    { id: 'pluie', nom: 'Pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav' },
+    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav' },
+    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav' },
+    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav' },
+    { id: 'vent', nom: 'Vent', icone: '💨', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav' },
+    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav' },
+    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav' },
+    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav' },
+    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav' },
+    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav' },
+    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav' },
+    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav' },
+    { id: 'salle', nom: 'Salle calme', icone: '🤫', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav' },
+    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav' },
+    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav' },
+    { id: 'blanc', nom: 'Bruit blanc', icone: '⚪', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav' },
+    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav' },
+    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav' },
+    { id: 'beta', nom: 'Binaural bêta', icone: '🧠', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav' },
+    { id: 'gamma', nom: 'Binaural gamma', icone: '✨', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav' }
 ];
-var FOCUS_LISTES = [
-    { id: 'concentration', nom: 'Concentration', son: 'beta', detail: 'Battement bêta, très bas.' },
-    { id: 'nature', nom: 'Nature', son: 'ocean', detail: 'Océan lent.' },
-    { id: 'pluie', nom: 'Pluie douce', son: 'pluie-legere', detail: 'Pluie légère.' },
-    { id: 'soir', nom: 'Soirée', son: 'cheminee', detail: 'Feu de cheminée.' }
-];
-var focusFichierAudio = null;
-var focusFichierUrl = '';
+var focusLecteurs = {};
+var focusVolumes = {};
+var focusListeEdition = null;
 
 function focusSonParId(id) {
     var i;
@@ -508,6 +509,82 @@ function focusSonParId(id) {
     return null;
 }
 
+function focusVolume(id) {
+    if (focusVolumes[id] == null) {
+        var v = 0.55;
+        try {
+            var lu = parseFloat(localStorage.getItem('studyPlanIB_focusVol_' + id));
+            if (isFinite(lu)) v = lu;
+        } catch (e) {}
+        focusVolumes[id] = Math.min(1, Math.max(0, v));
+    }
+    return focusVolumes[id];
+}
+
+function focusSauverVolume(id) {
+    try { localStorage.setItem('studyPlanIB_focusVol_' + id, String(focusVolumes[id])); } catch (e) {}
+}
+
+function focusLireListes() {
+    var listes = focusLireJson('studyPlanIB_focusListes', []);
+    return Array.isArray(listes) ? listes : [];
+}
+
+function focusSauverListes(listes) {
+    try { localStorage.setItem('studyPlanIB_focusListes', JSON.stringify(listes.slice(0, 24))); } catch (e) {}
+}
+
+function focusSonActif(id) {
+    var audio = focusLecteurs[id];
+    return !!(audio && !audio.paused);
+}
+
+function focusLireSon(id) {
+    var son = focusSonParId(id);
+    if (!son) return;
+    if (!focusLecteurs[id]) {
+        var audio = new Audio(son.fichier);
+        audio.loop = true;
+        audio.preload = 'auto';
+        focusLecteurs[id] = audio;
+    }
+    focusLecteurs[id].volume = focusVolume(id);
+    var promesse = focusLecteurs[id].play();
+    if (promesse && promesse.catch) promesse.catch(function () {});
+}
+
+function focusCouperUnSon(id) {
+    var audio = focusLecteurs[id];
+    if (!audio) return;
+    try { audio.pause(); } catch (e) {}
+}
+
+function focusCouperSon() {
+    Object.keys(focusLecteurs).forEach(focusCouperUnSon);
+    focusBruit = null;
+}
+
+function focusArreterSon() {
+    focusEtat.son = 'off';
+    focusEtat.enPause = false;
+    focusCouperSon();
+    focusPeindreSonBouton();
+    focusPeindreSons();
+}
+
+function focusReglerVolume(id, valeur) {
+    var v = Math.min(1, Math.max(0, Number(valeur) || 0));
+    focusVolumes[id] = v;
+    focusSauverVolume(id);
+    if (focusLecteurs[id]) focusLecteurs[id].volume = v;
+}
+
+function focusPeindreCurseur(input) {
+    if (!input) return;
+    var v = Number(input.value) || 0;
+    input.style.background = 'linear-gradient(90deg, #10b981 ' + v + '%, #e5e7eb ' + v + '%)';
+}
+
 function focusBasculerSons() {
     focusFermer('focusTaches');
     focusFermer('focusReglages');
@@ -515,10 +592,7 @@ function focusBasculerSons() {
     var panneau = document.getElementById('focusSons');
     if (!panneau) return;
     panneau.hidden = !panneau.hidden;
-    if (!panneau.hidden) {
-        focusOngletSon('sons');
-        focusPeindreSons();
-    }
+    if (!panneau.hidden) focusOngletSon('sons');
     focusPeindreSonBouton();
 }
 
@@ -528,36 +602,38 @@ function focusFermerSonsSiFond(event) {
 
 function focusOngletSon(nom) {
     var sons = document.getElementById('focusSonsGrille');
-    var musique = document.getElementById('focusSonsMusique');
     var listes = document.getElementById('focusSonsListes');
+    var filtre = document.getElementById('focusFiltreSon');
     if (sons) sons.hidden = nom !== 'sons';
-    if (musique) musique.hidden = nom !== 'musique';
     if (listes) listes.hidden = nom !== 'listes';
-    var onglets = { sons: 'focusOngletSons', musique: 'focusOngletMusique', listes: 'focusOngletListes' };
+    if (filtre) filtre.hidden = nom !== 'sons';
+    var onglets = { sons: 'focusOngletSons', listes: 'focusOngletListes' };
     Object.keys(onglets).forEach(function (cle) {
         var btn = document.getElementById(onglets[cle]);
         if (btn) btn.classList.toggle('is-on', cle === nom);
     });
     if (nom === 'listes') focusPeindreListes();
-    if (nom === 'sons') focusPeindreSons();
+    else focusPeindreSons();
 }
 
 function focusFiltrerSons() {
     focusOngletSon('sons');
-    focusPeindreSons();
 }
 
 function focusPeindreSons() {
     var grille = document.getElementById('focusSonsGrille');
-    if (!grille) return;
+    if (!grille || grille.hidden) return;
     var filtre = document.getElementById('focusFiltreSon');
     var groupe = filtre ? filtre.value : 'tous';
     grille.innerHTML = '';
     FOCUS_SONS.forEach(function (son) {
         if (groupe !== 'tous' && son.groupe !== groupe) return;
+        var actif = focusSonActif(son.id);
+        var boite = document.createElement('div');
+        boite.className = 'focus-son-case' + (actif ? ' is-on' : '');
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'focus-son' + (focusEtat.son === son.id ? ' is-on' : '');
+        btn.className = 'focus-son' + (actif ? ' is-on' : '');
         btn.setAttribute('aria-label', son.nom);
         var icone = document.createElement('span');
         icone.className = 'focus-son-icone';
@@ -567,61 +643,48 @@ function focusPeindreSons() {
         btn.appendChild(icone);
         btn.appendChild(nom);
         btn.onclick = function () { focusChoisirSon(son.id); };
-        grille.appendChild(btn);
+        var volume = document.createElement('input');
+        volume.type = 'range';
+        volume.className = 'focus-volume';
+        volume.min = '0';
+        volume.max = '100';
+        volume.value = String(Math.round(focusVolume(son.id) * 100));
+        volume.setAttribute('aria-label', 'Volume de ' + son.nom);
+        focusPeindreCurseur(volume);
+        volume.addEventListener('click', function (event) { event.stopPropagation(); });
+        volume.addEventListener('input', function (event) {
+            event.stopPropagation();
+            focusReglerVolume(son.id, Number(volume.value) / 100);
+            focusPeindreCurseur(volume);
+        });
+        boite.appendChild(btn);
+        boite.appendChild(volume);
+        grille.appendChild(boite);
     });
-}
-
-function focusPeindreListes() {
-    var zone = document.getElementById('focusSonsListes');
-    if (!zone || zone.childNodes.length) {
-        if (zone) {
-            zone.querySelectorAll('.focus-liste-btn').forEach(function (btn) {
-                btn.classList.toggle('is-on', btn.getAttribute('data-son') === focusEtat.son);
-            });
-        }
-        return;
-    }
-    FOCUS_LISTES.forEach(function (liste) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'focus-liste-btn';
-        btn.setAttribute('data-son', liste.son);
-        btn.innerHTML = '<strong>' + liste.nom + '</strong><small>' + liste.detail + '</small>';
-        btn.onclick = function () { focusChoisirSon(liste.son); focusPeindreListes(); };
-        zone.appendChild(btn);
-    });
-    focusPeindreListes();
 }
 
 function focusChoisirSon(id) {
-    if (focusEtat.son === id && focusBruit) {
-        focusEtat.enPause = true;
-        focusCouperSon();
-        focusPeindreSonBouton();
-        focusPeindreSons();
-        return;
+    if (focusSonActif(id)) focusCouperUnSon(id);
+    else {
+        focusEtat.son = id;
+        focusEtat.enPause = false;
+        focusLireSon(id);
     }
-    focusEtat.son = id;
-    focusEtat.enPause = false;
-    focusDemarrerSon(id);
     focusPeindreSons();
     focusPeindreSonBouton();
 }
 
 function focusPauseSon() {
-    if (focusEtat.son === 'fichier' && focusFichierAudio) {
-        if (focusFichierAudio.paused) focusFichierAudio.play();
-        else focusFichierAudio.pause();
-        focusPeindreSonBouton();
-        return;
-    }
-    if (focusBruit) {
+    var actifs = Object.keys(focusLecteurs).filter(focusSonActif);
+    if (actifs.length) {
         focusEtat.enPause = true;
-        focusCouperSon();
-    } else if (focusEtat.enPause && focusEtat.son && focusEtat.son !== 'off') {
+        focusEtat.sonPause = actifs;
+        actifs.forEach(focusCouperUnSon);
+    } else if (focusEtat.enPause && focusEtat.sonPause) {
         focusEtat.enPause = false;
-        focusDemarrerSon(focusEtat.son);
+        focusEtat.sonPause.forEach(focusLireSon);
     }
+    focusPeindreSons();
     focusPeindreSonBouton();
 }
 
@@ -629,43 +692,138 @@ function focusReinitSon() {
     focusArreterSon();
     var filtre = document.getElementById('focusFiltreSon');
     if (filtre) filtre.value = 'tous';
-    var champ = document.getElementById('focusFichier');
-    if (champ) champ.value = '';
-    var nom = document.getElementById('focusFichierNom');
-    if (nom) nom.textContent = 'Aucun fichier choisi.';
     focusPeindreSons();
-}
-
-function focusChoisirFichier(input) {
-    var fichier = input && input.files && input.files[0];
-    if (!fichier) return;
-    focusCouperSon();
-    focusEtat.son = 'fichier';
-    focusEtat.enPause = false;
-    try {
-        if (focusFichierUrl) URL.revokeObjectURL(focusFichierUrl);
-        focusFichierUrl = URL.createObjectURL(fichier);
-        if (!focusFichierAudio) focusFichierAudio = new Audio();
-        focusFichierAudio.src = focusFichierUrl;
-        focusFichierAudio.loop = true;
-        focusFichierAudio.volume = 0.45;
-        focusFichierAudio.play();
-        focusBruit = { stop: function () { try { focusFichierAudio.pause(); } catch (e) {} } };
-    } catch (e) {}
-    var nom = document.getElementById('focusFichierNom');
-    if (nom) nom.textContent = fichier.name;
-    focusPeindreSonBouton();
 }
 
 function focusPeindreSonBouton() {
     var bouton = document.getElementById('focusBtnSon');
     var panneau = document.getElementById('focusSons');
     var ouvert = panneau && !panneau.hidden;
-    var joue = !!focusBruit || (focusFichierAudio && !focusFichierAudio.paused && focusEtat.son === 'fichier');
+    var joue = Object.keys(focusLecteurs).some(focusSonActif);
     if (bouton) {
-        bouton.classList.toggle('is-on', ouvert || joue || (focusEtat.son && focusEtat.son !== 'off'));
+        bouton.classList.toggle('is-on', ouvert || joue);
         bouton.setAttribute('aria-label', joue ? 'Son en cours' : 'Sons');
     }
+}
+
+function focusJouerListe(liste) {
+    focusCouperSon();
+    (liste.sons || []).forEach(function (id) {
+        if (focusSonParId(id)) focusLireSon(id);
+    });
+    focusEtat.enPause = false;
+    focusPeindreSonBouton();
+    focusPeindreListes();
+}
+
+function focusPeindreListes() {
+    var zone = document.getElementById('focusSonsListes');
+    if (!zone) return;
+    zone.innerHTML = '';
+    var titre = document.createElement('div');
+    titre.className = 'focus-listes-haut';
+    var creer = document.createElement('button');
+    creer.type = 'button';
+    creer.className = 'focus-liste-creer';
+    creer.textContent = 'Nouvelle playlist';
+    creer.onclick = function () {
+        focusListeEdition = { id: Date.now(), nom: '', sons: [] };
+        focusPeindreListes();
+    };
+    titre.appendChild(creer);
+    zone.appendChild(titre);
+    if (focusListeEdition) zone.appendChild(focusFormulaireListe());
+    var listes = focusLireListes();
+    if (!listes.length && !focusListeEdition) {
+        var vide = document.createElement('p');
+        vide.className = 'focus-vide';
+        vide.textContent = 'Aucune playlist. Crée-en une avec les sons déjà là.';
+        zone.appendChild(vide);
+    }
+    listes.forEach(function (liste) {
+        var carte = document.createElement('div');
+        carte.className = 'focus-liste-carte';
+        var nom = document.createElement('strong');
+        nom.textContent = liste.nom || 'Playlist';
+        var detail = document.createElement('small');
+        detail.textContent = (liste.sons || []).map(function (id) {
+            var son = focusSonParId(id);
+            return son ? son.nom : id;
+        }).join(' · ') || 'Aucun son';
+        var actions = document.createElement('div');
+        actions.className = 'focus-liste-actions';
+        var lire = document.createElement('button');
+        lire.type = 'button';
+        lire.textContent = 'Lire';
+        lire.onclick = function () { focusJouerListe(liste); };
+        var retirer = document.createElement('button');
+        retirer.type = 'button';
+        retirer.textContent = 'Supprimer';
+        retirer.onclick = function () {
+            focusSauverListes(focusLireListes().filter(function (item) { return item.id !== liste.id; }));
+            focusPeindreListes();
+        };
+        actions.appendChild(lire);
+        actions.appendChild(retirer);
+        carte.appendChild(nom);
+        carte.appendChild(detail);
+        carte.appendChild(actions);
+        zone.appendChild(carte);
+    });
+}
+
+function focusFormulaireListe() {
+    var form = document.createElement('form');
+    form.className = 'focus-liste-form';
+    form.onsubmit = function (event) {
+        event.preventDefault();
+        var nom = (focusListeEdition.nom || '').trim();
+        if (!nom || !focusListeEdition.sons.length) return false;
+        var listes = focusLireListes().filter(function (item) { return item.id !== focusListeEdition.id; });
+        listes.unshift({ id: focusListeEdition.id, nom: nom, sons: focusListeEdition.sons.slice() });
+        focusSauverListes(listes);
+        focusListeEdition = null;
+        focusPeindreListes();
+        return false;
+    };
+    var champ = document.createElement('input');
+    champ.maxLength = 40;
+    champ.placeholder = 'Nom de la playlist';
+    champ.value = focusListeEdition.nom || '';
+    champ.oninput = function () { focusListeEdition.nom = champ.value; };
+    form.appendChild(champ);
+    var choix = document.createElement('div');
+    choix.className = 'focus-liste-choix';
+    FOCUS_SONS.forEach(function (son) {
+        var label = document.createElement('label');
+        var box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = focusListeEdition.sons.indexOf(son.id) !== -1;
+        box.onchange = function () {
+            if (box.checked) {
+                if (focusListeEdition.sons.indexOf(son.id) === -1) focusListeEdition.sons.push(son.id);
+            } else {
+                focusListeEdition.sons = focusListeEdition.sons.filter(function (id) { return id !== son.id; });
+            }
+        };
+        label.appendChild(box);
+        label.appendChild(document.createTextNode(' ' + son.icone + ' ' + son.nom));
+        choix.appendChild(label);
+    });
+    form.appendChild(choix);
+    var bas = document.createElement('div');
+    bas.className = 'focus-liste-actions';
+    var sauver = document.createElement('button');
+    sauver.type = 'submit';
+    sauver.textContent = 'Enregistrer';
+    var annuler = document.createElement('button');
+    annuler.type = 'button';
+    annuler.textContent = 'Annuler';
+    annuler.onclick = function () { focusListeEdition = null; focusPeindreListes(); };
+    bas.appendChild(sauver);
+    bas.appendChild(annuler);
+    form.appendChild(bas);
+    return form;
 }
 
 function focusInitAudio() {
@@ -675,131 +833,6 @@ function focusInitAudio() {
         if (!focusAudio) focusAudio = new AC();
         if (focusAudio.state === 'suspended') focusAudio.resume();
     } catch (e) {}
-}
-
-function focusBufferBruit(ctx, couleur) {
-    var taille = ctx.sampleRate * 2;
-    var buffer = ctx.createBuffer(1, taille, ctx.sampleRate);
-    var data = buffer.getChannelData(0);
-    var i, blanc, rose = 0, brun = 0;
-    for (i = 0; i < taille; i++) {
-        blanc = Math.random() * 2 - 1;
-        rose = 0.97 * rose + 0.03 * blanc;
-        brun = (brun + 0.02 * blanc) / 1.02;
-        if (couleur === 'rose') data[i] = rose * 3.2;
-        else if (couleur === 'brun') data[i] = brun * 8;
-        else data[i] = blanc;
-    }
-    return buffer;
-}
-
-function focusBufferCrepitement(ctx) {
-    var taille = ctx.sampleRate * 2;
-    var buffer = ctx.createBuffer(1, taille, ctx.sampleRate);
-    var data = buffer.getChannelData(0);
-    var i, n;
-    for (i = 0; i < taille; i++) data[i] = (Math.random() * 2 - 1) * 0.04;
-    for (n = 0; n < 90; n++) {
-        i = Math.floor(Math.random() * (taille - 40));
-        data[i] = (Math.random() * 2 - 1) * 0.8;
-        data[i + 1] = data[i] * 0.4;
-    }
-    return buffer;
-}
-
-function focusDemarrerSon(id) {
-    var son = focusSonParId(id);
-    focusCouperSon();
-    if (!son) return;
-    focusInitAudio();
-    if (!focusAudio) return;
-    try {
-        var ctx = focusAudio;
-        var noeuds = [];
-        var master = ctx.createGain();
-        master.gain.value = son.gain || 0.03;
-        master.connect(ctx.destination);
-        if (son.mode !== 'binaural') {
-            var source = ctx.createBufferSource();
-            source.buffer = son.mode === 'crepite' ? focusBufferCrepitement(ctx) : focusBufferBruit(ctx, son.couleur || 'blanc');
-            source.loop = true;
-            var filtre = ctx.createBiquadFilter();
-            filtre.type = son.mode === 'vent' ? 'bandpass' : 'lowpass';
-            filtre.frequency.value = son.coupe || 800;
-            if (son.mode === 'vent') filtre.Q.value = 0.7;
-            source.connect(filtre);
-            filtre.connect(master);
-            source.start();
-            noeuds.push(source);
-        }
-        if (son.mode === 'vague' || son.mode === 'vent' || son.mode === 'rythme') {
-            var lfo = ctx.createOscillator();
-            var profondeur = ctx.createGain();
-            lfo.frequency.value = son.mode === 'rythme' ? 1.7 : son.mode === 'vent' ? 0.18 : 0.12;
-            profondeur.gain.value = son.mode === 'rythme' ? 0.025 : 0.018;
-            lfo.connect(profondeur);
-            profondeur.connect(master.gain);
-            lfo.start();
-            noeuds.push(lfo);
-        }
-        if (son.mode === 'ronron' || son.mode === 'orage') {
-            var osc = ctx.createOscillator();
-            var gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.value = son.freq || (son.mode === 'orage' ? 48 : 90);
-            gain.gain.value = son.mode === 'orage' ? 0.03 : 0.02;
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            noeuds.push(osc);
-        }
-        if (son.mode === 'binaural') {
-            var fusion = ctx.createChannelMerger(2);
-            var gauche = ctx.createOscillator();
-            var droite = ctx.createOscillator();
-            var gG = ctx.createGain();
-            var gD = ctx.createGain();
-            gauche.frequency.value = 200;
-            droite.frequency.value = 200 + (son.battement || 18);
-            gG.gain.value = 0.5;
-            gD.gain.value = 0.5;
-            gauche.connect(gG);
-            droite.connect(gD);
-            gG.connect(fusion, 0, 0);
-            gD.connect(fusion, 0, 1);
-            fusion.connect(master);
-            gauche.start();
-            droite.start();
-            noeuds.push(gauche, droite);
-        }
-        focusBruit = {
-            stop: function () {
-                noeuds.forEach(function (noeud) {
-                    try { noeud.stop(); } catch (e) {}
-                });
-            }
-        };
-    } catch (e) {}
-}
-
-function focusCouperSon() {
-    if (focusBruit) {
-        focusBruit.stop();
-        focusBruit = null;
-    }
-    if (focusFichierAudio && focusEtat.son !== 'fichier') {
-        try { focusFichierAudio.pause(); } catch (e) {}
-    }
-}
-
-function focusArreterSon() {
-    focusEtat.son = 'off';
-    focusEtat.enPause = false;
-    if (focusFichierAudio) {
-        try { focusFichierAudio.pause(); } catch (e) {}
-    }
-    focusCouperSon();
-    focusPeindreSonBouton();
 }
 
 function focusBip(count) {
@@ -860,4 +893,16 @@ function focusBrancher() {
     }
 }
 
+function focusReprendreApresRafraichissement() {
+    if (!window.__memoirePomodoroEnAttente) return;
+    window.__memoirePomodoroEnAttente = false;
+    if (!focusEstAdmin()) {
+        if (typeof memoireAller === 'function') memoireAller('planning');
+        return;
+    }
+    if (typeof memoireAller === 'function') memoireAller('pomodoro');
+    else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+}
+
 focusAfficherEntree();
+focusReprendreApresRafraichissement();
