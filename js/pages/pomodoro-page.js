@@ -18,7 +18,16 @@ var FOCUS_FONDS = [
     { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261015a' },
     { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261015a' },
     { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261015a' },
-    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261015a' }
+    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261015a' },
+    { id: 'tente', nom: 'Tente', src: 'images/pomodoro/tente.png?v=20261015g' },
+    { id: 'savane', nom: 'Savane', src: 'images/pomodoro/savane.png?v=20261015g' },
+    { id: 'recif', nom: 'Récif', src: 'images/pomodoro/recif.png?v=20261015g' },
+    { id: 'sentier', nom: 'Sentier', src: 'images/pomodoro/sentier.png?v=20261015g' },
+    { id: 'pluie-nuit', nom: 'Pluie de nuit', src: 'images/pomodoro/pluie-nuit.png?v=20261015g' },
+    { id: 'lecture', nom: 'Lecture', src: 'images/pomodoro/lecture.png?v=20261015g' },
+    { id: 'cabine', nom: 'Cabine', src: 'images/pomodoro/cabine.png?v=20261015g' },
+    { id: 'tunnel', nom: 'Tunnel', src: 'images/pomodoro/tunnel.png?v=20261015g' },
+    { id: 'stade', nom: 'Stade', src: 'images/pomodoro/stade.png?v=20261015g' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -149,6 +158,9 @@ function focusPreparerFonds() {
             btn.className = 'focus-vignette';
             btn.setAttribute('aria-label', fond.nom);
             btn.style.backgroundImage = 'url("' + fond.src + '")';
+            btn.style.backgroundPosition = 'center center';
+            btn.style.backgroundSize = 'cover';
+            btn.style.backgroundRepeat = 'no-repeat';
             btn.onclick = function () { focusPoserFond(i); };
             bande.appendChild(btn);
         });
@@ -162,6 +174,9 @@ function focusPoserFond(index, immediat) {
     if (bg) {
         var appliquer = function () {
             bg.style.backgroundImage = 'url("' + FOCUS_FONDS[index].src + '")';
+            bg.style.backgroundPosition = 'center center';
+            bg.style.backgroundSize = 'cover';
+            bg.style.backgroundRepeat = 'no-repeat';
             bg.style.opacity = '1';
         };
         if (immediat) appliquer();
@@ -500,7 +515,11 @@ function focusPipMaj() {
     var localTemps = document.getElementById('focusPipTemps');
     var localScene = document.getElementById('focusPipScene');
     if (localTemps) localTemps.textContent = temps;
-    if (localScene) localScene.style.backgroundImage = fond;
+    if (localScene) {
+        localScene.style.backgroundImage = fond;
+        localScene.style.backgroundPosition = 'center center';
+        localScene.style.backgroundSize = 'cover';
+    }
     focusPipPeindreBouton(document.getElementById('focusPipPlay'));
     if (!focusPip || focusPip.closed) return;
     try {
@@ -508,7 +527,11 @@ function focusPipMaj() {
         var el = doc.getElementById('pipTime');
         var scene = doc.getElementById('pipScene');
         if (el) el.textContent = temps;
-        if (scene) scene.style.backgroundImage = fond;
+        if (scene) {
+            scene.style.backgroundImage = fond;
+            scene.style.backgroundPosition = 'center center';
+            scene.style.backgroundSize = 'cover';
+        }
         focusPipPeindreBouton(doc.getElementById('pipPlay'));
     } catch (e) {}
 }
@@ -591,26 +614,26 @@ function focusSortirPleinEcran() {
 }
 
 var FOCUS_SONS = [
-    { id: 'pluie', nom: 'Pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav' },
+    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav' },
+    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav' },
+    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav' },
+    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav' },
+    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav' },
+    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav' },
+    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav' },
+    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav' },
     { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav' },
     { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav' },
-    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav' },
-    { id: 'vent', nom: 'Vent', icone: '💨', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav' },
     { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav' },
     { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav' },
     { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav' },
-    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav' },
-    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav' },
-    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav' },
     { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav' },
-    { id: 'salle', nom: 'Salle calme', icone: '🤫', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav' },
-    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav' },
-    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav' },
-    { id: 'blanc', nom: 'Bruit blanc', icone: '⚪', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav' },
+    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav' },
+    { id: 'blanc', nom: 'Bruit blanc', icone: '🧠', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav' },
     { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav' },
     { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav' },
-    { id: 'beta', nom: 'Binaural bêta', icone: '🧠', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav' },
-    { id: 'gamma', nom: 'Binaural gamma', icone: '✨', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav' }
+    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav' },
+    { id: 'beta', nom: 'Binaural bêta', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav' }
 ];
 var focusLecteurs = {};
 var focusVolumes = {};
@@ -738,6 +761,7 @@ function focusPeindreSons() {
         icone.className = 'focus-son-icone';
         icone.textContent = son.icone;
         var nom = document.createElement('span');
+        nom.className = 'focus-son-nom';
         nom.textContent = son.nom;
         btn.appendChild(icone);
         btn.appendChild(nom);

@@ -569,7 +569,8 @@
     height: 100dvh;
 }
 .focus-bg {
-    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center / cover no-repeat;
+    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center center / cover no-repeat;
+    background-position: center center;
     transition: opacity 0.35s ease;
 }
 .focus-shade {
@@ -852,6 +853,7 @@
 }
 .focus-fonds {
     display: flex;
+    justify-content: safe center;
     gap: 0.55rem;
     overflow-x: auto;
 }
@@ -914,7 +916,8 @@
     height: 4.2rem;
     border-radius: 0.75rem;
     border: 2px solid transparent;
-    background: #123 center / cover no-repeat;
+    background: #123 center center / cover no-repeat;
+    background-position: center center;
     cursor: pointer;
     padding: 0;
 }
@@ -927,32 +930,38 @@
 .focus-sons {
     position: absolute;
     z-index: 4;
-    inset: 3.6rem 0.7rem 4.5rem;
+    inset: 0;
     display: flex;
-    align-items: stretch;
+    align-items: center;
     justify-content: center;
+    background: rgba(8, 14, 28, 0.58);
 }
 .focus-sons[hidden] { display: none; }
 .focus-sons-carte {
-    width: min(68rem, 100%);
+    position: relative;
+    width: min(76rem, 100%);
+    height: 100%;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     min-height: 0;
-    border-radius: 1.4rem;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(8, 16, 22, 0.78);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 18px 50px rgba(0,0,0,0.28);
-    padding: 1rem 1rem 0.8rem;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    padding: 3.4rem 1.2rem 4.8rem;
     color: #fff;
 }
 .focus-sons-haut {
+    position: absolute;
+    top: 0.85rem;
+    left: 1.2rem;
+    right: 1.2rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.8rem;
-    padding-bottom: 0.7rem;
-    border-bottom: 1px solid rgba(255,255,255,0.12);
+    padding: 0;
+    border: none;
 }
 .focus-sons-titre {
     margin: 0;
@@ -1002,10 +1011,11 @@
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: start;
-    justify-items: stretch;
-    gap: 1.15rem 0.35rem;
+    align-content: center;
+    justify-items: center;
+    gap: 1.45rem 0.45rem;
     overflow: auto;
-    padding: 1.1rem 0.35rem 0.4rem;
+    padding: 0.4rem 0.2rem;
 }
 .focus-son-case {
     display: flex;
@@ -1013,6 +1023,7 @@
     align-items: center;
     width: 100%;
     min-width: 0;
+    min-height: 6.6rem;
 }
 .focus-volume {
     display: none;
@@ -1062,24 +1073,30 @@
     padding: 0.15rem 0.1rem 0;
 }
 .focus-son-icone {
-    width: 3.1rem;
-    height: 3.1rem;
-    border-radius: 0.9rem;
+    width: auto;
+    height: auto;
     display: grid;
     place-items: center;
-    font-size: 1.45rem;
-    background: rgba(255,255,255,0.06);
-    border: 2px solid transparent;
+    font-size: 2.15rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
 }
-.focus-son.is-on .focus-son-icone { border-color: #10b981; background: rgba(16,185,129,0.18); }
-.focus-son span {
+.focus-son:hover .focus-son-icone,
+.focus-son.is-on .focus-son-icone { filter: drop-shadow(0 0 10px rgba(16,185,129,0.9)); }
+.focus-son-nom {
     display: block;
     width: 100%;
     min-height: 2.4em;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
+    font-weight: 650;
     line-height: 1.2;
     text-align: center;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.45);
 }
+.focus-son:hover .focus-son-nom,
+.focus-son.is-on .focus-son-nom { color: #6ee7b7; }
 .focus-sons-page, .focus-sons-listes {
     padding: 1rem 0.2rem;
     overflow: auto;
@@ -1238,9 +1255,11 @@
     .focus-logo { font-size: 1.35rem; }
     .focus-time { font-size: clamp(3.4rem, 16vw, 4.6rem); }
     .focus-liste-choix { grid-template-columns: 1fr; }
-    .focus-sons { inset: 3.1rem 0.4rem 5.4rem; }
+    .focus-sons-carte { padding: 3.2rem 0.35rem 4.6rem; }
     .focus-sons-haut { flex-wrap: wrap; }
-    .focus-sons-grille { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .focus-sons-grille { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.85rem 0.15rem; }
+    .focus-son-icone { font-size: 1.35rem; }
+    .focus-son-nom { font-size: 0.58rem; }
     .focus-top { padding: 1rem 1rem 0; }
     .focus-modes { gap: 0.45rem; }
     .focus-modes button { letter-spacing: 0.06em; font-size: 0.68rem; }

@@ -22,16 +22,17 @@ ok(nav.indexOf("page === 'pomodoro'") !== -1 && nav.indexOf('focusEstAdmin') !==
 ok(nav.indexOf('focusOuvrir') !== -1, 'l\'ouverture prépare le minuteur');
 
 var page = lire('pages/pomodoro.html');
-['Study Plan IB', 'Concentre-toi', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00', 'Sur quoi veux-tu te concentrer ?', 'focusDots', 'focusTime'].forEach(function (extrait) {
+['Study Plan IB', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00', 'Sur quoi veux-tu te concentrer ?', 'focusDots', 'focusTime'].forEach(function (extrait) {
     ok(page.indexOf(extrait) !== -1, 'page incomplète : ' + extrait);
 });
+ok(page.indexOf('Concentre-toi') === -1, 'Concentre-toi doit être retiré');
 ok(page.indexOf('focus-nav') === -1, 'les boutons Retour et Aller de la page sont retirés');
 ok(page.indexOf('focusEditerTache') === -1, 'le crayon doit être retiré');
 ok(page.indexOf('id="focusSons"') !== -1, 'le panneau des sons manque');
 ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
 var script = lire('js/pages/pomodoro-page.js');
 ok(script.indexOf('function focusBasculerSons') !== -1, 'le bouton musique doit ouvrir les sons');
-['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
+['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png', 'images/pomodoro/tente.png', 'images/pomodoro/savane.png', 'images/pomodoro/recif.png', 'images/pomodoro/sentier.png', 'images/pomodoro/pluie-nuit.png', 'images/pomodoro/lecture.png', 'images/pomodoro/cabine.png', 'images/pomodoro/tunnel.png', 'images/pomodoro/stade.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
     var fichier = path.join(__dirname, '..', src);
     ok(fs.existsSync(fichier), 'fichier image absent : ' + src);
@@ -56,6 +57,9 @@ ok(lire('css/pages/planning-panels.css').indexOf('caret-color: transparent') !==
 ok(lire('css/pages/planning-panels.css').indexOf('.focus-tip {') !== -1, 'le style du conseil a disparu');
 ok(lire('js/pages/pomodoro-page.js').indexOf('Image dans') === -1 && lire('pages/pomodoro.html').indexOf("Image dans l'image") !== -1, 'le libellé français image dans l image manque');
 ok(lire('css/pages/planning-panels.css').indexOf('#7c5cff') === -1, 'l ampoule doit être verte');
+ok(lire('css/pages/planning-panels.css').indexOf('repeat(5, minmax(0, 1fr))') !== -1, 'les sons doivent être en 5 colonnes');
+ok(lire('css/pages/planning-panels.css').indexOf('background-position: center center') !== -1, 'les images doivent être centrées');
+ok(lire('js/pages/pomodoro-page.js').indexOf("nom: 'Pluie'") < lire('js/pages/pomodoro-page.js').indexOf("nom: 'Océan'"), 'Pluie doit ouvrir la grille');
 ['audio/pomodoro/pluie.wav', 'audio/pomodoro/ocean.wav', 'audio/pomodoro/cafe.wav', 'audio/pomodoro/beta.wav', 'audio/pomodoro/gamma.wav'].forEach(function (src) {
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
 });
