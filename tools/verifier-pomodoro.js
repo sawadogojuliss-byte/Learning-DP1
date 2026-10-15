@@ -22,12 +22,11 @@ ok(nav.indexOf("page === 'pomodoro'") !== -1 && nav.indexOf('focusEstAdmin') !==
 ok(nav.indexOf('focusOuvrir') !== -1, 'l\'ouverture prépare le minuteur');
 
 var page = lire('pages/pomodoro.html');
-['Study Plan IB', 'Concentre-toi', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00', 'Sur quoi veux-tu te concentrer ?', 'Retour', 'Aller', 'focusDots', 'focusTime'].forEach(function (extrait) {
+['Study Plan IB', 'Concentre-toi', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00', 'Sur quoi veux-tu te concentrer ?', 'focusDots', 'focusTime'].forEach(function (extrait) {
     ok(page.indexOf(extrait) !== -1, 'page incomplète : ' + extrait);
 });
+ok(page.indexOf('focus-nav') === -1, 'les boutons Retour et Aller de la page sont retirés');
 ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
-ok(lire('js/pages/pomodoro-page.js').indexOf('function focusRetour') !== -1, 'le bouton Retour manque');
-ok(lire('js/pages/pomodoro-page.js').indexOf('function focusAller') !== -1, 'le bouton Aller manque');
 var script = lire('js/pages/pomodoro-page.js');
 ['images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
@@ -38,8 +37,9 @@ ok(lire('js/registre.js').indexOf('pages/pomodoro.html') !== -1, 'page non enreg
 ok(lire('js/registre.js').indexOf('js/pages/pomodoro-page.js') !== -1, 'script non enregistré');
 
 var memoire = lire('js/memoire.js');
-ok(memoire.indexOf("etape === 'pomodoro'") !== -1, 'un rafraîchissement ne doit pas rouvrir Pomodoro');
-ok(memoire.indexOf('panelPomodoro') === -1, 'Pomodoro ne doit pas être restauré comme page active');
+ok(memoire.indexOf("if (etape === 'assistant' || etape === 'pomodoro') etape = 'planning';") !== -1, 'un rafraîchissement ne doit pas rouvrir Pomodoro');
+ok(memoire.indexOf("panelPomodoro: 'pomodoro'") !== -1, 'le bouton retour du navigateur doit connaître Pomodoro');
+ok(memoire.indexOf("etape === 'pomodoro'") !== -1, 'le retour navigateur peut rouvrir Pomodoro');
 
 ok(lire('js/pages/planning-base.js').indexOf('var COURS_FIN = 16 * 60 + 25;') !== -1, 'les cours doivent finir à 16 h 25');
 ok(lire('pages/onboarding-activites.html').indexOf('16h35') === -1, 'l\'ancien horaire 16h35 reste affiché');
