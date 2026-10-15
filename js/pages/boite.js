@@ -139,6 +139,7 @@ function boiteMajMenu() {
     });
     if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
     if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
+    if (typeof focusAfficherEntree === 'function') focusAfficherEntree();
     else {
         var assistant = document.getElementById('menuAssistant');
         if (assistant) assistant.style.display = 'none';
@@ -391,6 +392,11 @@ function boiteCorrigerCours(slot) {
     if (!slot || String(slot.t || '') !== 'Cours') return slot;
     var debut = String(slot.d || '');
     var fin = String(slot.f || '');
+    if (fin === '16:35') {
+        var apres = Object.assign({}, slot);
+        apres.f = '16:25';
+        return apres;
+    }
     if (!debut || debut >= '12:00' || fin !== '12:30' || debut === '07:50') return slot;
     var copie = Object.assign({}, slot);
     copie.d = '07:50';
@@ -1868,7 +1874,7 @@ function boiteRendreEmplois(fusion) {
     }
     var incomplet = boiteJourIncomplet(slots);
     if (incomplet) {
-        [{ d: '12:30', f: '13:30', t: 'Déjeuner' }, { d: '13:30', f: '16:35', t: 'Cours' }].forEach(function (slot) {
+        [{ d: '12:30', f: '13:30', t: 'Déjeuner' }, { d: '13:30', f: '16:25', t: 'Cours' }].forEach(function (slot) {
             if (!slots.some(function (s) { return s.d === slot.d; })) slots.push(Object.assign({ ajoute: true }, slot));
         });
     }

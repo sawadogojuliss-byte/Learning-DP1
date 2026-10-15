@@ -118,7 +118,7 @@ function habitudesChevaucheCours(heure, duree) {
     if (!habitudesHeureValide(heure)) return false;
     var start = habitudesVersMinutes(heure);
     var end = start + habitudesDuree(duree, 30, 1, 240);
-    return start < (16 * 60 + 35) && (8 * 60) < end;
+    return start < (16 * 60 + 25) && (8 * 60) < end;
 }
 
 function habitudesChevauche(aHeure, aDuree, bHeure, bDuree) {
@@ -288,7 +288,7 @@ function habitudesMessagePreparation(nom, debut, fin) {
     if (creneau.duree < 5) return 'La préparation ' + nom + ' doit durer au moins 5 minutes.';
     if (creneau.duree > 180) return 'La préparation ' + nom + ' ne peut pas dépasser 3 heures.';
     if (habitudesChevaucheCours(creneau.debut, creneau.duree)) {
-        return 'La préparation ' + nom + ' tombe pendant les cours (8 h 00 – 16 h 35). Choisis d\'autres heures.';
+        return 'La préparation ' + nom + ' tombe pendant les cours (8 h 00 – 16 h 25). Choisis d\'autres heures.';
     }
     return '';
 }
@@ -325,10 +325,10 @@ function habitudesMessageFormulaire(b) {
         return 'Le dîner dépasse minuit. Avance l\'heure ou raccourcis la durée.';
     }
     if (b.petitDejChoix === 'heure' && habitudesChevaucheCours(b.petitDejHeure, b.petitDejMinutes)) {
-        return 'Le petit-déjeuner tombe pendant les cours (8 h 00 – 16 h 35). Choisis une autre heure, ou Aucun.';
+        return 'Le petit-déjeuner tombe pendant les cours (8 h 00 – 16 h 25). Choisis une autre heure, ou Aucun.';
     }
     if (b.dinerChoix === 'heure' && habitudesChevaucheCours(b.dinerHeure, b.dinerMinutes)) {
-        return 'Le dîner tombe pendant les cours (8 h 00 – 16 h 35). Choisis une autre heure, ou Aucun.';
+        return 'Le dîner tombe pendant les cours (8 h 00 – 16 h 25). Choisis une autre heure, ou Aucun.';
     }
     if (b.petitDejChoix === 'heure' && b.dinerChoix === 'heure' && habitudesChevauche(b.petitDejHeure, b.petitDejMinutes, b.dinerHeure, b.dinerMinutes)) {
         return 'Le petit-déjeuner et le dîner se chevauchent. Écarte leurs horaires.';

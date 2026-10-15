@@ -112,6 +112,18 @@ if (sejour.length) {
         console.log('ECHEC horaire séjour', maison && debut(maison));
     }
 }
+var finOfficielle = planning.planningGarantirJour(planning.planningCorrigerCours([
+    { d: '06:00', f: '06:10', t: 'Réveil' },
+    { d: '13:30', f: '16:35', t: 'Cours' },
+    { d: '16:35', f: '17:15', t: 'Trajet maison' },
+    { d: '22:00', f: '06:00', t: 'Coucher' }
+]));
+var coursApres = finOfficielle.filter(function (ev) { return titre(ev) === 'cours'; })[0];
+var maisonApres = finOfficielle.filter(function (ev) { return titre(ev).indexOf('trajet maison') === 0; })[0];
+if (!coursApres || fin(coursApres) !== '16:25' || !maisonApres || debut(maisonApres) !== '16:25') {
+    echecs += 1;
+    console.log('ECHEC fin de cours', coursApres && fin(coursApres), maisonApres && debut(maisonApres));
+}
 
 function attendre(texte, motif) {
     if (texte.indexOf(motif) !== 0) {

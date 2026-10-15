@@ -233,6 +233,8 @@ assert(dejTot && dejTot.startTime === '05:00' && dejTot.endTime === '06:00', 'un
 assert(sandbox.habitudesChevaucheCours('05:00', 60) === false, '5 h – 6 h ne chevauche pas les cours');
 assert(sandbox.habitudesChevaucheCours('07:50', 30) === true, '07:50 – 08:20 chevauche les cours');
 assert(sandbox.habitudesChevaucheCours('16:35', 30) === false, '16:35 ne chevauche pas les cours');
+assert(sandbox.habitudesChevaucheCours('16:25', 30) === false, '16:25 ne chevauche pas les cours');
+assert(sandbox.habitudesChevaucheCours('16:20', 15) === true, '16:20 chevauche encore les cours');
 assert(sandbox.habitudesChevaucheCours('16:20', 30) === true, '16:20 – 16:50 chevauche les cours');
 
 var message = sandbox.habitudesMessageFormulaire({

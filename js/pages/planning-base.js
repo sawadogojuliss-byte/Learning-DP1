@@ -7,7 +7,7 @@
 var COURS_DEBUT = 7 * 60 + 50;
 var COURS_FIN_MATIN = 12 * 60 + 30;
 var COURS_DEBUT_APRES = 13 * 60 + 30;
-var COURS_FIN = 16 * 60 + 35;
+var COURS_FIN = 16 * 60 + 25;
 
 function coursTexte(mins) {
     var total = ((Number(mins) % 1440) + 1440) % 1440;
@@ -227,8 +227,8 @@ function generateDayEvents(dayIndex) {
         // Cours fixes
         fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
-        fixed('school2', 'Cours', '13h30 → 16h35', '13:30', '16:35', 'school', '🏫');
-        // Retour maison (chaîné depuis 16:35)
+        fixed('school2', 'Cours', '13h30 → ' + coursTexte(COURS_FIN), '13:30', coursHorloge(COURS_FIN), 'school', '🏫');
+        // Retour maison (chaîné depuis la fin des cours)
         chain('commute2', 'Trajet maison', commuteFromSchool + ' min', getDuration('commute2', commuteFromSchool), 'transport', '🚗', true);
         // Révision principale (matière la + faible, tourne chaque jour)
         const mainSubj = allSubj[dayIndex % allSubj.length];
@@ -292,10 +292,10 @@ function generateDayEvents(dayIndex) {
         resultat.forEach(function (ev) {
             if (!ev || ev.id !== 'commute2') return;
             var debut = timeToMinutes(ev.startTime);
-            if (debut <= 16 * 60 + 25) {
+            if (debut < COURS_FIN) {
                 var dur = Math.max(5, timeToMinutes(ev.endTime) - debut);
                 if (!(dur > 0)) dur = 40;
-                ev.startTime = addMinutes('00:00', 16 * 60 + 35);
+                ev.startTime = addMinutes('00:00', COURS_FIN);
                 ev.endTime = addMinutes(ev.startTime, dur);
             }
         });
@@ -702,8 +702,8 @@ function validateNewEventTime(startTime, endTime, dayIndex) {
     if (dayIndex < 5) {
         if (coupe(COURS_DEBUT, COURS_FIN_MATIN))
             return { valid: false, error: "⏰ Impossible pendant les cours du matin (" + coursTexte(COURS_DEBUT) + "-" + coursTexte(COURS_FIN_MATIN) + ")" };
-        if (coupe(13 * 60 + 30, 16 * 60 + 35))
-            return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-16h35)" };
+        if (coupe(13 * 60 + 30, COURS_FIN))
+            return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-" + coursTexte(COURS_FIN) + ")" };
     }
     return { valid: true, error: '' };
 }

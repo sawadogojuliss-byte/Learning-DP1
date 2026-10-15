@@ -575,7 +575,7 @@ function v3PropositionsCreneau(day, duree, excludeIds, occupesEnPlus) {
     var occupe = [];
     if (day < 5) {
         occupe.push([7 * 60 + 50, 12 * 60 + 30]);
-        occupe.push([13 * 60 + 30, 16 * 60 + 35]);
+        occupe.push([13 * 60 + 30, typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25)]);
     }
     (occupesEnPlus || []).forEach(function (plage) {
         if (plage && plage.length === 2) occupe.push(plage);

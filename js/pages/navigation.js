@@ -24,6 +24,7 @@ function closeSideMenu() {
 }
 function navigateTo(page) {
     if (page === 'assistant' && (typeof iaEstAdmin !== 'function' || !iaEstAdmin())) return;
+    if (page === 'pomodoro' && (typeof focusEstAdmin !== 'function' || !focusEstAdmin())) return;
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     if (page === 'soutien') {
         var soutien = document.getElementById('panelSoutien');
@@ -44,6 +45,10 @@ function navigateTo(page) {
         var feries = document.getElementById('panelFeries');
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
+    } else if (page === 'pomodoro') {
+        var pomodoro = document.getElementById('panelPomodoro');
+        if (typeof focusOuvrir === 'function') focusOuvrir();
+        if (pomodoro) pomodoro.classList.add('active');
     } else if (page === 'assistant') {
         var assistant = document.getElementById('panelAssistant');
         if (assistant) assistant.classList.add('active');

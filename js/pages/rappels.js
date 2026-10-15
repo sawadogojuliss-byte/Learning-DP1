@@ -150,7 +150,7 @@ function rappelMomentJournee() {
     var d = new Date();
     var js = d.getDay();
     if (js === 0 || js === 6) return false;
-    return d.getHours() * 60 + d.getMinutes() >= 16 * 60 + 35;
+    return d.getHours() * 60 + d.getMinutes() >= (typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25));
 }
 
 function rappelJourneeDue() {

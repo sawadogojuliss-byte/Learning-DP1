@@ -100,19 +100,38 @@ function planningChoixUtilisateur(ev) {
     return false;
 }
 
+function planningEcrireHeure(ev, debut, heure) {
+    if (!ev) return;
+    if (debut) {
+        if (ev.startTime != null) ev.startTime = heure;
+        if (ev.d != null) ev.d = heure;
+        if (ev.startTime == null && ev.d == null) ev.startTime = heure;
+        return;
+    }
+    if (ev.endTime != null) ev.endTime = heure;
+    if (ev.f != null) ev.f = heure;
+    if (ev.endTime == null && ev.f == null) ev.endTime = heure;
+}
+
 function planningCorrigerCours(events) {
     return (events || []).map(function (ev) {
         if (!ev) return ev;
         var titre = String(ev.title || ev.t || '');
-        if (titre !== 'Cours' && ev.id !== 'school1') return ev;
+        if (titre !== 'Cours' && ev.id !== 'school1' && ev.id !== 'school2') return ev;
         var debut = String(ev.startTime || ev.d || '');
         var fin = String(ev.endTime || ev.f || '');
-        if (!debut || debut >= '12:00' || fin === '16:35') return ev;
+        if (fin === '16:35') {
+            var apres = Object.assign({}, ev);
+            planningEcrireHeure(apres, false, '16:25');
+            if (apres.subtitle) apres.subtitle = String(apres.subtitle).replace(/16\s*h\s*35/g, '16h25').replace(/16:35/g, '16:25');
+            else if (debut === '13:30' || apres.id === 'school2') apres.subtitle = '13h30 → 16h25';
+            return apres;
+        }
+        if (!debut || debut >= '12:00' || fin === '16:25') return ev;
         if (debut === '07:50' && fin === '12:30') return ev;
         if (fin && fin <= '09:30' && fin !== '12:30') return ev;
         var copie = Object.assign({}, ev);
-        if (copie.startTime != null) copie.startTime = '07:50';
-        if (copie.d != null) copie.d = '07:50';
+        planningEcrireHeure(copie, true, '07:50');
         if (!copie.endTime && !copie.f) copie.endTime = '12:30';
         if (copie.subtitle && /8h15|08:15|8h00|08:00/.test(copie.subtitle)) {
             copie.subtitle = (typeof coursTexte === 'function' ? coursTexte(7 * 60 + 50) : '7h50') + ' → 12h30';
@@ -233,13 +252,13 @@ function debutTrajetAller(depart, duree, limite) {
 }
 
 function debutTrajetRetour(finCours, retourHeure) {
-    var plancher = 16 * 60 + 25;
-    var start = Math.max(Number(finCours) || 0, plancher + 1);
+    var plancher = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25);
+    var start = Math.max(Number(finCours) || 0, plancher);
     if (retourHeure) {
         var asked = timeToMinutes(retourHeure);
         if (asked > plancher) start = Math.max(start, asked);
     }
-    if (start <= plancher) start = plancher + 1;
+    if (start < plancher) start = plancher;
     return start;
 }
 
@@ -272,7 +291,7 @@ function verrouillerTrajets(events, dayIndex) {
     var trajet = typeof trajetProfil === 'function' ? trajetProfil() : { aller: 30, retour: 40, depart: '07:30', retourHeure: '', icon: '🚗' };
     var plancher = 16 * 60 + 25;
     var finEcole = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
-    var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35);
+    var finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25);
     var list = events;
     function trouver(id) {
         var i;
@@ -392,7 +411,7 @@ function annoterPlages(events, dayIndex, wakeupTime, bedtime) {
     var bed = planningMinutes(bedtime);
     if (bed <= wake) bed += 1440;
     var matinFin = dayIndex < 5 ? (typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50)) : Math.min(bed, wake + 4 * 60);
-    var apres = dayIndex < 5 ? 16 * 60 + 35 : wake + 60;
+    var apres = dayIndex < 5 ? (typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25)) : wake + 60;
     (events || []).forEach(function (ev) {
         if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return;
         if (ev.habitudeFixe) {
@@ -550,8 +569,8 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
                 ev._fin = typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50);
                 ev._debut = Math.max(0, ev._fin - (ev._dur || 5));
             }
-            if (ev.id === 'commute2' && ev._debut <= 16 * 60 + 25) {
-                ev._debut = Math.max(16 * 60 + 35, 16 * 60 + 26);
+            if (ev.id === 'commute2' && ev._debut < (typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25))) {
+                ev._debut = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25);
                 ev._fin = ev._debut + (ev._dur || 5);
             }
             ev.startTime = v3M2T(ev._debut % 1440);
@@ -612,7 +631,7 @@ function emploiFaitsSignature() {
     }
     var faits = {
         horaireCours: typeof COURS_DEBUT === 'number' ? COURS_DEBUT : (7 * 60 + 50),
-        finCours: typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 35),
+        finCours: typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25),
         subjects: liste(typeof subjects !== 'undefined' ? subjects : [], sujet),
         optionalSubjects: liste(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [], sujet),
         ibYear: typeof ibYear !== 'undefined' ? ibYear : '',
@@ -860,7 +879,7 @@ function planningGarantirJour(events) {
             if (fin != null && (finCours == null || fin > finCours)) finCours = fin;
         });
         if (debutCours == null) debutCours = 7 * 60 + 50;
-        if (finCours == null || finCours <= debutCours) finCours = 16 * 60 + 35;
+        if (finCours == null || finCours <= debutCours) finCours = typeof COURS_FIN === 'number' ? COURS_FIN : (16 * 60 + 25);
         if (!trajet) {
             trajet = { id: 'commute1', title: 'Trajet école', t: 'Trajet école', type: 'transport', icon: '🚗' };
             milieu.push(trajet);
@@ -1204,11 +1223,11 @@ function genererJourBrut(dayIndex) {
         chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
         fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
-        fixed('school2', 'Cours', '13h30 → 16h35', '13:30', '16:35', 'school', '🏫');
+        fixed('school2', 'Cours', '13h30 → ' + coursTexte(COURS_FIN), '13:30', coursHorloge(COURS_FIN), 'school', '🏫');
         chain('commute2', 'Trajet maison', trajet.retour + ' min' + (trajet.retourHeure ? ' · ' + trajet.retourHeure : ''), trajet.retour, 'transport', trajet.icon, true);
         fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, COURS_DEBUT), trajet.aller);
         calerPreparation(events, 'commute1');
-        fixerTrajet(events, 'commute2', debutTrajetRetour(16 * 60 + 35, trajet.retourHeure), trajet.retour);
+        fixerTrajet(events, 'commute2', debutTrajetRetour(COURS_FIN, trajet.retourHeure), trajet.retour);
         const mainSubj = typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % Math.max(1, allSubj.length)];
         if (mainSubj) chain('study1', 'Révisions ' + mainSubj.name, sousTitreMatiere(mainSubj), dureeEtude(mainSubj, 90, 60), couleurMatiere(mainSubj), mainSubj.icon, true);
         const sciNames = ['Mathématiques', 'Physique', 'Chimie', 'Biologie'];

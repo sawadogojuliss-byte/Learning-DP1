@@ -19,6 +19,7 @@ window.STUDYPLAN_HTML = [
     'pages/onboarding-ecran.html',
     'pages/onboarding-libre.html',
     'pages/planning.html',
+    'pages/pomodoro.html',
     'pages/soutien.html',
     'pages/exercices.html',
     'pages/legende.html',
@@ -65,5 +66,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/annonce.js',
     'js/pages/tutoriel.js',
     'js/pages/assistant.js',
+    'js/pages/pomodoro-page.js',
     'js/pages/rappels.js'
 ];

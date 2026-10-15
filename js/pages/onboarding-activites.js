@@ -21,7 +21,7 @@ const availableActivitiesList = [
 ];
 
 var ACTIVITE_COURS_DEBUT = 8 * 60;
-var ACTIVITE_COURS_FIN = 16 * 60 + 35;
+var ACTIVITE_COURS_FIN = 16 * 60 + 25;
 
 function creneauPendantCours(start, end, dayIndex) {
     if (dayIndex == null || Number(dayIndex) >= 5) return false;
@@ -96,7 +96,7 @@ function propositionsCreneauActivite(dayIndex, duree, exceptName) {
         if (fin <= debut) fin += 1440;
     }
     var occupe = [];
-    if (dayIndex < 5) occupe.push([8 * 60, 16 * 60 + 35]);
+    if (dayIndex < 5) occupe.push([8 * 60, 16 * 60 + 25]);
     (selectedActivities || []).forEach(function (act) {
         if (!act || act.name === exceptName || !act.days || act.days.indexOf(dayIndex) === -1) return;
         var slot = creneauActivite(act, dayIndex);
@@ -202,7 +202,7 @@ function appliquerCreneauActivite(start, end) {
         return;
     }
     if (creneauPendantCours(start, end, ctx.day)) {
-        direChevauchementActivite('Ce créneau tombe pendant les cours, de 8 h 00 à 16 h 35.');
+        direChevauchementActivite('Ce créneau tombe pendant les cours, de 8 h 00 à 16 h 25.');
         return;
     }
     if (activitesQuiChevauchent(start, end, ctx.day, ctx.name).length) {

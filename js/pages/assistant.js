@@ -103,6 +103,7 @@ function iaAfficherEntree() {
         if (el) el.style.display = visible;
     });
     if (typeof rappelBadge === 'function') rappelBadge(n);
+    if (typeof focusAfficherEntree === 'function') focusAfficherEntree();
 }
 
 function iaEchap(texte) {
@@ -2767,9 +2768,10 @@ function iaSavoir(lecture) {
     if (/comment (ajouter|mettre|creer|placer)/.test(n) && /activite/.test(n) && !iaHeuresTrouvees(n).length) return 'Pour ajouter une activité, indique un nom, un jour, un début et une fin. Exemple : « Ajoute sport le mardi, de 17h00 à 18h00 ». Tu peux aussi la poser dans le planning.';
     if (/(c.est quoi|qu.est.ce|explique|comment).{0,24}habitude/.test(n) || (/habitude/.test(n) && /(fonctionne|marche|c.est quoi|qu.est.ce)/.test(n))) return 'Les habitudes règlent la préparation du matin, la préparation du soir, le petit-déjeuner et le dîner. Pour une préparation, tu choisis le début et la fin, pas une durée. Le planning reprend ensuite ces heures.';
     if (/(jour ferie|jours feries|ferie)/.test(n) && /(c.est quoi|comment|fonctionne|garde|allege|liber|explique)/.test(n)) return 'Un jour férié peut rester normal, être allégé, ou devenir libre. Tu choisis ça dans Jours fériés. Le planning suit ce choix pour la journée.';
-    if (/pomodoro/.test(n) && /(c.est quoi|comment|fonctionne|explique)/.test(n)) return 'Le Pomodoro découpe une séance en temps de travail et en pauses. Tu le lances depuis la séance, dans le planning. Je ne fais pas le travail à ta place.';
-    if (/(a quelle heure|quand).{0,40}(cours|ecole)/.test(n) && /(commenc|debut|debute|heure)/.test(n)) return 'Les cours commencent à 7h50. Le trajet vers l\'école est avant, et le trajet du retour est juste après les cours.';
-    if (/(pourquoi|comment).{0,40}(refus|chevauch|conflit)/.test(n) || /activite.{0,30}refus/.test(n)) return 'Une activité n\'est refusée que si elle chevauche les cours, de 8h00 à 16h35, du lundi au vendredi. Un créneau entre 5h et 6h reste possible. S\'il y a un chevauchement avec une autre activité, le site propose un autre créneau, ou un échange des deux.';
+    if (/pomodoro/.test(n) && /(c.est quoi|comment|fonctionne|explique|page|section)/.test(n)) return 'La page Pomodoro est dans le menu, juste après l\'emploi du temps. Pour l\'instant, seuls les comptes administrateurs la voient, en cliquant dessus. Le minuteur fait 25 minutes de concentration, puis une pause. Tu peux aussi lancer un Pomodoro depuis une séance du planning.';
+    if (/(a quelle heure|quand).{0,40}(cours|ecole)/.test(n) && /(termin|finit|finissent|finir)/.test(n)) return 'Les cours terminent à 16h25. Le trajet maison commence juste après.';
+    if (/(a quelle heure|quand).{0,40}(cours|ecole)/.test(n) && /(commenc|debut|debute|heure)/.test(n)) return 'Les cours commencent à 7h50 et terminent à 16h25. Le trajet vers l\'école est avant, et le trajet du retour est juste après les cours.';
+    if (/(pourquoi|comment).{0,40}(refus|chevauch|conflit)/.test(n) || /activite.{0,30}refus/.test(n)) return 'Une activité n\'est refusée que si elle chevauche les cours, de 8h00 à 16h25, du lundi au vendredi. Un créneau entre 5h et 6h reste possible. S\'il y a un chevauchement avec une autre activité, le site propose un autre créneau, ou un échange des deux.';
     if (/(qui es.tu|tu es qui|c.est quoi l.assistant|tu sers a quoi|tu peux faire quoi)/.test(n)) return 'Je suis l\'assistant de Study Plan IB. Je réponds à tes questions sur le diplôme et sur ton planning, j\'ouvre une page, et je place un créneau. Je ne fais pas tes devoirs.';
     if (/pourquoi.{0,40}(\bhl\b|niveau superieur|revis)/.test(n)) return 'Pour les révisions, on commence par les matières HL, puis par celles notées 4/7 ou moins, parce qu\'elles demandent plus de temps. Ça ne change pas les évaluations internes : aucune ne passe devant une autre.';
     if (/(c.est quoi|qu.est.ce).{0,20}creneau/.test(n)) return 'Un créneau est un moment de la journée, avec un début et une fin. Exemple : mardi, de 17h00 à 18h00.';
