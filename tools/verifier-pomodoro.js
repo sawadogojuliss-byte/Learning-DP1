@@ -28,10 +28,17 @@ var page = lire('pages/pomodoro.html');
 ok(page.indexOf('focus-nav') === -1, 'les boutons Retour et Aller de la page sont retirés');
 ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
 var script = lire('js/pages/pomodoro-page.js');
-['images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
+['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
-    ok(fs.existsSync(path.join(__dirname, '..', src)), 'fichier image absent : ' + src);
+    var fichier = path.join(__dirname, '..', src);
+    ok(fs.existsSync(fichier), 'fichier image absent : ' + src);
+    ok(fs.statSync(fichier).size > 200000, 'image trop légère : ' + src);
 });
+ok(script.indexOf("focusPoserFond(focusIndexParId('lumiere'), true)") !== -1, 'Pomodoro doit ouvrir sur la lumiere du site');
+var css = lire('css/pages/planning-panels.css');
+ok(css.indexOf('background: #10b981') !== -1, 'le survol des boutons doit être vert');
+ok(css.indexOf('rgba(255,255,255,0.22)') === -1, 'le survol blanc reste en place');
+ok(css.indexOf('.focus-bottom {') !== -1 && css.indexOf('background: transparent;') !== -1, 'la bande du bas doit laisser voir l image');
 ok(script.indexOf('focusEstAdmin') !== -1, 'contrôle admin manquant');
 ok(lire('js/registre.js').indexOf('pages/pomodoro.html') !== -1, 'page non enregistrée');
 ok(lire('js/registre.js').indexOf('js/pages/pomodoro-page.js') !== -1, 'script non enregistré');

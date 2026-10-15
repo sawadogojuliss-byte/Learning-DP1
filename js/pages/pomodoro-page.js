@@ -5,11 +5,20 @@
    ============================================================ */
 
 var FOCUS_FONDS = [
-    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261013k' },
-    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261013k' },
-    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261013k' },
-    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261013k' },
-    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261013k' }
+    { id: 'lumiere', nom: 'Lumière', src: 'images/pomodoro/lumiere.png?v=20261015a' },
+    { id: 'kiosque', nom: 'Kiosque', src: 'images/pomodoro/kiosque.png?v=20261015a' },
+    { id: 'sommets', nom: 'Sommets', src: 'images/pomodoro/sommets.png?v=20261015a' },
+    { id: 'hublot', nom: 'Hublot', src: 'images/pomodoro/hublot.png?v=20261015a' },
+    { id: 'dunes', nom: 'Dunes', src: 'images/pomodoro/dunes.png?v=20261015a' },
+    { id: 'chalet', nom: 'Chalet', src: 'images/pomodoro/chalet.png?v=20261015a' },
+    { id: 'pont', nom: 'Pont', src: 'images/pomodoro/pont.png?v=20261015a' },
+    { id: 'riviere', nom: 'Rivière', src: 'images/pomodoro/riviere.png?v=20261015a' },
+    { id: 'prairie', nom: 'Prairie', src: 'images/pomodoro/prairie.png?v=20261015a' },
+    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261015a' },
+    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261015a' },
+    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261015a' },
+    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261015a' },
+    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261015a' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -23,7 +32,7 @@ var focusEtat = {
     running: false,
     fin: 0,
     cycles: 0,
-    fond: 3,
+    fond: 0,
     son: 'off',
     astuce: false
 };
@@ -85,8 +94,7 @@ function focusCharger() {
     var durees = focusDurees();
     focusEtat.total = durees.focus * 60;
     focusEtat.restant = focusEtat.total;
-    var fond = parseInt(localStorage.getItem('studyPlanIB_focusFond') || '3', 10);
-    if (!isFinite(fond) || fond < 0 || fond >= FOCUS_FONDS.length) fond = 3;
+    var fond = focusIndexParId('lumiere');
     focusEtat.fond = fond;
     var tache = '';
     try { tache = localStorage.getItem('studyPlanIB_focusTache') || ''; } catch (e) {}
@@ -100,6 +108,14 @@ function focusCharger() {
     focusPeindre();
 }
 
+function focusIndexParId(id) {
+    var i;
+    for (i = 0; i < FOCUS_FONDS.length; i++) {
+        if (FOCUS_FONDS[i].id === id) return i;
+    }
+    return 0;
+}
+
 function focusOuvrir() {
     if (!focusEstAdmin()) {
         var panel = document.getElementById('panelPomodoro');
@@ -107,6 +123,7 @@ function focusOuvrir() {
         return;
     }
     focusCharger();
+    focusPoserFond(focusIndexParId('lumiere'), true);
     focusPeindreFlamme();
     focusPeindre();
 }

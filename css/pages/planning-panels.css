@@ -537,29 +537,33 @@
 /* ─── POMODORO ─── */
 #panelPomodoro.app-panel {
     overflow: hidden;
-    background: #07140e;
+    background: transparent;
 }
 #panelPomodoro.app-panel.active { display: block; }
 .focus-page {
     position: relative;
     height: 100%;
     min-height: 100%;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     color: #fff;
     font-family: Inter, system-ui, sans-serif;
+    background: transparent;
 }
 .focus-bg, .focus-shade {
-    position: absolute;
+    position: fixed;
     inset: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
 }
 .focus-bg {
-    background: #102418 url("../../images/pomodoro/foret.png?v=20261013k") center / cover no-repeat;
+    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center / cover no-repeat;
     transition: opacity 0.35s ease;
 }
 .focus-shade {
-    background:
-        linear-gradient(180deg, rgba(0,0,0,0.28), transparent 16%, transparent 78%, rgba(0,0,0,0.32));
+    background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);
     pointer-events: none;
 }
 .focus-top, .focus-center, .focus-bottom, .focus-fonds, .focus-panneau {
@@ -572,6 +576,9 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 1.35rem 1.6rem 0;
+}
+.focus-logo, .focus-quote, .focus-question, .focus-time, .focus-modes button, .focus-tip {
+    text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
 }
 .focus-logo {
     margin: 0;
@@ -636,9 +643,13 @@
     padding: 0.2rem 0.1rem;
 }
 .focus-modes button.is-on { color: #fff; }
+.focus-modes button:hover { color: #6ee7b7; }
 .focus-dots {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 0.48rem;
+    max-width: 18rem;
     min-height: 0.7rem;
 }
 .focus-dot {
@@ -650,7 +661,7 @@
     background: rgba(255,255,255,0.42);
     cursor: pointer;
 }
-.focus-dot.is-on { background: #fff; }
+.focus-dot:hover, .focus-dot.is-on { background: #10b981; }
 .focus-time {
     margin: 0.15rem 0 0.2rem;
     font-size: clamp(4.6rem, 15vw, 8.4rem);
@@ -675,10 +686,10 @@
     height: 3.05rem;
     border-radius: 0.85rem;
     border: 1px solid rgba(255,255,255,0.28);
-    background: rgba(18, 28, 26, 0.38);
+    background: rgba(6, 78, 59, 0.28);
     backdrop-filter: blur(8px);
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
-.focus-glass:hover, .focus-rond:hover { background: rgba(255,255,255,0.22); }
 .focus-tip {
     margin: 0.2rem 0 0;
     max-width: 28rem;
@@ -692,6 +703,8 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding: 0.85rem 1.1rem calc(0.95rem + env(safe-area-inset-bottom));
+    background: transparent;
+    box-shadow: none;
 }
 .focus-outils {
     display: flex;
@@ -702,11 +715,12 @@
     width: 2.45rem;
     height: 2.45rem;
     border-radius: 0.8rem;
-    border: 1px solid rgba(255,255,255,0.16);
-    background: rgba(16, 22, 24, 0.42);
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(6, 78, 59, 0.28);
     backdrop-filter: blur(8px);
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
-.focus-rond.is-on { background: rgba(255,255,255,0.28); }
+.focus-rond.is-on { background: #059669; border-color: #047857; }
 .focus-ampoule {
     width: 2.7rem;
     height: 2.7rem;
@@ -714,7 +728,12 @@
     background: #7c5cff;
     border-color: transparent;
 }
-.focus-ampoule.is-on { box-shadow: 0 0 0 3px rgba(124,92,255,0.35); }
+.focus-ampoule.is-on { box-shadow: 0 0 0 3px rgba(16,185,129,0.35); }
+.focus-glass:hover, .focus-rond:hover, .focus-ampoule:hover {
+    background: #10b981;
+    border-color: #059669;
+    color: #fff;
+}
 .focus-flamme {
     width: auto;
     display: inline-flex;
@@ -751,7 +770,7 @@
     cursor: pointer;
     padding: 0;
 }
-.focus-vignette.is-on { border-color: #fff; }
+.focus-vignette.is-on, .focus-vignette:hover { border-color: #10b981; }
 .focus-panneau-titre {
     margin: 0 0 0.55rem;
     font-weight: 800;
