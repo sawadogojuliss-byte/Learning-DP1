@@ -554,7 +554,7 @@
     inset: 0;
 }
 .focus-bg {
-    background: #102418 url("../../images/pomodoro/foret.png?v=20261013i") center / cover no-repeat;
+    background: #102418 url("../../images/pomodoro/foret.png?v=20261013j") center / cover no-repeat;
     transition: opacity 0.35s ease;
 }
 .focus-shade {
@@ -582,12 +582,31 @@
 }
 .focus-quote {
     margin: 0.35rem 0 0;
-    max-width: 18rem;
+    max-width: 12rem;
     text-align: right;
     font-size: clamp(0.95rem, 1.7vw, 1.2rem);
     font-weight: 650;
     line-height: 1.25;
 }
+.focus-nav {
+    position: absolute;
+    z-index: 3;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(18, 28, 26, 0.42);
+    color: #fff;
+    backdrop-filter: blur(8px);
+    border-radius: 999px;
+    padding: 0.7rem 0.95rem;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 750;
+    cursor: pointer;
+}
+.focus-nav-retour { left: 0.85rem; }
+.focus-nav-aller { right: 0.85rem; }
+.focus-nav:hover { background: rgba(255,255,255,0.22); }
 .focus-center {
     flex: 1;
     display: flex;
@@ -834,7 +853,9 @@
     color: rgba(255,255,255,0.78);
 }
 @media (max-width: 720px) {
-    .focus-quote { display: none; }
+    .focus-quote { font-size: 0.85rem; max-width: 7.5rem; }
+    .focus-logo { font-size: 1.35rem; }
+    .focus-nav { top: auto; bottom: 5.4rem; transform: none; padding: 0.55rem 0.75rem; }
     .focus-top { padding: 1rem 1rem 0; }
     .focus-modes { gap: 0.7rem; }
     .focus-bottom { flex-wrap: wrap; justify-content: center; padding-left: 0.7rem; padding-right: 0.7rem; }

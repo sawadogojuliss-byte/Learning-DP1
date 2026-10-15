@@ -8,16 +8,18 @@
         <div class="focus-bg" id="focusBg"></div>
         <div class="focus-shade"></div>
         <header class="focus-top">
-            <p class="focus-logo">focus</p>
-            <p class="focus-quote">“Don't call it a dream, call it a plan”</p>
+            <p class="focus-logo">Study Plan IB</p>
+            <p class="focus-quote">Concentre-toi</p>
         </header>
+        <button type="button" class="focus-nav focus-nav-retour" onclick="focusRetour()">← Retour</button>
+        <button type="button" class="focus-nav focus-nav-aller" onclick="focusAller()">Aller →</button>
         <main class="focus-center">
             <label class="focus-sr" for="focusTache">Sur quoi veux-tu te concentrer ?</label>
-            <input id="focusTache" class="focus-question" maxlength="120" placeholder="What do you want to focus on?" autocomplete="off">
+            <input id="focusTache" class="focus-question" maxlength="120" placeholder="Sur quoi veux-tu te concentrer ?" autocomplete="off">
             <div class="focus-modes" role="tablist">
-                <button type="button" id="focusModeFocus" class="is-on" role="tab" onclick="focusChoisirMode('focus')">FOCUS</button>
-                <button type="button" id="focusModeShort" role="tab" onclick="focusChoisirMode('short')">SHORT BREAK</button>
-                <button type="button" id="focusModeLong" role="tab" onclick="focusChoisirMode('long')">LONG BREAK</button>
+                <button type="button" id="focusModeFocus" class="is-on" role="tab" onclick="focusChoisirMode('focus')">CONCENTRATION</button>
+                <button type="button" id="focusModeShort" role="tab" onclick="focusChoisirMode('short')">PAUSE COURTE</button>
+                <button type="button" id="focusModeLong" role="tab" onclick="focusChoisirMode('long')">PAUSE LONGUE</button>
             </div>
             <div class="focus-dots" id="focusDots" role="tablist" aria-label="Arrière-plans"></div>
             <p class="focus-time" id="focusTime">25:00</p>
@@ -46,7 +48,7 @@
         </aside>
         <aside id="focusReglages" class="focus-panneau focus-reglages" hidden>
             <p class="focus-panneau-titre">Durées</p>
-            <label>Focus <input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"></label>
+            <label>Concentration <input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"></label>
             <label>Pause courte <input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"></label>
             <label>Pause longue <input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"></label>
             <p class="focus-note">La pause longue arrive toutes les 4 concentrations.</p>

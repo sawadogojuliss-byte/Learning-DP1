@@ -5,11 +5,11 @@
    ============================================================ */
 
 var FOCUS_FONDS = [
-    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261013i' },
-    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261013i' },
-    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261013i' },
-    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261013i' },
-    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261013i' }
+    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261013j' },
+    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261013j' },
+    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261013j' },
+    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261013j' },
+    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261013j' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -425,13 +425,27 @@ function focusMemoriserObjectif() {
     try { localStorage.setItem('studyPlanIB_focusTache', champ ? champ.value.trim() : ''); } catch (e) {}
 }
 
-function focusMaison() {
+function focusFermerPage() {
     focusSortirPleinEcran();
     focusArreterSon();
     focusFermer('focusTaches');
     focusFermer('focusReglages');
     focusFermer('focusFonds');
+}
+
+function focusRetour() {
+    focusFermerPage();
     if (typeof navigateTo === 'function') navigateTo('planning');
+}
+
+function focusMaison() {
+    focusRetour();
+}
+
+function focusAller() {
+    focusFermerPage();
+    if (typeof showHabitsPage === 'function') showHabitsPage('planning');
+    else if (typeof navigateTo === 'function') navigateTo('planning');
 }
 
 function focusPleinEcran() {

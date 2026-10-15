@@ -22,9 +22,12 @@ ok(nav.indexOf("page === 'pomodoro'") !== -1 && nav.indexOf('focusEstAdmin') !==
 ok(nav.indexOf('focusOuvrir') !== -1, 'l\'ouverture prépare le minuteur');
 
 var page = lire('pages/pomodoro.html');
-['FOCUS', 'SHORT BREAK', 'LONG BREAK', '25:00', 'What do you want to focus on?', "Don't call it a dream, call it a plan", 'focusDots', 'focusTime'].forEach(function (extrait) {
+['Study Plan IB', 'Concentre-toi', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00', 'Sur quoi veux-tu te concentrer ?', 'Retour', 'Aller', 'focusDots', 'focusTime'].forEach(function (extrait) {
     ok(page.indexOf(extrait) !== -1, 'page incomplète : ' + extrait);
 });
+ok(page.indexOf('FOCUS') === -1 && page.indexOf('SHORT BREAK') === -1, 'la page Pomodoro doit être en français');
+ok(lire('js/pages/pomodoro-page.js').indexOf('function focusRetour') !== -1, 'le bouton Retour manque');
+ok(lire('js/pages/pomodoro-page.js').indexOf('function focusAller') !== -1, 'le bouton Aller manque');
 var script = lire('js/pages/pomodoro-page.js');
 ['images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png'].forEach(function (src) {
     ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
