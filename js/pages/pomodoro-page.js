@@ -138,6 +138,249 @@ function focusOuvrir() {
     focusPoserFond(focusIndexParId('lumiere'), true);
     focusPeindreFlamme();
     focusPeindre();
+    focusAfficherAccueil();
+}
+
+// ── ACCUEIL : les séances de révision et d'exercices du jour ───────────
+var focusSeanceChoisie = null;
+
+function focusMinutesMaintenant() {
+    var d = new Date();
+    return d.getHours() * 60 + d.getMinutes();
+}
+
+function focusMinutesHeure(texte) {
+    if (typeof timeToMinutes === 'function') {
+        var n = Number(timeToMinutes(texte));
+        if (isFinite(n)) return n;
+    }
+    var parts = String(texte || '').split(':');
+    if (parts.length < 2) return -1;
+    return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+}
+
+function focusDureeTexte(mins) {
+    var total = Math.max(0, Math.round(Number(mins) || 0));
+    var h = Math.floor(total / 60);
+    var m = total % 60;
+    if (h > 0 && m > 0) return h + ' h ' + (m < 10 ? '0' : '') + m;
+    if (h > 0) return h + ' h';
+    return m + ' min';
+}
+
+function focusPomodorosTexte(mins) {
+    if (typeof v3PomodoroLabel === 'function') {
+        try { return v3PomodoroLabel(mins); } catch (e) {}
+    }
+    var n = Math.max(1, Math.round(Number(mins) / 25));
+    return '🍅 ' + n + ' pomodoro' + (n > 1 ? 's' : '');
+}
+
+function focusNombrePomodoros(mins) {
+    if (typeof v3PomodoroCount === 'function') {
+        try { return v3PomodoroCount(mins); } catch (e) {}
+    }
+    return Math.max(1, Math.round(Number(mins) / 25));
+}
+
+function focusJourIndex() {
+    if (typeof selectedDay === 'number' && selectedDay >= 0 && selectedDay <= 6) return selectedDay;
+    if (typeof indexJourCourant === 'function') return indexJourCourant();
+    return (new Date().getDay() + 6) % 7;
+}
+
+// Séances de révision et d'exercices prévues aujourd'hui dans l'emploi du temps.
+function focusSeancesJour() {
+    var seances = [];
+    if (typeof generateDayEvents !== 'function') return seances;
+    if (typeof poserJourCourant === 'function') { try { poserJourCourant(); } catch (e) {} }
+    var evenements = [];
+    try { evenements = generateDayEvents(focusJourIndex()) || []; } catch (e) { return seances; }
+    evenements.forEach(function (ev) {
+        if (!ev || !ev.startTime || !ev.endTime) return;
+        var estEtude = (typeof v3IsStudyType === 'function')
+            ? v3IsStudyType(ev.type)
+            : (ev.type === 'study' || ev.type === 'critical' || ev.type === 'warning');
+        if (!estEtude) return;
+        var debut = focusMinutesHeure(ev.startTime);
+        var fin = focusMinutesHeure(ev.endTime);
+        if (!(fin > debut)) return;
+        seances.push({
+            id: String(ev.id),
+            titre: String(ev.title || 'Séance'),
+            sous: String(ev.subtitle || ''),
+            icone: ev.icon || '📚',
+            debutTexte: ev.startTime,
+            finTexte: ev.endTime,
+            debut: debut,
+            fin: fin,
+            duree: fin - debut
+        });
+    });
+    seances.sort(function (a, b) { return a.debut - b.debut; });
+    return seances;
+}
+
+function focusEtatSeance(seance) {
+    var maintenant = focusMinutesMaintenant();
+    if (maintenant >= seance.debut && maintenant < seance.fin) return { cle: 'encours', texte: 'En cours' };
+    if (maintenant < seance.debut) return { cle: 'avenir', texte: 'À venir' };
+    return { cle: 'passee', texte: 'Terminée' };
+}
+
+function focusDateTexte() {
+    var texte = '';
+    try {
+        texte = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    } catch (e) { texte = ''; }
+    if (!texte) return '';
+    return texte.charAt(0).toUpperCase() + texte.slice(1);
+}
+
+function focusAjouterCarteSeance(seance) {
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'focus-seance' + (focusSeanceChoisie === seance.id ? ' is-on' : '');
+    var etat = focusEtatSeance(seance);
+    var icone = document.createElement('span');
+    icone.className = 'focus-seance-icone';
+    icone.textContent = seance.icone;
+    var texte = document.createElement('span');
+    texte.className = 'focus-seance-texte';
+    var titre = document.createElement('strong');
+    titre.className = 'focus-seance-titre';
+    titre.textContent = seance.titre;
+    var detail = document.createElement('span');
+    detail.className = 'focus-seance-detail';
+    detail.textContent = (seance.sous ? seance.sous + ' · ' : '') + seance.debutTexte + ' → ' + seance.finTexte;
+    texte.appendChild(titre);
+    texte.appendChild(detail);
+    var droite = document.createElement('span');
+    droite.className = 'focus-seance-droite';
+    var duree = document.createElement('span');
+    duree.className = 'focus-seance-duree';
+    duree.textContent = focusDureeTexte(seance.duree) + ' · ' + focusPomodorosTexte(seance.duree);
+    var marque = document.createElement('span');
+    marque.className = 'focus-seance-etat is-' + etat.cle;
+    marque.textContent = etat.texte;
+    droite.appendChild(duree);
+    droite.appendChild(marque);
+    bouton.appendChild(icone);
+    bouton.appendChild(texte);
+    bouton.appendChild(droite);
+    bouton.onclick = function () {
+        focusSeanceChoisie = (focusSeanceChoisie === seance.id) ? null : seance.id;
+        focusPeindreAccueil();
+    };
+    return bouton;
+}
+
+function focusAjouterStat(valeur, nom, vert) {
+    var boite = document.createElement('div');
+    boite.className = 'focus-stat';
+    var nombre = document.createElement('span');
+    nombre.className = 'focus-stat-valeur' + (vert ? ' is-vert' : '');
+    nombre.textContent = valeur;
+    var libelle = document.createElement('span');
+    libelle.className = 'focus-stat-nom';
+    libelle.textContent = nom;
+    boite.appendChild(nombre);
+    boite.appendChild(libelle);
+    return boite;
+}
+
+function focusPeindreAccueil() {
+    var liste = document.getElementById('focusAccueilListe');
+    if (!liste) return;
+    var seances = focusSeancesJour();
+
+    var fond = document.getElementById('focusAccueilFond');
+    if (fond) fond.style.backgroundImage = 'url("' + (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src + '")';
+
+    var bonjour = document.getElementById('focusAccueilBonjour');
+    if (bonjour) {
+        var heure = new Date().getHours();
+        var mot = heure < 18 ? 'Bonjour' : 'Bonsoir';
+        var nom = (typeof userName !== 'undefined' && userName) ? String(userName) : '';
+        var date = focusDateTexte();
+        bonjour.textContent = mot + (nom ? ' ' + nom : '') + (date ? ' · ' + date : '');
+    }
+
+    var total = 0;
+    var pomodoros = 0;
+    seances.forEach(function (s) {
+        total += s.duree;
+        pomodoros += focusNombrePomodoros(s.duree);
+    });
+
+    var stats = document.getElementById('focusAccueilStats');
+    if (stats) {
+        stats.innerHTML = '';
+        stats.appendChild(focusAjouterStat(String(seances.length), seances.length > 1 ? 'séances' : 'séance', false));
+        stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'de travail', false));
+        stats.appendChild(focusAjouterStat('🍅 ' + pomodoros, pomodoros > 1 ? 'pomodoros' : 'pomodoro', true));
+    }
+
+    liste.innerHTML = '';
+    if (!seances.length) {
+        var vide = document.createElement('p');
+        vide.className = 'focus-accueil-vide';
+        vide.textContent = "Aucune séance de révision ou d'exercices n'est prévue aujourd'hui. Tu peux lancer un minuteur libre, ou ajouter une séance dans ton emploi du temps.";
+        liste.appendChild(vide);
+    } else {
+        seances.forEach(function (s) { liste.appendChild(focusAjouterCarteSeance(s)); });
+    }
+
+    var note = document.getElementById('focusAccueilNote');
+    if (note) {
+        var choisie = null;
+        seances.forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
+        if (choisie) note.textContent = 'Séance choisie : « ' + choisie.titre + ' » de ' + choisie.debutTexte + ' à ' + choisie.finTexte + '. Elle deviendra ton objectif sur le minuteur.';
+        else if (seances.length) note.textContent = 'Choisis une séance, puis appuie sur Continuer. Ta session se prépare sur le minuteur.';
+        else note.textContent = 'Le minuteur reste disponible à tout moment.';
+    }
+}
+
+// Affiche l'accueil des séances avant le minuteur (sauf reprise après rafraîchissement).
+function focusAfficherAccueil() {
+    var accueil = document.getElementById('focusAccueil');
+    var page = document.getElementById('focusPage');
+    if (!accueil || !page) return;
+    if (window.__focusSansAccueil) {
+        window.__focusSansAccueil = false;
+        accueil.hidden = true;
+        page.hidden = false;
+        return;
+    }
+    var seances = focusSeancesJour();
+    var maintenant = focusMinutesMaintenant();
+    var choix = null;
+    seances.forEach(function (s) {
+        if (choix === null && maintenant >= s.debut && maintenant < s.fin) choix = s.id;
+    });
+    if (choix === null && seances.length) choix = seances[0].id;
+    focusSeanceChoisie = choix;
+    accueil.hidden = false;
+    page.hidden = true;
+    focusPeindreAccueil();
+}
+
+// Quitte l'accueil pour le minuteur. Sans argument, la séance choisie devient l'objectif.
+function focusEntrerPiece(libre) {
+    var accueil = document.getElementById('focusAccueil');
+    var page = document.getElementById('focusPage');
+    if (accueil) accueil.hidden = true;
+    if (page) page.hidden = false;
+    if (!libre && focusSeanceChoisie) {
+        var choisie = null;
+        focusSeancesJour().forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
+        var champ = document.getElementById('focusTache');
+        if (choisie && champ) {
+            champ.value = choisie.titre;
+            focusMemoriserObjectif();
+        }
+    }
+    focusPeindre();
 }
 
 function focusPreparerFonds() {
@@ -739,26 +982,26 @@ function focusSortirPleinEcran() {
 }
 
 var FOCUS_SONS = [
-    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav' },
-    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav' },
-    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav' },
-    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav' },
-    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav' },
-    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav' },
-    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav' },
-    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav' },
-    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav' },
-    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav' },
-    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav' },
-    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav' },
-    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav' },
-    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav' },
-    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav' },
-    { id: 'blanc', nom: 'Bruit blanc', icone: '🧠', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav' },
-    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav' },
-    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav' },
-    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav' },
-    { id: 'beta', nom: 'Binaural bêta', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav' }
+    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav?v=20261015k' },
+    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav?v=20261015k' },
+    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav?v=20261015k' },
+    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav?v=20261015k' },
+    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav?v=20261015k' },
+    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav?v=20261015k' },
+    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav?v=20261015k' },
+    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav?v=20261015k' },
+    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav?v=20261015k' },
+    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav?v=20261015k' },
+    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav?v=20261015k' },
+    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav?v=20261015k' },
+    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav?v=20261015k' },
+    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav?v=20261015k' },
+    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav?v=20261015k' },
+    { id: 'blanc', nom: 'Bruit blanc', icone: '🧠', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav?v=20261015k' },
+    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav?v=20261015k' },
+    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav?v=20261015k' },
+    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav?v=20261015k' },
+    { id: 'beta', nom: 'Binaural bêta', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav?v=20261015k' }
 ];
 var focusLecteurs = {};
 var focusVolumes = {};
@@ -1178,6 +1421,8 @@ function focusBrancher() {
             var panel = document.getElementById('panelPomodoro');
             if (!panel || !panel.classList.contains('active')) return;
             if (event.key !== ' ' && event.code !== 'Space') return;
+            var accueil = document.getElementById('focusAccueil');
+            if (accueil && !accueil.hidden) return;
             var cible = event.target;
             if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA')) return;
             event.preventDefault();
@@ -1193,6 +1438,7 @@ function focusReprendreApresRafraichissement() {
         if (typeof memoireAller === 'function') memoireAller('planning');
         return;
     }
+    window.__focusSansAccueil = true;   // reprise : on revient directement sur le minuteur
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
 }

@@ -550,6 +550,7 @@
 }
 #panelPomodoro.app-panel { overflow: hidden; background: transparent; }
 #panelPomodoro.app-panel.active { display: block; }
+.focus-page[hidden] { display: none; }
 .focus-page {
     position: relative;
     height: 100%;
@@ -560,6 +561,251 @@
     color: #fff;
     font-family: Inter, system-ui, sans-serif;
     background: transparent;
+}
+/* ── Accueil avant le minuteur : les séances du jour ─────────────────── */
+.focus-accueil {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.9rem, 3vh, 2.2rem) clamp(0.8rem, 3vw, 2.2rem);
+    overflow: auto;
+    color: #fff;
+    font-family: Inter, system-ui, sans-serif;
+}
+.focus-accueil[hidden] { display: none; }
+.focus-accueil-fond {
+    position: fixed;
+    inset: 0;
+    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center center / cover no-repeat;
+}
+.focus-accueil-voile {
+    position: fixed;
+    inset: 0;
+    background:
+        radial-gradient(circle at 18% 8%, rgba(16, 185, 129, 0.22), transparent 46%),
+        linear-gradient(180deg, rgba(4, 20, 16, 0.7), rgba(3, 15, 12, 0.9));
+    backdrop-filter: blur(3px);
+}
+.focus-accueil-boite {
+    position: relative;
+    z-index: 1;
+    width: min(58rem, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: clamp(1.1rem, 3vw, 1.9rem) clamp(1rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.5rem);
+    border-radius: 1.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(8, 20, 17, 0.66);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    animation: focusAccueilEntree 0.45s ease both;
+}
+@keyframes focusAccueilEntree {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+}
+.focus-accueil-haut {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+.focus-accueil-logo {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #6ee7b7;
+}
+.focus-accueil-bonjour {
+    margin: 0;
+    font-size: 0.86rem;
+    color: rgba(255, 255, 255, 0.72);
+}
+.focus-accueil-titre {
+    margin: 0.15rem 0 0;
+    font-size: clamp(1.55rem, 3.4vw, 2.35rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+}
+.focus-accueil-sous {
+    margin: 0;
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.72);
+}
+.focus-accueil-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+.focus-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 8.5rem;
+    padding: 0.55rem 0.85rem;
+    border-radius: 0.9rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+}
+.focus-stat-valeur { font-size: 1.15rem; font-weight: 800; letter-spacing: -0.02em; }
+.focus-stat-valeur.is-vert { color: #6ee7b7; }
+.focus-stat-nom {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.58);
+}
+.focus-accueil-liste {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    gap: 0.55rem;
+    max-height: min(46vh, 22rem);
+    overflow: auto;
+    padding: 0.15rem 0.15rem 0.15rem 0;
+    margin-top: 0.2rem;
+}
+.focus-seance {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    text-align: left;
+    padding: 0.7rem 0.8rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+.focus-seance:hover {
+    transform: translateY(-1px);
+    border-color: rgba(16, 185, 129, 0.75);
+    background: rgba(16, 185, 129, 0.13);
+}
+.focus-seance.is-on {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.55) inset;
+}
+.focus-seance-icone {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    background: rgba(255, 255, 255, 0.1);
+}
+.focus-seance-texte { display: flex; flex-direction: column; min-width: 0; flex: 1 1 auto; }
+.focus-seance-titre {
+    font-size: 0.92rem;
+    font-weight: 750;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.focus-seance-detail {
+    font-size: 0.74rem;
+    color: rgba(255, 255, 255, 0.66);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.focus-seance-droite {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.12rem;
+    text-align: right;
+}
+.focus-seance-duree { font-size: 0.74rem; font-weight: 700; color: rgba(255, 255, 255, 0.86); }
+.focus-seance-etat {
+    font-size: 0.64rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.focus-seance-etat.is-encours { color: #6ee7b7; }
+.focus-seance-etat.is-avenir { color: rgba(255, 255, 255, 0.72); }
+.focus-seance-etat.is-passee { color: rgba(255, 255, 255, 0.4); }
+.focus-accueil-vide {
+    margin: 0;
+    padding: 1.15rem 1.1rem;
+    border-radius: 1rem;
+    border: 1px dashed rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.76);
+    line-height: 1.5;
+}
+.focus-accueil-note {
+    margin: 0.1rem 0 0;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: rgba(255, 255, 255, 0.66);
+}
+.focus-accueil-bas {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+    padding-top: 0.95rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.focus-accueil-libre {
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.68);
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 650;
+    padding: 0.5rem 0.2rem;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 0.25rem;
+}
+.focus-accueil-libre:hover { color: #6ee7b7; }
+.focus-accueil-continuer {
+    margin-left: auto;
+    border: none;
+    border-radius: 999px;
+    padding: 0.9rem 2.1rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    font: inherit;
+    font-size: 0.98rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    box-shadow: 0 14px 30px rgba(5, 150, 105, 0.35);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+.focus-accueil-continuer:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 18px 36px rgba(5, 150, 105, 0.42);
+}
+.focus-accueil-continuer:active { transform: translateY(0); }
+@media (max-width: 40rem) {
+    .focus-accueil-liste { grid-template-columns: 1fr; }
+    .focus-accueil-bas { flex-direction: column-reverse; align-items: stretch; }
+    .focus-accueil-continuer { margin-left: 0; width: 100%; text-align: center; }
+    .focus-accueil-libre { text-align: center; }
 }
 .focus-bg, .focus-shade {
     position: fixed;
