@@ -9,7 +9,7 @@
 .retours-fond {
     position: fixed;
     inset: 0;
-    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center center / cover no-repeat;
+    background: #064e3b url("../../images/pomodoro/lumiere.webp?v=20261015p") center center / cover no-repeat;
 }
 .retours-voile {
     position: fixed;

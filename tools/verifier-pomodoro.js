@@ -46,12 +46,34 @@ ok(script.indexOf('function focusEntrerPiece') !== -1, 'le bouton Continuer ne m
 ok(script.indexOf('function focusAjouterEtapeListe') !== -1, 'le retour doit passer par la liste des séances');
 ok(script.indexOf("etape: 'pomodoro', listeSeances: true") !== -1, 'le retour du navigateur doit viser la liste des séances');
 ok(script.indexOf('if (etaitListe) focusAjouterEtapeListe();') !== -1, 'l étape doit être posée en entrant sur le minuteur');
-['images/pomodoro/lumiere.png', 'images/pomodoro/kiosque.png', 'images/pomodoro/sommets.png', 'images/pomodoro/hublot.png', 'images/pomodoro/dunes.png', 'images/pomodoro/chalet.png', 'images/pomodoro/pont.png', 'images/pomodoro/riviere.png', 'images/pomodoro/prairie.png', 'images/pomodoro/noel.png', 'images/pomodoro/cafe.png', 'images/pomodoro/cafe-nuit.png', 'images/pomodoro/foret.png', 'images/pomodoro/campagne.png', 'images/pomodoro/tente.png', 'images/pomodoro/savane.png', 'images/pomodoro/recif.png', 'images/pomodoro/sentier.png', 'images/pomodoro/pluie-nuit.png', 'images/pomodoro/lecture.png', 'images/pomodoro/cabine.png', 'images/pomodoro/tunnel.png', 'images/pomodoro/stade.png'].forEach(function (src) {
-    ok(script.indexOf(src) !== -1, 'fond manquant : ' + src);
-    var fichier = path.join(__dirname, '..', src);
-    ok(fs.existsSync(fichier), 'fichier image absent : ' + src);
-    ok(fs.statSync(fichier).size > 200000, 'image trop légère : ' + src);
+/* Les fonds sont en WebP : une image pleine taille pour le décor et une petite
+   vignette pour la bande de choix (avant : 50 Mo de PNG à charger). */
+['lumiere', 'kiosque', 'sommets', 'hublot', 'dunes', 'chalet', 'pont', 'riviere', 'prairie', 'noel', 'cafe', 'cafe-nuit', 'foret', 'campagne', 'tente', 'savane', 'recif', 'sentier', 'pluie-nuit', 'lecture', 'cabine', 'tunnel', 'stade'].forEach(function (id) {
+    var src = 'images/pomodoro/' + id + '.webp';
+    var mini = 'images/pomodoro/mini/' + id + '.webp';
+    ok(script.indexOf(src + '?v=') !== -1, 'fond manquant : ' + src);
+    ok(script.indexOf(mini + '?v=') !== -1, 'vignette non utilisée : ' + mini);
+    [src, mini].forEach(function (rel) {
+        var fichier = path.join(__dirname, '..', rel);
+        ok(fs.existsSync(fichier), 'fichier image absent : ' + rel);
+        ok(fs.statSync(fichier).size > 1000, 'image illisible : ' + rel);
+    });
+    ok(fs.statSync(path.join(__dirname, '..', src)).size < 320000, 'image encore trop lourde : ' + src);
+    ok(!fs.existsSync(path.join(__dirname, '..', 'images/pomodoro/' + id + '.png')), 'l ancien PNG reste à charger : ' + id);
 });
+/* Le décor ne doit jamais devenir transparent : sinon le planning apparaît
+   pendant le chargement de l image choisie. */
+ok(script.indexOf("opacity = '0.25'") === -1, 'le décor ne doit plus être effacé avant de changer d image');
+ok(page.indexOf('id="focusBgBis"') !== -1, 'le second calque de décor manque');
+ok(script.indexOf('function focusDecoderImage') !== -1, 'l image doit être décodée avant d être affichée');
+ok(script.indexOf('function focusAmorcerFonds') !== -1, 'les images doivent être préparées en avance');
+ok(script.indexOf("prochain.style.opacity = '1'") !== -1 && script.indexOf("visible.style.opacity = '0'") !== -1, 'les deux calques doivent se croiser');
+ok(script.indexOf("prochain.style.zIndex = '1'") !== -1, 'le nouveau décor doit passer au-dessus pendant le fondu');
+var cssFonds = lire('css/pages/planning-panels.css');
+ok(cssFonds.indexOf('.focus-bg-bis') !== -1 && cssFonds.indexOf('opacity: 0;') !== -1, 'le second calque doit démarrer invisible');
+ok(cssFonds.indexOf('background: #04140f') !== -1, 'le fond opaque de sécurité manque');
+ok(cssFonds.indexOf('images/pomodoro/lumiere.webp?v=') !== -1, 'le décor de secours doit être en WebP');
+ok(script.indexOf('is-chargement') !== -1, 'la vignette doit montrer qu elle charge');
 ok(script.indexOf("focusPoserFond(focusIndexParId('lumiere'), true)") !== -1, 'Pomodoro doit ouvrir sur la lumiere du site');
 var css = lire('css/pages/planning-panels.css');
 ok(css.indexOf('background: #10b981') !== -1, 'le survol des boutons doit être vert');

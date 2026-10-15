@@ -85,7 +85,7 @@ var cssRetours = lire('css/pages/retours.css');
 ok(html.indexOf('class="retours-boite"') !== -1, 'la page des retours doit avoir sa carte');
 ok(html.indexOf('Retour des feedbacks') !== -1 && html.indexOf('id="retoursListe"') !== -1, 'la liste des retours manque');
 ok(html.indexOf('id="retoursRafraichir"') !== -1, 'le bouton Actualiser manque');
-ok(cssRetours.indexOf('#panelRetours.app-panel') !== -1 && cssRetours.indexOf('images/pomodoro/lumiere.png') !== -1,
+ok(cssRetours.indexOf('#panelRetours.app-panel') !== -1 && cssRetours.indexOf('images/pomodoro/lumiere.webp') !== -1,
     'le fond doit reprendre celui de Pomodoro');
 ok(cssRetours.indexOf('font-family: Inter') !== -1, 'la typographie doit être celle du site');
 ok(cssRetours.indexOf('#retoursListe article') !== -1, 'les cartes reçues doivent être rhabillées');

@@ -524,7 +524,8 @@
     flex-direction: column;
     color: #fff;
     font-family: Inter, system-ui, sans-serif;
-    background: transparent;
+    /* Fond opaque de sécurité : le planning ne peut jamais apparaître derrière. */
+    background: #04140f;
 }
 /* ── Accueil avant le minuteur : les séances du jour ─────────────────── */
 .focus-accueil {
@@ -538,12 +539,14 @@
     overflow: auto;
     color: #fff;
     font-family: Inter, system-ui, sans-serif;
+    /* Fond opaque de sécurité : le planning ne peut jamais apparaître derrière. */
+    background: #04140f;
 }
 .focus-accueil[hidden] { display: none; }
 .focus-accueil-fond {
     position: fixed;
     inset: 0;
-    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center center / cover no-repeat;
+    background: #064e3b url("../../images/pomodoro/lumiere.webp?v=20261015p") center center / cover no-repeat;
 }
 .focus-accueil-voile {
     position: fixed;
@@ -777,15 +780,26 @@
     width: 100%;
     height: 100%;
     height: 100dvh;
+    z-index: 0;
 }
 .focus-bg {
-    background: #064e3b url("../../images/pomodoro/lumiere.png?v=20261015a") center center / cover no-repeat;
+    background: #064e3b url("../../images/pomodoro/lumiere.webp?v=20261015p") center center / cover no-repeat;
     background-position: center center;
     transition: opacity 0.35s ease;
+}
+/* Deuxième calque, invisible au départ : les images se croisent en fondu sans
+   jamais laisser voir ce qu'il y a derrière le minuteur. */
+.focus-bg-bis {
+    background: #064e3b center center / cover no-repeat;
+    background-position: center center;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    will-change: opacity;
 }
 .focus-shade {
     background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);
     pointer-events: none;
+    z-index: 1;
 }
 .focus-top, .focus-center, .focus-bottom, .focus-fonds, .focus-panneau {
     position: relative;
@@ -1113,6 +1127,7 @@
     padding: 0;
 }
 .focus-vignette.is-on, .focus-vignette:hover { border-color: #10b981; }
+.focus-vignette.is-chargement { opacity: 0.62; cursor: progress; }
 .focus-panneau-titre {
     margin: 0 0 0.55rem;
     font-size: 0.92rem;

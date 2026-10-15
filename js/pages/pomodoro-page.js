@@ -4,30 +4,32 @@
    Vue : pages/pomodoro.html
    ============================================================ */
 
+/* Chaque fond existe en WebP : une version pleine taille pour le décor et une
+   petite vignette pour la bande de choix (50 Mo de PNG à l'origine). */
 var FOCUS_FONDS = [
-    { id: 'lumiere', nom: 'Lumière', src: 'images/pomodoro/lumiere.png?v=20261015a' },
-    { id: 'kiosque', nom: 'Kiosque', src: 'images/pomodoro/kiosque.png?v=20261015a' },
-    { id: 'sommets', nom: 'Sommets', src: 'images/pomodoro/sommets.png?v=20261015a' },
-    { id: 'hublot', nom: 'Hublot', src: 'images/pomodoro/hublot.png?v=20261015a' },
-    { id: 'dunes', nom: 'Dunes', src: 'images/pomodoro/dunes.png?v=20261015a' },
-    { id: 'chalet', nom: 'Chalet', src: 'images/pomodoro/chalet.png?v=20261015a' },
-    { id: 'pont', nom: 'Pont', src: 'images/pomodoro/pont.png?v=20261015a' },
-    { id: 'riviere', nom: 'Rivière', src: 'images/pomodoro/riviere.png?v=20261015a' },
-    { id: 'prairie', nom: 'Prairie', src: 'images/pomodoro/prairie.png?v=20261015a' },
-    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.png?v=20261015a' },
-    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.png?v=20261015a' },
-    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.png?v=20261015a' },
-    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.png?v=20261015a' },
-    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.png?v=20261015a' },
-    { id: 'tente', nom: 'Tente', src: 'images/pomodoro/tente.png?v=20261015g' },
-    { id: 'savane', nom: 'Savane', src: 'images/pomodoro/savane.png?v=20261015g' },
-    { id: 'recif', nom: 'Récif', src: 'images/pomodoro/recif.png?v=20261015g' },
-    { id: 'sentier', nom: 'Sentier', src: 'images/pomodoro/sentier.png?v=20261015g' },
-    { id: 'pluie-nuit', nom: 'Pluie de nuit', src: 'images/pomodoro/pluie-nuit.png?v=20261015g' },
-    { id: 'lecture', nom: 'Lecture', src: 'images/pomodoro/lecture.png?v=20261015g' },
-    { id: 'cabine', nom: 'Cabine', src: 'images/pomodoro/cabine.png?v=20261015g' },
-    { id: 'tunnel', nom: 'Tunnel', src: 'images/pomodoro/tunnel.png?v=20261015g' },
-    { id: 'stade', nom: 'Stade', src: 'images/pomodoro/stade.png?v=20261015g' }
+    { id: 'lumiere', nom: 'Lumière', src: 'images/pomodoro/lumiere.webp?v=20261015p', mini: 'images/pomodoro/mini/lumiere.webp?v=20261015p' },
+    { id: 'kiosque', nom: 'Kiosque', src: 'images/pomodoro/kiosque.webp?v=20261015p', mini: 'images/pomodoro/mini/kiosque.webp?v=20261015p' },
+    { id: 'sommets', nom: 'Sommets', src: 'images/pomodoro/sommets.webp?v=20261015p', mini: 'images/pomodoro/mini/sommets.webp?v=20261015p' },
+    { id: 'hublot', nom: 'Hublot', src: 'images/pomodoro/hublot.webp?v=20261015p', mini: 'images/pomodoro/mini/hublot.webp?v=20261015p' },
+    { id: 'dunes', nom: 'Dunes', src: 'images/pomodoro/dunes.webp?v=20261015p', mini: 'images/pomodoro/mini/dunes.webp?v=20261015p' },
+    { id: 'chalet', nom: 'Chalet', src: 'images/pomodoro/chalet.webp?v=20261015p', mini: 'images/pomodoro/mini/chalet.webp?v=20261015p' },
+    { id: 'pont', nom: 'Pont', src: 'images/pomodoro/pont.webp?v=20261015p', mini: 'images/pomodoro/mini/pont.webp?v=20261015p' },
+    { id: 'riviere', nom: 'Rivière', src: 'images/pomodoro/riviere.webp?v=20261015p', mini: 'images/pomodoro/mini/riviere.webp?v=20261015p' },
+    { id: 'prairie', nom: 'Prairie', src: 'images/pomodoro/prairie.webp?v=20261015p', mini: 'images/pomodoro/mini/prairie.webp?v=20261015p' },
+    { id: 'noel', nom: 'Village de Noël', src: 'images/pomodoro/noel.webp?v=20261015p', mini: 'images/pomodoro/mini/noel.webp?v=20261015p' },
+    { id: 'cafe', nom: 'Café', src: 'images/pomodoro/cafe.webp?v=20261015p', mini: 'images/pomodoro/mini/cafe.webp?v=20261015p' },
+    { id: 'nuit', nom: 'Café de nuit', src: 'images/pomodoro/cafe-nuit.webp?v=20261015p', mini: 'images/pomodoro/mini/cafe-nuit.webp?v=20261015p' },
+    { id: 'foret', nom: 'Forêt', src: 'images/pomodoro/foret.webp?v=20261015p', mini: 'images/pomodoro/mini/foret.webp?v=20261015p' },
+    { id: 'campagne', nom: 'Campagne', src: 'images/pomodoro/campagne.webp?v=20261015p', mini: 'images/pomodoro/mini/campagne.webp?v=20261015p' },
+    { id: 'tente', nom: 'Tente', src: 'images/pomodoro/tente.webp?v=20261015p', mini: 'images/pomodoro/mini/tente.webp?v=20261015p' },
+    { id: 'savane', nom: 'Savane', src: 'images/pomodoro/savane.webp?v=20261015p', mini: 'images/pomodoro/mini/savane.webp?v=20261015p' },
+    { id: 'recif', nom: 'Récif', src: 'images/pomodoro/recif.webp?v=20261015p', mini: 'images/pomodoro/mini/recif.webp?v=20261015p' },
+    { id: 'sentier', nom: 'Sentier', src: 'images/pomodoro/sentier.webp?v=20261015p', mini: 'images/pomodoro/mini/sentier.webp?v=20261015p' },
+    { id: 'pluie-nuit', nom: 'Pluie de nuit', src: 'images/pomodoro/pluie-nuit.webp?v=20261015p', mini: 'images/pomodoro/mini/pluie-nuit.webp?v=20261015p' },
+    { id: 'lecture', nom: 'Lecture', src: 'images/pomodoro/lecture.webp?v=20261015p', mini: 'images/pomodoro/mini/lecture.webp?v=20261015p' },
+    { id: 'cabine', nom: 'Cabine', src: 'images/pomodoro/cabine.webp?v=20261015p', mini: 'images/pomodoro/mini/cabine.webp?v=20261015p' },
+    { id: 'tunnel', nom: 'Tunnel', src: 'images/pomodoro/tunnel.webp?v=20261015p', mini: 'images/pomodoro/mini/tunnel.webp?v=20261015p' },
+    { id: 'stade', nom: 'Stade', src: 'images/pomodoro/stade.webp?v=20261015p', mini: 'images/pomodoro/mini/stade.webp?v=20261015p' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -54,6 +56,15 @@ var focusPip = null;
 var focusBruit = null;
 var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Study Plan IB';
 var focusPret = false;
+/* Fonds : on n affiche une image que lorsqu'elle est décodée, et le calque
+   précédent reste opaque jusque-là (sinon le planning apparaissait dessous). */
+var focusFondsPrets = {};
+var focusFondActif = '';
+var focusFondDemande = '';
+var focusFondCalque = 0;
+var focusAccueilActif = '';
+var focusFondsFile = null;
+var focusFondsArret = false;
 
 function focusEstAdmin() {
     return typeof iaEstAdmin === 'function' && iaEstAdmin();
@@ -135,10 +146,12 @@ function focusOuvrir() {
         return;
     }
     focusCharger();
+    focusFondsArret = false;
     focusPoserFond(focusIndexParId('lumiere'), true);
     focusPeindreFlamme();
     focusPeindre();
     focusAfficherAccueil();
+    focusAmorcerFonds();
 }
 
 // ── ACCUEIL : les séances de révision et d'exercices du jour ───────────
@@ -295,7 +308,7 @@ function focusPeindreAccueil() {
     var seances = focusSeancesJour();
 
     var fond = document.getElementById('focusAccueilFond');
-    if (fond) fond.style.backgroundImage = 'url("' + (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src + '")';
+    if (fond) focusFondAccueil((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src);
 
     var bonjour = document.getElementById('focusAccueilBonjour');
     if (bonjour) {
@@ -395,6 +408,153 @@ function focusEntrerPiece(libre) {
     focusPeindre();
 }
 
+function focusDecoderImage(src, suite) {
+    if (!src) {
+        if (suite) suite(false);
+        return;
+    }
+    if (focusFondsPrets[src]) {
+        if (suite) suite(true);
+        return;
+    }
+    var img = new Image();
+    var fait = false;
+    var finir = function (ok) {
+        if (fait) return;
+        fait = true;
+        if (ok) focusFondsPrets[src] = true;
+        if (suite) suite(!!ok);
+    };
+    img.onload = function () {
+        if (img.decode) img.decode().then(function () { finir(true); }, function () { finir(true); });
+        else finir(true);
+    };
+    img.onerror = function () { finir(false); };
+    img.src = src;
+}
+
+function focusAmorcageUtile() {
+    try {
+        if (typeof navigator === 'undefined') return true;
+        var reseau = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        if (!reseau) return true;
+        if (reseau.saveData) return false;
+        var type = String(reseau.effectiveType || '');
+        return type !== 'slow-2g' && type !== '2g' && type !== '3g';
+    } catch (e) {
+        return true;
+    }
+}
+
+/* Prépare les images en avance, une par une, pour que le clic soit instantané. */
+function focusAmorcerFonds() {
+    if (focusFondsFile || focusFondsArret || !focusAmorcageUtile()) return;
+    var ordre = [];
+    var i;
+    for (i = 0; i < FOCUS_FONDS.length; i++) ordre.push((focusEtat.fond + i) % FOCUS_FONDS.length);
+    var rang = 0;
+    var suivant = function () {
+        if (rang >= ordre.length) {
+            focusFondsFile = null;
+            return;
+        }
+        var fond = FOCUS_FONDS[ordre[rang]];
+        rang += 1;
+        if (!fond || focusFondsPrets[fond.src]) {
+            suivant();
+            return;
+        }
+        focusFondsFile = setTimeout(function () {
+            focusFondsFile = null;
+            focusDecoderImage(fond.src, suivant);
+        }, 200);
+    };
+    suivant();
+}
+
+function focusArreterFonds() {
+    focusFondsArret = true;
+    if (focusFondsFile) {
+        clearTimeout(focusFondsFile);
+        focusFondsFile = null;
+    }
+}
+
+function focusCalqueFond(numero) {
+    return document.getElementById(numero === 0 ? 'focusBg' : 'focusBgBis');
+}
+
+function focusPeindreCalque(el, src) {
+    if (!el || !src) return;
+    el.style.backgroundImage = 'url("' + src + '")';
+    el.style.backgroundPosition = 'center center';
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundRepeat = 'no-repeat';
+}
+
+/* Change le décor : le calque déjà affiché reste opaque jusqu'à ce que la
+   nouvelle image soit prête, puis les deux se croisent en fondu. */
+function focusFondPage(src) {
+    if (!src || src === focusFondActif) return;
+    var base = focusCalqueFond(0);
+    if (!base) {
+        focusFondActif = src;
+        return;
+    }
+    var bis = focusCalqueFond(1);
+    focusFondDemande = src;
+    focusPeindreFonds();
+    if (!bis) {
+        focusDecoderImage(src, function (ok) {
+            if (!ok) {
+                focusFondDemande = '';
+                focusPeindreFonds();
+                return;
+            }
+            focusPeindreCalque(base, src);
+            focusFondActif = src;
+            focusFondDemande = '';
+            focusPeindreFonds();
+            focusPipMaj();
+        });
+        return;
+    }
+    var visible = focusFondCalque === 0 ? base : bis;
+    var prochain = focusFondCalque === 0 ? bis : base;
+    focusDecoderImage(src, function (ok) {
+        if (!ok) {
+            focusFondDemande = '';
+            focusPeindreFonds();
+            return;
+        }
+        /* Le nouveau décor passe au-dessus de l'ancien, qui reste opaque : le
+           fondu ne laisse donc jamais voir le planning derrière. */
+        prochain.style.zIndex = '1';
+        visible.style.zIndex = '0';
+        focusPeindreCalque(prochain, src);
+        prochain.style.opacity = '1';
+        setTimeout(function () {
+            visible.style.opacity = '0';
+            prochain.style.zIndex = '0';   // le décor repasse alors sous le voile du haut
+        }, 400);
+        focusFondCalque = focusFondCalque === 0 ? 1 : 0;
+        focusFondActif = src;
+        focusFondDemande = '';
+        focusPeindreFonds();
+        focusPipMaj();
+    });
+}
+
+function focusFondAccueil(src) {
+    var el = document.getElementById('focusAccueilFond');
+    if (!el || !src || focusAccueilActif === src) return;
+    focusDecoderImage(src, function (ok) {
+        if (!ok) return;
+        focusAccueilActif = src;
+        focusPeindreCalque(el, src);
+    });
+}
+
 function focusPreparerFonds() {
     var bande = document.getElementById('focusFonds');
     if (bande && !bande.childNodes.length) {
@@ -403,36 +563,31 @@ function focusPreparerFonds() {
             btn.type = 'button';
             btn.className = 'focus-vignette';
             btn.setAttribute('aria-label', fond.nom);
-            btn.style.backgroundImage = 'url("' + fond.src + '")';
+            btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';
             btn.style.backgroundPosition = 'center center';
             btn.style.backgroundSize = 'cover';
             btn.style.backgroundRepeat = 'no-repeat';
+            var amorcer = function () { focusDecoderImage(fond.src); };
             btn.onclick = function () { focusPoserFond(i); };
+            btn.onmouseenter = amorcer;
+            btn.onfocus = amorcer;
+            btn.ontouchstart = amorcer;
             bande.appendChild(btn);
         });
     }
+    focusAmorcerFonds();
 }
 
+/* Le second paramètre reste accepté (ouverture du panneau) : l image n est de
+   toute façon posée qu une fois décodée, donc jamais de trou dans le décor. */
 function focusPoserFond(index, immediat) {
     if (index < 0 || index >= FOCUS_FONDS.length) return;
     focusEtat.fond = index;
-    var bg = document.getElementById('focusBg');
-    if (bg) {
-        var appliquer = function () {
-            bg.style.backgroundImage = 'url("' + FOCUS_FONDS[index].src + '")';
-            bg.style.backgroundPosition = 'center center';
-            bg.style.backgroundSize = 'cover';
-            bg.style.backgroundRepeat = 'no-repeat';
-            bg.style.opacity = '1';
-        };
-        if (immediat) appliquer();
-        else {
-            bg.style.opacity = '0.25';
-            setTimeout(appliquer, 160);
-        }
-    }
+    var fond = FOCUS_FONDS[index];
     try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
     focusPeindreFonds();
+    focusFondPage(fond.src);
+    focusFondAccueil(fond.src);
     focusPipMaj();
 }
 
@@ -542,7 +697,14 @@ function focusPeindre() {
 
 function focusPeindreFonds() {
     var vignettes = document.querySelectorAll('#focusFonds .focus-vignette');
-    vignettes.forEach(function (btn, i) { btn.classList.toggle('is-on', i === focusEtat.fond); });
+    vignettes.forEach(function (btn, i) {
+        var fond = FOCUS_FONDS[i];
+        var enAttente = !!fond && fond.src === focusFondDemande && fond.src !== focusFondActif;
+        btn.classList.toggle('is-on', i === focusEtat.fond);
+        btn.classList.toggle('is-chargement', enAttente);
+        if (enAttente) btn.setAttribute('aria-busy', 'true');
+        else btn.removeAttribute('aria-busy');
+    });
 }
 
 function focusTitre() {
@@ -846,6 +1008,7 @@ function focusMemoriserObjectif() {
 function focusMaison() {
     focusSortirPleinEcran();
     focusArreterSon();
+    focusArreterFonds();
     focusFermerPip();
     focusFermer('focusTaches');
     focusFermer('focusReglages');
@@ -855,8 +1018,11 @@ function focusMaison() {
 }
 
 function focusFondAbsolu() {
-    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
-    var src = fond && fond.src ? fond.src : '';
+    var src = focusFondActif;
+    if (!src) {
+        var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+        src = fond && fond.src ? fond.src : '';
+    }
     try { return new URL(src, location.href).href; } catch (e) { return src; }
 }
 
