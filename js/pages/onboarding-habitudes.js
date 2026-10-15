@@ -8,6 +8,10 @@
 var habitudesDefinies = false;
 var prepMatinMinutes = 30;
 var prepSoirMinutes = 30;
+var prepMatinDebut = '';
+var prepMatinFin = '';
+var prepSoirDebut = '';
+var prepSoirFin = '';
 var petitDejHeure = '';
 var petitDejMinutes = 30;
 var dinerHeure = '';
@@ -63,13 +67,50 @@ function habitudesRepas(id) {
     return { mode: 'fixe', heure: heure, duree: habitudesDuree(duree, defaut, 10, 120) };
 }
 
+function habitudesCreneau(debut, fin) {
+    if (!habitudesHeureValide(debut) || !habitudesHeureValide(fin)) return null;
+    var duree = habitudesVersMinutes(fin) - habitudesVersMinutes(debut);
+    if (duree <= 0) return null;
+    return { debut: debut, fin: fin, duree: duree };
+}
+
+function habitudesDepartTrajet() {
+    var mode = typeof transportMode !== 'undefined' ? transportMode : '';
+    if (mode === 'moto' && typeof motoDeparture === 'string' && habitudesHeureValide(motoDeparture)) return motoDeparture;
+    if (typeof carDeparture === 'string' && habitudesHeureValide(carDeparture)) return carDeparture;
+    return '07:20';
+}
+
+function habitudesFenetre(quelle) {
+    if (quelle === 'soir') {
+        var finSoir = 21 * 60 + 30;
+        if (typeof bedtimeForDay === 'function') {
+            var lit = bedtimeForDay(0);
+            if (habitudesHeureValide(lit)) finSoir = habitudesVersMinutes(lit);
+        }
+        var dureeSoir = habitudesDuree(prepSoirMinutes, 30, 5, 180);
+        var debutSoir = finSoir - dureeSoir;
+        if (debutSoir < 0) debutSoir = 0;
+        return { debut: habitudesHorloge(debutSoir), fin: habitudesHorloge(finSoir) };
+    }
+    var finMatin = habitudesVersMinutes(habitudesDepartTrajet());
+    var dureeMatin = habitudesDuree(prepMatinMinutes, 30, 5, 180);
+    var debutMatin = finMatin - dureeMatin;
+    if (debutMatin < 0) debutMatin = 0;
+    return { debut: habitudesHorloge(debutMatin), fin: habitudesHorloge(finMatin) };
+}
+
 function habitudesDureeMatin() {
     if (!habitudesActives()) return { mode: 'defaut', duree: 30 };
+    var creneau = habitudesCreneau(prepMatinDebut, prepMatinFin);
+    if (creneau) return { mode: 'fixe', heure: creneau.debut, fin: creneau.fin, duree: creneau.duree };
     return { mode: 'fixe', duree: habitudesDuree(prepMatinMinutes, 30, 5, 180) };
 }
 
 function habitudesDureeSoir() {
     if (!habitudesActives()) return { mode: 'defaut', duree: 0 };
+    var creneau = habitudesCreneau(prepSoirDebut, prepSoirFin);
+    if (creneau) return { mode: 'fixe', heure: creneau.debut, fin: creneau.fin, duree: creneau.duree };
     return { mode: 'fixe', duree: habitudesDuree(prepSoirMinutes, 30, 5, 180) };
 }
 
@@ -108,9 +149,13 @@ function habitudesBrouillonInitial() {
         petitDejChoix = habitudesHeureValide(petitDejHeure) ? 'heure' : 'aucun';
         dinerChoix = habitudesHeureValide(dinerHeure) ? 'heure' : 'aucun';
     }
+    var matin = habitudesFenetre('matin');
+    var soir = habitudesFenetre('soir');
     return {
-        prepMatin: habitudesDuree(prepMatinMinutes, 30, 5, 180),
-        prepSoir: habitudesDuree(prepSoirMinutes, 30, 5, 180),
+        prepMatinDebut: habitudesHeureValide(prepMatinDebut) ? prepMatinDebut : matin.debut,
+        prepMatinFin: habitudesHeureValide(prepMatinFin) ? prepMatinFin : matin.fin,
+        prepSoirDebut: habitudesHeureValide(prepSoirDebut) ? prepSoirDebut : soir.debut,
+        prepSoirFin: habitudesHeureValide(prepSoirFin) ? prepSoirFin : soir.fin,
         petitDejChoix: petitDejChoix,
         petitDejHeure: habitudesHeureValide(petitDejHeure) ? petitDejHeure : '07:00',
         petitDejMinutes: habitudesDuree(petitDejMinutes, 30, 10, 120),
@@ -143,10 +188,14 @@ function peindreChoixRepas(cle, choix) {
 function renderHabitudes() {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
     var b = habitudesBrouillon;
-    var prepMatin = document.getElementById('prepMatinLabel');
-    var prepSoir = document.getElementById('prepSoirLabel');
-    if (prepMatin) prepMatin.textContent = habitudesTexteDuree(b.prepMatin);
-    if (prepSoir) prepSoir.textContent = habitudesTexteDuree(b.prepSoir);
+    var matinDebut = document.getElementById('prepMatinDebutInput');
+    var matinFin = document.getElementById('prepMatinFinInput');
+    var soirDebut = document.getElementById('prepSoirDebutInput');
+    var soirFin = document.getElementById('prepSoirFinInput');
+    if (matinDebut && b.prepMatinDebut) matinDebut.value = b.prepMatinDebut;
+    if (matinFin && b.prepMatinFin) matinFin.value = b.prepMatinFin;
+    if (soirDebut && b.prepSoirDebut) soirDebut.value = b.prepSoirDebut;
+    if (soirFin && b.prepSoirFin) soirFin.value = b.prepSoirFin;
     var petitInput = document.getElementById('petitDejHeureInput');
     var dinerInput = document.getElementById('dinerHeureInput');
     if (petitInput && b.petitDejHeure) petitInput.value = b.petitDejHeure;
@@ -172,6 +221,8 @@ function showHabitsPage(suite) {
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     var modal = document.getElementById('habitsModal');
     if (modal) modal.classList.add('active');
+    var progression = document.getElementById('habitsProgress');
+    if (progression) progression.style.display = habitudesSuite === 'planning' ? 'none' : '';
     habitudesErreur('');
     renderHabitudes();
 }
@@ -192,10 +243,19 @@ function hideHabitsPage() {
 
 function ajusterHabitude(cle, delta) {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
-    if (cle === 'prepMatin') habitudesBrouillon.prepMatin = habitudesDuree(habitudesBrouillon.prepMatin + delta, 30, 5, 180);
-    else if (cle === 'prepSoir') habitudesBrouillon.prepSoir = habitudesDuree(habitudesBrouillon.prepSoir + delta, 30, 5, 180);
-    else if (cle === 'petitDej') habitudesBrouillon.petitDejMinutes = habitudesDuree(habitudesBrouillon.petitDejMinutes + delta, 30, 10, 120);
+    if (cle === 'petitDej') habitudesBrouillon.petitDejMinutes = habitudesDuree(habitudesBrouillon.petitDejMinutes + delta, 30, 10, 120);
     else if (cle === 'diner') habitudesBrouillon.dinerMinutes = habitudesDuree(habitudesBrouillon.dinerMinutes + delta, 45, 10, 120);
+    habitudesErreur('');
+    renderHabitudes();
+}
+
+function majHeurePreparation(quelle, bord, valeur) {
+    if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
+    if (!habitudesHeureValide(valeur)) return;
+    if (quelle === 'matin' && bord === 'debut') habitudesBrouillon.prepMatinDebut = valeur;
+    else if (quelle === 'matin') habitudesBrouillon.prepMatinFin = valeur;
+    else if (bord === 'debut') habitudesBrouillon.prepSoirDebut = valeur;
+    else habitudesBrouillon.prepSoirFin = valeur;
     habitudesErreur('');
     renderHabitudes();
 }
@@ -222,8 +282,31 @@ function majHeureRepas(cle, valeur) {
     renderHabitudes();
 }
 
+function habitudesMessagePreparation(nom, debut, fin) {
+    var creneau = habitudesCreneau(debut, fin);
+    if (!creneau) return 'Indique une heure de début et une heure de fin pour la préparation ' + nom + '. La fin doit être après le début.';
+    if (creneau.duree < 5) return 'La préparation ' + nom + ' doit durer au moins 5 minutes.';
+    if (creneau.duree > 180) return 'La préparation ' + nom + ' ne peut pas dépasser 3 heures.';
+    if (habitudesChevaucheCours(creneau.debut, creneau.duree)) {
+        return 'La préparation ' + nom + ' tombe pendant les cours (8 h 00 – 16 h 35). Choisis d\'autres heures.';
+    }
+    return '';
+}
+
 function habitudesMessageFormulaire(b) {
-    if (!b || (b.petitDejChoix !== 'heure' && b.petitDejChoix !== 'aucun')) {
+    if (!b) return 'Indique les heures de préparation.';
+    if (b.prepMatinDebut != null || b.prepMatinFin != null || b.prepSoirDebut != null || b.prepSoirFin != null) {
+        var matin = habitudesMessagePreparation('du matin', b.prepMatinDebut, b.prepMatinFin);
+        if (matin) return matin;
+        var soir = habitudesMessagePreparation('du soir', b.prepSoirDebut, b.prepSoirFin);
+        if (soir) return soir;
+        var creneauMatin = habitudesCreneau(b.prepMatinDebut, b.prepMatinFin);
+        var creneauSoir = habitudesCreneau(b.prepSoirDebut, b.prepSoirFin);
+        if (creneauMatin && creneauSoir && habitudesChevauche(creneauMatin.debut, creneauMatin.duree, creneauSoir.debut, creneauSoir.duree)) {
+            return 'Les deux préparations se chevauchent. Écarte leurs horaires.';
+        }
+    }
+    if (b.petitDejChoix !== 'heure' && b.petitDejChoix !== 'aucun') {
         return 'Indique l\'heure du petit-déjeuner, ou choisis Aucun.';
     }
     if (b.dinerChoix !== 'heure' && b.dinerChoix !== 'aucun') {
@@ -271,6 +354,10 @@ function appliquerHabitudes(data) {
     if (typeof data.habitudesDefinies === 'boolean') habitudesDefinies = data.habitudesDefinies;
     if (data.prepMatinMinutes != null) prepMatinMinutes = habitudesDuree(data.prepMatinMinutes, 30, 5, 180);
     if (data.prepSoirMinutes != null) prepSoirMinutes = habitudesDuree(data.prepSoirMinutes, 30, 5, 180);
+    if (typeof data.prepMatinDebut === 'string') prepMatinDebut = habitudesHeureValide(data.prepMatinDebut) ? data.prepMatinDebut : '';
+    if (typeof data.prepMatinFin === 'string') prepMatinFin = habitudesHeureValide(data.prepMatinFin) ? data.prepMatinFin : '';
+    if (typeof data.prepSoirDebut === 'string') prepSoirDebut = habitudesHeureValide(data.prepSoirDebut) ? data.prepSoirDebut : '';
+    if (typeof data.prepSoirFin === 'string') prepSoirFin = habitudesHeureValide(data.prepSoirFin) ? data.prepSoirFin : '';
     if (typeof data.petitDejHeure === 'string') petitDejHeure = habitudesHeureValide(data.petitDejHeure) ? data.petitDejHeure : '';
     if (data.petitDejMinutes != null) petitDejMinutes = habitudesDuree(data.petitDejMinutes, 30, 10, 120);
     if (typeof data.dinerHeure === 'string') dinerHeure = habitudesHeureValide(data.dinerHeure) ? data.dinerHeure : '';
@@ -280,6 +367,14 @@ function appliquerHabitudes(data) {
 
 function validateHabits() {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
+    var matinDebut = document.getElementById('prepMatinDebutInput');
+    var matinFin = document.getElementById('prepMatinFinInput');
+    var soirDebut = document.getElementById('prepSoirDebutInput');
+    var soirFin = document.getElementById('prepSoirFinInput');
+    if (matinDebut && habitudesHeureValide(matinDebut.value)) habitudesBrouillon.prepMatinDebut = matinDebut.value;
+    if (matinFin && habitudesHeureValide(matinFin.value)) habitudesBrouillon.prepMatinFin = matinFin.value;
+    if (soirDebut && habitudesHeureValide(soirDebut.value)) habitudesBrouillon.prepSoirDebut = soirDebut.value;
+    if (soirFin && habitudesHeureValide(soirFin.value)) habitudesBrouillon.prepSoirFin = soirFin.value;
     var petitInput = document.getElementById('petitDejHeureInput');
     var dinerInput = document.getElementById('dinerHeureInput');
     if (petitInput && habitudesHeureValide(petitInput.value)) habitudesBrouillon.petitDejHeure = petitInput.value;
@@ -290,8 +385,14 @@ function validateHabits() {
         return;
     }
     var b = habitudesBrouillon;
-    prepMatinMinutes = b.prepMatin;
-    prepSoirMinutes = b.prepSoir;
+    var matin = habitudesCreneau(b.prepMatinDebut, b.prepMatinFin);
+    var soir = habitudesCreneau(b.prepSoirDebut, b.prepSoirFin);
+    prepMatinDebut = matin.debut;
+    prepMatinFin = matin.fin;
+    prepSoirDebut = soir.debut;
+    prepSoirFin = soir.fin;
+    prepMatinMinutes = matin.duree;
+    prepSoirMinutes = soir.duree;
     petitDejHeure = b.petitDejChoix === 'heure' ? b.petitDejHeure : '';
     petitDejMinutes = b.petitDejMinutes;
     dinerHeure = b.dinerChoix === 'heure' ? b.dinerHeure : '';

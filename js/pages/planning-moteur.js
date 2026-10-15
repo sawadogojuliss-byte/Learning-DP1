@@ -665,7 +665,11 @@ function emploiFaitsSignature() {
     if (typeof habitudesActives === 'function' && habitudesActives()) {
         faits.habitudes = {
             prepMatin: typeof prepMatinMinutes === 'number' ? prepMatinMinutes : 30,
+            prepMatinDebut: typeof prepMatinDebut === 'string' ? prepMatinDebut : '',
+            prepMatinFin: typeof prepMatinFin === 'string' ? prepMatinFin : '',
             prepSoir: typeof prepSoirMinutes === 'number' ? prepSoirMinutes : 30,
+            prepSoirDebut: typeof prepSoirDebut === 'string' ? prepSoirDebut : '',
+            prepSoirFin: typeof prepSoirFin === 'string' ? prepSoirFin : '',
             petitDej: typeof petitDejHeure === 'string' ? petitDejHeure : '',
             petitDejDuree: typeof petitDejMinutes === 'number' ? petitDejMinutes : 30,
             diner: typeof dinerHeure === 'string' ? dinerHeure : '',
@@ -896,21 +900,22 @@ function planningGarantirJour(events) {
         var duree = debutPrep == null || finPrep == null ? 30 : finPrep - debutPrep;
         if (duree <= 0) duree += 1440;
         var habitudePrep = !!(prep.habitudeFixe || (typeof habitudesActives === 'function' && habitudesActives()));
-        if (habitudePrep && typeof habitudesDureeMatin === 'function') {
-            var consignePrep = habitudesDureeMatin();
+        var consignePrep = habitudePrep && typeof habitudesDureeMatin === 'function' ? habitudesDureeMatin() : null;
+        if (consignePrep && consignePrep.heure && consignePrep.fin && !prep.ovPinned) {
+            planningPoserHoraire(prep, consignePrep.heure, consignePrep.fin);
+        } else {
             if (consignePrep && consignePrep.mode === 'fixe' && !prep.ovPinned) duree = consignePrep.duree;
-        } else if (duree < 10 || duree > 40) {
-            duree = 30;
+            else if (!habitudePrep && (duree < 10 || duree > 40)) duree = 30;
+            var nouveauDebut = debutTrajet - duree;
+            if (!habitudePrep) {
+                var finReveil = planningLireMinute(reveil, true);
+                if (finReveil != null && nouveauDebut < finReveil && finReveil < debutTrajet) nouveauDebut = finReveil;
+                if (nouveauDebut < minuteReveil && minuteReveil < debutTrajet) nouveauDebut = minuteReveil;
+            }
+            if (nouveauDebut < 0) nouveauDebut = 0;
+            if (!habitudePrep && nouveauDebut >= debutTrajet) nouveauDebut = Math.max(0, debutTrajet - 10);
+            planningPoserHoraire(prep, planningHorlogeSimple(nouveauDebut), planningHorlogeSimple(debutTrajet));
         }
-        var nouveauDebut = debutTrajet - duree;
-        if (!habitudePrep) {
-            var finReveil = planningLireMinute(reveil, true);
-            if (finReveil != null && nouveauDebut < finReveil && finReveil < debutTrajet) nouveauDebut = finReveil;
-            if (nouveauDebut < minuteReveil && minuteReveil < debutTrajet) nouveauDebut = minuteReveil;
-        }
-        if (nouveauDebut < 0) nouveauDebut = 0;
-        if (!habitudePrep && nouveauDebut >= debutTrajet) nouveauDebut = Math.max(0, debutTrajet - 10);
-        planningPoserHoraire(prep, planningHorlogeSimple(nouveauDebut), planningHorlogeSimple(debutTrajet));
     }
     milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
     function retirer(pred) {
@@ -1069,6 +1074,22 @@ function genererJourBrut(dayIndex) {
 
     function poserPreparationMatin() {
         var consigne = typeof habitudesDureeMatin === 'function' ? habitudesDureeMatin() : null;
+        if (consigne && consigne.mode === 'fixe' && consigne.heure && consigne.fin) {
+            var ovHeure = ovFor('prep');
+            if (ovHeure && ovHeure.deleted) return;
+            var heure = consigne.heure;
+            var fin = consigne.fin;
+            if (ovHeure && ovHeure.pinned && ovHeure.startTime && ovHeure.endTime) {
+                heure = ovHeure.startTime;
+                fin = ovHeure.endTime;
+            }
+            events.push({
+                id: 'prep', title: 'Préparation', subtitle: heure + ' – ' + fin, startTime: heure, endTime: fin,
+                type: 'prep', icon: '🚿', editable: true, kind: 'pinned', habitudeFixe: true, horaireEntre: true,
+                ovPinned: !!(ovHeure && ovHeure.pinned)
+            });
+            return;
+        }
         var duree = consigne && consigne.mode === 'fixe' ? consigne.duree : 30;
         chain('prep', 'Préparation', consigne && consigne.mode === 'fixe' ? (duree + ' min') : '', duree, 'prep', '🚿', true);
         if (!(consigne && consigne.mode === 'fixe')) return;
@@ -1088,6 +1109,11 @@ function genererJourBrut(dayIndex) {
         var duree = consigne.duree;
         var fin = timeToMinutes(bedtime);
         var debut = fin - duree;
+        if (consigne.heure && consigne.fin) {
+            debut = timeToMinutes(consigne.heure);
+            fin = timeToMinutes(consigne.fin);
+            duree = fin - debut;
+        }
         if (debut < 0) debut = 0;
         var startTime = v3M2T(debut);
         var endTime = v3M2T(fin);

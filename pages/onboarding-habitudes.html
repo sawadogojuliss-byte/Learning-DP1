@@ -9,7 +9,7 @@
 
         <div class="context-center" style="padding: 2rem 1rem;">
             <div class="context-card animate-fade-in-up" style="max-width: 56rem;">
-                <div class="progress-indicator">
+                <div class="progress-indicator" id="habitsProgress">
                     <div class="progress-step progress-step-active">✓</div>
                     <div class="progress-line progress-line-active" style="width: 2rem;"></div>
                     <div class="progress-step progress-step-active">✓</div>
@@ -28,7 +28,7 @@
                 </div>
 
                 <h1 class="context-title">Tes habitudes</h1>
-                <p class="context-subtitle">Indique ta préparation, et l'heure du petit-déjeuner et du dîner si tu en prends. Le planning les place tels quels.</p>
+                <p class="context-subtitle">Choisis l'heure de début et de fin de chaque préparation. Indique aussi l'heure du petit-déjeuner et du dîner si tu en prends.</p>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div style="background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border: 2px solid #dbeafe; overflow: hidden;">
@@ -42,24 +42,20 @@
                             </div>
                         </div>
                         <div style="padding: 1rem;">
-                            <div style="text-align: center; padding: 0.35rem 0 0.85rem;">
-                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem;">Préparation du matin</p>
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                    <button type="button" onclick="ajusterHabitude('prepMatin', -5)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">−</button>
-                                    <span id="prepMatinLabel" style="font-weight: 800; min-width: 4.2rem; color: #1d4ed8;">30 min</span>
-                                    <button type="button" onclick="ajusterHabitude('prepMatin', 5)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">+</button>
-                                </div>
-                                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">juste avant le trajet école</p>
+                            <div style="padding: 0.15rem 0 0.85rem;">
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.45rem; text-align: center;">Préparation du matin</p>
+                                <label style="font-size: 0.75rem; color: #4b5563; display: block; margin-bottom: 0.3rem;">Début</label>
+                                <input type="time" id="prepMatinDebutInput" value="06:50" onchange="majHeurePreparation('matin', 'debut', this.value)" style="width: 100%; padding: 0.65rem; border: 2px solid #dbeafe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; margin-bottom: 0.55rem;">
+                                <label style="font-size: 0.75rem; color: #4b5563; display: block; margin-bottom: 0.3rem;">Fin</label>
+                                <input type="time" id="prepMatinFinInput" value="07:20" onchange="majHeurePreparation('matin', 'fin', this.value)" style="width: 100%; padding: 0.65rem; border: 2px solid #dbeafe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
                             </div>
                             <div style="height: 1px; background: #e5e7eb; margin: 0.15rem 0 0.85rem;"></div>
-                            <div style="text-align: center; padding: 0.15rem 0 0.35rem;">
-                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.35rem;">Préparation du soir</p>
-                                <div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                    <button type="button" onclick="ajusterHabitude('prepSoir', -5)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">−</button>
-                                    <span id="prepSoirLabel" style="font-weight: 800; min-width: 4.2rem; color: #1d4ed8;">30 min</span>
-                                    <button type="button" onclick="ajusterHabitude('prepSoir', 5)" style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1.5px solid #dbeafe; background: white; cursor: pointer; font-weight: 700;">+</button>
-                                </div>
-                                <p style="font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">peut différer du matin · juste avant le coucher</p>
+                            <div style="padding: 0.15rem 0 0.35rem;">
+                                <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 0.45rem; text-align: center;">Préparation du soir</p>
+                                <label style="font-size: 0.75rem; color: #4b5563; display: block; margin-bottom: 0.3rem;">Début</label>
+                                <input type="time" id="prepSoirDebutInput" value="21:00" onchange="majHeurePreparation('soir', 'debut', this.value)" style="width: 100%; padding: 0.65rem; border: 2px solid #dbeafe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600; margin-bottom: 0.55rem;">
+                                <label style="font-size: 0.75rem; color: #4b5563; display: block; margin-bottom: 0.3rem;">Fin</label>
+                                <input type="time" id="prepSoirFinInput" value="21:30" onchange="majHeurePreparation('soir', 'fin', this.value)" style="width: 100%; padding: 0.65rem; border: 2px solid #dbeafe; border-radius: 0.75rem; font-size: 1rem; font-weight: 600;">
                             </div>
                         </div>
                     </div>
@@ -131,7 +127,7 @@
 
                 <div style="background: linear-gradient(to right, #ecfdf5, #f0fdfa); border: 1px solid #a7f3d0; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.5rem;">
                     <h4 style="font-weight: 700; color: #064e3b; margin-bottom: 0.5rem;">💡 À toi de choisir</h4>
-                    <p style="color: #047857; font-size: 0.875rem; line-height: 1.6;">La préparation du matin se place juste avant le trajet école, celle du soir juste avant le coucher. Le petit-déjeuner et le dîner restent à l'heure indiquée, tous les jours. Si tu n'en prends pas, choisis Aucun : le repas n'est pas ajouté. Un repas ne peut pas tomber pendant les cours, de 8 h 00 à 16 h 35.</p>
+                    <p style="color: #047857; font-size: 0.875rem; line-height: 1.6;">Chaque préparation est placée aux heures que tu choisis, tous les jours. Le petit-déjeuner et le dîner restent à l'heure indiquée. Si tu n'en prends pas, choisis Aucun. Rien ne peut tomber pendant les cours, de 8 h 00 à 16 h 35.</p>
                 </div>
                 <p id="habitsError" style="display: none; color: #ef4444; font-size: 0.8rem; margin: -0.5rem 0 1rem;"></p>
 
