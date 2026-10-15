@@ -172,6 +172,7 @@ function focusPoserFond(index, immediat) {
     }
     try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
     focusPeindreFonds();
+    focusPipMaj();
 }
 
 function focusChoisirMode(mode, enchainement) {
@@ -465,15 +466,32 @@ function focusFondAbsolu() {
 
 function focusPipHtml() {
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Study Plan IB</title><style>' +
-        'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;}' +
-        '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#064e3b center/cover no-repeat;}' +
-        '.time{margin:0;font-size:4.4rem;font-weight:800;letter-spacing:-0.045em;line-height:.9;text-shadow:0 2px 16px rgba(0,0,0,.45);}' +
-        'button{margin-top:.7rem;width:2.8rem;height:2.4rem;border-radius:.7rem;border:1px solid rgba(255,255,255,.28);background:rgba(8,20,16,.4);color:#fff;cursor:pointer;}' +
-        '.dots{position:absolute;right:.8rem;bottom:.65rem;display:flex;gap:.32rem;}' +
-        '.dots i{width:.38rem;height:.38rem;border-radius:50%;background:rgba(255,255,255,.8);display:block;}' +
-        '</style></head><body><div class="scene" id="pipScene"><p class="time" id="pipTime">25:00</p>' +
-        '<button type="button" id="pipPlay" aria-label="Démarrer">▶</button>' +
-        '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></div></body></html>';
+        'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;overflow:hidden;}' +
+        '.scene{position:relative;height:100%;background:#064e3b center/cover no-repeat;}' +
+        '.hud{position:absolute;right:.95rem;bottom:.55rem;display:flex;flex-direction:column;align-items:flex-end;}' +
+        '.time{margin:0 0 .05rem;font-size:clamp(2.8rem,12vw,4.7rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 16px rgba(0,0,0,.55);}' +
+        '.ligne{width:100%;display:flex;align-items:flex-end;justify-content:space-between;gap:1.6rem;}' +
+        'button{border:none;background:transparent;color:#fff;cursor:pointer;padding:.1rem .15rem .05rem;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45));}' +
+        '.coin{display:flex;flex-direction:column;align-items:flex-end;gap:.28rem;padding-bottom:.15rem;}' +
+        '.dots{display:flex;gap:.28rem;}' +
+        '.dots i{width:.34rem;height:.34rem;border-radius:50%;background:#fff;display:block;}' +
+        '</style></head><body><div class="scene" id="pipScene"><div class="hud">' +
+        '<p class="time" id="pipTime">25:00</p><div class="ligne">' +
+        '<button type="button" id="pipPlay" aria-label="Démarrer">' +
+        '<svg class="pip-ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>' +
+        '<svg class="pip-ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="display:none"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>' +
+        '</button><span class="coin"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f59e0b" d="M13 2 3.5 13.5h7.2L9.2 22 20.5 9.8h-7.2L13 2z"/></svg>' +
+        '<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span></span></div></div></div></body></html>';
+}
+
+function focusPipPeindreBouton(bouton) {
+    if (!bouton) return;
+    var enCours = !!focusEtat.running;
+    var play = bouton.querySelector('.pip-ico-play');
+    var pause = bouton.querySelector('.pip-ico-pause');
+    if (play) play.style.display = enCours ? 'none' : 'block';
+    if (pause) pause.style.display = enCours ? 'block' : 'none';
+    bouton.setAttribute('aria-label', enCours ? 'Pause' : 'Démarrer');
 }
 
 function focusPipMaj() {
@@ -483,18 +501,15 @@ function focusPipMaj() {
     var localScene = document.getElementById('focusPipScene');
     if (localTemps) localTemps.textContent = temps;
     if (localScene) localScene.style.backgroundImage = fond;
+    focusPipPeindreBouton(document.getElementById('focusPipPlay'));
     if (!focusPip || focusPip.closed) return;
     try {
         var doc = focusPip.document;
         var el = doc.getElementById('pipTime');
         var scene = doc.getElementById('pipScene');
-        var play = doc.getElementById('pipPlay');
         if (el) el.textContent = temps;
         if (scene) scene.style.backgroundImage = fond;
-        if (play) {
-            play.textContent = focusEtat.running ? '❚❚' : '▶';
-            play.setAttribute('aria-label', focusEtat.running ? 'Pause' : 'Démarrer');
-        }
+        focusPipPeindreBouton(doc.getElementById('pipPlay'));
     } catch (e) {}
 }
 
@@ -532,7 +547,7 @@ function focusImageDansImage() {
         return;
     }
     if (window.documentPictureInPicture && documentPictureInPicture.requestWindow) {
-        documentPictureInPicture.requestWindow({ width: 520, height: 300 }).then(function (win) {
+        documentPictureInPicture.requestWindow({ width: 680, height: 384 }).then(function (win) {
             focusPip = win;
             win.document.open();
             win.document.write(focusPipHtml());
@@ -543,6 +558,9 @@ function focusImageDansImage() {
                 focusPip = null;
                 focusPeindrePipBouton();
             });
+            win.document.addEventListener('copy', function (event) { event.preventDefault(); });
+            win.document.addEventListener('cut', function (event) { event.preventDefault(); });
+            win.document.addEventListener('selectstart', function (event) { event.preventDefault(); });
             focusPipMaj();
             focusPeindrePipBouton();
         }).catch(function () { focusOuvrirPipLocal(); });
@@ -977,6 +995,12 @@ function focusBrancher() {
         document.addEventListener('contextmenu', function (event) {
             var panel = document.getElementById('panelPomodoro');
             if (panel && panel.classList.contains('active')) event.preventDefault();
+        });
+        document.addEventListener('keydown', function (event) {
+            var panel = document.getElementById('panelPomodoro');
+            if (!panel || !panel.classList.contains('active')) return;
+            var touche = (event.key || '').toLowerCase();
+            if ((event.ctrlKey || event.metaKey) && (touche === 'c' || touche === 'x' || touche === 'a')) event.preventDefault();
         });
     }
     if (!window.__focusTouches) {

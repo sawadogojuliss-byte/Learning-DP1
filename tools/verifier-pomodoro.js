@@ -53,6 +53,8 @@ ok(lire('pages/pomodoro.html').indexOf('Ma musique') === -1, 'Ma musique doit ê
 ok(lire('pages/pomodoro.html').indexOf('Ma playlist') === -1, 'la playlist ne doit plus apparaître');
 ok(lire('pages/pomodoro.html').indexOf('focusImageDansImage') !== -1, 'le bouton image dans l image manque');
 ok(lire('css/pages/planning-panels.css').indexOf('caret-color: transparent') !== -1, 'le curseur clignotant doit disparaître');
+ok(lire('css/pages/planning-panels.css').indexOf('.focus-tip {') !== -1, 'le style du conseil a disparu');
+ok(lire('js/pages/pomodoro-page.js').indexOf('Image dans') === -1 && lire('pages/pomodoro.html').indexOf("Image dans l'image") !== -1, 'le libellé français image dans l image manque');
 ok(lire('css/pages/planning-panels.css').indexOf('#7c5cff') === -1, 'l ampoule doit être verte');
 ['audio/pomodoro/pluie.wav', 'audio/pomodoro/ocean.wav', 'audio/pomodoro/cafe.wav', 'audio/pomodoro/beta.wav', 'audio/pomodoro/gamma.wav'].forEach(function (src) {
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
