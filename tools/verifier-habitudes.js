@@ -58,6 +58,11 @@ assert(page.indexOf('Préparation du soir') !== -1, 'préparation du soir manqua
 assert(page.indexOf('Petit-déjeuner') !== -1, 'petit-déjeuner manquant');
 assert(page.indexOf('Dîner') !== -1, 'dîner manquant');
 assert(page.indexOf('Aucun') !== -1, 'le repas doit pouvoir rester vide');
+assert(page.indexOf("Choisis l'heure de début et de fin de chaque préparation.") !== -1, 'la description de la préparation reste');
+assert(page.indexOf('Indique aussi') === -1, 'la phrase sur les repas est retirée');
+assert(page.indexOf('À toi de choisir') === -1, 'le bloc À toi de choisir est retiré');
+assert(page.indexOf('Tu peux ne pas en prendre') === -1, 'la phrase optionnelle des repas est retirée');
+assert(lire('js/pages/onboarding-habitudes.js').indexOf('10, 120') === -1, 'la durée minimale des repas n’est plus 10 minutes');
 assert(page.indexOf('validateHabits()') !== -1 && page.indexOf('hideHabitsPage()') !== -1, 'boutons Continuer et Retour manquants');
 
 var store = {};
@@ -255,6 +260,13 @@ var encoreDefaut = jour(3);
 var prepDefaut = trouver(encoreDefaut, 'prep');
 assert(prepDefaut && minutes(prepDefaut.endTime) - minutes(prepDefaut.startTime) === 30, 'une durée saisie mais non validée ne remplace pas le défaut');
 assert(!trouver(encoreDefaut, 'prepSoir'), 'la préparation du soir n’apparaît pas avant validation');
+sandbox.habitudesBrouillon = { petitDejMinutes: 10, dinerMinutes: 10 };
+sandbox.ajusterHabitude('petitDej', -5);
+sandbox.ajusterHabitude('diner', -5);
+assert(sandbox.habitudesBrouillon.petitDejMinutes === 5, 'le petit-déjeuner peut durer 5 minutes');
+assert(sandbox.habitudesBrouillon.dinerMinutes === 5, 'le dîner peut durer 5 minutes');
+sandbox.ajusterHabitude('petitDej', -5);
+assert(sandbox.habitudesBrouillon.petitDejMinutes === 5, 'le petit-déjeuner ne descend pas sous 5 minutes');
 
 if (echecs.length) {
     console.error('échecs ' + echecs.length);

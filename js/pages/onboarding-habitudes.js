@@ -64,7 +64,7 @@ function habitudesRepas(id) {
     var duree = id === 'dinner' ? dinerMinutes : petitDejMinutes;
     var defaut = id === 'dinner' ? 45 : 30;
     if (!habitudesHeureValide(heure)) return { mode: 'omis' };
-    return { mode: 'fixe', heure: heure, duree: habitudesDuree(duree, defaut, 10, 120) };
+    return { mode: 'fixe', heure: heure, duree: habitudesDuree(duree, defaut, 5, 120) };
 }
 
 function habitudesCreneau(debut, fin) {
@@ -158,10 +158,10 @@ function habitudesBrouillonInitial() {
         prepSoirFin: habitudesHeureValide(prepSoirFin) ? prepSoirFin : soir.fin,
         petitDejChoix: petitDejChoix,
         petitDejHeure: habitudesHeureValide(petitDejHeure) ? petitDejHeure : '07:00',
-        petitDejMinutes: habitudesDuree(petitDejMinutes, 30, 10, 120),
+        petitDejMinutes: habitudesDuree(petitDejMinutes, 30, 5, 120),
         dinerChoix: dinerChoix,
         dinerHeure: habitudesHeureValide(dinerHeure) ? dinerHeure : '19:00',
-        dinerMinutes: habitudesDuree(dinerMinutes, 45, 10, 120)
+        dinerMinutes: habitudesDuree(dinerMinutes, 45, 5, 120)
     };
 }
 
@@ -243,8 +243,8 @@ function hideHabitsPage() {
 
 function ajusterHabitude(cle, delta) {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
-    if (cle === 'petitDej') habitudesBrouillon.petitDejMinutes = habitudesDuree(habitudesBrouillon.petitDejMinutes + delta, 30, 10, 120);
-    else if (cle === 'diner') habitudesBrouillon.dinerMinutes = habitudesDuree(habitudesBrouillon.dinerMinutes + delta, 45, 10, 120);
+    if (cle === 'petitDej') habitudesBrouillon.petitDejMinutes = habitudesDuree(habitudesBrouillon.petitDejMinutes + delta, 30, 5, 120);
+    else if (cle === 'diner') habitudesBrouillon.dinerMinutes = habitudesDuree(habitudesBrouillon.dinerMinutes + delta, 45, 5, 120);
     habitudesErreur('');
     renderHabitudes();
 }
@@ -359,9 +359,9 @@ function appliquerHabitudes(data) {
     if (typeof data.prepSoirDebut === 'string') prepSoirDebut = habitudesHeureValide(data.prepSoirDebut) ? data.prepSoirDebut : '';
     if (typeof data.prepSoirFin === 'string') prepSoirFin = habitudesHeureValide(data.prepSoirFin) ? data.prepSoirFin : '';
     if (typeof data.petitDejHeure === 'string') petitDejHeure = habitudesHeureValide(data.petitDejHeure) ? data.petitDejHeure : '';
-    if (data.petitDejMinutes != null) petitDejMinutes = habitudesDuree(data.petitDejMinutes, 30, 10, 120);
+    if (data.petitDejMinutes != null) petitDejMinutes = habitudesDuree(data.petitDejMinutes, 30, 5, 120);
     if (typeof data.dinerHeure === 'string') dinerHeure = habitudesHeureValide(data.dinerHeure) ? data.dinerHeure : '';
-    if (data.dinerMinutes != null) dinerMinutes = habitudesDuree(data.dinerMinutes, 45, 10, 120);
+    if (data.dinerMinutes != null) dinerMinutes = habitudesDuree(data.dinerMinutes, 45, 5, 120);
     habitudesBrouillon = null;
 }
 
