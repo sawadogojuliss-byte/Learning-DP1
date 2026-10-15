@@ -656,24 +656,6 @@
 }
 .focus-modes button.is-on { color: #fff; }
 .focus-modes button:hover { color: #6ee7b7; }
-.focus-dots {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.48rem;
-    max-width: 18rem;
-    min-height: 0.7rem;
-}
-.focus-dot {
-    width: 0.48rem;
-    height: 0.48rem;
-    border: none;
-    border-radius: 50%;
-    padding: 0;
-    background: rgba(255,255,255,0.42);
-    cursor: pointer;
-}
-.focus-dot:hover, .focus-dot.is-on { background: #10b981; }
 .focus-time {
     margin: 0.15rem 0 0.2rem;
     font-size: clamp(5rem, 15vh, 9rem);

@@ -139,18 +139,7 @@ function focusOuvrir() {
 }
 
 function focusPreparerFonds() {
-    var dots = document.getElementById('focusDots');
     var bande = document.getElementById('focusFonds');
-    if (dots && !dots.childNodes.length) {
-        FOCUS_FONDS.forEach(function (fond, i) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'focus-dot';
-            btn.setAttribute('aria-label', fond.nom);
-            btn.onclick = function () { focusPoserFond(i); };
-            dots.appendChild(btn);
-        });
-    }
     if (bande && !bande.childNodes.length) {
         FOCUS_FONDS.forEach(function (fond, i) {
             var btn = document.createElement('button');
@@ -295,9 +284,7 @@ function focusPeindre() {
 }
 
 function focusPeindreFonds() {
-    var dots = document.querySelectorAll('#focusDots .focus-dot');
     var vignettes = document.querySelectorAll('#focusFonds .focus-vignette');
-    dots.forEach(function (dot, i) { dot.classList.toggle('is-on', i === focusEtat.fond); });
     vignettes.forEach(function (btn, i) { btn.classList.toggle('is-on', i === focusEtat.fond); });
 }
 
