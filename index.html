@@ -6,17 +6,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <title>Study Plan IB - Planificateur intelligent pour le Baccalauréat International</title>
-    <link rel="icon" href="images/logo.png?v=20261015t">
-    <link rel="apple-touch-icon" href="images/logo.png?v=20261015t">
+    <link rel="icon" href="images/logo.png?v=20261015u">
+    <link rel="apple-touch-icon" href="images/logo.png?v=20261015u">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style_v1.css?v=20261015t">
-    <link rel="stylesheet" href="style_v2.css?v=20261015t">
+    <link rel="stylesheet" href="style_v1.css?v=20261015u">
+    <link rel="stylesheet" href="style_v2.css?v=20261015u">
     <link rel="stylesheet" href="style_v3.css">
-    <link rel="stylesheet" href="css/pages/planning-panels.css?v=20261015t">
-    <link rel="stylesheet" href="css/pages/retours.css?v=20261015t">
-    <link rel="stylesheet" href="css/compte.css?v=20261015t">
+    <link rel="stylesheet" href="css/pages/planning-panels.css?v=20261015u">
+    <link rel="stylesheet" href="css/pages/retours.css?v=20261015u">
+    <link rel="stylesheet" href="css/compte.css?v=20261015u">
     <style>
         body.booting #app-pages { visibility: hidden; }
         .boot-status {
@@ -24,16 +24,46 @@
             inset: 0;
             z-index: 200;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 1.1rem;
             background: #fff;
             color: #047857;
-            font-family: Inter, sans-serif;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             font-weight: 700;
             padding: 1.5rem;
             text-align: center;
+            transition: opacity 0.18s ease;
         }
         body:not(.booting) .boot-status { display: none; }
+        /* La lumière qui respire : le logo s'ouvre doucement, une lumière verte
+           passe derrière lui, et la barre suit le chargement réel. */
+        .boot-boite { position: relative; width: 84px; height: 84px; display: flex; align-items: center; justify-content: center; }
+        .boot-halo {
+            position: absolute;
+            inset: -26px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.35) 0%, rgba(16, 185, 129, 0) 68%);
+            animation: bootHalo 2.4s ease-in-out infinite;
+        }
+        .boot-logo { position: relative; width: 64px; height: 64px; border-radius: 16px; animation: bootLogo 2.4s ease-in-out infinite; }
+        .boot-jauge { width: 172px; height: 4px; border-radius: 999px; background: #ecfdf5; overflow: hidden; }
+        .boot-jauge i {
+            display: block; height: 100%; width: 6%; border-radius: 999px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.35s ease;
+        }
+        .boot-mot { margin: 0; color: #047857; font-weight: 700; font-size: 0.98rem; }
+        body.boot-fini .boot-status { opacity: 0; }
+        body.boot-erreur .boot-status { display: flex; opacity: 1; }
+        body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge { display: none; }
+        @keyframes bootHalo { 0%, 100% { transform: scale(1); opacity: 0.55; } 50% { transform: scale(1.18); opacity: 0.95; } }
+        @keyframes bootLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+        @media (prefers-reduced-motion: reduce) {
+            .boot-halo, .boot-logo { animation: none; }
+            .boot-jauge i, .boot-status { transition: none; }
+        }
     </style>
 </head>
 <body class="booting">
@@ -43,8 +73,15 @@
         <div class="shape shape-3 animate-float-subtle"></div>
     </div>
     <div id="app-pages"></div>
-    <div id="boot-status" class="boot-status"><div><img src="images/logo.png?v=20261015t" alt="" width="64" height="64" style="border-radius:16px;display:block;margin:0 auto 0.75rem;">Chargement de Study Plan IB…</div></div>
-<script src="js/registre.js?v=20261015t"></script>
-    <script src="js/boot.js?v=20261015t"></script>
+    <div id="boot-status" class="boot-status">
+        <div class="boot-boite">
+            <div class="boot-halo"></div>
+            <img class="boot-logo" src="images/logo.png?v=20261015u" alt="" width="64" height="64">
+        </div>
+        <div class="boot-jauge" id="boot-jauge" role="progressbar" aria-label="Chargement de Study Plan IB" aria-valuemin="0" aria-valuemax="100" aria-valuenow="6"><i id="boot-jauge-fill"></i></div>
+        <p class="boot-mot">Chargement de Study Plan IB…</p>
+    </div>
+<script src="js/registre.js?v=20261015u"></script>
+    <script src="js/boot.js?v=20261015u"></script>
 </body>
 </html>
