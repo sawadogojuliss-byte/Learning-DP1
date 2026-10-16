@@ -57,9 +57,13 @@
                     <span style="font-size:1.375rem;">📅</span>
                     <div><p style="font-weight:700;color:#064e3b;font-size:0.9rem;">Mon Planning</p><p style="font-size:0.75rem;color:#6b7280;">Emploi du temps hebdomadaire</p></div>
                 </button>
-                <button type="button" id="menuPomodoro" onclick="navigateTo('pomodoro');closeSideMenu();" class="menu-item-btn" style="width:100%;display:none;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
-                    <span style="font-size:1.375rem;">🍅</span>
-                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Pomodoro</p><p style="font-size:0.75rem;color:#6b7280;">Minuteur de concentration</p></div>
+                <button type="button" id="menuSeances" onclick="navigateTo('seances');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">📖</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Séance de révision du jour</p><p style="font-size:0.75rem;color:#6b7280;">Tes séances d'aujourd'hui, puis le minuteur</p></div>
+                </button>
+                <button type="button" id="menuMinuteur" onclick="navigateTo('pomodoro');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
+                    <span style="font-size:1.375rem;">⏱️</span>
+                    <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Minuteur de concentration</p><p style="font-size:0.75rem;color:#6b7280;">25 minutes de travail, puis une pause</p></div>
                 </button>
                 <button type="button" id="menuHabitudes" onclick="showHabitsPage('planning');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:1.5px solid #f3f4f6;background:white;cursor:pointer;margin-bottom:0.5rem;text-align:left;">
                     <span style="font-size:1.375rem;">🕐</span>
@@ -306,8 +310,6 @@
                     <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.3rem;">Nom de l'activité</label>
                     <input type="text" id="editEventTitle" style="width:100%;padding:0.6rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                 </div>
-                <!-- Méthode Pomodoro (sessions d'étude uniquement) -->
-                <button id="editPomodoroBtn" onclick="v3OpenPomodoroFromEdit()" style="display:none;width:100%;padding:0.6rem 0.75rem;background:linear-gradient(135deg,#fef2f2,#fff7ed);color:#b91c1c;font-weight:700;border-radius:0.875rem;border:1.5px solid #fecaca;cursor:pointer;margin-bottom:0.7rem;font-size:0.84rem;">🍅 Lancer un Pomodoro pour cette session</button>
                 <!-- Contrôle durée -->
                 <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.7rem;margin-bottom:0.7rem;">
                     <p style="font-size:0.8rem;font-weight:600;color:#047857;margin-bottom:0.75rem;">⏱️ Durée de l'activité</p>
@@ -345,38 +347,4 @@
             </div>
         </div>
 
-        <!-- ═══════ POMODORO MODAL — méthode Pomodoro pour les sessions d'étude ═══════ -->
-        <div id="pomodoroModal" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:1rem;">
-            <div class="pomo-card">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;gap:0.75rem;">
-                    <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;">
-                        <div style="width:2.75rem;height:2.75rem;background:linear-gradient(135deg,#fee2e2,#fecaca);border-radius:0.875rem;display:flex;align-items:center;justify-content:center;font-size:1.5rem;flex-shrink:0;">🍅</div>
-                        <div style="min-width:0;">
-                            <h3 style="font-size:1.05rem;font-weight:800;color:#111827;">Méthode Pomodoro</h3>
-                            <p id="pomoTitle" style="font-size:0.78rem;color:#6b7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></p>
-                        </div>
-                    </div>
-                    <button onclick="v3ClosePomodoro()" style="width:2rem;height:2rem;background:#f3f4f6;border:none;border-radius:50%;cursor:pointer;color:#6b7280;font-size:0.875rem;flex-shrink:0;">✕</button>
-                </div>
-                <div id="pomoPhaseCard" class="pomo-phase focus">
-                    <span id="pomoPhase" class="pomo-phase-label">Focus 1/1</span>
-                    <div id="pomoTime" class="pomo-time">25:00</div>
-                    <div class="pomo-bar"><div id="pomoBar" class="pomo-bar-fill"></div></div>
-                    <div id="pomoDots" class="pomo-dots"></div>
-                </div>
-                <p id="pomoSummary" style="font-size:0.8rem;color:#4b5563;text-align:center;margin:0.875rem 0 0.75rem;line-height:1.4;"></p>
-                <div style="display:flex;justify-content:center;align-items:center;gap:0.5rem;margin-bottom:1rem;">
-                    <span style="font-size:0.75rem;color:#9ca3af;">Rythme :</span>
-                    <button id="pomoPresetClassic" onclick="v3PomoSetPreset('classic')" class="pomo-preset selected">25 / 5</button>
-                    <button id="pomoPresetLong" onclick="v3PomoSetPreset('long')" class="pomo-preset">50 / 15</button>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.5rem;">
-                    <button id="pomoToggleBtn" onclick="v3PomoToggle()" class="pomo-btn primary" style="grid-column:span 3;">▶ Démarrer</button>
-                    <button id="pomoSkipBtn" onclick="v3PomoSkip()" class="pomo-btn">⏭ Passer</button>
-                    <button onclick="v3PomoReset()" class="pomo-btn">↺ Recommencer</button>
-                    <button onclick="v3ClosePomodoro()" class="pomo-btn">Fermer</button>
-                </div>
-                <p id="pomoTip" style="font-size:0.75rem;color:#6b7280;text-align:center;margin-top:0.875rem;line-height:1.45;"></p>
-            </div>
-        </div>
     </div><!-- fin planningModal -->

@@ -19,6 +19,7 @@ window.STUDYPLAN_HTML = [
     'pages/onboarding-ecran.html',
     'pages/onboarding-libre.html',
     'pages/planning.html',
+    'pages/seances.html',
     'pages/pomodoro.html',
     'pages/soutien.html',
     'pages/exercices.html',

@@ -6,7 +6,7 @@
 
 // ═══════════════════════════════════════════════════════════════════
 //  AFFICHAGE DU PLANNING (surcharge de renderPlanning)
-//  — identique visuellement, + badge 🍅 sur les sessions d'étude,
+//  — identique visuellement, sans aucune marque de minuteur,
 //    📌 sur les créneaux fixés, ouverture de l'édition par index
 // ═══════════════════════════════════════════════════════════════════
 function renderPlanning() {
@@ -72,12 +72,9 @@ function renderPlanning() {
             '<div style="display:flex;align-items:center;gap:0.5rem;padding:0 1rem;margin:-0.25rem 0;"><div style="width:3rem;flex-shrink:0;"></div><div style="width:2px;height:0.625rem;background:linear-gradient(to bottom,' + bColor + ',#e5e7eb);margin-left:1.375rem;opacity:0.5;border-radius:1px;"></div></div>'
             : '';
 
-        // Méthode Pomodoro : sous-titre + badge sur les sessions d'étude
-        const isStudy = v3IsStudyType(event.type) && durMins > 0;
-        let subtitle = event.subtitle || '';
-        if (isStudy) subtitle = (subtitle ? subtitle + ' · ' : '') + v3PomodoroLabel(durMins);
-        const pomoRunning = !!(v3Pomo && v3Pomo.running && v3Pomo.key === selectedDay + '|' + event.id);
-        const pomoBtn = isStudy ? '<button class="v3-pomo-chip' + (pomoRunning ? ' running' : '') + '" onclick="event.stopPropagation();v3OpenPomodoro(' + idx + ')" title="Lancer un Pomodoro pour cette session">🍅</button>' : '';
+        /* Plus aucune marque de minuteur sur les cartes du planning : la
+           séance de révision et le minuteur ont leur propre page. */
+        const subtitle = event.subtitle || '';
         const pinBadge = event.kind === 'pinned' ? '<span title="Heure fixée par toi" style="font-size:0.7rem;margin-right:0.2rem;">📌</span>' : '';
 
         eventsHtml += '<div data-v3-idx="' + idx + '" onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
@@ -86,7 +83,6 @@ function renderPlanning() {
                 '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(event.title) + '</h3>' +
                 (subtitle ? '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.1rem;">' + v3Escape(subtitle) + '</p>' : '') +
             '</div>' +
-            pomoBtn +
             '<div style="text-align:right;flex-shrink:0;">' +
                 '<p style="font-size:0.85rem;font-weight:700;color:#374151;">' + pinBadge + event.startTime + '</p>' +
                 '<p style="font-size:0.7rem;color:#9ca3af;">→ ' + event.endTime + '</p>' +
@@ -155,8 +151,6 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
     if (editCurrentDuration <= 0) editCurrentDuration = 30;
     updateEditDurationDisplay();
     document.getElementById('editTimeError').style.display = 'none';
-    const pomoBtn = document.getElementById('editPomodoroBtn');
-    if (pomoBtn) pomoBtn.style.display = v3IsStudyType(type) ? 'block' : 'none';
     v3UpdateEditPinHint();
     document.getElementById('editEventModal').style.display = 'flex';
 }
@@ -348,7 +342,7 @@ function confirmAddStudy() {
     v3Save();
     closeAddModal();
     renderPlanning();
-    v3Toast('✅ « ' + title + ' » ajouté ' + V3_DAY_NAMES[selectedDay] + ' à ' + startTime + ' · ' + v3PomodoroLabel(timeToMinutes(endTime) - timeToMinutes(startTime)), 'success');
+    v3Toast('✅ « ' + title + ' » ajouté ' + V3_DAY_NAMES[selectedDay] + ' à ' + startTime + ' · ' + v3DurLabel(timeToMinutes(endTime) - timeToMinutes(startTime)), 'success');
 }
 
 var activityEmojiManuel = false;

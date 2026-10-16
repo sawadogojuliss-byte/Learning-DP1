@@ -24,7 +24,7 @@ function closeSideMenu() {
 }
 function navigateTo(page) {
     if (page === 'assistant' && (typeof iaEstAdmin !== 'function' || !iaEstAdmin())) return;
-    if (page === 'pomodoro' && (typeof focusEstAdmin !== 'function' || !focusEstAdmin())) return;
+    /* Le minuteur et la page des séances sont ouverts à tout le monde. */
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     if (page === 'soutien') {
         var soutien = document.getElementById('panelSoutien');
@@ -45,9 +45,13 @@ function navigateTo(page) {
         var feries = document.getElementById('panelFeries');
         if (typeof renderHolidays === 'function') renderHolidays();
         if (feries) feries.classList.add('active');
+    } else if (page === 'seances') {
+        var seances = document.getElementById('panelSeances');
+        if (typeof focusOuvrirSeances === 'function') focusOuvrirSeances();
+        if (seances) seances.classList.add('active');
     } else if (page === 'pomodoro') {
         var pomodoro = document.getElementById('panelPomodoro');
-        if (typeof focusOuvrir === 'function') focusOuvrir();
+        if (typeof focusOuvrirMinuteur === 'function') focusOuvrirMinuteur();
         if (pomodoro) pomodoro.classList.add('active');
     } else if (page === 'assistant') {
         var assistant = document.getElementById('panelAssistant');

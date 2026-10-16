@@ -1012,7 +1012,7 @@ function compteMontrerProgression(data, forcer) {
         applique = true;
     }
     var ouvrir = !!(data.profilComplet && (forcer || !stocke || !stocke.profilComplet));
-    if (ouvrir && comptePageOuverte() !== 'pomodoro') {
+    if (ouvrir && comptePageOuverte() !== 'pomodoro' && comptePageOuverte() !== 'seances') {
         compteOuvrirPlanning();
         fermerCompte();
     }

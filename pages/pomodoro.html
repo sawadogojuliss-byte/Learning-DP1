@@ -1,29 +1,10 @@
 <!-- ============================================================
-     PAGE : Pomodoro — réservée aux 4 comptes admin
-     Le fond utilise les images choisies. Ouverture au clic seulement.
+     PAGE : Pomodoro — ouverte à tous
+     Le minuteur seul : la liste des séances est sur la page
+     « Séance de révision du jour ».
      Script : js/pages/pomodoro-page.js
      ============================================================ -->
 <div class="app-panel" id="panelPomodoro">
-    <!-- Accueil : les séances de révision et d'exercices du jour, avant le minuteur -->
-    <div class="focus-accueil" id="focusAccueil" hidden>
-        <div class="focus-accueil-fond" id="focusAccueilFond"></div>
-        <div class="focus-accueil-voile"></div>
-        <div class="focus-accueil-boite">
-            <div class="focus-accueil-haut">
-                <p class="focus-accueil-logo">Study Plan IB</p>
-                <p class="focus-accueil-bonjour" id="focusAccueilBonjour"></p>
-            </div>
-            <h2 class="focus-accueil-titre">Tes séances du jour</h2>
-            <p class="focus-accueil-sous" id="focusAccueilSous">Révisions et exercices prévus dans ton emploi du temps.</p>
-            <div class="focus-accueil-stats" id="focusAccueilStats"></div>
-            <div class="focus-accueil-liste" id="focusAccueilListe"></div>
-            <p class="focus-accueil-note" id="focusAccueilNote"></p>
-            <div class="focus-accueil-bas">
-                <button type="button" class="focus-accueil-libre" onclick="focusEntrerPiece(true)">Minuteur libre</button>
-                <button type="button" class="focus-accueil-continuer" id="focusAccueilContinuer" onclick="focusEntrerPiece()">Continuer</button>
-            </div>
-        </div>
-    </div>
     <div class="focus-page" id="focusPage" hidden>
         <!-- L'image affichée ne change qu'une fois la suivante décodée : pas de
              fondu, donc jamais l'ancienne image qui revient ni le planning. -->

@@ -41,7 +41,7 @@ function v3BuildPomodoroPlan(totalMins, preset) {
 function v3PomodoroCount(mins) { return v3BuildPomodoroPlan(mins).filter(s => s.type === 'focus').length; }
 function v3PomodoroLabel(mins) {
     const n = v3PomodoroCount(mins);
-    return '🍅 ' + n + ' pomodoro' + (n > 1 ? 's' : '');
+    return n + ' × 25 min';
 }
 function v3PomodoroDetail(mins) {
     const p = V3_POMO_PRESETS[v3PomoPresetKey] || V3_POMO_PRESETS.classic;
@@ -76,10 +76,13 @@ function v3StartPomodoroFor(ev, dayIndex) {
     }
     if (!v3Pomo || v3Pomo.key !== key) { v3PomoStopTimer(); v3Pomo = v3NewPomo(ev, dayIndex); }
     v3RenderPomodoro();
-    document.getElementById('pomodoroModal').style.display = 'flex';
+    var modal = document.getElementById('pomodoroModal');
+    if (modal) modal.style.display = 'flex';
 }
 function v3ClosePomodoro() {
-    document.getElementById('pomodoroModal').style.display = 'none';
+    var modal = document.getElementById('pomodoroModal');
+    if (!modal) return;      // la fenêtre du planning a été retirée
+    modal.style.display = 'none';
     // le minuteur continue en arrière-plan s'il est lancé
 }
 function v3PomoSetPreset(key) {
@@ -113,7 +116,7 @@ function v3PomoToggle() {
         v3PomoInitAudio();
     }
     v3RenderPomodoro();
-    v3RefreshPlanningIfOpen(); // badge 🍅 « en cours » sur la carte
+    v3RefreshPlanningIfOpen(); // badge « en cours » sur la carte
 }
 function v3RefreshPlanningIfOpen() {
     const pm = document.getElementById('planningModal');
@@ -161,7 +164,7 @@ function v3PomoAdvance(announce) {
     if (v3Pomo.running) v3Pomo.endsAt = Date.now() + v3Pomo.remainingSec * 1000;
     if (announce) {
         v3PomoBeep(next.type === 'focus' ? 1 : 2);
-        if (next.type === 'focus') v3PomoNotify('🍅 C\'est reparti !', 'Focus ' + next.n + ' — ' + next.mins + ' min sur « ' + v3Pomo.title + ' »');
+        if (next.type === 'focus') v3PomoNotify('⏳ C\'est reparti !', 'Focus ' + next.n + ' — ' + next.mins + ' min sur « ' + v3Pomo.title + ' »');
         else v3PomoNotify(done && done.type === 'focus' ? '☕ Pause bien méritée' : '☕ Pause', (next.type === 'long' ? 'Pause longue' : 'Pause courte') + ' de ' + next.mins + ' min. Lève-toi, bois de l\'eau !');
     }
 }
@@ -235,7 +238,7 @@ function v3RenderPomodoro() {
     document.getElementById('pomoSkipBtn').disabled = p.finished;
     const tips = V3_POMO_TIPS[kind];
     document.getElementById('pomoTip').textContent = tips[p.idx % tips.length];
-    if (p.running && !p.finished) document.title = v3PomoFmt(p.remainingSec) + (kind === 'focus' ? ' 🍅 ' : ' ☕ ') + '· Study Plan IB';
+    if (p.running && !p.finished) document.title = v3PomoFmt(p.remainingSec) + (kind === 'focus' ? ' ⏳ ' : ' ☕ ') + '· Study Plan IB';
 }
 
 // Aperçu Pomodoro dans la fenêtre « Ajouter une matière »
@@ -244,6 +247,6 @@ function v3UpdateStudyPomodoroHint() {
     if (!hint) return;
     const s = document.getElementById('studyStartInput').value, e = document.getElementById('studyEndInput').value;
     if (!s || !e || timeToMinutes(e) <= timeToMinutes(s)) { hint.style.display = 'none'; return; }
-    hint.textContent = '🍅 Méthode Pomodoro : ' + v3PomodoroDetail(timeToMinutes(e) - timeToMinutes(s));
+    hint.textContent = 'Méthode Pomodoro : ' + v3PomodoroDetail(timeToMinutes(e) - timeToMinutes(s));
     hint.style.display = 'block';
 }

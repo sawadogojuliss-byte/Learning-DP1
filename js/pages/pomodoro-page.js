@@ -1,7 +1,8 @@
 /* ============================================================
-   PAGE Pomodoro
-   Minuteur plein écran, réservé aux comptes admin.
-   Vue : pages/pomodoro.html
+   PAGE Séance de révision du jour, puis PAGE Pomodoro
+   La liste des séances du jour est la page avant le minuteur :
+   planning → séance de révision → minuteur. Ouvert à tout le monde.
+   Vues : pages/seances.html et pages/pomodoro.html
    ============================================================ */
 
 /* Chaque fond existe en WebP : une version pleine taille pour le décor et une
@@ -66,14 +67,13 @@ var focusAccueilActif = '';
 var focusFondsFile = null;
 var focusFondsArret = false;
 
-function focusEstAdmin() {
-    return typeof iaEstAdmin === 'function' && iaEstAdmin();
-}
-
 function focusAfficherEntree() {
-    var el = document.getElementById('menuPomodoro');
-    if (!el) return;
-    el.style.display = focusEstAdmin() ? 'flex' : 'none';
+    /* Le minuteur et la page des séances sont ouverts à tous : les deux
+       entrées du menu restent visibles. */
+    ['menuSeances', 'menuMinuteur'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'flex';
+    });
 }
 
 function focusLireJson(cle, defaut) {
@@ -139,19 +139,35 @@ function focusIndexParId(id) {
     return 0;
 }
 
-function focusOuvrir() {
-    if (!focusEstAdmin()) {
-        var panel = document.getElementById('panelPomodoro');
-        if (panel) panel.classList.remove('active');
-        return;
-    }
+/* La page « Séance de révision du jour » : la liste, avant le minuteur. */
+function focusOuvrirSeances() {
     focusCharger();
     focusFondsArret = false;
     focusPoserFond(focusIndexParId('lumiere'), true);
     focusPeindreFlamme();
     focusPeindre();
-    focusAfficherAccueil();
+    focusChoisirSeance();
+    focusPeindreAccueil();
     focusAmorcerFonds();
+}
+
+/* La page Pomodoro : le minuteur seul. */
+function focusOuvrirMinuteur() {
+    focusCharger();
+    focusFondsArret = false;
+    var accueil = document.getElementById('focusAccueil');
+    if (accueil) accueil.hidden = true;
+    var page = document.getElementById('focusPage');
+    if (page) page.hidden = false;
+    focusPoserFond(focusIndexParId('lumiere'), true);
+    focusPeindreFlamme();
+    focusPeindre();
+    focusAmorcerFonds();
+}
+
+/* Gardé pour les appels existants : ouvre le minuteur. */
+function focusOuvrir() {
+    focusOuvrirMinuteur();
 }
 
 // ── ACCUEIL : les séances de révision et d'exercices du jour ───────────
@@ -186,7 +202,7 @@ function focusPomodorosTexte(mins) {
         try { return v3PomodoroLabel(mins); } catch (e) {}
     }
     var n = Math.max(1, Math.round(Number(mins) / 25));
-    return '🍅 ' + n + ' pomodoro' + (n > 1 ? 's' : '');
+    return n + ' × 25 min';
 }
 
 function focusNombrePomodoros(mins) {
@@ -331,7 +347,7 @@ function focusPeindreAccueil() {
         stats.innerHTML = '';
         stats.appendChild(focusAjouterStat(String(seances.length), seances.length > 1 ? 'séances' : 'séance', false));
         stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'de travail', false));
-        stats.appendChild(focusAjouterStat('🍅 ' + pomodoros, pomodoros > 1 ? 'pomodoros' : 'pomodoro', true));
+        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions de 25 min', true));
     }
 
     liste.innerHTML = '';
@@ -354,17 +370,10 @@ function focusPeindreAccueil() {
     }
 }
 
-// Affiche l'accueil des séances avant le minuteur (sauf reprise après rafraîchissement).
-function focusAfficherAccueil() {
-    var accueil = document.getElementById('focusAccueil');
-    var page = document.getElementById('focusPage');
-    if (!accueil || !page) return;
-    if (window.__focusSansAccueil) {
-        window.__focusSansAccueil = false;
-        accueil.hidden = true;
-        page.hidden = false;
-        return;
-    }
+/* La séance du moment est choisie d'avance : celle qui est en cours, sinon la
+   première de la journée. Le choix reste si la personne revient en arrière. */
+function focusChoisirSeance() {
+    if (focusSeanceChoisie && focusSeancesJour().some(function (s) { return s.id === focusSeanceChoisie; })) return;
     var seances = focusSeancesJour();
     var maintenant = focusMinutesMaintenant();
     var choix = null;
@@ -373,29 +382,12 @@ function focusAfficherAccueil() {
     });
     if (choix === null && seances.length) choix = seances[0].id;
     focusSeanceChoisie = choix;
-    accueil.hidden = false;
-    page.hidden = true;
-    focusPeindreAccueil();
 }
 
-// Une étape de plus dans l'historique : le retour du navigateur ramène
-// d'abord sur la liste des séances du jour, pas directement au planning.
-function focusAjouterEtapeListe() {
-    try {
-        if (!window.history || typeof history.pushState !== 'function') return;
-        var url = location.pathname + location.search + '#pomodoro';
-        history.pushState({ app: 'studyplan', etape: 'pomodoro', listeSeances: true }, '', url);
-    } catch (e) {}
-}
-
-// Quitte l'accueil pour le minuteur. Sans argument, la séance choisie devient l'objectif.
+// De la liste au minuteur : une nouvelle étape dans l'historique, donc le
+// bouton retour du navigateur ramène d'abord sur la séance de révision.
 function focusEntrerPiece(libre) {
-    var accueil = document.getElementById('focusAccueil');
-    var page = document.getElementById('focusPage');
-    var etaitListe = !!(accueil && !accueil.hidden);
-    if (accueil) accueil.hidden = true;
-    if (page) page.hidden = false;
-    if (etaitListe) focusAjouterEtapeListe();
+    if (!libre && !focusSeanceChoisie) focusChoisirSeance();
     if (!libre && focusSeanceChoisie) {
         var choisie = null;
         focusSeancesJour().forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
@@ -406,6 +398,11 @@ function focusEntrerPiece(libre) {
         }
     }
     focusPeindre();
+    /* Le minuteur est une vraie étape : le bouton retour du navigateur
+       ramène sur la séance de révision, puis sur le planning. */
+    if (typeof memoireAller === 'function') memoireAller('pomodoro');
+    else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+    else focusOuvrirMinuteur();
 }
 
 function focusDecoderImage(src, suite) {
@@ -573,7 +570,7 @@ function focusChoisirMode(mode, enchainement) {
 
 function focusBasculer() {
     var panel = document.getElementById('panelPomodoro');
-    if (!panel || !panel.classList.contains('active') || !focusEstAdmin()) return;
+    if (!panel || !panel.classList.contains('active')) return;
     focusCharger();
     if (focusEtat.running) {
         focusPause();
@@ -983,7 +980,9 @@ function focusMaison() {
     focusFermer('focusReglages');
     focusFermer('focusFonds');
     focusFermer('focusSons');
-    if (typeof navigateTo === 'function') navigateTo('planning');
+    /* Le bouton maison du minuteur ramène à la séance de révision du jour. */
+    if (typeof memoireAller === 'function') memoireAller('seances');
+    else if (typeof navigateTo === 'function') navigateTo('seances');
 }
 
 function focusFondAbsolu() {
@@ -1581,14 +1580,10 @@ function focusBrancher() {
 function focusReprendreApresRafraichissement() {
     if (!window.__memoirePomodoroEnAttente) return;
     window.__memoirePomodoroEnAttente = false;
-    if (!focusEstAdmin()) {
-        if (typeof memoireAller === 'function') memoireAller('planning');
-        return;
-    }
-    window.__focusSansAccueil = true;   // reprise après rafraîchissement : on revient sur le minuteur
+    /* Un rafraîchissement sur le minuteur y revient directement : la personne
+       n'a pas à retraverser la liste des séances. */
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
-    focusAjouterEtapeListe();
 }
 
 focusAfficherEntree();
