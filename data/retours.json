@@ -349,5 +349,19 @@
       "complet": 0
     }
   ],
-  "reponses": []
+  "reponses": [
+    {
+      "type": "reponse",
+      "id": "r1a12cf17cb27e49cf38",
+      "questionId": "q1a12b132f8ebb58218d",
+      "at": "2026-10-11T21:49:46.034Z",
+      "nom": "Sere Farid Abdourrahman",
+      "email": "ibstudyplan@gmail.com",
+      "destinataire": "doriilboudo235@gmail.com",
+      "texte": "Bonsoir Kenzah,\nC'est l'affichage qui pause un soucis, ou le planning du dimanche est le même que celui du lundi?\nTa réponse permettra a l'équipe StudyPlan de mieux t'aider.\nMerci pour ta collaboration!!",
+      "mail": true,
+      "gmailId": "ojz44st5i0nir9vzsl0ijed6",
+      "partage": true
+    }
+  ]
 }
