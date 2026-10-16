@@ -365,7 +365,7 @@ function focusPeindreAccueil() {
         var choisie = null;
         seances.forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
         if (choisie) note.textContent = 'Séance choisie : « ' + choisie.titre + ' » de ' + choisie.debutTexte + ' à ' + choisie.finTexte + '. Elle deviendra ton objectif sur le minuteur.';
-        else if (seances.length) note.textContent = 'Choisis une séance, puis appuie sur Continuer. Ta session se prépare sur le minuteur.';
+        else if (seances.length) note.textContent = 'Choisis une séance, puis lance le minuteur Pomodoro.';
         else note.textContent = 'Le minuteur reste disponible à tout moment.';
     }
 }

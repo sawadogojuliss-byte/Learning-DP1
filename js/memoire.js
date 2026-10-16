@@ -443,7 +443,10 @@ function memoireAller(etape) {
     if (etape === 'travaux') etape = 'transport';
     if (etape === 'assistant') etape = 'planning';
     if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
-        if (typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
+        /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
+           l'écran de classe ne doit jamais barrer leur route. */
+        if (etape !== 'seances' && etape !== 'pomodoro' &&
+            typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
         document.querySelectorAll('.context-modal').forEach(function (el) {
             if (el.id !== 'planningModal') el.classList.remove('active');
         });

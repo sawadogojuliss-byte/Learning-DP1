@@ -26,8 +26,9 @@ ok(menu.indexOf('editPomodoroBtn') === -1, 'le crayon du planning doit disparaî
 ok(menu.indexOf('pomodoroModal') === -1, 'la fenêtre Pomodoro du planning doit disparaître');
 ok(menu.slice(seances, seances + 700).indexOf("navigateTo('seances')") !== -1, 'le menu doit ouvrir la séance de révision');
 ok(menu.slice(minuteur, minuteur + 700).indexOf("navigateTo('pomodoro')") !== -1, 'le menu doit ouvrir le minuteur');
-ok(menu.indexOf('Séance de révision du jour') !== -1 && menu.indexOf('Minuteur de concentration') !== -1,
-    'les deux entrées doivent être nommées en français');
+ok(menu.indexOf('Séance de révision du jour') !== -1, 'la page des séances doit être nommée en français');
+ok(menu.indexOf('>Pomodoro<') !== -1, 'l\'entrée du minuteur doit s\'appeler Pomodoro');
+ok(menu.indexOf('Minuteur de concentration') === -1, 'l\'ancien nom du minuteur doit disparaître');
 
 /* ── 2. Ouvert à tous : plus aucun contrôle admin ── */
 var nav = lire('js/pages/navigation.js');
@@ -64,8 +65,10 @@ ok(script.indexOf('function focusReprendreApresRafraichissement') !== -1, 'la re
 ok(script.indexOf("memoireAller('seances')") !== -1, 'le bouton maison du minuteur doit ramener aux séances');
 ok(page.indexOf('id="focusAccueil"') === -1, 'l\'accueil des séances ne doit plus vivre dans le minuteur');
 ok(page.indexOf('Tes séances du jour') === -1, 'l\'ancien accueil doit disparaître du minuteur');
-ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisis une séance, puis lance le minuteur') !== -1,
+ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisis une séance, puis lance le minuteur Pomodoro') !== -1,
     'la page doit expliquer qu\'on choisit une séance avant le minuteur');
+ok(page.indexOf('<p class="focus-nom">Pomodoro</p>') !== -1, 'le minuteur doit afficher son nom : Pomodoro');
+ok(lire('css/pages/planning-panels.css').indexOf('.focus-nom {') !== -1, 'le badge Pomodoro doit être stylé');
 ok(fs.existsSync(path.join(__dirname, '..', 'pages/seances.html')), 'page de séance absente');
 ok(lire('js/registre.js').indexOf("'pages/seances.html'") !== -1, 'page de séance non enregistrée');
 ok(lire('js/registre.js').indexOf("'pages/pomodoro.html'") !== -1, 'page minuteur non enregistrée');
@@ -75,6 +78,8 @@ ok(lire('js/registre.js').indexOf("'js/pages/pomodoro-page.js'") !== -1, 'script
 ok(memoire.indexOf("panelSeances: 'seances'") !== -1, 'le bouton retour doit connaître la séance de révision');
 ok(memoire.indexOf("panelPomodoro: 'pomodoro'") !== -1, 'le bouton retour doit connaître le minuteur');
 ok(memoire.indexOf("seances: 1") !== -1, 'la séance de révision doit être une étape connue de l\'historique');
+ok(memoire.indexOf("etape !== 'seances' && etape !== 'pomodoro'") !== -1,
+    'la classe ne doit jamais barrer la route du minuteur');
 ok(memoire.indexOf("seances: 'planning'") !== -1, 'retour de la séance de révision : le planning');
 ok(memoire.indexOf("pomodoro: 'seances'") !== -1, 'retour du minuteur : la séance de révision');
 ok(memoire.indexOf("__memoirePomodoroEnAttente") !== -1, 'un rafraîchissement sur le minuteur doit y rester');
