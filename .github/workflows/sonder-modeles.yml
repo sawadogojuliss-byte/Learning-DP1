@@ -1,0 +1,16 @@
+name: Sonde des modèles
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sonder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier les points d'accès de l'assistant
+        run: python3 tools/sonder-modeles.py
