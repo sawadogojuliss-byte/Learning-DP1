@@ -200,7 +200,7 @@ function generateDayEvents(dayIndex) {
         // Free time until 19:00
         const freeMins = Math.max(0, 19 * 60 - timeToMinutes(cursor));
         if (freeMins > 0) chain('freetime', 'Temps libre', '', freeMins, 'free', '🎮', true);
-        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍝', true);
+        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍽️', true);
         const phoneTime = phoneDays.includes(dayIndex) ? (samePhoneDuration ? phoneDuration : phoneDayDurations[dayIndex] || 60) : 0;
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
@@ -213,7 +213,7 @@ function generateDayEvents(dayIndex) {
         if (s2) chain('study2', 'Révisions ' + s2.name, s2.level + ' · ' + s2.grade + '/7', getDuration('study2', s2.level === 'HL' ? 90 : 60), getStudyColor(s2.grade), s2.icon, true);
         const freeMins = Math.max(0, 19 * 60 - timeToMinutes(cursor));
         if (freeMins > 0) chain('freetime', 'Temps libre', '', freeMins, 'free', '🎮', true);
-        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍝', true);
+        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍽️', true);
         const phoneTime = phoneDays.includes(dayIndex) ? (samePhoneDuration ? phoneDuration : phoneDayDurations[dayIndex] || 60) : 0;
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
@@ -241,7 +241,7 @@ function generateDayEvents(dayIndex) {
             const exSubj = sciSubj[dayIndex % sciSubj.length];
             chain('exercises', 'Exercices ' + exSubj.name, exSubj.level + ' · ' + exSubj.grade + '/7', getDuration('exercises', exSubj.level === 'HL' ? 45 : 30), getStudyColor(exSubj.grade), '✏️', true);
         }
-        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍝', true);
+        chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍽️', true);
         const phoneTime = phoneDays.includes(dayIndex) ? (samePhoneDuration ? phoneDuration : phoneDayDurations[dayIndex] || 60) : 0;
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), Math.min(phoneTime, 60), 'phone', '📱', true);
     }

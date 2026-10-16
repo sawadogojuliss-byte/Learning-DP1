@@ -1194,7 +1194,7 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureeEtude(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
-        repasSelonHabitude('dinner', 'Dîner', '🍝', 45, '19:00', '19:45');
+        repasSelonHabitude('dinner', 'Dîner', '🍽️', 45, '19:00', '19:45');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else if (isSaturday) {
@@ -1215,7 +1215,7 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2) chain('study2', 'Révisions ' + s2.name, sousTitreMatiere(s2), dureeEtude(s2, 90, 60), couleurMatiere(s2), s2.icon, true);
-        repasSelonHabitude('dinner', 'Dîner', '🍝', 45, '19:00', '19:45');
+        repasSelonHabitude('dinner', 'Dîner', '🍽️', 45, '19:00', '19:45');
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
 
     } else {
@@ -1249,7 +1249,7 @@ function genererJourBrut(dayIndex) {
             }
         }
         if (s2sem) chain('study2', 'Révisions ' + s2sem.name, sousTitreMatiere(s2sem), dureeEtude(s2sem, 75, 45), couleurMatiere(s2sem), s2sem.icon, true);
-        repasSelonHabitude('dinner', 'Dîner', '🍝', 45);
+        repasSelonHabitude('dinner', 'Dîner', '🍽️', 45);
         if (phoneTime > 0) chain('phone', 'Téléphone', formatDuration(phoneTime), phoneTime, 'phone', '📱', true);
     }
 

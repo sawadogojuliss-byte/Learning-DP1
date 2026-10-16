@@ -40,7 +40,6 @@ ok(nav.indexOf("page === 'seances'") !== -1 && nav.indexOf('focusOuvrirSeances()
     'naviguer vers la séance de révision doit l\'ouvrir');
 ok(nav.indexOf("page === 'pomodoro'") !== -1 && nav.indexOf('focusOuvrirMinuteur()') !== -1,
     'naviguer vers le minuteur doit l\'ouvrir');
-ok(nav.indexOf('iaEstAdmin') !== -1, 'l\'assistant reste réservé aux administrateurs');
 [['js/pages/navigation.js', nav], ['js/pages/pomodoro-page.js', script], ['js/memoire.js', memoire]].forEach(function (paire) {
     ok(paire[1].indexOf('focusEstAdmin') === -1, 'le contrôle admin doit disparaître de ' + paire[0]);
 });

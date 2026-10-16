@@ -23,7 +23,6 @@ function closeSideMenu() {
     document.getElementById('sideMenuOverlay').style.display = 'none';
 }
 function navigateTo(page) {
-    if (page === 'assistant' && (typeof iaEstAdmin !== 'function' || !iaEstAdmin())) return;
     /* Le minuteur et la page des séances sont ouverts à tout le monde. */
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     if (page === 'soutien') {
@@ -53,10 +52,6 @@ function navigateTo(page) {
         var pomodoro = document.getElementById('panelPomodoro');
         if (typeof focusOuvrirMinuteur === 'function') focusOuvrirMinuteur();
         if (pomodoro) pomodoro.classList.add('active');
-    } else if (page === 'assistant') {
-        var assistant = document.getElementById('panelAssistant');
-        if (assistant) assistant.classList.add('active');
-        if (typeof iaOuvrir === 'function') iaOuvrir();
     } else if (page === 'tutoriel') {
         if (typeof tutorielSectionVisible === 'function' && !tutorielSectionVisible()) return;
         var tutoriel = document.getElementById('panelTutoriel');

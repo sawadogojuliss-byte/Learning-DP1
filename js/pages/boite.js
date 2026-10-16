@@ -138,12 +138,7 @@ function boiteMajMenu() {
         if (el) el.style.display = admin ? 'flex' : 'none';
     });
     if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
-    if (typeof iaAfficherEntree === 'function') iaAfficherEntree();
     if (typeof focusAfficherEntree === 'function') focusAfficherEntree();
-    else {
-        var assistant = document.getElementById('menuAssistant');
-        if (assistant) assistant.style.display = 'none';
-    }
     var champ = document.getElementById('menuNom');
     if (!champ) return;
     if (document.activeElement !== champ && champ.value !== boiteNom()) champ.value = boiteNom();

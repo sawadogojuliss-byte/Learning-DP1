@@ -22,7 +22,6 @@ var MEMOIRE_PAGES = {
     panelLegende: 'legende',
     panelEEia: 'eeia',
     panelFeries: 'feries',
-    panelAssistant: 'assistant',
     panelSeances: 'seances',
     panelPomodoro: 'pomodoro',
     panelTutoriel: 'tutoriel',
@@ -441,7 +440,6 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'assistant') etape = 'planning';
     if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
@@ -509,7 +507,7 @@ function memoireEtapeConnue(etape) {
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
         libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
         eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1,
-        assistant: 1, seances: 1, pomodoro: 1
+        seances: 1, pomodoro: 1
     };
     return !!connues[etape];
 }
@@ -532,7 +530,6 @@ function memoirePoserHash(etape) {
 
 function memoireDepuisHistorique(etape) {
     if (!memoireEtapeConnue(etape)) etape = memoireEtapeHash() || 'accueil';
-    if (etape === 'assistant') etape = 'planning';
     if (!memoireEtapeConnue(etape)) etape = 'accueil';
     memoireNavSilence = true;
     try {
@@ -574,7 +571,6 @@ function memoirePagePrecedente(etape) {
         legende: 'planning',
         eeia: 'planning',
         feries: 'planning',
-        assistant: 'planning',
         seances: 'planning',
         pomodoro: 'seances',
         aide: 'planning',
@@ -771,7 +767,6 @@ function memoireDemarrer() {
             var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
             if (hash === 'pomodoro') etape = 'pomodoro';
         } catch (e) {}
-        if (etape === 'assistant') etape = 'planning';
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;
         } else {

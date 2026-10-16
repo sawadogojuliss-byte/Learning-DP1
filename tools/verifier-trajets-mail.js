@@ -169,7 +169,7 @@ if (nomMathis !== 'Mathis' || boite.boiteSalutation(nomMathis, soirMathis) !== '
     echecs += 1;
     console.log('ECHEC nom Mathis', nomMathis);
 }
-var payload = boite.boitePayloadMail('mathis.kafando@enkoschools.com', 'Merci pour le retour.', 'Assistant', 'nonce', '', soirMathis);
+var payload = boite.boitePayloadMail('mathis.kafando@enkoschools.com', 'Merci pour le retour.', 'Question sur le planning', 'nonce', '', soirMathis);
 if (!boite.boiteMailCommenceBien(payload) || payload.text.indexOf('Bonsoir Mathis,\n') !== 0 || payload.html.indexOf('white-space:nowrap') === -1) {
     echecs += 1;
     console.log('ECHEC payload', payload && payload.salutation, payload && payload.text.slice(0, 40));

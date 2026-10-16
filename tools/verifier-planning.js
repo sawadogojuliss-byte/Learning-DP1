@@ -93,6 +93,32 @@ ok(cssRetours.indexOf('border-radius: 1.25rem !important') !== -1, 'les cartes d
 ok(lire('index.html').indexOf('css/pages/retours.css') !== -1, 'la feuille des retours doit être chargée');
 ok(lire('tools/bundle-site.py').indexOf('css/pages/retours.css') !== -1, 'la feuille doit entrer dans le bundle');
 
+/* ── L'assistant a quitté l'application pour de bon ─────────────────── */
+var planning = lire('pages/planning.html');
+['menuAssistant', 'btnAssistant', 'panelAssistant'].forEach(function (id) {
+    ok(planning.indexOf(id) === -1, 'le bouton ' + id + ' ne doit plus exister');
+    ok(interfaceJs.indexOf(id) === -1 && css.indexOf(id) === -1, id + ' traîne encore dans le style ou l\'interface');
+});
+ok(!fs.existsSync(path.join(__dirname, '..', 'pages/assistant.html')), 'la page de l\'assistant doit disparaître');
+ok(!fs.existsSync(path.join(__dirname, '..', 'js/pages/assistant.js')), 'le script de l\'assistant doit disparaître');
+ok(lire('js/registre.js').indexOf('assistant') === -1, 'le registre ne doit plus charger l\'assistant');
+ok(lire('js/pages/navigation.js').indexOf('assistant') === -1, 'la navigation ne doit plus ouvrir l\'assistant');
+ok(lire('js/memoire.js').indexOf('assistant') === -1, 'la mémoire ne doit plus connaître l\'assistant');
+ok(lire('js/pages/boite.js').indexOf('menuAssistant') === -1, 'la boîte ne doit plus toucher ce menu');
+ok(css.indexOf('.ia-') === -1, 'aucun style de l\'assistant ne doit rester');
+
+/* ── Le dîner et l'icône des activités ─────────────────────────────── */
+ok(lire('js/pages/planning-base.js').indexOf("chain('dinner', 'Dîner', '', getDuration('dinner', 45), 'meal', '🍽️', true)") !== -1,
+    'le dîner doit porter l\'assiette avec couteau et fourchette');
+ok(lire('js/pages/planning-moteur.js').indexOf("repasSelonHabitude('dinner', 'Dîner', '🍽️'") !== -1,
+    'le dîner doit porter l\'assiette avec couteau et fourchette dans les deux moteurs');
+ok(lire('pages/onboarding-habitudes.html').indexOf('🍽️') !== -1, 'la page des habitudes doit montrer la même assiette');
+['js/pages/planning-base.js', 'js/pages/planning-moteur.js', 'pages/onboarding-habitudes.html', 'pages/planning.html'].forEach(function (rel) {
+    ok(lire(rel).indexOf('🍝') === -1, 'l\'assiette de pâtes doit disparaître de ' + rel);
+});
+ok(planning.indexOf('🏃🎯🏆') !== -1, 'l\'icône des activités doit être le coureur, la fléchette et le trophée');
+
+
 if (echecs.length) {
     console.error('échecs ' + echecs.length);
     echecs.forEach(function (e) { console.error('- ' + e); });

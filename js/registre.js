@@ -26,7 +26,6 @@ window.STUDYPLAN_HTML = [
     'pages/legende.html',
     'pages/ee-ia.html',
     'pages/feries.html',
-    'pages/assistant.html',
     'pages/tutoriel.html',
     'pages/aide.html',
     'pages/feedback.html',
@@ -66,7 +65,5 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/boite.js',
     'js/pages/annonce.js',
     'js/pages/tutoriel.js',
-    'js/pages/assistant.js',
-    'js/pages/pomodoro-page.js',
-    'js/pages/rappels.js'
+    'js/pages/pomodoro-page.js'
 ];
