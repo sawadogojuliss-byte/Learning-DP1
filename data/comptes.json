@@ -6,10 +6,10 @@
       "google": "doriilboudo235@gmail.com",
       "googleSub": "102249607109048181085",
       "nom": "Kenzah",
-      "at": "2026-10-14T13:13:46.985Z",
+      "at": "2026-10-16T09:36:39.020Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-14T13:13:46.985Z",
+        "savedAt": "2026-10-16T09:36:39.020Z",
         "etape": "planning",
         "profilComplet": true,
         "userName": "Kenzah",
@@ -132,7 +132,8 @@
           "2026-10-11|ia-suivi|09:35": "oui",
           "2026-10-12|ia-suivi|23:40": "oui",
           "2026-10-12|ia-suivi|23:45": "oui",
-          "2026-10-13|ia-suivi|18:00": "oui"
+          "2026-10-13|ia-suivi|18:00": "oui",
+          "2026-10-14|ia-suivi|18:00": "oui"
         },
         "transportMode": "voiture",
         "carDeparture": "07:15",
@@ -201,7 +202,11 @@
         "sundaySleepHours": 5,
         "habitudesDefinies": false,
         "prepMatinMinutes": 30,
+        "prepMatinDebut": "",
+        "prepMatinFin": "",
         "prepSoirMinutes": 30,
+        "prepSoirDebut": "",
+        "prepSoirFin": "",
         "petitDejHeure": "",
         "petitDejMinutes": 30,
         "dinerHeure": "",
@@ -226,7 +231,7 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 2,
+        "selectedDay": 4,
         "customEvents": [
           {
             "id": "meal-petit-déjeuner-0-1791265740478",
@@ -547,8 +552,8 @@
           ]
         },
         "emploiFige": {
-          "sig": "{\"horaireCours\":470,\"finCours\":995,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":4},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":4},{\"name\":\"Histoire\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Physique\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":3}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"05:00\",\"saturdayWakeup\":\"06:10\",\"sundayWakeup\":\"06:05\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":5,\"sundaySleepHours\":5,\"transportMode\":\"voiture\",\"carDeparture\":\"07:15\",\"carToSchool\":50,\"carFromSchool\":45,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Natation\",\"days\":[6],\"sameTime\":true,\"startTime\":\"14:00\",\"endTime\":\"16:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Cours particuliers\",\"days\":[5],\"sameTime\":true,\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"dayTimes\":{\"5\":{\"start\":\"08:00\",\"end\":\"16:30\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[0,3],\"holidayModes\":{\"0\":\"free\",\"3\":\"free\"},\"holidayDropped\":{},\"memoirLevel\":\"final\",\"iaLevel\":\"\",\"iaLevels\":{\"Mathématiques AA\":\"plan\"},\"memoirPlan\":[],\"iaPlans\":{\"Mathématiques AA\":[],\"Anglais B\":[],\"Français A\":[],\"Histoire\":[],\"Physique\":[],\"Économie\":[]},\"reglesPlanning\":\"20261012d\",\"customEvents\":[{\"id\":\"meal-petit-déjeuner-0-1791265740478\",\"day\":0,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-0-1791265817861\",\"day\":0,\"title\":\"Trajet école\",\"startTime\":\"06:45\",\"endTime\":\"07:35\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révisions-économie-0-1791265865418\",\"day\":0,\"title\":\"Révisions Économie\",\"startTime\":\"07:50\",\"endTime\":\"08:05\",\"type\":\"study\",\"replacesId\":\"study1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-dîner-0-1791314127726\",\"day\":0,\"title\":\"Dîner\",\"startTime\":\"19:20\",\"endTime\":\"20:05\",\"type\":\"meal\",\"replacesId\":\"dinner\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-2-1791468452112\",\"day\":2,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-2-1791526989205\",\"day\":2,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:25\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-4-1791527003842\",\"day\":4,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-4-1791527039959\",\"day\":4,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révision-économie-4-1791558246324\",\"day\":4,\"title\":\"Révision Économie\",\"startTime\":\"20:00\",\"endTime\":\"22:30\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-6-1791725423436\",\"day\":6,\"title\":\"Petit-déjeuner\",\"startTime\":\"06:15\",\"endTime\":\"06:45\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"prep-préparation-0-1791814734581\",\"day\":0,\"title\":\"Préparation\",\"startTime\":\"06:30\",\"endTime\":\"06:45\",\"type\":\"prep\",\"replacesId\":\"prep\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"free-temps-libre-2-1791958993220\",\"day\":2,\"title\":\"Temps libre\",\"startTime\":\"18:00\",\"endTime\":\"19:01\",\"type\":\"free\",\"replacesId\":\"freetime\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false}]}",
-          "at": "2026-10-14T06:23:13.272Z",
+          "sig": "{\"horaireCours\":470,\"finCours\":985,\"subjects\":[{\"name\":\"Mathématiques AA\",\"level\":\"SL\",\"grade\":4},{\"name\":\"Anglais B\",\"level\":\"HL\",\"grade\":6},{\"name\":\"Français A\",\"level\":\"HL\",\"grade\":4},{\"name\":\"Histoire\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Physique\",\"level\":\"SL\",\"grade\":3},{\"name\":\"Économie\",\"level\":\"HL\",\"grade\":3}],\"optionalSubjects\":[],\"ibYear\":\"DP2\",\"targetScore\":42,\"weekdayWakeup\":\"05:00\",\"saturdayWakeup\":\"06:10\",\"sundayWakeup\":\"06:05\",\"weekdaySleepHours\":5,\"saturdaySleepHours\":5,\"sundaySleepHours\":5,\"transportMode\":\"voiture\",\"carDeparture\":\"07:15\",\"carToSchool\":50,\"carFromSchool\":45,\"motoDeparture\":\"07:30\",\"motoReturn\":\"17:00\",\"motoToSchool\":25,\"motoFromSchool\":25,\"selectedActivities\":[{\"name\":\"Natation\",\"days\":[6],\"sameTime\":true,\"startTime\":\"14:00\",\"endTime\":\"16:30\",\"dayTimes\":{\"6\":{\"start\":\"17:00\",\"end\":\"19:00\"}}},{\"name\":\"Cours particuliers\",\"days\":[5],\"sameTime\":true,\"startTime\":\"08:00\",\"endTime\":\"16:00\",\"dayTimes\":{\"5\":{\"start\":\"08:00\",\"end\":\"16:30\"}}}],\"phoneDays\":[0,1,2,3,4,5,6],\"samePhoneDuration\":true,\"phoneDuration\":90,\"phoneDayDurations\":{\"0\":60,\"1\":60,\"2\":60,\"3\":60,\"4\":60,\"5\":60,\"6\":60},\"sameFreeTime\":true,\"freeTimeMinutes\":150,\"freeTimeByDay\":{\"0\":150,\"1\":150,\"2\":150,\"3\":150,\"4\":150,\"5\":150,\"6\":150},\"holidayDays\":[0,3],\"holidayModes\":{\"0\":\"free\",\"3\":\"free\"},\"holidayDropped\":{},\"memoirLevel\":\"final\",\"iaLevel\":\"\",\"iaLevels\":{\"Mathématiques AA\":\"plan\"},\"memoirPlan\":[],\"iaPlans\":{\"Mathématiques AA\":[],\"Anglais B\":[],\"Français A\":[],\"Histoire\":[],\"Physique\":[],\"Économie\":[]},\"reglesPlanning\":\"20261012d\",\"customEvents\":[{\"id\":\"meal-petit-déjeuner-0-1791265740478\",\"day\":0,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-0-1791265817861\",\"day\":0,\"title\":\"Trajet école\",\"startTime\":\"06:45\",\"endTime\":\"07:35\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révisions-économie-0-1791265865418\",\"day\":0,\"title\":\"Révisions Économie\",\"startTime\":\"07:50\",\"endTime\":\"08:05\",\"type\":\"study\",\"replacesId\":\"study1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-dîner-0-1791314127726\",\"day\":0,\"title\":\"Dîner\",\"startTime\":\"19:20\",\"endTime\":\"20:05\",\"type\":\"meal\",\"replacesId\":\"dinner\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-2-1791468452112\",\"day\":2,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-2-1791526989205\",\"day\":2,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:25\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-4-1791527003842\",\"day\":4,\"title\":\"Petit-déjeuner\",\"startTime\":\"05:10\",\"endTime\":\"05:40\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"transport-trajet-école-4-1791527039959\",\"day\":4,\"title\":\"Trajet école\",\"startTime\":\"07:00\",\"endTime\":\"07:50\",\"type\":\"transport\",\"replacesId\":\"commute1\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"study-révision-économie-4-1791558246324\",\"day\":4,\"title\":\"Révision Économie\",\"startTime\":\"20:00\",\"endTime\":\"22:30\",\"type\":\"study\",\"replacesId\":\"\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"meal-petit-déjeuner-6-1791725423436\",\"day\":6,\"title\":\"Petit-déjeuner\",\"startTime\":\"06:15\",\"endTime\":\"06:45\",\"type\":\"meal\",\"replacesId\":\"breakfast\",\"deleted\":true,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"prep-préparation-0-1791814734581\",\"day\":0,\"title\":\"Préparation\",\"startTime\":\"06:30\",\"endTime\":\"06:45\",\"type\":\"prep\",\"replacesId\":\"prep\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false},{\"id\":\"free-temps-libre-2-1791958993220\",\"day\":2,\"title\":\"Temps libre\",\"startTime\":\"18:00\",\"endTime\":\"19:01\",\"type\":\"free\",\"replacesId\":\"freetime\",\"deleted\":false,\"source\":\"custom\",\"exoId\":\"\",\"resteEcole\":false}]}",
+          "at": "2026-10-16T09:36:34.836Z",
           "jours": [
             [],
             [
@@ -582,11 +587,36 @@
                     470
                   ],
                   [
-                    995,
-                    1175
+                    985,
+                    1165
                   ]
                 ],
                 "preferMin": 310
+              },
+              {
+                "id": "plantask-ia-suivi-340",
+                "title": "Évaluation interne · Mathématiques AA",
+                "subtitle": "Avancer l’évaluation interne",
+                "startTime": "05:40",
+                "endTime": "06:30",
+                "type": "ia",
+                "icon": "🔢",
+                "editable": true,
+                "kind": "flex",
+                "planTask": {
+                  "kind": "ia",
+                  "subject": "Mathématiques AA",
+                  "partId": "ia-suivi",
+                  "text": "Avancer l’évaluation interne"
+                },
+                "plages": [
+                  [
+                    340,
+                    390
+                  ]
+                ],
+                "preferMin": 340,
+                "minimum": 50
               },
               {
                 "id": "prep",
@@ -673,9 +703,9 @@
               {
                 "id": "school2",
                 "title": "Cours",
-                "subtitle": "13h30 → 16h35",
+                "subtitle": "13h30 → 16h25",
                 "startTime": "13:30",
-                "endTime": "16:35",
+                "endTime": "16:25",
                 "type": "school",
                 "icon": "🏫",
                 "editable": false,
@@ -683,18 +713,18 @@
                 "plages": [
                   [
                     810,
-                    995
+                    985
                   ]
                 ],
                 "preferMin": 810,
-                "minimum": 185
+                "minimum": 175
               },
               {
                 "id": "commute2",
                 "title": "Trajet maison",
                 "subtitle": "45 min",
-                "startTime": "16:35",
-                "endTime": "17:20",
+                "startTime": "16:25",
+                "endTime": "17:10",
                 "type": "transport",
                 "icon": "🚗",
                 "editable": true,
@@ -702,39 +732,40 @@
                 "ovPinned": false,
                 "resteEcole": false,
                 "horaireEntre": true,
-                "preferMin": 995,
+                "preferMin": 985,
                 "minimum": 10,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ]
                 ]
               },
               {
-                "id": "plantask-ia-suivi-1040",
-                "title": "Évaluation interne · Mathématiques AA",
-                "subtitle": "Avancer l’évaluation interne",
-                "startTime": "17:20",
+                "id": "study2",
+                "title": "Révisions Histoire",
+                "subtitle": "SL · 3/7",
+                "startTime": "17:10",
                 "endTime": "18:00",
-                "type": "ia",
-                "icon": "🔢",
+                "type": "warning",
+                "icon": "📜",
                 "editable": true,
                 "kind": "flex",
-                "planTask": {
-                  "kind": "ia",
-                  "subject": "Mathématiques AA",
-                  "partId": "ia-suivi",
-                  "text": "Avancer l’évaluation interne"
-                },
+                "ovPinned": false,
+                "resteEcole": false,
+                "minimum": 20,
                 "plages": [
                   [
-                    1040,
-                    1080
+                    985,
+                    1440
+                  ],
+                  [
+                    300,
+                    470
                   ]
                 ],
-                "preferMin": 1040,
-                "minimum": 40
+                "preferMin": 985,
+                "shifted": true
               },
               {
                 "id": "freetime",
@@ -758,13 +789,13 @@
                 "preferMin": 1080
               },
               {
-                "id": "study2",
-                "title": "Révisions Histoire",
+                "id": "exercises",
+                "title": "Exercices Physique",
                 "subtitle": "SL · 3/7",
                 "startTime": "18:01",
-                "endTime": "18:51",
+                "endTime": "18:56",
                 "type": "warning",
-                "icon": "📜",
+                "icon": "✏️",
                 "editable": true,
                 "kind": "flex",
                 "ovPinned": false,
@@ -772,7 +803,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -780,7 +811,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -849,37 +880,11 @@
                 "preferMin": 1200
               },
               {
-                "id": "exercises",
-                "title": "Exercices Physique",
-                "subtitle": "SL · 3/7",
-                "startTime": "21:30",
-                "endTime": "22:25",
-                "type": "warning",
-                "icon": "✏️",
-                "editable": true,
-                "kind": "flex",
-                "ovPinned": false,
-                "resteEcole": false,
-                "minimum": 20,
-                "plages": [
-                  [
-                    995,
-                    1440
-                  ],
-                  [
-                    300,
-                    470
-                  ]
-                ],
-                "preferMin": 995,
-                "shifted": true
-              },
-              {
                 "id": "study1",
                 "title": "Révisions Économie",
                 "subtitle": "HL · 3/7",
-                "startTime": "22:25",
-                "endTime": "00:00",
+                "startTime": "21:30",
+                "endTime": "23:15",
                 "type": "warning",
                 "icon": "💹",
                 "editable": true,
@@ -889,7 +894,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -897,8 +902,27 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
+              },
+              {
+                "id": "revgap-1395",
+                "title": "Révisions · Économie",
+                "subtitle": "HL · 3/7",
+                "startTime": "23:15",
+                "endTime": "00:00",
+                "type": "warning",
+                "icon": "💹",
+                "editable": true,
+                "kind": "flex",
+                "plages": [
+                  [
+                    1395,
+                    1440
+                  ]
+                ],
+                "preferMin": 1395,
+                "minimum": 45
               },
               {
                 "id": "sleep",
@@ -939,7 +963,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -947,7 +971,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -1034,9 +1058,9 @@
               {
                 "id": "school2",
                 "title": "Cours",
-                "subtitle": "13h30 → 16h35",
+                "subtitle": "13h30 → 16h25",
                 "startTime": "13:30",
-                "endTime": "16:35",
+                "endTime": "16:25",
                 "type": "school",
                 "icon": "🏫",
                 "editable": false,
@@ -1044,18 +1068,18 @@
                 "plages": [
                   [
                     810,
-                    995
+                    985
                   ]
                 ],
                 "preferMin": 810,
-                "minimum": 185
+                "minimum": 175
               },
               {
                 "id": "commute2",
                 "title": "Trajet maison",
                 "subtitle": "45 min",
-                "startTime": "16:35",
-                "endTime": "17:20",
+                "startTime": "16:25",
+                "endTime": "17:10",
                 "type": "transport",
                 "icon": "🚗",
                 "editable": true,
@@ -1063,20 +1087,20 @@
                 "ovPinned": false,
                 "resteEcole": false,
                 "horaireEntre": true,
-                "preferMin": 995,
+                "preferMin": 985,
                 "minimum": 10,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ]
                 ]
               },
               {
-                "id": "plantask-ia-suivi-1040",
+                "id": "plantask-ia-suivi-1030",
                 "title": "Évaluation interne · Mathématiques AA",
                 "subtitle": "Avancer l’évaluation interne",
-                "startTime": "17:20",
+                "startTime": "17:10",
                 "endTime": "18:00",
                 "type": "ia",
                 "icon": "🔢",
@@ -1090,12 +1114,12 @@
                 },
                 "plages": [
                   [
-                    1040,
+                    1030,
                     1080
                   ]
                 ],
-                "preferMin": 1040,
-                "minimum": 40
+                "preferMin": 1030,
+                "minimum": 50
               },
               {
                 "id": "freetime",
@@ -1133,7 +1157,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -1141,7 +1165,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -1224,7 +1248,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -1232,7 +1256,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -1294,7 +1318,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -1302,7 +1326,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -1389,9 +1413,9 @@
               {
                 "id": "school2",
                 "title": "Cours",
-                "subtitle": "13h30 → 16h35",
+                "subtitle": "13h30 → 16h25",
                 "startTime": "13:30",
-                "endTime": "16:35",
+                "endTime": "16:25",
                 "type": "school",
                 "icon": "🏫",
                 "editable": false,
@@ -1399,18 +1423,18 @@
                 "plages": [
                   [
                     810,
-                    995
+                    985
                   ]
                 ],
                 "preferMin": 810,
-                "minimum": 185
+                "minimum": 175
               },
               {
                 "id": "commute2",
                 "title": "Trajet maison",
                 "subtitle": "45 min",
-                "startTime": "16:35",
-                "endTime": "17:20",
+                "startTime": "16:25",
+                "endTime": "17:10",
                 "type": "transport",
                 "icon": "🚗",
                 "editable": true,
@@ -1418,11 +1442,11 @@
                 "ovPinned": false,
                 "resteEcole": false,
                 "horaireEntre": true,
-                "preferMin": 995,
+                "preferMin": 985,
                 "minimum": 10,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ]
                 ]
@@ -1431,7 +1455,7 @@
                 "id": "study2",
                 "title": "Révisions Physique",
                 "subtitle": "SL · 3/7",
-                "startTime": "17:20",
+                "startTime": "17:10",
                 "endTime": "18:00",
                 "type": "warning",
                 "icon": "⚛️",
@@ -1442,7 +1466,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -1450,7 +1474,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -1489,7 +1513,7 @@
                 "minimum": 20,
                 "plages": [
                   [
-                    995,
+                    985,
                     1440
                   ],
                   [
@@ -1497,7 +1521,7 @@
                     470
                   ]
                 ],
-                "preferMin": 995,
+                "preferMin": 985,
                 "shifted": true
               },
               {
@@ -2229,10 +2253,10 @@
           }
         ],
         "currentMood": "bien",
-        "joursConnectes": 5,
-        "dernierJour": "Wed Oct 14 2026",
-        "flammes": 4,
-        "flammeJour": "2026-10-14",
+        "joursConnectes": 7,
+        "dernierJour": "Fri Oct 16 2026",
+        "flammes": 5,
+        "flammeJour": "2026-10-15",
         "utilisateurId": "102249607109048181085",
         "google": {
           "sub": "102249607109048181085",

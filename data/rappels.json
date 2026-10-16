@@ -1,17 +1,6 @@
 {
   "groupes": [
     {
-      "cle": "anglais a",
-      "matiere": "Anglais A",
-      "eleves": [
-        {
-          "appareil": "a1a13fabadbca4c62870",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        }
-      ]
-    },
-    {
       "cle": "anglais b hl",
       "matiere": "Anglais B HL",
       "eleves": [
@@ -43,6 +32,11 @@
         {
           "appareil": "a1a12c3549c584e7eec0",
           "nom": "RYAN",
+          "classe": "DP2"
+        },
+        {
+          "appareil": "a1a113207989199d5d45",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
         {
@@ -102,11 +96,6 @@
           "appareil": "a1a12a4f01340eb2bd2d",
           "nom": "I",
           "classe": "DP1"
-        },
-        {
-          "appareil": "a1a13fabadbca4c62870",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
         }
       ]
     },
@@ -140,11 +129,6 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a13fabadbca4c62870",
-          "nom": "Sawadogo Juliss Bill Owen",
-          "classe": "DP2"
-        },
-        {
           "appareil": "a1a12c8a4e260da4b22e",
           "nom": "Sere Farid Abdourrahman",
           "classe": "DP2"
@@ -173,6 +157,11 @@
         {
           "appareil": "a1a12c3549c584e7eec0",
           "nom": "RYAN",
+          "classe": "DP2"
+        },
+        {
+          "appareil": "a1a113207989199d5d45",
+          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
         {
@@ -227,7 +216,7 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a13fabadbca4c62870",
+          "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
@@ -273,6 +262,11 @@
           "classe": "DP2"
         },
         {
+          "appareil": "a1a113207989199d5d45",
+          "nom": "Sawadogo Juliss Bill Owen",
+          "classe": "DP2"
+        },
+        {
           "appareil": "a1a141a8360536ee120d",
           "nom": "Tamini Ashley Kania Harisoa",
           "classe": "DP2"
@@ -306,11 +300,6 @@
         {
           "appareil": "a1a12169c5d9f0e55b77",
           "nom": "Maelys",
-          "classe": "DP2"
-        },
-        {
-          "appareil": "a1a13fabadbca4c62870",
-          "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
         {
@@ -365,6 +354,11 @@
           "classe": "DP2"
         },
         {
+          "appareil": "a1a113207989199d5d45",
+          "nom": "Sawadogo Juliss Bill Owen",
+          "classe": "DP2"
+        },
+        {
           "appareil": "a1a12c8a4e260da4b22e",
           "nom": "Sere Farid Abdourrahman",
           "classe": "DP2"
@@ -416,7 +410,7 @@
           "classe": "DP2"
         },
         {
-          "appareil": "a1a13fabadbca4c62870",
+          "appareil": "a1a113207989199d5d45",
           "nom": "Sawadogo Juliss Bill Owen",
           "classe": "DP2"
         },
