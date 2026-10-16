@@ -242,6 +242,10 @@ function languePronom(mot) {
 }
 
 function langueAuxiliaire(mot) {
+    /* « à » avec accent est une préposition, pas le verbe avoir : elle est
+       suivie d'un infinitif. « à écrire » ne doit jamais devenir « à écrit ». */
+    var brut = String(mot || '').trim().toLowerCase().replace(/’/g, "'");
+    if (brut === 'à' || brut === "a'" || brut === 'a`') return '';
     var nu = langueNu(mot);
     if (nu === "j'ai" || nu === 'jai') return 'avoir';
     if (nu === 'ai' || nu === 'as' || nu === 'a' || nu === 'avons' || nu === 'avez' || nu === 'ont') return 'avoir';

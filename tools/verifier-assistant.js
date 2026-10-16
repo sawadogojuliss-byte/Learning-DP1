@@ -223,8 +223,10 @@ ok(sourceAssistant.indexOf('avec le mot précis') === -1, 'plus de demande de mo
 ok(typeof sandbox.iaReponseIntelligente === 'function', 'le repli intelligent manque');
 ok(typeof sandbox.iaSuiteUtile === 'function', 'la question de suite manque');
 ok(typeof sandbox.iaMessagesCourts === 'function', 'le prompt court de secours manque');
-ok(sourceAssistant.indexOf("'gpt-4o-mini'") !== -1 && sourceAssistant.indexOf('llama-3.3-70b-instruct') !== -1,
-    'la liste des modèles doit être plus large');
+ok(sandbox.IA_DESTINATIONS.length >= 3 && sandbox.IA_DESTINATIONS.some(function (d) {
+    return /pollinations/.test(d.url) && /openai/.test(d.nom);
+}), 'il faut plusieurs services réellement différents');
+ok(sandbox.IA_DESTINATIONS.some(function (d) { return /llm7/.test(d.url); }), 'le second service doit rester en secours');
 ok(sourceAssistant.indexOf('iaMessagesCourts(messages)') !== -1, 'le second essai avec prompt court manque');
 
 var intelligentes = [
@@ -273,6 +275,116 @@ ok(JSON.stringify(courts).indexOf('Ma question') !== -1, 'la question doit reste
     var r = sandbox.iaRepondreLocal("C'est quoi " + paire[0] + ' ?');
     ok(paire[1].test(r), 'réponse locale manquante pour ' + paire[0] + ' : ' + r);
 });
+
+/* ── Trajet réel d'une question vers la réponse ────────────────────── */
+/* Chaque destination a son propre budget : un service lent ne mange plus le
+   temps des autres, et le minuteur est libéré quand la requête se termine. */
+ok(typeof sandbox.iaDemander === 'function', 'la demande par destination manque');
+ok(typeof sandbox.iaFermerBudget === 'function', 'la libération du budget manque');
+ok(sourceAssistant.indexOf('iaFermerBudget(ctrl)') !== -1, 'le budget doit être libéré après la requête');
+ok(sandbox.IA_DESTINATIONS.every(function (d) { return d.delai >= 3000 && d.delai <= 12000; }),
+    'chaque destination doit avoir son délai propre');
+ok(sourceAssistant.indexOf('Date.now() + 20000') !== -1, 'il faut un délai global : ' + 'au-delà, on répond');
+ok(sourceAssistant.indexOf('reste() < 2000') !== -1, 'on ne doit plus lancer un essai sans temps restant');
+/* Le secours par URL simple passe tôt : c'est une lecture, sans contrôle CORS. */
+ok(sourceAssistant.indexOf('IA_DESTINATIONS[0], stream: true') !== -1 && sourceAssistant.indexOf('IA_SECOURS, stream: false') !== -1,
+    'la lecture simple doit être tentée tôt');
+/* Sans clé, aucun en-tête Authorization : la requête reste simple. */
+ok(sourceAssistant.indexOf("if (cle) headers.Authorization") !== -1, 'en-tête Authorization seulement s\'il y a une clé');
+
+/* Le secours ne met plus 7 000 caractères dans une adresse. */
+var grosSysteme = Array(400).join('Phrase de regle interne tres longue a envoyer au modele.' + String.fromCharCode(10));
+var promptSecours = sandbox.iaPromptSecours([
+    { role: 'system', content: grosSysteme + 'Emploi du temps de cette personne seulement : lundi rien.' },
+    { role: 'user', content: 'Comment je révise les maths ?' }
+]);
+ok(promptSecours.length <= 1100, 'le secours doit rester court : ' + promptSecours.length);
+ok(promptSecours.indexOf('Comment je révise les maths ?') !== -1, 'la question doit rester dans le secours');
+ok(sourceAssistant.indexOf("encodeURIComponent(prompt)") !== -1, 'le secours doit encoder son adresse');
+
+/* Une réponse du modèle qui donne des horaires n'est plus jetée. */
+var horaires = "Commence par bloquer ton sommeil. Ensuite place tes révisions en séances de 45 minutes : une avant les cours de 7h50, une après le trajet vers 17h05, et une dernière à 19h00. Garde le dimanche après-midi libre.";
+var gardee = sandbox.iaReponseFinale('comment je m organise pour les revisions ?', lecture('comment je m organise pour les revisions ?'), horaires, '');
+ok(/7h50/.test(gardee) || /17h05/.test(gardee), 'une réponse utile avec horaires doit être gardée : ' + gardee);
+ok(sandbox.iaSansDeversement('lundi : 7h50 cours, 8h45 maths, 10h00 physique, 12h00 repas, 13h00 anglais\nRévise le soir.') .indexOf('Révise le soir.') !== -1,
+    'l\'emploi du temps recopié doit sortir, le reste rester');
+ok(sandbox.iaSansDeversement('lundi : 7h50 cours, 8h45 maths, 10h00 physique, 12h00 repas, 13h00 anglais').indexOf('7h50') === -1,
+    'une ligne d\'emploi du temps recopié doit être retirée');
+
+/* Aucun balisage Markdown dans les bulles. */
+ok(sandbox.iaNettoyer('**Semaine type**\n- Lundi : maths\n## À retenir\nDu texte.').indexOf('**') === -1,
+    'le gras Markdown doit disparaître');
+ok(sandbox.iaNettoyer('**Semaine type**\n- Lundi : maths').indexOf('Semaine type') !== -1, 'le texte doit rester');
+ok(sandbox.iaNettoyer('## À retenir').indexOf('##') === -1, 'les titres Markdown doivent disparaître');
+
+/* Une question courte peut recevoir trois phrases utiles. */
+var troisPhrases = 'Première phrase utile. Deuxième phrase utile. Troisième phrase utile.';
+ok(sandbox.iaAjusterLongueur(troisPhrases, lecture('je comprends rien au cours de physique')) === troisPhrases,
+    'une réponse de trois phrases ne doit plus être coupée');
+
+/* Les variables des autres fichiers ne font plus échouer la demande. */
+ok(typeof sandbox.iaGlobal === 'function', 'la lecture prudente des globales manque');
+ok(sandbox.iaGlobal('ibYear', 'non précisée') === 'non précisée', 'une globale absente doit donner le défaut');
+sandbox.ibYear = 'DP2';
+ok(sandbox.iaGlobal('ibYear', 'non précisée') === 'DP2', 'une globale présente doit être lue');
+delete sandbox.ibYear;
+var dossier = '';
+try { dossier = sandbox.iaDossier(); } catch (e) { dossier = 'erreur : ' + e.message; }
+ok(dossier && dossier.indexOf('erreur') !== 0, 'le dossier doit se construire sans les autres fichiers : ' + dossier.slice(0, 60));
+var messagesOk = '';
+try {
+    messagesOk = JSON.stringify(sandbox.iaMessages('Comment je révise les maths ?', '', null));
+} catch (e2) { messagesOk = 'erreur : ' + e2.message; }
+ok(messagesOk.indexOf('erreur') !== 0, 'le message au modèle doit se construire même sans les autres fichiers');
+
+/* ── Une vraie question de cours reçoit une vraie réponse ──────────── */
+[
+    ['explique moi le cycle de l eau', /evapore|condense|pluie/],
+    ['c est quoi la photosynthese', /chlorophylle|glucose/],
+    ['explique moi la mitose', /chromosomes|cellules filles/],
+    ['comment on calcule une derivee', /pente|taux/],
+    ['c est quoi le pH', /acide|base/],
+    ['explique moi la loi de Newton', /force|action/],
+    ['c est quoi la relativite', /lumiere|espace.temps/],
+    ['explique moi le theoreme de Pythagore', /hypoténuse|hypotenuse/],
+    ['c est quoi une probabilite', /0 et 1|favorables/],
+    ['c est quoi l inflation', /prix/],
+    ['explique moi la guerre froide', /URSS/]
+].forEach(function (paire) {
+    var r = sandbox.iaRepondreLocal(paire[0]) || '';
+    ok(paire[1].test(r), 'réponse de cours manquante pour « ' + paire[0] + ' » : ' + r);
+    ok(!/pas encore ce fait|en dire un peu plus/i.test(r), 'aucune dérobade attendue pour « ' + paire[0] + ' » : ' + r);
+});
+
+/* Une méthode demandée n'est pas remplacée par la définition de la matière. */
+var anglais = sandbox.iaRepondreLocal('comment ameliorer mon anglais ?') || '';
+ok(/regul|quinze minutes|oral/i.test(anglais), 'méthode attendue pour l\'anglais : ' + anglais);
+ok(!/langue vivante du diplome/i.test(sandbox.iaNormaliser(anglais)), 'la définition de l\'anglais ne doit pas répondre ici');
+
+/* ── Les matières et les notes viennent du vrai dossier ────────────── */
+sandbox.subjects = [{ name: 'Mathématiques AA', level: 'HL', grade: 5 }, { name: 'Physique', level: 'HL', grade: 4 }];
+ok(sandbox.iaMatieres().length === 2, 'les matières du site doivent être lues : ' + sandbox.iaMatieres().length);
+ok(sandbox.iaNotesMatieres().length === 2, 'les notes sur 7 doivent être lues');
+var moy = sandbox.iaRepondreLocal('quelle est ma moyenne ?') || '';
+ok(/4,5\/7/.test(moy), 'la moyenne doit être calculée : ' + moy);
+ok(!/pas encore ce fait/i.test(moy), 'jamais de dérobade sur la moyenne : ' + moy);
+var matiere = sandbox.iaRepondreLocal("C'est quoi la physique ?") || '';
+ok(/Mathématiques AA|dossier/i.test(matiere) || /physique étudie/.test(matiere), 'la matière du dossier doit ressortir : ' + matiere);
+delete sandbox.subjects;
+
+/* ── Un travail à rendre : on demande le document, on ne parle pas du planning ── */
+var devoir = sandbox.iaRepondreLocal('je dois rendre un devoir de maths') || '';
+ok(/document/i.test(devoir), 'il faut demander le document : ' + devoir);
+ok(!/pas encore ce fait|aucun evenement|rien de prevu/i.test(sandbox.iaNormaliser(devoir)), 'pas de réponse sur le planning ici : ' + devoir);
+
+/* ── La relecture ne casse plus le français : « à » reste une préposition ── */
+var infinitifs = sandbox.iaCorrigerFrancais('Il te reste à écrire deux phrases, puis à réviser ton chapitre.');
+ok(/à écrire/.test(infinitifs) && /à réviser/.test(infinitifs), 'un infinitif après « à » doit rester un infinitif : ' + infinitifs);
+ok(/a mangé/.test(sandbox.iaCorrigerFrancais('Elle a mangé ce matin.')), 'le vrai auxiliaire doit rester un auxiliaire');
+if (typeof sandbox.langueLocale === 'function') {
+    var fausses = sandbox.langueLocale('Prends le temps à réviser chaque chapitre.').filter(function (e) { return e.type === 'conjugaison'; });
+    ok(fausses.length === 0, 'la relecture signale une faute qui n\'en est pas une : ' + JSON.stringify(fausses));
+}
 
 if (echecs) {
     console.error(echecs + ' échec(s)');

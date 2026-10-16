@@ -145,10 +145,41 @@ function iaNomJour(index) {
     return ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'][index] || 'jour';
 }
 
+/* Les matières viennent des mêmes variables que le reste du site. L'ancienne
+   version appelait une fonction qui n'existe nulle part : le dossier de
+   l'assistant était donc toujours vide, et il ne connaissait aucune matière. */
 function iaMatieres() {
-    return (typeof getActiveSubjects === 'function' ? getActiveSubjects() : []).filter(function (s) {
-        return s && s.name;
+    var liste = [];
+    try { if (Array.isArray(subjects)) liste = subjects.slice(); } catch (e) { liste = []; }
+    try { if (Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects); } catch (e2) {}
+    if (!liste.length) {
+        try { if (typeof chosenSubjects === 'function') liste = chosenSubjects() || []; } catch (e3) {}
+    }
+    if (!liste.length) {
+        try {
+            var brut = localStorage.getItem('studyPlanIB_subjects');
+            var garde = brut ? JSON.parse(brut) : null;
+            if (Array.isArray(garde)) liste = garde;
+        } catch (e4) {}
+    }
+    return liste.filter(function (s) { return s && s.name; });
+}
+
+/* Les matières qui ont vraiment une note sur 7. */
+function iaNotesMatieres() {
+    return iaMatieres().filter(function (s) {
+        return s && s.grade != null && s.grade !== '' && !isNaN(Number(s.grade));
     });
+}
+
+function iaReponseNotes() {
+    var notees = iaNotesMatieres();
+    if (!notees.length) return '';
+    var somme = 0;
+    notees.forEach(function (s) { somme += Number(s.grade); });
+    var moyenne = String(Math.round((somme / notees.length) * 100) / 100).replace('.', ',');
+    var detail = notees.slice(0, 6).map(function (s) { return s.name + ' ' + Number(s.grade) + '/7'; }).join(', ');
+    return 'Ta moyenne est ' + moyenne + '/7 sur ' + notees.length + ' matière' + (notees.length > 1 ? 's' : '') + ' notée' + (notees.length > 1 ? 's' : '') + ' : ' + detail + '.';
 }
 
 function iaExercices() {
@@ -213,6 +244,18 @@ function iaLigneExercice(exo) {
     return (exo.subject || 'Matière') + ' pour le ' + (exo.deadline || '?') + (exo.text ? ' : ' + exo.text : '');
 }
 
+/* Lecture prudente d'une variable globale déclarée dans un autre fichier :
+   si elle n'existe pas, l'assistant continue au lieu de tout perdre. */
+function iaGlobal(nom, defaut) {
+    try {
+        var valeur = window[nom];
+        if (valeur === undefined || valeur === null || valeur === '') return defaut;
+        return valeur;
+    } catch (e) {
+        return defaut;
+    }
+}
+
 function iaDossier() {
     var auj = iaAujourdhui();
     var demain = iaJourSuivant(auj);
@@ -222,14 +265,14 @@ function iaDossier() {
     var lignes = [
         'Élève: ' + identite.complet + ', Study Plan IB, Enko Ouaga. Appelle cette personne ' + identite.prenom + '. Ne suppose pas son genre.',
         'Date: ' + auj + ', ' + iaNomJour(index) + '.',
-        'Année: ' + (ibYear || 'non précisée') + '. Objectif IB: ' + (targetScore || 'non précisé') + '.',
-        'Niveau du mémoire: ' + (typeof memoirLevel !== 'undefined' && memoirLevel ? memoirLevel : 'non précisé') + '.'
+        'Année: ' + iaGlobal('ibYear', 'non précisée') + '. Objectif IB: ' + iaGlobal('targetScore', 'non précisé') + '.',
+        'Niveau du mémoire: ' + iaGlobal('memoirLevel', 'non précisé') + '.'
     ];
     var matieres = iaMatieres();
     lignes.push(matieres.length
         ? 'Matières: ' + matieres.map(iaLigneMatiere).join(' ; ')
         : 'Matières: aucune matière enregistrée.');
-    var activites = (typeof selectedActivities !== 'undefined' && Array.isArray(selectedActivities) ? selectedActivities : [])
+    var activites = (Array.isArray(iaGlobal('selectedActivities', [])) ? iaGlobal('selectedActivities', []) : [])
         .map(function (a) { return a && a.name; }).filter(Boolean);
     lignes.push(activites.length ? 'Activités inscrites: ' + activites.join(', ') + '.' : 'Activités inscrites: aucune.');
     var exercices = iaExercices();
@@ -405,6 +448,8 @@ async function iaLireFlux(res, onToken) {
 }
 
 async function iaAppelerHttp(url, modele, cle, messages, onToken, signal, stream) {
+    /* Sans clé, on n'ajoute aucun en-tête Authorization : la requête reste
+       simple pour le navigateur, donc elle passe beaucoup plus souvent. */
     var headers = { 'Content-Type': 'application/json' };
     if (cle) headers.Authorization = 'Bearer ' + cle;
     var res = await fetch(url, {
@@ -431,9 +476,20 @@ async function iaAppelerHttp(url, modele, cle, messages, onToken, signal, stream
     return texte;
 }
 
+/* Budget d'une requête : chaque destination a le sien, et le minuteur est
+   libéré dès que la requête se termine (succès, échec ou abandon). */
+function iaFermerBudget(ctrl) {
+    if (!ctrl) return;
+    if (ctrl.__budget) {
+        clearTimeout(ctrl.__budget);
+        ctrl.__budget = null;
+    }
+}
+
 function iaLierSignal(parent, ms) {
     var ctrl = new AbortController();
     var timer = setTimeout(function () { ctrl.abort(); }, ms);
+    ctrl.__budget = timer;
     function couper() {
         clearTimeout(timer);
         if (!ctrl.signal.aborted) ctrl.abort();
@@ -446,33 +502,53 @@ function iaLierSignal(parent, ms) {
     return ctrl.signal;
 }
 
-async function iaAppelerTexte(messages, onToken, signal) {
+/* Demande à une destination, avec son propre budget : une destination lente ne
+   mange plus le temps des autres. */
+async function iaDemander(destination, messages, onToken, parent, stream) {
+    var ctrl = parent && parent.aborted ? null : new AbortController();
+    var signal = ctrl || (parent ? parent : null);
+    if (ctrl) {
+        var timer = setTimeout(function () { ctrl.abort(); }, destination.delai || 9000);
+        ctrl.__budget = timer;
+        if (parent) {
+            if (parent.aborted) ctrl.abort();
+            else parent.addEventListener('abort', function () { ctrl.abort(); }, { once: true });
+        }
+        signal = ctrl.signal;
+    }
+    try {
+        if (!destination.url) return await iaAppelerTexte(messages, onToken, signal);
+        return await iaAppelerHttp(destination.url, destination.modele, destination.cle, messages, onToken, signal, stream !== false);
+    } finally {
+        iaFermerBudget(ctrl);
+    }
+}
+
+/* Dernier secours : une URL courte. Le prompt entier ne peut pas passer dans
+   une adresse (les serveurs refusent au-delà de quelques milliers de
+   caractères), donc on n'y met que l'essentiel. */
+var IA_SECOURS_MAX = 1100;
+
+function iaPromptSecours(messages) {
+    var questions = [];
     var systeme = '';
-    var user = '';
     (messages || []).forEach(function (m) {
         if (!m) return;
         if (m.role === 'system') systeme = String(m.content || '');
-        if (m.role === 'user') user = String(m.content || '');
+        else if (m.role === 'user') questions.push(String(m.content || ''));
     });
-    var emploi = '';
-    var marque = systeme.indexOf('Emploi du temps de cette personne seulement');
-    if (marque >= 0) emploi = systeme.slice(marque, marque + 1600);
-    var analyse = systeme.indexOf('Analyse interne');
-    if (analyse >= 0) emploi += '\n' + systeme.slice(analyse, analyse + 500);
-    var historique = (messages || []).filter(function (m) { return m && m.role !== 'system'; }).slice(-6).map(function (m) {
-        return m.role + ' : ' + String(m.content || '').slice(0, 280);
-    }).join('\n');
-    var prompt = [
-        'Tu es l\'ami proche d\'un élève du Baccalauréat International à Enko Ouaga. Parle comme un ami fiable : clair, posé, chaleureux. Pas de ton de service, pas de familiarité forcée.',
-        iaMomentJournee() ? 'C\'est le soir, en semaine. Tu peux demander une seule fois comment s\'est passée la journée. N\'emploie jamais la phrase « Après les cours, tu peux me dire comment s\'est passée la journée. »' : 'Ne demande pas comment s\'est passée la journée. Seulement le soir, après 18h, du lundi au vendredi. Jamais le matin, jamais pendant les cours, jamais le week-end.',
-        'Avant de répondre, utilise l\'historique et l\'emploi du temps ci-dessous. Ne sors pas une formule générale. N\'annonce pas la question. Réponds d\'abord en une phrase, puis un seul fait utile, puis une seule suite.',
-        'Interdit : résoudre un exercice, rédiger un essai, un TOK, un mémoire ou une IA, ou donner les étapes d\'un devoir. Toute autre question reçoit une vraie réponse, en français correct, même si elle sort du programme ou du site.',
-        'Tu réponds à n\'importe quelle question avant de dire quoi que ce soit d\'autre. Tu ne fais pas la leçon et tu ne montres jamais que tu en sais plus que la personne : tu parles comme un ami du même âge. Si tu ne sais pas, tu le dis simplement, puis tu proposes de chercher ensemble. Si une réponse sûre est indiquée plus bas, suis-la sans la déformer.',
-        'Il n\'y a aucun cours d\'économie le samedi. N\'invente ni notes, ni planning, ni PDF.',
-        emploi || systeme.slice(0, 900),
-        historique ? 'Historique :\n' + historique : '',
-        'Question : ' + user.slice(0, 700)
-    ].filter(Boolean).join('\n\n');
+    var consigne = 'Réponds en français, simplement, comme un ami du même âge : tu ne montres jamais que tu en sais plus que la personne, et tu ne fais pas la leçon. Réponds au fond. Ne résous aucun exercice.';
+    var liens = [];
+    var semaine = systeme.split('\n').filter(function (l) { return /^Emploi du temps|^Matières|^Planning d.aujourd|^Exercices/.test(l); });
+    semaine.slice(0, 2).forEach(function (l) { liens.push(l.slice(0, 200)); });
+    var derniere = questions.slice(-1)[0] || '';
+    var contexte = questions.slice(-3, -1).join(' / ').slice(0, 180);
+    return [consigne, liens.join('\n'), contexte ? 'Avant : ' + contexte : '', 'Question : ' + derniere.slice(0, 500)]
+        .filter(Boolean).join('\n').slice(0, IA_SECOURS_MAX);
+}
+
+async function iaAppelerTexte(messages, onToken, signal) {
+    var prompt = iaPromptSecours(messages);
     var res = await fetch('https://text.pollinations.ai/' + encodeURIComponent(prompt), {
         method: 'GET',
         signal: signal,
@@ -505,32 +581,57 @@ function iaMessagesCourts(messages) {
     return courts.concat(fil.slice(-4));
 }
 
+/* Destinations indépendantes : services différents, donc si l'un est bloqué
+   par le réseau ou le navigateur, les autres répondent. Chacune a son budget. */
+/* Le premier essai est un service sans clé ; le secours par URL simple (une
+   simple lecture, sans contrôle CORS) passe en deuxième, puis les autres. */
+var IA_DESTINATIONS = [
+    { nom: 'pollinations-openai', url: 'https://text.pollinations.ai/openai', modele: 'openai', cle: '', delai: 9000 },
+    { nom: 'llm7-default', url: 'https://api.llm7.io/v1/chat/completions', modele: 'default', cle: 'unused', delai: 7000 },
+    { nom: 'llm7-gpt', url: 'https://api.llm7.io/v1/chat/completions', modele: 'gpt-4o-mini', cle: 'unused', delai: 7000 }
+];
+IA_DESTINATIONS.forEach(function (d) { d.delaiBase = d.delai; });
+
+var IA_SECOURS = { nom: 'secours-url', url: '', modele: '', cle: '', delai: 9000 };
+
 async function iaGenerer(messages, onToken, signal) {
     if (signal && signal.aborted) throw new Error('arrêt');
-    var modeles = ['default', 'fast', 'gpt-4o-mini', 'DeepSeek-V4-Flash-0731', 'llama-3.3-70b-instruct'];
+    /* Délai global : au bout de vingt secondes, on arrête d'attendre le réseau et
+       l'assistant répond avec ce qu'il sait. Personne n'attend indéfiniment. */
+    var limite = Date.now() + 20000;
+    function reste() { return limite - Date.now(); }
     var essais = [messages, iaMessagesCourts(messages)];
+    var echecs = [];
     var t;
     var i;
     for (t = 0; t < essais.length; t++) {
         if (signal && signal.aborted) throw new Error('arrêt');
-        var budget = iaLierSignal(signal, 11000);
-        for (i = 0; i < modeles.length; i++) {
-            if ((signal && signal.aborted) || budget.aborted) break;
+        if (reste() < 2500) break;
+        /* Un service sans clé d'abord, puis la lecture simple (aucun contrôle
+           CORS, donc elle passe même quand les envois sont bloqués), puis les
+           autres services. */
+        var plan = [{ destination: IA_DESTINATIONS[0], stream: true }, { destination: IA_SECOURS, stream: false }];
+        for (i = 1; i < IA_DESTINATIONS.length; i++) plan.push({ destination: IA_DESTINATIONS[i], stream: true });
+        for (i = 0; i < plan.length; i++) {
+            if (signal && signal.aborted) throw new Error('arrêt');
+            if (reste() < 2000) break;
+            var destination = plan[i].destination;
+            var base = destination.delaiBase || destination.delai;
+            destination.delai = Math.max(3000, Math.min(base, reste() - 800));
             try {
-                var texte = await iaAppelerHttp('https://api.llm7.io/v1/chat/completions', modeles[i], 'unused', essais[t], onToken, budget, false);
-                if (texte && String(texte).trim().length > 1) return String(texte).trim();
+                var texte = await iaDemander(destination, essais[t], onToken, signal, plan[i].stream);
+                if (texte && String(texte).trim().length > 1) {
+                    window.__iaModele = destination.nom;
+                    return String(texte).trim();
+                }
             } catch (e) {
                 if (signal && signal.aborted) throw new Error('arrêt');
+                echecs.push(destination.nom + ' : ' + (e && e.message ? e.message : 'échec'));
             }
         }
-        if (signal && signal.aborted) throw new Error('arrêt');
-        try {
-            var secours = await iaAppelerTexte(essais[t], onToken, budget);
-            if (secours && String(secours).trim().length > 1) return String(secours).trim();
-        } catch (e2) {
-            if (signal && signal.aborted) throw new Error('arrêt');
-        }
     }
+    window.__iaModelesEchec = echecs.slice(0, 12);
+    if (typeof console !== 'undefined' && console.warn) console.warn('[assistant] modèles injoignables :', echecs.join(' | '));
     throw new Error('modele');
 }
 
@@ -2198,18 +2299,28 @@ function iaReponseFinale(texte, lecture, modele, action) {
     var analyse = lecture && lecture.analyse;
     var sure = analyse && analyse.reponse;
     var corps = iaRetirerAnnonce(iaNettoyer(modele || ''));
+    /* Un travail à rendre, sans document : la réponse utile est de demander le
+       fichier, pas de décrire l'emploi du temps. */
+    var invitationTravail = (texte && iaVeutTravail(texte) && !action && !window.__iaDocQuestion
+        && (!lecture || lecture.intention !== 'pdf'))
+        ? "Envoie-moi le document — PDF, Word ou texte — et je te dis ce qui doit être rendu, pour quand, et où c'est écrit. Sans le fichier, je ne peux pas deviner la consigne."
+        : '';
+    if (corps && lecture && iaEstDeversementPlanning(corps, lecture)) corps = iaSansDeversement(corps);
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     else if (window.__iaDocQuestion && String(corps || '').trim().length > 40) corps = String(corps).trim();
     else if (lecture && lecture.intention === 'pdf' && !iaReponseUtilePdf(corps, lecture)) corps = '';
     /* La reponse sure sert de repere et de repli : quand le modele a vraiment
        repondu a la question, on garde ses mots, plus proches de la personne. */
-    else if (!iaReponseTient(corps, lecture)) corps = sure || iaComposer(lecture, action);
+    else if (!iaReponseTient(corps, lecture)) corps = invitationTravail || sure || iaComposer(lecture, action);
+    if (!corps && invitationTravail) corps = invitationTravail;
     if (sure && iaEsquiveTexte(corps)) corps = sure;
     if (lecture && lecture.intention === 'pdf' && action && iaVeutActionPdf(lecture.n)) corps = action;
     if (action && lecture.intention !== 'exercice' && corps.indexOf(action) === -1 && !iaQuestionInutile(action, lecture.fil)) corps = action + '\n\n' + corps;
     var avant = corps;
     corps = iaSansRepetition(corps, lecture.fil);
-    if (!corps && avant) corps = sure || iaConfirmerFil(lecture.fil) || avant;
+    /* Si la phrase a été retirée comme déjà dite, on remet d'abord la demande de
+       document : elle reste la réponse la plus utile à cette question. */
+    if (!corps && avant) corps = invitationTravail || sure || iaConfirmerFil(lecture.fil) || avant;
     corps = iaAjusterLongueur(corps, lecture);
     corps = iaRetirerPhraseJourneeInterdite(corps);
     /* La question du soir ne se colle jamais à une réponse de repli, ni à une
@@ -3304,6 +3415,79 @@ function iaDefinitionDepuisQuestion(n) {
     if (/philosophie/.test(n)) return 'La philosophie travaille les notions et les arguments, mais dans le Baccalauréat International c\'est le TOK qui joue ce rôle.';
     return '';
 }
+/* Savoir scolaire du site : les notions qui reviennent le plus. Il sert quand
+   le modèle ne répond pas, pour qu'une vraie question de cours reçoive une
+   vraie réponse au lieu d'une phrase d'attente. Rien n'est inventé : ce sont
+   des définitions courtes et sûres. */
+var IA_NOTIONS = [
+    [/photosynthese/, "La photosynthèse, c'est la fabrique du sucre chez les plantes : avec la lumière, l'eau et le dioxyde de carbone, la chlorophylle des feuilles produit du glucose et rejette de l'oxygène."],
+    [/respiration cellulaire|respiration des cellules/, "La respiration cellulaire fait l'inverse de la photosynthèse : elle casse le glucose avec de l'oxygène pour libérer l'énergie utilisable par la cellule, et rejette du dioxyde de carbone et de l'eau."],
+    [/cycle de l.?eau/, "L'eau tourne en boucle : elle s'évapore des océans et du sol, se condense en nuages, retombe en pluie, puis ruisselle ou s'infiltre dans le sol, et tout recommence."],
+    [/cellule|cellules/, "La cellule est l'unité de base du vivant : une membrane, un cytoplasme, et chez toi un noyau qui contient l'ADN.", /c.est quoi|qu.est.ce|explique|defini|signifie|comment|role/],
+    [/mitose|division cellulaire/, "La mitose est la division qui donne deux cellules filles identiques : l'ADN se duplique, se range en chromosomes, puis se sépare en deux lots égaux."],
+    [/\badn\b|molecule.{0,15}heredite|genetique/, "L'ADN porte l'information génétique, en double hélice. Un gène est un morceau d'ADN qui code une protéine ou un caractère précis."],
+    [/evolution|selection naturelle|darwin/, "L'évolution, c'est le changement des populations au fil des générations : la sélection naturelle garde les variations les plus utiles pour survivre dans un milieu donné.", /espece|vivant|humain|naturelle|darwin|biolog/],
+    [/ecosysteme|chaine alimentaire/, "Un écosystème, c'est un milieu et tous les êtres vivants qui y interagissent. Dans une chaîne alimentaire, l'énergie passe des producteurs aux herbivores puis aux carnivores, et beaucoup se perd en chaleur à chaque étape."],
+    [/\batome|atomes|structure de l.atome/, "Un atome a un noyau de protons et de neutrons, entouré d'électrons. C'est le nombre de protons qui décide de l'élément."],
+    [/tableau periodique|element chimique/, "Le tableau périodique range les éléments par numéro atomique. Une même colonne rassemble des éléments qui réagissent de façon voisine."],
+    [/reaction chimique|equation chimique|equilibrer/, "Dans une réaction chimique, les atomes se réorganisent : des liaisons se cassent, d'autres se forment. Rien ne disparaît, donc on équilibre l'équation pour garder le même nombre d'atomes de chaque côté."],
+    [/\bph\b|acide|basique|acidite/, "Un acide libère des ions hydrogène, une base en capte. Le pH va de 0 à 14 : en dessous de 7 c'est acide, au-dessus c'est basique, et 7 c'est neutre."],
+    [/\bmole\b|avogadro|concentration molaire/, "Une mole, c'est 6,02 × 10 puissance 23 particules : une façon de compter les atomes et les molécules qu'on ne peut pas compter un par un."],
+    [/gravit|pesanteur|\bpoids\b/, "La gravitation attire deux masses l'une vers l'autre. Le poids d'un objet, c'est la force de la Terre sur lui : P = m × g, avec g proche de 9,8 sur Terre."],
+    [/loi(s)? de newton|trois lois/, "Les trois lois de Newton : sans force, un objet garde son mouvement ; une force change le mouvement, avec F = m × a ; et à toute action répond une réaction égale et opposée."],
+    [/energie cinetique|energie potentielle|conservation de l.energie/, "L'énergie ne se crée pas et ne disparaît pas : elle se transforme. L'énergie cinétique vient du mouvement, l'énergie potentielle de la position ou de la hauteur."],
+    [/loi d.ohm|circuit electrique|intensite du courant|tension electrique/, "Dans un circuit, la tension pousse le courant et la résistance le freine : U = R × I. En série il n'y a qu'un chemin, en dérivation le courant se partage."],
+    [/onde mecanique|onde sonore|onde electromagnetique|longueur d.onde|propagation du son|frequence du son|frequence d.un son/, "Une onde transporte de l'énergie sans transporter de matière. Le son a besoin d'un milieu pour se déplacer, la lumière non. La fréquence décide du son plus ou moins aigu, ou de la couleur."],
+    [/chaleur|temperature|thermodynamique/, "La température mesure l'agitation des particules ; la chaleur, c'est l'énergie qui passe du plus chaud vers le plus froid. Ce n'est pas la même chose : un grand objet tiède peut contenir plus de chaleur qu'un petit objet brûlant.", /chaleur|thermodynamique|difference|defini|explique|c.est quoi|qu.est.ce/],
+    [/relativite|einstein|\be ?= ?mc/, "La relativité restreinte dit que la vitesse de la lumière est la même pour tous les observateurs, et que le temps passe moins vite quand on va très vite. La relativité générale explique la gravité comme une courbure de l'espace-temps par les masses."],
+    [/radioactiv|desintegration|demi.vie/, "Un noyau radioactif est instable : il se casse en émettant une particule alpha ou bêta, ou un rayonnement gamma, et devient un autre élément. La demi-vie donne la vitesse de cette transformation."],
+    [/pression/, "La pression, c'est une force répartie sur une surface : P = F sur S. Elle augmente si la force augmente, ou si la surface diminue.", /pression (atmospherique|d.un gaz|d.un fluide|d.un liquide|de l.air)|physique|formule|calcule/],
+    [/derivee|derivation/, "La dérivée mesure la vitesse à laquelle une fonction change : elle donne la pente de la courbe en un point. Par exemple, la dérivée de x au carré est 2x."],
+    [/integrale|primitive/, "L'intégrale calcule une accumulation, souvent l'aire sous la courbe. C'est l'opération inverse de la dérivée."],
+    [/limite d.une fonction|notion de limite/, "Une limite décrit vers quoi tend une fonction quand la variable s'approche d'une valeur ou devient très grande, même si la fonction n'est pas définie à cet endroit."],
+    [/discriminant|second degre|equation du deuxieme/, "Pour a x carré + b x + c = 0, le discriminant vaut b au carré moins 4 a c. S'il est positif il y a deux solutions, s'il est nul une seule, s'il est négatif aucune dans les réels."],
+    [/pythagore/, "Dans un triangle rectangle, le carré de l'hypoténuse égale la somme des carrés des deux autres côtés : a² + b² = c²."],
+    [/thales/, "Thalès compare des longueurs quand deux droites parallèles coupent deux droites sécantes : les rapports de longueurs sont égaux."],
+    [/sinus|cosinus|tangente|trigonometrie|\bsin\b|\bcos\b/, "Dans un triangle rectangle : le sinus est le côté opposé sur l'hypoténuse, le cosinus le côté adjacent sur l'hypoténuse, la tangente le côté opposé sur le côté adjacent."],
+    [/probabilit/, "Une probabilité est un nombre entre 0 et 1 : les cas favorables sur les cas possibles, quand tout a la même chance. Pour deux événements indépendants, on multiplie."],
+    [/moyenne|mediane|ecart.type|statistique/, "La moyenne additionne puis divise ; la médiane coupe la série en deux ; l'écart-type dit si les valeurs sont serrées ou dispersées autour de la moyenne.", /defini|explique|c.est quoi|qu.est.ce|difference|comment (on )?calcul|statistique|ecart.type|mediane/],
+    [/logarithme|\blog\b/, "Un logarithme répond à la question : à quelle puissance ? Le logarithme décimal de 1 000 vaut 3, parce que 10 puissance 3 fait 1 000. Il transforme les multiplications en additions."],
+    [/vecteur|produit scalaire/, "Un vecteur a une direction, un sens et une longueur. On l'additionne bout à bout, et le produit scalaire de deux vecteurs indique s'ils vont dans le même sens : u·v = |u| × |v| × cos de l'angle."],
+    [/suite arithmetique|suite geometrique/, "Une suite arithmétique augmente d'un même pas à chaque rang ; une suite géométrique est multipliée par un même nombre à chaque rang."],
+    [/nombre premier/, "Un nombre premier n'a que deux diviseurs : 1 et lui-même. 2, 3, 5, 7, 11 en sont, et 1 n'est pas premier."],
+    [/(ameliorer|progresser|mieux).{0,24}anglais|anglais.{0,24}(ameliorer|progresser)/, "Pour l'anglais, la régularité fait presque tout : quinze minutes par jour à écouter et à répéter à voix haute, et cinq phrases écrites sur ta journée. L'oral compte autant que l'écrit, donc parle même seul."],
+    [/(ameliorer|progresser|mieux).{0,24}(francais|redaction)|mieux ecrire/, "Pour progresser en français : lire un peu chaque jour, puis écrire cinq lignes de résumé sans regarder le texte. Relis-toi à voix haute : c'est là que tu entends les fautes."],
+    [/(mieux )?memoriser|retenir (mes|les) cours|fixer mes cours|apprendre par coeur/, "Pour retenir, il faut rappeler de mémoire, pas relire : ferme le cahier, écris tout ce dont tu te souviens, puis vérifie. C'est cet effort de rappel qui fixe vraiment, surtout juste avant de dormir."],
+    [/commentaire de texte|commentaire compose/, "Un commentaire de texte suit trois temps : tu dégages les idées du passage, tu analyses les procédés d'écriture en citant le texte, puis tu conclus sur son sens."],
+    [/dissertation/, "Une dissertation répond à une question par un plan : chaque partie avance un argument appuyé sur un exemple, et l'introduction annonce la démarche."],
+    [/offre et demande|marche concurrentiel/, "Quand le prix monte, l'offre augmente et la demande baisse. Le prix d'équilibre est celui où les deux se rencontrent."],
+    [/inflation/, "L'inflation, c'est la hausse générale des prix : la même somme achète moins. On la mesure sur un panier de biens et de services."],
+    [/\bpib\b|produit interieur brut/, "Le PIB mesure la valeur des biens et services produits dans un pays pendant une période. C'est un indicateur global : il ne dit rien des inégalités."],
+    [/mondialisation/, "La mondialisation, c'est l'accroissement des échanges de biens, de capitaux, de personnes et d'informations entre les pays, avec des gagnants et des perdants."],
+    [/premiere guerre mondiale|guerre 14.18|1914/, "La Première Guerre mondiale a duré de 1914 à 1918, entre les Alliés et les Empires centraux. Elle se termine par l'armistice du 11 novembre 1918 et le traité de Versailles en 1919."],
+    [/seconde guerre mondiale|guerre 39.45|1939/, "La Seconde Guerre mondiale a duré de 1939 à 1945 : elle se termine en Europe le 8 mai 1945 et en Asie le 2 septembre 1945, après les bombes atomiques sur Hiroshima et Nagasaki."],
+    [/guerre froide/, "La guerre froide est l'affrontement sans combat direct entre les États-Unis et l'URSS, d'environ 1947 à 1991, jusqu'à la chute du mur de Berlin et la disparition de l'URSS."]
+];
+
+/* Une question sur un travail à rendre, un devoir, une échéance. */
+function iaVeutTravail(n) {
+    var t = iaNormaliser(n);
+    if (/visite|rendre compte|hommage|service|grace a/.test(t)) return false;
+    return /(je dois|a rendre|rendre|devoirs?|travaux? a|remettre|pour quand|deadline|echeance)/.test(t);
+}
+
+function iaNotionScolaire(n) {
+    var t = iaNormaliser(n);
+    for (var i = 0; i < IA_NOTIONS.length; i++) {
+        if (!IA_NOTIONS[i][0].test(t)) continue;
+        /* Certains mots sont trop courants (cellule, son, pression, moyenne) :
+           on exige alors un vrai contexte de question de cours. */
+        if (IA_NOTIONS[i][2] && !IA_NOTIONS[i][2].test(t)) continue;
+        return IA_NOTIONS[i][1];
+    }
+    return '';
+}
+
 function iaReponseMatiere(lecture) {
     if (!lecture || !lecture.sujet) return '';
     var s = lecture.sujet;
@@ -3331,12 +3515,19 @@ function iaSavoir(lecture) {
     if (/(c.est quoi|qu.est.ce|explique|comment (fonctionne|marche)).{0,20}(diplome|\bib\b|baccalaureat)/.test(n)) return 'Le diplôme du Baccalauréat International compte six matières, souvent trois HL et trois SL. Chaque matière est notée de 1 à 7. Le total peut aller jusqu\'à 45, avec au plus 3 points venant du TOK et du mémoire. Le CAS est obligatoire et ne donne pas de points.';
     if (/comment (m.)?organiser|comment (je )?m.organise/.test(n)) return 'Pour organiser la semaine, garde d\'abord tes heures de sommeil. Place ensuite les révisions des matières HL, puis celles notées 4/7 ou moins, en séances courtes avant chaque échéance. Dis-moi un jour si tu veux un créneau précis.';
     if (/comment.{0,24}(stress|fatigue|anxie)/.test(n)) return 'Si le stress pèse, commence par une seule séance courte, puis une pause. Je peux alléger la journée si tu me le demandes. Je ne suis pas un professionnel de santé.';
-    if (/(c.est quoi|qu.est.ce|explique|signifie)/.test(n)) {
+    if (/(c.est quoi|qu.est.ce|explique|signifie|defini|a quoi sert|ca sert a quoi)/.test(n) && !iaVeutTravail(n)) {
         var def = iaDefinitionDepuisQuestion(n);
         if (def) {
             var perso = iaReponseMatiere(lecture);
             return perso ? def + ' ' + perso : def;
         }
+    }
+    var notion = iaNotionScolaire(n);
+    if (notion) return notion;
+    if (/(ma|la) moyenne|mes notes|mes points|mes resultats|combien (j.ai|j ai) de points/.test(n)) {
+        var notes = iaReponseNotes();
+        if (notes) return notes;
+        return 'Je n\'ai pas encore tes notes : ajoute-les dans tes matières, et je te calcule la moyenne tout de suite.';
     }
     if (/(quand|a quelle heure|quel jour)/.test(n)) {
         var ancre = null;
@@ -3357,9 +3548,23 @@ function iaReponseIntelligente(lecture) {
     var n = (lecture && (lecture.n || iaNormaliser(lecture.brut))) || '';
     var bouts = [];
     var def = iaDefinitionDepuisQuestion(n);
-    if (def) bouts.push(def);
+    /* La définition sert quand la personne demande vraiment ce que c'est, ou
+       quand elle porte sur le diplôme lui-même. Sinon, « comment améliorer mon
+       anglais » recevait la définition de l'anglais : inutile. */
+    var demandeQuoi = /(c.est quoi|qu.est.ce|explique|signifie|defini|a quoi sert|ca sert a quoi)/.test(n);
+    var veutUnTravail = iaVeutTravail(n);
+    var defUtile = (demandeQuoi && !veutUnTravail)
+        || /theorie de la connaissance|creativite et service|evaluations internes|memoire est un travail|maximum est 45|niveau superieur|systemes de l.environnement|Analyse et approches/.test(def);
+    if (def && defUtile) bouts.push(def);
+    var notionScolaire = iaNotionScolaire(n);
+    if (!bouts.length && notionScolaire) bouts.push(notionScolaire);
     var perso = lecture ? iaReponseMatiere(lecture) : '';
     if (perso && bouts.indexOf(perso) === -1) bouts.push(perso);
+    /* Un travail à rendre, sans document : la première chose utile est de
+       demander le fichier, pas de parler de l'emploi du temps. */
+    if (!bouts.length && iaVeutTravail(n) && !iaDocs().length) {
+        bouts.push("Envoie-moi le document — PDF, Word ou texte — et je te dis ce qui doit être rendu, pour quand, et où c'est écrit. Sans le fichier, je ne peux pas deviner la consigne.");
+    }
     if (!bouts.length && lecture && (lecture.intention === 'planning' || lecture.jour || lecture.sujet)) {
         var fait = '';
         try { fait = iaFaitPlanning(lecture); } catch (e) { fait = ''; }
@@ -3371,6 +3576,10 @@ function iaReponseIntelligente(lecture) {
         if (cro.length) bouts.push(lecture.sujet.name + ' est ici : ' + cro.slice(0, 3).join(', ') + '.');
     }
     /* Message tres court ou tres vague : on reste utile, jamais une demande de reformuler. */
+    if (!bouts.length && /(ma|la) moyenne|mes notes|mes points|mes resultats|combien (j.ai|j ai) de points/.test(n)) {
+        var notes = iaReponseNotes();
+        if (notes) bouts.push(notes);
+    }
     if (!bouts.length && n.split(/\s+/).filter(Boolean).length <= 3) {
         return 'Je suis là. Dis-moi juste ce qui t\'occupe : une matière, ton planning, un devoir à caser, ou quelque chose qui te pèse.';
     }
@@ -3389,6 +3598,8 @@ function iaReponseIntelligente(lecture) {
 
 function iaSuiteUtile(lecture) {
     var n = (lecture && (lecture.n || iaNormaliser(lecture.brut))) || '';
+    if (iaVeutTravail(n)) return 'Tu peux me donner la date, je la note dans ton dossier.';
+    if (iaNotionScolaire(n)) return 'Dis-moi si quelque chose reste flou, je le reprends autrement.';
     if (lecture && lecture.sujet) return 'Tu veux que je regarde où le placer dans ta semaine ?';
     if (/revis|apprendre|memoris|concentr/.test(n)) return 'Tu veux une méthode, ou plutôt des créneaux dans ton planning ?';
     if (/stress|fatigue|peur|anxi/.test(n)) return 'Dis-moi seulement ce qui pèse le plus, en un mot.';
@@ -3419,8 +3630,29 @@ function iaEstDeversementPlanning(corps, lecture) {
     var n = iaNormaliser(corps);
     return (n.match(/\d{1,2}\s*h\d{0,2}|\d{1,2}:\d{2}/g) || []).length >= 3;
 }
+/* Une réponse du modèle qui donne des horaires n'est plus jetée : on retire
+   seulement les lignes qui ne sont qu'un emploi du temps recopié, et on garde
+   tout le reste, parce que c'est là qu'est la réponse à la question. */
+function iaHeuresDeLigne(ligne) {
+    return (String(ligne || '').match(/\d{1,2}\s*h\d{0,2}|\d{1,2}:\d{2}/g) || []).length;
+}
+
+function iaSansDeversement(corps) {
+    var gardees = String(corps || '').split('\n').filter(function (ligne) {
+        var heures = iaHeuresDeLigne(ligne);
+        if (!heures) return true;
+        var sansHeures = iaNormaliser(ligne).replace(/\d{1,2}\s*h\d{0,2}|\d{1,2}:\d{2}/g, ' ');
+        var mots = sansHeures.split(/\s+/).filter(function (m) { return /[a-z]/.test(m) && m.length > 2; }).length;
+        /* ligne d'emploi du temps recopié : les heures prennent presque toute la place */
+        return heures < 3 || heures < mots * 0.7;
+    });
+    return gardees.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/* Reste-t-il de quoi répondre, une fois l'emploi du temps recopié retiré ? */
 function iaReponseTient(corps, lecture) {
-    if (!corps || iaEsquiveTexte(corps) || iaTropAnglais(corps) || iaEstDeversementPlanning(corps, lecture)) return false;
+    if (!corps || iaEsquiveTexte(corps) || iaTropAnglais(corps)) return false;
+    if (iaEstDeversementPlanning(corps, lecture) && iaSansDeversement(corps).length < 80) return false;
     var seuil = lecture && lecture.forme === 'courte' ? 8 : 12;
     if (String(corps).length < seuil) return false;
     return true;
@@ -3833,13 +4065,17 @@ function iaSansRepetition(corps, fil) {
     });
     return gardees.join('\n\n').trim();
 }
+/* On ne coupe plus une réponse utile : une question courte peut recevoir trois
+   ou quatre phrases, tant qu'il n'y a pas de pavé. */
 function iaAjusterLongueur(corps, lecture) {
     if (!corps || !lecture || lecture.forme !== 'courte') return corps;
     if (lecture.intention === 'emotion' || lecture.intention === 'exercice') return corps;
     if (lecture.analyse && lecture.analyse.prioritaire) return corps;
-    var phrases = String(corps).split(/(?<=[.!?])\s+/).filter(Boolean);
-    if (phrases.length <= 2) return corps;
-    return phrases.slice(0, 2).join(' ');
+    var texte = String(corps);
+    var phrases = texte.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (phrases.length <= 4 && texte.length <= 460) return corps;
+    if (phrases.length <= 3) return corps;
+    return phrases.slice(0, 3).join(' ');
 }
 function iaAgir(texte) {
     var n = iaNormaliser(texte);
@@ -3879,8 +4115,18 @@ function iaAgir(texte) {
     }
     return notes.filter(Boolean).join(' ');
 }
+function iaSansMarkdown(texte) {
+    return String(texte || '')
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/^#{1,6}\s*/gm, '')
+        .replace(/^\s*[*•]\s+/gm, '- ')
+        .replace(/\*([^*\n]+)\*/g, '$1');
+}
+
 function iaNettoyer(texte) {
-    return String(texte || '').replace(/\[\[action:[^\]]+\]\]/g, '').replace(/\n{3,}/g, '\n\n').trim();
+    return iaSansMarkdown(String(texte || '').replace(/\[\[action:[^\]]+\]\]/g, '')).replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function iaActionModele(ligne, texteUser) {
@@ -4032,6 +4278,7 @@ async function iaEnvoyer(event, forcer) {
     var actionTot = [iaCocherSiDemande(lieTot), iaAgir(lieTot)].filter(Boolean).join(' ');
     // ── Analyse du document : la question est reliée au fichier reçu ──
     window.__iaDocQuestion = null;
+    window.__iaModelesEchec = null;
     if (iaDocs().length && !window.__iaPdfAttente && !iaVeutActionPdf(iaNormaliser(questionPropre)) && !iaVeutSolution(texte)) {
         var docLie = iaDocActif(questionPropre);
         if (docLie && docLie.texte) {
@@ -4062,7 +4309,17 @@ async function iaEnvoyer(event, forcer) {
     var action = actionTot;
     var recu = '';
     try {
-        recu = await iaGenerer(iaMessages(texte, action, lecture), function (partiel) {
+        var demande = null;
+        try {
+            demande = iaMessages(texte, action, lecture);
+        } catch (eMessages) {
+            try {
+                demande = iaMessages(texte, action, null);
+            } catch (e2) {
+                demande = [{ role: 'system', content: 'Tu es un ami du même âge, en français simple. Réponds au fond, sans faire la leçon. Ne résous aucun exercice.' }, { role: 'user', content: texte }];
+            }
+        }
+        recu = await iaGenerer(demande, function (partiel) {
             recu = partiel;
             var propre = iaRetirerAnnonce(iaNettoyer(partiel));
             if (propre) iaMajBulle(bulle, propre);
@@ -4088,12 +4345,19 @@ async function iaEnvoyer(event, forcer) {
             if (!local && typeof window.__iaDocRepli === 'function') {
                 try { local = window.__iaDocRepli() || ''; } catch (e3) { local = ''; }
             }
-            if (!local) local = 'Je n\'ai pas encore la suite. Reformule, je réfléchis et je te réponds.';
+            if (!local && typeof iaReponseIntelligente === 'function') local = iaReponseIntelligente(lecture);
             iaMajBulle(bulle, local);
             iaHistorique.push({ role: 'assistant', content: local });
             if (iaActionReussie(action) || iaActionReussie(local)) iaCloreFil();
             else iaNoterQuestion(local);
-            iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
+            /* La personne doit savoir que la réponse vient du site et non du
+               modèle : sinon elle croit que l'assistant ne comprend rien. */
+            if (window.__iaModelesEchec && window.__iaModelesEchec.length) {
+                window.__iaDiagnostic = { quand: new Date().toISOString(), question: texte, echecs: window.__iaModelesEchec };
+                iaStatut('Réponse du site · modèles injoignables', '#b45309');
+            } else {
+                iaStatut(iaIdentite().prenom + ' · en ligne', '#059669');
+            }
         }
     }
     iaEnCours = false;
