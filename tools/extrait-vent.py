@@ -8,8 +8,9 @@ pour entrer dans le dépôt : il est téléchargé dans /tmp par
 
 Le script choisit le passage le plus calme de l'enregistrement — celui dont le
 niveau bouge le moins et qui ne contient aucune attaque de rafale — puis le
-referme sur lui-même par un fondu de 250 ms à puissance constante : le raccord
-tombe sur deux échantillons consécutifs du fichier d'origine, donc sans clic.
+referme sur lui-même par un fondu de 90 ms à puissance constante, déplacé au
+point le plus plat : le raccord retombe sur deux échantillons voisins du
+fichier d'origine, donc sans clic.
 
 Usage :
     python3 tools/extrait-vent.py --mp3 /tmp/vents.mp3 \
@@ -28,7 +29,7 @@ import numpy as np
 FS = 22050                  # fréquence d'échantillonnage des sons du Pomodoro
 DUREE = 8.0
 N = int(FS * DUREE)         # 176 400 échantillons
-FONDU = int(0.25 * FS)      # 250 ms de raccord
+FONDU = int(0.09 * FS)      # 90 ms de raccord, comme les autres sons
 LONGUEUR = N - FONDU        # 174 416 échantillons = 7,91 s
 RATE_ANALYSE = 4000         # décodage léger pour repérer le bon passage
 TRAME = 0.05                # enveloppe par tranches de 50 ms
@@ -78,13 +79,16 @@ def filtrer(x):
 
 
 def boucler(x):
-    """Fondu à puissance constante : la fin revient dans le début sans creux."""
+    """Rend la boucle parfaite : fondu à puissance constante de 90 ms, puis
+    rotation au point où deux échantillons voisins se ressemblent le plus."""
     tete = x[:FONDU].copy()
     queue = x[len(x) - FONDU:].copy()
     angle = np.linspace(0.0, np.pi / 2.0, FONDU)
     x = x[:len(x) - FONDU].copy()
     x[:FONDU] = queue * np.cos(angle) + tete * np.sin(angle)
-    return x
+    d = np.abs(np.diff(x))
+    k = 2000 + int(np.argmin(d[2000:len(x) - 2000]))
+    return np.concatenate([x[k + 1:], x[:k + 1]])
 
 
 def normaliser(x, rms_cible=0.070, crete_max=0.97):
@@ -200,8 +204,7 @@ def main():
         'rms': round(float(np.sqrt(np.mean(x ** 2))), 4),
         'crete': round(float(np.max(np.abs(x))), 4),
         'crete_rms_db': round(20 * np.log10(float(np.max(np.abs(x))) / float(np.sqrt(np.mean(x ** 2)))), 1),
-        'dynamique_db': round(float(np.percentile(20 * np.log10(np.maximum(np.abs(x), 1e-9)), 95)
-                                    - np.percentile(20 * np.log10(np.maximum(np.abs(x), 1e-9)), 5)), 1),
+        'dynamique_db': round(float(np.percentile(enveloppe(x, FS), 95) - np.percentile(enveloppe(x, FS), 5)), 1),
         'saut_dbfs': round(20 * np.log10(max(saut, 1e-9)), 1),
         'bandes_pct': bandes(x),
         'candidats': [[round(c[0], 2), round(c[1], 1), round(c[2], 1), round(c[3], 1)] for c in candidats],
