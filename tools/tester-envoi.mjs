@@ -43,9 +43,16 @@ async function main() {
     const browser = await chromium.launch({ headless: true });
     const erreursPage = [];
 
+    const messagesConsole = [];
+
     async function nouvellePage(mode) {
         const page = await browser.newPage();
         page.on('pageerror', function (e) { erreursPage.push(String(e)); });
+        page.on('console', function (msg) {
+            if (msg.type() === 'error' || msg.type() === 'warning') {
+                messagesConsole.push(msg.type() + ' : ' + msg.text().slice(0, 200));
+            }
+        });
         const avis = [];
         await page.route('**script.google.com**', async function (route) {
             const requete = route.request();
@@ -132,6 +139,34 @@ async function main() {
         if (statut !== 'Question envoyée.') echec('statut de la question directe : ' + statut);
         if (duree > 8000) echec('l\'envoi direct a pris ' + duree + ' ms');
         await attendreAvis(avis);
+        if (avis.length !== 4) {
+            const diagnostic = await page.evaluate(async function () {
+                const essai = {};
+                try { essai.session = typeof boiteSession === 'function' ? JSON.stringify(boiteSession()) : 'fonction absente'; }
+                catch (e) { essai.session = 'ERREUR ' + (e && e.message); }
+                try { essai.urlScript = await boiteUrlScript(); }
+                catch (e) { essai.urlScript = 'ERREUR ' + (e && e.message); }
+                try { essai.expediteur = JSON.stringify(boiteNomExpediteur({ type: 'question', nom: 'Test', email: 't@e.com', google: 't@e.com', googleNom: 'Test E2E' })); }
+                catch (e) { essai.expediteur = 'ERREUR ' + (e && e.message); }
+                try { essai.salutation = boiteSalutation('Juliss', new Date()); }
+                catch (e) { essai.salutation = 'ERREUR ' + (e && e.message); }
+                try {
+                    essai.avertir = await boiteAvertirAdmins({
+                        type: 'question', id: 'qtest-diag' + Date.now().toString(16),
+                        texte: 'diagnostic e2e', nom: 'Test', email: 't@e.com', google: 't@e.com', googleNom: 'Test E2E'
+                    });
+                } catch (e) { essai.avertir = 'ERREUR ' + (e && e.message); }
+                return essai;
+            });
+            console.log('DIAGNOSTIC ' + JSON.stringify(diagnostic));
+            console.log('CONSOLE ' + JSON.stringify(messagesConsole.slice(-10)));
+            let deploye = '';
+            try {
+                const res = await fetch(SITE + 'data/mail-script.json');
+                deploye = (res.status) + ' ' + (await res.text()).slice(0, 120);
+            } catch (e) { deploye = 'ERREUR ' + (e && e.message); }
+            console.log('MAIL-SCRIPT-DÉPLOYÉ ' + deploye);
+        }
         verifierAvis(avis, 'Nouvelle question — Study Plan IB', MARQUE + 'q', debut, 1500);
         let recu = null;
         for (let i = 0; i < 10 && !recu; i++) {
