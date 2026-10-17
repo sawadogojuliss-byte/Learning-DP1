@@ -37,42 +37,6 @@
   },
   {
     "rms": 0.085,
-    "crete": 0.481,
-    "dynamique_db": 0.5,
-    "raccord": 0.0595,
-    "id": "blanc",
-    "source": "généré",
-    "debut_s": 0,
-    "canaux": "mono",
-    "duree_s": 300.0,
-    "octets": 3600867
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.423,
-    "dynamique_db": 5.3,
-    "raccord": 0.00779,
-    "id": "brun",
-    "source": "généré",
-    "debut_s": 0,
-    "canaux": "mono",
-    "duree_s": 300.0,
-    "octets": 3600867
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.611,
-    "dynamique_db": 22.1,
-    "raccord": 0.00601,
-    "id": "bureau",
-    "source": "classique",
-    "debut_s": 1980.0,
-    "canaux": "stereo",
-    "duree_s": 300.0,
-    "octets": 4801141
-  },
-  {
-    "rms": 0.085,
     "crete": 0.597,
     "dynamique_db": 17.3,
     "raccord": 0.01436,
@@ -133,6 +97,18 @@
   },
   {
     "rms": 0.085,
+    "crete": 0.818,
+    "dynamique_db": 19.6,
+    "raccord": 0.00538,
+    "id": "piano",
+    "source": "classique",
+    "debut_s": 1080.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
     "crete": 0.952,
     "dynamique_db": 2.3,
     "raccord": 0.02439,
@@ -163,18 +139,6 @@
     "id": "pluie-legere",
     "source": "pluie",
     "debut_s": 3630.0,
-    "canaux": "mono",
-    "duree_s": 300.0,
-    "octets": 3600867
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.443,
-    "dynamique_db": 1.7,
-    "raccord": 0.10886,
-    "id": "rose",
-    "source": "généré",
-    "debut_s": 0,
     "canaux": "mono",
     "duree_s": 300.0,
     "octets": 3600867

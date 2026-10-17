@@ -635,9 +635,6 @@ SONS = [
     ('pluie-forte', son_pluie_forte, 0.082, 8500.0),
     ('orage', son_orage, 0.084, 8500.0),
     ('bureau', son_bureau, 0.070, 6000.0),
-    ('blanc', son_blanc, 0.070, 11000.0),
-    ('rose', son_rose, 0.072, 9000.0),
-    ('brun', son_brun, 0.078, 5000.0),
 ]
 
 

@@ -47,7 +47,7 @@ PLAN = [
     ('orage', 'pluie', 'mono'),
     ('cafe', 'cafe', 'stereo'),
     ('bibliotheque', 'classique', 'stereo'),
-    ('bureau', 'classique', 'stereo'),
+    ('piano', 'classique', 'stereo'),
     ('avion', '8d', 'stereo'),
     ('train', '8d', 'stereo'),
     ('matin', '8d', 'stereo'),
@@ -57,7 +57,7 @@ PLAN = [
     ('vent', 'vents', 'mono'),
     ('gamma', 'gamma', 'stereo'),
 ]
-BRUITS = ['blanc', 'rose', 'brun']
+BRUITS = []   # les bruits ont été retirés de la grille (2026-10-17)
 DEBITS = {'mono': '96k', 'stereo': '128k'}
 RMS_CIBLE = 0.085
 CRETE_MAX = 0.96
@@ -297,7 +297,9 @@ def main():
     roles = {
         'pluie': {'pluie-forte': ('rms', +1), 'pluie-legere': ('rms', -1),
                   'orage': ('pique', +1), 'pluie': ('regularite', -1)},
-        'classique': {'bibliotheque': ('regularite', -1), 'bureau': ('regularite', +1)},
+        # Le passage piano est choisi à part par tools/choisir-piano.py ;
+        # ce réglage ne sert que si l'on relance toute la chaîne.
+        'classique': {'bibliotheque': ('regularite', -1), 'piano': ('regularite', -1)},
         '8d': {'ocean': ('bas', +1), 'matin': ('haut', +1),
                'train': ('pique', +1), 'avion': ('regularite', -1)},
         'cafe': {'cafe': ('regularite', -1)},

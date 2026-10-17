@@ -181,10 +181,10 @@ ok(page.indexOf('title="Image dans') === -1, 'le survol ne doit pas afficher ima
 var manifeste = null;
 try { manifeste = JSON.parse(lire('audio/pomodoro/manifeste.json')); } catch (e) {}
 var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin', 'pluie-legere',
-            'pluie-forte', 'orage', 'bureau', 'vent', 'blanc', 'rose', 'brun', 'gamma', 'beta'];
-var stereo = ['cafe', 'bibliotheque', 'bureau', 'avion', 'train', 'matin', 'ocean', 'beta', 'salle', 'gamma'];
+            'pluie-forte', 'orage', 'piano', 'vent', 'gamma', 'beta'];
+var stereo = ['cafe', 'bibliotheque', 'piano', 'avion', 'train', 'matin', 'ocean', 'beta', 'salle', 'gamma'];
 ok(Array.isArray(manifeste) && manifeste.length === sons.length,
-    'le manifeste des 18 sons longs doit exister');
+    'le manifeste des 15 sons longs doit exister');
 var parId = {};
 (manifeste || []).forEach(function (m) { parId[m.id] = m; });
 var sains = 0;
@@ -207,10 +207,13 @@ sons.forEach(function (nom) {
     if (stereo.indexOf(nom) === -1 && m.canaux !== 'mono') echecs.push(nom + ' doit rester en mono');
     sains++;
 });
-ok(sains === sons.length, 'les 18 sons longs doivent être lisibles et complets');
-ok(script.indexOf('audio/pomodoro/pluie.mp3?v=20261017d') !== -1, 'le cache des sons doit être renouvelé');
-ok(script.indexOf('cheminee') === -1 && script.indexOf("'feu'") === -1,
-    'la cheminée et le feu de camp doivent disparaître de la grille');
+ok(sains === sons.length, 'les 15 sons longs doivent être lisibles et complets');
+ok(script.indexOf('audio/pomodoro/pluie.mp3?v=20261017e') !== -1, 'le cache des sons doit être renouvelé');
+['cheminee', "'feu'", "'blanc'", "'rose'", "'brun'", "'bureau'"].forEach(function (retire) {
+    ok(script.indexOf(retire) === -1, 'ce son doit disparaître de la grille : ' + retire);
+});
+ok(script.indexOf("nom: 'Piano'") !== -1, 'Bureau doit devenir Piano');
+ok(lire('pages/pomodoro.html').indexOf('value="bruits"') === -1, 'le filtre Bruits doit disparaître');
 ok(script.indexOf('.wav?v=') === -1, 'plus aucun son ne doit être servi en WAV');
 
 /* ── 9. Les cours finissent à 16 h 25 ── */
