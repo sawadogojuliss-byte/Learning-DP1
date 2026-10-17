@@ -72,7 +72,7 @@ async function main() {
         await page.waitForFunction(function () {
             return typeof window.navigateTo === 'function' && typeof window.boiteId === 'function';
         }, undefined, { timeout: 60000 });
-        await page.waitForSelector('#panelAide', { timeout: 60000 });
+        await page.waitForSelector('#panelAide', { state: 'attached', timeout: 60000 });
         /* Les identifiants des envois de test : invisibles partout. */
         await page.evaluate(function () {
             const origine = window.boiteId;
