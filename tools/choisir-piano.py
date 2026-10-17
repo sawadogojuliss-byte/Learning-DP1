@@ -84,16 +84,32 @@ def fenetres(ana):
         seg_plat = ana['plat'][debut:fin]
         seg_niv = ana['niveau'][debut:fin]
         if float(np.mean(seg_niv)) > 1e-4 and np.all(np.isfinite(seg_plat)):
-            attaques = float(np.sum(flux[debut:fin] > seuil)) / DUREE_FENETRE
+            seg_flux = flux[debut:fin]
+            local = float(np.mean(seg_flux) + 2.0 * np.std(seg_flux))
+            pics = np.where((seg_flux[1:-1] > local) &
+                            (seg_flux[1:-1] >= seg_flux[:-2]) &
+                            (seg_flux[1:-1] >= seg_flux[2:]))[0] + 1
+            # une seule attaque par 0,4 s au maximum
+            gardes = []
+            for i in pics:
+                if not gardes or i - gardes[-1] > 2:
+                    gardes.append(i)
+            # décroissance : la note s'éteint-elle après la frappe ?
+            db = 20 * np.log10(np.maximum(seg_niv, 1e-9))
+            chutes = 0
+            for i in gardes:
+                if i + 6 < len(db) and float(np.min(db[i + 1:i + 6])) < db[i] - 6.0:
+                    chutes += 1
+            frac = (chutes / len(gardes)) if gardes else 0.0
             dniv = np.diff(seg_niv)
-            decroissance = float(np.mean(dniv < 0))
             sorties.append({
                 'debut_s': round(debut * pas, 1),
                 'plat': float(np.mean(seg_plat)),
                 'conc': float(np.mean(ana['conc'][debut:fin])),
                 'haut': float(np.mean(ana['haut'][debut:fin])),
-                'attaques': attaques,
-                'decroissance': decroissance,
+                'attaques': len(gardes) / DUREE_FENETRE,
+                'frappe': float(frac),
+                'decroissance': float(np.mean(dniv < 0)),
                 'niveau': float(20 * np.log10(np.mean(seg_niv) + 1e-9)),
             })
         debut += int(PAS / pas)
@@ -115,9 +131,11 @@ def classer(cands):
     z_conc = z('conc', +1)
     z_haut = z('haut', -1)
     z_dec = z('decroissance', +1)
+    z_frappe = z('frappe', +1)
     z_att = -np.abs(np.array([c['attaques'] for c in cands]) - 3.0) / 3.0
     for i, c in enumerate(cands):
-        c['score'] = round(float(z_plat[i] + z_conc[i] + z_haut[i] + z_dec[i] + 0.8 * z_att[i]), 3)
+        c['score'] = round(float(z_plat[i] + 0.8 * z_conc[i] + z_haut[i] + 0.5 * z_dec[i]
+                                 + 1.4 * z_frappe[i] + 0.6 * z_att[i]), 3)
     return sorted(cands, key=lambda c: c['score'], reverse=True)
 
 
@@ -141,11 +159,11 @@ def main():
     med = float(np.median([c['niveau'] for c in cands]))
     cands = [c for c in cands if c['niveau'] >= med - 6.0]
     rang = classer(cands)
-    print('  score   début    plat    conc   aigus  att/s  decr.  niveau')
-    for c in rang[:10]:
-        print('  %5.2f  %7.1f s  %.4f  %.3f  %.3f  %4.1f  %.2f  %6.1f'
+    print('  score   début    plat    conc   aigus  att/s  frappe  decr.  niveau')
+    for c in rang[:12]:
+        print('  %5.2f  %7.1f s  %.4f  %.3f  %.3f  %4.1f  %.2f   %.2f  %6.1f'
               % (c['score'], c['debut_s'], c['plat'], c['conc'], c['haut'],
-                 c['attaques'], c['decroissance'], c['niveau']))
+                 c['attaques'], c['frappe'], c['decroissance'], c['niveau']))
 
     choisi = None
     for c in rang:
@@ -164,6 +182,17 @@ def main():
                                        os.path.join(args.sortie, '_tmp.wav'))
     mp3 = os.path.join(args.sortie, 'piano.mp3')
     longs.encoder(os.path.join(args.sortie, '_tmp.wav'), mp3, 'stereo')
+    for suffixe, candidat in (('-2', rang[1] if len(rang) > 1 else None),
+                              ('-3', rang[2] if len(rang) > 2 else None)):
+        if candidat is None:
+            continue
+        y = longs.fabriquer_depuis_musique(args.source, candidat['debut_s'], 'stereo',
+                                           os.path.join(args.sortie, '_tmp2.wav'))
+        longs.encoder(os.path.join(args.sortie, '_tmp2.wav'),
+                      os.path.join(args.sortie, 'piano%s.mp3' % suffixe), 'stereo')
+        print('Alternative %s : %.1f s (score %.2f)' % (suffixe, candidat['debut_s'], candidat['score']))
+    if os.path.exists(os.path.join(args.sortie, '_tmp2.wav')):
+        os.remove(os.path.join(args.sortie, '_tmp2.wav'))
     mesures = longs.mesurer(x)
     mesures.update({'id': 'piano', 'source': 'classique', 'debut_s': choisi['debut_s'],
                     'canaux': 'stereo', 'duree_s': round(len(x) / float(longs.FS), 1),
