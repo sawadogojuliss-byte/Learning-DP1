@@ -766,6 +766,7 @@ function memoireDemarrer() {
         try {
             var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
             if (hash === 'pomodoro') etape = 'pomodoro';
+            else if (hash === 'seances') etape = 'seances';
         } catch (e) {}
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;

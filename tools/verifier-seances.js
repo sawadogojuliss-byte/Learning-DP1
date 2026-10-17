@@ -68,6 +68,18 @@ ok(script.indexOf('focusEstAdmin()') === -1, 'le minuteur ne doit plus demander 
 var bloc = script.slice(script.indexOf('function focusBasculer()'), script.indexOf('function focusBasculer()') + 220);
 ok(bloc.indexOf('active') !== -1 && bloc.indexOf('focusEstAdmin') === -1, 'le bouton de départ doit marcher pour tout le monde');
 
+/* ── Jamais d'écran blanc ────────────────────────────────────────── */
+var blocSeances = script.slice(script.indexOf('function focusOuvrirSeances'),
+                                script.indexOf('function focusOuvrirMinuteur'));
+ok(blocSeances.indexOf("accueil.hidden = false") !== -1,
+    'revenir sur les séances doit remontrer la page (sinon écran blanc)');
+ok(blocSeances.indexOf("page.hidden = true") !== -1,
+    'revenir sur les séances doit cacher le minuteur');
+ok(script.indexOf("if (typeof memoireAller === 'function') memoireAller('planning')") !== -1,
+    'la maison du minuteur doit ramener au planning, pas aux séances');
+ok(memoire.indexOf("hash === 'seances') etape = 'seances'") !== -1,
+    'un lien direct #seances doit rouvrir la page des séances');
+
 /* ── Le menu ─────────────────────────────────────────────────────── */
 var itemSeances = planning.indexOf('id="menuSeances"');
 var itemMinuteur = planning.indexOf('id="menuMinuteur"');

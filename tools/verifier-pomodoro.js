@@ -67,7 +67,11 @@ ok(script.indexOf('function focusPeindreAccueil') !== -1, 'la page des séances 
 ok(script.indexOf('function focusEntrerPiece') !== -1, 'le bouton ne mène pas au minuteur');
 ok(script.indexOf("memoireAller('pomodoro')") !== -1, 'entrer dans le minuteur doit poser une étape d\'historique');
 ok(script.indexOf('function focusReprendreApresRafraichissement') !== -1, 'la reprise après rafraîchissement manque');
-ok(script.indexOf("memoireAller('seances')") !== -1, 'le bouton maison du minuteur doit ramener aux séances');
+ok(script.indexOf("memoireAller('planning')") !== -1, 'le bouton maison du minuteur doit ramener au planning');
+ok(script.indexOf("if (accueil) accueil.hidden = false;") !== -1,
+    'revenir sur la page des séances doit la remontrer');
+ok(script.indexOf("if (page) page.hidden = true;") !== -1,
+    'revenir sur la page des séances doit cacher le minuteur');
 ok(page.indexOf('id="focusAccueil"') === -1, 'l\'accueil des séances ne doit plus vivre dans le minuteur');
 ok(page.indexOf('Tes séances du jour') === -1, 'l\'ancien accueil doit disparaître du minuteur');
 ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisis une séance, puis lance le minuteur Pomodoro') !== -1,

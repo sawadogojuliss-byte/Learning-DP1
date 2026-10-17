@@ -143,6 +143,12 @@ function focusIndexParId(id) {
 function focusOuvrirSeances() {
     focusCharger();
     focusFondsArret = false;
+    /* Le minuteur cache la page des séances : on la remontre à chaque retour,
+       sinon l'écran restait blanc après un premier passage sur le minuteur. */
+    var accueil = document.getElementById('focusAccueil');
+    if (accueil) accueil.hidden = false;
+    var page = document.getElementById('focusPage');
+    if (page) page.hidden = true;
     focusPoserFond(focusIndexParId('lumiere'), true);
     focusPeindreFlamme();
     focusPeindre();
@@ -980,9 +986,9 @@ function focusMaison() {
     focusFermer('focusReglages');
     focusFermer('focusFonds');
     focusFermer('focusSons');
-    /* Le bouton maison du minuteur ramène à la séance de révision du jour. */
-    if (typeof memoireAller === 'function') memoireAller('seances');
-    else if (typeof navigateTo === 'function') navigateTo('seances');
+    /* Le bouton maison du minuteur ramène au planning. */
+    if (typeof memoireAller === 'function') memoireAller('planning');
+    else if (typeof navigateTo === 'function') navigateTo('planning');
 }
 
 function focusFondAbsolu() {
