@@ -182,8 +182,16 @@ def main():
                                        os.path.join(args.sortie, '_tmp.wav'))
     mp3 = os.path.join(args.sortie, 'piano.mp3')
     longs.encoder(os.path.join(args.sortie, '_tmp.wav'), mp3, 'stereo')
-    for suffixe, candidat in (('-2', rang[1] if len(rang) > 1 else None),
-                              ('-3', rang[2] if len(rang) > 2 else None)):
+    autres = []
+    for c in rang:
+        if c is choisi:
+            continue
+        if all(abs(c['debut_s'] - d['debut_s']) > 300 for d in [choisi] + autres):
+            autres.append(c)
+        if len(autres) == 2:
+            break
+    for suffixe, candidat in (('-2', autres[0] if len(autres) > 0 else None),
+                              ('-3', autres[1] if len(autres) > 1 else None)):
         if candidat is None:
             continue
         y = longs.fabriquer_depuis_musique(args.source, candidat['debut_s'], 'stereo',
@@ -199,7 +207,8 @@ def main():
                     'octets': os.path.getsize(mp3),
                     'criteres': {k: round(v, 4) for k, v in choisi.items() if k != 'debut_s'}})
     with open(os.path.join(args.sortie, 'rapport.json'), 'w') as f:
-        json.dump({'mesures': mesures, 'candidats': rang[:12]}, f, indent=2, ensure_ascii=False)
+        json.dump({'mesures': mesures, 'candidats': rang[:12],
+                   'propositions': [choisi] + autres}, f, indent=2, ensure_ascii=False)
     os.remove(os.path.join(args.sortie, '_tmp.wav'))
     print(json.dumps(mesures, indent=2, ensure_ascii=False))
     return 0
