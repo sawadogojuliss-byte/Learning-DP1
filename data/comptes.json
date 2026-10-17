@@ -10677,11 +10677,11 @@
       "google": "redminote13u@gmail.com",
       "googleSub": "101043752652133995164",
       "nom": "Yohann",
-      "at": "2026-10-16T09:52:33.620Z",
+      "at": "2026-10-17T07:15:44.481Z",
       "data": {
         "v": 1,
-        "savedAt": "2026-10-16T09:52:33.620Z",
-        "etape": "planning",
+        "savedAt": "2026-10-17T07:15:44.481Z",
+        "etape": "seances",
         "profilComplet": true,
         "userName": "Yohann",
         "targetScore": 42,
@@ -10809,7 +10809,7 @@
           "5": 60,
           "6": 60
         },
-        "selectedDay": 4,
+        "selectedDay": 5,
         "customEvents": [],
         "modifsSemaine": {
           "semaine": "2026-10-12",
@@ -13150,10 +13150,10 @@
         },
         "exercices": [],
         "currentMood": "ennuye",
-        "joursConnectes": 5,
-        "dernierJour": "Fri Oct 16 2026",
-        "flammes": 1,
-        "flammeJour": "2026-10-15",
+        "joursConnectes": 6,
+        "dernierJour": "Sat Oct 17 2026",
+        "flammes": 2,
+        "flammeJour": "2026-10-16",
         "utilisateurId": "101043752652133995164",
         "google": {
           "sub": "101043752652133995164",
