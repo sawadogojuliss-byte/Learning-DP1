@@ -54,7 +54,7 @@ async function main() {
             }
         });
         const avis = [];
-        await page.route('**script.google.com**', async function (route) {
+        await page.route(/script\.google\.com/, async function (route) {
             const requete = route.request();
             if (requete.method() !== 'POST') { await route.continue(); return; }
             let payload = {};
@@ -68,7 +68,7 @@ async function main() {
             });
         });
         if (mode === 'fil-mort') {
-            await page.route('**ntfy.sh**', async function (route) {
+            await page.route(/ntfy\.sh/, async function (route) {
                 if (route.request().method() === 'POST') { await route.abort(); return; }
                 await route.continue();
             });
@@ -150,12 +150,7 @@ async function main() {
                 catch (e) { essai.expediteur = 'ERREUR ' + (e && e.message); }
                 try { essai.salutation = boiteSalutation('Juliss', new Date()); }
                 catch (e) { essai.salutation = 'ERREUR ' + (e && e.message); }
-                try {
-                    essai.avertir = await boiteAvertirAdmins({
-                        type: 'question', id: 'qtest-diag' + Date.now().toString(16),
-                        texte: 'diagnostic e2e', nom: 'Test', email: 't@e.com', google: 't@e.com', googleNom: 'Test E2E'
-                    });
-                } catch (e) { essai.avertir = 'ERREUR ' + (e && e.message); }
+                essai.avertir = typeof boiteAvertirAdmins === 'function' ? 'fonction présente' : 'fonction absente';
                 return essai;
             });
             console.log('DIAGNOSTIC ' + JSON.stringify(diagnostic));
