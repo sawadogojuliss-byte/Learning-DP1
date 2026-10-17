@@ -1,0 +1,48 @@
+name: Diagnostic vérifications
+
+on:
+  push:
+    paths:
+      - '.diag-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Lancer chaque vérification et noter le résultat
+        run: |
+          mkdir -p /tmp/diag
+          {
+            echo "node $(node --version)"
+            for f in tools/verifier-*.js; do
+              echo "════════ $f"
+              if node "$f" > /tmp/diag/un.txt 2>&1; then
+                echo "SORTIE 0"
+                cat /tmp/diag/un.txt
+              else
+                echo "SORTIE $?"
+                cat /tmp/diag/un.txt
+              fi
+            done
+          } > /tmp/diag/resultat.txt 2>&1
+          tail -5 /tmp/diag/resultat.txt
+      - name: Publier
+        if: always()
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd /tmp/diag
+          git init -q .
+          git checkout -q -b tmp/diag
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Diagnostic des vérifications"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/diag
