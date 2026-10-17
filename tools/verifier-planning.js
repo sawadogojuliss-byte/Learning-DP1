@@ -126,6 +126,19 @@ ok(lire('js/pages/planning-moteur.js').indexOf('const v3IconeRepas = (icone) => 
     'les plannings enregistrés avec l\'assiette de pâtes doivent être corrigés');
 ok((lire('js/pages/planning-moteur.js').match(/v3IconeRepas\(ov\.icon\)/g) || []).length === 3,
     'chaque icône enregistrée doit passer par la correction');
+/* La règle finale, celle qui s'affiche : croissant au petit-déjeuner et
+   assiette couteau-fourchette au déjeuner comme au dîner, même dans un emploi
+   déjà enregistré. */
+ok(lire('js/pages/planning-base.js').indexOf("var V3_ICONES_REPAS = { breakfast: '🥐', lunch: '🍽️', dinner: '🍽️' };") !== -1,
+    'la règle des trois repas doit être écrite une seule fois');
+ok(lire('js/pages/planning-base.js').indexOf('function v3IconesRepas(jour)') !== -1,
+    'les icônes des repas doivent être garanties à chaque génération');
+ok((lire('js/pages/planning-base.js').match(/v3IconesRepas\(/g) || []).length >= 3,
+    'la génération doit passer par la règle des repas');
+ok(lire('js/pages/planning-moteur.js').indexOf('function v3Repas(jour)') !== -1,
+    'un emploi figé doit aussi passer par la règle des repas');
+ok((lire('js/pages/planning-moteur.js').match(/v3Repas\(/g) || []).length >= 4,
+    'chaque sortie du moteur doit passer par la règle des repas');
 /* L'icône des activités change chaque semaine, dans l'ordre, pour tout le monde. */
 ok(planning.indexOf('id="statActivitiesIcone"') !== -1, 'la carte des activités doit avoir son icône de la semaine');
 ok(interfaceJs.indexOf("var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];") !== -1,

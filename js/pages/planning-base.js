@@ -139,6 +139,21 @@ function getStudyColor(grade) {
     return 'study';
 }
 
+/* Les trois repas gardent toujours la même image, même dans un emploi déjà
+   enregistré : le croissant pour le petit-déjeuner, l'assiette avec couteau et
+   fourchette pour le déjeuner et pour le dîner. */
+var V3_ICONES_REPAS = { breakfast: '🥐', lunch: '🍽️', dinner: '🍽️' };
+
+function v3IconesRepas(jour) {
+    if (!Array.isArray(jour)) return jour;
+    jour.forEach(function (ev) {
+        if (!ev || !V3_ICONES_REPAS[ev.id]) return;
+        if (ev.type && ev.type !== 'meal') return;
+        ev.icon = V3_ICONES_REPAS[ev.id];
+    });
+    return jour;
+}
+
 function generateDayEvents(dayIndex) {
     const isWeekend = dayIndex >= 5;
     const isSaturday = dayIndex === 5;
@@ -300,8 +315,8 @@ function generateDayEvents(dayIndex) {
             }
         });
     }
-    if (typeof verrouillerTrajets === 'function') return verrouillerTrajets(resultat, dayIndex);
-    return resultat;
+    if (typeof verrouillerTrajets === 'function') return v3IconesRepas(verrouillerTrajets(resultat, dayIndex));
+    return v3IconesRepas(resultat);
 }
 
 function getEventColor(type) {

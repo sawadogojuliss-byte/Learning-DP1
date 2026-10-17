@@ -1008,15 +1008,21 @@ function planningReveilApresCoucher(reveil, coucher) {
     }
 }
 
+/* Un emploi enregistré garde ses anciennes images de repas : on les remet
+   en ordre à chaque lecture (croissant, puis l'assiette pour les deux repas). */
+function v3Repas(jour) {
+    return typeof v3IconesRepas === 'function' ? v3IconesRepas(jour) : jour;
+}
+
 function generateDayEvents(dayIndex) {
     var jour = Number(dayIndex);
     if (!isFinite(jour) || jour < 0) jour = 0;
-    if (emploiGelSuspendu || window.__emploiCalculBrut) return planningGarantirJour(genererJourBrut(jour));
+    if (emploiGelSuspendu || window.__emploiCalculBrut) return v3Repas(planningGarantirJour(genererJourBrut(jour)));
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
     }
-    if (emploiEstFige() && emploiFige.jours[jour]) return planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour])));
-    return planningGarantirJour(emploiReconstruire(jour));
+    if (emploiEstFige() && emploiFige.jours[jour]) return v3Repas(planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour]))));
+    return v3Repas(planningGarantirJour(emploiReconstruire(jour)));
 }
 
 function planningDepuisProgression() {
