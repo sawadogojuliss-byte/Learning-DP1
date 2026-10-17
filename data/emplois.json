@@ -1254,7 +1254,7 @@
       "type": "emploi",
       "id": "e_a1a141a7a5de2c6da56d",
       "appareil": "a1a141a7a5de2c6da56d",
-      "at": "2026-10-16T21:48:23.158Z",
+      "at": "2026-10-16T22:24:20.438Z",
       "nom": "Kania",
       "classe": "DP2",
       "email": "",
@@ -1273,96 +1273,6 @@
       "complet": 1,
       "fige": 1,
       "jours": [
-        {
-          "j": "Lundi",
-          "s": [
-            {
-              "d": "06:00",
-              "f": "06:10",
-              "t": "Réveil"
-            },
-            {
-              "d": "06:45",
-              "f": "07:00",
-              "t": "Trajet école"
-            },
-            {
-              "d": "07:00",
-              "f": "07:50",
-              "t": "Révisions Anglais B"
-            },
-            {
-              "d": "07:00",
-              "f": "07:30",
-              "t": "Préparation"
-            },
-            {
-              "d": "07:50",
-              "f": "12:30",
-              "t": "Cours"
-            },
-            {
-              "d": "12:30",
-              "f": "13:30",
-              "t": "Déjeuner"
-            },
-            {
-              "d": "13:30",
-              "f": "16:25",
-              "t": "Cours"
-            },
-            {
-              "d": "16:25",
-              "f": "16:55",
-              "t": "Trajet maison"
-            },
-            {
-              "d": "16:55",
-              "f": "17:45",
-              "t": "Révisions Français A"
-            },
-            {
-              "d": "17:45",
-              "f": "18:00",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "18:00",
-              "f": "18:30",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:30",
-              "f": "19:20",
-              "t": "Exercices Physique"
-            },
-            {
-              "d": "20:00",
-              "f": "20:30",
-              "t": "Dîner"
-            },
-            {
-              "d": "20:30",
-              "f": "21:00",
-              "t": "Téléphone"
-            },
-            {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "21:30",
-              "f": "22:00",
-              "t": "Préparation du soir"
-            },
-            {
-              "d": "22:00",
-              "f": "06:00",
-              "t": "Coucher"
-            }
-          ]
-        },
         {
           "j": "Mardi",
           "s": [
@@ -4426,7 +4336,7 @@
         "ESS SL"
       ],
       "complet": 1,
-      "fige": 0,
+      "fige": 1,
       "jours": [
         {
           "j": "Lundi",
@@ -7044,7 +6954,7 @@
       "type": "emploi",
       "id": "e_a1a12c8a4e260da4b22e",
       "appareil": "a1a12c8a4e260da4b22e",
-      "at": "2026-10-16T12:50:57.203Z",
+      "at": "2026-10-16T22:04:24.968Z",
       "nom": "Sere Farid Abdourrahman",
       "classe": "DP2",
       "email": "faridsere86@gmail.com",
