@@ -132,7 +132,7 @@ def choisir_debut(x, rate):
     print('  score   début    dyn   saut  crête  niveau')
     for c in candidats[:8]:
         print('  %5.2f  %7.2f s %5.1f  %5.1f  %5.1f  %6.1f' % (c[0], c[1], c[2], c[3], c[4], c[5]))
-    return candidats[0][1], env
+    return candidats[0][1], candidats[:8]
 
 
 def ecrire(chemin, x):
@@ -169,8 +169,9 @@ def main():
     if float(np.max(np.abs(analyse))) < 1e-4:
         raise SystemExit('Enregistrement muet')
 
+    candidats = []
     if args.debut is None:
-        debut, _ = choisir_debut(analyse, RATE_ANALYSE)
+        debut, candidats = choisir_debut(analyse, RATE_ANALYSE)
     else:
         debut = args.debut
     print('Passage retenu : %.2f s' % debut)
@@ -202,11 +203,25 @@ def main():
                                     - np.percentile(20 * np.log10(np.maximum(np.abs(x), 1e-9)), 5)), 1),
         'saut_dbfs': round(20 * np.log10(max(saut, 1e-9)), 1),
         'bandes_pct': bandes(x),
+        'candidats': [[round(c[0], 2), round(c[1], 1), round(c[2], 1), round(c[3], 1)] for c in candidats],
     }
     print(json.dumps(mesures, indent=2))
     if args.copie:
-        with open(os.path.join(os.path.dirname(args.copie), 'mesures.json'), 'w') as f:
+        dossier = os.path.dirname(args.copie)
+        with open(os.path.join(dossier, 'mesures.json'), 'w') as f:
             json.dump(mesures, f, indent=2)
+        with open(os.path.join(dossier, 'rapport.txt'), 'w') as f:
+            f.write('Passage retenu : %.2f s\n' % debut)
+            f.write('Durée %.3f s — %d échantillons\n' % (mesures['duree'], n))
+            f.write('rms %.4f — crête %.4f — crête/rms %.1f dB — dynamique %.1f dB\n'
+                    % (mesures['rms'], mesures['crete'], mesures['crete_rms_db'], mesures['dynamique_db']))
+            f.write('Raccord de boucle : %.1f dBFS\n' % mesures['saut_dbfs'])
+            f.write('Bandes 20-80/80-250/250-800/800-2500/2500-6000/6000-10000 : %s %%\n'
+                    % ' / '.join('%.1f' % b for b in mesures['bandes_pct']))
+            if candidats:
+                f.write('Candidats (score, début s, dynamique dB, saut dB) :\n')
+                for c in candidats:
+                    f.write('  %5.2f  %7.1f s  %4.1f  %4.1f\n' % c)
     return 0
 
 

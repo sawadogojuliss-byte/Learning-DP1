@@ -6,7 +6,7 @@ on:
       - '.vent-trigger'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   extrait:
@@ -17,6 +17,7 @@ jobs:
 
       - name: Préparer ffmpeg et numpy
         run: |
+          mkdir -p /tmp/vent
           if ! command -v ffmpeg >/dev/null 2>&1; then
             sudo apt-get update -qq
             sudo apt-get install -y -qq ffmpeg
@@ -25,29 +26,45 @@ jobs:
           python3 -m pip install --quiet --disable-pip-version-check numpy
 
       - name: Télécharger l'enregistrement dans /tmp
+        continue-on-error: true
         env:
           VENT_URL: https://drive.usercontent.google.com/download?id=16G9orcvAlYRqnKOHwjXxUesd84HxChV7&export=download&confirm=t
         run: |
-          set -euo pipefail
+          set -uo pipefail
           curl -sSL --retry 3 --retry-delay 5 --max-time 900 "$VENT_URL" -o /tmp/vents.mp3 || true
           if [ ! -s /tmp/vents.mp3 ] || [ "$(stat -c%s /tmp/vents.mp3)" -lt 100000000 ]; then
-            echo "Le premier lien n'a pas donné le fichier complet, second essai."
+            echo "Le premier lien n'a pas donné le fichier complet, second essai." | tee -a /tmp/vent/rapport.txt
             ID=$(printf '%s' "$VENT_URL" | sed -n 's/.*id=\([A-Za-z0-9_-]*\).*/\1/p')
             curl -sSL --retry 3 --retry-delay 5 --max-time 900 \
               "https://drive.google.com/uc?export=download&id=$ID&confirm=t" -o /tmp/vents.mp3
           fi
-          echo "Taille : $(stat -c%s /tmp/vents.mp3) octets"
+          echo "Taille : $(stat -c%s /tmp/vents.mp3) octets" | tee -a /tmp/vent/rapport.txt
           test "$(stat -c%s /tmp/vents.mp3)" -gt 100000000
-          head -c 4 /tmp/vents.mp3 | od -An -tx1
 
       - name: Extraire la boucle de 7,91 s
+        continue-on-error: true
         run: |
+          set -o pipefail
           python3 tools/extrait-vent.py --mp3 /tmp/vents.mp3 \
-            --sortie audio/pomodoro/vent.wav --copie /tmp/vent/vent.wav
+            --sortie audio/pomodoro/vent.wav --copie /tmp/vent/vent.wav 2>&1 \
+            | tee /tmp/vent/extraction.log
+          test -s /tmp/vent/vent.wav
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vent
-          path: /tmp/vent/
-          retention-days: 1
-          if-no-files-found: error
+      - name: Publier le résultat dans une branche temporaire
+        if: always()
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -x
+          ls -l /tmp/vent
+          if [ ! -s /tmp/vent/vent.wav ]; then
+            echo "L'extraction n'a pas produit de fichier." > /tmp/vent/ECHEC.txt
+            tail -40 /tmp/vent/extraction.log >> /tmp/vent/ECHEC.txt 2>&1 || true
+          fi
+          cd /tmp/vent
+          git init -q .
+          git checkout -q -b tmp/vent
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Extrait du son Vent"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/vent
