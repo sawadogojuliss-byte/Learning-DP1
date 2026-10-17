@@ -1134,26 +1134,26 @@ function focusSortirPleinEcran() {
 }
 
 var FOCUS_SONS = [
-    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav?v=20261015k' },
-    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav?v=20261015k' },
-    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav?v=20261015k' },
-    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav?v=20261015k' },
-    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav?v=20261015k' },
-    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav?v=20261015k' },
-    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav?v=20261015k' },
-    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav?v=20261015k' },
-    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav?v=20261015k' },
-    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav?v=20261015k' },
-    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav?v=20261015k' },
-    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav?v=20261015k' },
-    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav?v=20261015k' },
-    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav?v=20261015k' },
-    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav?v=20261015k' },
-    { id: 'blanc', nom: 'Bruit blanc', icone: '🧠', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav?v=20261015k' },
-    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav?v=20261015k' },
-    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav?v=20261015k' },
-    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav?v=20261015k' },
-    { id: 'beta', nom: 'Binaural bêta', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav?v=20261015k' }
+    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.wav?v=20261017a' },
+    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.wav?v=20261017a' },
+    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.wav?v=20261017a' },
+    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.wav?v=20261017a' },
+    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.wav?v=20261017a' },
+    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.wav?v=20261017a' },
+    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.wav?v=20261017a' },
+    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.wav?v=20261017a' },
+    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.wav?v=20261017a' },
+    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.wav?v=20261017a' },
+    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.wav?v=20261017a' },
+    { id: 'cheminee', nom: 'Cheminée', icone: '🔥', groupe: 'nature', fichier: 'audio/pomodoro/cheminee.wav?v=20261017a' },
+    { id: 'feu', nom: 'Feu de camp', icone: '🪵', groupe: 'nature', fichier: 'audio/pomodoro/feu.wav?v=20261017a' },
+    { id: 'bureau', nom: 'Bureau', icone: '🏢', groupe: 'ville', fichier: 'audio/pomodoro/bureau.wav?v=20261017a' },
+    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.wav?v=20261017a' },
+    { id: 'blanc', nom: 'Bruit blanc', icone: '🧠', groupe: 'bruits', fichier: 'audio/pomodoro/blanc.wav?v=20261017a' },
+    { id: 'rose', nom: 'Bruit rose', icone: '🩷', groupe: 'bruits', fichier: 'audio/pomodoro/rose.wav?v=20261017a' },
+    { id: 'brun', nom: 'Bruit brun', icone: '🟤', groupe: 'bruits', fichier: 'audio/pomodoro/brun.wav?v=20261017a' },
+    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.wav?v=20261017a' },
+    { id: 'beta', nom: 'Binaural bêta', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.wav?v=20261017a' }
 ];
 var focusLecteurs = {};
 var focusVolumes = {};

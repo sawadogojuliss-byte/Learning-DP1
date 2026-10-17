@@ -176,6 +176,53 @@ ok(page.indexOf('title="Image dans') === -1, 'le survol ne doit pas afficher ima
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
 });
 
+/* ── 8 bis. Les fichiers audio sont sains ─────────────────────────── */
+function enteteWav(rel) {
+    var buf = fs.readFileSync(path.join(__dirname, '..', rel));
+    if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return null;
+    var canaux = buf.readUInt16LE(22);
+    var fsAudio = buf.readUInt32LE(24);
+    var bits = buf.readUInt16LE(34);
+    var i = 12;
+    while (i + 8 <= buf.length) {
+        var id = buf.toString('ascii', i, i + 4);
+        var taille = buf.readUInt32LE(i + 4);
+        if (id === 'data') {
+            var n = Math.floor(taille / (canaux * bits / 8));
+            var premier = buf.readInt16LE(i + 8);
+            var dernier = buf.readInt16LE(i + 8 + (n - 1) * canaux * (bits / 8));
+            var crete = 0;
+            for (var k = 0; k < n; k += 97) {
+                var v = Math.abs(buf.readInt16LE(i + 8 + k * canaux * (bits / 8)));
+                if (v > crete) crete = v;
+            }
+            return { canaux: canaux, fs: fsAudio, bits: bits, duree: n / fsAudio, premier: premier, dernier: dernier, crete: crete };
+        }
+        i += 8 + taille + (taille % 2);
+    }
+    return null;
+}
+var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin', 'pluie-legere',
+            'pluie-forte', 'orage', 'cheminee', 'feu', 'bureau', 'vent', 'blanc', 'rose', 'brun', 'gamma', 'beta'];
+var sains = 0;
+sons.forEach(function (nom) {
+    var f = 'audio/pomodoro/' + nom + '.wav';
+    var h = fs.existsSync(path.join(__dirname, '..', f)) ? enteteWav(f) : null;
+    if (!h) { echecs.push('son illisible : ' + f); return; }
+    if (h.fs !== 22050 || h.bits !== 16) { echecs.push('format inattendu pour ' + nom); return; }
+    if (h.duree < 7.5 || h.duree > 8.2) echecs.push('durée inattendue pour ' + nom + ' (' + h.duree.toFixed(2) + ' s)');
+    /* Boucle : le raccord ne doit pas faire de clic. */
+    var saut = Math.abs(h.premier - h.dernier) / 32768;
+    if (saut > 0.01) echecs.push('la boucle de ' + nom + ' fait un clic (' + saut.toFixed(4) + ')');
+    /* Pas de saturation. */
+    if (h.crete >= 32700) echecs.push('le son ' + nom + ' sature');
+    if ((nom === 'gamma' || nom === 'beta') && h.canaux !== 2) echecs.push(nom + ' doit rester en stéréo (une oreille par porteuse)');
+    if (nom !== 'gamma' && nom !== 'beta' && h.canaux !== 1) echecs.push(nom + ' doit rester en mono');
+    sains++;
+});
+ok(sains === sons.length, 'les 20 sons doivent être lisibles et boucler proprement');
+ok(script.indexOf('audio/pomodoro/pluie.wav?v=20261017a') !== -1, 'le cache des sons doit être renouvelé');
+
 /* ── 9. Les cours finissent à 16 h 25 ── */
 ok(lire('js/pages/planning-base.js').indexOf('var COURS_FIN = 16 * 60 + 25;') !== -1, 'les cours doivent finir à 16 h 25');
 ok(lire('pages/onboarding-activites.html').indexOf('16h35') === -1, 'l\'ancien horaire 16h35 reste affiché');

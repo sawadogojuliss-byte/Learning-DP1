@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sons du Pomodoro — avant / après</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f6faf7; color: #0b1f18; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 1.5rem 1rem 4rem; }
+  h1 { font-size: 1.35rem; margin: 0 0 .35rem; }
+  .sous { color: #4b5563; font-size: .9rem; margin-bottom: 1.5rem; }
+  h2 { font-size: 1rem; margin: 2rem 0 .75rem; color: #065f46; text-transform: uppercase; letter-spacing: .06em; }
+  .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; }
+  .carte { background: #fff; border: 1.5px solid #e5f3ea; border-radius: 1rem; padding: .8rem .9rem; box-shadow: 0 6px 18px rgba(6,78,59,.05); }
+  .titre { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: .95rem; margin-bottom: .5rem; }
+  .emoji { font-size: 1.5rem; line-height: 1; }
+  audio { width: 100%; height: 34px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
+  .compare .carte { border-color: #fde68a; }
+  .compare .carte.apres { border-color: #a7f3d0; }
+  .etiquette { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; padding: .15rem .45rem; border-radius: .4rem; }
+  .avant { background: #fef3c7; color: #92400e; }
+  .apres { background: #d1fae5; color: #065f46; }
+  .note { margin-top: 2rem; background: #fff; border: 1.5px solid #e5f3ea; border-radius: 1rem; padding: 1rem; font-size: .88rem; line-height: 1.55; }
+  .note b { color: #065f46; }
+</style>
+</head>
+<body>
+  <h1>🎧 Les 20 sons du Pomodoro — la nouvelle version</h1>
+  <p class="sous">Écoute chaque ambiance. Les sons qui « grésillaient comme une radio » sont refaits : plus de fréquence pure, plus de chuintement dans les aigus, plus de clic à chaque redémarrage.</p>
+
+  <h2>Avant / après</h2>
+  <div class="compare" id="compare"></div>
+
+  <h2>Nature</h2>
+  <div class="grille" id="nature"></div>
+  <h2>Ville</h2>
+  <div class="grille" id="ville"></div>
+  <h2>Bruits</h2>
+  <div class="grille" id="bruits"></div>
+  <h2>Concentration</h2>
+  <div class="grille" id="concentration"></div>
+
+  <div class="note">
+    <b>Ce qui a changé</b><br>
+    • <b>Binaural gamma / bêta :</b> c'était deux sons purs (un par oreille) posés en avant — d'où le sifflement de radio. Les porteuses passent maintenant très bas sous une nappe chaude ; le battement (40 Hz et 20 Hz) reste exact.<br>
+    • <b>Pluie, pluie légère, forte pluie, orage, bruit blanc, bruit rose :</b> les aigus (4 000–9 000 Hz) sont adoucis. Ils faisaient 45 à 60 % de l'énergie : c'est exactement le « chuintement » d'une radio mal réglée. Ils descendent à 3–14 %.<br>
+    • <b>Toutes les ambiances :</b> le grave est rééquilibré bande par bande pour qu'aucun son ne soit sourd, et le niveau de départ est le même pour les 20.<br>
+    • <b>Boucles :</b> plus aucun clic toutes les 8 secondes (le raccord est coupé là où le signal est plat).
+  </div>
+
+<script>
+var SONS = [
+  { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature' },
+  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature' },
+  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔', groupe: 'nature' },
+  { id: 'pluie-forte', nom: 'Forte pluie', emoji: '🌧️', groupe: 'nature' },
+  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature' },
+  { id: 'cheminee', nom: 'Cheminée', emoji: '🔥', groupe: 'nature' },
+  { id: 'feu', nom: 'Feu de camp', emoji: '🪵', groupe: 'nature' },
+  { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature' },
+  { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville' },
+  { id: 'avion', nom: "Cabine d'avion", emoji: '✈️', groupe: 'ville' },
+  { id: 'salle', nom: "Salle d'examen", emoji: '😰', groupe: 'ville' },
+  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville' },
+  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville' },
+  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville' },
+  { id: 'bureau', nom: 'Bureau', emoji: '🏢', groupe: 'ville' },
+  { id: 'blanc', nom: 'Bruit blanc', emoji: '🧠', groupe: 'bruits' },
+  { id: 'rose', nom: 'Bruit rose', emoji: '🩷', groupe: 'bruits' },
+  { id: 'brun', nom: 'Bruit brun', emoji: '🟤', groupe: 'bruits' },
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration' },
+  { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻', groupe: 'concentration' }
+];
+var COMPARE = [
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' },
+  { id: 'blanc', nom: 'Bruit blanc', emoji: '🧠' },
+  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔' },
+  { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻' }
+];
+function carte(son, avant) {
+  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.wav?v=20261017a';
+  return '<div class="carte' + (avant ? '' : ' apres') + '">' +
+    '<div class="titre"><span class="emoji">' + son.emoji + '</span>' + son.nom +
+    '<span class="etiquette ' + (avant ? 'avant' : 'apres') + '">' + (avant ? 'avant' : 'après') + '</span></div>' +
+    '<audio controls preload="none" src="' + url + '"></audio></div>';
+}
+COMPARE.forEach(function (son) {
+  document.getElementById('compare').insertAdjacentHTML('beforeend', carte(son, true) + carte(son, false));
+});
+SONS.forEach(function (son) {
+  document.getElementById(son.groupe).insertAdjacentHTML('beforeend', carte(son, false));
+});
+</script>
+</body>
+</html>
