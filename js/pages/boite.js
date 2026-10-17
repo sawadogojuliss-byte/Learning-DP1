@@ -196,36 +196,14 @@ function boiteMemoriserCoffre(cfg) {
     };
 }
 
-function boiteCreerKvdb() {
-    var body = 'email=' + encodeURIComponent('234701558+sawadogojuliss-byte@users.noreply.github.com') + '&default_ttl=31536000';
-    return boiteFetch('https://kvdb.io', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: body
-    }, 12000).then(function (res) {
-        if (!res.ok) throw new Error('kvdb');
-        return res.text();
-    }).then(function (bucket) {
-        bucket = String(bucket || '').trim();
-        if (!/^[A-Za-z0-9_-]{8,80}$/.test(bucket)) throw new Error('kvdb');
-        var url = 'https://kvdb.io/' + bucket;
-        boiteMemoriserCoffre({ kvdb: url });
-        boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain', Title: 'coffre', Priority: 'min' },
-            body: JSON.stringify({ type: 'coffre', kvdb: url })
-        }, 8000).catch(function () {});
-        return url;
-    });
-}
-
-function boiteResoudreKvdb(cfg) {
-    if (cfg && cfg.kvdb) return Promise.resolve(cfg.kvdb);
+function boiteKvdbConnu(cfg) {
+    /* Le coffre n'est plus créé depuis le navigateur : la création échouait
+       (compte kvdb non vérifié, écriture refusée) et retardait même l'envoi
+       de la question. On n'utilise qu'un coffre déjà configuré — par le
+       workflow « Boîte partagée », qui inscrit l'adresse dans
+       data/boite-url.json — ou mémorisé sur cet appareil. */
     var local = boiteLireJson(BOITE_URL_LOCALE);
-    if (local && local.kvdb) return Promise.resolve(local.kvdb);
-    if (window.__boiteKvdbPromesse) return window.__boiteKvdbPromesse;
-    window.__boiteKvdbPromesse = boiteCreerKvdb().catch(function () { return ''; });
-    return window.__boiteKvdbPromesse;
+    return String((cfg && cfg.kvdb) || (local && local.kvdb) || '');
 }
 
 function boiteCleKvdb(record) {
@@ -324,27 +302,44 @@ function boiteCorpsNtfy(record) {
 }
 
 function boiteEcrireNtfy(record) {
-    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain', Title: record.type || 'message', Priority: 'min' },
-        body: boiteCorpsNtfy(record)
-    }, 12000).then(function (res) {
-        if (!res.ok) throw new Error('ntfy');
+    function tentative() {
+        return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain', Title: record.type || 'message', Priority: 'min' },
+            body: boiteCorpsNtfy(record)
+        }, 12000).then(function (res) {
+            if (!res.ok) throw new Error('ntfy');
+        });
+    }
+    /* Le fil peut hoqueter une fois : on reprend après un court délai
+       avant de déclarer l'envoi perdu. */
+    return tentative().catch(function () {
+        return new Promise(function (resolve) { setTimeout(resolve, 2500); }).then(tentative);
     });
 }
 
 function boiteEnvoyerDistant(record, options) {
     options = options || {};
-    return boiteLireConfig().then(function (cfg) {
-        return boiteResoudreKvdb(cfg).then(function (kvdb) {
-            var essais = [boiteEcrireNtfy(record).then(function () { return true; }).catch(function () { return false; })];
-            if (kvdb && !options.sansKvdb && !(record && record.partie)) essais.push(boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return false; }));
-            return Promise.all(essais);
-        });
-    }).then(function (resultats) {
-        if (!resultats.some(Boolean)) throw new Error('envoi');
-        boiteRetirerFile(record.id);
+    function coffre() {
+        var kvdb = boiteKvdbConnu(boiteConfigCache);
+        if (!kvdb || options.sansKvdb || (record && record.partie)) return Promise.resolve(false);
+        return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return false; });
+    }
+    /* La question part d'abord vers le fil, avec une reprise : c'est le canal
+       qui marche. Le coffre n'est plus créé ni attendu — sa création échouait
+       et retardait l'envoi ; il ne sert plus que de recours s'il est déjà
+       configuré. */
+    return boiteEcrireNtfy(record).then(function () {
+        coffre();
         return true;
+    }, function () {
+        return coffre().then(function (ok) {
+            if (!ok) throw new Error('envoi');
+            return true;
+        });
+    }).then(function (ok) {
+        boiteRetirerFile(record.id);
+        return ok;
     });
 }
 
@@ -565,10 +560,9 @@ function boiteEnvoyer(record) {
     if (decoupe) {
         envoi = envoi.then(function () {
             return boiteLireConfig().then(function (cfg) {
-                return boiteResoudreKvdb(cfg).then(function (kvdb) {
-                    if (!kvdb) return true;
-                    return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return true; });
-                });
+                var kvdb = boiteKvdbConnu(cfg);
+                if (!kvdb) return true;
+                return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return true; });
             }).catch(function () { return true; });
         });
     }
@@ -2052,23 +2046,31 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'Indique ton e-mail pour recevoir la réponse.', true);
         return;
     }
-    var record = boiteCompleterIdentite({
-        type: 'question',
-        id: boiteId('q'),
-        at: new Date().toISOString(),
-        nom: boiteNom(),
-        texte: valeur.slice(0, 800),
-        email: email,
-        google: email,
-        googleNom: session && session.name ? session.name : '',
-        googleSub: session && session.sub ? session.sub : ''
-    });
-    boitePublierEmploi(true);
+    var record;
+    try {
+        record = boiteCompleterIdentite({
+            type: 'question',
+            id: boiteId('q'),
+            at: new Date().toISOString(),
+            nom: boiteNom(),
+            texte: valeur.slice(0, 800),
+            email: email,
+            google: email,
+            googleNom: session && session.name ? session.name : '',
+            googleSub: session && session.sub ? session.sub : ''
+        });
+        /* L'emploi du temps part à part : s'il échoue, la question part quand même. */
+        try { boitePublierEmploi(true); } catch (e) {}
+    } catch (e) {
+        boiteEnvoiEnCours = false;
+        boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
+        return;
+    }
     boiteEnvoyer(record).then(function () {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
-        boiteDire('aideStatut', 'Question envoyée. La réponse viendra de ibstudyplan@gmail.com. Si elle est dans les indésirables, choisis Non indésirable une fois.', false);
+        boiteDire('aideStatut', 'Question envoyée.', false);
     }).catch(function () {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
     }).then(function () {
@@ -2133,18 +2135,25 @@ function initFeedback() {
         boiteEnvoiEnCours = true;
         boiteDire('feedbackStatut', 'Envoi…', false);
         var sessionEnvoi = boiteSession();
-        var record = boiteCompleterIdentite({
-            type: 'feedback',
-            id: boiteId('f'),
-            at: new Date().toISOString(),
-            nom: boiteNom(),
-            texte: texte.slice(0, 800),
-            email: adresse.slice(0, 120),
-            google: sessionEnvoi && sessionEnvoi.email ? sessionEnvoi.email : adresse.slice(0, 120),
-            googleNom: sessionEnvoi && sessionEnvoi.name ? sessionEnvoi.name : '',
-            googleSub: sessionEnvoi && sessionEnvoi.sub ? sessionEnvoi.sub : ''
-        });
-        boitePublierEmploi(true);
+        var record;
+        try {
+            record = boiteCompleterIdentite({
+                type: 'feedback',
+                id: boiteId('f'),
+                at: new Date().toISOString(),
+                nom: boiteNom(),
+                texte: texte.slice(0, 800),
+                email: adresse.slice(0, 120),
+                google: sessionEnvoi && sessionEnvoi.email ? sessionEnvoi.email : adresse.slice(0, 120),
+                googleNom: sessionEnvoi && sessionEnvoi.name ? sessionEnvoi.name : '',
+                googleSub: sessionEnvoi && sessionEnvoi.sub ? sessionEnvoi.sub : ''
+            });
+            try { boitePublierEmploi(true); } catch (e) {}
+        } catch (e) {
+            boiteEnvoiEnCours = false;
+            boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
+            return;
+        }
         boiteEnvoyer(record).then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
@@ -2672,6 +2681,11 @@ function boiteSignalerOuverture() {
 
 if (typeof document !== 'undefined') {
     boiteMajMenu();
+    /* Un envoi raté reste dans la file : on le retente tant que la page
+       est ouverte, pas seulement à son ouverture. */
+    setInterval(function () {
+        try { boiteReessayer(); } catch (e) {}
+    }, 45000);
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') {
             boiteVisiteAlertee = false;

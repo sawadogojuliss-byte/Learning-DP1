@@ -1,9 +1,14 @@
 /* Vérifie le mail de réponse aux questions (script Google), le rattachement
-   d'une réponse à SA question, et l'attribution des feedbacks.
+   d'une réponse à SA question, l'attribution des feedbacks — et le parcours
+   complet d'un utilisateur qui envoie une question depuis la page Aide.
    Régressions couvertes :
    — la réponse partie pour une autre question s'affichait sur celle de
      Kenzah, cochée « répondue par Farid » alors que non ;
-   — le popup « nouveaux messages » nommait le mauvais expéditeur. */
+   — le popup « nouveaux messages » nommait le mauvais expéditeur ;
+   — un accident pendant l'envoi (planning, coffre) laissait « Envoi… »
+     bloqué pour toujours : le bouton ne faisait plus rien ;
+   — la création d'un coffre kvdb cassait (403) et retardait chaque envoi ;
+   — la page Aide parlait d'indésirables et de l'adresse de l'équipe. */
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
@@ -20,13 +25,19 @@ const article = {
         return null;
     }
 };
+const aideTexte = { value: '' };
+const aideEmail = { value: '' };
+const aideStatut = { textContent: '', style: {} };
+const aideChoix = { style: {} };
 let reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
+let ntfyReponses = [];
 
 const context = {
     console: console,
     Promise: Promise,
     setTimeout: setTimeout,
     clearTimeout: clearTimeout,
+    setInterval: function () { return 0; },
     Date: Date,
     JSON: JSON,
     Math: Math,
@@ -58,6 +69,10 @@ context.document = {
         if (id === 'compteInviteTexte') return { textContent: '' };
         if (id === 'compteInvite') return { hidden: false };
         if (id === 'compteMessage') return { hidden: true, textContent: '' };
+        if (id === 'aideTexte') return aideTexte;
+        if (id === 'aideEmail') return aideEmail;
+        if (id === 'aideStatut') return aideStatut;
+        if (id === 'aideChoix') return aideChoix;
         return null;
     },
     body: { contains: function () { return true; }, appendChild: function () {} },
@@ -85,6 +100,21 @@ context.fetch = function (url, opts) {
             json: function () { return Promise.resolve({ url: 'https://script.google.com/macros/s/AKfycbxTEST0123456789/exec' }); }
         });
     }
+    if (u.indexOf('data/boite-url.json') !== -1) {
+        return Promise.resolve({
+            ok: true, status: 200,
+            json: function () { return Promise.resolve({ sujet: 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b', kvdb: '', archive: '' }); }
+        });
+    }
+    if (u.indexOf('ntfy.sh') !== -1) {
+        var reponse = ntfyReponses.length ? ntfyReponses.shift() : { ok: true, status: 200 };
+        return Promise.resolve({
+            ok: !!reponse.ok,
+            status: reponse.status || 200,
+            json: function () { return Promise.resolve({}); },
+            text: function () { return Promise.resolve(''); }
+        });
+    }
     if (u.indexOf('script.google.com') !== -1) {
         var payload = {};
         try { payload = JSON.parse(opts && opts.body); } catch (e) {}
@@ -105,6 +135,15 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync('js/pages/boite.js', 'utf8'), context);
 vm.runInContext(fs.readFileSync('js/compte.js', 'utf8'), context);
 
+function attendre(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+function postNtfy() {
+    return appels.filter(function (item) {
+        return item && item.url && item.url.indexOf('ntfy.sh') !== -1 && item.opts && item.opts.method === 'POST';
+    });
+}
+
 /* — Pages et statiques — */
 const html = fs.readFileSync('pages/compte.html', 'utf8');
 assert.strictEqual(html.indexOf('compteGmail'), -1, 'le champ e-mail de connexion est encore là');
@@ -113,7 +152,14 @@ const compte = fs.readFileSync('js/compte.js', 'utf8');
 assert.strictEqual(compte.indexOf('gmail.send'), -1, 'la connexion Google ne doit pas demander le droit Gmail');
 const boite = fs.readFileSync('js/pages/boite.js', 'utf8');
 assert.strictEqual(boite.indexOf('boiteMotPresent'), -1, 'le rattachement d\'une réponse par simple prénom est de retour');
+assert.strictEqual(boite.indexOf('https://kvdb.io'), -1, 'le navigateur ne doit plus créer de coffre kvdb lui-même');
 assert.strictEqual(context.BOITE_EXPEDITEUR, 'ibstudyplan@gmail.com');
+
+const aide = fs.readFileSync('pages/aide.html', 'utf8');
+assert.strictEqual(aide.indexOf('indésirable'), -1, 'la page Aide parle encore des indésirables');
+assert.strictEqual(aide.indexOf('ibstudyplan@gmail.com'), -1, 'la page Aide montre encore l\'adresse de l\'équipe');
+assert.ok(boite.indexOf("'Question envoyée.'") !== -1, 'le message de succès doit être sobre');
+assert.ok(boite.indexOf('Question envoyée. La réponse viendra de') === -1, 'l\'ancien message avec l\'adresse de l\'équipe est encore là');
 
 /* — Bouton Google de connexion — */
 context.compteAfficherBoutonGoogle().then(function (ok) {
@@ -149,8 +195,9 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
             zone.textContent = '';
             bouton.disabled = false;
             appels.length = 0;
+            ntfyReponses = [];
             context.boiteRepondre(question.id, bouton);
-            return new Promise(function (resolve) { setTimeout(resolve, 120); }).then(function () {
+            return attendre(120).then(function () {
                 const envoi = appels.filter(function (item) { return item && item.url && item.url.indexOf('script.google.com') !== -1; })[0];
                 assert.ok(envoi, nom + ' n’a pas appelé le script d’envoi');
                 const payload = JSON.parse(envoi.opts.body);
@@ -175,7 +222,7 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         });
     }, Promise.resolve());
 }).then(function () {
-    /* — Un échec d'envoi n'est jamais marqué comme parti — */
+    /* — Un échec d'envoi de mail n'est jamais marqué comme parti — */
     reponseScript = function () { return { success: false, error: 'Activation' }; };
     context.boitePosterChamps = function () { return Promise.reject(new Error('mail')); };
     context.boitePosterFormulaire = function () { return Promise.reject(new Error('mail')); };
@@ -185,7 +232,7 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
     bouton.disabled = false;
     zone.textContent = '';
     context.boiteRepondre('q2', bouton);
-    return new Promise(function (resolve) { setTimeout(resolve, 120); });
+    return attendre(120);
 }).then(function () {
     const parti = (context.boiteListesCache.reponses || []).some(function (rep) { return rep.mail; });
     assert.strictEqual(parti, false, 'un échec a été marqué comme envoyé');
@@ -231,7 +278,84 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
     assert.ok(neuf.lignes[1].indexOf('Kenzah ILBOUDO') !== -1, 'le nom du compte Google doit l’emporter sur le prénom tapé : ' + neuf.lignes[1]);
     assert.ok(neuf.lignes[1].indexOf('doriilboudo235@gmail.com') !== -1, neuf.lignes[1]);
 
-    console.log('ok mail de réponse (script Google), rattachement strict des réponses, popup aux bons noms');
+    /* — Parcours utilisateur : envoyer une question depuis la page Aide — */
+    reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
+    context.userName = 'Awa';
+    delete store[context.BOITE_FILE];
+    appels.length = 0;
+    ntfyReponses = [];
+    aideTexte.value = 'Où est le mémoire de français ?';
+    aideEmail.value = 'eleve@example.com';
+    aideStatut.textContent = '';
+    context.boiteQuestion(null);
+    return attendre(150).then(function () {
+        assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'statut reçu : ' + aideStatut.textContent);
+        const envois = postNtfy();
+        assert.ok(envois.length >= 1, 'la question n\'est pas partie vers le fil');
+        const corps = JSON.parse(envois[0].opts.body);
+        assert.strictEqual(corps.type, 'question');
+        assert.strictEqual(corps.email, 'eleve@example.com');
+        assert.ok(corps.texte.indexOf('mémoire de français') !== -1, 'le texte de la question manque');
+        assert.strictEqual(envois[0].opts.headers.Title, 'question');
+        assert.ok(!appels.some(function (item) { return item && item.url && item.url.indexOf('kvdb.io') !== -1; }), 'le navigateur a tenté de créer un coffre');
+        assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après un envoi réussi');
+        assert.strictEqual(aideTexte.value, '', 'la question n\'a pas été effacée après l\'envoi');
+
+        /* — Le fil hoquette une fois : la reprise doit suffire — */
+        delete store[context.BOITE_FILE];
+        appels.length = 0;
+        ntfyReponses = [{ ok: false, status: 429 }, { ok: true, status: 200 }];
+        aideTexte.value = 'Deuxième question, le fil hoquette.';
+        aideStatut.textContent = '';
+        context.boiteQuestion(null);
+        return attendre(3200);
+    }).then(function () {
+        assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'reprise ratée, statut : ' + aideStatut.textContent);
+        assert.strictEqual(postNtfy().length, 2, 'il devait y avoir deux tentatives');
+        assert.strictEqual(context.boiteEnvoiEnCours, false);
+
+        /* — Le planning plante : la question part quand même — */
+        context.boitePublierEmploi = function () { throw new Error('boom'); };
+        delete store[context.BOITE_FILE];
+        appels.length = 0;
+        ntfyReponses = [];
+        aideTexte.value = 'Troisième question, le planning plante.';
+        aideStatut.textContent = '';
+        context.boiteQuestion(null);
+        return attendre(150);
+    }).then(function () {
+        assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'le planning a emporté la question : ' + aideStatut.textContent);
+        assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après l\'accident');
+        assert.ok(postNtfy().length >= 1);
+
+        /* — Le fil est vraiment mort : échec annoncé, question gardée,
+             bouton réutilisable, puis réparation par la file — */
+        delete store[context.BOITE_FILE];
+        appels.length = 0;
+        ntfyReponses = [{ ok: false, status: 503 }, { ok: false, status: 503 }];
+        aideTexte.value = 'Quatrième question, le fil est mort.';
+        aideStatut.textContent = '';
+        context.boiteQuestion(null);
+        return attendre(3200);
+    }).then(function () {
+        assert.ok(aideStatut.textContent.indexOf('n\'a pas abouti') !== -1, 'échec non annoncé : ' + aideStatut.textContent);
+        assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après l\'échec');
+        const file = JSON.parse(store[context.BOITE_FILE] || '[]');
+        assert.ok(file.some(function (item) { return item.type === 'question' && String(item.texte).indexOf('le fil est mort') !== -1; }), 'la question ratée n\'est pas gardée en file');
+        assert.strictEqual(aideTexte.value, 'Quatrième question, le fil est mort.', 'la question ratée a été effacée');
+
+        /* le fil revient : la file se vide toute seule */
+        appels.length = 0;
+        ntfyReponses = [];
+        context.boiteReessayer();
+        return attendre(150);
+    }).then(function () {
+        const file = JSON.parse(store[context.BOITE_FILE] || '[]');
+        assert.ok(!file.some(function (item) { return String(item.texte).indexOf('le fil est mort') !== -1; }), 'la question gardée n\'a pas été rejouée');
+        assert.ok(postNtfy().length >= 1, 'la reprise n\'a rien envoyé');
+    });
+}).then(function () {
+    console.log('ok question d’utilisateur (fil + reprise + file), mail de réponse, rattachement strict, popup aux bons noms');
 }).catch(function (err) {
     console.error(err);
     process.exit(1);

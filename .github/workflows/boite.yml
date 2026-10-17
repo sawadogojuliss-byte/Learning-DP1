@@ -3,8 +3,9 @@ name: Boîte partagée
 on:
   workflow_dispatch:
   schedule:
-    # Deux fois par heure, uniquement parce que cette branche est la branche par défaut.
-    - cron: '7,37 * * * *'
+    # Toutes les 20 minutes — GitHub retarde souvent les horloges, autant
+    # multiplier les chances de passer. Le fil garde 12 h : aucune perte.
+    - cron: '7,27,47 * * * *'
   push:
     branches:
       - arena/01a0bac7-learning-dp1
