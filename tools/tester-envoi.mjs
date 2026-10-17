@@ -67,6 +67,12 @@ async function main() {
             });
         }
         await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+        /* Les scripts de la page arrivent après le document : attendre
+           qu'ils soient tous en place avant de jouer l'utilisateur. */
+        await page.waitForFunction(function () {
+            return typeof window.navigateTo === 'function' && typeof window.boiteId === 'function';
+        }, undefined, { timeout: 60000 });
+        await page.waitForSelector('#panelAide', { timeout: 60000 });
         /* Les identifiants des envois de test : invisibles partout. */
         await page.evaluate(function () {
             const origine = window.boiteId;
