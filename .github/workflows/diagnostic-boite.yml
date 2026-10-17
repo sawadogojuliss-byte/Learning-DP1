@@ -49,7 +49,7 @@ jobs:
                   'personne': it.get('personne'), 'mail': it.get('mail'),
                   'repondu': it.get('repondu'), 'gmailId': (str(it.get('gmailId') or ''))[:20],
                   'kvdb': it.get('kvdb'), 'archive': it.get('archive'),
-                  'texte': str(it.get('texte') or '')[:100]
+                  'texte': str(it.get('texte') or '')
               }, ensure_ascii=False)
           for it in utiles:
               print(court(it))
