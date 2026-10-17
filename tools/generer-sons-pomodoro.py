@@ -665,15 +665,11 @@ def son_bureau(rng):
     return base
 
 
-def son_vent(rng):
-    """🌬️ Vent — rafales qui montent et redescendent, léger sifflement."""
-    rafale = 0.22 + 0.90 * (0.5 + 0.5 * np.cos(2.0 * np.pi * (2.0 / DUREE) * T + 0.7)) ** 2.4
-    grave = nappe(N, rng, 60, 420, 0.60, 0.72)
-    medium = nappe(N, rng, 250, 1700, 0.45, 0.85)
-    air = nappe(N, rng, 500, 2600, 0.25, 0.26)
-    sifflement = filtre(bruit(N, rng), bande(480, 900, 3)) * 0.015
-    sifflement *= 0.5 + 0.5 * np.cos(2.0 * np.pi * (3.0 / DUREE) * T + 0.4)
-    return (grave + medium + air) * rafale + sifflement
+# 🌬️ Vent : n'est plus fabriqué ici. Le son vient de l'enregistrement « Vents.mp3 »
+# fourni par Juliss (Drive Study Plan, 2 h, 44,1 kHz) : tools/extrait-vent.py y
+# découpe un passage stable de 7,91 s, le boucle et écrit
+# audio/pomodoro/vent.wav. Ne pas remettre de version synthétique ici : lancer
+# main() écraserait ce fichier.
 
 
 def son_blanc(rng):
@@ -706,7 +702,6 @@ SONS = [
     ('cheminee', son_cheminee, 0.075, 7000.0),
     ('feu', son_feu, 0.075, 7500.0),
     ('bureau', son_bureau, 0.070, 6000.0),
-    ('vent', son_vent, 0.075, 7000.0),
     ('blanc', son_blanc, 0.070, 11000.0),
     ('rose', son_rose, 0.072, 9000.0),
     ('brun', son_brun, 0.078, 5000.0),

@@ -48,6 +48,7 @@
     • <b>Toutes les ambiances :</b> le grave est rééquilibré bande par bande pour qu'aucun son ne soit sourd, et le niveau de départ est le même pour les 20.<br>
     • <b>Boucles :</b> plus aucun clic toutes les 8 secondes (le raccord est coupé là où le signal est plat).<br>
     • <b>Cheminée :</b> avant, un souffle continu avec les craquements noyés dessous (1 dB d'écart entre fort et faible). Maintenant le foyer ronfle discrètement, l'air monte dans le conduit et les craquements de bois ressortent nettement (petits tics, salves, gros claquements), avec les braises qui pétillent.<br>
+    • <b>Vent :</b> ce n'est plus une ambiance fabriquée : c'est un extrait de l'enregistrement fourni (« Vents.mp3 », 2 h). Les 7,91 s sont pris à 1 h 54, au passage le plus stable — aucune attaque de rafale à l'intérieur de la boucle. L'enregistrement est grave et feutré par nature : même à 10 % ou 90 % de sa durée, il n'a aucune énergie au-dessus de 2,5 kHz, et l'extrait en garde 3,8 % sous 80 Hz, 51 % entre 250 et 800 Hz.<br>
     • <b>Orage :</b> avant, le tonnerre était inaudible (2 % d'énergie dans le grave contre 44 % pour la pluie). Maintenant, trois coups de tonnerre qui roulent — lointain, proche, lointain — avec de vrais silences entre eux, et la pluie continue derrière.
   </div>
 
@@ -75,6 +76,7 @@ var SONS = [
   { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻', groupe: 'concentration' }
 ];
 var COMPARE = [
+  { id: 'vent', nom: 'Vent', emoji: '🌬️' },
   { id: 'cheminee', nom: 'Cheminée', emoji: '🔥' },
   { id: 'orage', nom: 'Orage', emoji: '⛈️' },
   { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' },
@@ -83,7 +85,7 @@ var COMPARE = [
   { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻' }
 ];
 function carte(son, avant) {
-  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.wav?v=20261017a';
+  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.wav?v=20261017c';
   return '<div class="carte' + (avant ? '' : ' apres') + '">' +
     '<div class="titre"><span class="emoji">' + son.emoji + '</span>' + son.nom +
     '<span class="etiquette ' + (avant ? 'avant' : 'apres') + '">' + (avant ? 'avant' : 'après') + '</span></div>' +

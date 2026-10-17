@@ -221,7 +221,7 @@ sons.forEach(function (nom) {
     sains++;
 });
 ok(sains === sons.length, 'les 20 sons doivent être lisibles et boucler proprement');
-ok(script.indexOf('audio/pomodoro/pluie.wav?v=20261017b') !== -1, 'le cache des sons doit être renouvelé');
+ok(script.indexOf('audio/pomodoro/pluie.wav?v=20261017c') !== -1, 'le cache des sons doit être renouvelé');
 
 /* ── 9. Les cours finissent à 16 h 25 ── */
 ok(lire('js/pages/planning-base.js').indexOf('var COURS_FIN = 16 * 60 + 25;') !== -1, 'les cours doivent finir à 16 h 25');

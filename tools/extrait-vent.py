@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Extrait la boucle du son 🌬️ Vent depuis l'enregistrement fourni par Juliss.
 
-Source : « Vents.mp3 », Drive Study Plan (174 Mo). Le fichier est trop gros
-pour entrer dans le dépôt : il est téléchargé dans /tmp par
-.github/workflows/extrait-vent.yml, analysé ici, et seul l'extrait de 7,91 s
+Source : « Vents.mp3 », Drive Study Plan (174 Mo, 2 h, 44,1 kHz). Le fichier
+est trop gros pour entrer dans le dépôt : il est analysé hors du dépôt (copié
+dans /tmp sur un runner GitHub Actions), et seul l'extrait de 7,91 s
 (348 876 octets, 22 050 Hz, 16 bits, mono) rejoint audio/pomodoro/vent.wav.
 
 Le script choisit le passage le plus calme de l'enregistrement — celui dont le
