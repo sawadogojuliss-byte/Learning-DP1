@@ -1,5 +1,353 @@
 {
   "questions": [],
-  "feedbacks": [],
+  "feedbacks": [
+    {
+      "type": "feedback",
+      "id": "f1a14a6467d39ac7a3cf",
+      "at": "2026-10-17T15:04:16.595Z",
+      "nom": "Mathis",
+      "appareil": "a1a1229930818b2308c1",
+      "classe": "DP2",
+      "texte": "est ce que on peut pas faire pour que sa envoi des notifications a chaque fois \nEt aussi mettre un endroit la ou on peut mettre les devoirs de la semaines",
+      "email": "mathis.kafando@enkoschools.com",
+      "google": "mathis.kafando@enkoschools.com",
+      "googleNom": "Aimery Mathis D. S Kafando",
+      "googleSub": "117579065401460802672",
+      "matieres": [
+        "Mathématiques AA SL",
+        "Anglais B HL",
+        "Français A SL",
+        "Géographie SL",
+        "Économie HL",
+        "Physique HL"
+      ],
+      "flammes": 0,
+      "jours": [
+        {
+          "j": "Lundi",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:30",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "07:50",
+              "t": "Révisions · Anglais B"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:55",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Mardi",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:30",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "07:50",
+              "t": "Révisions · Économie"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:55",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Mercredi",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:30",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "07:50",
+              "t": "Révisions · Physique"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:55",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Jeudi",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:30",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "07:50",
+              "t": "Révisions · Physique"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:55",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Vendredi",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:30",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "07:50",
+              "t": "Révisions · Géographie"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:55",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Samedi",
+          "s": [
+            {
+              "d": "07:00",
+              "f": "07:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "07:10",
+              "f": "07:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "07:40",
+              "f": "09:00",
+              "t": "Révisions · Anglais B"
+            },
+            {
+              "d": "09:00",
+              "f": "10:30",
+              "t": "Téléphone"
+            },
+            {
+              "d": "10:30",
+              "f": "11:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "11:00",
+              "f": "12:05",
+              "t": "Révisions Français A"
+            },
+            {
+              "d": "12:05",
+              "f": "12:30",
+              "t": "Révisions · Économie"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            }
+          ]
+        },
+        {
+          "j": "Dimanche",
+          "s": [
+            {
+              "d": "06:00",
+              "f": "06:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:10",
+              "f": "06:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "06:40",
+              "f": "08:05",
+              "t": "Révisions · Français A"
+            },
+            {
+              "d": "08:05",
+              "f": "09:30",
+              "t": "Révisions Mathématiques AA"
+            },
+            {
+              "d": "09:30",
+              "f": "10:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "10:00",
+              "f": "11:30",
+              "t": "Révisions · Géographie"
+            },
+            {
+              "d": "11:30",
+              "f": "12:30",
+              "t": "Révisions · Économie"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            }
+          ]
+        }
+      ],
+      "questionId": "",
+      "destinataire": "",
+      "destinataires": [],
+      "personne": "",
+      "mail": false,
+      "repondu": false,
+      "gmailId": "",
+      "complet": 0
+    }
+  ],
   "reponses": []
 }
