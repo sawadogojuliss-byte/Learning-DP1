@@ -606,6 +606,8 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
 }
 
 
+var PLANNING_SOMMEIL_MIN = 300; /* 5 h de sommeil, jamais moins */
+
 var emploiFige = null;
 var emploiGelSuspendu = 0;
 var emploiNePasSauver = 0;
@@ -991,7 +993,43 @@ function planningGarantirJour(events) {
         planningPoserHoraire(coucher, planningHorlogeSimple(debutCoucher), planningHorlogeSimple(minuteReveil));
     }
     planningReveilApresCoucher(reveil, coucher);
+    protegerSommeil();
+    milieu.sort(function (a, b) { return ordreJour(a) - ordreJour(b); });
     return [reveil].concat(milieu, [coucher]);
+
+    /* Le sommeil ne descend jamais sous 5 h. Avant, un créneau tardif
+       (une révision ajoutée à 00 h 35 par exemple) repoussait le coucher
+       après lui : des journées sont restées à 4 h 25, voire 3 h de sommeil.
+       Désormais le coucher recule pour garantir les 5 h, et seul un
+       créneau qui chevauche ce coucher est raccourci. Les créneaux plus
+       tôt dans la soirée, les cours et les habitudes du petit matin
+       (prière de l'aube, préparation avant le réveil) ne bougent pas. */
+    function protegerSommeil() {
+        if (!reveil || !coucher) return;
+        var debutCoucher = planningLireMinute(coucher, false);
+        if (debutCoucher == null) return;
+        var lit = debutCoucher <= minuteReveil ? debutCoucher + 1440 : debutCoucher;
+        var finJour = minuteReveil + 1440;
+        if (finJour - lit >= PLANNING_SOMMEIL_MIN) return;
+        var cible = finJour - PLANNING_SOMMEIL_MIN;
+        var finCours = 0;
+        milieu.forEach(function (ev) {
+            if (!planningEstCours(ev)) return;
+            var fin = minuteRelative(ev, true);
+            if (fin != null && fin > finCours && fin <= finJour) finCours = fin;
+        });
+        if (cible < finCours) cible = finCours;
+        planningPoserHoraire(coucher, planningHorlogeSimple(cible), planningHorlogeSimple(minuteReveil));
+        milieu.forEach(function (ev) {
+            if (!ev || planningEstCours(ev) || planningEstReveil(ev) || planningEstCoucher(ev)) return;
+            var debut = minuteRelative(ev, false);
+            var fin = minuteRelative(ev, true);
+            if (debut == null || fin == null || debut >= finJour) return;
+            if (debut < cible && fin > cible) {
+                planningPoserHoraire(ev, planningHorlogeSimple(debut), planningHorlogeSimple(cible));
+            }
+        });
+    }
 }
 
 function planningReveilApresCoucher(reveil, coucher) {

@@ -720,7 +720,29 @@ function validateNewEventTime(startTime, endTime, dayIndex) {
         if (coupe(13 * 60 + 30, COURS_FIN))
             return { valid: false, error: "⏰ Impossible pendant les cours de l'après-midi (13h30-" + coursTexte(COURS_FIN) + ")" };
     }
+    if (chevaucheSommeil(startMins, endMins, dayIndex)) {
+        var coucher = (typeof bedtimeForDay === 'function') ? bedtimeForDay(dayIndex) : '';
+        return { valid: false, error: '😴 Ce créneau tombe dans ton temps de sommeil' + (coucher ? ' (coucher à ' + coucher + ')' : '') + '. Le sommeil garde au minimum 5 h.' };
+    }
     return { valid: true, error: '' };
+}
+
+/* Fenêtre de sommeil du jour (coucher → réveil). Un créneau ajouté ou
+   déplacé dedans repoussait le coucher : certaines journées sont restées
+   à 3 h de sommeil. On refuse désormais l'heure, le sommeil ne bouge pas. */
+function chevaucheSommeil(startMins, endMins, dayIndex) {
+    var wakeup = '';
+    var bedtime = '';
+    try {
+        wakeup = (typeof wakeupOf === 'function') ? wakeupOf(dayIndex === 5 ? 'saturday' : (dayIndex === 6 ? 'sunday' : 'weekday')) : '';
+        bedtime = (typeof bedtimeForDay === 'function') ? bedtimeForDay(dayIndex) : '';
+    } catch (e) { return false; }
+    if (!wakeup || !bedtime) return false;
+    var lit = timeToMinutes(bedtime) % 1440;
+    var reveil = timeToMinutes(wakeup) % 1440;
+    if (lit === reveil) return false;
+    var fenetres = lit < reveil ? [[lit, reveil]] : [[lit, 1440], [0, reveil]];
+    return fenetres.some(function (f) { return startMins < f[1] && f[0] < endMins; });
 }
 
 function timeToMinutes(time) {

@@ -63,6 +63,11 @@ function verifier(nom, jour, events) {
     if (JSON.stringify(encore.map(function (ev) { return [titre(ev), debut(ev), fin(ev)]; })) !== JSON.stringify(out.map(function (ev) { return [titre(ev), debut(ev), fin(ev)]; }))) {
         erreurs.push('la correction n’est pas stable');
     }
+    /* Le sommeil ne descend jamais sous 5 h. */
+    var lit = debutCoucher <= debutReveil ? debutCoucher + 1440 : debutCoucher;
+    var finJour = debutReveil + 1440;
+    var sommeil = finJour - lit;
+    if (sommeil < 299) erreurs.push('sommeil sous 5 h : ' + Math.floor(sommeil / 60) + ' h ' + (sommeil % 60) + ' (coucher ' + debut(out[out.length - 1]) + ')');
     return erreurs;
 }
 
@@ -99,6 +104,66 @@ var sans = verifier('manquant', 'Mardi', [
 if (sans.length) {
     echecs += 1;
     console.log('ECHEC manquant', sans.join(' | '));
+}
+
+/* Régression : une révision ajoutée à 00 h 35 ne doit plus repousser le
+   coucher après elle (l'emploi de Mathis était resté à 4 h 25 de sommeil,
+   et Kenzah a signalé 3 h). */
+var nuit = context.planningGarantirJour([
+    { startTime: '06:00', endTime: '06:10', title: 'Réveil', id: 'wakeup', type: 'wakeup' },
+    { startTime: '19:00', endTime: '19:45', title: 'Dîner', id: 'dinner' },
+    { startTime: '21:30', endTime: '23:10', title: 'Révisions Physique' },
+    { startTime: '00:35', endTime: '01:35', title: 'Révision Mathématiques AA', source: 'custom' },
+    { startTime: '01:35', endTime: '06:00', title: 'Coucher', id: 'sleep', type: 'sleep' }
+]);
+var nuitCoucher = nuit[nuit.length - 1];
+if (minute(debut(nuitCoucher)) !== 60) {
+    echecs += 1;
+    console.log('ECHEC sommeil', 'le coucher devait revenir à 01:00, il est à ' + debut(nuitCoucher));
+}
+var nuitRev = nuit.filter(function (ev) { return titre(ev).indexOf('revision math') === 0; })[0];
+if (!nuitRev || minute(fin(nuitRev)) > 60) {
+    echecs += 1;
+    console.log('ECHEC sommeil', 'la révision tardive devait finir au plus tard à 01:00');
+}
+var nuit2 = context.planningGarantirJour(nuit);
+if (JSON.stringify(nuit2.map(function (ev) { return [titre(ev), debut(ev), fin(ev)]; })) !== JSON.stringify(nuit.map(function (ev) { return [titre(ev), debut(ev), fin(ev)]; }))) {
+    echecs += 1;
+    console.log('ECHEC sommeil', 'la protection du sommeil n’est pas stable');
+}
+
+/* Régression : un créneau entièrement dans la nuit (02:00→03:00) reste
+   à sa place — c'est un choix de l'élève (prière de l'aube, sieste) —
+   mais le coucher garde ses 5 h. */
+var creux = context.planningGarantirJour([
+    { startTime: '06:00', endTime: '06:10', title: 'Réveil', id: 'wakeup', type: 'wakeup' },
+    { startTime: '20:00', endTime: '21:00', title: 'Révisions' },
+    { startTime: '02:00', endTime: '03:00', title: 'Lecture', source: 'custom' },
+    { startTime: '01:00', endTime: '06:00', title: 'Coucher', id: 'sleep', type: 'sleep' }
+]);
+var creuxLecture = creux.filter(function (ev) { return titre(ev) === 'lecture'; })[0];
+var creuxCoucher = creux[creux.length - 1];
+if (!creuxLecture || debut(creuxLecture) !== '02:00' || fin(creuxLecture) !== '03:00') {
+    echecs += 1;
+    console.log('ECHEC nuit', 'le créneau nocturne doit rester 02:00→03:00, pas ' + (creuxLecture ? debut(creuxLecture) + '→' + fin(creuxLecture) : 'absent'));
+}
+if (debut(creuxCoucher) !== '01:00') {
+    echecs += 1;
+    console.log('ECHEC nuit', 'le coucher doit rester 01:00');
+}
+
+/* Régression : une journée déjà à 5 h de sommeil ne bouge pas. */
+var calme = context.planningGarantirJour([
+    { startTime: '05:00', endTime: '05:10', title: 'Réveil', id: 'wakeup', type: 'wakeup' },
+    { startTime: '07:50', endTime: '12:30', title: 'Cours', id: 'school1', type: 'school' },
+    { startTime: '13:30', endTime: '16:25', title: 'Cours', id: 'school2', type: 'school' },
+    { startTime: '21:00', endTime: '22:00', title: 'Téléphone', id: 'phone' },
+    { startTime: '00:00', endTime: '05:00', title: 'Coucher', id: 'sleep', type: 'sleep' }
+]);
+var calmeCoucher = calme[calme.length - 1];
+if (debut(calmeCoucher) !== '00:00' || minute(fin(calme[0])) !== 310) {
+    echecs += 1;
+    console.log('ECHEC calme', 'une journée à 5 h de sommeil ne doit pas changer');
 }
 
 console.log('jours vérifiés', jours, 'échecs', echecs);

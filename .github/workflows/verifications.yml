@@ -1,0 +1,30 @@
+# Chaque push fait tourner toutes les vérifications. Si l'une échoue, le
+# commit s'affiche avec une croix rouge : une régression ne passe plus
+# inaperçue, les règles gardées ici ne disparaissent plus silencieusement.
+name: Vérifications
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  verifications:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Vérifications du code — chacune doit passer
+        run: |
+          set -e
+          for f in tools/verifier-*.js; do
+            echo "── $f"
+            node "$f"
+          done
+      - name: Vrai envoi de mail — le courrier doit partir et arriver
+        run: |
+          python3 tools/verifier-livraison.py || (sleep 20 && python3 tools/verifier-livraison.py)

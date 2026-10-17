@@ -1161,11 +1161,16 @@ function boiteRendreRetours(fusion) {
     if (!liste) return;
     var cartes = [];
     fusion.feedbacks.forEach(function (item) {
+        var qui = boiteNomExpediteur(item);
+        var meta = boiteEchap(boiteDate(item.at)) + ' · ' + (item.email ? boiteEchap(item.email) : 'E-mail non renseigné');
+        if (item.googleNom && item.nom && boiteNormaliser(item.nom) !== boiteNormaliser(item.googleNom)) {
+            meta += ' · compte Google : ' + boiteEchap(item.googleNom);
+        }
         cartes.push({
             at: item.at || '',
             html: boiteCarte(
-                'Suggestion · ' + boiteEchap(item.nom || 'Sans nom'),
-                boiteEchap(boiteDate(item.at)) + ' · ' + (item.email ? boiteEchap(item.email) : 'E-mail non renseigné'),
+                'Suggestion · ' + boiteEchap(qui.nom),
+                meta,
                 boiteEchap(item.texte || '')
             )
         });
@@ -1204,31 +1209,11 @@ function boiteEmailsDe(item) {
     return out;
 }
 
-function boiteIdentiteQuestion(item) {
-    return boiteNormaliser([item && item.nom, item && item.googleNom, item && item.email, item && item.google].join(' '));
-}
-
-function boiteMotPresent(id, mot) {
-    if (!mot) return false;
-    if (id.indexOf(mot) !== -1) return true;
-    if ((mot === 'kenzah' || mot === 'kenza') && (id.indexOf('kenzah') !== -1 || id.indexOf('kenza') !== -1)) return true;
-    return false;
-}
-
-function boiteMemePersonneMarquee(rep, question) {
-    var marque = boiteNormaliser(rep && rep.personne);
-    if (!marque) return false;
-    var mots = marque.split(' ').filter(function (mot) { return mot.length >= 4; });
-    if (mots.length < 2) return false;
-    var id = boiteIdentiteQuestion(question);
-    return mots.every(function (mot) { return boiteMotPresent(id, mot); });
-}
-
 function boiteMemeDestinataire(rep, question) {
     var dest = boiteEmailsDe(rep);
     var src = boiteEmailsDe(question);
     if (!dest.length || !src.length) return false;
-    return src.some(function (email) { return dest.indexOf(email) !== -1; });
+    return src.some(function (email) { return dest.indexOf(email) !== -1;});
 }
 
 function boiteMailConfirme(rep) {
@@ -1252,7 +1237,13 @@ function boiteReponseLiee(rep, question, questions) {
     if (rep.questionId && rep.questionId === question.id) return true;
     if (rep.questionId && questions && questions[rep.questionId]) return false;
     if (!boiteMailConfirme(rep)) return false;
-    return boiteMemeDestinataire(rep, question) || boiteMemePersonneMarquee(rep, question);
+    /* Anciens envois, d'avant le numéro de question : on ne les rattache
+       qu'à une question posée avant l'envoi et portant la même adresse.
+       Avant, un simple prénom suffisait (« Kenza » ≈ « Kenzah ») : la
+       réponse partie pour une autre question s'affichait sur celle de
+       Kenzah, cochée comme répondue par Farid alors que non. */
+    if (String(rep.at || '') < String(question.at || '')) return false;
+    return boiteMemeDestinataire(rep, question);
 }
 
 function boiteReponsesPour(fusion, question) {
@@ -2570,9 +2561,33 @@ function boitePhraseAlerte(groupe) {
     var q = groupe.questions;
     var feedback = f > 1 ? 'a fait des feedbacks' : 'a fait un feedback';
     var question = q > 1 ? 'a des questions' : 'a une question';
-    if (f && q) return nom + ' ' + feedback + ' et ' + question + '.';
-    if (f) return nom + ' ' + feedback + '.';
-    return nom + ' ' + question + '.';
+    var qui = nom + (groupe.email ? ' (' + groupe.email + ')' : '');
+    if (f && q) return qui + ' ' + feedback + ' et ' + question + '.';
+    if (f) return qui + ' ' + feedback + '.';
+    return qui + ' ' + question + '.';
+}
+
+/* Qui a vraiment envoyé un message. Le prénom tapé à l'accueil peut être
+   celui d'un autre sur un téléphone partagé : quand il ne cadre pas avec
+   le nom du compte Google connecté, c'est le compte Google qui fait foi.
+   L'adresse est rappelée pour vérification. */
+function boiteNomExpediteur(item) {
+    var nom = String(item && item.nom || '').trim();
+    var google = String(item && item.googleNom || '').trim();
+    var email = boiteMailPersonne(item);
+    var affiche = nom;
+    if (nom && google) {
+        var motsNom = boiteMots(nom);
+        var motsGoogle = boiteMots(google);
+        var commun = motsNom.some(function (mot) {
+            return mot.length >= 3 && motsGoogle.indexOf(mot) !== -1;
+        });
+        if (!commun) affiche = google;
+    } else if (!nom) {
+        affiche = google;
+    }
+    if (!affiche) affiche = email ? email.split('@')[0] : 'Un utilisateur';
+    return { nom: affiche, email: email };
 }
 
 function boiteNouveauxRetours(fusion) {
@@ -2583,12 +2598,12 @@ function boiteNouveauxRetours(fusion) {
     var ids = [];
     function ajouter(item, genre) {
         if (!item || !item.id || vus[item.id]) return;
-        var nom = String(item.nom || item.googleNom || '').trim() || 'Un utilisateur';
-        if (moi && boiteNormaliser(nom) === moi) return;
+        var qui = boiteNomExpediteur(item);
+        if (moi && boiteNormaliser(qui.nom) === moi) return;
         ids.push(item.id);
-        var cle = boiteNormaliser(nom) || nom;
+        var cle = (boiteNormaliser(qui.nom) || qui.nom) + '|' + qui.email;
         if (!groupes[cle]) {
-            groupes[cle] = { nom: nom, feedbacks: 0, questions: 0 };
+            groupes[cle] = { nom: qui.nom, email: qui.email, feedbacks: 0, questions: 0 };
             ordre.push(cle);
         }
         groupes[cle][genre] += 1;
