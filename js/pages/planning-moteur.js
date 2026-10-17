@@ -1045,6 +1045,9 @@ function genererJourBrut(dayIndex) {
     }
 
     const ovFor = (id) => v3FindOverride(id, dayIndex);
+    /* L'assiette de pâtes du dîner devient une assiette avec couteau et
+       fourchette, même dans les plannings enregistrés avant le changement. */
+    const v3IconeRepas = (icone) => (icone === '🍝' ? '🍽️' : icone);
 
     // Créneau automatique : commence au curseur. Applique la modification de
     // l'élève si elle existe (nom, icône, durée, heure fixée, suppression).
@@ -1054,7 +1057,7 @@ function genererJourBrut(dayIndex) {
         let pinned = false, startTime = cursor;
         if (ov) {
             if (ov.title) title = ov.title;
-            if (ov.icon && ov.icon !== '📌') icon = ov.icon;
+            if (ov.icon && ov.icon !== '📌') icon = v3IconeRepas(ov.icon);
             const ovDur = timeToMinutes(ov.endTime) - timeToMinutes(ov.startTime);
             if (ovDur > 0) duration = ovDur;
             if (ov.pinned && ov.startTime) { pinned = true; startTime = ov.startTime; }
@@ -1077,7 +1080,7 @@ function genererJourBrut(dayIndex) {
             var icone = icon;
             if (ov) {
                 if (ov.title) titre = ov.title;
-                if (ov.icon && ov.icon !== '📌') icone = ov.icon;
+                if (ov.icon && ov.icon !== '📌') icone = v3IconeRepas(ov.icon);
                 var ovDur = timeToMinutes(ov.endTime) - timeToMinutes(ov.startTime);
                 if (ovDur > 0) duree = ovDur;
                 if (ov.pinned && ov.startTime) heure = ov.startTime;
@@ -1270,7 +1273,7 @@ function genererJourBrut(dayIndex) {
         let kind = 'pinned';
         if (ov) {
             if (ov.title) title = ov.title;
-            if (ov.icon && ov.icon !== '📌') icon = ov.icon;
+            if (ov.icon && ov.icon !== '📌') icon = v3IconeRepas(ov.icon);
             const ovDur = timeToMinutes(ov.endTime) - timeToMinutes(ov.startTime);
             if (ov.pinned && ov.startTime) { startTime = ov.startTime; endTime = ov.endTime; }
             else if (ovDur > 0) endTime = addMinutes(startTime, ovDur);

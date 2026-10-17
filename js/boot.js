@@ -29,7 +29,7 @@
         }
     }
 
-var version = '20261015x';
+var version = '20261015y';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
@@ -46,14 +46,21 @@ var version = '20261015x';
     var etapesFaites = 0;
     var etapesTotales = pages.length + scripts.length;
 
+    /* Une page retirée du site ne doit jamais bloquer le démarrage : on
+       l'ignore et le reste s'ouvre normalement. */
     Promise.all(pages.map(function (url) {
         return fetch(url + '?v=' + version, { cache: 'no-store' }).then(function (res) {
-            if (!res.ok) throw new Error('Page introuvable : ' + url);
+            if (!res.ok) throw new Error('Page absente : ' + url);
             return res.text();
         }).then(function (texte) {
             etapesFaites += 1;
             avancer(etapesFaites, etapesTotales);
             return texte;
+        }).catch(function (e) {
+            if (window.console && console.warn) console.warn(e.message);
+            etapesFaites += 1;
+            avancer(etapesFaites, etapesTotales);
+            return '';
         });
     })).then(function (parts) {
         root.innerHTML = parts.join('\n');

@@ -9,6 +9,28 @@
 //  — identique visuellement, sans aucune marque de minuteur,
 //    📌 sur les créneaux fixés, ouverture de l'édition par index
 // ═══════════════════════════════════════════════════════════════════
+/* L'icône des activités change à chaque semaine : le coureur, la fléchette,
+   puis le trophée, et on recommence. La semaine commence le lundi, pour tout
+   le monde en même temps. */
+var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];
+
+function v3IconeActivitesSemaine() {
+    var maintenant = new Date();
+    var lundi = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+    lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+    /* Semaine de référence : celle du 12 octobre 2026, pour que cette semaine
+       affiche le coureur, puis la fléchette, puis le trophée. */
+    var reference = new Date(2026, 9, 12);
+    var semaines = Math.round((lundi.getTime() - reference.getTime()) / 604800000);
+    var rang = ((semaines % V3_ICONES_ACTIVITES.length) + V3_ICONES_ACTIVITES.length) % V3_ICONES_ACTIVITES.length;
+    return V3_ICONES_ACTIVITES[rang];
+}
+
+function v3PeindreIconeActivites() {
+    var el = document.getElementById('statActivitiesIcone');
+    if (el) el.textContent = v3IconeActivitesSemaine();
+}
+
 function renderPlanning() {
     var ancienChevauchement = document.getElementById('chevauchementJour');
     if (ancienChevauchement && ancienChevauchement.parentNode) ancienChevauchement.parentNode.removeChild(ancienChevauchement);
@@ -40,6 +62,7 @@ function renderPlanning() {
         document.getElementById('statScore').textContent = targetScore;
         document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
         document.getElementById('statActivities').textContent = selectedActivities.length;
+        v3PeindreIconeActivites();
         if (typeof majClasseAffichage === 'function') majClasseAffichage();
         if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
         return;
@@ -102,6 +125,7 @@ function renderPlanning() {
     document.getElementById('statScore').textContent = targetScore;
     document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
     document.getElementById('statActivities').textContent = selectedActivities.length;
+    v3PeindreIconeActivites();
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
     if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
 }
@@ -1130,3 +1154,9 @@ function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
         v3FermerDeplacement();
     });
 })();
+
+/* L'icône de la semaine est posée dès le chargement, sans attendre le planning. */
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v3PeindreIconeActivites);
+    else v3PeindreIconeActivites();
+}

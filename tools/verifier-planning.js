@@ -99,8 +99,12 @@ var planning = lire('pages/planning.html');
     ok(planning.indexOf(id) === -1, 'le bouton ' + id + ' ne doit plus exister');
     ok(interfaceJs.indexOf(id) === -1 && css.indexOf(id) === -1, id + ' traîne encore dans le style ou l\'interface');
 });
-ok(!fs.existsSync(path.join(__dirname, '..', 'pages/assistant.html')), 'la page de l\'assistant doit disparaître');
 ok(!fs.existsSync(path.join(__dirname, '..', 'js/pages/assistant.js')), 'le script de l\'assistant doit disparaître');
+/* Il reste une page vide à cet ancien emplacement : les navigateurs qui
+   gardent une version d'avant en mémoire ne doivent pas afficher d'erreur. */
+var vide = fs.readFileSync(path.join(__dirname, '..', 'pages/assistant.html'), 'utf8');
+ok(vide.indexOf('app-panel') === -1 && vide.indexOf('<script') === -1 && vide.indexOf('menuAssistant') === -1,
+    'la page laissée à cet emplacement doit être vide');
 ok(lire('js/registre.js').indexOf('assistant') === -1, 'le registre ne doit plus charger l\'assistant');
 ok(lire('js/pages/navigation.js').indexOf('assistant') === -1, 'la navigation ne doit plus ouvrir l\'assistant');
 ok(lire('js/memoire.js').indexOf('assistant') === -1, 'la mémoire ne doit plus connaître l\'assistant');
@@ -113,10 +117,25 @@ ok(lire('js/pages/planning-base.js').indexOf("chain('dinner', 'Dîner', '', getD
 ok(lire('js/pages/planning-moteur.js').indexOf("repasSelonHabitude('dinner', 'Dîner', '🍽️'") !== -1,
     'le dîner doit porter l\'assiette avec couteau et fourchette dans les deux moteurs');
 ok(lire('pages/onboarding-habitudes.html').indexOf('🍽️') !== -1, 'la page des habitudes doit montrer la même assiette');
-['js/pages/planning-base.js', 'js/pages/planning-moteur.js', 'pages/onboarding-habitudes.html', 'pages/planning.html'].forEach(function (rel) {
+['js/pages/planning-base.js', 'pages/onboarding-habitudes.html', 'pages/planning.html'].forEach(function (rel) {
     ok(lire(rel).indexOf('🍝') === -1, 'l\'assiette de pâtes doit disparaître de ' + rel);
 });
-ok(planning.indexOf('🏃🎯🏆') !== -1, 'l\'icône des activités doit être le coureur, la fléchette et le trophée');
+/* Dans le moteur, l'ancienne assiette de pâtes ne subsiste que le temps d'être
+   remplacée : un planning déjà enregistré avec elle doit montrer la bonne. */
+ok(lire('js/pages/planning-moteur.js').indexOf('const v3IconeRepas = (icone) => (icone === \'🍝\' ? \'🍽️\' : icone);') !== -1,
+    'les plannings enregistrés avec l\'assiette de pâtes doivent être corrigés');
+ok((lire('js/pages/planning-moteur.js').match(/v3IconeRepas\(ov\.icon\)/g) || []).length === 3,
+    'chaque icône enregistrée doit passer par la correction');
+/* L'icône des activités change chaque semaine, dans l'ordre, pour tout le monde. */
+ok(planning.indexOf('id="statActivitiesIcone"') !== -1, 'la carte des activités doit avoir son icône de la semaine');
+ok(interfaceJs.indexOf("var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];") !== -1,
+    'les trois icônes de la semaine doivent être déclarées');
+ok(interfaceJs.indexOf('function v3IconeActivitesSemaine()') !== -1, 'la semaine doit choisir l\'icône');
+ok(interfaceJs.indexOf('function v3PeindreIconeActivites()') !== -1, 'l\'icône de la semaine doit être peinte');
+ok((interfaceJs.match(/v3PeindreIconeActivites\(\);/g) || []).length >= 3,
+    'l\'icône doit être peinte au chargement et à chaque affichage du planning');
+ok(interfaceJs.indexOf("lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7))") !== -1,
+    'la semaine doit commencer le lundi');
 
 
 if (echecs.length) {
