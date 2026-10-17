@@ -315,14 +315,14 @@ function boiteEcrireNtfy(record) {
             method: 'POST',
             headers: { 'Content-Type': 'text/plain', Title: record.type || 'message', Priority: 'min' },
             body: boiteCorpsNtfy(record)
-        }, 12000).then(function (res) {
+        }, 6000).then(function (res) {
             if (!res.ok) throw new Error('ntfy');
         });
     }
     /* Le fil peut hoqueter une fois : on reprend après un court délai
        avant de déclarer l'envoi perdu. */
     return tentative().catch(function () {
-        return new Promise(function (resolve) { setTimeout(resolve, 2500); }).then(tentative);
+        return new Promise(function (resolve) { setTimeout(resolve, 1500); }).then(tentative);
     });
 }
 
@@ -832,6 +832,9 @@ function boiteFusionner(items) {
     var vusT = {};
     (items || []).forEach(function (item) {
         if (!item || !item.type || item.type === 'coffre') return;
+        /* Les envois de test de la vérification navigatrice ne doivent
+           jamais s'afficher chez les admins. */
+        if (typeof item.id === 'string' && (item.id.indexOf('qtest') === 0 || item.id.indexOf('ftest') === 0)) return;
         if (item.type === 'question' && item.id && !vusQ[item.id]) {
             vusQ[item.id] = 1;
             questions.push(item);
@@ -1754,18 +1757,20 @@ function boiteCleAvertir(id, email) {
     return cle.slice(0, 40);
 }
 
-/* Dès qu'une question ou une suggestion part, les quatre comptes admins
-   reçoivent un mail. Le même avis part de la synchronisation si le
-   navigateur n'a pas pu l'envoyer ; l'empreinte ci-dessus évite le
-   doublon. L'avis ne bloque jamais l'envoi de l'utilisateur. */
+/* Dès que l'utilisateur appuie sur Envoyer, les quatre comptes admins
+   reçoivent un mail — en parallèle de l'envoi, pas après : même si le
+   fil hoquette, l'avis part. Le même avis part de la synchronisation si
+   le navigateur n'a pas pu l'envoyer ; l'empreinte ci-dessus évite le
+   doublon. Renvoie une promesse : vrai si au moins un avis est parti. */
 function boiteAvertirAdmins(record) {
-    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return;
+    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return Promise.resolve(false);
     var moi = String((boiteSession() && boiteSession().email) || '').toLowerCase();
     var question = record.type === 'question';
     var qui = boiteNomExpediteur(record);
     var expediteur = qui.nom + (qui.email ? ' (' + qui.email + ')' : '');
     var extrait = boiteLignes(record.texte).slice(0, 500);
-    boiteUrlScript().then(function (url) {
+    return boiteUrlScript().then(function (url) {
+        var envois = [];
         BOITE_ADMINS_MAIL.forEach(function (admin) {
             if (!admin.email || admin.email.toLowerCase() === moi) return;
             var salut = boiteSalutation(admin.nom, new Date());
@@ -1786,16 +1791,23 @@ function boiteAvertirAdmins(record) {
                 text: texte,
                 html: html
             };
-            fetch(url, {
+            var envoi = fetch(url, {
                 method: 'POST',
                 redirect: 'follow',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
+            }).then(function (res) {
+                return res.ok;
             }).catch(function () {
-                if (typeof boitePosterChamps === 'function') boitePosterChamps(url, payload).catch(function () {});
+                if (typeof boitePosterChamps !== 'function') return false;
+                return boitePosterChamps(url, payload).then(function () { return true; }, function () { return false; });
             });
+            envois.push(envoi);
         });
-    }).catch(function () {});
+        return Promise.all(envois).then(function (res) {
+            return res.some(function (ok) { return ok; });
+        });
+    }).catch(function () { return false; });
 }
 
 function boiteDireDans(el, texte, erreur) {
@@ -2135,14 +2147,25 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
         return;
     }
+    /* Les quatre admins sont prévenus dès l'appui, en parallèle de
+       l'envoi : l'avis ne dépend pas du fil. */
+    var avis = Promise.resolve(false);
+    try {
+        avis = boiteAvertirAdmins(record);
+    } catch (e) {}
     boiteEnvoyer(record).then(function () {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
         boiteDire('aideStatut', 'Question envoyée.', false);
-        boiteAvertirAdmins(record);
     }).catch(function () {
-        boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
+        return avis.then(function (parti) {
+            if (parti) {
+                boiteDire('aideStatut', 'Question envoyée par mail — elle rejoindra la boîte un peu plus tard.', false);
+            } else {
+                boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
+            }
+        });
     }).then(function () {
         boiteEnvoiEnCours = false;
     });
@@ -2224,12 +2247,22 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
             return;
         }
+        /* Les quatre admins sont prévenus dès l'appui, en parallèle. */
+        var avis = Promise.resolve(false);
+        try {
+            avis = boiteAvertirAdmins(record);
+        } catch (e) {}
         boiteEnvoyer(record).then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
-            boiteAvertirAdmins(record);
         }).catch(function () {
-            boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
+            return avis.then(function (parti) {
+                if (parti) {
+                    boiteDire('feedbackStatut', 'Suggestion envoyée par mail — elle rejoindra la boîte un peu plus tard.', false);
+                } else {
+                    boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
+                }
+            });
         }).then(function () {
             boiteEnvoiEnCours = false;
         });

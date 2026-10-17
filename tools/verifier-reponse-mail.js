@@ -157,6 +157,10 @@ assert.strictEqual(context.BOITE_EXPEDITEUR, 'ibstudyplan@gmail.com');
 
 /* — Les quatre admins sont définis, et notifiés — */
 assert.ok(boite.indexOf('BOITE_ADMINS_MAIL') !== -1, 'la liste des admins manque');
+assert.ok(boite.indexOf('}, 6000)') !== -1, 'l\'envoi vers le fil ne doit plus attendre 12 s');
+assert.ok(boite.indexOf('setTimeout(resolve, 1500)') !== -1, 'la reprise après un hoquet doit venir vite');
+assert.ok(boite.indexOf("item.id.indexOf('qtest') === 0") !== -1, 'les envois de test doivent rester invisibles chez les admins');
+assert.ok(fs.readFileSync('tools/sync-emplois.py', 'utf8').indexOf('qtest') !== -1, 'la synchronisation doit ignorer les envois de test');
 ['sawadogojuliss@gmail.com', 'faridsere86@gmail.com', 'ashleytamini10@gmail.com', 'rayyanouedraogo87@gmail.com'].forEach(function (mail) {
     assert.ok(boite.indexOf(mail) !== -1, 'admin manquant : ' + mail);
 });
@@ -371,7 +375,12 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         context.boiteQuestion(null);
         return attendre(3200);
     }).then(function () {
-        assert.ok(aideStatut.textContent.indexOf('n\'a pas abouti') !== -1, 'échec non annoncé : ' + aideStatut.textContent);
+        assert.ok(aideStatut.textContent.indexOf('Question envoyée par mail') !== -1, 'le fil est mort mais les admins sont prévenus : ' + aideStatut.textContent);
+        const avisMorts = appels.filter(function (item) {
+            if (!item || !item.url || item.url.indexOf('script.google.com') === -1) return false;
+            try { return JSON.parse(item.opts.body).subject === 'Nouvelle question — Study Plan IB'; } catch (e) { return false; }
+        });
+        assert.ok(avisMorts.length >= 1, 'personne n\'a été prévenu pendant que le fil était mort');
         assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après l\'échec');
         const file = JSON.parse(store[context.BOITE_FILE] || '[]');
         assert.ok(file.some(function (item) { return item.type === 'question' && String(item.texte).indexOf('le fil est mort') !== -1; }), 'la question ratée n\'est pas gardée en file');
@@ -386,6 +395,23 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         const file = JSON.parse(store[context.BOITE_FILE] || '[]');
         assert.ok(!file.some(function (item) { return String(item.texte).indexOf('le fil est mort') !== -1; }), 'la question gardée n\'a pas été rejouée');
         assert.ok(postNtfy().length >= 1, 'la reprise n\'a rien envoyé');
+
+        /* — Fil mort ET script mort : là seulement, on annonce l'échec — */
+        reponseScript = function () { return { success: false, error: 'reseau' }; };
+        delete store[context.BOITE_FILE];
+        appels.length = 0;
+        ntfyReponses = [{ ok: false, status: 503 }, { ok: false, status: 503 }];
+        aideTexte.value = 'Cinquième question, tout est mort.';
+        aideStatut.textContent = '';
+        context.boiteQuestion(null);
+        return attendre(3200);
+    }).then(function () {
+        assert.ok(aideStatut.textContent.indexOf('n\'a pas abouti') !== -1, 'l\'échec total doit être annoncé : ' + aideStatut.textContent);
+        assert.strictEqual(context.boiteEnvoiEnCours, false, 'bouton bloqué après l\'échec total');
+        const fileTotale = JSON.parse(store[context.BOITE_FILE] || '[]');
+        assert.ok(fileTotale.some(function (item) { return String(item.texte).indexOf('tout est mort') !== -1; }), 'la question de l\'échec total n\'est pas gardée');
+        reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
+        delete store[context.BOITE_FILE];
 
         /* — Un admin qui envoie ne se prévient pas lui-même — */
         context.compteSession = { sub: 'subtest', email: 'sawadogojuliss@gmail.com' };

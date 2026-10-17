@@ -1,0 +1,48 @@
+name: Envoi en vrai
+
+on:
+  push:
+    branches:
+      - arena/01a0bac7-learning-dp1
+    paths:
+      - 'js/**'
+      - 'pages/**'
+      - 'index.html'
+      - 'tools/tester-envoi.mjs'
+      - '.github/workflows/envoi-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  navigateur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Attendre que le site déployé rattrape ce commit
+        run: |
+          V=$(grep -o "2026[0-9a-z]*" js/boot.js | head -1)
+          echo "version attendue : $V"
+          for i in $(seq 1 30); do
+            D=$(curl -s "https://sawadogojuliss-byte.github.io/Learning-DP1/js/boot.js" | grep -o "$V" | head -1)
+            if [ "$D" = "$V" ]; then echo "site déployé à jour ($V)"; exit 0; fi
+            sleep 10
+          done
+          echo "le site déployé n'a pas rattrapé ce commit"
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Jouer l'envoi d'une question et d'une suggestion en vrai navigateur
+        run: node tools/tester-envoi.mjs

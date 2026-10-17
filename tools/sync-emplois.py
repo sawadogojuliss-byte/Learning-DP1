@@ -1090,15 +1090,24 @@ def main():
         for ancien in (lire_json(DEST_RETOURS, {}).get(cle_liste) or []):
             if isinstance(ancien, dict) and ancien.get('id'):
                 anciens_ids.add(ancien['id'])
+    def est_test(item):
+        return str(item.get('id') or '').startswith(('qtest', 'ftest'))
+
     frais = [
         item for item in items
         if isinstance(item, dict) and item.get('type') in ('question', 'feedback')
         and item.get('id') and item['id'] not in anciens_ids
+        and not est_test(item)
     ]
     avertir_admins(frais[-8:])
+    def sans_tests(genre):
+        return [item for item in items
+                if isinstance(item, dict) and item.get('type') == genre
+                and not est_test(item)][-120:]
+
     ecrire(DEST_RETOURS, {
-        'questions': [item for item in items if isinstance(item, dict) and item.get('type') == 'question'][-120:],
-        'feedbacks': [item for item in items if isinstance(item, dict) and item.get('type') == 'feedback'][-120:],
+        'questions': sans_tests('question'),
+        'feedbacks': sans_tests('feedback'),
         'reponses': [item for item in items if isinstance(item, dict) and item.get('type') == 'reponse'][-120:],
     })
     anciens_tutos = lire_json(DEST_TUTOS, {}).get('tutoriels') or []
