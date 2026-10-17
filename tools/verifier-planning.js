@@ -151,6 +151,23 @@ ok(interfaceJs.indexOf("lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 
     'la semaine doit commencer le lundi');
 
 
+/* ── Les textes de la première page et de l'accueil du profil ───────── */
+var accueil = lire('pages/accueil.html');
+ok(accueil.indexOf('Créer mon planning gratuitement') === -1, 'le bouton du haut ne dit plus « gratuitement »');
+ok(accueil.indexOf('>🚀 Créer mon planning</button>') !== -1, 'le bouton du haut doit rester « Créer mon planning »');
+ok(accueil.indexOf("Rejoignez des milliers d'étudiants") === -1, 'la phrase « Rejoignez des milliers… » doit disparaître');
+ok(accueil.indexOf('Prêt à transformer vos révisions ?') !== -1, 'la question du bas doit rester');
+ok(accueil.indexOf("Commencer maintenant — C'est gratuit !") !== -1, 'le bouton du bas doit rester');
+ok(lire('pages/onboarding-prenom.html').indexOf('Commençons par faire connaissance') === -1,
+    'la page du prénom ne garde que la question');
+ok(lire('pages/onboarding-prenom.html').indexOf("Comment t'appelles-tu ?") !== -1, 'la question du prénom doit rester');
+ok(lire('pages/onboarding-sommeil.html').indexOf('inférieure à 5 h') === -1,
+    'la limite de 5 h ne doit plus être répétée en haut de la page');
+var sommeil = lire('pages/onboarding-sommeil.html');
+ok(sommeil.indexOf('Choisis ton réveil et ta durée de sommeil.') !== -1, 'la description du sommeil doit rester');
+ok(sommeil.indexOf('au moins 5 h') !== -1, 'la limite de 5 h doit rester dans le rectangle vert');
+
+
 if (echecs.length) {
     console.error('échecs ' + echecs.length);
     echecs.forEach(function (e) { console.error('- ' + e); });
