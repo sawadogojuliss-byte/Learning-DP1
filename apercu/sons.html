@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sons du Pomodoro — avant / après</title>
+<title>Sons du Pomodoro — version longue</title>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; background: #f6faf7; color: #0b1f18; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 1.5rem 1rem 4rem; }
@@ -12,9 +12,10 @@
   h2 { font-size: 1rem; margin: 2rem 0 .75rem; color: #065f46; text-transform: uppercase; letter-spacing: .06em; }
   .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; }
   .carte { background: #fff; border: 1.5px solid #e5f3ea; border-radius: 1rem; padding: .8rem .9rem; box-shadow: 0 6px 18px rgba(6,78,59,.05); }
-  .titre { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: .95rem; margin-bottom: .5rem; }
+  .titre { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
   .emoji { font-size: 1.5rem; line-height: 1; }
   audio { width: 100%; height: 34px; }
+  .duree { font-size: .75rem; color: #6b7280; margin-bottom: .4rem; }
   .compare { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
   .compare .carte { border-color: #fde68a; }
   .compare .carte.apres { border-color: #a7f3d0; }
@@ -26,8 +27,8 @@
 </style>
 </head>
 <body>
-  <h1>🎧 Les 20 sons du Pomodoro — la nouvelle version</h1>
-  <p class="sous">Écoute chaque ambiance. Les sons qui « grésillaient comme une radio » sont refaits : plus de fréquence pure, plus de chuintement dans les aigus, plus de clic à chaque redémarrage.</p>
+  <h1>🎧 Les 18 sons du Pomodoro — version longue</h1>
+  <p class="sous">Chaque ambiance dure maintenant <b>5 minutes</b> et se referme sur elle-même par un fondu de 6 secondes : plus de redémarrage toutes les 8 secondes. Les musiques viennent du dossier Study Plan ; les bruits sont fabriqués sur place.</p>
 
   <h2>Avant / après</h2>
   <div class="compare" id="compare"></div>
@@ -43,52 +44,48 @@
 
   <div class="note">
     <b>Ce qui a changé</b><br>
-    • <b>Binaural gamma / bêta :</b> c'était deux sons purs (un par oreille) posés en avant — d'où le sifflement de radio. Les porteuses passent maintenant très bas sous une nappe chaude ; le battement (40 Hz et 20 Hz) reste exact.<br>
-    • <b>Pluie, pluie légère, forte pluie, orage, bruit blanc, bruit rose :</b> les aigus (4 000–9 000 Hz) sont adoucis. Ils faisaient 45 à 60 % de l'énergie : c'est exactement le « chuintement » d'une radio mal réglée. Ils descendent à 3–14 %.<br>
-    • <b>Toutes les ambiances :</b> le grave est rééquilibré bande par bande pour qu'aucun son ne soit sourd, et le niveau de départ est le même pour les 20.<br>
-    • <b>Boucles :</b> plus aucun clic toutes les 8 secondes (le raccord est coupé là où le signal est plat).<br>
-    • <b>Cheminée :</b> avant, un souffle continu avec les craquements noyés dessous (1 dB d'écart entre fort et faible). Maintenant le foyer ronfle discrètement, l'air monte dans le conduit et les craquements de bois ressortent nettement (petits tics, salves, gros claquements), avec les braises qui pétillent.<br>
-    • <b>Vent :</b> ce n'est plus une ambiance fabriquée : c'est un extrait de l'enregistrement fourni (« Vents.mp3 », 2 h). Les 7,91 s sont pris à 1 h 54, au passage le plus stable — aucune attaque de rafale à l'intérieur de la boucle. L'enregistrement est grave et feutré par nature : même à 10 % ou 90 % de sa durée, il n'a aucune énergie au-dessus de 2,5 kHz, et l'extrait en garde 3,8 % sous 80 Hz, 51 % entre 250 et 800 Hz.<br>
-    • <b>Orage :</b> avant, le tonnerre était inaudible (2 % d'énergie dans le grave contre 44 % pour la pluie). Maintenant, trois coups de tonnerre qui roulent — lointain, proche, lointain — avec de vrais silences entre eux, et la pluie continue derrière.
+    • <b>Longueur :</b> 7,91 s → <b>5 minutes</b>. Les deux extrémités se croisent sur 6 secondes à puissance constante, donc la fin se prolonge dans le début : pas de silence, pas de clic, pas de « ça recommence ».<br>
+    • <b>Pluie, pluie légère, forte pluie, orage :</b> extraits de « Pluie chill ». Le passage le plus chargé fait forte pluie, le plus calme fait pluie légère, celui qui contient le plus gros grondement fait orage.<br>
+    • <b>Café animé :</b> « Busy café ». <b>Bibliothèque</b> (le plus calme) et <b>Bureau</b> (le plus vivant) : « Musique classique ».<br>
+    • <b>Avion, train, matin en ville, océan :</b> quatre passages différents de « 8D ». <b>Bêta :</b> « Flowstate ». <b>Salle d'examen :</b> « Brain.fm ». <b>Gamma :</b> « Gamma Binaural Beats » (vrai binaural, une fréquence par oreille). <b>Vent :</b> « Vents ».<br>
+    • <b>Bruit blanc, rose, brun :</b> fabriqués ici, allongés à 5 minutes de la même façon.<br>
+    • <b>Cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
+    • <b>Niveau sonore :</b> tous les sons sont alignés au même volume perçu, avec un limiteur doux pour les crêtes (la pluie en a de fortes).
   </div>
 
 <script>
 var SONS = [
-  { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature' },
-  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature' },
-  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔', groupe: 'nature' },
-  { id: 'pluie-forte', nom: 'Forte pluie', emoji: '🌧️', groupe: 'nature' },
-  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature' },
-  { id: 'cheminee', nom: 'Cheminée', emoji: '🔥', groupe: 'nature' },
-  { id: 'feu', nom: 'Feu de camp', emoji: '🪵', groupe: 'nature' },
-  { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature' },
-  { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville' },
-  { id: 'avion', nom: "Cabine d'avion", emoji: '✈️', groupe: 'ville' },
-  { id: 'salle', nom: "Salle d'examen", emoji: '😰', groupe: 'ville' },
-  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville' },
-  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville' },
-  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville' },
-  { id: 'bureau', nom: 'Bureau', emoji: '🏢', groupe: 'ville' },
-  { id: 'blanc', nom: 'Bruit blanc', emoji: '🧠', groupe: 'bruits' },
-  { id: 'rose', nom: 'Bruit rose', emoji: '🩷', groupe: 'bruits' },
-  { id: 'brun', nom: 'Bruit brun', emoji: '🟤', groupe: 'bruits' },
-  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration' },
-  { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻', groupe: 'concentration' }
+  { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature', source: '8D' },
+  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'pluie-forte', nom: 'Forte pluie', emoji: '🌧️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature', source: 'Vents' },
+  { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville', source: 'Busy café' },
+  { id: 'avion', nom: 'Cabine d’avion', emoji: '✈️', groupe: 'ville', source: '8D' },
+  { id: 'salle', nom: 'Salle d’examen', emoji: '😰', groupe: 'ville', source: 'Brain.fm' },
+  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: '8D' },
+  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Musique classique' },
+  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: '8D' },
+  { id: 'bureau', nom: 'Bureau', emoji: '🏢', groupe: 'ville', source: 'Musique classique' },
+  { id: 'blanc', nom: 'Bruit blanc', emoji: '🧠', groupe: 'bruits', source: 'fabriqué' },
+  { id: 'rose', nom: 'Bruit rose', emoji: '🩷', groupe: 'bruits', source: 'fabriqué' },
+  { id: 'brun', nom: 'Bruit brun', emoji: '🟤', groupe: 'bruits', source: 'fabriqué' },
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration', source: 'Gamma Binaural Beats' },
+  { id: 'beta', nom: 'Bêta (Flowstate)', emoji: '🧑‍💻', groupe: 'concentration', source: 'Flowstate' }
 ];
 var COMPARE = [
-  { id: 'vent', nom: 'Vent', emoji: '🌬️' },
-  { id: 'cheminee', nom: 'Cheminée', emoji: '🔥' },
-  { id: 'orage', nom: 'Orage', emoji: '⛈️' },
-  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' },
-  { id: 'blanc', nom: 'Bruit blanc', emoji: '🧠' },
   { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔' },
-  { id: 'beta', nom: 'Binaural bêta', emoji: '🧑‍💻' }
+  { id: 'orage', nom: 'Orage', emoji: '⛈️' },
+  { id: 'vent', nom: 'Vent', emoji: '🌬️' },
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' }
 ];
 function carte(son, avant) {
-  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.wav?v=20261017c';
+  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.mp3?v=20261017d';
   return '<div class="carte' + (avant ? '' : ' apres') + '">' +
     '<div class="titre"><span class="emoji">' + son.emoji + '</span>' + son.nom +
     '<span class="etiquette ' + (avant ? 'avant' : 'apres') + '">' + (avant ? 'avant' : 'après') + '</span></div>' +
+    '<div class="duree">' + (avant ? '7,9 s en boucle' : '5 min, fondu de 6 s' + (son.source ? ' · ' + son.source : '')) + '</div>' +
     '<audio controls preload="none" src="' + url + '"></audio></div>';
 }
 COMPARE.forEach(function (son) {

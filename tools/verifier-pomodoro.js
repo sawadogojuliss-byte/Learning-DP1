@@ -172,56 +172,46 @@ ok(css.indexOf('background-position: center center') !== -1, 'les images doivent
 ok(script.indexOf("nom: 'Pluie'") < script.indexOf("nom: 'Océan'"), 'Pluie doit ouvrir la grille');
 ok(script.indexOf('Image dans') === -1 && page.indexOf("Image dans l'image") !== -1, 'le libellé français image dans l image manque');
 ok(page.indexOf('title="Image dans') === -1, 'le survol ne doit pas afficher image dans l image');
-['audio/pomodoro/pluie.wav', 'audio/pomodoro/ocean.wav', 'audio/pomodoro/cafe.wav', 'audio/pomodoro/beta.wav', 'audio/pomodoro/gamma.wav'].forEach(function (src) {
+['audio/pomodoro/pluie.mp3', 'audio/pomodoro/ocean.mp3', 'audio/pomodoro/cafe.mp3', 'audio/pomodoro/beta.mp3', 'audio/pomodoro/gamma.mp3'].forEach(function (src) {
     ok(fs.existsSync(path.join(__dirname, '..', src)), 'son absent : ' + src);
 });
 
 /* ── 8 bis. Les fichiers audio sont sains ─────────────────────────── */
-function enteteWav(rel) {
-    var buf = fs.readFileSync(path.join(__dirname, '..', rel));
-    if (buf.toString('ascii', 0, 4) !== 'RIFF' || buf.toString('ascii', 8, 12) !== 'WAVE') return null;
-    var canaux = buf.readUInt16LE(22);
-    var fsAudio = buf.readUInt32LE(24);
-    var bits = buf.readUInt16LE(34);
-    var i = 12;
-    while (i + 8 <= buf.length) {
-        var id = buf.toString('ascii', i, i + 4);
-        var taille = buf.readUInt32LE(i + 4);
-        if (id === 'data') {
-            var n = Math.floor(taille / (canaux * bits / 8));
-            var premier = buf.readInt16LE(i + 8);
-            var dernier = buf.readInt16LE(i + 8 + (n - 1) * canaux * (bits / 8));
-            var crete = 0;
-            for (var k = 0; k < n; k += 97) {
-                var v = Math.abs(buf.readInt16LE(i + 8 + k * canaux * (bits / 8)));
-                if (v > crete) crete = v;
-            }
-            return { canaux: canaux, fs: fsAudio, bits: bits, duree: n / fsAudio, premier: premier, dernier: dernier, crete: crete };
-        }
-        i += 8 + taille + (taille % 2);
-    }
-    return null;
-}
+/* ── 8. Les 18 sons longs : 5 minutes, MP3, sans coupure ── */
+var manifeste = null;
+try { manifeste = JSON.parse(lire('audio/pomodoro/manifeste.json')); } catch (e) {}
 var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin', 'pluie-legere',
-            'pluie-forte', 'orage', 'cheminee', 'feu', 'bureau', 'vent', 'blanc', 'rose', 'brun', 'gamma', 'beta'];
+            'pluie-forte', 'orage', 'bureau', 'vent', 'blanc', 'rose', 'brun', 'gamma', 'beta'];
+var stereo = ['cafe', 'bibliotheque', 'bureau', 'avion', 'train', 'matin', 'ocean', 'beta', 'salle', 'gamma'];
+ok(Array.isArray(manifeste) && manifeste.length === sons.length,
+    'le manifeste des 18 sons longs doit exister');
+var parId = {};
+(manifeste || []).forEach(function (m) { parId[m.id] = m; });
 var sains = 0;
 sons.forEach(function (nom) {
-    var f = 'audio/pomodoro/' + nom + '.wav';
-    var h = fs.existsSync(path.join(__dirname, '..', f)) ? enteteWav(f) : null;
-    if (!h) { echecs.push('son illisible : ' + f); return; }
-    if (h.fs !== 22050 || h.bits !== 16) { echecs.push('format inattendu pour ' + nom); return; }
-    if (h.duree < 7.5 || h.duree > 8.2) echecs.push('durée inattendue pour ' + nom + ' (' + h.duree.toFixed(2) + ' s)');
-    /* Boucle : le raccord ne doit pas faire de clic. */
-    var saut = Math.abs(h.premier - h.dernier) / 32768;
-    if (saut > 0.01) echecs.push('la boucle de ' + nom + ' fait un clic (' + saut.toFixed(4) + ')');
-    /* Pas de saturation. */
-    if (h.crete >= 32700) echecs.push('le son ' + nom + ' sature');
-    if ((nom === 'gamma' || nom === 'beta') && h.canaux !== 2) echecs.push(nom + ' doit rester en stéréo (une oreille par porteuse)');
-    if (nom !== 'gamma' && nom !== 'beta' && h.canaux !== 1) echecs.push(nom + ' doit rester en mono');
+    var f = 'audio/pomodoro/' + nom + '.mp3';
+    var chemin = path.join(__dirname, '..', f);
+    if (!fs.existsSync(chemin)) { echecs.push('son manquant : ' + f); return; }
+    var buf = fs.readFileSync(chemin);
+    if (buf.length < 2000000) { echecs.push('son trop léger : ' + f); return; }
+    var mp3 = buf.toString('ascii', 0, 3) === 'ID3' ||
+              (buf[0] === 0xFF && (buf[1] & 0xE0) === 0xE0);
+    if (!mp3) { echecs.push('ce n\'est pas un MP3 : ' + f); return; }
+    var m = parId[nom];
+    if (!m) { echecs.push('absent du manifeste : ' + nom); return; }
+    var debit = m.canaux === 'stereo' ? 128000 : 96000;
+    var duree = m.octets * 8 / debit;
+    if (duree < 295 || duree > 306) echecs.push('durée inattendue pour ' + nom + ' (' + duree.toFixed(0) + ' s)');
+    if (Math.abs(m.octets - buf.length) > 4096) echecs.push('taille incohérente pour ' + nom);
+    if (stereo.indexOf(nom) !== -1 && m.canaux !== 'stereo') echecs.push(nom + ' doit rester en stéréo');
+    if (stereo.indexOf(nom) === -1 && m.canaux !== 'mono') echecs.push(nom + ' doit rester en mono');
     sains++;
 });
-ok(sains === sons.length, 'les 20 sons doivent être lisibles et boucler proprement');
-ok(script.indexOf('audio/pomodoro/pluie.wav?v=20261017c') !== -1, 'le cache des sons doit être renouvelé');
+ok(sains === sons.length, 'les 18 sons longs doivent être lisibles et complets');
+ok(script.indexOf('audio/pomodoro/pluie.mp3?v=20261017d') !== -1, 'le cache des sons doit être renouvelé');
+ok(script.indexOf('cheminee') === -1 && script.indexOf("'feu'") === -1,
+    'la cheminée et le feu de camp doivent disparaître de la grille');
+ok(script.indexOf('.wav?v=') === -1, 'plus aucun son ne doit être servi en WAV');
 
 /* ── 9. Les cours finissent à 16 h 25 ── */
 ok(lire('js/pages/planning-base.js').indexOf('var COURS_FIN = 16 * 60 + 25;') !== -1, 'les cours doivent finir à 16 h 25');
