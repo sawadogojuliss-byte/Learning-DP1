@@ -1824,7 +1824,7 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-17T16:29:47.151Z",
+      "at": "2026-10-17T17:13:05.189Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
@@ -2134,7 +2134,7 @@
             {
               "d": "06:50",
               "f": "07:30",
-              "t": "Évaluation interne · Mathématiques AA"
+              "t": "Révisions · Français A"
             },
             {
               "d": "07:30",
@@ -2149,12 +2149,12 @@
             {
               "d": "16:00",
               "f": "16:30",
-              "t": "Révisions · Physique"
+              "t": "Révisions · Français A"
             },
             {
               "d": "16:30",
               "f": "18:15",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions Physique"
             },
             {
               "d": "19:00",
@@ -2163,8 +2163,13 @@
             },
             {
               "d": "19:45",
-              "f": "22:15",
+              "f": "21:35",
               "t": "Exercice de maths"
+            },
+            {
+              "d": "21:35",
+              "f": "22:15",
+              "t": "Évaluation interne · Mathématiques AA"
             },
             {
               "d": "22:15",
@@ -2178,6 +2183,16 @@
             },
             {
               "d": "01:10",
+              "f": "02:10",
+              "t": "Révision Histoire"
+            },
+            {
+              "d": "02:15",
+              "f": "03:00",
+              "t": "Lecture"
+            },
+            {
+              "d": "03:00",
               "f": "06:10",
               "t": "Coucher"
             }
@@ -6299,7 +6314,7 @@
       "type": "emploi",
       "id": "e_a1a113207989199d5d45",
       "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-17T15:54:39.087Z",
+      "at": "2026-10-17T16:58:34.386Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
@@ -8234,7 +8249,7 @@
       "type": "emploi",
       "id": "e_a1a12f36746321e0e525",
       "appareil": "a1a12f36746321e0e525",
-      "at": "2026-10-17T07:15:45.655Z",
+      "at": "2026-10-17T17:35:14.842Z",
       "nom": "Yohann",
       "classe": "DP2",
       "email": "redminote13u@gmail.com",
