@@ -1,0 +1,62 @@
+name: Diagnostic boîte
+
+on:
+  push:
+    paths:
+      - '.boite-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  fil:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Relire tout le fil
+        run: |
+          mkdir -p /tmp/diag
+          python3 - <<'PY' > /tmp/diag/apercu.txt
+          import json, urllib.request
+          sujet = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
+          url = 'https://ntfy.sh/%s/json?poll=1&since=all' % sujet
+          req = urllib.request.Request(url, headers={'Accept': 'application/x-ndjson'})
+          utiles = 0
+          total = 0
+          with urllib.request.urlopen(req, timeout=90) as r:
+              for ligne in r:
+                  ligne = ligne.decode('utf-8', 'replace').strip()
+                  if not ligne:
+                      continue
+                  try:
+                      env = json.loads(ligne)
+                  except Exception:
+                      continue
+                  if env.get('event') and env.get('event') != 'message':
+                      continue
+                  total += 1
+                  try:
+                      data = json.loads(env.get('message') or '')
+                      if isinstance(data, dict) and data.get('type') == 'sonde':
+                          continue
+                  except Exception:
+                      pass
+                  utiles += 1
+                  texte = str(env.get('message') or '')[:160]
+                  print('%s | %s | %s' % (env.get('time'), env.get('title'), texte))
+          print('total %d, utiles %d' % (total, utiles))
+          PY
+
+      - name: Publier
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd /tmp/diag
+          git init -q .
+          git checkout -q -b tmp/diag
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Aperçu du fil"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/diag
