@@ -131,12 +131,10 @@ function renderPlanning() {
 }
 
 function v3LibreVertical() {
-    return '<div style="min-height:72vh;display:flex;align-items:center;justify-content:center;padding:1.25rem 0.5rem;">'
-        + '<div style="position:relative;width:min(100%,18.5rem);min-height:32rem;border-radius:2rem;background:radial-gradient(circle at 50% 18%,rgba(254,205,211,0.55),transparent 58%),linear-gradient(180deg,#fff 0%,#fff1f2 100%);border:1px solid rgba(190,18,60,0.12);box-shadow:0 28px 70px rgba(136,19,55,0.10);display:flex;align-items:center;justify-content:center;overflow:hidden;">'
-        + '<div style="position:absolute;inset:0.9rem;border-radius:1.45rem;border:1px solid rgba(190,18,60,0.16);pointer-events:none;"></div>'
-        + '<div style="position:absolute;top:1.7rem;left:50%;transform:translateX(-50%);font-size:0.68rem;letter-spacing:0.28em;text-transform:uppercase;color:#9f1239;font-weight:700;">Jour férié</div>'
-        + '<div style="writing-mode:vertical-rl;transform:rotate(180deg);font-family:Georgia,\'Iowan Old Style\',\'Palatino Linotype\',Palatino,serif;font-weight:500;font-size:clamp(4.4rem,18vw,6.4rem);letter-spacing:0.22em;line-height:1;color:#be123c;">libre</div>'
-        + '<div style="position:absolute;bottom:1.6rem;width:2.4rem;height:1px;background:linear-gradient(90deg,transparent,#e11d48,transparent);"></div>'
+    /* Jour férié libéré : la carte « Jour libre » aux couleurs vertes du site. */
+    return '<div style="min-height:68vh;display:flex;align-items:center;justify-content:center;padding:1.25rem 0.5rem;">'
+        + '<div style="width:min(100%,21rem);border-radius:1.6rem;overflow:hidden;line-height:0;box-shadow:0 26px 60px rgba(22,101,52,0.14),0 2px 10px rgba(22,101,52,0.06);">'
+        + '<img src="images/jour-libre.webp?v=20261016e" alt="Jour libre : rien de programmé aujourd\'hui" width="409" height="619" draggable="false" style="display:block;width:100%;height:auto;">'
         + '</div></div>';
 }
 

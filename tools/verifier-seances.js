@@ -83,10 +83,15 @@ ok(memoire.indexOf("hash === 'seances') etape = 'seances'") !== -1,
 /* ── Le menu ─────────────────────────────────────────────────────── */
 var itemSeances = planning.indexOf('id="menuSeances"');
 var itemMinuteur = planning.indexOf('id="menuMinuteur"');
-var itemPlanning = planning.indexOf('Emploi du temps hebdomadaire');
+var itemPlanning = planning.indexOf('>Mon Planning</p>');
+var itemExercices = planning.indexOf("navigateTo('exercices')");
+var itemEeia = planning.indexOf("navigateTo('eeia')");
+var itemFeries = planning.indexOf("navigateTo('feries')");
 var itemHabitudes = planning.indexOf('id="menuHabitudes"');
-ok(itemSeances > itemPlanning, 'la séance de révision doit venir après l\'emploi du temps');
+ok(itemSeances > itemPlanning, 'la séance de révision doit venir après Mon planning');
 ok(itemMinuteur > itemSeances && itemHabitudes > itemMinuteur, 'le minuteur suit la séance de révision, avant les habitudes');
+ok(itemExercices > itemSeances && itemEeia > itemExercices && itemFeries > itemEeia && itemMinuteur > itemFeries,
+    'l\'ordre demandé doit être : séance, exercices, EE & IA, jours fériés, pomodoro, habitudes');
 ok(planning.slice(itemSeances, itemSeances + 260).indexOf('display:none') === -1, 'le menu des séances doit être visible');
 ok(planning.slice(itemMinuteur, itemMinuteur + 260).indexOf('display:none') === -1, 'le menu du minuteur doit être visible');
 ok(script.indexOf("['menuSeances', 'menuMinuteur']") !== -1, 'les deux entrées du menu doivent rester visibles pour tous');

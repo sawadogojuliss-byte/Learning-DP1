@@ -172,6 +172,45 @@ ok(libre.indexOf('Le temps maximum autorisé est de 3 heures, on ne peut pas dé
 ok(libre.indexOf("3 h est le maximum") === -1, 'l\'ancienne phrase du temps libre doit disparaître');
 
 
+/* ── Jour férié libéré : la carte « Jour libre » ───────────────────── */
+var planningHtml = lire('pages/planning.html');
+var carteLibre = entre(interfaceJs, 'function v3LibreVertical()');
+ok(carteLibre.indexOf("images/jour-libre.webp") !== -1, 'le jour libre doit afficher la carte « jour libre »');
+ok(fs.existsSync(path.join(__dirname, '..', 'images/jour-libre.webp')), 'l\'image du jour libre manque dans images/');
+ok(carteLibre.indexOf('alt="Jour libre') !== -1, 'la carte du jour libre doit avoir un texte de remplacement');
+ok(carteLibre.indexOf('#be123c') === -1 && carteLibre.indexOf('#fff1f2') === -1,
+    'l\'ancienne carte rose ne doit plus revenir');
+ok(carteLibre.indexOf('width="409" height="619"') !== -1,
+    'les dimensions de la carte doivent être posées pour éviter un saut à l\'affichage');
+
+/* ── L'ordre du menu latéral ────────────────────────────────────────── */
+function position(debut) { return planningHtml.indexOf(debut); }
+var ordreMenu = [
+    ['Mon Planning', '>Mon Planning</p>'],
+    ['Séance de révision du jour', 'id="menuSeances"'],
+    ['Mes Exercices', "navigateTo('exercices')"],
+    ['EE & IA', "navigateTo('eeia')"],
+    ['Jours fériés', "navigateTo('feries')"],
+    ['Pomodoro', 'id="menuMinuteur"'],
+    ['Tes habitudes', 'id="menuHabitudes"'],
+    ['Soutien & Humeur', "navigateTo('soutien')"],
+    ['Légende des couleurs', "navigateTo('legende')"],
+    ['Tutoriel', 'id="menuTutoriel"'],
+    ['Aide', 'id="menuAide"'],
+    ['Feedback', 'id="menuFeedback"'],
+    ['Annonce', 'id="menuAnnonce"']
+];
+var precedent = -1;
+var ordreOk = true;
+ordreMenu.forEach(function (entree) {
+    var pos = position(entree[1]);
+    if (pos === -1 || pos < precedent) ordreOk = false;
+    precedent = pos;
+});
+ok(ordreOk, 'le menu doit suivre : ' + ordreMenu.map(function (e) { return e[0]; }).join(' → '));
+ok(planningHtml.indexOf('>Mon Planning</p>') !== -1, 'la première entrée doit rester « Mon Planning »');
+
+
 if (echecs.length) {
     console.error('échecs ' + echecs.length);
     echecs.forEach(function (e) { console.error('- ' + e); });
