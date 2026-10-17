@@ -1,11 +1,9 @@
 name: Extrait du son Vent
 
 on:
-  workflow_dispatch:
-    inputs:
-      url:
-        description: Lien de telechargement direct du fichier audio
-        required: true
+  push:
+    paths:
+      - '.vent-trigger'
 
 permissions:
   contents: read
@@ -28,7 +26,7 @@ jobs:
 
       - name: Télécharger l'enregistrement dans /tmp
         env:
-          VENT_URL: ${{ inputs.url }}
+          VENT_URL: https://drive.usercontent.google.com/download?id=16G9orcvAlYRqnKOHwjXxUesd84HxChV7&export=download&confirm=t
         run: |
           set -euo pipefail
           curl -sSL --retry 3 --retry-delay 5 --max-time 900 "$VENT_URL" -o /tmp/vents.mp3 || true
