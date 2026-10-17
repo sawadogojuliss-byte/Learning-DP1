@@ -13,6 +13,14 @@ var BOITE_ADMINS = [
     'ouedraogo wendsom ryyan'
 ];
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
+/* Les quatre comptes admins : chaque question ou suggestion partie
+   d'un utilisateur les prévient ici, par mail et dans le site. */
+var BOITE_ADMINS_MAIL = [
+    { nom: 'Juliss', email: 'sawadogojuliss@gmail.com' },
+    { nom: 'Farid', email: 'faridsere86@gmail.com' },
+    { nom: 'Ashley', email: 'ashleytamini10@gmail.com' },
+    { nom: 'Rayyan', email: 'rayyanouedraogo87@gmail.com' }
+];
 var BOITE_SCRIPT_SECRET = 'spib-7c4e9a2b8d1f6c3e';
 var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
 var boiteJetonMail = '';
@@ -1729,6 +1737,67 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
     });
 }
 
+/* Empreinte stable d'un envoi de notification : le script Google s'en
+   sert pour ne pas expédier deux fois le même avis (le navigateur et la
+   synchronisation peuvent tous deux prévenir). */
+function boiteCleAvertir(id, email) {
+    var s = String(id) + '|' + String(email).toLowerCase();
+    var a = 5381;
+    var b = 5271;
+    var i;
+    for (i = 0; i < s.length; i++) {
+        a = ((a * 33) + s.charCodeAt(i)) >>> 0;
+        b = ((b * 31) + s.charCodeAt(i) + i) >>> 0;
+    }
+    var cle = 'n' + a.toString(16) + b.toString(16);
+    while (cle.length < 17) cle += '0';
+    return cle.slice(0, 40);
+}
+
+/* Dès qu'une question ou une suggestion part, les quatre comptes admins
+   reçoivent un mail. Le même avis part de la synchronisation si le
+   navigateur n'a pas pu l'envoyer ; l'empreinte ci-dessus évite le
+   doublon. L'avis ne bloque jamais l'envoi de l'utilisateur. */
+function boiteAvertirAdmins(record) {
+    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return;
+    var moi = String((boiteSession() && boiteSession().email) || '').toLowerCase();
+    var question = record.type === 'question';
+    var qui = boiteNomExpediteur(record);
+    var expediteur = qui.nom + (qui.email ? ' (' + qui.email + ')' : '');
+    var extrait = boiteLignes(record.texte).slice(0, 500);
+    boiteUrlScript().then(function (url) {
+        BOITE_ADMINS_MAIL.forEach(function (admin) {
+            if (!admin.email || admin.email.toLowerCase() === moi) return;
+            var salut = boiteSalutation(admin.nom, new Date());
+            var sujet = (question ? 'Nouvelle question — Study Plan IB' : 'Nouvelle suggestion — Study Plan IB');
+            var texte = salut + '\n\n' + expediteur + (question ? ' t’a envoyé une question' : ' t’a envoyé une suggestion') + ' depuis Study Plan IB :\n\n« ' + extrait + ' »\n\nRéponds depuis la page ' + (question ? 'Questions' : 'Retours des feedbacks') + ' du site.\n\nÀ bientôt,\nL\'équipe Study Plan IB';
+            var html = '<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#111827;">' + boiteEchapHtml(salut) + '</p>'
+                + '<p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#374151;">' + boiteEchap(expediteur) + (question ? ' t’a envoyé une question' : ' t’a envoyé une suggestion') + ' depuis <strong>Study Plan IB</strong> :</p>'
+                + '<p style="margin:0 0 14px;padding:12px 14px;background:#f0fdf4;border-left:3px solid #34d399;border-radius:10px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1f2937;">' + boiteEchapHtml(extrait) + '</p>'
+                + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#6b7280;">Réponds depuis la page ' + (question ? 'Questions' : 'Retours des feedbacks') + ' du site.</p>';
+            var payload = {
+                secret: BOITE_SCRIPT_SECRET,
+                nonce: boiteCleAvertir(record.id, admin.email),
+                to: admin.email,
+                replyTo: BOITE_EXPEDITEUR,
+                nom: admin.nom,
+                salutation: salut,
+                subject: sujet,
+                text: texte,
+                html: html
+            };
+            fetch(url, {
+                method: 'POST',
+                redirect: 'follow',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            }).catch(function () {
+                if (typeof boitePosterChamps === 'function') boitePosterChamps(url, payload).catch(function () {});
+            });
+        });
+    }).catch(function () {});
+}
+
 function boiteDireDans(el, texte, erreur) {
     if (!el) return;
     el.textContent = texte;
@@ -2071,6 +2140,7 @@ function boiteQuestion(session) {
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
         boiteDire('aideStatut', 'Question envoyée.', false);
+        boiteAvertirAdmins(record);
     }).catch(function () {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
     }).then(function () {
@@ -2157,6 +2227,7 @@ function initFeedback() {
         boiteEnvoyer(record).then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
+            boiteAvertirAdmins(record);
         }).catch(function () {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
         }).then(function () {
@@ -2663,8 +2734,8 @@ function boiteOuvrirAlerte(neuf) {
     };
 }
 
-function boiteSignalerOuverture() {
-    if (boiteVisiteAlertee || boiteAlerteEnCours || Date.now() < boiteAlerteApres) return;
+function boiteSignalerOuverture(force) {
+    if ((boiteVisiteAlertee && !force) || boiteAlerteEnCours || Date.now() < boiteAlerteApres) return;
     if (!boiteEstAdmin() || typeof document === 'undefined') return;
     if (document.getElementById('boiteAlerteRetours')) return;
     boiteAlerteEnCours = true;
@@ -2686,6 +2757,14 @@ if (typeof document !== 'undefined') {
     setInterval(function () {
         try { boiteReessayer(); } catch (e) {}
     }, 45000);
+    /* Pour un admin, la page surveille la boîte : une question ou une
+       suggestion qui arrive pendant que le site est ouvert fait surgir
+       le popup, sans attendre un rechargement. */
+    setInterval(function () {
+        try {
+            if (document.visibilityState === 'visible' && boiteEstAdmin()) boiteSignalerOuverture(true);
+        } catch (e) {}
+    }, 90000);
     document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') {
             boiteVisiteAlertee = false;

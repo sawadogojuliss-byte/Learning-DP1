@@ -155,6 +155,25 @@ assert.strictEqual(boite.indexOf('boiteMotPresent'), -1, 'le rattachement d\'une
 assert.strictEqual(boite.indexOf('https://kvdb.io'), -1, 'le navigateur ne doit plus créer de coffre kvdb lui-même');
 assert.strictEqual(context.BOITE_EXPEDITEUR, 'ibstudyplan@gmail.com');
 
+/* — Les quatre admins sont définis, et notifiés — */
+assert.ok(boite.indexOf('BOITE_ADMINS_MAIL') !== -1, 'la liste des admins manque');
+['sawadogojuliss@gmail.com', 'faridsere86@gmail.com', 'ashleytamini10@gmail.com', 'rayyanouedraogo87@gmail.com'].forEach(function (mail) {
+    assert.ok(boite.indexOf(mail) !== -1, 'admin manquant : ' + mail);
+});
+assert.ok(boite.indexOf('boiteAvertirAdmins(record)') !== -1, 'une question partie ne prévient pas les admins');
+assert.ok(boite.indexOf('90000') !== -1, 'la surveillance de la boîte pour les admins manque');
+assert.ok(boite.indexOf('boiteSignalerOuverture(true)') !== -1, 'le popup admin ne se rafraîchit pas tout seul');
+assert.ok(fs.readFileSync('tools/sync-emplois.py', 'utf8').indexOf('def avertir_admins') !== -1, 'le filet de la synchronisation manque');
+
+/* L'empreinte d'avis doit être identique en JS et en Python : c'est elle
+   qui empêche le navigateur et la synchronisation de prévenir deux fois. */
+const empreintePy = require('child_process').execFileSync('python3', ['-c',
+    "import importlib.util as iu; spec = iu.spec_from_file_location('se', 'tools/sync-emplois.py'); m = iu.module_from_spec(spec); spec.loader.exec_module(m); print(m.cle_avertir('q1a14ada5592fd8140b9', 'faridsere86@gmail.com'))"
+], { encoding: 'utf8' }).trim();
+assert.strictEqual(context.boiteCleAvertir('q1a14ada5592fd8140b9', 'faridsere86@gmail.com'), empreintePy, 'les empreintes JS et Python diffèrent');
+assert.strictEqual(context.boiteCleAvertir('q1', 'a@b.fr'), context.boiteCleAvertir('q1', 'a@b.fr'), 'empreinte instable');
+assert.notStrictEqual(context.boiteCleAvertir('q1', 'a@b.fr'), context.boiteCleAvertir('q2', 'a@b.fr'), 'empreinte sans effet');
+
 const aide = fs.readFileSync('pages/aide.html', 'utf8');
 assert.strictEqual(aide.indexOf('indésirable'), -1, 'la page Aide parle encore des indésirables');
 assert.strictEqual(aide.indexOf('ibstudyplan@gmail.com'), -1, 'la page Aide montre encore l\'adresse de l\'équipe');
@@ -301,6 +320,20 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après un envoi réussi');
         assert.strictEqual(aideTexte.value, '', 'la question n\'a pas été effacée après l\'envoi');
 
+        /* — Les quatre admins sont prévenus par mail — */
+        const avis = appels.filter(function (item) {
+            if (!item || !item.url || item.url.indexOf('script.google.com') === -1) return false;
+            try { return JSON.parse(item.opts.body).subject === 'Nouvelle question — Study Plan IB'; } catch (e) { return false; }
+        });
+        const cibles = avis.map(function (item) { return JSON.parse(item.opts.body).to; }).sort();
+        assert.deepStrictEqual(cibles, ['ashleytamini10@gmail.com', 'faridsere86@gmail.com', 'rayyanouedraogo87@gmail.com', 'sawadogojuliss@gmail.com'].sort(), 'les quatre admins ne sont pas tous prévenus : ' + cibles.join(','));
+        const corpsAvis = JSON.parse(avis[0].opts.body);
+        assert.ok(/^n[a-f0-9]{16,}$/.test(corpsAvis.nonce), 'empreinte d\'avis mal formée : ' + corpsAvis.nonce);
+        assert.ok(corpsAvis.text.indexOf('Awa') !== -1, 'l\'expéditeur manque dans l\'avis');
+        assert.ok(corpsAvis.text.indexOf('mémoire de français') !== -1, 'la question manque dans l\'avis');
+        assert.ok(corpsAvis.text.indexOf('Study Plan IB') !== -1, 'l\'équipe manque dans l\'avis');
+        assert.ok(corpsAvis.html.indexOf('Study Plan IB') !== -1, 'le HTML de l\'avis manque');
+
         /* — Le fil hoquette une fois : la reprise doit suffire — */
         delete store[context.BOITE_FILE];
         appels.length = 0;
@@ -353,6 +386,25 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         const file = JSON.parse(store[context.BOITE_FILE] || '[]');
         assert.ok(!file.some(function (item) { return String(item.texte).indexOf('le fil est mort') !== -1; }), 'la question gardée n\'a pas été rejouée');
         assert.ok(postNtfy().length >= 1, 'la reprise n\'a rien envoyé');
+
+        /* — Un admin qui envoie ne se prévient pas lui-même — */
+        context.compteSession = { sub: 'subtest', email: 'sawadogojuliss@gmail.com' };
+        delete store[context.BOITE_FILE];
+        appels.length = 0;
+        ntfyReponses = [];
+        aideTexte.value = 'Question envoyée par un admin.';
+        aideEmail.value = 'sawadogojuliss@gmail.com';
+        aideStatut.textContent = '';
+        context.boiteQuestion(null);
+        return attendre(150);
+    }).then(function () {
+        const avis = appels.filter(function (item) {
+            if (!item || !item.url || item.url.indexOf('script.google.com') === -1) return false;
+            try { return JSON.parse(item.opts.body).subject === 'Nouvelle question — Study Plan IB'; } catch (e) { return false; }
+        });
+        const cibles = avis.map(function (item) { return JSON.parse(item.opts.body).to; }).sort();
+        assert.deepStrictEqual(cibles, ['ashleytamini10@gmail.com', 'faridsere86@gmail.com', 'rayyanouedraogo87@gmail.com'].sort(), 'un admin s\'est prévenu lui-même : ' + cibles.join(','));
+        delete context.compteSession;
     });
 }).then(function () {
     console.log('ok question d’utilisateur (fil + reprise + file), mail de réponse, rattachement strict, popup aux bons noms');

@@ -22,8 +22,16 @@ DEST_RETOURS = pathlib.Path('data/retours.json')
 DEST_TUTOS = pathlib.Path('data/tutoriels.json')
 DEST_ANNONCES = pathlib.Path('data/annonces.json')
 DEST_RAPPELS = pathlib.Path('data/rappels.json')
+DEST_SCRIPT = pathlib.Path('data/mail-script.json')
 SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b'
 EMAIL = '234701558+sawadogojuliss-byte@users.noreply.github.com'
+SECRET_SCRIPT = 'spib-7c4e9a2b8d1f6c3e'
+ADMINS = [
+    ('Juliss', 'sawadogojuliss@gmail.com'),
+    ('Farid', 'faridsere86@gmail.com'),
+    ('Ashley', 'ashleytamini10@gmail.com'),
+    ('Rayyan', 'rayyanouedraogo87@gmail.com'),
+]
 
 
 def ouvrir(url, data=None, headers=None, method=None, timeout=40):
@@ -984,6 +992,69 @@ def enregistrer_comptes(items):
     return comptes
 
 
+def cle_avertir(ident, email):
+    """Même empreinte que boiteCleAvertir dans js/pages/boite.js : le
+    script Google s'en sert pour ne pas expédier deux fois le même avis
+    (le navigateur et cette synchronisation peuvent tous deux prévenir)."""
+    s = ('%s|%s' % (ident, email)).lower()
+    a, b = 5381, 5271
+    for i, ch in enumerate(s):
+        a = (a * 33 + ord(ch)) & 0xFFFFFFFF
+        b = (b * 31 + ord(ch) + i) & 0xFFFFFFFF
+    cle = 'n%x%x' % (a, b)
+    while len(cle) < 17:
+        cle += '0'
+    return cle[:40]
+
+
+def echapper_html(texte):
+    return str(texte).replace('&', '&amp;').replace('<', '&lt;')
+
+
+def avertir_admins(nouveaux):
+    """Prévient les quatre comptes admins d'une question ou d'une
+    suggestion qui vient d'arriver. Filet de sécurité : d'habitude le
+    navigateur de l'utilisateur a déjà prévenu, et l'empreinte évite le
+    doublon."""
+    if not nouveaux:
+        return
+    url = str(lire_json(DEST_SCRIPT, {}).get('url') or '')
+    if not url.startswith('https://script.google.com/'):
+        print('avis admins : script inconnu')
+        return
+    for item in nouveaux:
+        question = item.get('type') == 'question'
+        expediteur = str(item.get('googleNom') or item.get('nom') or 'Un utilisateur')
+        adresse = str(item.get('email') or item.get('google') or '')
+        if adresse:
+            expediteur += ' (%s)' % adresse
+        extrait = str(item.get('texte') or '').strip()[:500]
+        genre = 'une question' if question else 'une suggestion'
+        page = 'Questions' if question else 'Retours des feedbacks'
+        sujet = 'Nouvelle question — Study Plan IB' if question else 'Nouvelle suggestion — Study Plan IB'
+        for prenom, admin in ADMINS:
+            payload = {
+                'secret': SECRET_SCRIPT,
+                'nonce': cle_avertir(item.get('id') or '', admin),
+                'to': admin,
+                'replyTo': 'ibstudyplan@gmail.com',
+                'nom': prenom,
+                'subject': sujet,
+                'text': "%s t'a envoyé %s depuis Study Plan IB :\n\n« %s »\n\nRéponds depuis la page %s du site.\n\nÀ bientôt,\nL'équipe Study Plan IB" % (expediteur, genre, extrait, page),
+                'html': '<p>%s t\u2019a envoyé %s depuis <strong>Study Plan IB</strong> :</p><p>« %s »</p><p>Réponds depuis la page %s du site.</p>' % (echapper_html(expediteur), genre, echapper_html(extrait), page),
+            }
+            try:
+                _status, raw = ouvrir(
+                    url,
+                    data=json.dumps(payload).encode('utf-8'),
+                    headers={'Content-Type': 'text/plain;charset=utf-8'},
+                    method='POST',
+                )
+                print('avis', admin, _status, raw.decode('utf-8', 'replace')[:80])
+            except Exception as exc:
+                print('avis', admin, 'impossible', type(exc).__name__)
+
+
 def main():
     config = lire_json(DEST_URL, {'sujet': SUJET, 'kvdb': '', 'archive': ''})
     config.setdefault('sujet', SUJET)
@@ -1014,6 +1085,17 @@ def main():
     items.extend(lire_archive(config.get('archive') or ''))
     emplois = [leger(item) for item in conserver(existants, fusionner(items))]
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
+    anciens_ids = set()
+    for cle_liste in ('questions', 'feedbacks'):
+        for ancien in (lire_json(DEST_RETOURS, {}).get(cle_liste) or []):
+            if isinstance(ancien, dict) and ancien.get('id'):
+                anciens_ids.add(ancien['id'])
+    frais = [
+        item for item in items
+        if isinstance(item, dict) and item.get('type') in ('question', 'feedback')
+        and item.get('id') and item['id'] not in anciens_ids
+    ]
+    avertir_admins(frais[-8:])
     ecrire(DEST_RETOURS, {
         'questions': [item for item in items if isinstance(item, dict) and item.get('type') == 'question'][-120:],
         'feedbacks': [item for item in items if isinstance(item, dict) and item.get('type') == 'feedback'][-120:],

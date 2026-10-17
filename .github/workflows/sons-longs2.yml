@@ -1,0 +1,73 @@
+name: Boucles courtes
+
+on:
+  push:
+    paths:
+      - '.sons2-trigger'
+
+permissions:
+  contents: write
+
+jobs:
+  boucles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Outils
+        run: |
+          mkdir -p /tmp/sons /tmp/sortie
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -1
+          python3 -m pip install --quiet --disable-pip-version-check numpy
+
+      - name: Télécharger les deux sons du Drive
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          telecharger() {
+            id="$1"; dest="$2"
+            curl -sSL --retry 3 --retry-delay 5 --max-time 900 \
+              "https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t" -o "$dest" || true
+            if [ ! -s "$dest" ] || [ "$(stat -c%s "$dest")" -lt 1000000 ]; then
+              curl -sSL --retry 3 --retry-delay 5 --max-time 900 \
+                "https://drive.google.com/uc?export=download&id=${id}&confirm=t" -o "$dest"
+            fi
+            echo "$dest : $(stat -c%s "$dest") octets"
+            test "$(stat -c%s "$dest")" -gt 1000000
+          }
+          telecharger "13x-SR49ujZrJX5mSVnaz4WsroQLLqvpF" /tmp/sons/matin-ville.mp3
+          telecharger "1BqdTMRc4GmxwoK11oPau_BEf68qlIKTJ" /tmp/sons/ocean-vagues.mp3
+
+      - name: Fabriquer les deux boucles
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          {
+            python3 tools/construire-boucle-courte.py --source /tmp/sons/matin-ville.mp3 \
+              --id matin --nom-source matin-ville --sortie /tmp/sortie
+            python3 tools/construire-boucle-courte.py --source /tmp/sons/ocean-vagues.mp3 \
+              --id ocean --nom-source ocean-vagues --sortie /tmp/sortie
+          } 2>&1 | tee /tmp/sortie/journal.txt
+          test -s /tmp/sortie/matin.mp3 && test -s /tmp/sortie/ocean.mp3
+
+      - name: Publier le résultat
+        if: always()
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -s /tmp/sortie/matin.mp3 ] || [ ! -s /tmp/sortie/ocean.mp3 ]; then
+            echo "La fabrication n'a pas abouti." > /tmp/sortie/ECHEC.txt
+            tail -40 /tmp/sortie/journal.txt >> /tmp/sortie/ECHEC.txt 2>&1 || true
+          fi
+          cd /tmp/sortie
+          git init -q .
+          git checkout -q -b tmp/sons2
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Boucles matin et océan"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/sons2
