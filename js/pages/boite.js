@@ -16,10 +16,10 @@ var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
 /* Les quatre comptes admins : chaque question ou suggestion partie
    d'un utilisateur les prévient ici, par mail et dans le site. */
 var BOITE_ADMINS_MAIL = [
-    { nom: 'Juliss', email: 'sawadogojuliss@gmail.com' },
-    { nom: 'Farid', email: 'faridsere86@gmail.com' },
-    { nom: 'Ashley', email: 'ashleytamini10@gmail.com' },
-    { nom: 'Rayyan', email: 'rayyanouedraogo87@gmail.com' }
+    { nom: 'Juliss', complet: 'Sawadogo Juliss Bill Owen', email: 'sawadogojuliss@gmail.com' },
+    { nom: 'Farid', complet: 'Sere Farid Abdourrahman', email: 'faridsere86@gmail.com' },
+    { nom: 'Ashley', complet: 'Tamini Ashley Kania Harisoa', email: 'ashleytamini10@gmail.com' },
+    { nom: 'Rayyan', complet: 'Ouedraogo Wendsom Rayyan', email: 'rayyanouedraogo87@gmail.com' }
 ];
 var BOITE_SCRIPT_SECRET = 'spib-7c4e9a2b8d1f6c3e';
 var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
@@ -53,12 +53,24 @@ function boiteMots(s) {
     return boiteNormaliser(s).split(' ').filter(Boolean);
 }
 
-function boiteEstAdmin(nom) {
-    var mots = boiteMots(nom == null ? (typeof userName !== 'undefined' ? userName : '') : nom);
+function boiteNomEstAdmin(nom) {
+    var mots = boiteMots(nom || '');
     if (mots.length < 3) return false;
     return BOITE_ADMINS.some(function (admin) {
         var attendus = boiteMots(admin);
         return attendus.every(function (mot) { return mots.indexOf(mot) !== -1; });
+    });
+}
+
+function boiteEstAdmin(nom) {
+    if (boiteNomEstAdmin(nom == null ? (typeof userName !== 'undefined' ? userName : '') : nom)) return true;
+    /* Un admin reconnecté avec son compte Google garde ses droits : le
+       compte porte alors le nom Google (« Juliss Sawadogo »), pas le nom
+       tapé à l'accueil (« Sawadogo Juliss Bill Owen »). */
+    var session = (typeof boiteSession === 'function') ? boiteSession() : null;
+    var email = String((session && session.email) || '').toLowerCase();
+    return !!email && BOITE_ADMINS_MAIL.some(function (admin) {
+        return String(admin.email).toLowerCase() === email;
     });
 }
 
@@ -2081,7 +2093,21 @@ function boiteBrancherAdmin() {
 }
 
 function boiteNom() {
-    return (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
+    var nom = (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
+    if (boiteNomEstAdmin(nom)) return nom;
+    /* Un admin connecté avec son compte Google signe toujours du nom du
+       compte gardé, même si l'appareil affiche le nom Google : il ne
+       reste qu'un seul compte, « Sawadogo Juliss Bill Owen ». */
+    var session = (typeof boiteSession === 'function') ? boiteSession() : null;
+    var email = String((session && session.email) || '').toLowerCase();
+    if (email) {
+        for (var i = 0; i < BOITE_ADMINS_MAIL.length; i++) {
+            if (String(BOITE_ADMINS_MAIL[i].email).toLowerCase() === email) {
+                return BOITE_ADMINS_MAIL[i].complet;
+            }
+        }
+    }
+    return nom;
 }
 
 function boiteDire(id, texte, erreur) {

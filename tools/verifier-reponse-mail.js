@@ -413,7 +413,29 @@ context.compteAfficherBoutonGoogle().then(function (ok) {
         reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
         delete store[context.BOITE_FILE];
 
-        /* — Un admin qui envoie ne se prévient pas lui-même — */
+        /* — Un admin reconnecté avec son compte Google reste admin, sous le nom
+     du compte gardé, et un compte Google quelconque ne l'est pas — */
+context.userName = 'Juliss Sawadogo';
+context.compteSession = { sub: 'subtest', email: 'sawadogojuliss@gmail.com' };
+assert.strictEqual(context.boiteEstAdmin(), true, 'un admin connecté avec son compte Google n\'est pas reconnu');
+assert.strictEqual(context.boiteNom(), 'Sawadogo Juliss Bill Owen', 'le compte gardé doit rester le seul nom d\'admin');
+context.compteSession = { sub: 'subtest', email: 'rayyanouedraogo87@gmail.com' };
+assert.strictEqual(context.boiteNom(), 'Ouedraogo Wendsom Rayyan', 'nom canonique de Rayyan attendu');
+context.compteSession = { sub: 'subtest', email: 'quelquun@gmail.com' };
+assert.strictEqual(context.boiteEstAdmin(), false, 'un compte Google quelconque ne doit pas être admin');
+assert.strictEqual(context.boiteNom(), 'Juliss Sawadogo', 'sans compte admin, le nom tapé reste');
+context.compteSession = null;
+assert.strictEqual(context.boiteEstAdmin(), false, 'le nom Google seul ne doit pas suffire');
+context.userName = '';
+assert.ok(fs.readFileSync('tools/sync-emplois.py', 'utf8').indexOf('ADMINS_COMPTES') !== -1, 'la synchronisation doit ramener les comptes admins au nom gardé');
+assert.ok(JSON.parse(fs.readFileSync('data/comptes.json', 'utf8')).comptes.every(function (c) {
+    return String(c.nom).indexOf('Juliss Sawadogo') === -1 && String(JSON.stringify(c.data)).indexOf('Juliss Sawadogo') === -1;
+}), 'le compte « Juliss Sawadogo » doit avoir disparu des données');
+assert.ok(JSON.parse(fs.readFileSync('data/emplois.json', 'utf8')).emplois.every(function (e) {
+    return String(e.nom).indexOf('Juliss Sawadogo') === -1 && String(e.googleNom || '').indexOf('Juliss Sawadogo') === -1;
+}), 'un emploi ne doit plus porter le nom Google de Juliss');
+
+/* — Un admin qui envoie ne se prévient pas lui-même — */
         context.compteSession = { sub: 'subtest', email: 'sawadogojuliss@gmail.com' };
         delete store[context.BOITE_FILE];
         appels.length = 0;

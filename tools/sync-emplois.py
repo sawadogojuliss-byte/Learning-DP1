@@ -33,6 +33,36 @@ ADMINS = [
     ('Rayyan', 'rayyanouedraogo87@gmail.com'),
 ]
 
+# Les comptes Google des quatre admins ne portent qu'un seul nom, même si
+# un appareil affiche le nom Google après une reconnexion (par exemple
+# « Juliss Sawadogo ») : la synchronisation ramène toujours ces comptes au
+# nom gardé, « Sawadogo Juliss Bill Owen ».
+ADMINS_COMPTES = {
+    'sawadogojuliss@gmail.com': 'Sawadogo Juliss Bill Owen',
+    'faridsere86@gmail.com': 'Sere Farid Abdourrahman',
+    'ashleytamini10@gmail.com': 'Tamini Ashley Kania Harisoa',
+    'rayyanouedraogo87@gmail.com': 'Ouedraogo Wendsom Rayyan',
+}
+
+
+def canoniser_admins(item):
+    """Ramène un compte ou un emploi d'admin au nom du compte gardé."""
+    mail = str(item.get('email') or item.get('google') or '').strip().lower()
+    nom = ADMINS_COMPTES.get(mail)
+    if not nom:
+        return
+    if item.get('nom') != nom:
+        item['nom'] = nom
+    if item.get('googleNom'):
+        item['googleNom'] = nom
+    data = item.get('data') if isinstance(item.get('data'), dict) else None
+    if data is not None:
+        if data.get('userName') != nom:
+            data['userName'] = nom
+        google = data.get('google') if isinstance(data.get('google'), dict) else None
+        if google is not None and google.get('name') != nom:
+            google['name'] = nom
+
 
 def ouvrir(url, data=None, headers=None, method=None, timeout=40):
     req = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
@@ -987,6 +1017,7 @@ def enregistrer_comptes(items):
     for item in comptes:
         if isinstance(item, dict) and isinstance(item.get('data'), dict):
             plafonner_sujets(item['data'])
+        canoniser_admins(item)
     ecrire(DEST_COMPTES, {'comptes': comptes})
     print('comptes', len(comptes))
     return comptes
@@ -1084,6 +1115,8 @@ def main():
     items.extend(lire_kvdb(config.get('kvdb') or ''))
     items.extend(lire_archive(config.get('archive') or ''))
     emplois = [leger(item) for item in conserver(existants, fusionner(items))]
+    for item in emplois:
+        canoniser_admins(item)
     ecrire(DEST_EMPLOIS, {'emplois': emplois})
     anciens_ids = set()
     for cle_liste in ('questions', 'feedbacks'):
