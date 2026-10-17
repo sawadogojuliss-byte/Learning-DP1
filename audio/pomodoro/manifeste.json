@@ -1,29 +1,5 @@
 [
   {
-    "rms": 0.085,
-    "crete": 0.552,
-    "dynamique_db": 9.6,
-    "raccord": 0.00427,
-    "id": "avion",
-    "source": "8d",
-    "debut_s": 2880.0,
-    "canaux": "stereo",
-    "duree_s": 300.0,
-    "octets": 4801141
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.352,
-    "dynamique_db": 8.6,
-    "raccord": 0.00571,
-    "id": "beta",
-    "source": "flowstate",
-    "debut_s": 3990.0,
-    "canaux": "stereo",
-    "duree_s": 300.0,
-    "octets": 4801141
-  },
-  {
     "rms": 0.0849,
     "crete": 0.954,
     "dynamique_db": 33.5,
@@ -46,6 +22,18 @@
     "id": "cafe",
     "source": "cafe",
     "debut_s": 3690.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.352,
+    "dynamique_db": 8.6,
+    "raccord": 0.00571,
+    "id": "concentration",
+    "source": "flowstate",
+    "debut_s": 3990.0,
     "canaux": "stereo",
     "duree_s": 300.0,
     "octets": 4801141
@@ -128,24 +116,12 @@
   },
   {
     "rms": 0.085,
-    "crete": 0.524,
-    "dynamique_db": 10.7,
-    "raccord": 0.00475,
-    "id": "salle",
-    "source": "brainfm",
-    "debut_s": 120.0,
-    "canaux": "stereo",
-    "duree_s": 300.0,
-    "octets": 4801141
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.546,
-    "dynamique_db": 9.7,
-    "raccord": 0.00324,
+    "crete": 0.951,
+    "dynamique_db": 8.4,
+    "raccord": 0.0105,
     "id": "train",
-    "source": "8d",
-    "debut_s": 7140.0,
+    "source": "locomotive-vapeur",
+    "debut_s": 0.0,
     "canaux": "stereo",
     "duree_s": 300.0,
     "octets": 4801141

@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-  <h1>🎧 Les 13 sons du Pomodoro — version longue</h1>
+  <h1>🎧 Les 11 sons du Pomodoro — version longue</h1>
   <p class="sous">Chaque ambiance dure maintenant <b>5 minutes</b> et se referme sur elle-même par un fondu de 6 secondes : plus de redémarrage toutes les 8 secondes. Les musiques viennent toutes du dossier Study Plan.</p>
 
   <h2>Piano : trois passages, à choisir à l'oreille</h2>
@@ -64,6 +64,9 @@
     • <b>Matin en ville et Océan :</b> les deux sons ajoutés au Drive (rue d'Aubervilliers, petites vagues face océan). Ils durent quelques minutes : ils sont pavés bout à bout avec le même fondu de 6 s à puissance constante, puis refermés en boucle — comme tous les autres, 5 minutes sans que rien ne recommence de façon audible.<br>
     • <b>Orage :</b> les trois enregistrements de tonnerre du Drive, superposés au même niveau. Chaque couche entre à un point différent à chaque répétition et les couches démarrent décalées : les coups de tonnerre ne tombent jamais deux fois au même endroit.<br>
     • <b>Bibliothèque :</b> les deux sons de pages qu'on tourne du Drive, superposés de la même façon — un foisonnement de pages régulières, sans motif qui se répète.<br>
+    • <b>Train :</b> la locomotive à vapeur du Drive, pavée en boucle comme les autres — 5 minutes sans raccord audible.<br>
+    • <b>Concentration :</b> l'ancien « Bêta (Flowstate) », la même musique, simplement renommée.<br>
+    • <b>Cabine d'avion et salle d'examen :</b> retirées de la grille, à ta demande.<br>
     • <b>Pluie légère, forte pluie, bruits blanc, rose, brun, cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
     • <b>Niveau sonore :</b> tous les sons sont alignés au même volume perçu, avec un limiteur doux pour les crêtes (la pluie en a de fortes).
   </div>
@@ -75,14 +78,12 @@ var SONS = [
   { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Tonnerre 1 + 4 + 6 (Drive)' },
   { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature', source: 'Vents' },
   { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville', source: 'Busy café' },
-  { id: 'avion', nom: 'Cabine d’avion', emoji: '✈️', groupe: 'ville', source: '8D' },
-  { id: 'salle', nom: 'Salle d’examen', emoji: '😰', groupe: 'ville', source: 'Brain.fm' },
-  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: '8D' },
+  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: 'Locomotive à vapeur (Drive)' },
   { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Pages qu’on tourne 1 + 2 (Drive)' },
   { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: 'Rue d’Aubervilliers (Drive)' },
   { id: 'piano', nom: 'Piano', emoji: '🎹', groupe: 'ville', source: 'Musique classique' },
   { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration', source: 'Gamma Binaural Beats' },
-  { id: 'beta', nom: 'Bêta (Flowstate)', emoji: '🧑‍💻', groupe: 'concentration', source: 'Flowstate' }
+  { id: 'concentration', nom: 'Concentration', emoji: '🧑‍💻', groupe: 'concentration', source: 'Flowstate' }
 ];
 var COMPARE = [
   { id: 'orage', nom: 'Orage', emoji: '⛈️' },

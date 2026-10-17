@@ -44,10 +44,7 @@ PLAN = [
     ('pluie', 'pluie', 'mono'),
     ('cafe', 'cafe', 'stereo'),
     ('piano', 'classique', 'stereo'),
-    ('avion', '8d', 'stereo'),
-    ('train', '8d', 'stereo'),
-    ('beta', 'flowstate', 'stereo'),
-    ('salle', 'brainfm', 'stereo'),
+    ('concentration', 'flowstate', 'stereo'),
     ('vent', 'vents', 'mono'),
     ('gamma', 'gamma', 'stereo'),
 ]
@@ -291,20 +288,18 @@ def main():
     roles = {
         'pluie': {'pluie': ('regularite', -1)},
         # Le passage piano est choisi à part par tools/choisir-piano.py ;
-        # matin et océan sont pavés depuis les sons courts du Drive par
-        # tools/construire-boucle-courte.py, et orage et bibliothèque
-        # assemblent plusieurs sons du Drive par
+        # matin, océan et le train (locomotive à vapeur) sont pavés depuis
+        # les sons du Drive par tools/construire-boucle-courte.py, et orage
+        # et bibliothèque assemblent plusieurs sons du Drive par
         # tools/construire-ensemble.py. Ces réglages ne servent que si
         # l'on relance toute la chaîne.
         'classique': {'piano': ('regularite', -1)},
-        '8d': {'train': ('pique', +1), 'avion': ('regularite', -1)},
         'cafe': {'cafe': ('regularite', -1)},
-        'flowstate': {'beta': ('regularite', -1)},
-        'brainfm': {'salle': ('regularite', -1)},
+        'flowstate': {'concentration': ('regularite', -1)},
         'vents': {'vent': ('regularite', -1)},
         'gamma': {'gamma': ('regularite', -1)},
     }
-    ecarts = {'pluie': 900, 'classique': 1200, '8d': 900}
+    ecarts = {'pluie': 900, 'classique': 1200}
 
     manifeste = []
     wav_tmp = os.path.join(args.sortie, '_tmp.wav')
