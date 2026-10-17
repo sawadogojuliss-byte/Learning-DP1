@@ -94,6 +94,15 @@ async function main() {
         return page.textContent('#' + identifiant);
     }
 
+    async function attendreAvis(avis) {
+        /* Les avis suivent un aller-retour vers la config du script :
+           ils partent juste après l'appui, on leur laisse une seconde
+           pour traverser le réseau. */
+        for (let i = 0; i < 24 && avis.length < 4; i++) {
+            await new Promise(function (r) { setTimeout(r, 250); });
+        }
+    }
+
     function verifierAvis(avis, sujet, morceau, debut, delaiMax) {
         if (avis.length !== 4) echec('avis attendus : 4, captés : ' + avis.length + ' (' + sujet + ')');
         const cibles = avis.map(function (a) { return a.payload.to; }).sort();
@@ -122,6 +131,7 @@ async function main() {
         console.log('question directe : « ' + statut + ' » en ' + duree + ' ms');
         if (statut !== 'Question envoyée.') echec('statut de la question directe : ' + statut);
         if (duree > 8000) echec('l\'envoi direct a pris ' + duree + ' ms');
+        await attendreAvis(avis);
         verifierAvis(avis, 'Nouvelle question — Study Plan IB', MARQUE + 'q', debut, 1500);
         let recu = null;
         for (let i = 0; i < 10 && !recu; i++) {
@@ -148,6 +158,7 @@ async function main() {
         const statut = await attendreStatut(page, 'aideStatut');
         console.log('question fil mort : « ' + statut + ' » en ' + (Date.now() - debut) + ' ms');
         if (statut.indexOf('Question envoyée par mail') === -1) echec('statut fil mort : ' + statut);
+        await attendreAvis(avis);
         verifierAvis(avis, 'Nouvelle question — Study Plan IB', MARQUE + 'b', debut, 1500);
         const enFile = await page.evaluate(function (marque) {
             for (let i = 0; i < localStorage.length; i++) {
@@ -176,6 +187,7 @@ async function main() {
         const duree = Date.now() - debut;
         console.log('suggestion directe : « ' + statut + ' » en ' + duree + ' ms');
         if (statut !== 'Suggestion envoyée.') echec('statut de la suggestion : ' + statut);
+        await attendreAvis(avis);
         verifierAvis(avis, 'Nouvelle suggestion — Study Plan IB', MARQUE + 'f', debut, 1500);
         let recue = null;
         for (let i = 0; i < 10 && !recue; i++) {
