@@ -577,73 +577,8 @@ def son_orage(rng):
     return pluie * 0.58 + orage * 1.70
 
 
-def son_cheminee(rng):
-    """🔥 Cheminée — le foyer qui ronfle, le souffle d'air dans le conduit
-    (le « whoosh » que l'on entend dans une vraie cheminée) et des
-    craquements de bois bien détachés du fond.
-
-    Références : « crackling firewood over a warm burning hearth », et le
-    bruit d'air aspiré vers le haut du conduit."""
-    # 1. Le foyer : un ronflement chaud, grave et médium.
-    foyer = nappe(N, rng, 55, 230, 0.55, 0.44)
-    braise = nappe(N, rng, 200, 900, 0.35, 0.30)
-
-    # 2. Le tirage dans le conduit : souffle d'air qui monte, irrégulier.
-    bouffees = np.zeros(N)
-    for cycles, phase, poids in ((2, 0.0, 0.5), (3, 2.1, 0.3), (5, 4.4, 0.2)):
-        bouffees += poids * (0.5 + 0.5 * np.cos(2.0 * np.pi * cycles * T / DUREE + phase))
-    bouffees = 0.45 + 0.55 * bouffees
-    conduit = nappe(N, rng, 300, 1500, 0.45, 0.26) * bouffees
-    conduit += nappe(N, rng, 700, 4200, 0.30, 0.26) * bouffees
-
-    # Frémissement de la combustion : de petites fluctuations rapides
-    # (7 et 11 par seconde), très discrètes, qui donnent vie au foyer.
-    fremissement = np.zeros(N)
-    for cycles_par_seconde, phase in ((7.0, 0.7), (11.0, 2.9), (17.0, 4.2)):
-        cycle = round(cycles_par_seconde * DUREE)
-        fremissement += 0.5 * np.cos(2.0 * np.pi * cycle * T / DUREE + phase)
-    fremissement = 0.90 + 0.10 * fremissement / 3.0
-
-    # Le fond reste bien en dessous des craquements : c'est le craquement
-    # qui doit dominer, comme dans une vraie cheminée.
-    base = ((foyer + braise) * 0.18 + conduit * 0.13) * fremissement
-
-    # 3. Les craquements, en trois familles comme dans un vrai feu :
-    #    beaucoup de petits tics, des craquements moyens, quelques gros.
-    for _ in range(110):
-        ajouter(base, rng.random() * DUREE, craquement_bois(rng, 0.12 + rng.random() * 0.18, 0.22 + rng.random() * 0.26))
-    for _ in range(16):
-        debut = rng.random() * DUREE
-        for _ in range(int(rng.integers(3, 7))):
-            ajouter(base, debut + rng.random() * 0.25, craquement_bois(rng, 0.2 + rng.random() * 0.3, 0.26 + rng.random() * 0.3))
-    for _ in range(10):
-        ajouter(base, rng.random() * DUREE, craquement_bois(rng, 0.5 + rng.random() * 0.2, 0.40 + rng.random() * 0.22))
-    for _ in range(4):
-        ajouter(base, 0.6 + rng.random() * 6.4, craquement_bois(rng, 0.95, 0.42 + rng.random() * 0.16))
-    # 4. Les braises : de minuscules pétillements très aigus, comme les
-    #    escarbilles qui éclatent. Ils donnent le « crépitement » du feu
-    #    sans jamais ressembler à un chuintement de radio.
-    for _ in range(120):
-        m = max(12, int((0.003 + rng.random() * 0.004) * FS))
-        tt = np.arange(m) / FS
-        tic = rng.standard_normal(m) * np.exp(-tt / (0.0008 + rng.random() * 0.0012))
-        tic = filtre(tic, bande(2200 + rng.random() * 1800, 7800, 2))
-        tic /= (np.max(np.abs(tic)) + 1e-9)
-        ajouter(base, rng.random() * DUREE, tic * (0.10 + rng.random() * 0.14))
-    return base
-
-
-def son_feu(rng):
-    """🪵 Feu de camp — bois qui éclate, vent léger au-dessus des flammes."""
-    base = nappe(N, rng, 60, 380, 0.55, 0.75)
-    base *= 0.9 + 0.1 * np.cos(2.0 * np.pi * (2.0 / DUREE) * T)
-    base += nappe(N, rng, 280, 1800, 0.40, 0.65)
-    base += nappe(N, rng, 700, 4500, 0.20, 0.25)
-    for _ in range(40):
-        ajouter(base, rng.random() * DUREE, craquement(rng, 240 + rng.random() * 420, 0.05 + rng.random() * 0.05, 1.30))
-    for _ in range(55):
-        ajouter(base, rng.random() * DUREE, craquement(rng, 900 + rng.random() * 2200, 0.005, 0.55))
-    return base
+# 🔥 Cheminée et 🪵 Feu de camp : retirés de la grille à la demande de Juliss
+# (2026-10-17). Ces deux sons ne sont plus produits par le générateur.
 
 
 def son_bureau(rng):
@@ -699,8 +634,6 @@ SONS = [
     ('pluie-legere', son_pluie_legere, 0.068, 8000.0),
     ('pluie-forte', son_pluie_forte, 0.082, 8500.0),
     ('orage', son_orage, 0.084, 8500.0),
-    ('cheminee', son_cheminee, 0.075, 7000.0),
-    ('feu', son_feu, 0.075, 7500.0),
     ('bureau', son_bureau, 0.070, 6000.0),
     ('blanc', son_blanc, 0.070, 11000.0),
     ('rose', son_rose, 0.072, 9000.0),

@@ -136,7 +136,8 @@ def analyser(chemin):
 
 def candidats(ana, pas_s=30):
     d = ana['duree']
-    debuts = np.arange(0.0, max(1.0, d - DUREE_FENETRE - 1), pas_s)
+    marge = 90.0
+    debuts = np.arange(marge, max(marge + 1.0, d - DUREE_FENETRE - marge), pas_s)
     out = []
     for debut in debuts:
         i0 = int(debut)
@@ -156,7 +157,10 @@ def candidats(ana, pas_s=30):
             'bas': float(np.mean(b)),
             'haut': float(np.mean(h)),
         })
-    return out
+    if not out:
+        return out
+    median = float(np.median([c['rms'] for c in out]))
+    return [c for c in out if c['rms'] >= median - 6.0]
 
 
 def choisir(cands, critere, sens, pris, ecart_min):
@@ -169,14 +173,25 @@ def choisir(cands, critere, sens, pris, ecart_min):
 
 
 # ── Fabrication ───────────────────────────────────────────────────────
+def limiter(x, seuil=0.80):
+    """Écrêtage doux : on arrondit les pointes au lieu de baisser tout le son."""
+    a = np.abs(x)
+    return np.where(a <= seuil, x,
+                    np.sign(x) * (seuil + (1.0 - seuil) * np.tanh((a - seuil) / (1.0 - seuil))))
+
+
 def normaliser(x):
+    """Niveau commun à tous les sons, sans écraser les crêtes fortes."""
     x = x - float(np.mean(x))
     r = float(np.sqrt(np.mean(x ** 2)))
     if r > 1e-9:
         x = x * (RMS_CIBLE / r)
     p = float(np.max(np.abs(x)))
     if p > CRETE_MAX:
-        x = x * (CRETE_MAX / p)
+        x = limiter(x, 0.80)
+        p = float(np.max(np.abs(x)))
+        if p > CRETE_MAX:
+            x = x * (CRETE_MAX / p)
     return x
 
 
@@ -312,7 +327,8 @@ def main():
             encoder(wav_tmp, mp3, canaux)
             m = mesurer(x)
             m.update({'id': emoji, 'source': source, 'debut_s': round(c['debut'], 1),
-                      'canaux': canaux, 'octets': os.path.getsize(mp3)})
+                      'canaux': canaux, 'duree_s': round(len(x) / float(FS), 1),
+                      'octets': os.path.getsize(mp3)})
             manifeste.append(m)
             print('  %-13s %-8s début %6.0f s  rms %.3f  crête %.2f  %5.1f Mo'
                   % (emoji, canaux, c['debut'], m['rms'], m['crete'], m['octets'] / 1e6))
@@ -323,7 +339,8 @@ def main():
         encoder(wav_tmp, mp3, 'mono')
         m = mesurer(x)
         m.update({'id': nom, 'source': 'généré', 'debut_s': 0,
-                  'canaux': 'mono', 'octets': os.path.getsize(mp3)})
+                  'canaux': 'mono', 'duree_s': round(len(x) / float(FS), 1),
+                  'octets': os.path.getsize(mp3)})
         manifeste.append(m)
         print('  %-13s généré          rms %.3f  crête %.2f  %5.1f Mo'
               % (nom, m['rms'], m['crete'], m['octets'] / 1e6))
