@@ -1,0 +1,4 @@
+lignes 533
+utiles 2
+{"type": "feedback", "id": "f1a14a6467d39ac7a3cf", "at": "2026-10-17T15:04:16.595Z", "nom": "Mathis", "googleNom": "Aimery Mathis D. S Kafando", "email": "mathis.kafando@enkoschools.com", "google": "mathis.kafando@enkoschools.com", "destinataire": "", "questionId": "", "personne": "", "mail": false, "repondu": false, "gmailId": "", "kvdb": null, "archive": null, "texte": "est ce que on peut pas faire pour que sa envoi des notifications a chaque fois \nEt aussi mettre un e"}
+{"type": "question", "id": "q1a14ada5592fd8140b9", "at": "2026-10-17T17:13:05.170Z", "nom": "Kenzah", "googleNom": "Kenzah ILBOUDO", "email": "doriilboudo235@gmail.com", "google": "doriilboudo235@gmail.com", "destinataire": "", "questionId": "", "personne": "", "mail": false, "repondu": false, "gmailId": "", "kvdb": null, "archive": null, "texte": "Hello guys, vous avez dit que le nombre maximum d'heure de sommeil est de 5 heures. Pourtant pour mo"}
