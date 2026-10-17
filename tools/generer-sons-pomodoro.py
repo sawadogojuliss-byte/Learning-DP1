@@ -248,6 +248,27 @@ def craquement(rng, freq, tau, amp=1.0):
     return goutte(rng, freq, tau, amp, bruit_part=0.9)
 
 
+def craquement_bois(rng, taille, amp=1.0):
+    """Craquement de bois, comme dans une vraie cheminée.
+    taille 0 = petit tic sec, 1 = gros claquement.
+    Attaque large bande très brève (le « tac »), puis corps boisé qui
+    résonne (deux harmoniques), puis extinction rapide."""
+    duree = 0.012 + 0.055 * taille
+    m = max(8, int(duree * FS))
+    t = np.arange(m) / FS
+    attaque = rng.standard_normal(m) * np.exp(-t / (0.0005 + 0.0009 * taille))
+    attaque = filtre(attaque, bande(500, 8200, 2))
+    attaque /= (np.max(np.abs(attaque)) + 1e-9)
+    f0 = 210.0 + rng.random() * 250.0
+    corps = np.sin(2.0 * np.pi * f0 * t + rng.random() * 6.28) * np.exp(-t / (0.006 + 0.020 * taille))
+    corps += 0.50 * np.sin(2.0 * np.pi * f0 * 2.35 * t + rng.random() * 6.28) * np.exp(-t / (0.004 + 0.012 * taille))
+    corps += 0.30 * np.sin(2.0 * np.pi * f0 * 4.1 * t) * np.exp(-t / (0.003 + 0.008 * taille))
+    x = 0.95 * attaque + 0.62 * corps
+    fin = max(2, int(0.35 * m))
+    x[-fin:] *= np.linspace(1.0, 0.0, fin) ** 2
+    return amp * x
+
+
 def tape(rng, freq_bas, freq_haut, amp=1.0):
     """"Toc" de touche de clavier : claquement court + résonance basse."""
     m = int(0.05 * FS)
@@ -265,20 +286,63 @@ def froissement(rng, duree, amp=1.0, f1=1200, f2=6500):
     return amp * base * modul * env_creneau(m, 0.3, 0.45)
 
 
-def coup_de_tonnerre(rng, force=1.0):
-    m = int((3.2 + rng.random() * 2.0) * FS)
+def coup_de_tonnerre(rng, force=1.0, distance=0.35, duree=None):
+    """Tonnerre qui roule, comme dans les enregistrements de référence :
+    plusieurs vagues de grondement qui se chevauchent, chacune avec sa
+    propre extinction, plus un souffle grave qui reste après le coup.
+
+    distance : 0 = tout proche (coup sec), 1 = très lointain (seulement
+    un roulement sourd, sans aucune pointe)."""
+    if duree is None:
+        duree = 4.2 + rng.random() * 2.6
+    m = int(duree * FS)
     t = np.arange(m) / FS
-    base = brun(m, rng)
-    grondement = filtre(base, bande(22, 150, 3))
-    e = np.exp(-t / (1.4 + rng.random() * 1.1)) * (1.0 - np.exp(-t / 0.06))
-    e *= 0.78 + 0.22 * np.sin(2.0 * np.pi * (0.6 + rng.random()) * t + rng.random() * 6.0)
-    roulement = filtre(brun(m, rng), bande(30, 220, 2)) * 0.9
-    roulement *= np.exp(-t / 2.4) * (0.5 + 0.5 * np.sin(2.0 * np.pi * 1.7 * t))
-    x = force * (grondement * 3.2 * e + roulement)
-    # le coup sec reste feutré : aucune pointe stridente
-    craquement_sec = souffle(int(0.18 * FS), rng, 90, 2600, 2) * np.exp(-np.arange(int(0.18 * FS)) / 0.045)
-    x[:len(craquement_sec)] += force * 0.32 * craquement_sec
-    return filtre(x, passe_bas(4200, 4))
+
+    # ── Vagues de roulement : c'est ce qui fait « rouler » le tonnerre.
+    x = np.zeros(m)
+    nombre = 3 + int(rng.integers(0, 3))
+    for i in range(nombre):
+        debut = 0.05 + i * (0.22 + rng.random() * 0.5) + rng.random() * 0.25
+        if debut > duree * 0.55:
+            continue
+        retard = int(debut * FS)
+        reste = m - retard
+        tt = np.arange(reste) / FS
+        bas = 26 + rng.random() * 60
+        haut = 120 + rng.random() * 220
+        vague = filtre(brun(reste, rng), bande(bas, haut, 3))
+        vague /= (np.sqrt(np.mean(vague ** 2)) + 1e-9)
+        montee = 0.05 + rng.random() * 0.22
+        extinction = 0.7 + rng.random() * 1.5
+        env = (1.0 - np.exp(-tt / montee)) * np.exp(-tt / extinction)
+        env *= 0.72 + 0.28 * np.cos(2.0 * np.pi * (0.7 + rng.random() * 1.3) * tt + rng.random() * 6.0)
+        # Granulation : des fluctuations rapides et irrégulières. Sans elles,
+        # le tonnerre fait « whoosh » ; avec, il roule et moutonne.
+        grain = np.ones(len(tt))
+        for _ in range(5):
+            fg = 3.0 + rng.random() * 14.0
+            grain += (0.10 + rng.random() * 0.12) * np.sin(2.0 * np.pi * fg * tt + rng.random() * 6.0)
+        env *= np.clip(grain, 0.35, 1.6)
+        x[retard:] += vague * env * (1.0 - 0.22 * i)
+
+    # ── Le souffle grave qui reste après le coup.
+    fond = filtre(brun(m, rng), bande(20, 120, 2))
+    fond /= (np.sqrt(np.mean(fond ** 2)) + 1e-9)
+    x += fond * np.exp(-t / (2.2 + rng.random() * 1.2)) * 0.55
+
+    # ── Le coup sec : seulement s'il n'est pas trop lointain, et feutré.
+    if distance < 0.75:
+        msec = int(0.22 * FS)
+        tsec = np.arange(msec) / FS
+        sec = rng.standard_normal(msec) * np.exp(-tsec / (0.02 + 0.03 * (1.0 - distance)))
+        sec = filtre(sec, bande(70, 700 + 1800 * (1.0 - distance), 2))
+        sec /= (np.max(np.abs(sec)) + 1e-9)
+        x[:msec] += sec * 0.55 * (1.0 - distance)
+
+    x = filtre(x, passe_bas(3600 - 1800 * distance, 4))
+    fin = max(2, int(min(0.6, duree * 0.3) * FS))
+    x[-fin:] *= np.linspace(1.0, 0.0, fin) ** 2
+    return force * x
 
 
 def sifflement_oiseau(rng, amp=1.0):
@@ -487,28 +551,85 @@ def son_pluie_forte(rng):
 
 
 def son_orage(rng):
-    """⛈️ Orage — pluie soutenue et coups de tonnerre qui roulent."""
-    base = nappe(N, rng, 70, 450, 0.50, 0.55)
-    base += nappe(N, rng, 300, 2600, 0.30, 0.72)
-    base += nappe(N, rng, 1500, 6800, 0.15, 0.30)
+    """⛈️ Orage — pluie soutenue et tonnerre qui roule au loin.
+
+    Références : « rumbling thunder and rain », le tonnerre arrive quelques
+    secondes après l'éclair et roule longuement sur le paysage ; la pluie
+    reste continue derrière."""
+    # 1. La pluie : présente, dense, mais elle ne doit pas couvrir le tonnerre.
+    pluie = nappe(N, rng, 80, 450, 0.50, 0.30)
+    pluie += nappe(N, rng, 300, 2400, 0.30, 0.60)
+    pluie += nappe(N, rng, 1400, 6500, 0.15, 0.28)
     for _ in range(320):
-        ajouter(base, rng.random() * DUREE, goutte(rng, 800 + rng.random() * 1800, 0.014 + rng.random() * 0.03, 0.80))
-    ajouter(base, 0.6, coup_de_tonnerre(rng, 1.15))
-    ajouter(base, 4.1, coup_de_tonnerre(rng, 0.9))
-    return base
+        ajouter(pluie, rng.random() * DUREE, goutte(rng, 800 + rng.random() * 1800, 0.014 + rng.random() * 0.03, 0.55))
+
+    # 2. Un vent de rafale discret, comme dans un vrai orage.
+    rafale = 0.4 + 0.6 * (0.5 + 0.5 * np.cos(2.0 * np.pi * (2.0 / DUREE) * T + 1.1))
+    pluie += nappe(N, rng, 250, 1200, 0.45, 0.14) * rafale
+
+    # 3. Le tonnerre : d'abord lointain, puis plus proche, puis lointain
+    #    à nouveau. Chaque coup roule longuement par-dessus la pluie.
+    orage = np.zeros(N)
+    ajouter(orage, 0.30, coup_de_tonnerre(rng, 0.55, distance=0.85, duree=2.3))
+    ajouter(orage, 2.10, coup_de_tonnerre(rng, 1.30, distance=0.18, duree=3.4))
+
+    # Le tonnerre domine largement : c'est lui qu'on doit entendre.
+    return pluie * 0.58 + orage * 1.70
 
 
 def son_cheminee(rng):
-    """🔥 Cheminée — flamme qui ronfle, craquements fins et réguliers."""
-    flamme = nappe(N, rng, 60, 320, 0.55, 0.62)
-    flamme *= 0.9 + 0.1 * np.cos(2.0 * np.pi * (2.0 / DUREE) * T)
-    braise = nappe(N, rng, 250, 1500, 0.40, 0.70)
-    air = nappe(N, rng, 600, 4200, 0.20, 0.26)
-    base = flamme + braise + air
-    for _ in range(140):
-        ajouter(base, rng.random() * DUREE, craquement(rng, 700 + rng.random() * 1900, 0.004 + rng.random() * 0.006, 0.70))
-    for _ in range(7):
-        ajouter(base, rng.random() * DUREE, craquement(rng, 360 + rng.random() * 360, 0.05, 1.00))
+    """🔥 Cheminée — le foyer qui ronfle, le souffle d'air dans le conduit
+    (le « whoosh » que l'on entend dans une vraie cheminée) et des
+    craquements de bois bien détachés du fond.
+
+    Références : « crackling firewood over a warm burning hearth », et le
+    bruit d'air aspiré vers le haut du conduit."""
+    # 1. Le foyer : un ronflement chaud, grave et médium.
+    foyer = nappe(N, rng, 55, 230, 0.55, 0.44)
+    braise = nappe(N, rng, 200, 900, 0.35, 0.30)
+
+    # 2. Le tirage dans le conduit : souffle d'air qui monte, irrégulier.
+    bouffees = np.zeros(N)
+    for cycles, phase, poids in ((2, 0.0, 0.5), (3, 2.1, 0.3), (5, 4.4, 0.2)):
+        bouffees += poids * (0.5 + 0.5 * np.cos(2.0 * np.pi * cycles * T / DUREE + phase))
+    bouffees = 0.45 + 0.55 * bouffees
+    conduit = nappe(N, rng, 300, 1500, 0.45, 0.26) * bouffees
+    conduit += nappe(N, rng, 700, 4200, 0.30, 0.26) * bouffees
+
+    # Frémissement de la combustion : de petites fluctuations rapides
+    # (7 et 11 par seconde), très discrètes, qui donnent vie au foyer.
+    fremissement = np.zeros(N)
+    for cycles_par_seconde, phase in ((7.0, 0.7), (11.0, 2.9), (17.0, 4.2)):
+        cycle = round(cycles_par_seconde * DUREE)
+        fremissement += 0.5 * np.cos(2.0 * np.pi * cycle * T / DUREE + phase)
+    fremissement = 0.90 + 0.10 * fremissement / 3.0
+
+    # Le fond reste bien en dessous des craquements : c'est le craquement
+    # qui doit dominer, comme dans une vraie cheminée.
+    base = ((foyer + braise) * 0.18 + conduit * 0.13) * fremissement
+
+    # 3. Les craquements, en trois familles comme dans un vrai feu :
+    #    beaucoup de petits tics, des craquements moyens, quelques gros.
+    for _ in range(110):
+        ajouter(base, rng.random() * DUREE, craquement_bois(rng, 0.12 + rng.random() * 0.18, 0.22 + rng.random() * 0.26))
+    for _ in range(16):
+        debut = rng.random() * DUREE
+        for _ in range(int(rng.integers(3, 7))):
+            ajouter(base, debut + rng.random() * 0.25, craquement_bois(rng, 0.2 + rng.random() * 0.3, 0.26 + rng.random() * 0.3))
+    for _ in range(10):
+        ajouter(base, rng.random() * DUREE, craquement_bois(rng, 0.5 + rng.random() * 0.2, 0.40 + rng.random() * 0.22))
+    for _ in range(4):
+        ajouter(base, 0.6 + rng.random() * 6.4, craquement_bois(rng, 0.95, 0.42 + rng.random() * 0.16))
+    # 4. Les braises : de minuscules pétillements très aigus, comme les
+    #    escarbilles qui éclatent. Ils donnent le « crépitement » du feu
+    #    sans jamais ressembler à un chuintement de radio.
+    for _ in range(120):
+        m = max(12, int((0.003 + rng.random() * 0.004) * FS))
+        tt = np.arange(m) / FS
+        tic = rng.standard_normal(m) * np.exp(-tt / (0.0008 + rng.random() * 0.0012))
+        tic = filtre(tic, bande(2200 + rng.random() * 1800, 7800, 2))
+        tic /= (np.max(np.abs(tic)) + 1e-9)
+        ajouter(base, rng.random() * DUREE, tic * (0.10 + rng.random() * 0.14))
     return base
 
 
