@@ -62,6 +62,8 @@
     • <b>Avion, train, matin en ville, océan :</b> quatre passages différents de « 8D ». <b>Bêta :</b> « Flowstate ». <b>Salle d'examen :</b> « Brain.fm ». <b>Gamma :</b> « Gamma Binaural Beats » (vrai binaural, une fréquence par oreille). <b>Vent :</b> « Vents ».<br>
     • <b>Piano :</b> remplace « Bureau ». C'est toujours « Musique classique », mais un passage choisi pour sonner piano : peu de souffle, des harmoniques nettes, des notes frappées qui s'éteignent, presque rien au-dessus de 4 kHz — au lieu du passage le plus agité du morceau, qui partait dans le bruit.<br>
     • <b>Matin en ville et Océan :</b> les deux sons ajoutés au Drive (rue d'Aubervilliers, petites vagues face océan). Ils durent quelques minutes : ils sont pavés bout à bout avec le même fondu de 6 s à puissance constante, puis refermés en boucle — comme tous les autres, 5 minutes sans que rien ne recommence de façon audible.<br>
+    • <b>Orage :</b> les trois enregistrements de tonnerre du Drive, superposés au même niveau. Chaque couche entre à un point différent à chaque répétition et les couches démarrent décalées : les coups de tonnerre ne tombent jamais deux fois au même endroit.<br>
+    • <b>Bibliothèque :</b> les deux sons de pages qu'on tourne du Drive, superposés de la même façon — un foisonnement de pages régulières, sans motif qui se répète.<br>
     • <b>Pluie légère, forte pluie, bruits blanc, rose, brun, cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
     • <b>Niveau sonore :</b> tous les sons sont alignés au même volume perçu, avec un limiteur doux pour les crêtes (la pluie en a de fortes).
   </div>
@@ -70,13 +72,13 @@
 var SONS = [
   { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature', source: 'Pluie chill' },
   { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature', source: 'Vagues face océan (Drive)' },
-  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Tonnerre 1 + 4 + 6 (Drive)' },
   { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature', source: 'Vents' },
   { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville', source: 'Busy café' },
   { id: 'avion', nom: 'Cabine d’avion', emoji: '✈️', groupe: 'ville', source: '8D' },
   { id: 'salle', nom: 'Salle d’examen', emoji: '😰', groupe: 'ville', source: 'Brain.fm' },
   { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: '8D' },
-  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Musique classique' },
+  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Pages qu’on tourne 1 + 2 (Drive)' },
   { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: 'Rue d’Aubervilliers (Drive)' },
   { id: 'piano', nom: 'Piano', emoji: '🎹', groupe: 'ville', source: 'Musique classique' },
   { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration', source: 'Gamma Binaural Beats' },

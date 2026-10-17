@@ -182,7 +182,7 @@ var manifeste = null;
 try { manifeste = JSON.parse(lire('audio/pomodoro/manifeste.json')); } catch (e) {}
 var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin',
             'orage', 'piano', 'vent', 'gamma', 'beta'];
-var stereo = ['cafe', 'bibliotheque', 'piano', 'avion', 'train', 'matin', 'beta', 'salle', 'gamma'];
+var stereo = ['cafe', 'piano', 'avion', 'train', 'matin', 'beta', 'salle', 'gamma'];
 ok(Array.isArray(manifeste) && manifeste.length === sons.length,
     'le manifeste des 13 sons longs doit exister');
 var parId = {};

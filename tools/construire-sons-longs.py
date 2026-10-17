@@ -42,9 +42,7 @@ DUREE_FENETRE = DUREE + FONDU
 # emoji → (musique source, canaux)
 PLAN = [
     ('pluie', 'pluie', 'mono'),
-    ('orage', 'pluie', 'mono'),
     ('cafe', 'cafe', 'stereo'),
-    ('bibliotheque', 'classique', 'stereo'),
     ('piano', 'classique', 'stereo'),
     ('avion', '8d', 'stereo'),
     ('train', '8d', 'stereo'),
@@ -291,12 +289,14 @@ def main():
 
     # Rôles : quel emoji veut quel type de passage
     roles = {
-        'pluie': {'orage': ('pique', +1), 'pluie': ('regularite', -1)},
-        # Le passage piano est choisi à part par tools/choisir-piano.py, et
-        # matin / océan sont pavés depuis les sons courts du Drive par
-        # tools/construire-boucle-courte.py ; ces réglages ne servent que
-        # si l'on relance toute la chaîne.
-        'classique': {'bibliotheque': ('regularite', -1), 'piano': ('regularite', -1)},
+        'pluie': {'pluie': ('regularite', -1)},
+        # Le passage piano est choisi à part par tools/choisir-piano.py ;
+        # matin et océan sont pavés depuis les sons courts du Drive par
+        # tools/construire-boucle-courte.py, et orage et bibliothèque
+        # assemblent plusieurs sons du Drive par
+        # tools/construire-ensemble.py. Ces réglages ne servent que si
+        # l'on relance toute la chaîne.
+        'classique': {'piano': ('regularite', -1)},
         '8d': {'train': ('pique', +1), 'avion': ('regularite', -1)},
         'cafe': {'cafe': ('regularite', -1)},
         'flowstate': {'beta': ('regularite', -1)},

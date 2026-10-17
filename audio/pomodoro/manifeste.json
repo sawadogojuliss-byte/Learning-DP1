@@ -24,16 +24,19 @@
     "octets": 4801141
   },
   {
-    "rms": 0.085,
-    "crete": 0.685,
-    "dynamique_db": 14.5,
-    "raccord": 0.00423,
+    "rms": 0.0849,
+    "crete": 0.954,
+    "dynamique_db": 33.5,
+    "raccord": 0.04928,
     "id": "bibliotheque",
-    "source": "classique",
-    "debut_s": 6060.0,
-    "canaux": "stereo",
+    "source": "pages-1 + pages-2",
+    "sources": [
+      "pages-1",
+      "pages-2"
+    ],
+    "canaux": "mono",
     "duree_s": 300.0,
-    "octets": 4801141
+    "octets": 3600867
   },
   {
     "rms": 0.085,
@@ -85,12 +88,16 @@
   },
   {
     "rms": 0.085,
-    "crete": 0.952,
-    "dynamique_db": 2.5,
-    "raccord": 0.02843,
+    "crete": 0.872,
+    "dynamique_db": 21.9,
+    "raccord": 3e-05,
     "id": "orage",
-    "source": "pluie",
-    "debut_s": 2580.0,
+    "source": "tonnerre-1 + tonnerre-4 + tonnerre-6",
+    "sources": [
+      "tonnerre-1",
+      "tonnerre-4",
+      "tonnerre-6"
+    ],
     "canaux": "mono",
     "duree_s": 300.0,
     "octets": 3600867
