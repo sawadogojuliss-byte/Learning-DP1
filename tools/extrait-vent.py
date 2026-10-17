@@ -153,6 +153,7 @@ def main():
     p.add_argument('--sortie', required=True)
     p.add_argument('--copie', default=None)
     p.add_argument('--debut', type=float, default=None, help='forcer le début (s)')
+    p.add_argument('--diagnostic', action='store_true', help='mesurer le fichier source')
     args = p.parse_args()
     chemin_mp3 = args.mp3
     rms_fenetre = DUREE + FONDU / float(FS)
@@ -206,6 +207,26 @@ def main():
         'candidats': [[round(c[0], 2), round(c[1], 1), round(c[2], 1), round(c[3], 1)] for c in candidats],
     }
     print(json.dumps(mesures, indent=2))
+
+    if args.diagnostic:
+        info = subprocess.run(
+            ['ffprobe', '-v', 'error', '-show_entries',
+             'stream=codec_name,sample_rate,channels,bit_rate:format=duration',
+             '-of', 'json', chemin_mp3],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        lignes = ['Source : ' + info.stdout.decode().strip()] if info.returncode == 0 else []
+        for part in (0.1, 0.5, 0.9):
+            pos = max(0.0, part * duree - 4.0)
+            seg = decoder(FS, pos, 8.0)
+            seg = seg[:int(FS * 8.0)]
+            if len(seg) < FS:
+                continue
+            lignes.append('%.0f %% du fichier (%.0f s) : bandes %s %%'
+                          % (part * 100, pos, ' / '.join('%.2f' % b for b in bandes(seg))))
+        dossier = os.path.dirname(args.copie or args.sortie)
+        with open(os.path.join(dossier, 'diagnostic.txt'), 'w') as f:
+            f.write('\n'.join(lignes) + '\n')
+        print('\n'.join(lignes))
     if args.copie:
         dossier = os.path.dirname(args.copie)
         with open(os.path.join(dossier, 'mesures.json'), 'w') as f:
@@ -221,7 +242,7 @@ def main():
             if candidats:
                 f.write('Candidats (score, début s, dynamique dB, saut dB) :\n')
                 for c in candidats:
-                    f.write('  %5.2f  %7.1f s  %4.1f  %4.1f\n' % c)
+                    f.write('  %5.2f  %7.1f s  %4.1f  %4.1f\n' % c[:4])
     return 0
 
 

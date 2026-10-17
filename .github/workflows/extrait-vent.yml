@@ -46,7 +46,7 @@ jobs:
         run: |
           set -o pipefail
           python3 tools/extrait-vent.py --mp3 /tmp/vents.mp3 \
-            --sortie audio/pomodoro/vent.wav --copie /tmp/vent/vent.wav 2>&1 \
+            --sortie audio/pomodoro/vent.wav --copie /tmp/vent/vent.wav --diagnostic 2>&1 \
             | tee /tmp/vent/extraction.log
           test -s /tmp/vent/vent.wav
 
