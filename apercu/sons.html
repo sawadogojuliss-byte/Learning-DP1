@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-  <h1>🎧 Les 15 sons du Pomodoro — version longue</h1>
+  <h1>🎧 Les 13 sons du Pomodoro — version longue</h1>
   <p class="sous">Chaque ambiance dure maintenant <b>5 minutes</b> et se referme sur elle-même par un fondu de 6 secondes : plus de redémarrage toutes les 8 secondes. Les musiques viennent toutes du dossier Study Plan.</p>
 
   <h2>Piano : trois passages, à choisir à l'oreille</h2>
@@ -35,13 +35,13 @@
   <div class="grille" id="piano-tri">
     <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano A<span class="etiquette apres">actuel</span></div>
       <div class="duree">18 min du morceau · le plus régulier</div>
-      <audio controls preload="none" src="../audio/pomodoro/piano.mp3?v=20261017e"></audio></div>
+      <audio controls preload="none" src="../audio/pomodoro/piano.mp3?v=20261017h"></audio></div>
     <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano B</div>
       <div class="duree">1 h 54 du morceau · le plus « frappé »</div>
-      <audio controls preload="none" src="../audio/pomodoro/piano-b.mp3?v=20261017e"></audio></div>
+      <audio controls preload="none" src="../audio/pomodoro/piano-b.mp3?v=20261017h"></audio></div>
     <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano C</div>
       <div class="duree">43 min du morceau · plus de notes, plus d'écart</div>
-      <audio controls preload="none" src="../audio/pomodoro/piano-c.mp3?v=20261017e"></audio></div>
+      <audio controls preload="none" src="../audio/pomodoro/piano-c.mp3?v=20261017h"></audio></div>
   </div>
 
   <h2>Avant / après</h2>
@@ -61,16 +61,15 @@
     • <b>Café animé :</b> « Busy café ». <b>Bibliothèque</b> (le plus calme) et <b>Bureau</b> (le plus vivant) : « Musique classique ».<br>
     • <b>Avion, train, matin en ville, océan :</b> quatre passages différents de « 8D ». <b>Bêta :</b> « Flowstate ». <b>Salle d'examen :</b> « Brain.fm ». <b>Gamma :</b> « Gamma Binaural Beats » (vrai binaural, une fréquence par oreille). <b>Vent :</b> « Vents ».<br>
     • <b>Piano :</b> remplace « Bureau ». C'est toujours « Musique classique », mais un passage choisi pour sonner piano : peu de souffle, des harmoniques nettes, des notes frappées qui s'éteignent, presque rien au-dessus de 4 kHz — au lieu du passage le plus agité du morceau, qui partait dans le bruit.<br>
-    • <b>Bruit blanc, rose, brun, cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
+    • <b>Matin en ville et Océan :</b> les deux sons ajoutés au Drive (rue d'Aubervilliers, petites vagues face océan). Ils durent quelques minutes : ils sont pavés bout à bout avec le même fondu de 6 s à puissance constante, puis refermés en boucle — comme tous les autres, 5 minutes sans que rien ne recommence de façon audible.<br>
+    • <b>Pluie légère, forte pluie, bruits blanc, rose, brun, cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
     • <b>Niveau sonore :</b> tous les sons sont alignés au même volume perçu, avec un limiteur doux pour les crêtes (la pluie en a de fortes).
   </div>
 
 <script>
 var SONS = [
   { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature', source: 'Pluie chill' },
-  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature', source: '8D' },
-  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔', groupe: 'nature', source: 'Pluie chill' },
-  { id: 'pluie-forte', nom: 'Forte pluie', emoji: '🌧️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature', source: 'Vagues face océan (Drive)' },
   { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Pluie chill' },
   { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature', source: 'Vents' },
   { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville', source: 'Busy café' },
@@ -78,19 +77,18 @@ var SONS = [
   { id: 'salle', nom: 'Salle d’examen', emoji: '😰', groupe: 'ville', source: 'Brain.fm' },
   { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: '8D' },
   { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Musique classique' },
-  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: '8D' },
+  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: 'Rue d’Aubervilliers (Drive)' },
   { id: 'piano', nom: 'Piano', emoji: '🎹', groupe: 'ville', source: 'Musique classique' },
   { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration', source: 'Gamma Binaural Beats' },
   { id: 'beta', nom: 'Bêta (Flowstate)', emoji: '🧑‍💻', groupe: 'concentration', source: 'Flowstate' }
 ];
 var COMPARE = [
-  { id: 'pluie-legere', nom: 'Pluie légère', emoji: '☔' },
   { id: 'orage', nom: 'Orage', emoji: '⛈️' },
   { id: 'vent', nom: 'Vent', emoji: '🌬️' },
   { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' }
 ];
 function carte(son, avant) {
-  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.mp3?v=20261017e';
+  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.mp3?v=20261017h';
   return '<div class="carte' + (avant ? '' : ' apres') + '">' +
     '<div class="titre"><span class="emoji">' + son.emoji + '</span>' + son.nom +
     '<span class="etiquette ' + (avant ? 'avant' : 'apres') + '">' + (avant ? 'avant' : 'après') + '</span></div>' +

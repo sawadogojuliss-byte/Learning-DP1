@@ -180,11 +180,11 @@ ok(page.indexOf('title="Image dans') === -1, 'le survol ne doit pas afficher ima
 /* ── 8. Les 18 sons longs : 5 minutes, MP3, sans coupure ── */
 var manifeste = null;
 try { manifeste = JSON.parse(lire('audio/pomodoro/manifeste.json')); } catch (e) {}
-var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin', 'pluie-legere',
-            'pluie-forte', 'orage', 'piano', 'vent', 'gamma', 'beta'];
-var stereo = ['cafe', 'bibliotheque', 'piano', 'avion', 'train', 'matin', 'ocean', 'beta', 'salle', 'gamma'];
+var sons = ['pluie', 'ocean', 'cafe', 'avion', 'salle', 'train', 'bibliotheque', 'matin',
+            'orage', 'piano', 'vent', 'gamma', 'beta'];
+var stereo = ['cafe', 'bibliotheque', 'piano', 'avion', 'train', 'matin', 'beta', 'salle', 'gamma'];
 ok(Array.isArray(manifeste) && manifeste.length === sons.length,
-    'le manifeste des 15 sons longs doit exister');
+    'le manifeste des 13 sons longs doit exister');
 var parId = {};
 (manifeste || []).forEach(function (m) { parId[m.id] = m; });
 var sains = 0;
@@ -207,9 +207,9 @@ sons.forEach(function (nom) {
     if (stereo.indexOf(nom) === -1 && m.canaux !== 'mono') echecs.push(nom + ' doit rester en mono');
     sains++;
 });
-ok(sains === sons.length, 'les 15 sons longs doivent être lisibles et complets');
-ok(script.indexOf('audio/pomodoro/pluie.mp3?v=20261017e') !== -1, 'le cache des sons doit être renouvelé');
-['cheminee', "'feu'", "'blanc'", "'rose'", "'brun'", "'bureau'"].forEach(function (retire) {
+ok(sains === sons.length, 'les 13 sons longs doivent être lisibles et complets');
+ok(script.indexOf('audio/pomodoro/pluie.mp3?v=20261017h') !== -1, 'le cache des sons doit être renouvelé');
+["'cheminee'", "'feu'", "'blanc'", "'rose'", "'brun'", "'bureau'", "'pluie-legere'", "'pluie-forte'"].forEach(function (retire) {
     ok(script.indexOf(retire) === -1, 'ce son doit disparaître de la grille : ' + retire);
 });
 ok(script.indexOf("nom: 'Piano'") !== -1, 'Bureau doit devenir Piano');

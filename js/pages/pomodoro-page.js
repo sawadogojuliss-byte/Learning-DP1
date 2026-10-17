@@ -1134,21 +1134,19 @@ function focusSortirPleinEcran() {
 }
 
 var FOCUS_SONS = [
-    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.mp3?v=20261017e' },
-    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.mp3?v=20261017e' },
-    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.mp3?v=20261017e' },
-    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.mp3?v=20261017e' },
-    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.mp3?v=20261017e' },
-    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.mp3?v=20261017e' },
-    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.mp3?v=20261017e' },
-    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.mp3?v=20261017e' },
-    { id: 'pluie-legere', nom: 'Pluie légère', icone: '☔', groupe: 'nature', fichier: 'audio/pomodoro/pluie-legere.mp3?v=20261017e' },
-    { id: 'pluie-forte', nom: 'Forte pluie', icone: '🌧️', groupe: 'nature', fichier: 'audio/pomodoro/pluie-forte.mp3?v=20261017e' },
-    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.mp3?v=20261017e' },
-    { id: 'piano', nom: 'Piano', icone: '🎹', groupe: 'ville', fichier: 'audio/pomodoro/piano.mp3?v=20261017e' },
-    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.mp3?v=20261017e' },
-    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.mp3?v=20261017e' },
-    { id: 'beta', nom: 'Bêta (Flowstate)', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.mp3?v=20261017e' }
+    { id: 'pluie', nom: 'Pluie', icone: '☂️', groupe: 'nature', fichier: 'audio/pomodoro/pluie.mp3?v=20261017h' },
+    { id: 'ocean', nom: 'Océan', icone: '🌊', groupe: 'nature', fichier: 'audio/pomodoro/ocean.mp3?v=20261017h' },
+    { id: 'cafe', nom: 'Café animé', icone: '☕', groupe: 'ville', fichier: 'audio/pomodoro/cafe.mp3?v=20261017h' },
+    { id: 'avion', nom: 'Cabine d’avion', icone: '✈️', groupe: 'ville', fichier: 'audio/pomodoro/avion.mp3?v=20261017h' },
+    { id: 'salle', nom: 'Salle d’examen', icone: '😰', groupe: 'ville', fichier: 'audio/pomodoro/salle.mp3?v=20261017h' },
+    { id: 'train', nom: 'Train', icone: '🚆', groupe: 'ville', fichier: 'audio/pomodoro/train.mp3?v=20261017h' },
+    { id: 'bibliotheque', nom: 'Bibliothèque', icone: '📚', groupe: 'ville', fichier: 'audio/pomodoro/bibliotheque.mp3?v=20261017h' },
+    { id: 'matin', nom: 'Matin en ville', icone: '🚕', groupe: 'ville', fichier: 'audio/pomodoro/matin.mp3?v=20261017h' },
+    { id: 'orage', nom: 'Orage', icone: '⛈️', groupe: 'nature', fichier: 'audio/pomodoro/orage.mp3?v=20261017h' },
+    { id: 'piano', nom: 'Piano', icone: '🎹', groupe: 'ville', fichier: 'audio/pomodoro/piano.mp3?v=20261017h' },
+    { id: 'vent', nom: 'Vent', icone: '🌬️', groupe: 'nature', fichier: 'audio/pomodoro/vent.mp3?v=20261017h' },
+    { id: 'gamma', nom: 'Binaural gamma', icone: '😵', groupe: 'concentration', fichier: 'audio/pomodoro/gamma.mp3?v=20261017h' },
+    { id: 'beta', nom: 'Bêta (Flowstate)', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/beta.mp3?v=20261017h' }
 ];
 var focusLecteurs = {};
 var focusVolumes = {};

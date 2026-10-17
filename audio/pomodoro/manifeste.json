@@ -60,28 +60,28 @@
     "octets": 4801141
   },
   {
-    "rms": 0.085,
-    "crete": 0.546,
-    "dynamique_db": 9.7,
-    "raccord": 0.00214,
+    "rms": 0.0818,
+    "crete": 0.96,
+    "dynamique_db": 10.2,
+    "raccord": 0.00271,
     "id": "matin",
-    "source": "8d",
-    "debut_s": 5520.0,
+    "source": "matin-ville",
+    "debut_s": 0.0,
     "canaux": "stereo",
     "duree_s": 300.0,
     "octets": 4801141
   },
   {
     "rms": 0.085,
-    "crete": 0.551,
-    "dynamique_db": 9.6,
-    "raccord": 0.00657,
+    "crete": 0.948,
+    "dynamique_db": 10.8,
+    "raccord": 0.01301,
     "id": "ocean",
-    "source": "8d",
-    "debut_s": 9540.0,
-    "canaux": "stereo",
+    "source": "ocean-vagues",
+    "debut_s": 0.0,
+    "canaux": "mono",
     "duree_s": 300.0,
-    "octets": 4801141
+    "octets": 3600867
   },
   {
     "rms": 0.085,
@@ -115,30 +115,6 @@
     "id": "pluie",
     "source": "pluie",
     "debut_s": 4860.0,
-    "canaux": "mono",
-    "duree_s": 300.0,
-    "octets": 3600867
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.953,
-    "dynamique_db": 2.6,
-    "raccord": 0.00639,
-    "id": "pluie-forte",
-    "source": "pluie",
-    "debut_s": 780.0,
-    "canaux": "mono",
-    "duree_s": 300.0,
-    "octets": 3600867
-  },
-  {
-    "rms": 0.085,
-    "crete": 0.952,
-    "dynamique_db": 2.5,
-    "raccord": 0.02197,
-    "id": "pluie-legere",
-    "source": "pluie",
-    "debut_s": 3630.0,
     "canaux": "mono",
     "duree_s": 300.0,
     "octets": 3600867
