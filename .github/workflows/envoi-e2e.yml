@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   navigateur:
@@ -45,4 +45,21 @@ jobs:
           npx playwright install --with-deps chromium
 
       - name: Jouer l'envoi d'une question et d'une suggestion en vrai navigateur
-        run: node tools/tester-envoi.mjs
+        run: |
+          set -o pipefail
+          node tools/tester-envoi.mjs 2>&1 | tee /tmp/sortie-e2e.txt
+
+      - name: Publier le journal
+        if: always()
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/journal
+          cp /tmp/sortie-e2e.txt /tmp/journal/ 2>/dev/null || echo "le test n'a pas démarré" > /tmp/journal/sortie-e2e.txt
+          cd /tmp/journal
+          git init -q .
+          git checkout -q -b tmp/e2e
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Journal du test d'envoi"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/e2e
