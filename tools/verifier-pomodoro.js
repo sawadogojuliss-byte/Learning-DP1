@@ -28,6 +28,12 @@ ok(menu.slice(seances, seances + 700).indexOf("navigateTo('seances')") !== -1, '
 ok(menu.slice(minuteur, minuteur + 700).indexOf("navigateTo('pomodoro')") !== -1, 'le menu doit ouvrir le minuteur');
 ok(menu.indexOf('Séance de révision du jour') !== -1, 'la page des séances doit être nommée en français');
 ok(menu.indexOf('>Pomodoro<') !== -1, 'l\'entrée du minuteur doit s\'appeler Pomodoro');
+ok(menu.indexOf('25 minutes de travail ou plus, puis une pause') !== -1,
+    'la description Pomodoro doit dire « 25 minutes de travail ou plus »');
+ok(menu.indexOf('Ajout &amp; planifie tes exercices') !== -1,
+    'la description des exercices doit dire « Ajout & planifie tes exercices »');
+ok(menu.indexOf('Messages dans la boîte mail') === -1,
+    'la description de l\'annonce doit disparaître');
 ok(menu.indexOf('Minuteur de concentration') === -1, 'l\'ancien nom du minuteur doit disparaître');
 
 /* ── 2. Ouvert à tous : plus aucun contrôle admin ── */
@@ -66,8 +72,8 @@ ok(page.indexOf('id="focusAccueil"') === -1, 'l\'accueil des séances ne doit pl
 ok(page.indexOf('Tes séances du jour') === -1, 'l\'ancien accueil doit disparaître du minuteur');
 ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisis une séance, puis lance le minuteur Pomodoro') !== -1,
     'la page doit expliquer qu\'on choisit une séance avant le minuteur');
-ok(page.indexOf('<p class="focus-nom">Pomodoro</p>') !== -1, 'le minuteur doit afficher son nom : Pomodoro');
-ok(lire('css/pages/planning-panels.css').indexOf('.focus-nom {') !== -1, 'le badge Pomodoro doit être stylé');
+ok(page.indexOf('focus-nom') === -1, 'le badge Pomodoro en haut à droite doit disparaître');
+ok(lire('css/pages/planning-panels.css').indexOf('.focus-nom') === -1, 'le style du badge doit disparaître');
 ok(fs.existsSync(path.join(__dirname, '..', 'pages/seances.html')), 'page de séance absente');
 ok(lire('js/registre.js').indexOf("'pages/seances.html'") !== -1, 'page de séance non enregistrée');
 ok(lire('js/registre.js').indexOf("'pages/pomodoro.html'") !== -1, 'page minuteur non enregistrée');

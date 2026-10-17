@@ -166,6 +166,10 @@ ok(lire('pages/onboarding-sommeil.html').indexOf('inférieure à 5 h') === -1,
 var sommeil = lire('pages/onboarding-sommeil.html');
 ok(sommeil.indexOf('Choisis ton réveil et ta durée de sommeil.') !== -1, 'la description du sommeil doit rester');
 ok(sommeil.indexOf('au moins 5 h') !== -1, 'la limite de 5 h doit rester dans le rectangle vert');
+var libre = lire('pages/onboarding-libre.html');
+ok(libre.indexOf('Le temps maximum autorisé est de 3 heures, on ne peut pas dépasser cette limite.') !== -1,
+    'la description du temps libre doit être remplacée');
+ok(libre.indexOf("3 h est le maximum") === -1, 'l\'ancienne phrase du temps libre doit disparaître');
 
 
 if (echecs.length) {
