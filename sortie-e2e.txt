@@ -1,0 +1,7 @@
+question directe : « Question envoyée. » en 76 ms
+question directe : fil atteint, 4 admins prévenus dès l'appui — OK
+question fil mort : « Question envoyée par mail — elle rejoindra la boîte un peu plus tard. » en 1560 ms
+question fil mort : 4 admins prévenus quand même, question gardée en file — OK
+suggestion directe : « Suggestion envoyée. » en 124 ms
+suggestion directe : fil atteint, 4 admins prévenus dès l'appui — OK
+E2E ENVOI : TOUT EST VERT
