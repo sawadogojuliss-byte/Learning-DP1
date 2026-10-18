@@ -141,6 +141,7 @@ function focusIndexParId(id) {
 
 /* La page « Séance de révision du jour » : la liste, avant le minuteur. */
 function focusOuvrirSeances() {
+    if (typeof focusFermerMusique === 'function') { try { focusFermerMusique(); } catch (e) {} }
     focusCharger();
     focusFondsArret = false;
     /* Le minuteur cache la page des séances : on la remontre à chaque retour,
@@ -696,6 +697,7 @@ function focusPeindreFlamme() {
 }
 
 function focusBasculerTaches() {
+    if (typeof focusFermerMusique === 'function') { try { focusFermerMusique(); } catch (e) {} }
     focusFermer('focusReglages');
     focusFermer('focusFonds');
     focusFermer('focusSons');
@@ -1235,6 +1237,7 @@ function focusPeindreCurseur(input) {
 }
 
 function focusBasculerSons() {
+    if (typeof focusFermerMusique === 'function') { try { focusFermerMusique(); } catch (e) {} }
     focusFermer('focusTaches');
     focusFermer('focusReglages');
     focusFermer('focusFonds');

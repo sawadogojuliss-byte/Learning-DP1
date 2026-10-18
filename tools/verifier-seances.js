@@ -21,9 +21,13 @@ var nav = lire('js/pages/navigation.js');
 var memoire = lire('js/memoire.js');
 var registre = lire('js/registre.js');
 
-/* ── Plus aucune marque de minuteur dans le planning ───────────────── */
-[['pages/planning.html', planning], ['js/pages/planning-interface.js', interfacePlanning]].forEach(function (paire) {
-    ok(paire[1].indexOf('🍅') === -1, 'il reste une tomate dans ' + paire[0]);
+/* ── Plus aucune marque de minuteur dans le planning ─────────────────
+   La tomate est l'icône du menu Pomodoro (demande d'octobre 2026) :
+   autorisée dans ce seul bouton, interdite dans le reste du planning. */
+var menuPomoPlanning = planning.slice(planning.indexOf('id="menuMinuteur"'));
+var blocMenuPomo = menuPomoPlanning.slice(0, menuPomoPlanning.indexOf('</button>'));
+[['pages/planning.html', planning.replace(blocMenuPomo, '')], ['js/pages/planning-interface.js', interfacePlanning]].forEach(function (paire) {
+    ok(paire[1].indexOf('🍅') === -1, 'il reste une tomate hors du menu Pomodoro dans ' + paire[0]);
 });
 ok(planning.indexOf('editPomodoroBtn') === -1, 'le bouton du modal d\'édition doit disparaître');
 ok(planning.indexOf('pomodoroModal') === -1, 'la fenêtre Pomodoro du planning doit disparaître');

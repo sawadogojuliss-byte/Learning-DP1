@@ -116,11 +116,19 @@ ok(page.indexOf('Ma playlist') === -1, 'la playlist ne doit plus apparaître');
 ok(page.indexOf('focusImageDansImage') !== -1, 'le bouton image dans l image manque');
 ok(lire('js/pages/pomodoro.js').indexOf('if (!modal) return;') !== -1, 'la fenêtre du planning ne doit plus être appelée');
 
-/* ── 6. Plus aucune tomate, ni en image, ni en mot dans les libellés ── */
+/* ── 6. Plus aucune tomate, ni en image, ni en mot dans les libellés ──
+   La tomate revient à SA place : l'icône du menu Pomodoro (demande
+   d'octobre 2026). Partout ailleurs — décomptes, badges, planning,
+   minuteur — elle reste interdite. */
+var menuPomo = lire('pages/planning.html');
+var debutMenu = menuPomo.indexOf('id="menuMinuteur"');
+var blocMenu = menuPomo.slice(debutMenu, menuPomo.indexOf('</button>', debutMenu));
 ['pages/planning.html', 'pages/seances.html', 'pages/pomodoro.html', 'js/pages/planning-interface.js',
  'js/pages/planning-base.js', 'js/pages/pomodoro.js', 'js/pages/pomodoro-page.js', 'style_v3.css',
- 'css/pages/planning-panels.css'].forEach(function (rel) {
-    ok(lire(rel).indexOf('🍅') === -1, 'il reste une tomate dans ' + rel);
+ 'css/pages/planning-panels.css', 'js/pages/musique.js'].forEach(function (rel) {
+    var texte = lire(rel);
+    if (rel === 'pages/planning.html') texte = texte.replace(blocMenu, '');
+    ok(texte.indexOf('🍅') === -1, 'il reste une tomate dans ' + rel + ' (seule l\u2019icône du menu Pomodoro y a droit)');
 });
 var pomo = lire('js/pages/pomodoro.js');
 ok(pomo.indexOf("' × 25 min'") !== -1, 'le décompte doit s\'écrire en minutes, sans tomate');

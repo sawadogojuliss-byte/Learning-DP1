@@ -17,7 +17,9 @@
  *   8. l'emploi du temps scolaire : vrais cours, travail dans les
  *      creux, et matières vues au programme de tout le planning ;
  *   9. le bouton Continuer de la page Emploi du temps ouvre vraiment
- *      le planning, le Retour y ramène depuis le menu.
+ *      le planning, le Retour y ramène depuis le menu ;
+ *  10. la musique : tomate au menu Pomodoro, section Playlist
+ *      (Spotify · YouTube) à côté des Sons sur les deux pages.
  */
 import { chromium } from 'playwright';
 
@@ -213,6 +215,62 @@ await page.waitForFunction(() =>
     !document.getElementById('emploiModal').classList.contains('active') &&
     document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });
 
+/* 10. la musique : la tomate au menu Pomodoro, la section Playlist
+   (Spotify · YouTube) à côté des Sons sur les deux pages musique */
+const menuPomodoro = await page.evaluate(() => {
+    const bouton = document.getElementById('menuMinuteur');
+    return bouton ? bouton.textContent : '';
+});
+if (menuPomodoro.indexOf('🍅') === -1 || menuPomodoro.indexOf('⏱') !== -1) {
+    echec("le menu Pomodoro doit montrer une tomate 🍅 et non le minuteur : " + menuPomodoro);
+}
+if (!await page.evaluate(() => !!document.getElementById('focusBtnPlaylist'))) {
+    echec("le bouton Playlist doit exister à côté du bouton Sons du minuteur");
+}
+await page.evaluate(() => { navigateTo('seances'); });
+const boutonsSeances = await page.evaluate(() => ({
+    sons: !!document.getElementById('accueilBtnSons'),
+    playlist: !!document.getElementById('accueilBtnPlaylist')
+}));
+if (!boutonsSeances.sons || !boutonsSeances.playlist) {
+    echec('la page Séance de révision du jour doit avoir les boutons Sons et Playlist');
+}
+const playlistOuverte = await page.evaluate(() => {
+    focusBasculerPlaylist();
+    const panneau = document.getElementById('focusPlaylist');
+    return panneau && !panneau.hidden;
+});
+if (!playlistOuverte) {
+    echec("le panneau Playlist ne s'ouvre pas depuis la page Séance du jour");
+}
+const lecteurs = await page.evaluate(() => {
+    const spotify = playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=e2e');
+    const youtube = playlistAjouterLien('https://www.youtube.com/playlist?list=PLE2Etest');
+    playlistPeindre();
+    const iframes = Array.from(document.querySelectorAll('#focusPlaylist iframe')).map(f => f.src);
+    return { spotifyOk: spotify.ok, youtubeOk: youtube.ok, iframes: iframes };
+});
+if (!lecteurs.spotifyOk || !lecteurs.youtubeOk) {
+    echec('les liens Spotify et YouTube doivent être acceptés : ' + JSON.stringify(lecteurs));
+}
+if (!lecteurs.iframes.some(src => src.indexOf('open.spotify.com/embed/playlist/') !== -1)) {
+    echec('le lecteur Spotify intégré manque : ' + JSON.stringify(lecteurs.iframes));
+}
+if (!lecteurs.iframes.some(src => src.indexOf('/embed/videoseries?list=') !== -1)) {
+    echec('le lecteur YouTube intégré manque : ' + JSON.stringify(lecteurs.iframes));
+}
+const sonsAccueil = await page.evaluate(() => {
+    focusFermerMusique();
+    focusBasculerSonsAccueil();
+    const panneau = document.getElementById('accueilSons');
+    const grille = document.querySelectorAll('#accueilSonsGrille .focus-son').length;
+    return { ouvert: panneau && !panneau.hidden, grille: grille };
+});
+if (!sonsAccueil.ouvert || sonsAccueil.grille < 10) {
+    echec("le panneau Sons de la page Séance du jour ne s'affiche pas ou sa grille est vide : " + JSON.stringify(sonsAccueil));
+}
+await page.evaluate(() => { focusFermerMusique(); });
+
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
     echec('erreurs JavaScript dans la page : ' + erreurs.join(' | ').slice(0, 400));
@@ -222,4 +280,5 @@ await browser.close();
 console.log('ok préparation en vrai navigateur : séance du devoir visible aujourd\u2019hui avec compte à rebours, '
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
     + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
-    + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, 0 erreur JavaScript');
+    + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
+    + 'tomate au menu Pomodoro, section Playlist Spotify et YouTube jouant dans le site à côté des Sons sur les deux pages musique, 0 erreur JavaScript');

@@ -64,6 +64,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/pomodoro.js',
     'js/pages/planning-interface.js',
     'js/pages/planning-export.js',
+    'js/pages/musique.js',
     'js/memoire.js',
     'js/sauvegarde.js',
     'js/compte.js',

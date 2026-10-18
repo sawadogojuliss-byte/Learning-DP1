@@ -24,6 +24,7 @@ function closeSideMenu() {
 }
 function navigateTo(page) {
     /* Le minuteur et la page des séances sont ouverts à tout le monde. */
+    if (typeof focusFermerMusique === 'function') { try { focusFermerMusique(); } catch (e) {} }
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     if (page === 'soutien') {
         var soutien = document.getElementById('panelSoutien');

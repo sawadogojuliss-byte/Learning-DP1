@@ -141,6 +141,7 @@ function memoireLireEtat() {
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         devoirsStore: typeof devoirsStoreCompact === 'function' ? devoirsStoreCompact() : null,
         emploiScolaire: typeof emploiScolaireCompact === 'function' ? emploiScolaireCompact() : null,
+        playlists: typeof playlistCompact === 'function' ? playlistCompact() : null,
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
         joursConnectes: (function () {
             var n = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
@@ -335,6 +336,14 @@ function memoireAppliquer(data, opts) {
             try { emploiScolaireEcrire(data.emploiScolaire); } catch (e) {}
         } else if (data.profilComplet) {
             try { emploiScolaireVider(); } catch (e) {}
+        }
+    }
+    if (depuisCompte && typeof playlistEcrire === 'function') {
+        /* Les playlists Spotify et YouTube reviennent avec le compte. */
+        if (data.playlists && Array.isArray(data.playlists.liste)) {
+            try { playlistEcrire({ liste: data.playlists.liste, active: data.playlists.active || '' }); } catch (e) {}
+        } else if (data.profilComplet) {
+            try { playlistEcrire({ liste: [], active: '' }); } catch (e) {}
         }
     }
     if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
