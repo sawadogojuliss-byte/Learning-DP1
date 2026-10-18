@@ -685,6 +685,15 @@ function emploiFaitsSignature() {
             };
         }).filter(Boolean)
     };
+    /* La réponse au bac national fait partie des faits : dès qu'un élève
+       de DP2 répond (oui ou non), la signature change et l'emploi figé
+       d'avant la réponse est reconstruit — sinon le planning ne bouge
+       pas. Sans réponse (null), la signature reste celle d'avant. */
+    var bacNational = null;
+    try {
+        if (typeof devoirsLireStore === 'function') bacNational = devoirsLireStore().bac;
+    } catch (e) { bacNational = null; }
+    if (bacNational === true || bacNational === false) faits.bacNational = bacNational;
     if (typeof habitudesActives === 'function' && habitudesActives()) {
         faits.habitudes = {
             prepMatin: typeof prepMatinMinutes === 'number' ? prepMatinMinutes : 30,

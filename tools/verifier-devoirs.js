@@ -32,6 +32,8 @@ const registre = fs.readFileSync(path.join(__dirname, '..', 'js', 'registre.js')
 const moteur = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'planning-moteur.js'), 'utf8');
 const boot = fs.readFileSync(path.join(__dirname, '..', 'js', 'boot.js'), 'utf8');
 const matieres = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'onboarding-matieres.js'), 'utf8');
+const devoirsSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs.js'), 'utf8');
+const moteurSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs-moteur.js'), 'utf8');
 
 ok(devoirsHtml.indexOf('id="panelDevoirs"') !== -1, 'le panneau Devoirs et Examens manque');
 ok(planning.indexOf('Devoirs et Examens') !== -1, 'le bouton du menu manque');
@@ -259,6 +261,113 @@ const compact = context.devoirsStoreCompact();
 ok(compact && compact.bac === true, 'le store compact perd le réglage du bac');
 ok(compact && Array.isArray(compact.devoirs) && compact.devoirs.length === 1 && compact.devoirs[0].matiere === 'Philosophie', 'le store compact perd les devoirs');
 ok(compact && Array.isArray(compact.examens) && compact.examens.length === 1 && compact.examens[0].date === '2026-10-22', 'le store compact perd les examens');
+
+
+/* ── 4. Le parcours complet du popup, sur le vrai moteur ─────────── */
+/* Bug corrigé : répondre « Oui » au popup ne changeait rien, car la
+   réponse au bac n'entrait pas dans la signature des faits — l'emploi
+   figé d'avant la réponse était resservi tel quel. Ici on fige un
+   emploi SANS bac (comme tous les élèves déjà inscrits), on répond
+   « Oui », et le planning doit se reconstruire avec les créneaux du
+   bac. Répondre « Non » plus tard reconstruit aussi. */
+const store2 = {};
+const contexteMoteur = {
+    console: { log: function () {}, warn: function () {}, error: function () {} },
+    setTimeout: setTimeout, clearTimeout: clearTimeout,
+    addEventListener: function () {}, removeEventListener: function () {},
+    localStorage: {
+        getItem: function (k) { return Object.prototype.hasOwnProperty.call(store2, k) ? store2[k] : null; },
+        setItem: function (k, v) { store2[k] = String(v); },
+        removeItem: function (k) { delete store2[k]; }
+    },
+    document: {
+        getElementById: function () { return null; },
+        createElement: function () { return { style: {}, setAttribute: function () {}, appendChild: function () {}, remove: function () {}, classList: { add: function () {}, remove: function () {} } }; },
+        querySelector: function () { return null; },
+        querySelectorAll: function () { return []; },
+        body: { appendChild: function () {}, classList: { add: function () {}, remove: function () {} } },
+        addEventListener: function () {}
+    },
+    subjects: [{ name: 'Mathématiques AA', level: 'HL', icon: '🔢' }, { name: 'Philosophie', level: 'SL', icon: '🤔' }],
+    optionalSubjects: [],
+    ibYear: 'DP2',
+    weekdayWakeup: '05:30', saturdayWakeup: '08:30', sundayWakeup: '09:00',
+    weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8,
+    allSubj: [], customEvents: [], selectedActivities: [],
+    phoneTime: 0, phoneDays: [], holidayBypass: 0, holidayDays: [], holidayModes: {}, holidayDropped: {},
+    COURS_DEBUT: 470, COURS_FIN: 985, COURS_FIN_MATIN: 750,
+    transportMode: 'walking',
+    carDeparture: '', carToSchool: 30, carFromSchool: 40, carReturnTime: '',
+    motoDeparture: '', motoToSchool: 25, motoFromSchool: 25, motoReturn: '',
+    sousTitreMatiere: function (s) { return (s && s.level) || ''; },
+    couleurMatiere: function () { return '#0ea5e9'; },
+    formatDuration: function (m) { return Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); },
+    calculateBedtime: function (w, h) {
+        var p = String(w).split(':');
+        var m = (Number(p[0]) * 60 + Number(p[1])) - (h || 8) * 60;
+        m = ((m % 1440) + 1440) % 1440;
+        return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    },
+    bedtimeForDay: function (d) { return d === 5 ? '00:30' : '22:00'; }
+};
+contexteMoteur.allSubj = contexteMoteur.subjects.concat(contexteMoteur.optionalSubjects);
+contexteMoteur.window = contexteMoteur;
+vm.createContext(contexteMoteur);
+[devoirsSrc, moteurSrc, fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'planning-base.js'), 'utf8'), fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'planning-moteur.js'), 'utf8')].forEach(function (src, i) {
+    vm.runInContext(src, contexteMoteur, { filename: 'moteur-' + i + '.js' });
+});
+
+/* sans réponse, la signature ne change pas : les emplois figés d'avant
+   la fonctionnalité restent valides (personne ne subit de reconstruction) */
+ok(contexteMoteur.emploiFaitsSignature().indexOf('bacNational') === -1, 'la signature ne doit contenir bacNational qu\'après une réponse');
+
+/* figer un emploi AVANT la réponse, comme tous les élèves déjà inscrits */
+vm.runInContext('emploiNePasSauver = 1; var j = []; for (var i = 0; i < 7; i++) j.push(emploiReconstruire(i)); emploiFige = { sig: emploiFaitsSignature(), at: new Date().toISOString(), jours: emploiCloner(j) }; emploiNePasSauver = 0;', contexteMoteur);
+ok(contexteMoteur.emploiEstFige() === true, 'l\'emploi figé avant la réponse doit être valide');
+
+/* répondre « Oui » dans le popup : la signature change, le cliché
+   d'avant n'est plus bon — c'était le bug « rien ne change » */
+contexteMoteur.devoirsEcrireStore({ bac: true, devoirs: [], examens: [] });
+ok(contexteMoteur.emploiEstFige() === false, 'répondre « Oui » doit invalider l\'emploi figé d\'avant la réponse (bug du popup)');
+
+/* le planning reconstruit porte les créneaux du bac */
+const vendrediBac = contexteMoteur.emploiReconstruire(4);
+const blocVendredi = vendrediBac.filter(function (ev) { return ev.id === 'bac-vendredi'; })[0];
+ok(blocVendredi, 'le vendredi reconstruit doit porter le bloc du bac');
+if (blocVendredi) {
+    ok(blocVendredi.startTime === '14:55' && blocVendredi.endTime === '16:25', 'vendredi du bac : ' + blocVendredi.startTime + '-' + blocVendredi.endTime);
+    ok(String(blocVendredi.title).indexOf('Bac national') !== -1, 'titre du vendredi du bac : ' + blocVendredi.title);
+}
+const coursVendredi = vendrediBac.filter(function (ev) { return ev.id === 'school2'; })[0];
+ok(coursVendredi && coursVendredi.endTime === '14:55', 'le vendredi du bac doit couper les cours à 14h55, trouvé : ' + (coursVendredi ? coursVendredi.endTime : 'rien'));
+
+const samediBacJour = contexteMoteur.emploiReconstruire(5);
+const blocSamedi = samediBacJour.filter(function (ev) { return ev.id === 'bac-samedi'; })[0];
+ok(blocSamedi && blocSamedi.startTime === '08:00' && blocSamedi.endTime === '13:00', 'le samedi du bac doit être 8h00 → 13h00, trouvé : ' + (blocSamedi ? blocSamedi.startTime + '-' + blocSamedi.endTime : 'rien'));
+const reveilSamedi = samediBacJour.filter(function (ev) { return ev.id === 'wakeup'; })[0];
+ok(reveilSamedi && reveilSamedi.startTime <= '07:00', 'le samedi du bac doit se lever au plus tard à 7h00, trouvé : ' + (reveilSamedi ? reveilSamedi.startTime : 'rien'));
+const coucherSamedi = samediBacJour.filter(function (ev) { return ev.id === 'sleep'; })[0];
+if (coucherSamedi && reveilSamedi) {
+    const dornee = (24 * 60 + reveilSamedi.startTime.split(':')[0] * 60 + reveilSamedi.startTime.split(':')[1] * 1) - (coucherSamedi.startTime.split(':')[0] * 60 + coucherSamedi.startTime.split(':')[1] * 1);
+    ok(dornee >= 5 * 60, 'le samedi du bac doit garder au moins 5 h de sommeil : ' + Math.floor(dornee / 60) + ' h');
+}
+
+/* le cours d'économie épinglé du samedi disparaît pour les élèves du bac.
+   customEvents est une liaison « let » du script : il faut l'écrire
+   depuis l'intérieur de la machine virtuelle. */
+vm.runInContext('customEvents = [{ id: "eco-test", day: 5, title: "Cours d\'économie", startTime: "15:00", endTime: "17:00", type: "school" }]', contexteMoteur);
+const samediAvecEco = contexteMoteur.emploiReconstruire(5);
+ok(!samediAvecEco.some(function (ev) { return ev.id === 'eco-test'; }), 'le cours d\'économie du samedi doit disparaître pour l\'élève du bac');
+ok(samediAvecEco.some(function (ev) { return ev.id === 'study1' || ev.id === 'study2'; }) || samediAvecEco.length > 3, 'le reste du samedi doit rester rempli');
+
+/* le nouvel état figé (avec bac) est stable, et « Non » reconstruit aussi */
+vm.runInContext('var j2 = []; for (var i = 0; i < 7; i++) j2.push(emploiReconstruire(i));', contexteMoteur);
+ok(contexteMoteur.emploiEstFige() === true, 'l\'emploi figé après la réponse doit être valide');
+contexteMoteur.devoirsEcrireStore({ bac: false, devoirs: [], examens: [] });
+ok(contexteMoteur.emploiEstFige() === false, 'répondre « Non » plus tard doit aussi reconstruire');
+const samediSansBacJour = contexteMoteur.emploiReconstruire(5);
+ok(!samediSansBacJour.some(function (ev) { return String(ev.id).indexOf('bac-samedi') === 0; }), 'sans le bac, le samedi ne porte plus le créneau du bac');
+ok(samediSansBacJour.some(function (ev) { return ev.id === 'eco-test'; }), 'sans le bac, le cours d\'économie du samedi revient');
 
 /* ── Bilan ─────────────────────────────────────────────────────────── */
 if (echecs.length) {
