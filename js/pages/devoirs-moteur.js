@@ -342,6 +342,7 @@ function devoirsBlocConvertible(ev) {
     if (id === 'study1' || id === 'study2' || id === 'exercises') return true;
     if (id.indexOf('emploi-rev-') === 0 || id.indexOf('emploi-exo-') === 0 ||
         id.indexOf('emploi-memoir-') === 0 || id.indexOf('emploi-ia-') === 0 ||
+        id.indexOf('revgap-') === 0 || id.indexOf('memoir-') === 0 || id.indexOf('ia-') === 0 ||
         id.indexOf('study-page') === 0 || id.indexOf('ia-page') === 0 || id.indexOf('memoir-page') === 0) return true;
     return false;
 }

@@ -519,6 +519,32 @@ var jR1 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 var revR1 = jR1.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
 ok(revR1.length === 3, '3 séances la veille du devoir pendant la semaine de révisions : 3 posées, trouvé : ' + revR1.length);
 
+/* — 3a8c. Les blocs de comblement « revgap » cèdent leur place aussi — */
+/* Le vrai moteur remplit les trous du jour avec des blocs « revgap-… »
+   (week-end, heures creuses) : la garantie doit les reconnaître comme
+   des blocs d'étude du site, sinon une journée pleine de revgap ne
+   reçoit qu'une séance. Bug vu par le test navigateur du 18/10. */
+var jourRevGap = [
+    { id: 'prep', title: 'Préparation', startTime: '05:30', endTime: '07:50', type: 'prep' },
+    { id: 'school1', title: 'Cours', startTime: '07:50', endTime: '12:30', type: 'school' },
+    { id: 'lunch', title: 'Déjeuner', startTime: '12:30', endTime: '13:30', type: 'meal' },
+    { id: 'school2', title: 'Cours', startTime: '13:30', endTime: '15:00', type: 'school' },
+    { id: 'phone', title: 'Téléphone', startTime: '16:30', endTime: '17:30', type: 'phone' },
+    { id: 'revgap-910', title: 'Révisions · Mathématiques AA', startTime: '15:00', endTime: '16:30', type: 'study' },
+    { id: 'revgap-1050', title: 'Révisions · Chimie', startTime: '17:30', endTime: '19:00', type: 'study' },
+    { id: 'dinner', title: 'Dîner', startTime: '19:00', endTime: '19:45', type: 'meal' },
+    { id: 'revgap-1185', title: 'Révisions · Physique', startTime: '19:45', endTime: '21:15', type: 'study' },
+    { id: 'sleep', title: 'Coucher', startTime: '22:00', endTime: '05:30', type: 'sleep' }
+];
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dp5', matiere: 'Chimie', date: cleJour(demain), debut: '08:00', fin: '10:00', seances: 3 }], examens: [] });
+var jRG = context.devoirsAdapterJour(JSON.parse(JSON.stringify(jourRevGap)), idxJour);
+var revRG = jRG.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
+ok(revRG.length === 3, 'une journée pleine de blocs revgap reçoit quand même ses 3 séances, trouvé : ' + revRG.length);
+ok(revRG.some(function (ev) { return String(ev.id).indexOf('devrev-dp5-g') === 0; }), 'un bloc revgap doit céder sa place à une séance manquante');
+ok(jRG.some(function (ev) { return ev.id === 'lunch'; }) && jRG.some(function (ev) { return ev.id === 'dinner'; }) && jRG.some(function (ev) { return ev.id === 'phone'; }) && jRG.some(function (ev) { return ev.id === 'school1'; }), 'repas, téléphone et cours ne sont jamais pris');
+ok(jRG.every(function (ev) { return String(ev.id).indexOf('revgap-') !== 0 || ev.devoirsBloc === true; }), 'tout revgap a cédé sa place ou est devenu une séance');
+
+
 /* — 3a9. La question des séances : une seule pour toute la fournée — */
 context.devoirsEcrireStore({ bac: false, devoirs: [
     { id: 'da', matiere: 'Mathématiques AA', date: cleJour(demain), debut: '13:00', fin: '14:30' },
