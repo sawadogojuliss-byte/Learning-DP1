@@ -142,7 +142,30 @@ function devoirsPlacerDansTrou(blocs, trous) {
     return poses;
 }
 
-function devoirsBlocsRevisions(epreuves, mode) {
+/* Le temps de préparation grandit à mesure que l'échéance approche :
+   loin, un bloc léger par jour ; à deux semaines, deux blocs ; la
+   dernière semaine, le rythme intensif. C'est la deadline qui décide. */
+function devoirsBudgetPreparation(jours) {
+    if (jours <= 3) return { blocs: 3, duree: 75 };
+    if (jours <= 7) return { blocs: 2, duree: 75 };
+    if (jours <= 14) return { blocs: 2, duree: 45 };
+    return { blocs: 1, duree: 45 };
+}
+
+/* Le compte à rebours affiché sous chaque bloc : « dans 3 j », « demain »… */
+function devoirsDansXJours(ep) {
+    var n = new Date();
+    var cleJour = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+    var cible = String(ep.date || '');
+    if (cible === cleJour(n)) return "aujourd'hui";
+    var demain = new Date(n.getTime() + 86400000);
+    if (cible === cleJour(demain)) return 'demain';
+    var t = devoirsInstant(ep.date, ep.debut).getTime() - n.getTime();
+    if (t <= 0) return "c'est maintenant";
+    return 'dans ' + Math.ceil(t / 86400000) + ' j';
+}
+
+function devoirsBlocsRevisions(epreuves, mode, opts) {
     /* Épreuves triées de la plus proche à la plus lointaine : les plus
        proches reçoivent le plus de temps (un tour de plus à chaque
        cycle). */
@@ -157,11 +180,11 @@ function devoirsBlocsRevisions(epreuves, mode) {
         var garde = Math.max(1, Math.ceil(ordre.length - (c * ordre.length) / Math.max(1, cycles.length)));
         for (var k = 0; k < garde && k < ordre.length; k++) {
             var ep = ordre[k];
-            var duree = genre === 'Révision' ? (mode === 'examens' ? 60 : (mode === 'preparation' ? 45 : 75)) : 45;
+            var duree = genre === 'Révision' ? ((opts && opts.dureeRevision) || (mode === 'examens' ? 60 : (mode === 'preparation' ? 45 : 75))) : 45;
             file.push({
                 id: 'devrev-' + ep.id + '-' + c + '-' + k,
                 titre: genre + ' · ' + ep.matiere,
-                sous: (mode === 'examens' ? 'Épreuve le ' : 'Devoir le ') + devoirsJourCourt(ep.date) + ' à ' + ep.debut,
+                sous: (mode === 'examens' ? 'Épreuve le ' : 'Devoir le ') + devoirsJourCourt(ep.date) + ' à ' + ep.debut + ' · ' + devoirsDansXJours(ep),
                 duree: duree,
                 icone: genre === 'Révision' ? '📚' : '✏️',
                 type: 'study'
@@ -277,9 +300,11 @@ function devoirsAdapterJour(events, dayIndex) {
            libres, pour les épreuves les plus proches. */
         var preparables = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
         if (preparables.length && !enSemaineExamens) {
-            var blocsPrep = devoirsBlocsRevisions(preparables, 'preparation');
+            var joursEcheance = Math.max(1, Math.ceil((premier.getTime() - maintenant.getTime()) / 86400000));
+            var budgetPrep = devoirsBudgetPreparation(joursEcheance);
+            var blocsPrep = devoirsBlocsRevisions(preparables, 'preparation', { dureeRevision: budgetPrep.duree }).slice(0, budgetPrep.blocs);
             var trousPrep = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
-            devoirsPlacerDansTrou(blocsPrep, trousPrep).slice(0, 2).forEach(function (pose) {
+            devoirsPlacerDansTrou(blocsPrep, trousPrep).forEach(function (pose) {
                 jour.push({
                     id: pose.id,
                     title: pose.titre,
@@ -310,9 +335,11 @@ function devoirsAdapterJour(events, dayIndex) {
             vues[d.matiere] = 1;
             epreuvesUniques.push(d);
         });
-        var blocsDV = devoirsBlocsRevisions(epreuvesUniques, 'devoirs');
+        var joursDevoir = Math.max(1, Math.ceil((devoirsInstant(prochains[0].date, prochains[0].debut).getTime() - maintenant.getTime()) / 86400000));
+        var budgetDV = devoirsBudgetPreparation(joursDevoir);
+        var blocsDV = devoirsBlocsRevisions(epreuvesUniques, 'devoirs', { dureeRevision: budgetDV.duree }).slice(0, budgetDV.blocs);
         var trousDV = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
-        var posesDV = devoirsPlacerDansTrou(blocsDV, trousDV).slice(0, 2);
+        var posesDV = devoirsPlacerDansTrou(blocsDV, trousDV);
         posesDV.forEach(function (pose) {
             jour.push({
                 id: pose.id,

@@ -212,7 +212,7 @@ const idxJour = (aujourdhui.getDay() + 6) % 7;
 const apresDevoir = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 const revisionsDemain = apresDevoir.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Physique') !== -1; });
 ok(revisionsDemain.length >= 1, 'aucune révision posée la veille du devoir');
-ok(revisionsDemain.length <= 2, 'au plus deux révisions de devoir par jour, trouvé : ' + revisionsDemain.length);
+ok(revisionsDemain.length <= 3, 'au plus trois révisions de devoir par jour, trouvé : ' + revisionsDemain.length);
 ok(apresDevoir.every(function (ev) { return !ev.devoirsBloc || String(ev.title).indexOf('Devoir') === -1; }), 'le devoir ne doit pas apparaître avant sa date');
 
 /* — 3a2. Dès l'ajout d'un examen, même des semaines à l'avance, des
@@ -242,6 +242,58 @@ context.devoirsEcrireStore({
 const jourDevoirLoin = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 const blocsDevoirLoin = jourDevoirLoin.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') !== -1; });
 ok(blocsDevoirLoin.length >= 1, 'un devoir dans 10 jours doit déjà donner des révisions, trouvé : ' + blocsDevoirLoin.length);
+
+/* — 3a4. Le budget suit la deadline : plus elle approche, plus le
+   temps de préparation grandit (45 → 90 → 150 → 225 min par jour). */
+function minutesBloc(ev) { return context.devoirsH2M(ev.endTime) - context.devoirsH2M(ev.startTime); }
+function blocsDe(matiere, jour) {
+    return jour.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf(matiere) !== -1; });
+}
+/* devoir dans 10 jours : deux blocs de 45 min */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'd10', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 10 * 86400000)), debut: '08:00', fin: '10:00' }], examens: [] });
+var j10 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var b10 = blocsDe('Chimie', j10);
+ok(b10.length === 2, 'devoir a 10 jours : 2 blocs attendus, trouvé : ' + b10.length);
+ok(b10.length === 2 && minutesBloc(b10[0]) === 45, 'devoir a 10 jours : blocs de 45 min, trouvé : ' + (b10[0] ? minutesBloc(b10[0]) : '?'));
+/* devoir dans 5 jours : deux blocs de 75 min */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'd5', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 5 * 86400000)), debut: '08:00', fin: '10:00' }], examens: [] });
+var j5 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var b5 = blocsDe('Chimie', j5);
+ok(b5.length === 2, 'devoir a 5 jours : 2 blocs attendus, trouvé : ' + b5.length);
+ok(b5.length === 2 && minutesBloc(b5[0]) === 75, 'devoir a 5 jours : blocs de 75 min, trouvé : ' + (b5[0] ? minutesBloc(b5[0]) : '?'));
+/* devoir dans 2 jours : trois blocs de 75 min, compte a rebours visible */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'd2', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 2 * 86400000)), debut: '08:00', fin: '10:00' }], examens: [] });
+var j2 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var b2 = blocsDe('Chimie', j2);
+ok(b2.length === 3, 'devoir a 2 jours : 3 blocs attendus, trouvé : ' + b2.length);
+ok(b2.length >= 1 && String(b2[0].subtitle || '').indexOf('dans 2 j') !== -1, 'le compte a rebours manque : ' + JSON.stringify(b2[0] && b2[0].subtitle));
+/* examen dans 20 jours : un seul bloc leger */
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [{ id: 'xe20', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 20 * 86400000)), debut: '08:00', fin: '13:00' }] });
+var je20 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var be20 = blocsDe('Physique', je20);
+ok(be20.length === 1, 'examen a 20 jours : 1 bloc attendu, trouvé : ' + be20.length);
+/* examen dans 10 jours : deux blocs, matieres les plus proches d'abord */
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'xea', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 10 * 86400000)), debut: '08:00', fin: '10:00' },
+    { id: 'xeb', matiere: 'Histoire', date: cleJour(new Date(aujourdhui.getTime() + 13 * 86400000)), debut: '08:00', fin: '10:00' }
+] });
+var je10 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(blocsDe('Physique', je10).length === 1 && blocsDe('Histoire', je10).length === 1, 'examen a 10 jours : une révision par matière (les deux plus proches)');
+ok(blocsDe('Physique', je10).length === 1 && minutesBloc(blocsDe('Physique', je10)[0]) === 45, 'examen a 10 jours : bloc de 45 min');
+
+/* — 3a5. Les creneaux passes ne se programment jamais — */
+ok(context.devoirsEstPasse('2026-10-17', '08:00') === true, 'hier est passé');
+ok(context.devoirsEstPasse('2026-10-19', '08:00') === false, 'demain n\'est pas passé');
+ok(context.devoirsEstPasse('2026-10-18', '23:00') === false, "aujourd'hui plus tard n'est pas passé");
+ok(context.devoirsEstPasse('2026-10-18', '09:00') === true, "aujourd'hui plus tôt est passé");
+ok(context.devoirsEstPasse('2026-10-18', '') === false, 'sans heure, on ne saurait pas');
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [] });
+ok(context.devoirsAjouter('devoirs', { matiere: 'Chimie', date: '2026-10-17', debut: '08:00', fin: '10:00' }) === false, 'un créneau passé doit être refusé');
+ok(context.devoirsLireStore().devoirs.length === 0, 'aucun créneau passé ne doit entrer dans le store');
+/* même si de vieux créneaux passés traînent dans le store : jamais affichés */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dvx', matiere: 'Chimie', date: '2026-10-17', debut: '08:00', fin: '10:00' }], examens: [{ id: 'exx', matiere: 'Physique', date: '2026-10-16', debut: '08:00', fin: '10:00' }] });
+var jPasse = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(!jPasse.some(function (ev) { return ev.devoirsBloc; }), 'des créneaux passés dans le store ne programment rien');
 
 /* — 3b. La semaine avant les examens — */
 /* Mercredi 21 (dans 3 jours) et vendredi 23 : aujourd'hui dimanche 18

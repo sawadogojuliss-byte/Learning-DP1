@@ -478,7 +478,9 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     }
     var connues = devoirsMatieresConnues();
     var lignes = devoirsPropositions.map(function (p) {
-        return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;">' +
+        var passe = devoirsEstPasse(p.date, p.fin);
+        return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
+            (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#9ca3af;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
             '<input class="prop-matiere" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-date" type="date" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-debut" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
@@ -489,7 +491,7 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     }).join('');
     zone.innerHTML =
         '<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;">' +
-        '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne avant d\'ajouter :</p>' +
+        '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne avant d\'ajouter. Les créneaux marqués « Passé » resteront hors du planning :</p>' +
         '<div style="display:flex;flex-direction:column;gap:0.5rem;">' + lignes + '</div>' +
         '<div style="display:flex;gap:0.6rem;margin-top:0.75rem;">' +
         '<button type="button" onclick="devoirsViderPropositions()" style="flex:1;padding:0.7rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;background:white;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Tout effacer</button>' +
@@ -518,6 +520,7 @@ function devoirsViderPropositions() {
 function devoirsConfirmerPropositions(genre) {
     var ajoutes = 0;
     var refuse = '';
+    var passes = 0;
     devoirsPropositions.forEach(function (p) {
         var el = document.querySelector('[data-prop="' + p.cle + '"]');
         var matiere = p.matiere, date = p.date, debut = p.debut, fin = p.fin;
@@ -528,12 +531,16 @@ function devoirsConfirmerPropositions(genre) {
             fin = (el.querySelector('.prop-fin') || {}).value || fin;
         }
         if (!matiere || !date || !debut || !fin) { refuse = 'Certaines lignes incomplètes n\'ont pas été ajoutées.'; return; }
+        if (devoirsEstPasse(date, fin)) { passes++; return; }
         devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
         ajoutes++;
     });
     devoirsViderPropositions();
     devoirsRendre();
-    devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut', ajoutes + ' créneau' + (ajoutes > 1 ? 'x' : '') + ' ajouté' + (ajoutes > 1 ? 's' : '') + ' au planning.' + (refuse ? ' ' + refuse : ''), false);
+    devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut',
+        ajoutes + ' créneau' + (ajoutes > 1 ? 'x' : '') + ' ajouté' + (ajoutes > 1 ? 's' : '') + ' au planning.' +
+        (passes ? ' ' + passes + ' créneau' + (passes > 1 ? 'x' : '') + ' déjà passé' + (passes > 1 ? 's' : '') + ' ignoré' + (passes > 1 ? 's' : '') + '.' : '') +
+        (refuse ? ' ' + refuse : ''), false);
 }
 
 function devoirsEchap(s) {
@@ -541,6 +548,18 @@ function devoirsEchap(s) {
 }
 
 /* ── Ajout, suppression, rendu ─────────────────────────────────────── */
+
+/* Un créneau déjà passé n'entre jamais dans le planning : la date (et
+   l'heure de fin, quand on la connaît) est comparée à maintenant. */
+function devoirsEstPasse(date, fin) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) return false;
+    var n = new Date();
+    var cle = n.getFullYear() + '-' + ('0' + (n.getMonth() + 1)).slice(-2) + '-' + ('0' + n.getDate()).slice(-2);
+    if (String(date) < cle) return true;
+    if (String(date) > cle) return false;
+    if (!/^\d{2}:\d{2}$/.test(String(fin || ''))) return false;
+    return devoirsInstant(date, fin).getTime() <= n.getTime();
+}
 
 function devoirsAjouter(genre, champs) {
     var store = devoirsLireStore();
@@ -554,6 +573,7 @@ function devoirsAjouter(genre, champs) {
     };
     if (!entree.matiere || !/^\d{4}-\d{2}-\d{2}$/.test(entree.date) || !/^\d{2}:\d{2}$/.test(entree.debut) || !/^\d{2}:\d{2}$/.test(entree.fin)) return false;
     if (devoirsH2M(entree.fin) <= devoirsH2M(entree.debut)) return false;
+    if (devoirsEstPasse(entree.date, entree.fin)) return false;
     store[genre === 'devoirs' ? 'devoirs' : 'examens'].push(entree);
     devoirsEcrireStore(store);
     return true;
@@ -571,6 +591,10 @@ function devoirsAjouterManuel() {
     var zone = genre === 'devoirs' ? 'devoirsAjoutStatut' : 'exaAjoutStatut';
     if (!matiere || !date || !debut || !fin) {
         devoirsDire(zone, 'Matière, date et heures sont nécessaires.', true);
+        return;
+    }
+    if (devoirsEstPasse(date, fin)) {
+        devoirsDire(zone, 'Ce créneau est déjà passé : il n\'entre pas dans le planning.', true);
         return;
     }
     if (devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin })) {
