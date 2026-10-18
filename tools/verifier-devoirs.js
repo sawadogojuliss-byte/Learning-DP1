@@ -161,7 +161,32 @@ ok(propsSansProfil.length === 1 && propsSansProfil[0].matiere === 'Philosophie',
 context.subjects = subjectsSauves;
 context.optionalSubjects = optionnellesSauvees;
 
-/* — 2bis. Les plannings en tableau (date, heures, matières, papiers) — */
+/* — 2bis. Chaque élève a ses propres matières — */
+/* Le même document est présenté à trois élèves différents : chacun ne
+   doit recevoir que les créneaux de ses matières, à ses propres noms. */
+const docCommun = ['12/11/2026', '13:00 – 15:00', '15:00 – 16:30', 'Mathematics', 'Economics', 'Paper 1 - SL', '01h 30 min'].join('\n');
+/* élève A (celui du harnais) : Mathématiques AA, Physique, Histoire, ESS */
+var propsA = context.devoirsParserTexte(docCommun);
+ok(propsA.length === 1 && propsA[0].matiere === 'Mathématiques AA' && propsA[0].debut === '13:00',
+    'élève A (Maths AA) : seule sa matière, à son nom, trouvé : ' + JSON.stringify(propsA.map(function (x) { return x.matiere; })));
+/* élève B : Économie et Philosophie */
+var sujetsA = context.subjects, optionnelsA = context.optionalSubjects;
+context.subjects = [{ name: 'Économie', level: 'HL', icon: '💹' }];
+context.optionalSubjects = [{ name: 'Philosophie', level: 'SL', icon: '🤔' }];
+var propsB = context.devoirsParserTexte(docCommun);
+ok(propsB.length === 1 && propsB[0].matiere === 'Économie' && propsB[0].debut === '13:00',
+    'élève B (Économie) : le même document ne lui propose que l\'Économie, trouvé : ' + JSON.stringify(propsB.map(function (x) { return x.matiere; })));
+/* élève C : ni Maths ni Économie */
+context.subjects = [{ name: 'Musique', level: 'HL', icon: '🎵' }];
+context.optionalSubjects = [];
+var propsC = context.devoirsParserTexte(docCommun);
+ok(propsC.length === 0, 'élève C (aucune des deux matières) : aucune proposition, trouvé : ' + propsC.length);
+/* la liste de saisie manuelle suit aussi l'élève courant */
+context.subjects = sujetsA;
+context.optionalSubjects = optionnelsA;
+ok(context.devoirsMatieresEleve().length === 4, 'les matières de l\'élève A doivent revenir après restauration, trouvé : ' + context.devoirsMatieresEleve().length);
+
+/* — 2ter. Les plannings en tableau (date, heures, matières, papiers) — */
 const texteTableau = [
     'ÉPREUVES DU TRIMESTRE',
     '12/11/2026',

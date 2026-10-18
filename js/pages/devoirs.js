@@ -602,7 +602,6 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
             ' Vérifie la photo (lumière, netteté) ou ajoute les créneaux à la main ci-dessous.</div>';
         return;
     }
-    var connues = devoirsMatieresConnues();
     var lignes = devoirsPropositions.map(function (p) {
         var passe = devoirsEstPasse(p.date, p.fin);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +

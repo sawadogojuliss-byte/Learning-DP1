@@ -120,6 +120,37 @@ if (jourDevoir) {
     console.log('information : le devoir est hors de la semaine affichée (fin de semaine), le bloc du jour J se vérifie à la semaine prochaine');
 }
 
+/* 7. chaque élève a ses propres matières : l'analyse du document
+   (le vrai code du site, avec le profil installé) ne propose que ce
+   que CET élève suit — puis un autre élève est simulé dans la même
+   page : le même document doit lui proposer autre chose. */
+const futur = new Date(Date.now() + 10 * 86400000);
+const jjmm = String(futur.getDate()).padStart(2, '0') + '/' + String(futur.getMonth() + 1).padStart(2, '0');
+const parEleve = await page.evaluate(function (dateDoc) {
+    /* l'élève installé : Mathématiques AA, Chimie, Physique */
+    const eleveA = devoirsParserTexte(
+        'Mathematics — ' + dateDoc + ', 8h00 à 10h00\n' +
+        'Economics — ' + dateDoc + ', 13h00 à 15h00\n' +
+        'Chimie — ' + dateDoc + ', 15h00 à 17h00').map(p => p.matiere);
+    /* un autre élève, simulé : Économie et Philosophie */
+    const sujets = subjects, optionnels = optionalSubjects;
+    subjects = [{ name: 'Économie', level: 'HL' }];
+    optionalSubjects = [{ name: 'Philosophie', level: 'SL' }];
+    const eleveB = devoirsParserTexte(
+        'Mathematics — ' + dateDoc + ', 8h00 à 10h00\n' +
+        'Economics — ' + dateDoc + ', 13h00 à 15h00\n' +
+        'Chimie — ' + dateDoc + ', 15h00 à 17h00').map(p => p.matiere);
+    subjects = sujets;
+    optionalSubjects = optionnels;
+    return { eleveA: eleveA, eleveB: eleveB };
+}, jjmm);
+if (parEleve.eleveA.join(',') !== 'Mathématiques AA,Chimie') {
+    echec("l'analyse ne suit pas les matières de l'élève installé : " + JSON.stringify(parEleve.eleveA));
+}
+if (parEleve.eleveB.join(',') !== 'Économie') {
+    echec("le même document doit changer selon l'élève (Économie attendue pour l'autre élève) : " + JSON.stringify(parEleve.eleveB));
+}
+
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
     echec('erreurs JavaScript dans la page : ' + erreurs.join(' | ').slice(0, 400));
@@ -127,4 +158,5 @@ if (erreurs.length) {
 
 await browser.close();
 console.log('ok préparation en vrai navigateur : séance du devoir visible aujourd\u2019hui avec compte à rebours, '
-    + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, 0 erreur JavaScript');
+    + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
+    + 'l\u2019analyse ne propose que les matières de chaque élève, 0 erreur JavaScript');
