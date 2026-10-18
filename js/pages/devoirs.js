@@ -521,6 +521,7 @@ function devoirsConfirmerPropositions(genre) {
     var ajoutes = 0;
     var refuse = '';
     var passes = 0;
+    var idsDevoirs = [];
     devoirsPropositions.forEach(function (p) {
         var el = document.querySelector('[data-prop="' + p.cle + '"]');
         var matiere = p.matiere, date = p.date, debut = p.debut, fin = p.fin;
@@ -532,11 +533,13 @@ function devoirsConfirmerPropositions(genre) {
         }
         if (!matiere || !date || !debut || !fin) { refuse = 'Certaines lignes incomplètes n\'ont pas été ajoutées.'; return; }
         if (devoirsEstPasse(date, fin)) { passes++; return; }
-        devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
+        var idAjoute = devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
         ajoutes++;
+        if (genre === 'devoirs' && idAjoute) idsDevoirs.push(idAjoute);
     });
     devoirsViderPropositions();
     devoirsRendre();
+    if (idsDevoirs.length) devoirsDemanderSeances(idsDevoirs);
     devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut',
         ajoutes + ' créneau' + (ajoutes > 1 ? 'x' : '') + ' ajouté' + (ajoutes > 1 ? 's' : '') + ' au planning.' +
         (passes ? ' ' + passes + ' créneau' + (passes > 1 ? 'x' : '') + ' déjà passé' + (passes > 1 ? 's' : '') + ' ignoré' + (passes > 1 ? 's' : '') + '.' : '') +
@@ -569,14 +572,67 @@ function devoirsAjouter(genre, champs) {
         date: String(champs.date || '').slice(0, 10),
         debut: String(champs.debut || '').slice(0, 5),
         fin: String(champs.fin || '').slice(0, 5),
+        seances: (Number(champs.seances) >= 1 && Number(champs.seances) <= 10) ? Math.round(Number(champs.seances)) : undefined,
         ajouteAt: new Date().toISOString()
     };
     if (!entree.matiere || !/^\d{4}-\d{2}-\d{2}$/.test(entree.date) || !/^\d{2}:\d{2}$/.test(entree.debut) || !/^\d{2}:\d{2}$/.test(entree.fin)) return false;
     if (devoirsH2M(entree.fin) <= devoirsH2M(entree.debut)) return false;
     if (devoirsEstPasse(entree.date, entree.fin)) return false;
+    if (entree.seances == null) delete entree.seances;
     store[genre === 'devoirs' ? 'devoirs' : 'examens'].push(entree);
     devoirsEcrireStore(store);
-    return true;
+    return entree.id;
+}
+
+/* ── Combien de séances avant de composer ? ────────────────────────── */
+/* Après l'analyse du document, pour chaque devoir ajouté, l'élève
+   choisit son nombre de séances de révision — ou laisse le site
+   proposer le planning (la rampe automatique par deadline). */
+function devoirsDemanderSeances(ids) {
+    if (!Array.isArray(ids) || !ids.length) return;
+    var store = devoirsLireStore();
+    var restants = ids.map(function (id) {
+        return (store.devoirs || []).filter(function (d) { return d.id === id; })[0];
+    }).filter(Boolean).filter(function (d) { return !(Number(d.seances) >= 1) && d.seances !== 'auto'; });
+    if (!restants.length) {
+        if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+        return;
+    }
+    var d = restants[0];
+    var ancien = document.getElementById('seancesQuestionModal');
+    if (ancien) ancien.remove();
+    var voile = document.createElement('div');
+    voile.id = 'seancesQuestionModal';
+    voile.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:320;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    var boutons = '';
+    for (var n = 1; n <= 6; n++) {
+        boutons += '<button data-n="' + n + '" style="flex:1;padding:0.8rem 0;border:1.5px solid #e5e7eb;border-radius:0.8rem;background:#f9fafb;color:#374151;font:inherit;font-weight:800;cursor:pointer;font-size:1.05rem;">' + n + '</button>';
+    }
+    voile.innerHTML =
+        '<div style="background:white;border-radius:1.25rem;max-width:28rem;width:100%;padding:1.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.25);text-align:center;">' +
+        '<div style="font-size:2.2rem;line-height:1;">📚</div>' +
+        '<h3 style="margin:0.6rem 0 0.35rem;font-size:1.1rem;font-weight:800;color:#111827;">' + devoirsEchap(d.matiere) + ' — ' + devoirsDateCourte(d.date) + '</h3>' +
+        '<p style="margin:0 0 1.1rem;font-size:0.88rem;color:#6b7280;line-height:1.5;">Combien de séances de révision veux-tu avant de composer ce devoir ?</p>' +
+        '<div style="display:flex;gap:0.5rem;margin-bottom:0.7rem;">' + boutons + '</div>' +
+        '<button id="seancesQuestionAuto" style="width:100%;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">✨ Propose-moi un planning pour les devoirs et examens</button></div>';
+    document.body.appendChild(voile);
+    function choisir(valeur) {
+        var st = devoirsLireStore();
+        st.devoirs.forEach(function (x) {
+            if (x.id === d.id) {
+                if (valeur === 'auto') x.seances = 'auto';
+                else x.seances = valeur;
+            }
+        });
+        devoirsEcrireStore(st);
+        voile.remove();
+        devoirsDemanderSeances(ids);
+        devoirsRendre();
+    }
+    voile.querySelectorAll('[data-n]').forEach(function (b) {
+        b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
+    });
+    voile.querySelector('#seancesQuestionAuto').onclick = function () { choisir('auto'); };
 }
 
 function devoirsAjouterManuel() {
@@ -597,13 +653,15 @@ function devoirsAjouterManuel() {
         devoirsDire(zone, 'Ce créneau est déjà passé : il n\'entre pas dans le planning.', true);
         return;
     }
-    if (devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin })) {
+    var nouvelId = devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
+    if (nouvelId) {
         ['Matiere', 'Autre', 'Date', 'Debut', 'Fin'].forEach(function (suf) {
             var el = document.getElementById(prefixe + suf);
             if (el) el.value = '';
         });
         devoirsDire(zone, 'Ajouté au planning ✓', false);
         devoirsRendre();
+        if (genre === 'devoirs') devoirsDemanderSeances([nouvelId]);
     } else {
         devoirsDire(zone, 'Ces informations sont incomplètes (la fin doit suivre le début).', true);
     }

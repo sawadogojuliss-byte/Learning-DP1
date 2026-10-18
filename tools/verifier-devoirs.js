@@ -103,10 +103,11 @@ const context = {
     saturdayWakeup: '08:30',
     sundayWakeup: '09:00'
 };
-/* Date figée pour des tests reproductibles : dimanche 18 octobre 2026,
-   10h30. La semaine affichée va du lundi 12 au dimanche 18. */
+/* Date figée pour des tests reproductibles : mercredi 14 octobre 2026,
+   10h30. La semaine affichée va du lundi 12 au dimanche 18 — il reste
+   des jours futurs dans la semaine, comme en vrai usage. */
 const VRAIE_DATE = Date;
-const FIXE = new VRAIE_DATE(2026, 9, 18, 10, 30, 0).getTime();
+const FIXE = new VRAIE_DATE(2026, 9, 14, 10, 30, 0).getTime();
 class DateFigee extends VRAIE_DATE {
     constructor(...args) {
         if (args.length === 0) super(FIXE);
@@ -202,9 +203,10 @@ const lunchApres = decoupe.filter(function (ev) { return ev.id === 'lunch'; })[0
 ok(lunchApres && lunchApres.startTime === '13:00' && lunchApres.endTime === '13:30', 'le déjeuner doit être raccourci à 13h00 → 13h30, trouvé : ' + (lunchApres ? lunchApres.startTime + '-' + lunchApres.endTime : 'rien'));
 
 /* — 3a. Un devoir : révision la veille, bloc le jour J — */
-/* Aujourd'hui (figé) : dimanche 18 octobre. Devoir demain lundi 19. */
+/* Aujourd'hui (figé) : mercredi 14 octobre. Devoir demain jeudi 15. */
 const cleJour = function (d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
-const aujourdhui = new Date();
+/* toutes les dates du test suivent la date figée de la machine virtuelle */
+const aujourdhui = new Date(2026, 9, 14, 10, 30, 0);
 const demain = new Date(aujourdhui.getTime() + 86400000);
 context.devoirsEcrireStore({ bac: true, devoirs: [{ id: 'd1', matiere: 'Physique', date: cleJour(demain), debut: '08:00', fin: '13:00' }], examens: [] });
 
@@ -281,22 +283,51 @@ var je10 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 ok(blocsDe('Physique', je10).length === 1 && blocsDe('Histoire', je10).length === 1, 'examen a 10 jours : une révision par matière (les deux plus proches)');
 ok(blocsDe('Physique', je10).length === 1 && minutesBloc(blocsDe('Physique', je10)[0]) === 45, 'examen a 10 jours : bloc de 45 min');
 
+/* — 3a4b. Les séances choisies par l'élève — */
+/* la répartition : n séances sur les jours restants, la veille en porte
+   toujours une, et elles se resserrent vers l'échéance */
+var rep32 = context.devoirsRepartitionSeances(3, 2);
+ok(rep32[0] === 1 && rep32[1] === 2, '3 séances en 2 jours : 1 puis 2, trouvé : ' + JSON.stringify(rep32));
+var rep15 = context.devoirsRepartitionSeances(1, 5);
+ok(rep15[4] === 1 && Object.keys(rep15).length === 1, '1 séance en 5 jours : la veille seulement, trouvé : ' + JSON.stringify(rep15));
+var rep210 = context.devoirsRepartitionSeances(2, 10);
+ok(rep210[9] === 1 && rep210[0] === 1, '2 séances en 10 jours : veille + aujourd\'hui, trouvé : ' + JSON.stringify(rep210));
+var rep52 = context.devoirsRepartitionSeances(5, 2);
+ok((rep52[0] + rep52[1]) === 5, '5 séances en 2 jours : toutes posées, trouvé : ' + JSON.stringify(rep52));
+
+/* un devoir avec 2 séances choisies, dans 6 jours : une séance
+   aujourd'hui, l'autre la veille — pas la rampe automatique */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dseances', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 6 * 86400000)), debut: '08:00', fin: '10:00', seances: 2 }], examens: [] });
+var jSeances = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var blocsSeances = jSeances.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') !== -1; });
+ok(blocsSeances.length === 1, 'devoir à 6 jours avec 2 séances : une seule aujourd\'hui (l\'autre la veille), trouvé : ' + blocsSeances.length);
+ok(blocsSeances.length === 1 && (context.devoirsH2M(blocsSeances[0].endTime) - context.devoirsH2M(blocsSeances[0].startTime)) >= 40, 'la séance du jour dure au moins 40 min');
+ok(blocsSeances.length === 1 && String(blocsSeances[0].subtitle || '').indexOf('séance') === -1, 'une seule séance aujourd\'hui : pas de numérotation');
+/* le choix voyage dans le store */
+ok(context.devoirsAjouter('devoirs', { matiere: 'Physique', date: cleJour(demain), debut: '08:00', fin: '10:00', seances: 4 }),
+    'l\'ajout avec séances doit réussir');
+var entreeSeances = context.devoirsLireStore().devoirs.filter(function (d) { return d.matiere === 'Physique'; })[0];
+ok(entreeSeances && entreeSeances.seances === 4, 'le choix de séances doit être gardé, trouvé : ' + JSON.stringify(entreeSeances && entreeSeances.seances));
+
 /* — 3a5. Les creneaux passes ne se programment jamais — */
-ok(context.devoirsEstPasse('2026-10-17', '08:00') === true, 'hier est passé');
-ok(context.devoirsEstPasse('2026-10-19', '08:00') === false, 'demain n\'est pas passé');
-ok(context.devoirsEstPasse('2026-10-18', '23:00') === false, "aujourd'hui plus tard n'est pas passé");
-ok(context.devoirsEstPasse('2026-10-18', '09:00') === true, "aujourd'hui plus tôt est passé");
-ok(context.devoirsEstPasse('2026-10-18', '') === false, 'sans heure, on ne saurait pas');
+const aujT = new Date(2026, 9, 14, 10, 30, 0);
+const hierT = new Date(aujT.getTime() - 86400000);
+const demainT = new Date(aujT.getTime() + 86400000);
+ok(context.devoirsEstPasse(cleJour(hierT), '08:00') === true, 'hier est passé');
+ok(context.devoirsEstPasse(cleJour(demainT), '08:00') === false, 'demain n\'est pas passé');
+ok(context.devoirsEstPasse(cleJour(aujT), '23:00') === false, "aujourd'hui plus tard n'est pas passé");
+ok(context.devoirsEstPasse(cleJour(aujT), '09:00') === true, "aujourd'hui plus tôt est passé");
+ok(context.devoirsEstPasse(cleJour(aujT), '') === false, 'sans heure, on ne saurait pas');
 context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [] });
-ok(context.devoirsAjouter('devoirs', { matiere: 'Chimie', date: '2026-10-17', debut: '08:00', fin: '10:00' }) === false, 'un créneau passé doit être refusé');
+ok(context.devoirsAjouter('devoirs', { matiere: 'Chimie', date: cleJour(hierT), debut: '08:00', fin: '10:00' }) === false, 'un créneau passé doit être refusé');
 ok(context.devoirsLireStore().devoirs.length === 0, 'aucun créneau passé ne doit entrer dans le store');
 /* même si de vieux créneaux passés traînent dans le store : jamais affichés */
-context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dvx', matiere: 'Chimie', date: '2026-10-17', debut: '08:00', fin: '10:00' }], examens: [{ id: 'exx', matiere: 'Physique', date: '2026-10-16', debut: '08:00', fin: '10:00' }] });
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dvx', matiere: 'Chimie', date: cleJour(hierT), debut: '08:00', fin: '10:00' }], examens: [{ id: 'exx', matiere: 'Physique', date: cleJour(new Date(aujT.getTime() - 2 * 86400000)), debut: '08:00', fin: '10:00' }] });
 var jPasse = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 ok(!jPasse.some(function (ev) { return ev.devoirsBloc; }), 'des créneaux passés dans le store ne programment rien');
 
 /* — 3b. La semaine avant les examens — */
-/* Mercredi 21 (dans 3 jours) et vendredi 23 : aujourd'hui dimanche 18
+/* Samedi 17 (dans 3 jours) et lundi 19 : aujourd'hui mercredi 14
    est dans la semaine de révision. */
 const dans3Jours = new Date(aujourdhui.getTime() + 3 * 86400000);
 context.devoirsEcrireStore({
@@ -323,8 +354,8 @@ const ordreProximite = ciblees.map(function (ev) { return String(ev.title).index
 ok(ordreProximite.indexOf('M') === 0, 'la matière examinée en premier doit être révisée en premier : ' + ordreProximite);
 
 /* — 3c. Une matière composée n'est plus jamais révisée — */
-/* Chimie composée hier (samedi 17), Mathématiques à venir demain
-   (lundi 19). Aujourd'hui, on révise les Maths, plus la Chimie. */
+/* Chimie composée hier (mardi 13), Mathématiques à venir demain
+   (jeudi 15). Aujourd'hui, on révise les Maths, plus la Chimie. */
 const hier = new Date(aujourdhui.getTime() - 86400000);
 context.devoirsEcrireStore({
     bac: false,
@@ -340,7 +371,7 @@ const restantes = apresSemaineExamens.filter(function (ev) { return ev.devoirsBl
 ok(restantes.some(function (ev) { return String(ev.title).indexOf('Mathématiques AA') !== -1; }), 'la matière à venir doit être révisée');
 
 /* — 3c2. Le jour de l'épreuve, l'examen est posé à ses heures — */
-/* Examen de Mathématiques aujourd'hui (dimanche 18) de 14h00 à 17h00 :
+/* Examen de Mathématiques aujourd'hui (mercredi 14) de 14h00 à 17h00 :
    l'après-midi du jour figé. */
 context.devoirsEcrireStore({
     bac: false, devoirs: [],
@@ -450,6 +481,7 @@ const contexteMoteur = {
     bedtimeForDay: function (d) { return d === 5 ? '00:30' : '22:00'; }
 };
 contexteMoteur.allSubj = contexteMoteur.subjects.concat(contexteMoteur.optionalSubjects);
+contexteMoteur.Date = DateFigee; /* même date figée que l'autre machine : les créneaux passés doivent le rester pour elle aussi */
 contexteMoteur.window = contexteMoteur;
 vm.createContext(contexteMoteur);
 [devoirsSrc, moteurSrc, fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'planning-base.js'), 'utf8'), fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'planning-moteur.js'), 'utf8')].forEach(function (src, i) {
@@ -507,6 +539,42 @@ ok(contexteMoteur.emploiEstFige() === false, 'répondre « Non » plus tard doit
 const samediSansBacJour = contexteMoteur.emploiReconstruire(5);
 ok(!samediSansBacJour.some(function (ev) { return String(ev.id).indexOf('bac-samedi') === 0; }), 'sans le bac, le samedi ne porte plus le créneau du bac');
 ok(samediSansBacJour.some(function (ev) { return ev.id === 'eco-test'; }), 'sans le bac, le cours d\'économie du samedi revient');
+
+/* ── 5. La chaîne complète du planning, pour de vrai ──────────────── */
+/* generateDayEvents est la fonction même du site : génération brute,
+   figage, adaptateur, garanties du jour. Un devoir de Chimie mardi
+   (3 séances choisies) et un examen de Physique vendredi — semaine de
+   révision active. On regarde ce que le planning affiche vraiment. */
+contexteMoteur.devoirsEcrireStore({
+    bac: false,
+    devoirs: [{ id: 'sch1', matiere: 'Chimie', date: '2026-10-16', debut: '08:00', fin: '10:00', seances: 3, ajouteAt: '2026-10-14T08:00:00.000Z' }],
+    examens: [{ id: 'sex1', matiere: 'Physique', date: '2026-10-18', debut: '13:00', fin: '15:00', ajouteAt: '2026-10-14T08:00:00.000Z' }]
+});
+function compterBloc(jourGenere, texte) {
+    return jourGenere.filter(function (ev) { return String(ev.title || '').indexOf(texte) !== -1; }).length;
+}
+/* mercredi 14 (aujourd'hui) : une séance de Chimie + révisions de Physique */
+const mercrediReel = contexteMoteur.generateDayEvents(2);
+ok(compterBloc(mercrediReel, 'Révision · Chimie') === 1, 'aujourd\'hui : une séance de Chimie attendue, trouvé : ' + compterBloc(mercrediReel, 'Révision · Chimie'));
+ok(compterBloc(mercrediReel, 'Révision · Physique') >= 1, 'aujourd\'hui : révisions de l\'examen de Physique attendues');
+ok(!mercrediReel.some(function (ev) { return ev.type === 'memoir' || ev.type === 'ia' || ev.type === 'activity'; }), 'semaine de révision : ni mémoire, ni éval interne, ni CAS');
+/* jeudi 15 : deux séances de Chimie (répartition 1 + 2 avant vendredi) */
+const jeudiReel = contexteMoteur.generateDayEvents(3);
+ok(compterBloc(jeudiReel, 'Révision · Chimie') === 2, 'jeudi : deux séances de Chimie attendues, trouvé : ' + compterBloc(jeudiReel, 'Révision · Chimie'));
+/* vendredi 16 : le devoir lui-même, à ses heures, créneau fixe */
+const vendrediReel = contexteMoteur.generateDayEvents(4);
+const blocDevoirReel = vendrediReel.filter(function (ev) { return ev.id === 'devoir-sch1'; })[0];
+ok(blocDevoirReel && blocDevoirReel.startTime === '08:00' && blocDevoirReel.endTime === '10:00' && blocDevoirReel.kind === 'fixed',
+    'vendredi : le devoir doit occuper 8h00-10h00 en créneau fixe, trouvé : ' + JSON.stringify(blocDevoirReel && { s: blocDevoirReel.startTime, e: blocDevoirReel.endTime, k: blocDevoirReel.kind }));
+/* dimanche 18 : l'examen à ses heures */
+const dimancheReel = contexteMoteur.generateDayEvents(6);
+const blocExamenReel = dimancheReel.filter(function (ev) { return ev.id === 'exam-sex1'; })[0];
+ok(blocExamenReel && blocExamenReel.startTime === '13:00' && blocExamenReel.endTime === '15:00',
+    'dimanche : l\'examen doit occuper 13h00-15h00, trouvé : ' + JSON.stringify(blocExamenReel && { s: blocExamenReel.startTime, e: blocExamenReel.endTime }));
+/* les jours restent cohérents : remplis et ordonnés */
+[mercrediReel, jeudiReel, vendrediReel, dimancheReel].forEach(function (jr, k) {
+    ok(jr.length > 2 && jr[0] && jr[jr.length - 1], 'le jour ' + k + ' doit rester rempli et ordonné');
+});
 
 /* ── Bilan ─────────────────────────────────────────────────────────── */
 if (echecs.length) {

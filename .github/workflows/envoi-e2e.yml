@@ -9,6 +9,7 @@ on:
       - 'pages/**'
       - 'index.html'
       - 'tools/tester-envoi.mjs'
+      - 'tools/tester-preparation.mjs'
       - '.github/workflows/envoi-e2e.yml'
   workflow_dispatch:
 
@@ -49,6 +50,11 @@ jobs:
           set -o pipefail
           node tools/tester-envoi.mjs 2>&1 | tee /tmp/sortie-e2e.txt
 
+      - name: Vérifier en vrai navigateur la préparation des devoirs et examens
+        run: |
+          set -o pipefail
+          node tools/tester-preparation.mjs 2>&1 | tee /tmp/sortie-preparation.txt
+
       - name: Publier le journal
         if: always()
         env:
@@ -56,6 +62,7 @@ jobs:
         run: |
           mkdir -p /tmp/journal
           cp /tmp/sortie-e2e.txt /tmp/journal/ 2>/dev/null || echo "le test n'a pas démarré" > /tmp/journal/sortie-e2e.txt
+          cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
           cd /tmp/journal
           git init -q .
           git checkout -q -b tmp/e2e

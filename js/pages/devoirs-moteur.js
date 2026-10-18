@@ -119,6 +119,39 @@ function devoirsTrous(jour, apresMin, avantMin) {
     return trous.filter(function (t) { return t.e - t.s >= 40; });
 }
 
+/* Pose équilibrée d'un jour : les trous les plus petits reçoivent
+   d'abord les séances choisies par l'élève (rétrécies s'il le faut :
+   60, puis la place disponible, jamais moins de 40 min), et les grands
+   créneaux restent aux longues révisions. Rien ne se pose sur autre
+   chose qu'un moment libre. */
+function devoirsPoserEquilibre(seances, autos, trous) {
+    var poses = [];
+    var restantesSeances = (seances || []).slice();
+    var restantsAuto = (autos || []).slice();
+    var ordonnes = (trous || []).slice().sort(function (a, b) { return (a.e - a.s) - (b.e - b.s); });
+    ordonnes.forEach(function (trou) {
+        var cur = trou.s;
+        while (trou.e - cur >= 40) {
+            if (restantesSeances.length) {
+                var seance = restantesSeances.shift();
+                var dureeS = Math.min(seance.duree || 60, trou.e - cur);
+                poses.push({ id: seance.id, titre: seance.titre, sous: seance.sous, debut: cur, fin: cur + dureeS, icone: seance.icone, type: seance.type });
+                cur += dureeS + 10;
+                continue;
+            }
+            var meilleur = null;
+            restantsAuto.forEach(function (a) {
+                if (a.duree <= trou.e - cur && (!meilleur || a.duree > meilleur.duree)) meilleur = a;
+            });
+            if (!meilleur) break;
+            restantsAuto.splice(restantsAuto.indexOf(meilleur), 1);
+            poses.push({ id: meilleur.id, titre: meilleur.titre, sous: meilleur.sous, debut: cur, fin: cur + meilleur.duree, icone: meilleur.icone, type: meilleur.type });
+            cur += meilleur.duree + 10;
+        }
+    });
+    return poses;
+}
+
 function devoirsPlacerDansTrou(blocs, trous) {
     var poses = [];
     var i = 0;
@@ -140,6 +173,28 @@ function devoirsPlacerDansTrou(blocs, trous) {
         }
     });
     return poses;
+}
+
+/* Répartition des séances choisies par l'élève : n séances sur les
+   jours restants, de plus en plus rapprochées à mesure que l'échéance
+   approche (la veille porte toujours une séance). Renvoie { offset ->
+   nombre de séances ce jour-là }. */
+function devoirsRepartitionSeances(n, jours) {
+    var rep = {};
+    n = Math.max(1, Math.round(Number(n) || 1));
+    if (!(jours >= 1)) { rep[0] = n; return rep; }
+    var i, off;
+    if (n <= jours) {
+        for (i = 0; i < n; i++) {
+            off = n === 1 ? jours - 1 : Math.round((jours - 1) * (1 - i / (n - 1)));
+            off = Math.min(jours - 1, Math.max(0, off));
+            rep[off] = (rep[off] || 0) + 1;
+        }
+    } else {
+        var base = Math.floor(n / jours), reste = n % jours;
+        for (i = 0; i < jours; i++) rep[i] = base + (i >= jours - reste ? 1 : 0);
+    }
+    return rep;
 }
 
 /* Le temps de préparation grandit à mesure que l'échéance approche :
@@ -272,24 +327,45 @@ function devoirsAdapterJour(events, dayIndex) {
                les épreuves dont la fin est encore devant nous. */
             var restantes = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
             jour = jour.filter(function (ev) { return !devoirsBlocARetirer(ev); });
-            if (restantes.length) {
-                var blocs = devoirsBlocsRevisions(restantes, enRevision ? 'revision' : 'examens');
-                var trous = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
-                devoirsPlacerDansTrou(blocs, trous).forEach(function (pose) {
-                    jour.push({
-                        id: pose.id,
-                        title: pose.titre,
-                        subtitle: pose.sous,
-                        startTime: devoirsM2H(pose.debut),
-                        endTime: devoirsM2H(pose.fin),
-                        type: pose.type,
-                        icon: pose.icone,
-                        editable: true,
-                        kind: 'pinned',
-                        devoirsBloc: true
+            /* Les séances de devoirs choisies par l'élève passent d'abord :
+               c'est son engagement. Elles se posent dans les moments
+               libres, de plus en plus rapprochées vers l'échéance (deux
+               par jour au plus pendant la semaine de révisions). */
+            var seancesSemaine = [];
+            (store.devoirs || []).forEach(function (d) {
+                if (!(Number(d.seances) >= 1) || d.date === cle) return;
+                if (devoirsInstant(d.date, d.fin).getTime() < maintenant.getTime()) return;
+                var joursRestantsS = Math.ceil((devoirsInstant(d.date, d.debut).getTime() - maintenant.getTime()) / 86400000);
+                var repS = devoirsRepartitionSeances(d.seances, joursRestantsS);
+                var offS = Math.round((date.getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000);
+                var nbS = Math.min(repS[offS] || 0, 2);
+                for (var sS = 0; sS < nbS; sS++) {
+                    seancesSemaine.push({
+                        id: 'devrev-' + d.id + '-w' + offS + '-' + sS,
+                        titre: 'Révision · ' + d.matiere,
+                        sous: 'Devoir le ' + devoirsJourCourt(d.date) + ' à ' + d.debut + ' · ' + devoirsDansXJours(d) + (nbS > 1 ? ' · séance ' + (sS + 1) + '/' + nbS : ''),
+                        duree: 60,
+                        icone: '📚',
+                        type: 'study'
                     });
+                }
+            });
+            var blocsSemaine = restantes.length ? devoirsBlocsRevisions(restantes, enRevision ? 'revision' : 'examens') : [];
+            var trousSemaine = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
+            devoirsPoserEquilibre(seancesSemaine, blocsSemaine, trousSemaine).forEach(function (pose) {
+                jour.push({
+                    id: pose.id,
+                    title: pose.titre,
+                    subtitle: pose.sous,
+                    startTime: devoirsM2H(pose.debut),
+                    endTime: devoirsM2H(pose.fin),
+                    type: pose.type,
+                    icon: pose.icone,
+                    editable: true,
+                    kind: 'pinned',
+                    devoirsBloc: true
                 });
-            }
+            });
             return jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
         }
 
@@ -322,25 +398,61 @@ function devoirsAdapterJour(events, dayIndex) {
     }
 
     /* 4) Les devoirs à venir : dès l'ajout, des révisions se posent
-       dans les moments libres (plus seulement la veille). */
+       dans les moments libres. L'élève peut avoir choisi son nombre de
+       séances : elles sont réparties jusqu'à l'échéance, la veille en
+       porte toujours une. Sinon, la rampe automatique par deadline. */
     var prochains = (store.devoirs || []).filter(function (d) {
         var t = devoirsInstant(d.date, d.fin).getTime();
         return t >= maintenant.getTime() && d.date !== cle;
     }).sort(function (a, b) { return devoirsInstant(a.date, a.debut) - devoirsInstant(b.date, b.debut); });
     if (prochains.length) {
+        var blocsDV = [];
+        var matieresChoisies = {};
+
+        /* a) les séances choisies par l'élève */
+        prochains.forEach(function (d) {
+            if (!(Number(d.seances) >= 1)) return;
+            matieresChoisies[d.matiere] = 1;
+            var joursRestants = Math.ceil((devoirsInstant(d.date, d.debut).getTime() - maintenant.getTime()) / 86400000);
+            var rep = devoirsRepartitionSeances(d.seances, joursRestants);
+            var offJour = Math.round((date.getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000);
+            var nb = rep[offJour] || 0;
+            for (var s = 0; s < nb; s++) {
+                blocsDV.push({
+                    id: 'devrev-' + d.id + '-s' + offJour + '-' + s,
+                    titre: 'Révision · ' + d.matiere,
+                    sous: 'Devoir le ' + devoirsJourCourt(d.date) + ' à ' + d.debut + ' · ' + devoirsDansXJours(d) + (nb > 1 ? ' · séance ' + (s + 1) + '/' + nb : ''),
+                    duree: 60,
+                    elastique: true,
+                    icone: '📚',
+                    type: 'study'
+                });
+            }
+        });
+
+        /* b) la rampe automatique pour les autres devoirs */
+        var autoEntries = prochains.filter(function (d) { return !(Number(d.seances) >= 1) && !matieresChoisies[d.matiere]; });
         var vues = {};
         var epreuvesUniques = [];
-        prochains.forEach(function (d) {
+        autoEntries.forEach(function (d) {
             if (vues[d.matiere]) return;
             vues[d.matiere] = 1;
             epreuvesUniques.push(d);
         });
-        var joursDevoir = Math.max(1, Math.ceil((devoirsInstant(prochains[0].date, prochains[0].debut).getTime() - maintenant.getTime()) / 86400000));
-        var budgetDV = devoirsBudgetPreparation(joursDevoir);
-        var blocsDV = devoirsBlocsRevisions(epreuvesUniques, 'devoirs', { dureeRevision: budgetDV.duree }).slice(0, budgetDV.blocs);
+        if (epreuvesUniques.length) {
+            var joursDevoir = Math.max(1, Math.ceil((devoirsInstant(epreuvesUniques[0].date, epreuvesUniques[0].debut).getTime() - maintenant.getTime()) / 86400000));
+            var budgetDV = devoirsBudgetPreparation(joursDevoir);
+            devoirsBlocsRevisions(epreuvesUniques, 'devoirs', { dureeRevision: budgetDV.duree }).slice(0, budgetDV.blocs).forEach(function (b) {
+                blocsDV.push(b);
+            });
+        }
+
+        /* les séances choisies d'abord (rétrécies s'il le faut), puis
+           la rampe automatique : pose équilibrée sur les moments libres */
+        var seancesChoisies = blocsDV.filter(function (b) { return b.elastique; });
+        var blocsAuto = blocsDV.filter(function (b) { return !b.elastique; }).slice(0, Math.max(0, 5 - seancesChoisies.length));
         var trousDV = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
-        var posesDV = devoirsPlacerDansTrou(blocsDV, trousDV);
-        posesDV.forEach(function (pose) {
+        devoirsPoserEquilibre(seancesChoisies, blocsAuto, trousDV).forEach(function (pose) {
             jour.push({
                 id: pose.id,
                 title: pose.titre,
