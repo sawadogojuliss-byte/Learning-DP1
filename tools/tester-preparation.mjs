@@ -248,16 +248,30 @@ const lecteurs = await page.evaluate(() => {
     const youtube = playlistAjouterLien('https://www.youtube.com/playlist?list=PLE2Etest');
     playlistPeindre();
     const iframes = Array.from(document.querySelectorAll('#focusPlaylist iframe')).map(f => f.src);
-    return { spotifyOk: spotify.ok, youtubeOk: youtube.ok, iframes: iframes };
+    const cartes = Array.from(document.querySelectorAll('#fpListe .fp-carte')).length;
+    return { spotifyOk: spotify.ok, youtubeOk: youtube.ok, iframes: iframes, cartes: cartes };
 });
 if (!lecteurs.spotifyOk || !lecteurs.youtubeOk) {
     echec('les liens Spotify et YouTube doivent être acceptés : ' + JSON.stringify(lecteurs));
 }
-if (!lecteurs.iframes.some(src => src.indexOf('open.spotify.com/embed/playlist/') !== -1)) {
-    echec('le lecteur Spotify intégré manque : ' + JSON.stringify(lecteurs.iframes));
+if (lecteurs.cartes < 2) {
+    echec('les deux playlists doivent apparaître dans la liste : ' + JSON.stringify(lecteurs));
 }
 if (!lecteurs.iframes.some(src => src.indexOf('/embed/videoseries?list=') !== -1)) {
-    echec('le lecteur YouTube intégré manque : ' + JSON.stringify(lecteurs.iframes));
+    echec('le lecteur YouTube intégré manque (la playlist active est YouTube) : ' + JSON.stringify(lecteurs.iframes));
+}
+/* toucher la carte Spotify affiche son lecteur à la place */
+const spotifyAffiche = await page.evaluate(() => {
+    const store = playlistLire();
+    const spotify = store.liste.filter(p => p.service === 'spotify')[0];
+    if (!spotify) return '';
+    playlistActiver(spotify.id);
+    playlistPeindre();
+    const cadre = document.querySelector('#focusPlaylist iframe');
+    return cadre ? cadre.src : '';
+});
+if (spotifyAffiche.indexOf('open.spotify.com/embed/playlist/') === -1) {
+    echec('le lecteur Spotify intégré manque après activation de la carte : ' + spotifyAffiche);
 }
 const sonsAccueil = await page.evaluate(() => {
     focusFermerMusique();
