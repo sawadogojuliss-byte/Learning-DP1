@@ -4,10 +4,19 @@
    1. La page existe, le menu la place sous Mes Exercices, la
       navigation l'atteint, les scripts se chargent, l'OCR embarqué
       est complet.
-   2. Le lecteur de texte décode dates, heures et matières (français).
+   2. Le lecteur de texte décode dates, heures et matières (français) :
+      un programme de devoirs pour le trimestre se lit aussi — des
+      mercredis, une ou plusieurs matières, avec ou sans heures.
    3. Le moteur adapte le planning :
       - un devoir devient un bloc fixe à ses heures, et ce qui
         chevauche est retiré ou raccourci ;
+      - le créneau « DEVOIR DE NIVEAU » de l'emploi du temps disparaît
+        le jour du devoir : sa place va au(x) devoir(s) réel(s), aux
+        heures du document ou, sans heures, partagé entre eux ;
+      - les séances de révision choisies par l'élève sont garanties :
+        ce que les moments libres n'ont pas accueilli prend la place
+        des blocs d'étude du jour (jamais cours, repas, sommeil,
+        trajets, téléphone) ;
       - la semaine avant les examens : révisions et exercices sur les
         matières à examiner, plus aucun CAS, mémoire ni éval interne ;
       - la semaine des examens : l'épreuve à ses heures, et une
@@ -88,6 +97,11 @@ ok(emploiSrc.indexOf('devoirsPoserQuestionBac') !== -1 && emploiSrc.indexOf('val
     'la question du bac doit venir juste après la page de l\'emploi du temps scolaire');
 ok(matieres.indexOf('devoirsPoserQuestionBac') === -1, 'la question du bac ne doit plus être après les matières');
 ok(fs.readFileSync(path.join(__dirname, '..', 'js', 'memoire.js'), 'utf8').indexOf('devoirsStoreCompact') !== -1, 'le store devoirs ne voyage pas avec le compte');
+ok(moteurSrc.indexOf('devoirsEstCreneauDevoir') !== -1 && moteurSrc.indexOf('devoirsDecouperCreneau') !== -1, 'le remplacement du créneau de devoirs manque au moteur');
+ok(moteurSrc.indexOf('devoirsGarantirSeances') !== -1 && moteurSrc.indexOf('devoirsBlocConvertible') !== -1, 'la garantie des séances manque au moteur');
+ok(devoirsSrc.indexOf('devoirsRemplirCreneaux') !== -1 && devoirsSrc.indexOf("if (genre === 'devoirs') devoirsRemplirCreneaux") !== -1, 'les propositions sans heures ne reçoivent pas celles du créneau');
+ok(devoirsSrc.indexOf('devoirsEditerSeances') !== -1, 'les séances doivent pouvoir se modifier depuis la liste des devoirs');
+ok(devoirsSrc.indexOf('devoirsAppliquerSeances') !== -1, 'le choix de séances doit s\'appliquer à toute la fournée');
 
 /* ── 2 et 3. Dans une machine virtuelle ───────────────────────────── */
 const store = {};
@@ -360,6 +374,168 @@ ok(context.devoirsAjouter('devoirs', { matiere: 'Physique', date: cleJour(demain
     'l\'ajout avec séances doit réussir');
 var entreeSeances = context.devoirsLireStore().devoirs.filter(function (d) { return d.matiere === 'Physique'; })[0];
 ok(entreeSeances && entreeSeances.seances === 4, 'le choix de séances doit être gardé, trouvé : ' + JSON.stringify(entreeSeances && entreeSeances.seances));
+
+/* — 3a6. Le programme trimestriel des devoirs — */
+/* Les documents de devoirs annoncent les compositions d'un trimestre :
+   des mercredis, une ou plusieurs matières, avec ou sans heures. Seules
+   les matières de l'élève sont proposées. */
+const progColonnes = context.devoirsParserTexte(
+    'PROGRAMME DES DEVOIRS DE NIVEAU - 1er TRIMESTRE\n' +
+    'Mercredi 21 octobre : Mathématiques AA\n' +
+    'Mercredi 4 novembre : Histoire\n' +
+    'Mercredi 2 decembre : Économie');
+ok(progColonnes.length === 2, 'le programme doit proposer les 2 matières suivies (Économie non suivie), trouvé : ' + progColonnes.length + ' : ' + JSON.stringify(progColonnes.map(function (p) { return p.matiere; })));
+ok(progColonnes.every(function (p) { return p.debut === '' && p.fin === ''; }), 'sans heures dans le document, les propositions restent à compléter');
+ok(progColonnes[0] && progColonnes[0].date === '2026-10-21' && progColonnes[1] && progColonnes[1].date === '2026-11-04', 'les dates des mercredis doivent être reconnues : ' + JSON.stringify(progColonnes.map(function (p) { return p.date; })));
+const progPlusieurs = context.devoirsParserTexte(
+    'DEVOIRS DE NIVEAU - TRIMESTRE 1\n' +
+    'Mercredi 21 Octobre\n' +
+    'Maths AA, Physique\n' +
+    'Mercredi 4 Novembre\n' +
+    'Histoire, ESS');
+ok(progPlusieurs.length === 4, 'chaque matière suivie d\'un mercredi doit être proposée, trouvé : ' + JSON.stringify(progPlusieurs.map(function (p) { return p.matiere + ' ' + p.date; })));
+ok(progPlusieurs.filter(function (p) { return p.date === '2026-10-21'; }).length === 2 && progPlusieurs.filter(function (p) { return p.date === '2026-11-04'; }).length === 2, 'les matières se répartissent sur leurs mercredis : ' + JSON.stringify(progPlusieurs.map(function (p) { return p.matiere + ' ' + p.date; })));
+const progHeures = context.devoirsParserTexte('Mercredi 21/10 : Maths AA (13h00-14h30), Physique (14h45-16h15)');
+ok(progHeures.length === 2, 'deux matières avec leurs heures : deux propositions, trouvé : ' + JSON.stringify(progHeures));
+ok(progHeures[0] && progHeures[0].matiere === 'Mathématiques AA' && progHeures[0].debut === '13:00' && progHeures[0].fin === '14:30', 'la première matière garde ses heures : ' + JSON.stringify(progHeures[0]));
+ok(progHeures[1] && progHeures[1].matiere === 'Physique' && progHeures[1].debut === '14:45' && progHeures[1].fin === '16:15', 'la deuxième matière garde ses heures : ' + JSON.stringify(progHeures[1]));
+/* le préremplissage sans emploi du temps chargé ne crashe pas et ne
+   remplit rien */
+const propsCreneau = context.devoirsParserTexte('Mercredi 21 octobre : Mathématiques AA');
+context.devoirsRemplirCreneaux(propsCreneau);
+ok(propsCreneau.length === 1 && propsCreneau[0].debut === '' && propsCreneau[0].fin === '', 'sans emploi du temps chargé, les heures restent à compléter');
+
+/* — 3a7. Le créneau des devoirs remplace « DEVOIR DE NIVEAU » — */
+const jourCreneau = [
+    { id: 'wakeup', title: 'Réveil', startTime: '05:30', endTime: '05:45', type: 'wakeup' },
+    { id: 'cours-reel-0', title: 'Géographie', startTime: '08:00', endTime: '09:25', type: 'school' },
+    { id: 'cours-reel-3', title: 'DEVOIR DE NIVEAU', startTime: '13:00', endTime: '16:30', type: 'school' },
+    { id: 'dinner', title: 'Dîner', startTime: '19:00', endTime: '19:45', type: 'meal' }
+];
+/* aux heures exactes du créneau */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc1', matiere: 'Mathématiques AA', date: cleJour(aujourdhui), debut: '13:00', fin: '16:30' }], examens: [] });
+var jC1 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+ok(!jC1.some(function (ev) { return String(ev.title).indexOf('DEVOIR DE NIVEAU') !== -1; }), 'le créneau générique doit disparaître le jour du devoir');
+ok(jC1.some(function (ev) { return ev.id === 'devoir-dc1' && ev.startTime === '13:00' && ev.endTime === '16:30'; }), 'le devoir prend la place du créneau');
+/* à d'autres heures : le créneau disparaît quand même */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc2', matiere: 'Mathématiques AA', date: cleJour(aujourdhui), debut: '17:00', fin: '18:30' }], examens: [] });
+var jC2 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+ok(!jC2.some(function (ev) { return String(ev.title).indexOf('DEVOIR DE NIVEAU') !== -1; }), 'le créneau disparaît même si le document donne d\'autres heures');
+ok(jC2.some(function (ev) { return ev.id === 'devoir-dc2' && ev.startTime === '17:00' && ev.endTime === '18:30'; }), 'les heures du document gagnent : ' + JSON.stringify(jC2.map(function (e) { return e.id + ' ' + e.startTime; })));
+/* sans heures : le créneau entier */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc3', matiere: 'Mathématiques AA', date: cleJour(aujourdhui) }], examens: [] });
+var jC3 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+ok(jC3.some(function (ev) { return ev.id === 'devoir-dc3' && ev.startTime === '13:00' && ev.endTime === '16:30'; }), 'un devoir sans heures prend le créneau entier : ' + JSON.stringify(jC3.map(function (e) { return e.id + ' ' + e.startTime + '-' + e.endTime; })));
+ok(!jC3.some(function (ev) { return String(ev.title).indexOf('DEVOIR DE NIVEAU') !== -1; }), 'le créneau générique a disparu');
+/* deux devoirs sans heures : le créneau se partage, sans chevauchement */
+context.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'dc4', matiere: 'Mathématiques AA', date: cleJour(aujourdhui) },
+    { id: 'dc5', matiere: 'Physique', date: cleJour(aujourdhui) }
+], examens: [] });
+var jC4 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+var poses45 = jC4.filter(function (ev) { return ev.id === 'devoir-dc4' || ev.id === 'devoir-dc5'; });
+ok(poses45.length === 2, 'deux devoirs sans heures : deux blocs posés, trouvé : ' + poses45.length);
+if (poses45.length === 2) {
+    var pA = poses45.filter(function (e) { return e.id === 'devoir-dc4'; })[0];
+    var pB = poses45.filter(function (e) { return e.id === 'devoir-dc5'; })[0];
+    ok(context.devoirsH2M(pA.endTime) <= context.devoirsH2M(pB.startTime), 'les deux devoirs ne se chevauchent pas : ' + pA.startTime + '-' + pA.endTime + ' / ' + pB.startTime + '-' + pB.endTime);
+    ok(context.devoirsH2M(pA.startTime) >= 13 * 60 && context.devoirsH2M(pB.endTime) <= 16 * 60 + 30, 'les deux devoirs restent dans le créneau');
+}
+/* un devoir aux heures précises + un sans heures : le second prend le
+   reste du créneau */
+context.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'dc6', matiere: 'Mathématiques AA', date: cleJour(aujourdhui), debut: '13:00', fin: '14:30' },
+    { id: 'dc7', matiere: 'Physique', date: cleJour(aujourdhui) }
+], examens: [] });
+var jC5 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+var p7 = jC5.filter(function (ev) { return ev.id === 'devoir-dc7'; })[0];
+ok(p7 && context.devoirsH2M(p7.startTime) >= 14 * 60 + 30 && context.devoirsH2M(p7.endTime) <= 16 * 60 + 30, 'le devoir sans heures prend le reste du créneau : ' + (p7 ? p7.startTime + '-' + p7.endTime : 'rien'));
+/* sans devoir ce jour-là : le créneau reste tel quel */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc8', matiere: 'Mathématiques AA', date: cleJour(demain), debut: '13:00', fin: '14:30' }], examens: [] });
+var jC6 = context.devoirsAdapterJour(jourCreneau.slice(), idxJour);
+ok(jC6.some(function (ev) { return String(ev.title).indexOf('DEVOIR DE NIVEAU') !== -1; }), 'sans devoir ce jour-là, le créneau reste');
+/* sans créneau dans l'emploi : un devoir sans heures n'est pas posé */
+const jourSansCreneau = jourCreneau.filter(function (ev) { return ev.id !== 'cours-reel-3'; });
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc9', matiere: 'Mathématiques AA', date: cleJour(aujourdhui) }], examens: [] });
+var jC7 = context.devoirsAdapterJour(jourSansCreneau.slice(), idxJour);
+ok(!jC7.some(function (ev) { return String(ev.title).indexOf('Devoir ·') !== -1; }), 'sans créneau, un devoir sans heures n\'est posé nulle part (il reste dans la liste)');
+
+/* — 3a8. La promesse des séances est tenue, même planning plein — */
+/* Une journée sans aucun moment libre : les séances choisies prennent
+   la place des blocs d'étude du site — jamais des cours, repas ou
+   téléphones. */
+const jourPlein = [
+    { id: 'prep', title: 'Préparation', startTime: '05:30', endTime: '07:50', type: 'prep' },
+    { id: 'school1', title: 'Cours', startTime: '07:50', endTime: '12:30', type: 'school' },
+    { id: 'lunch', title: 'Déjeuner', startTime: '12:30', endTime: '13:30', type: 'meal' },
+    { id: 'school2', title: 'Cours', startTime: '13:30', endTime: '16:30', type: 'school' },
+    { id: 'phone', title: 'Téléphone', startTime: '16:30', endTime: '17:30', type: 'phone' },
+    { id: 'study1', title: 'Révisions Chimie', startTime: '17:30', endTime: '19:00', type: 'study' },
+    { id: 'dinner', title: 'Dîner', startTime: '19:00', endTime: '19:45', type: 'meal' },
+    { id: 'study2', title: 'Exercices Physique', startTime: '19:45', endTime: '21:15', type: 'study' },
+    { id: 'sleep', title: 'Coucher', startTime: '22:00', endTime: '05:30', type: 'sleep' }
+];
+/* deux séances promises pour demain : deux séances posées */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dp1', matiere: 'Chimie', date: cleJour(demain), debut: '08:00', fin: '10:00', seances: 2 }], examens: [] });
+var jP1 = context.devoirsAdapterJour(JSON.parse(JSON.stringify(jourPlein)), idxJour);
+var revP1 = jP1.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
+ok(revP1.length === 2, 'deux séances promises, planning plein : deux séances posées, trouvé : ' + revP1.length);
+ok(!jP1.some(function (ev) { return ev.id === 'study1' || ev.id === 'study2'; }), 'les blocs d\'étude ont cédé leur place aux séances');
+ok(jP1.some(function (ev) { return ev.id === 'phone'; }) && jP1.some(function (ev) { return ev.id === 'lunch'; }) && jP1.some(function (ev) { return ev.id === 'school1'; }), 'téléphone, repas et cours restent en place');
+ok(revP1.every(function (ev) { return context.devoirsH2M(ev.endTime) - context.devoirsH2M(ev.startTime) >= 40; }), 'chaque séance posée dure au moins 40 min');
+/* une seule séance promise aujourd'hui (répartition 3 séances sur
+   2 jours) : un seul bloc d'étude cède sa place */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dp2', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 2 * 86400000)), debut: '08:00', fin: '10:00', seances: 3 }], examens: [] });
+var jP2 = context.devoirsAdapterJour(JSON.parse(JSON.stringify(jourPlein)), idxJour);
+var revP2 = jP2.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
+ok(revP2.length === 1, '3 séances en 2 jours : une seule aujourd\'hui, trouvé : ' + revP2.length);
+ok(jP2.some(function (ev) { return ev.id === 'study2'; }), 'un seul bloc d\'étude cède sa place quand une seule séance est promise');
+/* sans choix de séances, la rampe automatique se pose aussi */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dp3', matiere: 'Chimie', date: cleJour(demain), debut: '08:00', fin: '10:00' }], examens: [] });
+var jP3 = context.devoirsAdapterJour(JSON.parse(JSON.stringify(jourPlein)), idxJour);
+var autoP3 = jP3.filter(function (ev) { return ev.devoirsBloc && /· Chimie/.test(String(ev.title)); });
+ok(autoP3.length >= 2, 'la rampe automatique doit aussi se poser sur un planning plein, trouvé : ' + autoP3.length + ' : ' + JSON.stringify(jP3.filter(function (e) { return e.devoirsBloc; }).map(function (e) { return e.title; })));
+ok(jP3.some(function (ev) { return ev.id === 'phone'; }), 'le téléphone n\'est jamais pris');
+/* un seul bloc d'étude disponible : la promesse s'arrête à ce qui
+   existe vraiment, sans rien inventer */
+const jourUneEtude = jourPlein.map(function (ev) {
+    return ev.id === 'study2' ? { id: 'etude-perso', title: 'Étude perso', startTime: ev.startTime, endTime: ev.endTime, type: 'study' } : ev;
+});
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dp4', matiere: 'Chimie', date: cleJour(demain), debut: '08:00', fin: '10:00', seances: 2 }], examens: [] });
+var jP4 = context.devoirsAdapterJour(JSON.parse(JSON.stringify(jourUneEtude)), idxJour);
+var revP4 = jP4.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
+ok(revP4.length === 1, 'un seul bloc d\'étude du site disponible : une seule séance de plus, rien n\'est inventé, trouvé : ' + revP4.length);
+ok(jP4.some(function (ev) { return ev.id === 'etude-perso'; }), 'un créneau posé par l\'élève lui-même n\'est jamais pris');
+
+/* — 3a8b. Semaine de révisions : plus de plafond par jour — */
+/* Des examens arrivent : les séances choisies du devoir restent
+   entières (l'ancien plafond de deux par jour est parti). */
+context.devoirsEcrireStore({
+    bac: false,
+    devoirs: [{ id: 'dr1', matiere: 'Chimie', date: cleJour(demain), debut: '08:00', fin: '10:00', seances: 3 }],
+    examens: [{ id: 'xr1', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 3 * 86400000)), debut: '08:00', fin: '13:00' }]
+});
+var jR1 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var revR1 = jR1.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') === 0; });
+ok(revR1.length === 3, '3 séances la veille du devoir pendant la semaine de révisions : 3 posées, trouvé : ' + revR1.length);
+
+/* — 3a9. La question des séances : une seule pour toute la fournée — */
+context.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'da', matiere: 'Mathématiques AA', date: cleJour(demain), debut: '13:00', fin: '14:30' },
+    { id: 'db', matiere: 'Physique', date: cleJour(demain), debut: '14:45', fin: '16:15' },
+    { id: 'dd', matiere: 'Histoire', date: cleJour(new Date(aujourdhui.getTime() + 7 * 86400000)), debut: '13:00', fin: '14:30' }
+], examens: [] });
+context.devoirsAppliquerSeances(['da', 'db', 'dd'], 4);
+var stSeances = context.devoirsLireStore();
+ok(stSeances.devoirs.every(function (d) { return d.seances === 4; }), 'le même nombre de séances s\'applique à toute la fournée : ' + JSON.stringify(stSeances.devoirs.map(function (d) { return d.seances; })));
+context.devoirsAppliquerSeances(['da'], 'auto');
+ok(context.devoirsLireStore().devoirs.filter(function (d) { return d.id === 'da'; })[0].seances === 'auto', 'une matière peut passer en automatique');
+context.devoirsAppliquerSeances(['db'], 9);
+ok(context.devoirsLireStore().devoirs.filter(function (d) { return d.id === 'db'; })[0].seances === 4, 'un nombre hors bornes ne change rien');
+/* ajout sans heures : le créneau du jour l'accueillera */
+ok(context.devoirsAjouter('devoirs', { matiere: 'ESS', date: cleJour(demain) }) !== false, 'un devoir sans heures doit pouvoir s\'ajouter');
+ok(context.devoirsAjouter('examens', { matiere: 'ESS', date: cleJour(demain) }) === false, 'un examen sans heures reste refusé');
+ok(context.devoirsAjouter('devoirs', { matiere: 'ESS', date: cleJour(demain), debut: '13:00' }) === false, 'un devoir avec une seule heure reste refusé');
 
 /* — 3a5. Les creneaux passes ne se programment jamais — */
 const aujT = new Date(2026, 9, 14, 10, 30, 0);

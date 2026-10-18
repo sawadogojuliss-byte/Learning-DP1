@@ -199,6 +199,162 @@ if (!emploi.some(l => l.indexOf('study1|Révisions Mathématiques AA|') !== -1))
     echec('le soir doit réviser la première matière vue dans la journée (Mathématiques AA) : ' + JSON.stringify(emploi.slice(0, 16)));
 }
 
+/* 8bis. le programme trimestriel des devoirs de niveau : l'analyse
+   propose les matières de l'élève (sans heures du document), les
+   propositions reçoivent celles du créneau DEVOIR DE NIVEAU de
+   l'emploi du temps, le créneau générique disparaît le jour du devoir,
+   et le nombre de séances choisi est tenu jour par jour — même sur un
+   planning plein — par le vrai moteur du site */
+const devoirsNiveau = await page.evaluate(function () {
+    const cle = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const mois = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+    const sauveEmploi = localStorage.getItem('studyPlanIB_emploiScolaire');
+    const sauveDevoirs = localStorage.getItem('studyPlanIB_devoirs');
+    const aujourdhui = new Date();
+    const idxJour = (aujourdhui.getDay() + 6) % 7;
+    /* les prochains mercredis, pour le programme du trimestre */
+    const mer1 = new Date(aujourdhui.getTime() + 86400000);
+    while (mer1.getDay() !== 3) mer1.setDate(mer1.getDate() + 1);
+    const mer2 = new Date(mer1.getTime() + 7 * 86400000);
+    /* le vendredi de la semaine affichée (aujourd'hui si on est
+       vendredi) : le devoir y remplacera le créneau ; le week-end n'a
+       pas de cours dans l'emploi du temps */
+    const vendredi = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + (4 - idxJour));
+    const idxCible = idxJour <= 4 ? 4 : -1;
+    const demain = new Date(aujourdhui.getTime() + 86400000);
+    /* l'emploi du temps : le créneau du mercredi, et des cours + créneau
+       le jour ciblé */
+    const jours = [[], [], [], [], [], [], []];
+    jours[2] = [{ id: 't1', nom: 'DEVOIR DE NIVEAU', matiere: '', debut: '13:00', fin: '16:30' }];
+    if (idxCible >= 0) {
+        jours[idxCible] = [
+            { id: 't2', nom: 'Géographie', matiere: 'Histoire', debut: '08:00', fin: '09:25' },
+            { id: 't3', nom: 'DEVOIR DE NIVEAU', matiere: '', debut: '13:00', fin: '16:30' }
+        ];
+    }
+    try {
+        localStorage.setItem('studyPlanIB_emploiScolaire', JSON.stringify({ at: new Date().toISOString(), jours: jours }));
+        /* 1. le programme du trimestre : deux matières suivies sans
+           heures, une matière non suivie */
+        const programme = 'PROGRAMME DES DEVOIRS DE NIVEAU - TRIMESTRE 1\n' +
+            'Mercredi ' + mer1.getDate() + ' ' + mois[mer1.getMonth()] + ' : Mathématiques AA, Chimie\n' +
+            'Mercredi ' + mer2.getDate() + ' ' + mois[mer2.getMonth()] + ' : Économie';
+        const props = devoirsParserTexte(programme);
+        const analyses = props.map(function (p) { return { matiere: p.matiere, date: p.date, debut: p.debut, fin: p.fin }; });
+        /* 2. les propositions sans heures reçoivent le créneau du
+           mercredi, partagé entre les deux matières */
+        devoirsRemplirCreneaux(props);
+        const preremplies = props.map(function (p) { return p.matiere + ' ' + p.debut + '-' + p.fin; });
+        /* 3. le créneau remplacé par le devoir réel, le jour ciblé */
+        let creneau = null;
+        if (idxCible >= 0) {
+            localStorage.setItem('studyPlanIB_devoirs', JSON.stringify({
+                bac: false, bacDemande: 2,
+                devoirs: [{ id: 'e2eniveau', matiere: 'Mathématiques AA', date: cle(vendredi), ajouteAt: new Date().toISOString() }],
+                examens: []
+            }));
+            const evts = generateDayEvents(idxCible);
+            creneau = {
+                generique: evts.some(function (e) { return String(e.title || '').indexOf('DEVOIR DE NIVEAU') !== -1; }),
+                devoir: evts.filter(function (e) { return String(e.title || '').indexOf('Devoir · Mathématiques AA') !== -1; })
+                    .map(function (e) { return (e.startTime || '') + '-' + (e.endTime || ''); }).join(',')
+            };
+        }
+        /* 4. la garantie : 3 séances choisies pour un devoir de Chimie
+           demain — le compte doit être exact sur chaque jour affiché */
+        localStorage.setItem('studyPlanIB_devoirs', JSON.stringify({
+            bac: false, bacDemande: 2,
+            devoirs: [{ id: 'e2egarantie', matiere: 'Chimie', date: cle(demain), debut: '08:00', fin: '10:00', seances: 3, ajouteAt: new Date().toISOString() }],
+            examens: []
+        }));
+        const joursRestants = Math.ceil((new Date(cle(demain) + 'T08:00:00').getTime() - aujourdhui.getTime()) / 86400000);
+        const rep = devoirsRepartitionSeances(3, joursRestants);
+        const lundi = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() - idxJour);
+        const parJour = [];
+        let total = 0;
+        for (let i = 0; i < 7; i++) {
+            const off = Math.round((new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i).getTime() - new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate()).getTime()) / 86400000);
+            const attendu = rep[off] || 0;
+            const pose = generateDayEvents(i).filter(function (e) {
+                return e.devoirsBloc && String(e.title || '').indexOf('Révision · Chimie') === 0;
+            }).length;
+            parJour.push(off + ':' + pose + '/' + attendu);
+            total += pose;
+        }
+        return { analyses: analyses, preremplies: preremplies, creneau: creneau, parJour: parJour, total: total };
+    } finally {
+        if (sauveEmploi == null) localStorage.removeItem('studyPlanIB_emploiScolaire'); else localStorage.setItem('studyPlanIB_emploiScolaire', sauveEmploi);
+        if (sauveDevoirs == null) localStorage.removeItem('studyPlanIB_devoirs'); else localStorage.setItem('studyPlanIB_devoirs', sauveDevoirs);
+    }
+});
+const mer1Cle = await page.evaluate(function () {
+    const m = new Date(Date.now() + 86400000);
+    while (m.getDay() !== 3) m.setDate(m.getDate() + 1);
+    return m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-' + String(m.getDate()).padStart(2, '0');
+});
+if (devoirsNiveau.analyses.length !== 2) {
+    echec("le programme trimestriel doit proposer exactement les 2 matières suivies (Économie non suivie) : " + JSON.stringify(devoirsNiveau.analyses));
+} else {
+    if (devoirsNiveau.analyses.some(function (p) { return p.date !== mer1Cle; })) {
+        echec('les propositions du programme doivent porter sur le mercredi annoncé : ' + JSON.stringify(devoirsNiveau.analyses));
+    }
+    if (devoirsNiveau.analyses.some(function (p) { return p.debut !== '' || p.fin !== ''; })) {
+        echec('sans heures dans le document, les propositions doivent rester à compléter : ' + JSON.stringify(devoirsNiveau.analyses));
+    }
+}
+const formatHeures = / [0-9]{2}:[0-9]{2}-[0-9]{2}:[0-9]{2}$/;
+if (devoirsNiveau.preremplies.length !== 2 ||
+    devoirsNiveau.preremplies.some(function (t) { return !formatHeures.test(t); }) ||
+    devoirsNiveau.preremplies[0].indexOf(' 13:00-') === -1) {
+    echec('les propositions sans heures doivent recevoir le créneau du mercredi partagé : ' + JSON.stringify(devoirsNiveau.preremplies));
+}
+if (devoirsNiveau.creneau) {
+    if (devoirsNiveau.creneau.generique) {
+        echec("le créneau DEVOIR DE NIVEAU doit disparaître le jour du devoir");
+    }
+    if (devoirsNiveau.creneau.devoir !== '13:00-16:30') {
+        echec("le devoir sans heures doit occuper le créneau entier (13h00-16h30) : " + devoirsNiveau.creneau.devoir);
+    }
+} else {
+    console.log('information : fin de semaine (vendredi soir ou week-end), le remplacement du créneau se vérifie la semaine prochaine');
+}
+devoirsNiveau.parJour.forEach(function (r) {
+    const parts = r.split(':'), compte = parts[1].split('/');
+    if (compte[0] !== compte[1]) {
+        echec('les séances choisies doivent être posées au compte exact (' + r + ') : ' + JSON.stringify(devoirsNiveau.parJour));
+    }
+});
+if (devoirsNiveau.total < 1) {
+    echec('au moins une séance du devoir doit apparaître dans la semaine affichée : ' + JSON.stringify(devoirsNiveau.parJour));
+}
+
+/* 8ter. la liste des devoirs montre les séances et permet de les
+   changer à tout moment */
+await page.evaluate(() => { navigateTo('devoirs'); });
+const listeSeances = await page.evaluate(function () {
+    const sauve = localStorage.getItem('studyPlanIB_devoirs');
+    try {
+        localStorage.setItem('studyPlanIB_devoirs', JSON.stringify({
+            bac: false, bacDemande: 2,
+            devoirs: [{ id: 'e2eliste', matiere: 'Chimie', date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), debut: '13:00', fin: '14:30', seances: 3, ajouteAt: new Date().toISOString() }],
+            examens: []
+        }));
+        devoirsRendre();
+        const zone = document.getElementById('devoirsListe');
+        return {
+            badge: zone ? zone.innerHTML.indexOf('📚 3') !== -1 : false,
+            editeur: typeof devoirsEditerSeances === 'function',
+            bouton: zone ? zone.innerHTML.indexOf('devoirsEditerSeances') !== -1 : false
+        };
+    } finally {
+        if (sauve == null) localStorage.removeItem('studyPlanIB_devoirs'); else localStorage.setItem('studyPlanIB_devoirs', sauve);
+    }
+});
+if (!listeSeances.editeur || !listeSeances.badge || !listeSeances.bouton) {
+    echec('la liste des devoirs doit montrer les séances choisies et permettre de les changer : ' + JSON.stringify(listeSeances));
+}
+await page.evaluate(() => { navigateTo('planning'); });
+
 /* 9. le bouton Continuer de la page Emploi du temps mène vraiment au
    planning (la page se ferme), et le Retour y ramène depuis le menu */
 await page.evaluate(() => { showEmploiPage(); });
@@ -267,6 +423,9 @@ if (erreurs.length) {
 await browser.close();
 console.log('ok préparation en vrai navigateur : séance du devoir visible aujourd\u2019hui avec compte à rebours, '
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
-    + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
+    + 'l\u2019analyse ne propose que les matières de chaque élève, '
+    + 'programme trimestriel des devoirs lu avec les matières de l\u2019élève, créneau DEVOIR DE NIVEAU remplacé par le devoir réel, '
+    + 'nombre de séances choisi tenu au compte exact sur chaque jour même planning plein, séances visibles et modifiables dans la liste des devoirs, '
+    + 'vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
     + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
     + 'tomate au menu Pomodoro, panneau Sons sur la page Séance du jour, section Playlist retirée, 0 erreur JavaScript');
