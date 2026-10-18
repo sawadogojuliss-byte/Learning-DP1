@@ -59,6 +59,19 @@ ok(moteur.indexOf("fixed('bac-samedi', 'Bac national', '8h00 → 13h00', '08:00'
 ok(moteur.indexOf("fixed('bac-vendredi', 'Bac national', '14h55 → 16h25', '14:55', '16:25'") !== -1, 'le vendredi du bac doit être 14h55 → 16h25');
 ok(moteur.indexOf("fixed('school2', 'Cours', '13h30 → 14h55'") !== -1, 'le vendredi du bac doit couper les cours à 14h55');
 ok(moteur.indexOf('dayIndex === 4 && typeof devoirsFaitBac === \'function\' && devoirsFaitBac()') !== -1, 'la découpe du vendredi ne doit toucher que les élèves du bac');
+/* le réglage du bac n'est plus sur la page Devoirs (retiré sur demande) :
+   la question passe par le popup, une seule fois */
+ok(devoirsHtml.indexOf('devoirsReglageBac') === -1, 'la zone de réglage du bac doit avoir disparu de la page');
+ok(fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs.js'), 'utf8').indexOf('devoirsBasculerBac') === -1, 'le bouton de réglage du bac doit avoir disparu');
+/* les PDF téléchargés s'ouvrent aussi */
+ok(devoirsHtml.indexOf('accept="image/*,application/pdf,.pdf"') !== -1, 'le sélecteur de fichiers doit accepter les PDF');
+['lib/pdf/pdf.min.js', 'lib/pdf/pdf.worker.min.js'].forEach(function (f) {
+    ok(fs.existsSync(path.join(__dirname, '..', f)), 'lecteur de PDF manquant : ' + f);
+});
+const devoirsSrcComplet = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs.js'), 'utf8');
+ok(devoirsSrcComplet.indexOf('lib/pdf/pdf.min.js') !== -1, 'le lecteur de PDF n\'est pas câblé');
+ok(devoirsSrcComplet.indexOf('devoirsBacADemander') !== -1, 'la règle de re-demande du popup manque');
+ok(boot.indexOf('devoirsBacADemander') !== -1 && boot.indexOf('tenterBac') !== -1, 'le popup doit repasser pour tous les DP2 déjà connectés');
 ok(moteur.indexOf('if (reveilSamedi > 7 * 60) wakeupTime = \'07:00\';') !== -1, 'le samedi du bac doit lever l\'élève au plus tard à 7h00');
 ok(moteur.indexOf('calculateBedtime(wakeupTime, heuresSamedi)') !== -1, 'le coucher du samedi du bac doit suivre le réveil (jamais moins de 5 h de sommeil)');
 ok(moteur.indexOf('if (!(typeof devoirsFaitBac === \'function\' && devoirsFaitBac())) return false;') !== -1, 'le cours d\'économie du samedi ne doit disparaître que pour les élèves du bac');
@@ -128,6 +141,50 @@ const p3 = propositions[3] || {};
 ok(p3.date === '2026-10-25', 'date en toutes lettres : ' + p3.date);
 ok(p3.debut === '14:55' && p3.fin === '16:25', 'heures en toutes lettres : ' + p3.debut + '-' + p3.fin);
 
+/* — 2bis. Les plannings en tableau (date, heures, matières, papiers) — */
+const texteTableau = [
+    'ÉPREUVES DU TRIMESTRE',
+    '12/11/2026',
+    '13:00 – 15:00',
+    '15:00 – 16:30',
+    'Histoire - Géographie',
+    'Anglais A, B',
+    'Paper 1 - SL',
+    'Paper 1 - SL & HL',
+    '01h 30 min',
+    '01h 30 min',
+    'DURAND / COMPAORE',
+    '19/11/2026',
+    '13:00 – 15:00',
+    'Mathematics',
+    'Paper 1 - SL & HL',
+    '01h 30 min'
+].join('\n');
+const propsTableau = context.devoirsParserTexte(texteTableau);
+ok(propsTableau.length === 3, 'le tableau doit donner 3 créneaux, trouvé : ' + propsTableau.length);
+const t0 = propsTableau[0] || {}, t1 = propsTableau[1] || {}, t2 = propsTableau[2] || {};
+ok((t0.matiere === 'Histoire' || t0.matiere === 'Géographie') && t0.date === '2026-11-12' && t0.debut === '13:00' && t0.fin === '15:00',
+    'ligne 1 du tableau (matière double, l\'un des deux noms suffit) : ' + JSON.stringify(t0));
+ok(t1.matiere === 'Anglais' && t1.date === '2026-11-12' && t1.debut === '15:00' && t1.fin === '16:30',
+    'ligne 2 du tableau : ' + JSON.stringify(t1));
+ok(t2.matiere === 'Mathématiques' && t2.date === '2026-11-19' && t2.debut === '13:00' && t2.fin === '15:00',
+    'ligne 3 du tableau : ' + JSON.stringify(t2));
+
+/* l'après-midi à l'anglaise */
+const propsAmPm = context.devoirsParserTexte('ESS : lundi, 1:25 pm - 2:55 pm');
+ok(propsAmPm.length === 1 && propsAmPm[0].debut === '13:25' && propsAmPm[0].fin === '14:55' && propsAmPm[0].matiere === 'ESS',
+    'heures am/pm : ' + JSON.stringify(propsAmPm[0] || {}));
+
+/* la re-demande du popup : tout DP2 déjà connecté doit le revoir une fois */
+context.devoirsEcrireStore({ bac: true, devoirs: [], examens: [] });
+ok(context.devoirsBacADemander() === true, 'une réponse d\'avant la correction doit déclencher le popup à nouveau');
+context.devoirsEcrireStore({ bac: true, bacDemande: 2, devoirs: [], examens: [] });
+ok(context.devoirsBacADemander() === false, 'après la réponse actuelle, plus jamais de popup');
+context.devoirsEcrireStore({ bac: false, bacDemande: 2, devoirs: [], examens: [] });
+ok(context.devoirsBacADemander() === false, 'idem après « Non »');
+context.devoirsEcrireStore({ bac: null, devoirs: [], examens: [] });
+ok(context.devoirsBacADemander() === true, 'sans réponse, le popup vient');
+
 /* — 3a0. La découpe des chevauchements, directement — */
 const jourSimple = [
     { id: 'prep', title: 'Préparation', startTime: '05:30', endTime: '06:00', type: 'prep' },
@@ -157,6 +214,34 @@ const revisionsDemain = apresDevoir.filter(function (ev) { return ev.devoirsBloc
 ok(revisionsDemain.length >= 1, 'aucune révision posée la veille du devoir');
 ok(revisionsDemain.length <= 2, 'au plus deux révisions de devoir par jour, trouvé : ' + revisionsDemain.length);
 ok(apresDevoir.every(function (ev) { return !ev.devoirsBloc || String(ev.title).indexOf('Devoir') === -1; }), 'le devoir ne doit pas apparaître avant sa date');
+
+/* — 3a2. Dès l'ajout d'un examen, même des semaines à l'avance, des
+   révisions se posent — sans toucher au reste de l'emploi du temps. */
+context.devoirsEcrireStore({
+    bac: false, devoirs: [],
+    examens: [{ id: 'xloin', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 20 * 86400000)), debut: '08:00', fin: '13:00' }]
+});
+const jourPreparation = context.devoirsAdapterJour(jourSimple.concat([
+    { id: 'study1', title: 'Révisions Chimie', startTime: '14:00', endTime: '15:30', type: 'study' },
+    { id: 'memoir-page', title: 'Mémoire', startTime: '16:00', endTime: '16:40', type: 'memoir' },
+    { id: 'ia-page-x', title: 'Évaluation interne', startTime: '17:00', endTime: '17:40', type: 'ia' },
+    { id: 'activity-Foot', title: 'Foot', startTime: '18:00', endTime: '19:00', type: 'activity' }
+]), idxJour);
+ok(jourPreparation.some(function (ev) { return ev.type === 'memoir'; }), 'loin de l\'épreuve, le mémoire reste : la préparation ne retire rien');
+ok(jourPreparation.some(function (ev) { return ev.type === 'activity'; }), 'loin de l\'épreuve, les activités restent');
+const blocsPrep = jourPreparation.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Physique') !== -1; });
+ok(blocsPrep.length >= 1, 'un examen dans 20 jours doit déjà donner des révisions, trouvé : ' + blocsPrep.length);
+ok(blocsPrep.length <= 2, 'au plus deux blocs de préparation par jour, trouvé : ' + blocsPrep.length);
+
+/* — 3a3. Dès l'ajout d'un devoir, même loin de l'échéance — */
+context.devoirsEcrireStore({
+    bac: false,
+    devoirs: [{ id: 'dloin', matiere: 'Chimie', date: cleJour(new Date(aujourdhui.getTime() + 10 * 86400000)), debut: '08:00', fin: '10:00' }],
+    examens: []
+});
+const jourDevoirLoin = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+const blocsDevoirLoin = jourDevoirLoin.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Chimie') !== -1; });
+ok(blocsDevoirLoin.length >= 1, 'un devoir dans 10 jours doit déjà donner des révisions, trouvé : ' + blocsDevoirLoin.length);
 
 /* — 3b. La semaine avant les examens — */
 /* Mercredi 21 (dans 3 jours) et vendredi 23 : aujourd'hui dimanche 18
@@ -254,6 +339,7 @@ ok(samediSansBac.some(function (ev) { return ev.id === 'eco'; }), 'sans le bac, 
 /* — le voyage avec le compte Google — */
 context.devoirsEcrireStore({
     bac: true,
+    bacDemande: 2,
     devoirs: [{ id: 'd9', matiere: 'Philosophie', date: '2026-10-20', debut: '08:00', fin: '13:00' }],
     examens: [{ id: 'x9', matiere: 'Chimie', date: '2026-10-22', debut: '08:00', fin: '10:00' }]
 });
@@ -261,6 +347,7 @@ const compact = context.devoirsStoreCompact();
 ok(compact && compact.bac === true, 'le store compact perd le réglage du bac');
 ok(compact && Array.isArray(compact.devoirs) && compact.devoirs.length === 1 && compact.devoirs[0].matiere === 'Philosophie', 'le store compact perd les devoirs');
 ok(compact && Array.isArray(compact.examens) && compact.examens.length === 1 && compact.examens[0].date === '2026-10-22', 'le store compact perd les examens');
+ok(compact && compact.bacDemande === 2, 'le store compact perd la version de la question posée');
 
 
 /* ── 4. Le parcours complet du popup, sur le vrai moteur ─────────── */

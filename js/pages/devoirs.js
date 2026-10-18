@@ -27,12 +27,13 @@ function devoirsLireStore() {
         if (d && typeof d === 'object') {
             return {
                 bac: (d.bac === true || d.bac === false) ? d.bac : null,
+                bacDemande: d.bacDemande === 2 ? 2 : 0,
                 devoirs: Array.isArray(d.devoirs) ? d.devoirs.filter(function (x) { return x && x.id; }) : [],
                 examens: Array.isArray(d.examens) ? d.examens.filter(function (x) { return x && x.id; }) : []
             };
         }
     } catch (e) {}
-    return { bac: null, devoirs: [], examens: [] };
+    return { bac: null, bacDemande: 0, devoirs: [], examens: [] };
 }
 
 function devoirsEcrireStore(store) {
@@ -45,7 +46,7 @@ function devoirsFaitBac() {
 
 function devoirsStoreCompact() {
     var s = devoirsLireStore();
-    return { bac: s.bac, devoirs: s.devoirs, examens: s.examens };
+    return { bac: s.bac, bacDemande: s.bacDemande, devoirs: s.devoirs, examens: s.examens };
 }
 
 function devoirsId(prefixe) {
@@ -56,9 +57,21 @@ function devoirsId(prefixe) {
 /* Posée aux DP2 : à l'inscription juste après les matières, et par un
    popup aux élèves déjà inscrits qui n'ont pas encore répondu. */
 
+/* Le popup doit atteindre tous les DP2 déjà connectés : ceux qui n'ont
+   jamais répondu, et une fois de plus ceux qui avaient répondu avant
+   que la réponse ne s'applique vraiment au planning (version 1). */
+function devoirsBacADemander() {
+    var s = devoirsLireStore();
+    if (s.bac === true || s.bac === false) return s.bacDemande !== 2;
+    return true;
+}
+
 function devoirsPoserQuestionBac(apres) {
     var store = devoirsLireStore();
-    if (store.bac === true || store.bac === false) {
+    /* Déjà répondu sous la version actuelle : plus jamais de popup.
+       Une réponse plus ancienne (avant que « Oui » n'applique vraiment
+       les créneaux du bac) mérite une nouvelle demande. */
+    if (store.bacDemande === 2 && (store.bac === true || store.bac === false)) {
         if (typeof apres === 'function') apres();
         return;
     }
@@ -80,6 +93,7 @@ function devoirsPoserQuestionBac(apres) {
     function repondre(oui) {
         var s = devoirsLireStore();
         s.bac = oui;
+        s.bacDemande = 2; /* la réponse s'applique vraiment au planning */
         devoirsEcrireStore(s);
         voile.remove();
         if (typeof apres === 'function') apres();
@@ -96,7 +110,7 @@ var DEVOIRS_MATIERES_DICO = [
     'Mathématiques', 'Physique', 'Chimie', 'Biologie', 'SVT',
     'Français', 'Philosophie', 'Histoire', 'Géographie',
     'Anglais', 'Espagnol', 'Allemand', 'Économie', 'Informatique',
-    'Bac national'
+    'ESS', 'Bac national'
 ];
 
 function devoirsNormaliser(s) {
@@ -127,10 +141,13 @@ function devoirsTrouverMatiere(texteNormalise, connues) {
         if (texteNormalise.indexOf(n) !== -1 && n.length > longueur) { meilleure = nom; longueur = n.length; }
     });
     if (meilleure) return meilleure;
-    var fragments = { math: 'Mathématiques', phys: 'Physique', chim: 'Chimie', bio: 'Biologie', svt: 'SVT', philo: 'Philosophie', fr: 'Français', hist: 'Histoire', geo: 'Géographie', angl: 'Anglais', espag: 'Espagnol', econ: 'Économie', info: 'Informatique', bac: 'Bac national' };
+    var fragments = { math: 'Mathématiques', phys: 'Physique', chim: 'Chimie', chem: 'Chimie', bio: 'Biologie', svt: 'SVT', ess: 'ESS', philo: 'Philosophie', fran: 'Français', fren: 'Français', hist: 'Histoire', geo: 'Géographie', geog: 'Géographie', angl: 'Anglais', engl: 'Anglais', espag: 'Espagnol', econ: 'Économie', info: 'Informatique', bac: 'Bac national' };
     var cles = Object.keys(fragments);
+    var mots = String(texteNormalise || '').split(' ');
     for (var i = 0; i < cles.length; i++) {
-        if (texteNormalise.indexOf(' ' + cles[i]) !== -1 || texteNormalise.indexOf(cles[i] + ' ') !== -1 || texteNormalise === cles[i]) return fragments[cles[i]];
+        for (var j = 0; j < mots.length; j++) {
+            if (mots[j] && mots[j].indexOf(cles[i]) === 0) return fragments[cles[i]];
+        }
     }
     return '';
 }
@@ -152,6 +169,7 @@ function devoirsAnneePour(mois) {
 
 function devoirsNormaliserGarde(s) {
     return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\u2013\u2014]/g, '-') /* tirets longs des documents scolaires */
         .replace(/[^a-z0-9 \/:.\-]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
@@ -160,11 +178,51 @@ function devoirsParserTexte(texte, connues) {
     var propositions = [];
     var dateCourante = ''; /* dernière date rencontrée : elle vaut pour les lignes suivantes */
     var i, j;
+    /* Un planning d'épreuves se présente souvent en tableau : une date,
+       puis plusieurs créneaux horaires, puis les matières, puis les
+       « Paper … », les durées et les surveillants. On regroupe par bloc
+       de date et on apparie heures et matières dans l'ordre. */
+    var blocHeures = [];
+    var blocMatieres = [];
+    var enPapiers = false;
+    var connuesListe = connues || devoirsMatieresConnues();
+
+    function devoirsH2Mvalide(h) {
+        return h && devoirsH2M(h.fin) > devoirsH2M(h.debut);
+    }
+    function viderBloc() {
+        var n = Math.min(blocHeures.length, blocMatieres.length);
+        var k;
+        for (k = 0; k < n; k++) {
+            if (devoirsH2Mvalide(blocHeures[k])) {
+                propositions.push({ matiere: blocMatieres[k], date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
+            }
+        }
+        if (blocHeures.length && !blocMatieres.length && dateCourante) {
+            for (k = 0; k < blocHeures.length; k++) {
+                if (devoirsH2Mvalide(blocHeures[k])) {
+                    propositions.push({ matiere: '', date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
+                }
+            }
+        }
+        blocHeures = [];
+        blocMatieres = [];
+        enPapiers = false;
+    }
+
     for (i = 0; i < lignes.length; i++) {
         var ligne = lignes[i];
         if (!ligne || !ligne.trim()) continue;
         var norm = devoirsNormaliserGarde(ligne);
         if (!norm) continue;
+
+        /* l'après-midi à l'anglaise : « 1:25 pm » devient « 13:25 » */
+        norm = norm.replace(/(\d{1,2})(:\d{2})\s*pm\b/g, function (x, h, mn) { return ((Number(h) % 12) + 12) + mn; });
+        norm = norm.replace(/(\d{1,2})\s*pm\b/g, function (x, h) { return ((Number(h) % 12) + 12) + ':00'; });
+        norm = norm.replace(/(\d{1,2})(:\d{2})?\s*am\b/g, function (x, h, mn) { return ('0' + Number(h)).slice(-2) + (mn || ':00'); });
+
+        /* une durée (« 01h 30 min ») n'est pas une heure de composition */
+        var estDuree = /(^|\s)\d{1,2}\s*(h|:)\s*\d{0,2}\s*(min|mn)/.test(norm) && norm.indexOf('paper') === -1;
 
         /* heures : 8h-13h, 8h00 - 13h00, de 8h à 13h, 8:30/13:45, 14h55 a 16h25 */
         var heures = null;
@@ -217,21 +275,53 @@ function devoirsParserTexte(texte, connues) {
             }
         }
 
-        var matiere = devoirsTrouverMatiere(norm, connues || devoirsMatieresConnues());
+        var matiere = devoirsTrouverMatiere(norm, connuesListe);
 
-        if (dateTrouvee && !heures && !matiere) { dateCourante = dateTrouvee; continue; }
-        if (!heures && !dateTrouvee) continue;
-        if (heures && devoirsH2M(heures.fin) <= devoirsH2M(heures.debut)) continue;
+        /* « Paper 1 - SL » : la colonne des papiers commence, les
+           matières du bloc sont déjà toutes lues. */
+        if (/paper|papier/.test(norm) && !heures && !dateTrouvee && !matiere) { enPapiers = true; continue; }
+        if (estDuree && !matiere && !dateTrouvee) continue;
+        if (enPapiers && !heures && !dateTrouvee) continue;
+        if (heures && !devoirsH2Mvalide(heures)) heures = null;
 
-        propositions.push({
-            matiere: matiere,
-            date: dateTrouvee || dateCourante,
-            debut: heures ? heures.debut : '',
-            fin: heures ? heures.fin : '',
-            ligne: String(ligne).trim().slice(0, 90)
-        });
-        if (dateTrouvee) dateCourante = dateTrouvee;
+        /* 1) une ligne complète : matière, date et heures ensemble */
+        if (heures && matiere) {
+            viderBloc();
+            propositions.push({
+                matiere: matiere,
+                date: dateTrouvee || dateCourante,
+                debut: heures.debut,
+                fin: heures.fin,
+                ligne: String(ligne).trim().slice(0, 90)
+            });
+            if (dateTrouvee) dateCourante = dateTrouvee;
+            continue;
+        }
+        /* 2) une date seule : un nouveau bloc commence */
+        if (dateTrouvee && !heures && !matiere) {
+            viderBloc();
+            dateCourante = dateTrouvee;
+            continue;
+        }
+        /* 3) des heures seules : elles s'empilent pour le bloc */
+        if (heures && !matiere && !dateTrouvee) {
+            blocHeures.push(heures);
+            continue;
+        }
+        /* 4) une matière seule : elle rejoint le bloc en cours */
+        if (matiere && !heures && !dateTrouvee) {
+            if (!enPapiers) blocMatieres.push(matiere);
+            continue;
+        }
+        /* 5) des heures et une date sans matière */
+        if (heures && dateTrouvee && !matiere) {
+            viderBloc();
+            propositions.push({ matiere: '', date: dateTrouvee, debut: heures.debut, fin: heures.fin, ligne: String(ligne).trim().slice(0, 90) });
+            dateCourante = dateTrouvee;
+            continue;
+        }
     }
+    viderBloc();
     return propositions;
 }
 
@@ -258,16 +348,84 @@ function devoirsChargerTesseract() {
     });
 }
 
-function devoirsOcrImage(fichier) {
+function devoirsOcrOptions() {
+    return {
+        workerPath: 'lib/ocr/worker.min.js',
+        corePath: 'lib/ocr',
+        langPath: 'lib/ocr/langs',
+        workerBlobURL: false
+    };
+}
+
+function devoirsEstPdf(fichier) {
+    if (!fichier) return false;
+    if (fichier.type === 'application/pdf') return true;
+    return /\.pdf$/i.test(String(fichier.name || ''));
+}
+
+function devoirsChargerPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve();
+    return new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = 'lib/pdf/pdf.min.js?v=' + (typeof version !== 'undefined' ? version : '1');
+        s.onload = function () {
+            try {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf/pdf.worker.min.js?v=' + (typeof version !== 'undefined' ? version : '1');
+                res();
+            } catch (e) { rej(e); }
+        };
+        s.onerror = function () { rej(new Error('Impossible de charger le lecteur de PDF. Vérifie ta connexion puis réessaie.')); };
+        document.body.appendChild(s);
+    });
+}
+
+/* Les pages d'un PDF : celles qui ont du texte le donnent directement,
+   les autres (photos et scans) sont rendues en image puis lues. */
+function devoirsPdfEnTexte(fichier, dire) {
+    return devoirsChargerPdfJs().then(function () {
+        return fichier.arrayBuffer();
+    }).then(function (tampon) {
+        return window.pdfjsLib.getDocument({ data: tampon }).promise;
+    }).then(function (doc) {
+        var pages = Math.min(doc.numPages, 8);
+        var morceaux = [];
+        function pageSuivante(n) {
+            if (n > pages) return morceaux.join('\n');
+            if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
+            return doc.getPage(n).then(function (page) {
+                return page.getTextContent().then(function (tc) {
+                    var extrait = (tc.items || []).map(function (it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('').trim();
+                    if (extrait.length >= 40) {
+                        morceaux.push(extrait);
+                        return pageSuivante(n + 1);
+                    }
+                    /* page scannée : rendu en image puis lecture automatique */
+                    var brut = page.getViewport({ scale: 1 });
+                    var echelle = Math.min(2.5, 2200 / Math.max(1, brut.width));
+                    var viewport = page.getViewport({ scale: echelle });
+                    var canvas = document.createElement('canvas');
+                    canvas.width = Math.floor(viewport.width);
+                    canvas.height = Math.floor(viewport.height);
+                    return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function () {
+                        return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', devoirsOcrOptions());
+                    }).then(function (res) {
+                        morceaux.push((res && res.data && res.data.text) || '');
+                        return pageSuivante(n + 1);
+                    });
+                });
+            });
+        }
+        return pageSuivante(1);
+    });
+}
+
+function devoirsOcrImage(fichier, dire) {
     return devoirsChargerTesseract().then(function () {
-        return window.Tesseract.recognize(fichier, 'fra', {
-            workerPath: 'lib/ocr/worker.min.js',
-            corePath: 'lib/ocr',
-            langPath: 'lib/ocr/langs',
-            workerBlobURL: false
+        /* les PDF téléchargés s'ouvrent aussi : chaque page est lue */
+        if (devoirsEstPdf(fichier)) return devoirsPdfEnTexte(fichier, dire);
+        return window.Tesseract.recognize(fichier, 'fra', devoirsOcrOptions()).then(function (res) {
+            return (res && res.data && res.data.text) || '';
         });
-    }).then(function (res) {
-        return (res && res.data && res.data.text) || '';
     });
 }
 
@@ -288,8 +446,9 @@ function devoirsLireDocument() {
     if (fichier) {
         if (devoirsOcrEnCours) return;
         devoirsOcrEnCours = true;
-        devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut', 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
-        devoirsOcrImage(fichier).then(function (texte) {
+        var zoneStatut = devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut';
+        devoirsDire(zoneStatut, 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
+        devoirsOcrImage(fichier, function (message) { devoirsDire(zoneStatut, message, false); }).then(function (texte) {
             devoirsOcrEnCours = false;
             devoirsMontrerPropositions(texte, genre, true);
         }).catch(function (e) {
@@ -465,29 +624,8 @@ function devoirsRendre() {
             }).join('');
         }
     });
-    /* le réglage du bac pour les DP2 */
-    var bacZone = document.getElementById('devoirsReglageBac');
-    if (bacZone) {
-        var dp2 = typeof ibYear !== 'undefined' && ibYear === 'DP2';
-        bacZone.style.display = dp2 ? 'block' : 'none';
-        if (dp2) {
-            bacZone.innerHTML = '<div style="background:#f0fdfa;border:1.5px solid #99f6e4;border-radius:1rem;padding:0.8rem 1rem;display:flex;align-items:center;gap:0.75rem;">' +
-                '<span style="font-size:1.3rem;">🎓</span>' +
-                '<div style="flex:1;"><p style="margin:0;font-weight:700;color:#134e4a;font-size:0.88rem;">Bac national</p>' +
-                '<p style="margin:0;font-size:0.75rem;color:#0f766e;">Vendredi 14h55 → 16h25 et samedi 8h00 → 13h00</p></div>' +
-                '<button type="button" onclick="devoirsBasculerBac()" style="padding:0.5rem 0.9rem;border:none;border-radius:0.7rem;font:inherit;font-weight:800;cursor:pointer;' +
-                (store.bac === true ? 'background:#059669;color:white;' : 'background:#f3f4f6;color:#374151;') + '">' +
-                (store.bac === true ? 'Je le fais ✓' : 'Je ne le fais pas') + '</button></div>';
-        }
-    }
-}
-
-function devoirsBasculerBac() {
-    var store = devoirsLireStore();
-    store.bac = store.bac !== true;
-    devoirsEcrireStore(store);
-    devoirsRendre();
-    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    /* Le réglage du bac n'est plus sur cette page : la question est
+       posée par le popup, une seule fois, à tous les DP2. */
 }
 
 function devoirsRendreSiVisible() {

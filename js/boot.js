@@ -29,7 +29,7 @@
         }
     }
 
-var version = '20261017o';
+var version = '20261017p';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
@@ -80,15 +80,23 @@ var version = '20261017o';
         if (status) status.hidden = true;
         window.__STUDYPLAN_READY = true;
         if (typeof memoireHistoriqueActiver === 'function') memoireHistoriqueActiver();
-        /* Les élèves de DP2 déjà inscrits n'ont jamais répondu à la
-           question du bac national : on la leur pose une seule fois. */
-        setTimeout(function () {
-            if (typeof devoirsPoserQuestionBac === 'function' && typeof devoirsLireStore === 'function') {
-                var store = devoirsLireStore();
-                if (store.bac === null && typeof ibYear !== 'undefined' && ibYear === 'DP2' && window.__profilComplet) {
-                    try { devoirsPoserQuestionBac(); } catch (e) {}
+        /* La question du bac national doit atteindre TOUS les DP2 déjà
+           connectés : ceux qui n'ont jamais répondu, et une fois de plus
+           ceux qui avaient répondu avant que la réponse ne s'applique
+           vraiment au planning. Le profil peut mettre quelques secondes
+           à revenir : on réessaie jusqu'à ce que la question soit posée. */
+        var essaisBac = 0;
+        setTimeout(function tenterBac() {
+            essaisBac++;
+            try {
+                if (typeof ibYear !== 'undefined' && ibYear && ibYear !== 'DP2') return;
+                if (typeof devoirsPoserQuestionBac === 'function' && typeof devoirsBacADemander === 'function' &&
+                    typeof ibYear !== 'undefined' && ibYear === 'DP2' && window.__profilComplet) {
+                    if (devoirsBacADemander()) devoirsPoserQuestionBac();
+                    return;
                 }
-            }
+            } catch (e) {}
+            if (essaisBac < 15) setTimeout(tenterBac, 2000);
         }, 1200);
         /* L'écran s'efface en douceur : la lumière s'éteint, la page reste. */
         setTimeout(function () {

@@ -335,6 +335,7 @@ function memoireAppliquer(data, opts) {
             var actuel = devoirsLireStore();
             devoirsEcrireStore({
                 bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
+                bacDemande: recu.bacDemande === 2 ? 2 : actuel.bacDemande,
                 devoirs: Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs,
                 examens: Array.isArray(recu.examens) ? recu.examens : actuel.examens
             });

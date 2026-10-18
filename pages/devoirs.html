@@ -15,7 +15,6 @@
             </div>
 
             <!-- Réglage du bac national (DP2) -->
-            <div id="devoirsReglageBac" style="display:none;margin-bottom:1rem;"></div>
 
             <!-- Onglets -->
             <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1rem;">
@@ -36,7 +35,7 @@
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#065f46;">Choisis une photo du document</p>
                         <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
                     </div>
-                    <input type="file" id="devoirsFichier" accept="image/*" style="display:none;" onchange="devoirsLireDocument()">
+                    <input type="file" id="devoirsFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument()">
                     <textarea id="devoirsTexteColle" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
                     <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
                     <p id="devoirsOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
@@ -75,7 +74,7 @@
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
                         <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
                     </div>
-                    <input type="file" id="devoirsFichierExam" accept="image/*" style="display:none;">
+                    <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;">
                     <textarea id="devoirsTexteColleExam" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
                     <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#0d9488,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le planning</button>
                     <p id="exaOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>

@@ -150,12 +150,14 @@ function devoirsBlocsRevisions(epreuves, mode) {
         return devoirsInstant(a.date, a.debut) - devoirsInstant(b.date, b.debut);
     });
     var file = [];
-    var cycles = mode === 'examens' ? ['Révision', 'Exercices'] : ['Révision', 'Exercices', 'Révision', 'Exercices'];
+    /* En préparation (épreuve encore loin), on commence doucement : un
+       bloc de révision par matière, en priorité aux plus proches. */
+    var cycles = mode === 'preparation' ? ['Révision'] : (mode === 'examens' ? ['Révision', 'Exercices'] : ['Révision', 'Exercices', 'Révision', 'Exercices']);
     cycles.forEach(function (genre, c) {
         var garde = Math.max(1, Math.ceil(ordre.length - (c * ordre.length) / Math.max(1, cycles.length)));
         for (var k = 0; k < garde && k < ordre.length; k++) {
             var ep = ordre[k];
-            var duree = genre === 'Révision' ? (mode === 'examens' ? 60 : 75) : 45;
+            var duree = genre === 'Révision' ? (mode === 'examens' ? 60 : (mode === 'preparation' ? 45 : 75)) : 45;
             file.push({
                 id: 'devrev-' + ep.id + '-' + c + '-' + k,
                 titre: genre + ' · ' + ep.matiere,
@@ -267,14 +269,39 @@ function devoirsAdapterJour(events, dayIndex) {
             }
             return jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
         }
+
+        /* 2bis) L'épreuve est encore loin : la préparation commence
+           dès maintenant, quel que soit le jour où le planning a été
+           chargé. On ne touche à rien du reste de l'emploi du temps —
+           seuls deux blocs de révision se posent dans les moments
+           libres, pour les épreuves les plus proches. */
+        var preparables = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
+        if (preparables.length && !enSemaineExamens) {
+            var blocsPrep = devoirsBlocsRevisions(preparables, 'preparation');
+            var trousPrep = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);
+            devoirsPlacerDansTrou(blocsPrep, trousPrep).slice(0, 2).forEach(function (pose) {
+                jour.push({
+                    id: pose.id,
+                    title: pose.titre,
+                    subtitle: pose.sous,
+                    startTime: devoirsM2H(pose.debut),
+                    endTime: devoirsM2H(pose.fin),
+                    type: pose.type,
+                    icon: pose.icone,
+                    editable: true,
+                    kind: 'pinned',
+                    devoirsBloc: true
+                });
+            });
+        }
     }
 
-    /* 4) Sans semaine d'examens : les révisions des devoirs à venir
-       (dans les trois jours) se posent dans les moments libres. */
+    /* 4) Les devoirs à venir : dès l'ajout, des révisions se posent
+       dans les moments libres (plus seulement la veille). */
     var prochains = (store.devoirs || []).filter(function (d) {
         var t = devoirsInstant(d.date, d.fin).getTime();
-        return t >= maintenant.getTime() && t - maintenant.getTime() <= 3 * 86400000 && d.date !== cle;
-    });
+        return t >= maintenant.getTime() && d.date !== cle;
+    }).sort(function (a, b) { return devoirsInstant(a.date, a.debut) - devoirsInstant(b.date, b.debut); });
     if (prochains.length) {
         var vues = {};
         var epreuvesUniques = [];
