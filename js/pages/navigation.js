@@ -36,6 +36,10 @@ function navigateTo(page) {
     } else if (page === 'legende') {
         var legende = document.getElementById('panelLegende');
         if (legende) legende.classList.add('active');
+    } else if (page === 'devoirs') {
+        var devoirs = document.getElementById('panelDevoirs');
+        if (typeof initDevoirs === 'function') initDevoirs();
+        if (devoirs) devoirs.classList.add('active');
     } else if (page === 'eeia') {
         var eeia = document.getElementById('panelEEia');
         if (typeof renderEEia === 'function') renderEEia();

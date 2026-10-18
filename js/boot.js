@@ -29,7 +29,7 @@
         }
     }
 
-var version = '20261017m';
+var version = '20261017n';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
@@ -80,6 +80,16 @@ var version = '20261017m';
         if (status) status.hidden = true;
         window.__STUDYPLAN_READY = true;
         if (typeof memoireHistoriqueActiver === 'function') memoireHistoriqueActiver();
+        /* Les élèves de DP2 déjà inscrits n'ont jamais répondu à la
+           question du bac national : on la leur pose une seule fois. */
+        setTimeout(function () {
+            if (typeof devoirsPoserQuestionBac === 'function' && typeof devoirsLireStore === 'function') {
+                var store = devoirsLireStore();
+                if (store.bac === null && typeof ibYear !== 'undefined' && ibYear === 'DP2' && window.__profilComplet) {
+                    try { devoirsPoserQuestionBac(); } catch (e) {}
+                }
+            }
+        }, 1200);
         /* L'écran s'efface en douceur : la lumière s'éteint, la page reste. */
         setTimeout(function () {
             document.body.classList.remove('booting', 'boot-fini');

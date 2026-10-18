@@ -1,0 +1,102 @@
+<!-- ============================================================
+     PAGE : Devoirs & Examens
+     Deux parties : les devoirs (composition + révisions) et les
+     examens (programme de révisions sur deux semaines).
+     Script : js/pages/devoirs.js
+     ============================================================ -->
+<div class="app-panel" id="panelDevoirs">
+        <div style="max-width:520px;margin:0 auto;padding:0 1rem 5rem;">
+            <!-- Header -->
+            <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+                <div style="display:flex;align-items:center;gap:0.75rem;">
+                    <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
+                    <div><h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Devoirs et Examens</h2><p style="font-size:0.75rem;color:#6b7280;">Tes compositions et ton programme de révisions</p></div>
+                </div>
+            </div>
+
+            <!-- Réglage du bac national (DP2) -->
+            <div id="devoirsReglageBac" style="display:none;margin-bottom:1rem;"></div>
+
+            <!-- Onglets -->
+            <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1rem;">
+                <button id="ongletBtn-devoirs" onclick="devoirsBasculerOnglet('devoirs')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;">📝 Devoirs</button>
+                <button id="ongletBtn-examens" onclick="devoirsBasculerOnglet('examens')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;">🎓 Examens</button>
+            </div>
+
+            <!-- Onglet Devoirs -->
+            <div id="onglet-devoirs">
+                <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:#065f46;line-height:1.5;">
+                    Photographie (ou colle le texte de) l'emploi du temps de tes devoirs : les heures de composition entrent dans <strong>Mon Planning</strong>, et des heures de révision se posent dans les moments où tu n'es pas en cours.
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">📷 Le document des devoirs</label>
+                    <div onclick="document.getElementById('devoirsFichier').click()" style="border:2px dashed #a7f3d0;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffa;">
+                        <p style="margin:0;font-size:1.5rem;">📷</p>
+                        <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#065f46;">Choisis une photo du document</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
+                    </div>
+                    <input type="file" id="devoirsFichier" accept="image/*" style="display:none;" onchange="devoirsLireDocument()">
+                    <textarea id="devoirsTexteColle" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
+                    <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
+                    <p id="devoirsOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                    <div id="devoirsConfirmation" style="margin-top:0.6rem;"></div>
+                    <datalist id="devoirsMatiereListe"></datalist>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">✍️ Ou ajoute un devoir à la main</label>
+                    <input id="devManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Mathématiques)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
+                    <div style="display:flex;gap:0.5rem;">
+                        <input id="devManuelDate" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <input id="devManuelDebut" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <input id="devManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                    </div>
+                    <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #a7f3d0;border-radius:0.8rem;background:#ecfdf5;color:#065f46;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter le devoir</button>
+                    <p id="devoirsAjoutStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">📋 Mes devoirs</label>
+                    <div id="devoirsListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+                </div>
+            </div>
+
+            <!-- Onglet Examens -->
+            <div id="onglet-examens" style="display:none;">
+                <div style="background:#f0fdfa;border:1.5px solid #99f6e4;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:#134e4a;line-height:1.55;">
+                    Charge le planning de tes examens <strong>une semaine à l'avance</strong>. Pendant la semaine qui précède, ton planning ne contient plus que des <strong>révisions et des exercices</strong> sur les matières à examiner — plus de CAS, ni mémoire, ni évaluation interne. La semaine des épreuves, chaque examen apparaît à son heure, avec quelques révisions pour ce qui reste à composer : <strong>une matière composée n'est plus jamais révisée</strong>. Après la dernière épreuve, ton planning redevient normal tout seul.
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">📷 Le planning des examens</label>
+                    <div onclick="document.getElementById('devoirsFichierExam').click()" style="border:2px dashed #99f6e4;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffe;">
+                        <p style="margin:0;font-size:1.5rem;">📷</p>
+                        <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
+                    </div>
+                    <input type="file" id="devoirsFichierExam" accept="image/*" style="display:none;">
+                    <textarea id="devoirsTexteColleExam" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
+                    <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#0d9488,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le planning</button>
+                    <p id="exaOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">✍️ Ou ajoute un examen à la main</label>
+                    <input id="exaManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Physique)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
+                    <div style="display:flex;gap:0.5rem;">
+                        <input id="exaManuelDate" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <input id="exaManuelDebut" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <input id="exaManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                    </div>
+                    <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #99f6e4;border-radius:0.8rem;background:#f0fdfa;color:#134e4a;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter l'examen</button>
+                    <p id="exaAjoutStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">🎓 Mes examens</label>
+                    <div id="examensListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>

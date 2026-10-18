@@ -335,5 +335,17 @@ function handleAddSubject(select) {
 }
 
 function validateSubjects() {
-    if (isSubjectsValid() && typeof showSleepPage === 'function') showSleepPage();
+    if (!isSubjectsValid()) return;
+    /* En DP2, juste après les matières (l'emploi du temps scolaire se
+       construit ici), on demande si l'élève fait le bac national. */
+    if (typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsPoserQuestionBac === 'function') {
+        var store = typeof devoirsLireStore === 'function' ? devoirsLireStore() : { bac: null };
+        if (store.bac !== true && store.bac !== false) {
+            devoirsPoserQuestionBac(function () {
+                if (typeof showSleepPage === 'function') showSleepPage();
+            });
+            return;
+        }
+    }
+    if (typeof showSleepPage === 'function') showSleepPage();
 }

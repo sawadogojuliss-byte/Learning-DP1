@@ -19,6 +19,7 @@ function memoireJson(key) {
 var MEMOIRE_PAGES = {
     panelSoutien: 'soutien',
     panelExercices: 'exercices',
+    panelDevoirs: 'devoirs',
     panelLegende: 'legende',
     panelEEia: 'eeia',
     panelFeries: 'feries',
@@ -72,7 +73,7 @@ function memoireLireEtat() {
     }
 
     var etape = memoireEtapeActive();
-    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'devoirs' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
     }
@@ -137,6 +138,7 @@ function memoireLireEtat() {
         })(),
         emploiFige: typeof emploiFige !== 'undefined' && emploiFige ? emploiFige : null,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
+        devoirsStore: typeof devoirsStoreCompact === 'function' ? devoirsStoreCompact() : null,
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
         joursConnectes: (function () {
             var n = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
@@ -325,6 +327,19 @@ function memoireAppliquer(data, opts) {
         else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
     }
 
+    if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
+        /* Les devoirs, les examens et la réponse au bac national reviennent
+           avec le compte. */
+        var recu = data.devoirsStore;
+        if (recu && typeof recu === 'object') {
+            var actuel = devoirsLireStore();
+            devoirsEcrireStore({
+                bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
+                devoirs: Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs,
+                examens: Array.isArray(recu.examens) ? recu.examens : actuel.examens
+            });
+        }
+    }
     if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
     else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
@@ -440,7 +455,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
+    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&

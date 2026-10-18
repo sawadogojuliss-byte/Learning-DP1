@@ -399,6 +399,8 @@ function planningOccupe(placed, start, end) {
 
 function coursEconomieSamedi(ev, dayIndex) {
     if (!ev) return true;
+    /* Seuls les élèves qui préparent le bac national perdent ce cours. */
+    if (!(typeof devoirsFaitBac === 'function' && devoirsFaitBac())) return false;
     var jour = dayIndex != null ? dayIndex : ev.day;
     if (Number(jour) !== 5) return false;
     if (ev.id === 'eco' || ev.replacesId === 'eco') return true;
@@ -1055,12 +1057,22 @@ function v3Repas(jour) {
 function generateDayEvents(dayIndex) {
     var jour = Number(dayIndex);
     if (!isFinite(jour) || jour < 0) jour = 0;
-    if (emploiGelSuspendu || window.__emploiCalculBrut) return v3Repas(planningGarantirJour(genererJourBrut(jour)));
-    if (typeof verrouillerSujetsChoisis === 'function') {
-        try { verrouillerSujetsChoisis(); } catch (e) {}
+    var evts;
+    if (emploiGelSuspendu || window.__emploiCalculBrut) {
+        evts = v3Repas(planningGarantirJour(genererJourBrut(jour)));
+    } else {
+        if (typeof verrouillerSujetsChoisis === 'function') {
+            try { verrouillerSujetsChoisis(); } catch (e) {}
+        }
+        if (emploiEstFige() && emploiFige.jours[jour]) evts = v3Repas(planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour]))));
+        else evts = v3Repas(planningGarantirJour(emploiReconstruire(jour)));
+        /* Devoirs et examens : les blocs datés (compositions, épreuves,
+           révisions ciblées) s'ajoutent au jour affiché. */
+        if (typeof devoirsAdapterJour === 'function') {
+            try { evts = devoirsAdapterJour(evts, jour); } catch (e) {}
+        }
     }
-    if (emploiEstFige() && emploiFige.jours[jour]) return v3Repas(planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour]))));
-    return v3Repas(planningGarantirJour(emploiReconstruire(jour)));
+    return evts;
 }
 
 function planningDepuisProgression() {
@@ -1074,8 +1086,20 @@ function genererJourBrut(dayIndex) {
     const isWeekend = dayIndex >= 5;
     const isSaturday = dayIndex === 5;
     const isSunday = dayIndex === 6;
-    const wakeupTime = isWeekend ? (isSaturday ? saturdayWakeup : sundayWakeup) : weekdayWakeup;
-    const bedtime = (typeof bedtimeForDay === 'function') ? bedtimeForDay(dayIndex) : calculateBedtime(wakeupTime);
+    /* Samedi du bac national : le cours commence à 8h, on se lève comme
+       un jour d'école. */
+    const samediBac = isSaturday && typeof devoirsFaitBac === 'function' && devoirsFaitBac();
+    let wakeupTime = isWeekend ? (isSaturday ? saturdayWakeup : sundayWakeup) : weekdayWakeup;
+    if (samediBac) {
+        const reveilSamedi = timeToMinutes(saturdayWakeup);
+        if (reveilSamedi > 7 * 60) wakeupTime = '07:00';
+    }
+    /* Le coucher suit le réveil : avec le bac à 8h, on se couche assez
+       tôt pour garder au moins 5 heures de sommeil. */
+    const heuresSamedi = (typeof saturdaySleepHours === 'number' && isFinite(saturdaySleepHours)) ? saturdaySleepHours : null;
+    const bedtime = samediBac
+        ? calculateBedtime(wakeupTime, heuresSamedi)
+        : ((typeof bedtimeForDay === 'function') ? bedtimeForDay(dayIndex) : calculateBedtime(wakeupTime));
     const hMode = holidayBypass ? null : ((typeof holidayMode === 'function') ? holidayMode(dayIndex) : null);
     if (hMode === 'free') return [];
 
@@ -1246,6 +1270,15 @@ function genererJourBrut(dayIndex) {
 
     } else if (isSaturday) {
         poserPreparationMatin();
+        if (samediBac) {
+            /* Matinée du bac : trajet, puis cours du bac national de
+               8h00 à 13h00, puis retour à la maison. */
+            const trajetBac = trajetProfil();
+            chain('commute1', 'Trajet école', trajetBac.aller + ' min · départ ' + trajetBac.depart, trajetBac.aller, 'transport', trajetBac.icon, true);
+            fixed('bac-samedi', 'Bac national', '8h00 → 13h00', '08:00', '13:00', 'school', '🎓');
+            chain('commute2', 'Trajet maison', trajetBac.retour + ' min', trajetBac.retour, 'transport', trajetBac.icon, true);
+            fixerTrajet(events, 'commute1', debutTrajetAller(trajetBac.depart, trajetBac.aller, 8 * 60), trajetBac.aller);
+        }
         const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
@@ -1272,7 +1305,14 @@ function genererJourBrut(dayIndex) {
         chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
         fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
         fixed('lunch', 'Déjeuner', '', '12:30', '13:30', 'meal', '🍽️');
-        fixed('school2', 'Cours', '13h30 → ' + coursTexte(COURS_FIN), '13:30', coursHorloge(COURS_FIN), 'school', '🏫');
+        if (dayIndex === 4 && typeof devoirsFaitBac === 'function' && devoirsFaitBac()) {
+            /* Vendredi du bac national : l'après-midi se partage entre le
+               lycée et le cours du bac. */
+            fixed('school2', 'Cours', '13h30 → 14h55', '13:30', '14:55', 'school', '🏫');
+            fixed('bac-vendredi', 'Bac national', '14h55 → 16h25', '14:55', '16:25', 'school', '🎓');
+        } else {
+            fixed('school2', 'Cours', '13h30 → ' + coursTexte(COURS_FIN), '13:30', coursHorloge(COURS_FIN), 'school', '🏫');
+        }
         chain('commute2', 'Trajet maison', trajet.retour + ' min' + (trajet.retourHeure ? ' · ' + trajet.retourHeure : ''), trajet.retour, 'transport', trajet.icon, true);
         fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, COURS_DEBUT), trajet.aller);
         calerPreparation(events, 'commute1');
