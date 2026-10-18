@@ -675,7 +675,7 @@ function emploiFaitsSignature() {
             return p ? { id: p.id, text: p.text, done: !!p.done } : null;
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
-        reglesPlanning: '20261018a',
+        reglesPlanning: '20261018b',
         customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
             if (!e || e.id === 'boite-garde') return null;
             return {

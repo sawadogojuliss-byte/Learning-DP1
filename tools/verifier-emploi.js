@@ -9,7 +9,7 @@
    3. Le planning utilise les vrais cours : plus de créneaux « Cours »
       génériques, déjeuner dans le creux du midi, travail dans les
       heures creuses (révisions de la prochaine matière, exercices,
-      mémoire, IA, CAS), vendredi du bac réservé.
+      mémoire, IA — jamais de cours inventé), vendredi du bac réservé.
    ============================================================ */
 const fs = require('fs');
 const path = require('path');
@@ -49,7 +49,7 @@ ok(moteurJs.indexOf('function emploiScolaireSujets') !== -1, 'l\'extraction des 
 ok(planningMoteur.indexOf('cours-reel-') !== -1, 'le planning n\'utilise pas les vrais cours');
 ok(planningMoteur.indexOf('function emploiScolaireProgramme') !== -1, 'le planning doit suivre le programme des matières vues');
 ok(planningMoteur.indexOf('emploiScolaireCompact') !== -1, 'l\'emploi du temps doit faire partie des faits (reconstruction)');
-ok(planningMoteur.indexOf("'20261018a'") !== -1, 'les règles du planning doivent être versionnées pour reconstruire les plannings figés');
+ok(planningMoteur.indexOf("'20261018b'") !== -1, 'les règles du planning doivent être versionnées pour reconstruire les plannings figés');
 const fonctionContinuer = emploiJs.slice(emploiJs.indexOf('function validateEmploiTemps'));
 ok(fonctionContinuer.indexOf("classList.remove('active')") !== -1, 'Continuer doit fermer la page Emploi du temps (elle restait au-dessus du planning)');
 const fonctionRetour = emploiJs.slice(emploiJs.indexOf('function goBackFromEmploi'));
@@ -116,6 +116,34 @@ ok(context.emploiScolaireActif() === true, 'emploiScolaireActif');
 context.emploiScolaireVider();
 ok(context.emploiScolaireActif() === false, 'vider le store emploi du temps');
 
+/* une nouvelle analyse remplace celle d'avant : plus de cours doublés,
+   et un store déjà doublé se répare tout seul à la lecture */
+context.emploiPropositions = [
+    { cle: 'ep0', jour: 0, nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
+    { cle: 'ep1', jour: 0, nom: 'Physique', matiere: 'Physique', debut: '09:40', fin: '11:10' }
+];
+context.emploiConfirmerPropositions();
+ok(context.emploiScolaireJour(0).length === 2, 'première confirmation : 2 cours, trouvé ' + context.emploiScolaireJour(0).length);
+var stManuel = context.emploiScolaireLire();
+stManuel.jours[0].push({ id: 'manuel1', nom: 'Sport', matiere: '', debut: '14:00', fin: '15:00', src: 'manuel' });
+context.emploiScolaireEcrire(stManuel);
+context.emploiPropositions = [
+    { cle: 'ep0', jour: 0, nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
+    { cle: 'ep1', jour: 0, nom: 'Physique', matiere: 'Physique', debut: '09:40', fin: '11:10' }
+];
+context.emploiConfirmerPropositions();
+var apresReanalyse = context.emploiScolaireJour(0);
+ok(apresReanalyse.length === 3, 'la nouvelle analyse remplace l\u2019ancienne et garde le cours manuel : ' + apresReanalyse.length + ' cours');
+ok(apresReanalyse.filter(function (c) { return c.nom === 'Maths AA'; }).length === 1, 'reconfirmer le même document ne doit pas doubler les cours');
+ok(apresReanalyse.some(function (c) { return c.nom === 'Sport'; }), 'le cours ajouté à la main reste');
+context.emploiScolaireEcrire({ at: 'x', jours: [[
+    { id: 'a', nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
+    { id: 'b', nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
+    { id: 'c', nom: 'maths  aa', matiere: 'Maths AA', debut: '08:00', fin: '09:30' }
+], [], [], [], [], [], []] });
+ok(context.emploiScolaireJour(0).length === 1, 'un store déjà doublé se répare à la lecture, trouvé ' + context.emploiScolaireJour(0).length);
+context.emploiScolaireVider();
+
 /* le bouton Continuer referme la page et ouvre le planning ; le
    bouton Retour sait d'où l'élève vient */
 var fauxModales = {};
@@ -159,7 +187,8 @@ ok(trouMatin && trouMatin.fin === 11 * 60 + 10, 'le trou du matin : ' + JSON.str
 const trouMidi = context.emploiScolaireTrouMidi(coursLundi);
 ok(trouMidi && trouMidi.debut === 12 * 60 + 40, 'le creux du midi : ' + JSON.stringify(trouMidi && { d: trouMidi.debut, f: trouMidi.fin }));
 const blocsMatin = context.emploiScolaireBlocsTravail({ debut: 9 * 60 + 30, fin: 11 * 60 + 10, avant: coursLundi[1] }, { sujets: context.devoirsFamillesEleve ? [] : [], memoire: true, ia: false });
-ok(blocsMatin.some(function (b) { return b.titre.indexOf('CAS') !== -1; }), 'un trou sans matière suivie reçoit du travail : ' + JSON.stringify(blocsMatin.map(function (b) { return b.titre; })));
+ok(!blocsMatin.some(function (b) { return b.titre.indexOf('CAS') !== -1; }), 'le site ne doit plus inventer de bloc CAS que l\u2019élève n\u2019a pas');
+ok(blocsMatin.some(function (b) { return b.titre.indexOf('Mémoire') !== -1; }), 'un trou sans matière suivie reçoit du travail (le mémoire) : ' + JSON.stringify(blocsMatin.map(function (b) { return b.titre; })));
 
 /* ── 3. La chaîne complète du planning ────────────────────────────── */
 const store2 = {};
@@ -182,7 +211,7 @@ const contexteMoteur = {
     },
     subjects: [{ name: 'Maths AA', level: 'SL', icon: '🔢' }, { name: 'Physique', level: 'SL', icon: '⚛️' }],
     optionalSubjects: [{ name: 'ESS', level: 'SL', icon: '🌱' }],
-    ibYear: 'DP2',
+    ibYear: 'DP2', memoirLevel: 'en cours',
     weekdayWakeup: '05:30', saturdayWakeup: '08:30', sundayWakeup: '09:00',
     weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8,
     allSubj: [], customEvents: [], selectedActivities: [], phoneTime: 0, phoneDays: [],
@@ -228,6 +257,7 @@ ok(dejeuner && dejeuner.startTime >= '12:40' && dejeuner.endTime <= '13:25',
 const travailMatin = jourGenere.filter(function (ev) { return String(ev.id).indexOf('emploi-') === 0; });
 ok(travailMatin.length >= 1, 'le trou de 9h30-11h10 doit recevoir du travail, trouvé : ' + travailMatin.length);
 ok(travailMatin.every(function (ev) { return ev.startTime >= '09:30' && ev.endTime <= '11:10'; }), 'le travail du matin doit rester dans le trou');
+ok(!jourGenere.some(function (ev) { return String(ev.id).indexOf('emploi-cas') === 0; }), 'aucun bloc CAS ne doit exister dans le planning');
 const trajets = jourGenere.filter(function (ev) { return ev.id === 'commute1' || ev.id === 'commute2'; });
 ok(trajets.length === 2, 'les trajets encadrent la journée réelle');
 const arrivee = trajets.filter(function (ev) { return ev.id === 'commute1'; })[0];

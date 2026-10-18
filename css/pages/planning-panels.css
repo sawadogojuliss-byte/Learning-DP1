@@ -1278,7 +1278,7 @@ body.v3-deplacement, body.v3-deplacement * {
     user-select: none;
 }
 
-/* ─── MUSIQUE : Playlist (YouTube) et Sons de la page Séance ─── */
+/* ─── MUSIQUE : le panneau Sons de la page Séance de révision ─── */
 /* Panneaux flottants : au-dessus du minuteur et de la page des séances. */
 .musique-flottant {
     position: fixed;
@@ -1290,101 +1290,6 @@ body.v3-deplacement, body.v3-deplacement * {
     background: transparent;
 }
 .musique-flottant[hidden] { display: none; }
-.musique-flottant .focus-sons-carte { padding: 0.95rem 1rem 0.9rem 1.15rem; }
-.focus-playlist-carte { width: min(46rem, 100%) !important; }
-.focus-playlist-corps {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    padding: 0.9rem 0.5rem 0.2rem 0.1rem;
-}
-.fp-ajout { display: flex; gap: 0.5rem; }
-.fp-ajout input {
-    flex: 1;
-    min-width: 0;
-    height: 2.6rem;
-    border-radius: 0.85rem;
-    border: 1px solid rgba(255,255,255,0.18);
-    background: rgba(8, 12, 20, 0.72);
-    color: #fff;
-    font: inherit;
-    font-size: 0.85rem;
-    padding: 0 0.85rem;
-}
-.fp-ajout input::placeholder { color: rgba(255,255,255,0.45); }
-.fp-ajout input:focus { outline: none; border-color: #10b981; }
-.fp-ajout button {
-    height: 2.6rem;
-    padding: 0 1.05rem;
-    border-radius: 0.85rem;
-    border: none;
-    background: linear-gradient(135deg, #059669, #10b981);
-    color: #fff;
-    font: inherit;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    white-space: nowrap;
-}
-.fp-ajout button:hover { filter: brightness(1.1); }
-.fp-message { min-height: 1.05rem; margin: 0; font-size: 0.78rem; color: #fbbf24; line-height: 1.4; }
-.fp-message.ok { color: #34d399; }
-.fp-aide { margin: 0; font-size: 0.71rem; color: rgba(255,255,255,0.5); line-height: 1.4; }
-.fp-liste { display: flex; gap: 0.6rem; overflow-x: auto; padding: 0.15rem 0.1rem 0.4rem; align-items: stretch; }
-.fp-carte {
-    position: relative;
-    flex: 0 0 auto;
-    width: 8.6rem;
-    border: 1.5px solid rgba(255,255,255,0.14);
-    background: rgba(8, 12, 20, 0.6);
-    border-radius: 0.85rem;
-    overflow: hidden;
-    color: #fff;
-    cursor: pointer;
-    text-align: left;
-    transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
-}
-.fp-carte:hover { border-color: rgba(255,255,255,0.4); transform: translateY(-2px); }
-.fp-carte.is-on { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
-.fp-carte img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #123; }
-.fp-carte-visuel { width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
-.fp-carte-visuel.youtube { background: linear-gradient(135deg, #7f1d1d, #ef4444); }
-.fp-carte-texte { padding: 0.4rem 0.55rem 0.5rem; }
-.fp-carte-texte p { margin: 0; font-size: 0.74rem; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fp-carte-texte span { font-size: 0.65rem; color: rgba(255,255,255,0.55); }
-.fp-carte-suppr {
-    position: absolute;
-    top: 0.3rem;
-    right: 0.3rem;
-    width: 1.45rem;
-    height: 1.45rem;
-    border-radius: 999px;
-    border: none;
-    background: rgba(0,0,0,0.55);
-    color: #fff;
-    cursor: pointer;
-    font: inherit;
-    font-size: 0.72rem;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.fp-carte-suppr:hover { background: #dc2626; }
-.fp-vide { margin: 0; font-size: 0.8rem; color: rgba(255,255,255,0.5); line-height: 1.45; }
-.fp-lecteur {
-    flex: none;
-    border-radius: 1rem;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: #000;
-    box-shadow: 0 14px 40px rgba(0,0,0,0.35);
-}
-.fp-lecteur iframe { display: block; width: 100%; border: none; }
-.fp-lecteur.youtube iframe { aspect-ratio: 16 / 9; height: auto; }
 /* La barre musique de la page Séance de révision du jour. */
 .focus-accueil-musique {
     position: absolute;
@@ -1396,21 +1301,5 @@ body.v3-deplacement, body.v3-deplacement * {
 }
 @media (max-width: 700px) {
     .musique-flottant { inset: 3.2rem 0.4rem 4.8rem; }
-    .focus-playlist-corps { padding: 0.7rem 0.35rem 0.2rem 0.1rem; }
-    .fp-carte { width: 7.2rem; }
     .focus-accueil-musique { right: 0.8rem; bottom: 0.8rem; }
 }
-/* La porte de secours sous le lecteur : si YouTube refuse de jouer
-   dans le site, l'élève ouvre sa playlist sur YouTube en un clic. */
-.fp-secours {
-    display: block;
-    padding: 0.45rem 0.7rem;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.75);
-    background: rgba(255,255,255,0.06);
-    border-top: 1px solid rgba(255,255,255,0.12);
-    text-decoration: none;
-    text-align: center;
-}
-.fp-secours:hover { color: #fff; background: rgba(255,255,255,0.12); }

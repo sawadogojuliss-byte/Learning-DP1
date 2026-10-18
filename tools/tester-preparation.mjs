@@ -18,8 +18,8 @@
  *      creux, et matières vues au programme de tout le planning ;
  *   9. le bouton Continuer de la page Emploi du temps ouvre vraiment
  *      le planning, le Retour y ramène depuis le menu ;
- *  10. la musique : tomate au menu Pomodoro, section Playlist
- *      (YouTube) à côté des Sons sur les deux pages, Spotify retiré.
+ *  10. la musique : tomate au menu Pomodoro, panneau Sons sur la page
+ *      Séance, section Playlist totalement retirée.
  */
 import { chromium } from 'playwright';
 
@@ -215,8 +215,8 @@ await page.waitForFunction(() =>
     !document.getElementById('emploiModal').classList.contains('active') &&
     document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });
 
-/* 10. la musique : la tomate au menu Pomodoro, la section Playlist
-   (Spotify · YouTube) à côté des Sons sur les deux pages musique */
+/* 10. la musique : la tomate au menu Pomodoro, le panneau Sons sur la
+   page Séance du jour, et la section Playlist totalement retirée */
 const menuPomodoro = await page.evaluate(() => {
     const bouton = document.getElementById('menuMinuteur');
     return bouton ? bouton.textContent : '';
@@ -224,82 +224,23 @@ const menuPomodoro = await page.evaluate(() => {
 if (menuPomodoro.indexOf('🍅') === -1 || menuPomodoro.indexOf('⏱') !== -1) {
     echec("le menu Pomodoro doit montrer une tomate 🍅 et non le minuteur : " + menuPomodoro);
 }
-if (!await page.evaluate(() => !!document.getElementById('focusBtnPlaylist'))) {
-    echec("le bouton Playlist doit exister à côté du bouton Sons du minuteur");
+if (await page.evaluate(() => !!document.getElementById('focusBtnPlaylist'))) {
+    echec("le bouton Playlist doit avoir disparu du minuteur");
 }
 await page.evaluate(() => { navigateTo('seances'); });
-const boutonsSeances = await page.evaluate(() => ({
+const pageSeances = await page.evaluate(() => ({
     sons: !!document.getElementById('accueilBtnSons'),
-    playlist: !!document.getElementById('accueilBtnPlaylist')
+    playlist: !!document.getElementById('accueilBtnPlaylist'),
+    panneauPlaylist: !!document.getElementById('focusPlaylist'),
+    playlistLire: typeof playlistLire !== 'undefined'
 }));
-if (!boutonsSeances.sons || !boutonsSeances.playlist) {
-    echec('la page Séance de révision du jour doit avoir les boutons Sons et Playlist');
+if (!pageSeances.sons) {
+    echec("la page Séance de révision du jour doit avoir le bouton Sons");
 }
-const playlistOuverte = await page.evaluate(() => {
-    focusBasculerPlaylist();
-    const panneau = document.getElementById('focusPlaylist');
-    return panneau && !panneau.hidden;
-});
-if (!playlistOuverte) {
-    echec("le panneau Playlist ne s'ouvre pas depuis la page Séance du jour");
-}
-/* les Mix automatiques sont refusés avec la marche à suivre, et un
-   lien watch?v=…&list=… démarre le lecteur sur cette vidéo */
-const refusMix = await page.evaluate(() => {
-    return playlistAjouterLien('https://www.youtube.com/watch?v=abcdefghijk&list=RDGMEMmixE2E');
-});
-if (refusMix.ok || refusMix.message.indexOf('Mix') === -1) {
-    echec('un lien de Mix doit être refusé avec la marche à suivre : ' + JSON.stringify(refusMix));
-}
-const ajouts = await page.evaluate(() => {
-    const watch = playlistAjouterLien('https://www.youtube.com/watch?v=vidE2E12345&list=PLwatchE2E');
-    playlistPeindre();
-    return { ok: watch.ok, embed: playlistLire().liste.filter(p => p.cle === 'PLwatchE2E')[0].embed,
-        secours: (document.querySelector('#fpLecteur .fp-secours') || {}).href || '' };
-});
-if (!ajouts.ok || ajouts.embed !== 'https://www.youtube-nocookie.com/embed/vidE2E12345?list=PLwatchE2E') {
-    echec('le lecteur doit démarrer sur la vidéo du lien watch : ' + JSON.stringify(ajouts));
-}
-if (ajouts.secours.indexOf('PLwatchE2E') === -1 && ajouts.secours.indexOf('list=') === -1) {
-    echec('la porte de secours vers YouTube manque sous le lecteur : ' + JSON.stringify(ajouts));
-}
-
-const lecteurs = await page.evaluate(() => {
-    const youtube = playlistAjouterLien('https://www.youtube.com/playlist?list=PLE2Etest');
-    const spotify = playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=e2e');
-    const musique = playlistAjouterLien('https://music.youtube.com/playlist?list=RDCLB-e2e');
-    playlistPeindre();
-    const iframes = Array.from(document.querySelectorAll('#focusPlaylist iframe')).map(f => f.src);
-    const cartes = Array.from(document.querySelectorAll('#fpListe .fp-carte')).length;
-    return { youtubeOk: youtube.ok, spotifyOk: spotify.ok, spotifyMessage: spotify.message || '', musiqueOk: musique.ok, iframes: iframes, cartes: cartes };
-});
-if (!lecteurs.youtubeOk || !lecteurs.musiqueOk) {
-    echec('les liens de playlists YouTube doivent être acceptés : ' + JSON.stringify(lecteurs));
-}
-if (lecteurs.spotifyOk || lecteurs.spotifyMessage.indexOf('YouTube') === -1) {
-    echec('un lien Spotify doit être refusé avec un message qui guide vers YouTube : ' + JSON.stringify(lecteurs));
-}
-if (lecteurs.cartes < 2) {
-    echec('les deux playlists YouTube doivent apparaître dans la liste : ' + JSON.stringify(lecteurs));
-}
-if (!lecteurs.iframes.some(src => src.indexOf('/embed/videoseries?list=') !== -1)) {
-    echec('le lecteur YouTube intégré manque : ' + JSON.stringify(lecteurs.iframes));
-}
-/* toucher la première carte affiche son lecteur */
-const carteActivee = await page.evaluate(() => {
-    const store = playlistLire();
-    const premiere = store.liste[0];
-    if (!premiere) return '';
-    playlistActiver(premiere.id);
-    playlistPeindre();
-    const cadre = document.querySelector('#focusPlaylist iframe');
-    return cadre ? cadre.src : '';
-});
-if (carteActivee.indexOf('youtube-nocookie.com/embed/') === -1 || carteActivee.indexOf('list=') === -1) {
-    echec('le lecteur de la playlist activée manque : ' + carteActivee);
+if (pageSeances.playlist || pageSeances.panneauPlaylist || pageSeances.playlistLire) {
+    echec('la section Playlist doit avoir totalement disparu : ' + JSON.stringify(pageSeances));
 }
 const sonsAccueil = await page.evaluate(() => {
-    focusFermerMusique();
     focusBasculerSonsAccueil();
     const panneau = document.getElementById('accueilSons');
     const grille = document.querySelectorAll('#accueilSonsGrille .focus-son').length;
@@ -308,7 +249,15 @@ const sonsAccueil = await page.evaluate(() => {
 if (!sonsAccueil.ouvert || sonsAccueil.grille < 10) {
     echec("le panneau Sons de la page Séance du jour ne s'affiche pas ou sa grille est vide : " + JSON.stringify(sonsAccueil));
 }
-await page.evaluate(() => { focusFermerMusique(); });
+/* la navigation referme le panneau des sons */
+await page.evaluate(() => { navigateTo('planning'); });
+const panneauReferme = await page.evaluate(() => {
+    const panneau = document.getElementById('accueilSons');
+    return !panneau || panneau.hidden;
+});
+if (!panneauReferme) {
+    echec("la navigation doit refermer le panneau des sons de la page Séance");
+}
 
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
@@ -320,4 +269,4 @@ console.log('ok préparation en vrai navigateur : séance du devoir visible aujo
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
     + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
     + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
-    + 'tomate au menu Pomodoro, section Playlist YouTube jouant dans le site à côté des Sons sur les deux pages musique (Spotify retiré), 0 erreur JavaScript');
+    + 'tomate au menu Pomodoro, panneau Sons sur la page Séance du jour, section Playlist retirée, 0 erreur JavaScript');

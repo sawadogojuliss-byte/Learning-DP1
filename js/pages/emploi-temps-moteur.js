@@ -2,7 +2,9 @@
    MOTEUR DE L'EMPLOI DU TEMPS SCOLAIRE
    Les heures creuses de la journée d'école (trous entre deux cours)
    reçoivent du travail, par priorité : révisions et exercices de la
-   prochaine matière, puis mémoire, puis évaluation interne, puis CAS.
+   prochaine matière, puis mémoire, puis évaluation interne. Rien
+   d'autre n'est inventé : pas de CAS ni d'activité que l'élève
+   n'a pas — ce qui ne rentre pas reste du temps libre.
    ============================================================ */
 
 /* Les trous entre deux cours d'une journée : assez grands pour
@@ -36,11 +38,12 @@ function emploiScolaireTrouMidi(cours) {
    1. révisions de la prochaine matière (celle du cours qui suit le
       trou), puis ses exercices ;
    2. mémoire (EE) ;
-   3. évaluation interne (IA) ;
-   4. CAS.
+   3. évaluation interne (IA).
    Chaque bloc est limité par la place du trou ; ce qui ne rentre pas
-   attend un autre trou. Renvoie une liste de blocs {id, titre, sous,
-   duree, couleur, icone, type}. */
+   attend un autre trou. Rien d'autre : le site n'invente ni CAS ni
+   activité que l'élève n'a pas — le reste du trou reste libre.
+   Renvoie une liste de blocs {id, titre, sous, duree, couleur, icone,
+   type}. */
 function emploiScolaireBlocsTravail(trou, opts) {
     var o = opts || {};
     var place = trou.fin - trou.debut - 10; /* 10 min de respiration */
@@ -76,10 +79,6 @@ function emploiScolaireBlocsTravail(trou, opts) {
     /* 3) l'évaluation interne */
     if (o.ia && place >= 20) {
         pousser('emploi-ia-' + trou.debut, 'Évaluation interne', 'Avancer pendant le creux', 40, '#8b5cf6', '🧪', 'ia');
-    }
-    /* 4) le CAS */
-    if (place >= 20) {
-        pousser('emploi-cas-' + trou.debut, 'CAS', 'Créativité · Action · Service', 40, '#06b6d4', '🤝', 'activity');
     }
     return blocs;
 }

@@ -3,7 +3,7 @@
    L'élève dépose le document de son emploi du temps (PDF ou photo) :
    le site lit ses vrais cours, le planning remplace les créneaux
    « Cours » par les matières réelles, et les heures creuses reçoivent
-   du travail (révisions, exercices, mémoire, IA, CAS).
+   du travail (révisions, exercices, mémoire, IA).
    Le document sert de modèle hebdomadaire, remplaçable à tout moment.
    Vue : pages/emploi-temps.html — moteur : js/pages/emploi-temps-moteur.js
    ============================================================ */
@@ -19,10 +19,20 @@ function emploiScolaireLire() {
         var d = JSON.parse(localStorage.getItem(EMPLOI_CLE) || 'null');
         if (d && typeof d === 'object' && Array.isArray(d.jours) && d.jours.length === 7) {
             var jours = d.jours.map(function (j) {
-                return (Array.isArray(j) ? j : []).filter(function (c) {
+                var propres = (Array.isArray(j) ? j : []).filter(function (c) {
                     return c && c.id && c.debut && c.fin && /^\d{2}:\d{2}$/.test(c.debut) && /^\d{2}:\d{2}$/.test(c.fin);
                 }).map(function (c) {
-                    return { id: String(c.id), nom: String(c.nom || '').slice(0, 80), matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin };
+                    return { id: String(c.id), nom: String(c.nom || '').slice(0, 80), matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin, src: c.src === 'doc' || c.src === 'manuel' ? c.src : '' };
+                });
+                /* Un même cours enregistré deux fois (une analyse confirmée
+                   deux fois, par exemple) n'apparaît qu'une fois : les
+                   plannings déjà doublés se réparent tout seuls. */
+                var vus = {};
+                return propres.filter(function (c) {
+                    var cle = c.debut + '|' + c.fin + '|' + String(c.nom).toLowerCase().replace(/\s+/g, ' ').trim();
+                    if (vus[cle]) return false;
+                    vus[cle] = 1;
+                    return true;
                 }).sort(function (a, b) { return a.debut < b.debut ? -1 : 1; });
             });
             return { at: d.at || '', jours: jours };
@@ -386,8 +396,16 @@ function emploiViderPropositions() {
 
 function emploiConfirmerPropositions() {
     var store = emploiScolaireLire();
+    /* Le nouveau document remplace le modèle du précédent document :
+       les cours venus d'une ancienne analyse disparaissent (avant, ils
+       s'ajoutaient aux anciens et tout semblait doublé), ceux ajoutés
+       à la main restent. */
+    store.jours = store.jours.map(function (j) {
+        return j.filter(function (c) { return c.src !== 'doc'; });
+    });
     var ajoutes = 0;
     var refuse = '';
+    var vues = {};
     emploiPropositions.forEach(function (p) {
         var el = document.querySelector('[data-eprop="' + p.cle + '"]');
         var jour = p.jour, nom = p.nom, debut = p.debut, fin = p.fin;
@@ -401,7 +419,10 @@ function emploiConfirmerPropositions() {
             refuse = 'Certaines lignes incomplètes n\u2019ont pas été enregistrées.';
             return;
         }
-        store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin });
+        var cle = jour + '|' + debut + '|' + fin + '|' + String(nom).toLowerCase().replace(/\s+/g, ' ').trim();
+        if (vues[cle]) return; /* la même ligne deux fois dans le document */
+        vues[cle] = 1;
+        store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: 'doc' });
         ajoutes++;
     });
     store.jours = store.jours.map(function (j) { return j.sort(function (a, b) { return a.debut < b.debut ? -1 : 1; }); });
@@ -427,7 +448,7 @@ function emploiAjouterManuel() {
         return;
     }
     var store = emploiScolaireLire();
-    store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin });
+    store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: 'manuel' });
     store.jours[jour].sort(function (a, b) { return a.debut < b.debut ? -1 : 1; });
     store.at = new Date().toISOString();
     emploiScolaireEcrire(store);
