@@ -675,7 +675,7 @@ function emploiFaitsSignature() {
             return p ? { id: p.id, text: p.text, done: !!p.done } : null;
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
-        reglesPlanning: '20261012d',
+        reglesPlanning: '20261018a',
         customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
             if (!e || e.id === 'boite-garde') return null;
             return {
@@ -1263,7 +1263,10 @@ function genererJourBrut(dayIndex) {
 
     if (isSunday) {
         poserPreparationMatin();
-        const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+        /* Avec un emploi du temps chargé, les matières vues dans la
+           semaine passent avant le complément. */
+        const programmeWeekEnd = typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(dayIndex) : null;
+        const fileRev = (programmeWeekEnd && programmeWeekEnd.length) ? programmeWeekEnd : (typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj);
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
         if (s1) chain('study1', 'Révisions ' + s1.name, sousTitreMatiere(s1), dureeEtude(s1, 90, 60), couleurMatiere(s1), s1.icon, true);
@@ -1293,7 +1296,10 @@ function genererJourBrut(dayIndex) {
             chain('commute2', 'Trajet maison', trajetBac.retour + ' min', trajetBac.retour, 'transport', trajetBac.icon, true);
             fixerTrajet(events, 'commute1', debutTrajetAller(trajetBac.depart, trajetBac.aller, 8 * 60), trajetBac.aller);
         }
-        const fileRev = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+        /* Avec un emploi du temps chargé, les matières vues dans la
+           semaine passent avant le complément. */
+        const programmeWeekEnd = typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(dayIndex) : null;
+        const fileRev = (programmeWeekEnd && programmeWeekEnd.length) ? programmeWeekEnd : (typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj);
         const i1 = fileRev.length ? dayIndex % fileRev.length : 0;
         const s1 = fileRev[i1];
         if (s1) chain('study1', 'Révisions ' + s1.name, sousTitreMatiere(s1), dureeEtude(s1, 90, 60), couleurMatiere(s1), s1.icon, true);
@@ -1405,22 +1411,40 @@ function genererJourBrut(dayIndex) {
         calerPreparation(events, 'commute1');
         fixerTrajet(events, 'commute2', debutTrajetRetour(COURS_FIN, trajet.retourHeure), trajet.retour);
         }
-        const mainSubj = typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % Math.max(1, allSubj.length)];
+        /* Le programme du planning suit l'emploi du temps scolaire : le
+           soir, on révise d'abord les matières vues ce jour-là (ordre de
+           l'emploi du temps), puis les autres matières en complément. */
+        const programmeJour = typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(dayIndex) : null;
+        const mainSubj = (programmeJour && programmeJour.length)
+            ? programmeJour[0]
+            : (typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % Math.max(1, allSubj.length)]);
         if (mainSubj) chain('study1', 'Révisions ' + mainSubj.name, sousTitreMatiere(mainSubj), dureeEtude(mainSubj, 90, 60), couleurMatiere(mainSubj), mainSubj.icon, true);
         const sciNames = ['Mathématiques', 'Physique', 'Chimie', 'Biologie'];
-        const sciSubj = allSubj.filter(s => sciNames.some(n => s.name.includes(n)));
         const mainIsSci = mainSubj && sciNames.some(n => mainSubj.name.includes(n));
-        if (sciSubj.length > 0 && !mainIsSci) {
-            const exSubj = typeof sujetDuJour === 'function' ? sujetDuJour(sciSubj, dayIndex) : sciSubj[dayIndex % sciSubj.length];
-            if (exSubj) chain('exercises', 'Exercices ' + exSubj.name, sousTitreMatiere(exSubj), dureeEtude(exSubj, 45, 30), couleurMatiere(exSubj), '✏️', true);
+        var exSubj = null;
+        if (!mainIsSci) {
+            if (programmeJour && programmeJour.length) {
+                /* les exercices prennent d'abord une science vue dans la
+                   journée, puis la science habituelle */
+                exSubj = programmeJour.filter(s => sciNames.some(n => s.name.includes(n)))[0] || null;
+            }
+            if (!exSubj) {
+                const sciSubj = allSubj.filter(s => sciNames.some(n => s.name.includes(n)));
+                if (sciSubj.length > 0) exSubj = typeof sujetDuJour === 'function' ? sujetDuJour(sciSubj, dayIndex) : sciSubj[dayIndex % sciSubj.length];
+            }
         }
-        var fileSemaine = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+        if (exSubj) chain('exercises', 'Exercices ' + exSubj.name, sousTitreMatiere(exSubj), dureeEtude(exSubj, 45, 30), couleurMatiere(exSubj), '✏️', true);
         var s2sem = null;
-        if (fileSemaine.length > 1 && mainSubj) {
-            var kSem;
-            for (kSem = 1; kSem < fileSemaine.length; kSem++) {
-                var cand = fileSemaine[(dayIndex + kSem) % fileSemaine.length];
-                if (cand && cand.name !== mainSubj.name) { s2sem = cand; break; }
+        if (programmeJour && programmeJour.length > 1) {
+            s2sem = programmeJour[1];
+        } else {
+            var fileSemaine = typeof filePriorite === 'function' ? filePriorite(allSubj) : allSubj;
+            if (fileSemaine.length > 1 && mainSubj) {
+                var kSem;
+                for (kSem = 1; kSem < fileSemaine.length; kSem++) {
+                    var cand = fileSemaine[(dayIndex + kSem) % fileSemaine.length];
+                    if (cand && cand.name !== mainSubj.name) { s2sem = cand; break; }
+                }
             }
         }
         if (s2sem) chain('study2', 'Révisions ' + s2sem.name, sousTitreMatiere(s2sem), dureeEtude(s2sem, 75, 45), couleurMatiere(s2sem), s2sem.icon, true);
@@ -1508,7 +1532,7 @@ function planningEstActiviteEleve(ev) {
 }
 
 function planningSujetDeRemplacement(dayIndex, interdit, list) {
-    var all = planningSujetsSaisis();
+    var all = (typeof emploiScolaireProgramme === 'function' && emploiScolaireProgramme(dayIndex)) || planningSujetsSaisis();
     var uses = {};
     (list || []).forEach(function (ev) {
         var cle = planningCleActivite(ev);
@@ -1651,7 +1675,12 @@ function assurerRevision(events, dayIndex) {
     if (typeof subjects !== 'undefined' && subjects) all = all.concat(subjects);
     if (typeof optionalSubjects !== 'undefined' && optionalSubjects) all = all.concat(optionalSubjects);
     if (deja || !all.length) return list;
-    var subj = typeof sujetDuJour === 'function' ? sujetDuJour(all, dayIndex) : all[dayIndex % all.length];
+    /* avec un emploi du temps chargé, la matière de secours est la
+       première matière vue dans la journée */
+    var programmeEmploi = typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(dayIndex) : null;
+    var subj = (programmeEmploi && programmeEmploi.length)
+        ? programmeEmploi[0]
+        : (typeof sujetDuJour === 'function' ? sujetDuJour(all, dayIndex) : all[dayIndex % all.length]);
     if (!subj) return list;
     var donor = null;
     ['freetime', 'phone'].forEach(function (id) {
@@ -1696,6 +1725,29 @@ function planningSujetsSaisis() {
     });
 }
 
+/* Le programme des matières d'un jour quand un emploi du temps scolaire
+   est chargé : les matières vues en classe passent en premier (celles
+   de la journée en semaine — le soir on révise ce qu'on a vu dans la
+   journée —, celles de la semaine le week-end), puis les autres
+   matières du profil en complément, pour n'en perdre aucune. Renvoie
+   null sans emploi du temps chargé ou sans matière reconnue : le
+   planning garde alors ses règles habituelles. */
+function emploiScolaireProgramme(dayIndex) {
+    if (typeof emploiScolaireActif !== 'function' || !emploiScolaireActif() || typeof emploiScolaireSujets !== 'function') return null;
+    var jour = Number(dayIndex);
+    var vues = emploiScolaireSujets((jour >= 0 && jour <= 4) ? jour : null);
+    if (!vues.length) return null;
+    var tout = planningSujetsSaisis();
+    var vus = {};
+    var out = [];
+    vues.concat(tout).forEach(function (s) {
+        if (!s || !s.name || vus[s.name]) return;
+        vus[s.name] = 1;
+        out.push(s);
+    });
+    return out;
+}
+
 function planningBlocManquant(id, title, subtitle, dur, type, icon) {
     return { id: id, title: title, subtitle: subtitle || '', duree: dur, type: type, icon: icon || '📌' };
 }
@@ -1705,7 +1757,7 @@ function planningManquesDuJour(events, dayIndex) {
     var ids = {};
     (events || []).forEach(function (ev) { if (ev && ev.id) ids[ev.id] = true; });
     var manques = [];
-    var sujets = planningSujetsSaisis();
+    var sujets = (typeof emploiScolaireProgramme === 'function' && emploiScolaireProgramme(dayIndex)) || planningSujetsSaisis();
     if (sujets.length && !/Révisions|Exercices/.test(titres)) {
         var subj = sujets[dayIndex % sujets.length];
         manques.push(planningBlocManquant('study-page', 'Révisions ' + subj.name, typeof sousTitreMatiere === 'function' ? sousTitreMatiere(subj) : (subj.level || ''), dureeEtude(subj, 45, 30), typeof couleurMatiere === 'function' ? couleurMatiere(subj) : 'study', subj.icon || '📚'));
@@ -1895,8 +1947,16 @@ function closeProgramGaps(events, bedtime, dayIndex) {
 
 function academicGapBlocks(start, end, dayIndex, seq) {
     const all = [];
-    if (typeof subjects !== 'undefined' && subjects) all.push.apply(all, subjects);
-    if (typeof optionalSubjects !== 'undefined' && optionalSubjects) all.push.apply(all, optionalSubjects);
+    /* Avec un emploi du temps chargé, les blocs de comblement suivent
+       aussi le programme des matières vues (jour en semaine, semaine le
+       week-end), dans cet ordre — sans rotation qui les re-mélange. */
+    var programmeEmploi = typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(dayIndex) : null;
+    if (programmeEmploi && programmeEmploi.length) {
+        all.push.apply(all, programmeEmploi);
+    } else {
+        if (typeof subjects !== 'undefined' && subjects) all.push.apply(all, subjects);
+        if (typeof optionalSubjects !== 'undefined' && optionalSubjects) all.push.apply(all, optionalSubjects);
+    }
     const turn = seq || { n: 0, memoir: 0, ia: 0, rev: 0 };
     const weekend = dayIndex === 5 || dayIndex === 6;
     const blocks = [];
@@ -1906,6 +1966,7 @@ function academicGapBlocks(start, end, dayIndex, seq) {
     }
     function sujetRevision() {
         if (!all.length) return null;
+        if (programmeEmploi && programmeEmploi.length) return all[turn.rev % all.length];
         if (typeof sujetDuJour === 'function') return sujetDuJour(all, dayIndex + turn.rev);
         return all[(dayIndex + turn.rev) % all.length];
     }

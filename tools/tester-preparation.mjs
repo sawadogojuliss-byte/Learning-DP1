@@ -13,6 +13,11 @@
  *      semaine affichée) ;
  *   5. le popup du bac ne revient pas (réponse déjà donnée) ;
  *   6. aucune erreur JavaScript.
+ *   7. l'analyse des documents ne propose que les matières de l'élève ;
+ *   8. l'emploi du temps scolaire : vrais cours, travail dans les
+ *      creux, et matières vues au programme de tout le planning ;
+ *   9. le bouton Continuer de la page Emploi du temps ouvre vraiment
+ *      le planning, le Retour y ramène depuis le menu.
  */
 import { chromium } from 'playwright';
 
@@ -180,6 +185,34 @@ if (!emploi.some(l => l.indexOf('emploi-') !== -1)) {
     echec("l'heure creuse 9h30-11h10 doit recevoir du travail : " + JSON.stringify(emploi.slice(0, 12)));
 }
 
+/* le programme du planning suit l'emploi du temps : le soir, les
+   matières vues dans la journée passent en premier, puis le complément */
+const programmeJour = await page.evaluate(function (idx) {
+    return emploiScolaireProgramme(idx).map(s => s.name);
+}, idxDemain);
+if (programmeJour.join(',') !== 'Mathématiques AA,Chimie,Physique') {
+    echec('le programme doit suivre l\'emploi du temps (matières vues puis complément) : ' + programmeJour.join(','));
+}
+if (!emploi.some(l => l.indexOf('study1|Révisions Mathématiques AA|') !== -1)) {
+    echec('le soir doit réviser la première matière vue dans la journée (Mathématiques AA) : ' + JSON.stringify(emploi.slice(0, 16)));
+}
+
+/* 9. le bouton Continuer de la page Emploi du temps mène vraiment au
+   planning (la page se ferme), et le Retour y ramène depuis le menu */
+await page.evaluate(() => { showEmploiPage(); });
+if (!await page.evaluate(() => document.getElementById('emploiModal').classList.contains('active'))) {
+    echec("la page Emploi du temps ne s'ouvre pas");
+}
+await page.click('#emploiModal .btn-continue');
+await page.waitForFunction(() =>
+    !document.getElementById('emploiModal').classList.contains('active') &&
+    document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });
+await page.evaluate(() => { navigateTo('emploi'); });
+await page.click('#emploiModal .btn-back');
+await page.waitForFunction(() =>
+    !document.getElementById('emploiModal').classList.contains('active') &&
+    document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });
+
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
     echec('erreurs JavaScript dans la page : ' + erreurs.join(' | ').slice(0, 400));
@@ -188,4 +221,5 @@ if (erreurs.length) {
 await browser.close();
 console.log('ok préparation en vrai navigateur : séance du devoir visible aujourd\u2019hui avec compte à rebours, '
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
-    + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, 0 erreur JavaScript');
+    + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
+    + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, 0 erreur JavaScript');

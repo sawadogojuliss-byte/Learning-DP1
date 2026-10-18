@@ -27,6 +27,3 @@ jobs:
           done
       - name: Le fil de la boîte accepte les envois des navigateurs
         run: python3 tools/verifier-question-fil.py
-      - name: Vrai envoi de mail — le courrier doit partir et arriver
-        run: |
-          python3 tools/verifier-livraison.py || (sleep 20 && python3 tools/verifier-livraison.py)

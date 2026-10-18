@@ -45,8 +45,15 @@ ok(memoireJs.indexOf("emploiModal: 'emploi'") !== -1, 'l\'étape emploi manque d
 ok(memoireJs.indexOf('emploiScolaireCompact') !== -1, 'l\'emploi du temps ne voyage pas avec le compte');
 ok(moteurJs.indexOf('function emploiScolaireTrous') !== -1, 'la détection des heures creuses manque');
 ok(moteurJs.indexOf('function emploiScolaireBlocsTravail') !== -1, 'le remplissage des heures creuses manque');
+ok(moteurJs.indexOf('function emploiScolaireSujets') !== -1, 'l\'extraction des matières vues manque');
 ok(planningMoteur.indexOf('cours-reel-') !== -1, 'le planning n\'utilise pas les vrais cours');
+ok(planningMoteur.indexOf('function emploiScolaireProgramme') !== -1, 'le planning doit suivre le programme des matières vues');
 ok(planningMoteur.indexOf('emploiScolaireCompact') !== -1, 'l\'emploi du temps doit faire partie des faits (reconstruction)');
+ok(planningMoteur.indexOf("'20261018a'") !== -1, 'les règles du planning doivent être versionnées pour reconstruire les plannings figés');
+const fonctionContinuer = emploiJs.slice(emploiJs.indexOf('function validateEmploiTemps'));
+ok(fonctionContinuer.indexOf("classList.remove('active')") !== -1, 'Continuer doit fermer la page Emploi du temps (elle restait au-dessus du planning)');
+const fonctionRetour = emploiJs.slice(emploiJs.indexOf('function goBackFromEmploi'));
+ok(fonctionRetour.indexOf('__profilComplet') !== -1, 'le Retour doit ramener au planning quand le profil est complet');
 
 /* ── 2. Le lecteur, sur la géométrie d'un vrai document ───────────── */
 const store = {};
@@ -109,6 +116,40 @@ ok(context.emploiScolaireActif() === true, 'emploiScolaireActif');
 context.emploiScolaireVider();
 ok(context.emploiScolaireActif() === false, 'vider le store emploi du temps');
 
+/* le bouton Continuer referme la page et ouvre le planning ; le
+   bouton Retour sait d'où l'élève vient */
+var fauxModales = {};
+context.document.getElementById = function (id) {
+    if (!fauxModales[id]) {
+        fauxModales[id] = { classList: {
+            _etats: {},
+            add: function (c) { this._etats[c] = 1; },
+            remove: function (c) { delete this._etats[c]; },
+            contains: function (c) { return !!this._etats[c]; }
+        } };
+    }
+    return fauxModales[id];
+};
+var appelsPlanning = 0;
+context.generatePlanning = function () { appelsPlanning++; };
+context.devoirsBacADemander = function () { return false; };
+context.__profilComplet = false;
+context.document.getElementById('emploiModal'); /* crée le faux élément */
+fauxModales.emploiModal.classList.add('active');
+context.validateEmploiTemps();
+ok(appelsPlanning === 1, 'Continuer doit construire le planning');
+ok(!fauxModales.emploiModal.classList.contains('active'), 'Continuer doit fermer la page Emploi du temps (elle restait au-dessus du planning)');
+var retoursLibre = 0;
+context.goToFreeTime = function () { retoursLibre++; };
+fauxModales.emploiModal.classList.add('active');
+context.goBackFromEmploi();
+ok(retoursLibre === 1 && appelsPlanning === 1, 'le Retour pendant l\'inscription ramène à Temps libre');
+context.__profilComplet = true;
+fauxModales.emploiModal.classList.add('active');
+context.goBackFromEmploi();
+ok(appelsPlanning === 2 && retoursLibre === 1, 'le Retour depuis le menu ramène au planning');
+context.__profilComplet = false;
+
 /* les heures creuses et leur travail */
 const coursLundi = res.jours[0].map(function (c) { return { nom: c.nom, matiere: context.emploiMatiereDe(c.nom), debut: c.plage.debut, fin: c.plage.fin }; });
 const trous = context.emploiScolaireTrous(coursLundi, 40);
@@ -139,7 +180,7 @@ const contexteMoteur = {
         body: { appendChild: function () {}, classList: { add: function () {}, remove: function () {} } },
         addEventListener: function () {}
     },
-    subjects: [{ name: 'Maths AA', level: 'SL', icon: '🔢' }, { name: 'Physics', level: 'SL', icon: '⚛️' }],
+    subjects: [{ name: 'Maths AA', level: 'SL', icon: '🔢' }, { name: 'Physique', level: 'SL', icon: '⚛️' }],
     optionalSubjects: [{ name: 'ESS', level: 'SL', icon: '🌱' }],
     ibYear: 'DP2',
     weekdayWakeup: '05:30', saturdayWakeup: '08:30', sundayWakeup: '09:00',
@@ -192,11 +233,45 @@ ok(trajets.length === 2, 'les trajets encadrent la journée réelle');
 const arrivee = trajets.filter(function (ev) { return ev.id === 'commute1'; })[0];
 ok(arrivee && arrivee.endTime <= '08:00', 'le trajet école doit finir avant le premier cours');
 
+/* les matières vues dans la journée nourrissent tout le programme du
+   soir : révisions de la première matière vue, exercices de la science
+   vue, puis la suite dans l'ordre */
+const sujetsVusLundi = contexteMoteur.emploiScolaireSujets(0).map(function (s) { return s.name; });
+ok(sujetsVusLundi.join(',') === 'ESS,Physique', 'lundi : les matières suivies vues ce jour-là, dans l\'ordre : ' + sujetsVusLundi.join(','));
+const programmeLundi = contexteMoteur.emploiScolaireProgramme(0).map(function (s) { return s.name; });
+ok(programmeLundi.join(',') === 'ESS,Physique,Maths AA', 'le programme de lundi : matières vues puis complément : ' + programmeLundi.join(','));
+const revSoir = jourGenere.filter(function (ev) { return ev.id === 'study1'; })[0];
+ok(revSoir && revSoir.title === 'Révisions ESS', 'le soir doit réviser la première matière vue dans la journée (ESS) : ' + (revSoir && revSoir.title));
+const exoSoir = jourGenere.filter(function (ev) { return ev.id === 'exercises'; })[0];
+ok(exoSoir && exoSoir.title === 'Exercices Physique', 'les exercices du soir prennent la science vue dans la journée : ' + (exoSoir && exoSoir.title));
+const revSoir2 = jourGenere.filter(function (ev) { return ev.id === 'study2'; })[0];
+ok(revSoir2 && revSoir2.title === 'Révisions Physique', 'la seconde révision du soir suit l\'ordre des matières vues : ' + (revSoir2 && revSoir2.title));
+
 /* la signature des faits change avec l'emploi du temps */
 vm.runInContext('emploiNePasSauver = 1; var js = []; for (var i = 0; i < 7; i++) js.push(emploiReconstruire(i)); emploiFige = { sig: emploiFaitsSignature(), at: new Date().toISOString(), jours: emploiCloner(js) }; emploiNePasSauver = 0;', contexteMoteur);
 ok(contexteMoteur.emploiEstFige() === true, 'l\'emploi figé doit être valide');
 contexteMoteur.emploiScolaireVider();
 ok(contexteMoteur.emploiEstFige() === false, 'retirer l\'emploi du temps doit reconstruire le planning');
+
+/* ── 4. Le week-end et le repli ────────────────────────────────────── */
+/* le week-end : les matières de la semaine vues en classe passent avant
+   le complément, et le repli sans emploi du temps est total */
+contexteMoteur.emploiScolaireEcrire({ at: 'x', jours: [
+    [{ id: 'w1', nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' }],
+    [{ id: 'w2', nom: 'ESS', matiere: 'ESS', debut: '08:00', fin: '09:30' }],
+    [], [], [], [], []
+] });
+const programmeSamedi = contexteMoteur.emploiScolaireProgramme(5).map(function (s) { return s.name; });
+ok(programmeSamedi.join(',') === 'Maths AA,ESS,Physique', 'le programme du week-end : matières de l\'emploi du temps puis complément : ' + programmeSamedi.join(','));
+const dimanche = contexteMoteur.generateDayEvents(6);
+const revisionsDimanche = dimanche.filter(function (ev) { return /^Révisions/.test(String(ev.title || '')); });
+ok(revisionsDimanche.length >= 2, 'le dimanche doit être rempli de révisions du programme : ' + revisionsDimanche.map(function (ev) { return ev.title; }).join(' | '));
+ok(revisionsDimanche.some(function (ev) { return /Maths AA|ESS/.test(String(ev.title)); }),
+    'le dimanche doit réviser une matière de l\'emploi du temps : ' + revisionsDimanche.map(function (ev) { return ev.title; }).join(' | '));
+ok(revisionsDimanche.every(function (ev) { return programmeSamedi.indexOf(String(ev.title).replace(/^Révisions\s?·?\s?/, '')) !== -1; }),
+    'toutes les révisions du dimanche viennent du programme (matières vues puis complément) : ' + revisionsDimanche.map(function (ev) { return ev.title; }).join(' | '));
+contexteMoteur.emploiScolaireVider();
+ok(contexteMoteur.emploiScolaireProgramme(0) === null, 'sans emploi du temps, le planning garde ses règles habituelles');
 
 /* ── Bilan ─────────────────────────────────────────────────────────── */
 if (echecs.length) {
@@ -204,4 +279,4 @@ if (echecs.length) {
     echecs.forEach(function (e) { console.error(' - ' + e); });
     process.exit(1);
 }
-console.log('ok emploi du temps scolaire : lecture du document (colonnes, am/pm, deux lignes, événements écartés), vrais cours au planning, déjeuner et travail dans les creux, question du bac après la page, reconstruction au changement');
+console.log('ok emploi du temps scolaire : lecture du document (colonnes, am/pm, deux lignes, événements écartés), vrais cours au planning, déjeuner et travail dans les creux, question du bac après la page, reconstruction au changement, Continuer referme la page et ouvre le planning, les matières vues nourrissent tout le programme (soir, week-end, repli identique sans emploi)');

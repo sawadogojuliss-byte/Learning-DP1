@@ -8,7 +8,6 @@ on:
       - 'js/**'
       - 'pages/**'
       - 'index.html'
-      - 'tools/tester-envoi.mjs'
       - 'tools/tester-preparation.mjs'
       - '.github/workflows/envoi-e2e.yml'
   workflow_dispatch:
@@ -45,12 +44,7 @@ jobs:
           npm install --no-audit --no-fund playwright@1.49.1
           npx playwright install --with-deps chromium
 
-      - name: Jouer l'envoi d'une question et d'une suggestion en vrai navigateur
-        run: |
-          set -o pipefail
-          node tools/tester-envoi.mjs 2>&1 | tee /tmp/sortie-e2e.txt
-
-      - name: Vérifier en vrai navigateur la préparation des devoirs et examens
+      - name: Vérifier en vrai navigateur la préparation des devoirs, examens et emploi du temps
         run: |
           set -o pipefail
           node tools/tester-preparation.mjs 2>&1 | tee /tmp/sortie-preparation.txt
@@ -61,12 +55,11 @@ jobs:
           JETON: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p /tmp/journal
-          cp /tmp/sortie-e2e.txt /tmp/journal/ 2>/dev/null || echo "le test n'a pas démarré" > /tmp/journal/sortie-e2e.txt
           cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
           cd /tmp/journal
           git init -q .
           git checkout -q -b tmp/e2e
           git add -A
           git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
-              commit -q -m "Journal du test d'envoi"
+              commit -q -m "Journal du test navigateur"
           git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/e2e

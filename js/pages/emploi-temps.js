@@ -493,22 +493,37 @@ function showEmploiPage() {
 }
 
 function goBackFromEmploi() {
-    document.getElementById('emploiModal').classList.remove('active');
+    var modal = document.getElementById('emploiModal');
+    if (modal) modal.classList.remove('active');
+    /* Pendant l'inscription, on revient à la page Temps libre. Depuis
+       le menu d'un profil déjà complet, on revient au planning. */
+    if (window.__profilComplet) {
+        if (typeof generatePlanning === 'function') generatePlanning();
+        return;
+    }
     if (typeof goToFreeTime === 'function') goToFreeTime();
 }
 
 function validateEmploiTemps() {
+    /* Continuer referme la page Emploi du temps puis ouvre le
+       planning : avant, la page restait affichée par-dessus et le
+       bouton semblait ne rien faire. */
+    function versLePlanning() {
+        var modal = document.getElementById('emploiModal');
+        if (modal) modal.classList.remove('active');
+        if (typeof generatePlanning === 'function') generatePlanning();
+    }
     /* En DP2, juste après l'insertion de l'emploi du temps scolaire, on
        demande si l'élève fait le bac national (les créneaux du bac sont
        réservés : samedi 8h00-13h00, vendredi 14h55-16h25). */
     if (typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsPoserQuestionBac === 'function' &&
         typeof devoirsBacADemander === 'function' && devoirsBacADemander()) {
         devoirsPoserQuestionBac(function () {
-            if (typeof generatePlanning === 'function') generatePlanning();
+            versLePlanning();
         });
         return;
     }
-    if (typeof generatePlanning === 'function') generatePlanning();
+    versLePlanning();
 }
 
 function initEmploiTemps() {

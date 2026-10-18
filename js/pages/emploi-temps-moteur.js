@@ -101,3 +101,43 @@ function emploiScolaireOptionsJour() {
     } catch (e) { o.ia = false; }
     return o;
 }
+
+/* Les matières de l'élève présentes dans l'emploi du temps chargé :
+   chaque cours est rattaché à une matière suivie (au nom de l'élève,
+   recalculé à chaque lecture — si l'élève change ses matières, le
+   rattachement suit). Avec un numéro de jour (0-6) : les matières des
+   cours de ce jour-là, dans l'ordre de la journée. Sans numéro : toutes
+   les matières de la semaine, dans l'ordre de leur premier cours. Les
+   cours qui ne correspondent à aucune matière suivie (Sport, K4C…) ne
+   comptent pas. Sans emploi du temps chargé, la liste est vide. */
+function emploiScolaireSujets(dayIndex) {
+    var parNom = {};
+    try {
+        if (typeof subjects !== 'undefined' && Array.isArray(subjects)) {
+            subjects.forEach(function (s) { if (s && s.name) parNom[s.name] = s; });
+        }
+        if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) {
+            optionalSubjects.forEach(function (s) { if (s && s.name && !parNom[s.name]) parNom[s.name] = s; });
+        }
+    } catch (e) {}
+    if (!Object.keys(parNom).length) return [];
+    var jours;
+    if (dayIndex == null) {
+        jours = emploiScolaireLire().jours;
+    } else {
+        var j = Number(dayIndex);
+        if (!(j >= 0 && j <= 6)) return [];
+        jours = [emploiScolaireJour(j)];
+    }
+    var vus = {};
+    var out = [];
+    jours.forEach(function (liste) {
+        (liste || []).forEach(function (c) {
+            if (!c || !c.nom) return;
+            var nom = (typeof emploiMatiereDe === 'function' ? emploiMatiereDe(c.nom) : '') || c.matiere || '';
+            var sujet = nom ? parNom[nom] : null;
+            if (sujet && !vus[sujet.name]) { vus[sujet.name] = 1; out.push(sujet); }
+        });
+    });
+    return out;
+}
