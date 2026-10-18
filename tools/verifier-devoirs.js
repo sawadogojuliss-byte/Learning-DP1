@@ -103,6 +103,19 @@ ok(devoirsSrc.indexOf('devoirsRemplirCreneaux') !== -1 && devoirsSrc.indexOf("if
 ok(devoirsSrc.indexOf('devoirsEditerSeances') !== -1, 'les séances doivent pouvoir se modifier depuis la liste des devoirs');
 ok(devoirsSrc.indexOf('devoirsAppliquerSeances') !== -1, 'le choix de séances doit s\'appliquer à toute la fournée');
 
+/* L'analyse des documents (OCR des devoirs et de l'emploi du temps)
+   est ouverte à TOUS les élèves : elle se passe entièrement dans le
+   navigateur, sans compte, sans session, sans statut admin. Aucune
+   évolution ne doit jamais la conditionner. */
+var emploiHtmlVerif = fs.readFileSync(path.join(__dirname, '..', 'pages', 'emploi-temps.html'), 'utf8');
+['boiteEstAdmin', 'annonceEstAdmin', 'tutorielEstAdmin', 'BOITE_ADMINS', 'boiteNom', 'compteSession', 'googleNom'].forEach(function (jeton) {
+    ok(devoirsSrcComplet.indexOf(jeton) === -1, 'la lecture des devoirs ne doit dépendre d\'aucun compte (' + jeton + ')');
+    ok(emploiSrc.indexOf(jeton) === -1, 'la lecture de l\'emploi du temps ne doit dépendre d\'aucun compte (' + jeton + ')');
+});
+ok(devoirsHtml.indexOf('onchange="devoirsLireDocument()"') !== -1 && devoirsHtml.indexOf('>Lire le document</button>') !== -1, 'le bouton de lecture des devoirs doit être posé sans condition');
+ok(emploiHtmlVerif.indexOf('onchange="emploiLireDocument()"') !== -1 && emploiHtmlVerif.indexOf('>Lire le document</button>') !== -1, 'le bouton de lecture de l\'emploi du temps doit être posé sans condition');
+ok(devoirsSrcComplet.indexOf('lib/ocr/tesseract.min.js') !== -1 && emploiSrc.indexOf('devoirsChargerTesseract') !== -1, 'le lecteur OCR doit rester embarqué dans le site, identique pour tous');
+
 /* ── 2 et 3. Dans une machine virtuelle ───────────────────────────── */
 const store = {};
 const context = {
