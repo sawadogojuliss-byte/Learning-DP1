@@ -97,7 +97,7 @@ const context = {
         removeItem: function (k) { delete store[k]; }
     },
     subjects: [{ name: 'Mathématiques AA', level: 'HL', icon: '🔢' }, { name: 'Physique', level: 'HL', icon: '⚛️' }],
-    optionalSubjects: [{ name: 'Histoire', level: 'SL', icon: '🌍' }],
+    optionalSubjects: [{ name: 'Histoire', level: 'SL', icon: '🌍' }, { name: 'ESS', level: 'SL', icon: '🌱' }],
     ibYear: 'DP2',
     weekdayWakeup: '05:30',
     saturdayWakeup: '08:30',
@@ -121,26 +121,45 @@ vm.createContext(context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs.js'), 'utf8'), context);
 vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs-moteur.js'), 'utf8'), context);
 
-/* — 2. Le lecteur de texte — */
+/* — 2. Le lecteur de texte, avec les matières de l'élève — */
+/* l'élève de test suit : Mathématiques AA, Physique, Histoire, ESS.
+   Philosophie, Chimie, Anglais, Géographie, Économie : non suivies. */
 const texte = [
     'PLANNING DES DEVOIRS',
     'Mathématiques AA — 23/10, 8h00 à 13h00',
     'Physique : 24/10 8h - 10h',
     'Philosophie 08h00-13h00',
-    'Chimie le 25 octobre de 14h55 à 16h25'
+    'Chimie le 25 octobre de 14h55 à 16h25',
+    'ESS le 27 octobre, 13h25 à 14h55',
+    'Mathematics 08h00-13h00'
 ].join('\n');
 const propositions = context.devoirsParserTexte(texte);
-ok(propositions.length === 4, 'le lecteur doit trouver 4 créneaux, trouvé : ' + propositions.length);
+ok(propositions.length === 4, 'le lecteur doit trouver 4 créneaux (les matières non suivies ignorées), trouvé : ' + propositions.length + ' : ' + JSON.stringify(propositions.map(function (x) { return x.matiere; })));
 const p0 = propositions[0] || {};
 ok(p0.matiere === 'Mathématiques AA', 'matière 1 : ' + p0.matiere);
 ok(p0.date === '2026-10-23', 'date 1 : ' + p0.date);
 ok(p0.debut === '08:00' && p0.fin === '13:00', 'heures 1 : ' + p0.debut + '-' + p0.fin);
+ok(propositions.filter(function (x) { return x.matiere === 'Philosophie' || x.matiere === 'Chimie'; }).length === 0, 'les matières non suivies ne doivent jamais être proposées');
 const p2 = propositions[2] || {};
-ok(p2.matiere === 'Philosophie', 'matière 3 : ' + p2.matiere);
-ok(p2.date === (propositions[1] || {}).date, 'la date de la ligne précédente doit servir de contexte');
+ok(p2.matiere === 'ESS' && p2.date === '2026-10-27' && p2.debut === '13:25' && p2.fin === '14:55', 'date et heures en toutes lettres : ' + JSON.stringify(p2));
 const p3 = propositions[3] || {};
-ok(p3.date === '2026-10-25', 'date en toutes lettres : ' + p3.date);
-ok(p3.debut === '14:55' && p3.fin === '16:25', 'heures en toutes lettres : ' + p3.debut + '-' + p3.fin);
+ok(p3.matiere === 'Mathématiques AA', 'le nom anglais (Mathematics) doit revenir au nom de l\'élève : ' + p3.matiere);
+ok(p3.date === '2026-10-27', 'la date de la ligne précédente doit servir de contexte : ' + p3.date);
+ok(p3.debut === '08:00' && p3.fin === '13:00', 'heures après nom anglais : ' + p3.debut + '-' + p3.fin);
+
+/* une matière non suivie : jamais proposée, même complète */
+ok(context.devoirsParserTexte('Anglais — 30/10, 8h00 à 10h00').length === 0, 'une matière non suivie ne doit pas être proposée');
+/* ni ses heures dans un bloc de tableau */
+ok(context.devoirsParserTexte(['30/10/2026', '13:00 – 15:00', 'Economics', 'Paper 1 - SL', '01h 30 min'].join('\n')).length === 0,
+    'les heures d\'une matière non suivie ne doivent pas être proposées non plus');
+/* sans profil (élève pas encore inscrit), toutes les matières restent proposables */
+var subjectsSauves = context.subjects, optionnellesSauvees = context.optionalSubjects;
+context.subjects = [];
+context.optionalSubjects = [];
+var propsSansProfil = context.devoirsParserTexte('Philosophie — 30/10, 8h00 à 10h00');
+ok(propsSansProfil.length === 1 && propsSansProfil[0].matiere === 'Philosophie', 'sans profil, la matière reste proposable');
+context.subjects = subjectsSauves;
+context.optionalSubjects = optionnellesSauvees;
 
 /* — 2bis. Les plannings en tableau (date, heures, matières, papiers) — */
 const texteTableau = [
@@ -162,14 +181,13 @@ const texteTableau = [
     '01h 30 min'
 ].join('\n');
 const propsTableau = context.devoirsParserTexte(texteTableau);
-ok(propsTableau.length === 3, 'le tableau doit donner 3 créneaux, trouvé : ' + propsTableau.length);
-const t0 = propsTableau[0] || {}, t1 = propsTableau[1] || {}, t2 = propsTableau[2] || {};
-ok((t0.matiere === 'Histoire' || t0.matiere === 'Géographie') && t0.date === '2026-11-12' && t0.debut === '13:00' && t0.fin === '15:00',
-    'ligne 1 du tableau (matière double, l\'un des deux noms suffit) : ' + JSON.stringify(t0));
-ok(t1.matiere === 'Anglais' && t1.date === '2026-11-12' && t1.debut === '15:00' && t1.fin === '16:30',
-    'ligne 2 du tableau : ' + JSON.stringify(t1));
-ok(t2.matiere === 'Mathématiques' && t2.date === '2026-11-19' && t2.debut === '13:00' && t2.fin === '15:00',
-    'ligne 3 du tableau : ' + JSON.stringify(t2));
+ok(propsTableau.length === 2, 'le tableau doit donner 2 créneaux (Anglais non suivi), trouvé : ' + propsTableau.length + ' : ' + JSON.stringify(propsTableau.map(function (x) { return x.matiere; })));
+const t0 = propsTableau[0] || {}, t1 = propsTableau[1] || {};
+ok(t0.matiere === 'Histoire' && t0.date === '2026-11-12' && t0.debut === '13:00' && t0.fin === '15:00',
+    'ligne 1 du tableau (Géographie non suivie, Histoire suivie) : ' + JSON.stringify(t0));
+ok(t1.matiere === 'Mathématiques AA' && t1.date === '2026-11-19' && t1.debut === '13:00' && t1.fin === '15:00',
+    'ligne 3 du tableau, au nom de l\'élève : ' + JSON.stringify(t1));
+ok(propsTableau.every(function (x) { return x.matiere !== 'Anglais'; }), 'la ligne d\'Anglais (non suivi) ne doit pas être proposée');
 
 /* l'après-midi à l'anglaise */
 const propsAmPm = context.devoirsParserTexte('ESS : lundi, 1:25 pm - 2:55 pm');

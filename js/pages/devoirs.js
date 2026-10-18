@@ -129,6 +129,116 @@ function devoirsMatieresConnues() {
     return liste;
 }
 
+/* ── Les matières de l'élève ───────────────────────────────────────── */
+/* Le document ne peut proposer que ce que l'élève suit vraiment. Ses
+   matières viennent de son inscription ; une même matière s'écrit de
+   plusieurs façons (Maths, Mathematics, Mathématiques AA…), d'où les
+   familles. Une famille n'est proposée que si l'élève la suit. */
+function devoirsMatieresEleve() {
+    var liste = [];
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects)) {
+        subjects.forEach(function (s) { if (s && s.name && liste.indexOf(s.name) === -1) liste.push(s.name); });
+    }
+    if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) {
+        optionalSubjects.forEach(function (s) { if (s && s.name && liste.indexOf(s.name) === -1) liste.push(s.name); });
+    }
+    return liste;
+}
+
+var DEVOIRS_FAMILLES = [
+    { cles: ['math', 'maths', 'mathematiques', 'mathematics'], canon: 'Mathématiques' },
+    { cles: ['phys', 'physics'], canon: 'Physique' },
+    { cles: ['chim', 'chem', 'chemistry'], canon: 'Chimie' },
+    { cles: ['bio', 'biolog', 'biology'], canon: 'Biologie' },
+    { cles: ['svt'], canon: 'SVT' },
+    { cles: ['ess'], canon: 'ESS' },
+    { cles: ['philo'], canon: 'Philosophie' },
+    { cles: ['fr', 'fren', 'french', 'francais'], canon: 'Français' },
+    { cles: ['hist', 'history'], canon: 'Histoire' },
+    { cles: ['geo', 'geog', 'geography'], canon: 'Géographie' },
+    { cles: ['angl', 'engl', 'english'], canon: 'Anglais' },
+    { cles: ['espag', 'spanish'], canon: 'Espagnol' },
+    { cles: ['allemand', 'german'], canon: 'Allemand' },
+    { cles: ['econ', 'economics'], canon: 'Économie' },
+    { cles: ['info', 'informatique', 'computer'], canon: 'Informatique' },
+    { cles: ['bac'], canon: 'Bac national' }
+];
+
+function devoirsMots(norm) {
+    return String(norm || '').split(' ').filter(Boolean);
+}
+
+/* Les familles que suit l'élève, avec ses propres noms de matières.
+   Une matière hors famille (théâtre, arts…) devient sa propre famille. */
+function devoirsFamillesEleve() {
+    var familles = [];
+    devoirsMatieresEleve().forEach(function (nom) {
+        var n = devoirsNormaliser(nom);
+        if (!n) return;
+        var mots = devoirsMots(n);
+        var trouve = null;
+        DEVOIRS_FAMILLES.forEach(function (f) {
+            if (trouve) return;
+            for (var i = 0; i < mots.length; i++) {
+                for (var j = 0; j < f.cles.length; j++) {
+                    if (mots[i].indexOf(f.cles[j]) === 0) { trouve = f; return; }
+                }
+            }
+        });
+        if (trouve) {
+            var existante = null;
+            familles.forEach(function (e) { if (!existante && e.famille === trouve) existante = e; });
+            if (existante) existante.noms.push(nom);
+            else familles.push({ famille: trouve, noms: [nom] });
+        } else if (mots[0] && mots[0].length >= 3) {
+            familles.push({ famille: { cles: [mots[0]], canon: nom }, noms: [nom] });
+        }
+    });
+    return familles;
+}
+
+/* La matière d'une ligne, parmi celles de l'élève uniquement : le nom
+   complet d'abord, puis la famille la plus précise (math → Maths AA). */
+function devoirsMatiereLigne(norm, familles) {
+    var mots = devoirsMots(norm);
+    var meilleure = null, longueur = 0;
+    familles.forEach(function (e) {
+        for (var i = 0; i < e.noms.length; i++) {
+            if (norm.indexOf(devoirsNormaliser(e.noms[i])) !== -1) {
+                if (!meilleure || devoirsNormaliser(e.noms[i]).length > longueur) {
+                    meilleure = { nom: e.noms[i] };
+                    longueur = devoirsNormaliser(e.noms[i]).length;
+                }
+            }
+        }
+        e.famille.cles.forEach(function (c) {
+            for (var j = 0; j < mots.length; j++) {
+                if (mots[j].indexOf(c) === 0 && c.length > longueur) {
+                    meilleure = { nom: e.noms[0] };
+                    longueur = c.length;
+                }
+            }
+        });
+    });
+    return meilleure;
+}
+
+/* Une matière d'école que l'élève ne suit pas : la ligne ne doit pas
+   lui être proposée, même avec ses heures. */
+function devoirsSujetNonSuivi(norm) {
+    var mots = devoirsMots(norm);
+    for (var i = 0; i < DEVOIRS_FAMILLES.length; i++) {
+        var f = DEVOIRS_FAMILLES[i];
+        if (f.canon === 'Bac national') continue;
+        for (var j = 0; j < mots.length; j++) {
+            for (var k = 0; k < f.cles.length; k++) {
+                if (mots[j].indexOf(f.cles[k]) === 0) return true;
+            }
+        }
+    }
+    return false;
+}
+
 /* Retrouve une matière dans un bout de texte : le nom complet d'abord,
    puis un fragment significatif (math → Mathématiques). */
 function devoirsTrouverMatiere(texteNormalise, connues) {
@@ -185,7 +295,12 @@ function devoirsParserTexte(texte, connues) {
     var blocHeures = [];
     var blocMatieres = [];
     var enPapiers = false;
+    var blocRefuse = false; /* le bloc ne parle que de matières non suivies */
     var connuesListe = connues || devoirsMatieresConnues();
+    /* les matières de l'élève dirigent la lecture : sans profil connu
+       (pas encore inscrit), toutes les matières restent proposables */
+    var famillesEleve = devoirsFamillesEleve();
+    var profilConnu = famillesEleve.length > 0;
 
     function devoirsH2Mvalide(h) {
         return h && devoirsH2M(h.fin) > devoirsH2M(h.debut);
@@ -198,7 +313,9 @@ function devoirsParserTexte(texte, connues) {
                 propositions.push({ matiere: blocMatieres[k], date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
             }
         }
-        if (blocHeures.length && !blocMatieres.length && dateCourante) {
+        /* des heures sans matière ne sont proposées à compléter que si
+           le bloc ne parle pas d'une matière que l'élève ne suit pas */
+        if (blocHeures.length && !blocMatieres.length && dateCourante && !blocRefuse) {
             for (k = 0; k < blocHeures.length; k++) {
                 if (devoirsH2Mvalide(blocHeures[k])) {
                     propositions.push({ matiere: '', date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
@@ -207,6 +324,7 @@ function devoirsParserTexte(texte, connues) {
         }
         blocHeures = [];
         blocMatieres = [];
+        blocRefuse = false;
         enPapiers = false;
     }
 
@@ -275,7 +393,15 @@ function devoirsParserTexte(texte, connues) {
             }
         }
 
-        var matiere = devoirsTrouverMatiere(norm, connuesListe);
+        var matiereObjet = profilConnu ? devoirsMatiereLigne(norm, famillesEleve) : null;
+        var matiere = matiereObjet ? matiereObjet.nom : (profilConnu ? '' : devoirsTrouverMatiere(norm, connuesListe));
+
+        /* une matière d'école que l'élève ne suit pas : la ligne ne lui
+           est pas proposée — ni ses heures dans un bloc */
+        if (profilConnu && !matiere && devoirsSujetNonSuivi(norm)) {
+            if (!heures && !dateTrouvee) blocRefuse = true;
+            continue;
+        }
 
         /* « Paper 1 - SL » : la colonne des papiers commence, les
            matières du bloc sont déjà toutes lues. */
@@ -686,7 +812,11 @@ function devoirsRendre() {
     var store = devoirsLireStore();
     var listeM = document.getElementById('devoirsMatiereListe');
     if (listeM) {
-        listeM.innerHTML = devoirsMatieresConnues().map(function (m) {
+        /* la saisie ne propose que les matières de l'élève (toutes
+           seulement s'il n'a pas encore de profil) */
+        var matieresProposees = devoirsMatieresEleve();
+        if (!matieresProposees.length) matieresProposees = devoirsMatieresConnues();
+        listeM.innerHTML = matieresProposees.map(function (m) {
             return '<option value="' + devoirsEchap(m) + '"></option>';
         }).join('');
     }
