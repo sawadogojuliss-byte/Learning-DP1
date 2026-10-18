@@ -155,6 +155,368 @@
     },
     {
       "type": "emploi",
+      "id": "msg_ftestf1a14ed7a86613a42811",
+      "appareil": "a1a14ed7a86617c67ed9",
+      "at": "2026-10-18T11:48:38.630Z",
+      "nom": "",
+      "classe": "",
+      "email": "e2e-E2Emvdrhxad@example.com",
+      "google": "e2e-E2Emvdrhxad@example.com",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 0,
+      "matieres": [],
+      "complet": 0,
+      "fige": 0,
+      "jours": []
+    },
+    {
+      "type": "emploi",
+      "id": "msg_ftestf1a14f0c37d0f215dc2c",
+      "appareil": "a1a14f0c37d144c683c8",
+      "at": "2026-10-18T12:46:03.216Z",
+      "nom": "",
+      "classe": "",
+      "email": "e2e-E2Emvdtjom2@example.com",
+      "google": "e2e-E2Emvdtjom2@example.com",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 0,
+      "matieres": [],
+      "complet": 0,
+      "fige": 0,
+      "jours": []
+    },
+    {
+      "type": "emploi",
+      "id": "msg_ftestf1a14f10fc9762a47a28",
+      "appareil": "a1a14f10fc978042903a",
+      "at": "2026-10-18T12:51:15.735Z",
+      "nom": "",
+      "classe": "",
+      "email": "e2e-E2Emvdtqgo6@example.com",
+      "google": "e2e-E2Emvdtqgo6@example.com",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 0,
+      "matieres": [],
+      "complet": 0,
+      "fige": 0,
+      "jours": []
+    },
+    {
+      "type": "emploi",
+      "id": "msg_ftestf1a14f1688cf5103577d",
+      "appareil": "a1a14f1688cf3e995fab",
+      "at": "2026-10-18T12:57:19.311Z",
+      "nom": "",
+      "classe": "",
+      "email": "e2e-E2Emvdty5b3@example.com",
+      "google": "e2e-E2Emvdty5b3@example.com",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 0,
+      "matieres": [],
+      "complet": 0,
+      "fige": 0,
+      "jours": []
+    },
+    {
+      "type": "emploi",
+      "id": "msg_ftestf1a14f3943d235b28229",
+      "appareil": "a1a14f3943d353aa0d01",
+      "at": "2026-10-18T13:35:15.410Z",
+      "nom": "",
+      "classe": "",
+      "email": "e2e-E2Emvdvb2g3@example.com",
+      "google": "e2e-E2Emvdvb2g3@example.com",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 0,
+      "matieres": [],
+      "complet": 0,
+      "fige": 0,
+      "jours": []
+    },
+    {
+      "type": "emploi",
+      "id": "e_a1a14f65724028f8bdf0",
+      "appareil": "a1a14f65724028f8bdf0",
+      "at": "2026-10-18T14:23:30.968Z",
+      "nom": "E2E Preparation",
+      "classe": "DP2",
+      "email": "",
+      "google": "",
+      "googleNom": "",
+      "googleSub": "",
+      "flammes": 1,
+      "matieres": [
+        "Mathématiques AA HL",
+        "Chimie SL",
+        "Physique SL"
+      ],
+      "complet": 0,
+      "fige": 0,
+      "jours": [
+        {
+          "j": "Lundi",
+          "s": [
+            {
+              "d": "05:30",
+              "f": "05:40",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:40",
+              "f": "06:10",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "06:10",
+              "f": "06:30",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:30",
+              "f": "08:00",
+              "t": "Révisions · Chimie"
+            },
+            {
+              "d": "08:00",
+              "f": "09:30",
+              "t": "Maths AA"
+            },
+            {
+              "d": "09:35",
+              "f": "10:25",
+              "t": "Révisions Chimie"
+            },
+            {
+              "d": "10:35",
+              "f": "11:05",
+              "t": "Exercices Chimie"
+            },
+            {
+              "d": "11:10",
+              "f": "12:40",
+              "t": "Chimie"
+            },
+            {
+              "d": "12:40",
+              "f": "13:20",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "12:40",
+              "f": "13:55",
+              "t": "Révisions · Physique"
+            },
+            {
+              "d": "13:55",
+              "f": "15:10",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "15:10",
+              "f": "16:25",
+              "t": "Révisions · Chimie"
+            },
+            {
+              "d": "17:05",
+              "f": "17:55",
+              "t": "Révisions Chimie"
+            },
+            {
+              "d": "18:00",
+              "f": "19:00",
+              "t": "Temps libre"
+            },
+            {
+              "d": "19:00",
+              "f": "19:45",
+              "t": "Dîner"
+            },
+            {
+              "d": "19:45",
+              "f": "21:20",
+              "t": "Révisions Mathématiques AA"
+            },
+            {
+              "d": "21:30",
+              "f": "05:30",
+              "t": "Coucher"
+            }
+          ]
+        },
+        {
+          "j": "Mardi",
+          "s": [
+            {
+              "d": "05:30",
+              "f": "05:40",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:40",
+              "f": "06:10",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "06:10",
+              "f": "06:50",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "17:05",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:05",
+              "f": "17:55",
+              "t": "Révisions Chimie"
+            },
+            {
+              "d": "18:00",
+              "f": "19:00",
+              "t": "Temps libre"
+            },
+            {
+              "d": "19:00",
+              "f": "19:45",
+              "t": "Dîner"
+            },
+            {
+              "d": "19:45",
+              "f": "21:20",
+              "t": "Révisions Mathématiques AA"
+            },
+            {
+              "d": "21:30",
+              "f": "05:30",
+              "t": "Coucher"
+            }
+          ]
+        },
+        {
+          "j": "Mercredi",
+          "s": [
+            {
+              "d": "05:30",
+              "f": "05:40",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:40",
+              "f": "06:10",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "06:10",
+              "f": "06:50",
+              "t": "Révisions · Chimie"
+            },
+            {
+              "d": "06:50",
+              "f": "07:20",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:20",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "17:05",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "17:05",
+              "f": "17:55",
+              "t": "Révisions Physique"
+            },
+            {
+              "d": "18:00",
+              "f": "19:00",
+              "t": "Temps libre"
+            },
+            {
+              "d": "19:00",
+              "f": "19:45",
+              "t": "Dîner"
+            },
+            {
+              "d": "19:45",
+              "f": "20:50",
+              "t": "Révisions Chimie"
+            },
+            {
+              "d": "20:50",
+              "f": "21:30",
+              "t": "Révisions · Physique"
+            },
+            {
+              "d": "21:30",
+              "f": "05:30",
+              "t": "Coucher"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "emploi",
       "id": "e_a1a10e333ea26dbae7e5",
       "appareil": "a1a10e333ea26dbae7e5",
       "at": "2026-10-11T19:55:50.363Z",
@@ -6467,7 +6829,7 @@
       "type": "emploi",
       "id": "e_a1a113207989199d5d45",
       "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-18T07:41:38.445Z",
+      "at": "2026-10-18T13:46:38.559Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
