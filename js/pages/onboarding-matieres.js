@@ -336,14 +336,7 @@ function handleAddSubject(select) {
 
 function validateSubjects() {
     if (!isSubjectsValid()) return;
-    /* En DP2, juste après les matières (l'emploi du temps scolaire se
-       construit ici), on demande si l'élève fait le bac national. */
-    if (typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsPoserQuestionBac === 'function' &&
-        typeof devoirsBacADemander === 'function' && devoirsBacADemander()) {
-        devoirsPoserQuestionBac(function () {
-            if (typeof showSleepPage === 'function') showSleepPage();
-        });
-        return;
-    }
+    /* La question du bac national vient plus tard : juste après la page
+       d'insertion de l'emploi du temps scolaire (voir emploi-temps.js). */
     if (typeof showSleepPage === 'function') showSleepPage();
 }

@@ -151,6 +151,35 @@ if (parEleve.eleveB.join(',') !== 'Économie') {
     echec("le même document doit changer selon l'élève (Économie attendue pour l'autre élève) : " + JSON.stringify(parEleve.eleveB));
 }
 
+/* 8. l'emploi du temps scolaire : les vrais cours remplacent les
+   créneaux génériques et les heures creuses reçoivent du travail —
+   vérifié avec le vrai moteur du site déployé. */
+const demainIdx = (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1 + 1) % 7;
+const idxDemain = ((new Date().getDay() + 6) % 7 + 1) % 7;
+const emploi = await page.evaluate(function (idx) {
+    localStorage.setItem('studyPlanIB_emploiScolaire', JSON.stringify({
+        at: new Date().toISOString(),
+        jours: (() => { const j = [[], [], [], [], [], [], []]; j[idx] = [
+            { id: 'e1', nom: 'Maths AA', matiere: 'Mathématiques AA', debut: '08:00', fin: '09:30' },
+            { id: 'e2', nom: 'Chimie', matiere: 'Chimie', debut: '11:10', fin: '12:40' }
+        ]; return j; })()
+    }));
+    const evts = generateDayEvents(idx);
+    return evts.map(e => (e.id || '') + '|' + (e.title || '') + '|' + (e.startTime || '') + '-' + (e.endTime || ''));
+}, idxDemain);
+if (!emploi.some(l => l.indexOf('Maths AA|08:00-09:30') !== -1 || l.indexOf('|Maths AA|') !== -1 && l.indexOf('08:00-09:30') !== -1)) {
+    echec("le vrai cours de Maths AA (8h00-9h30) n'apparaît pas : " + JSON.stringify(emploi.slice(0, 12)));
+}
+if (!emploi.some(l => l.indexOf('Chimie|11:10-12:40') !== -1 || l.indexOf('|Chimie|') !== -1 && l.indexOf('11:10-12:40') !== -1)) {
+    echec("le vrai cours de Chimie (11h10-12h40) n'apparaît pas : " + JSON.stringify(emploi.slice(0, 12)));
+}
+if (emploi.some(l => l.indexOf('school1|') !== -1 || l.indexOf('school2|') !== -1)) {
+    echec('les créneaux Cours génériques doivent disparaître quand lemploi du temps est chargé : ' + JSON.stringify(emploi.slice(0, 12)));
+}
+if (!emploi.some(l => l.indexOf('emploi-') !== -1)) {
+    echec("l'heure creuse 9h30-11h10 doit recevoir du travail : " + JSON.stringify(emploi.slice(0, 12)));
+}
+
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
     echec('erreurs JavaScript dans la page : ' + erreurs.join(' | ').slice(0, 400));
@@ -159,4 +188,4 @@ if (erreurs.length) {
 await browser.close();
 console.log('ok préparation en vrai navigateur : séance du devoir visible aujourd\u2019hui avec compte à rebours, '
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
-    + 'l\u2019analyse ne propose que les matières de chaque élève, 0 erreur JavaScript');
+    + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, 0 erreur JavaScript');

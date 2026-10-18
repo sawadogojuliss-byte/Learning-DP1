@@ -1,0 +1,60 @@
+<!-- ============================================================
+     PAGE : Emploi du temps scolaire
+     Après Temps libre, avant le planning (et dans le menu).
+     L'élève dépose le document (PDF ou photo) : le site lit ses
+     cours, remplace les créneaux « Cours » par les vraies matières,
+     et occupe les heures creuses (révisions, exercices, mémoire,
+     évaluations internes, CAS). Modèle hebdomadaire remplaçable.
+     Script : js/pages/emploi-temps.js
+     ============================================================ -->
+<div class="context-modal" id="emploiModal">
+    <div class="context-shape context-shape-1 animate-float"></div>
+    <div class="context-shape context-shape-2 animate-float-reverse" style="right: -2.5rem; left: auto;"></div>
+
+    <div class="context-center" style="padding: 2rem 1rem;">
+        <div class="context-card animate-fade-in-up" style="max-width: 34rem;">
+            <h2>📅 Emploi du temps scolaire</h2>
+            <p style="font-size:0.85rem;color:#6b7280;line-height:1.5;">
+                Dépose le document de ton emploi du temps (PDF ou photo) : le site lit tes cours,
+                remplace les créneaux « Cours » par tes vraies matières, et occupe tes heures
+                creuses (révisions, exercices, mémoire, évaluations internes, CAS).
+                Ce modèle s'applique chaque semaine, jusqu'à ce que tu le remplaces.
+            </p>
+
+            <div style="margin-top:0.8rem;">
+                <div id="emploiZoneDepot" onclick="document.getElementById('emploiFichier').click()" style="border:2px dashed #a7f3d0;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffa;">
+                    <p style="margin:0;font-size:1.4rem;">📄</p>
+                    <p style="margin:0.3rem 0 0;font-size:0.88rem;font-weight:700;color:#065f46;">Choisir le document (PDF ou photo)</p>
+                    <p style="margin:0.2rem 0 0;font-size:0.75rem;color:#6b7280;">L'emploi du temps de l'école, une semaine suffit</p>
+                </div>
+                <input type="file" id="emploiFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="emploiLireDocument()">
+                <button type="button" onclick="emploiLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
+                <p id="emploiOcrStatut" style="margin:0.4rem 0 0;font-size:0.78rem;min-height:1.1rem;"></p>
+            </div>
+
+            <div id="emploiConfirmation" style="margin-top:0.8rem;"></div>
+
+            <div style="margin-top:1rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.875rem;padding:0.8rem;">
+                <p style="margin:0 0 0.5rem;font-size:0.82rem;font-weight:700;color:#374151;">Ajouter un cours à la main</p>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+                    <select id="emploiManuelJour" style="flex:1 1 6.5rem;border:1px solid #e5e7eb;border-radius:0.6rem;padding:0.5rem;font:inherit;font-size:0.82rem;">
+                        <option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option>
+                        <option value="3">Jeudi</option><option value="4">Vendredi</option><option value="5">Samedi</option><option value="6">Dimanche</option>
+                    </select>
+                    <input id="emploiManuelNom" placeholder="Cours (ex. : Maths AA)" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.6rem;padding:0.5rem;font:inherit;font-size:0.82rem;">
+                    <input id="emploiManuelDebut" type="time" style="flex:1 1 5.5rem;border:1px solid #e5e7eb;border-radius:0.6rem;padding:0.5rem;font:inherit;font-size:0.82rem;">
+                    <input id="emploiManuelFin" type="time" style="flex:1 1 5.5rem;border:1px solid #e5e7eb;border-radius:0.6rem;padding:0.5rem;font:inherit;font-size:0.82rem;">
+                </div>
+                <button type="button" onclick="emploiAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.65rem;border:1.5px solid #a7f3d0;border-radius:0.75rem;background:#ecfdf5;color:#065f46;font:inherit;font-weight:800;font-size:0.85rem;cursor:pointer;">Ajouter le cours</button>
+                <p id="emploiAjoutStatut" style="margin:0.4rem 0 0;font-size:0.78rem;min-height:1.1rem;"></p>
+            </div>
+
+            <div id="emploiListe" style="margin-top:0.8rem;"></div>
+
+            <div style="display:flex;gap:0.6rem;margin-top:1rem;">
+                <button class="btn-back" onclick="goBackFromEmploi()">← Retour</button>
+                <button class="btn-continue" onclick="validateEmploiTemps()" style="flex:2;">Continuer →</button>
+            </div>
+        </div>
+    </div>
+</div>

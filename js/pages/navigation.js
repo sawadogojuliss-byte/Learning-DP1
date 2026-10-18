@@ -40,6 +40,8 @@ function navigateTo(page) {
         var devoirs = document.getElementById('panelDevoirs');
         if (typeof initDevoirs === 'function') initDevoirs();
         if (devoirs) devoirs.classList.add('active');
+    } else if (page === 'emploi') {
+        if (typeof showEmploiPage === 'function') showEmploiPage();
     } else if (page === 'eeia') {
         var eeia = document.getElementById('panelEEia');
         if (typeof renderEEia === 'function') renderEEia();

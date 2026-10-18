@@ -20,6 +20,7 @@ var MEMOIRE_PAGES = {
     panelSoutien: 'soutien',
     panelExercices: 'exercices',
     panelDevoirs: 'devoirs',
+    emploiModal: 'emploi',
     panelLegende: 'legende',
     panelEEia: 'eeia',
     panelFeries: 'feries',
@@ -139,6 +140,7 @@ function memoireLireEtat() {
         emploiFige: typeof emploiFige !== 'undefined' && emploiFige ? emploiFige : null,
         exercices: typeof exercices !== 'undefined' ? exercices : [],
         devoirsStore: typeof devoirsStoreCompact === 'function' ? devoirsStoreCompact() : null,
+        emploiScolaire: typeof emploiScolaireCompact === 'function' ? emploiScolaireCompact() : null,
         currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
         joursConnectes: (function () {
             var n = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
@@ -327,6 +329,14 @@ function memoireAppliquer(data, opts) {
         else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
     }
 
+    if (depuisCompte && typeof emploiScolaireEcrire === 'function') {
+        /* L'emploi du temps scolaire revient avec le compte. */
+        if (data.emploiScolaire && data.emploiScolaire.jours) {
+            try { emploiScolaireEcrire(data.emploiScolaire); } catch (e) {}
+        } else if (data.profilComplet) {
+            try { emploiScolaireVider(); } catch (e) {}
+        }
+    }
     if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
         /* Les devoirs, les examens et la réponse au bac national reviennent
            avec le compte. */
@@ -456,7 +466,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
+    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&
@@ -581,7 +591,8 @@ function memoirePagePrecedente(etape) {
         moto: 'transport',
         ecran: 'activites',
         libre: 'ecran',
-        planning: 'libre',
+        emploi: 'libre',
+        planning: 'emploi',
         soutien: 'planning',
         exercices: 'planning',
         legende: 'planning',

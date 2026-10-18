@@ -81,7 +81,12 @@ ok(sectionEco.indexOf('devoirsFaitBac') === -1, 'le cours d\'économie du samedi
 ok(moteurSrc.indexOf('if (Number(dayIndex) === 5) {') !== -1, 'le retrait du samedi doit être inconditionnel dans l\'adaptateur');
 ok(moteur.indexOf('devoirsAdapterJour') !== -1, 'le planning n\'appelle pas l\'adaptateur devoirs');
 ok(boot.indexOf('devoirsPoserQuestionBac') !== -1, 'le popup du bac pour les DP2 déjà inscrits manque');
-ok(matieres.indexOf('devoirsPoserQuestionBac') !== -1, 'la question du bac après les matières manque');
+/* La question du bac vient maintenant juste après la page d'insertion
+   de l'emploi du temps scolaire (plus après les matières). */
+var emploiSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'emploi-temps.js'), 'utf8');
+ok(emploiSrc.indexOf('devoirsPoserQuestionBac') !== -1 && emploiSrc.indexOf('validateEmploiTemps') !== -1,
+    'la question du bac doit venir juste après la page de l\'emploi du temps scolaire');
+ok(matieres.indexOf('devoirsPoserQuestionBac') === -1, 'la question du bac ne doit plus être après les matières');
 ok(fs.readFileSync(path.join(__dirname, '..', 'js', 'memoire.js'), 'utf8').indexOf('devoirsStoreCompact') !== -1, 'le store devoirs ne voyage pas avec le compte');
 
 /* ── 2 et 3. Dans une machine virtuelle ───────────────────────────── */

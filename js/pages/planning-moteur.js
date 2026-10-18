@@ -694,6 +694,11 @@ function emploiFaitsSignature() {
         if (typeof devoirsLireStore === 'function') bacNational = devoirsLireStore().bac;
     } catch (e) { bacNational = null; }
     if (bacNational === true || bacNational === false) faits.bacNational = bacNational;
+    /* L'emploi du temps scolaire chargé fait partie des faits : dès qu'il
+       change (ou disparaît), l'emploi figé est reconstruit. */
+    try {
+        if (typeof emploiScolaireCompact === 'function') faits.emploiScolaire = emploiScolaireCompact();
+    } catch (e) {}
     if (typeof habitudesActives === 'function' && habitudesActives()) {
         faits.habitudes = {
             prepMatin: typeof prepMatinMinutes === 'number' ? prepMatinMinutes : 30,
@@ -1310,6 +1315,79 @@ function genererJourBrut(dayIndex) {
     } else {
         // ── SEMAINE Lun-Ven ──
         const trajet = trajetProfil();
+        /* L'emploi du temps scolaire chargé par l'élève : ses vrais cours
+           remplacent les créneaux génériques, et les heures creuses
+           reçoivent du travail. */
+        const coursReels = (typeof emploiScolaireJour === 'function' && typeof emploiH2M === 'function') ? emploiScolaireJour(dayIndex) : [];
+        if (coursReels.length) {
+            poserPreparationMatin();
+            const premierCours = emploiH2M(coursReels[0].debut);
+            const dernierCours = emploiH2M(coursReels[coursReels.length - 1].fin);
+            chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
+            coursReels.forEach(function (c, i) {
+                fixed('cours-reel-' + i, c.nom, coursTexte(emploiH2M(c.debut)) + ' → ' + coursTexte(emploiH2M(c.fin)), c.debut, c.fin, 'school', '🏫');
+            });
+            if (dayIndex === 4 && typeof devoirsFaitBac === 'function' && devoirsFaitBac() &&
+                !coursReels.some(function (c) { return emploiH2M(c.debut) < 16 * 60 + 25 && emploiH2M(c.fin) > 14 * 60 + 55; })) {
+                /* Vendredi du bac national : le créneau 14h55-16h25 lui est
+                   réservé, sauf si un cours réel l'occupe déjà. */
+                fixed('bac-vendredi', 'Bac national', '14h55 → 16h25', '14:55', '16:25', 'school', '🎓');
+            }
+            /* le déjeuner se pose dans le creux du midi */
+            const trouMidi = (typeof emploiScolaireTrouMidi === 'function') ? emploiScolaireTrouMidi(coursReels) : null;
+            var dejeuner = null;
+            if (trouMidi && trouMidi.fin - trouMidi.debut >= 35) {
+                var debutDej = Math.min(Math.max(12 * 60 + 30, trouMidi.debut + 5), trouMidi.fin - 30);
+                var dureeDej = Math.min(60, trouMidi.fin - debutDej);
+                if (dureeDej >= 20) {
+                    dejeuner = { debut: debutDej, fin: debutDej + dureeDej };
+                    fixed('lunch', 'Déjeuner', '', coursHorloge(dejeuner.debut), coursHorloge(dejeuner.fin), 'meal', '🍽️');
+                }
+            }
+            /* les heures creuses : révisions de la prochaine matière,
+               exercices, mémoire, évaluation interne, CAS */
+            if (typeof emploiScolaireTrous === 'function' && typeof emploiScolaireBlocsTravail === 'function') {
+                var optionsJour = (typeof emploiScolaireOptionsJour === 'function') ? emploiScolaireOptionsJour() : { sujets: [], memoire: false, ia: false };
+                emploiScolaireTrous(coursReels, 40).forEach(function (trou, ti) {
+                    var segments = [{ debut: trou.debut, fin: trou.fin }];
+                    if (dejeuner) {
+                        var apres = [];
+                        segments.forEach(function (seg) {
+                            if (dejeuner.fin <= seg.debut || dejeuner.debut >= seg.fin) apres.push(seg);
+                            else {
+                                if (dejeuner.debut - seg.debut >= 40) apres.push({ debut: seg.debut, fin: dejeuner.debut });
+                                if (seg.fin - dejeuner.fin >= 40) apres.push({ debut: dejeuner.fin, fin: seg.fin });
+                            }
+                        });
+                        segments = apres;
+                    }
+                    segments.forEach(function (seg) {
+                        var trouSeg = { debut: seg.debut, fin: seg.fin, avant: trou.avant };
+                        var blocs = emploiScolaireBlocsTravail(trouSeg, optionsJour);
+                        var pos = seg.debut + 5;
+                        blocs.forEach(function (b) {
+                            events.push({
+                                id: b.id + '-' + ti,
+                                title: b.titre,
+                                subtitle: b.sous,
+                                startTime: coursHorloge(pos),
+                                endTime: coursHorloge(pos + b.duree),
+                                type: b.type === 'study' ? b.couleur : b.type,
+                                icon: b.icone,
+                                editable: true,
+                                kind: 'pinned',
+                                preferMin: pos
+                            });
+                            pos += b.duree + 10;
+                        });
+                    });
+                });
+            }
+            chain('commute2', 'Trajet maison', trajet.retour + ' min' + (trajet.retourHeure ? ' · ' + trajet.retourHeure : ''), trajet.retour, 'transport', trajet.icon, true);
+            fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, premierCours), trajet.aller);
+            calerPreparation(events, 'commute1');
+            fixerTrajet(events, 'commute2', dernierCours, trajet.retour);
+        } else {
         poserPreparationMatin();
         chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
         fixed('school1', 'Cours', coursTexte(COURS_DEBUT) + ' → ' + coursTexte(COURS_FIN_MATIN), coursHorloge(COURS_DEBUT), coursHorloge(COURS_FIN_MATIN), 'school', '🏫');
@@ -1326,6 +1404,7 @@ function genererJourBrut(dayIndex) {
         fixerTrajet(events, 'commute1', debutTrajetAller(trajet.depart, trajet.aller, COURS_DEBUT), trajet.aller);
         calerPreparation(events, 'commute1');
         fixerTrajet(events, 'commute2', debutTrajetRetour(COURS_FIN, trajet.retourHeure), trajet.retour);
+        }
         const mainSubj = typeof sujetDuJour === 'function' ? sujetDuJour(allSubj, dayIndex) : allSubj[dayIndex % Math.max(1, allSubj.length)];
         if (mainSubj) chain('study1', 'Révisions ' + mainSubj.name, sousTitreMatiere(mainSubj), dureeEtude(mainSubj, 90, 60), couleurMatiere(mainSubj), mainSubj.icon, true);
         const sciNames = ['Mathématiques', 'Physique', 'Chimie', 'Biologie'];
