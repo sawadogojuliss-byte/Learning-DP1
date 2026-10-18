@@ -299,4 +299,4 @@ console.log('ok préparation en vrai navigateur : séance du devoir visible aujo
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
     + 'l\u2019analyse ne propose que les matières de chaque élève, vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
     + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
-    + 'tomate au menu Pomodoro, section Playlist Spotify et YouTube jouant dans le site à côté des Sons sur les deux pages musique, 0 erreur JavaScript');
+    + 'tomate au menu Pomodoro, section Playlist YouTube jouant dans le site à côté des Sons sur les deux pages musique (Spotify retiré), 0 erreur JavaScript');
