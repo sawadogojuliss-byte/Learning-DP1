@@ -295,7 +295,7 @@ const carteActivee = await page.evaluate(() => {
     const cadre = document.querySelector('#focusPlaylist iframe');
     return cadre ? cadre.src : '';
 });
-if (carteActivee.indexOf('/embed/videoseries?list=') === -1) {
+if (carteActivee.indexOf('youtube-nocookie.com/embed/') === -1 || carteActivee.indexOf('list=') === -1) {
     echec('le lecteur de la playlist activée manque : ' + carteActivee);
 }
 const sonsAccueil = await page.evaluate(() => {
