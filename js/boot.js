@@ -29,7 +29,7 @@
         }
     }
 
-var version = '20261017t';
+var version = '20261017u';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

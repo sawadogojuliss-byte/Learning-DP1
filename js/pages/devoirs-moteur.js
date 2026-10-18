@@ -256,8 +256,8 @@ function devoirsJourCourt(cle) {
     } catch (e) { return cle; }
 }
 
-/* Le cours d'économie du samedi : pour les élèves qui préparent le bac
-   national, le samedi matin appartient au bac et ce cours disparaît. */
+/* Le cours d'économie du samedi n'existe plus : il disparaît pour
+   tous les élèves, pour toujours — bac ou pas. */
 function devoirsEstCoursEconomie(ev) {
     if (!ev) return false;
     if (ev.id === 'eco' || ev.replacesId === 'eco') return true;
@@ -268,14 +268,13 @@ function devoirsEstCoursEconomie(ev) {
 function devoirsAdapterJour(events, dayIndex) {
     if (!Array.isArray(events)) return events;
     var store = typeof devoirsLireStore === 'function' ? devoirsLireStore() : { devoirs: [], examens: [] };
-    var bac = typeof devoirsFaitBac === 'function' && devoirsFaitBac();
     var maintenant = new Date();
     var date = devoirsDateDuJour(dayIndex);
     var cle = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
 
-    /* Samedi du bac national : le cours d'économie du samedi cède sa
-       place, même s'il n'y a ni devoir ni examen d'enregistré. */
-    if (bac && Number(dayIndex) === 5) {
+    /* Samedi : le cours d'économie n'existe plus, pour tous les élèves
+       — même s'il n'y a ni devoir ni examen d'enregistré. */
+    if (Number(dayIndex) === 5) {
         events = events.filter(function (ev) { return !devoirsEstCoursEconomie(ev); });
     }
 

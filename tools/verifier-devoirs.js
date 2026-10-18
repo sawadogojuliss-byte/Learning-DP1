@@ -74,7 +74,11 @@ ok(devoirsSrcComplet.indexOf('devoirsBacADemander') !== -1, 'la règle de re-dem
 ok(boot.indexOf('devoirsBacADemander') !== -1 && boot.indexOf('tenterBac') !== -1, 'le popup doit repasser pour tous les DP2 déjà connectés');
 ok(moteur.indexOf('if (reveilSamedi > 7 * 60) wakeupTime = \'07:00\';') !== -1, 'le samedi du bac doit lever l\'élève au plus tard à 7h00');
 ok(moteur.indexOf('calculateBedtime(wakeupTime, heuresSamedi)') !== -1, 'le coucher du samedi du bac doit suivre le réveil (jamais moins de 5 h de sommeil)');
-ok(moteur.indexOf('if (!(typeof devoirsFaitBac === \'function\' && devoirsFaitBac())) return false;') !== -1, 'le cours d\'économie du samedi ne doit disparaître que pour les élèves du bac');
+/* le cours d'économie du samedi est retiré pour TOUS les élèves :
+   plus aucune condition bac dans le détecteur */
+var sectionEco = moteur.slice(moteur.indexOf('function coursEconomieSamedi'), moteur.indexOf('function annoterPlages'));
+ok(sectionEco.indexOf('devoirsFaitBac') === -1, 'le cours d\'économie du samedi ne doit plus dépendre du bac : retiré pour tous');
+ok(moteurSrc.indexOf('if (Number(dayIndex) === 5) {') !== -1, 'le retrait du samedi doit être inconditionnel dans l\'adaptateur');
 ok(moteur.indexOf('devoirsAdapterJour') !== -1, 'le planning n\'appelle pas l\'adaptateur devoirs');
 ok(boot.indexOf('devoirsPoserQuestionBac') !== -1, 'le popup du bac pour les DP2 déjà inscrits manque');
 ok(matieres.indexOf('devoirsPoserQuestionBac') !== -1, 'la question du bac après les matières manque');
@@ -460,7 +464,7 @@ const dimancheBac = context.devoirsAdapterJour(samediEco.slice(), 6);
 ok(dimancheBac.some(function (ev) { return ev.id === 'eco'; }), 'un autre jour que le samedi garde le cours');
 context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [] });
 const samediSansBac = context.devoirsAdapterJour(samediEco.slice(), 5);
-ok(samediSansBac.some(function (ev) { return ev.id === 'eco'; }), 'sans le bac, le cours d\'économie du samedi reste');
+ok(!samediSansBac.some(function (ev) { return ev.id === 'eco'; }), 'sans le bac, le cours d\'économie du samedi doit aussi disparaître : le retrait est pour tous les élèves');
 
 /* — le voyage avec le compte Google — */
 context.devoirsEcrireStore({
@@ -581,7 +585,7 @@ contexteMoteur.devoirsEcrireStore({ bac: false, devoirs: [], examens: [] });
 ok(contexteMoteur.emploiEstFige() === false, 'répondre « Non » plus tard doit aussi reconstruire');
 const samediSansBacJour = contexteMoteur.emploiReconstruire(5);
 ok(!samediSansBacJour.some(function (ev) { return String(ev.id).indexOf('bac-samedi') === 0; }), 'sans le bac, le samedi ne porte plus le créneau du bac');
-ok(samediSansBacJour.some(function (ev) { return ev.id === 'eco-test'; }), 'sans le bac, le cours d\'économie du samedi revient');
+ok(!samediSansBacJour.some(function (ev) { return ev.id === 'eco-test'; }), 'sans le bac, le cours d\'économie du samedi ne revient pas : retiré pour tous, pour toujours');
 
 /* ── 5. La chaîne complète du planning, pour de vrai ──────────────── */
 /* generateDayEvents est la fonction même du site : génération brute,

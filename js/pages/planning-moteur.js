@@ -399,8 +399,8 @@ function planningOccupe(placed, start, end) {
 
 function coursEconomieSamedi(ev, dayIndex) {
     if (!ev) return true;
-    /* Seuls les élèves qui préparent le bac national perdent ce cours. */
-    if (!(typeof devoirsFaitBac === 'function' && devoirsFaitBac())) return false;
+    /* Le cours d'économie du samedi n'existe plus : il disparaît pour
+       tous les élèves, pour toujours. */
     var jour = dayIndex != null ? dayIndex : ev.day;
     if (Number(jour) !== 5) return false;
     if (ev.id === 'eco' || ev.replacesId === 'eco') return true;
