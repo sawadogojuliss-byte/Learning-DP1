@@ -1,15 +1,15 @@
 /* ============================================================
-   MUSIQUE — Playlist (Spotify · YouTube) et Sons des deux pages
+   MUSIQUE — Playlist (YouTube) et Sons des deux pages
    À côté des sons d'ambiance, l'élève colle le lien de sa playlist
-   Spotify ou YouTube : elle se joue dans le site, sans le quitter.
-   Avec une connexion Spotify (si configurée), ses playlists
-   apparaissent directement avec leurs pochettes.
+   YouTube : elle se joue dans le site, sans le quitter. Le vrai nom
+   et la pochette arrivent tout seuls quand YouTube les partage.
+   Spotify n'est plus pris en charge : son API est devenue payante
+   et fermée (février 2026), et son lecteur intégré refuse de jouer
+   les playlists des autres.
    Vue : pages/pomodoro.html et pages/seances.html
    ============================================================ */
 
 var PLAYLIST_CLE = 'studyPlanIB_playlists';
-var SPOTIFY_CLE = 'studyPlanIB_spotify';
-var SPOTIFY_PKCE_CLE = 'studyPlanIB_spotifyPkce';
 
 /* ── Le store des playlists ────────────────────────────────────────── */
 
@@ -18,11 +18,12 @@ function playlistLire() {
         var d = JSON.parse(localStorage.getItem(PLAYLIST_CLE) || 'null');
         if (d && typeof d === 'object' && Array.isArray(d.liste)) {
             var liste = d.liste.filter(function (p) {
-                return p && p.id && p.service && p.embed && /^https:\/\//.test(p.embed);
+                return p && p.id && p.service === 'youtube' &&
+                    /^https:\/\/www\.youtube-nocookie\.com\/embed\/videoseries\?list=/.test(p.embed);
             }).map(function (p) {
                 return {
                     id: String(p.id),
-                    service: p.service === 'youtube' ? 'youtube' : 'spotify',
+                    service: 'youtube',
                     cle: String(p.cle || '').slice(0, 120),
                     url: String(p.url || '').slice(0, 300),
                     embed: String(p.embed).slice(0, 300),
@@ -47,56 +48,53 @@ function playlistCompact() {
     return { liste: d.liste, active: d.active };
 }
 
-/* ── Reconnaissance des liens collés ───────────────────────────────── */
+/* ── Reconnaissance des liens YouTube ──────────────────────────────── */
 
-/* « https://open.spotify.com/playlist/XXXX?si=… », « spotify:playlist:XXXX »
-   → lecteur Spotify intégré. Tout lien YouTube portant une vraie liste
-   (« …playlist?list=… », « …watch?v=…&list=… », music.youtube.com) →
-   lecteur YouTube intégré. Le reste est refusé avec un message clair. */
+/* Tout lien YouTube qui porte une vraie liste de lecture :
+   « youtube.com/playlist?list=… », « youtu.be/…?list=… », « watch?v=…&list=… »,
+   music.youtube.com, m.youtube.com, avec ou sans https://, avec ou
+   sans www. Le reste est refusé avec un message clair. */
 function playlistDetecterLien(brut) {
-    var s = String(brut || '').trim();
+    var s = String(brut || '').replace(/\s+/g, '');
     if (!s) return null;
-    /* URI Spotify */
-    var m = s.match(/^spotify:playlist:([A-Za-z0-9]+)/);
-    if (m) return { service: 'spotify', cle: m[1], embed: 'https://open.spotify.com/embed/playlist/' + m[1] + '?utm_source=generator&theme=0' };
-    if (/^spotify:[a-z]+:/i.test(s)) return null;
-    /* lien Spotify */
-    if (/spotify\.com\//i.test(s)) {
-        var ms = s.match(/spotify\.com\/(?:intl-[a-z-]+\/)?(?:embed\/)?playlist\/([A-Za-z0-9]+)/i);
-        if (ms) return { service: 'spotify', cle: ms[1], embed: 'https://open.spotify.com/embed/playlist/' + ms[1] + '?utm_source=generator&theme=0' };
-        return null;
-    }
-    /* lien YouTube : il faut une liste */
-    if (/(^|\.)youtu(\.be|be\.com|be-nocookie\.com)\//i.test(s.replace(/^https?:\/\//, '')) || /youtube-nocookie\.com\//i.test(s)) {
+    var domaine = s.replace(/^https?:\/\//i, '');
+    if (/^(www\.|m\.|music\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(domaine)) {
         var q = s.match(/[?&]list=([A-Za-z0-9_-]+)/);
         if (q) return { service: 'youtube', cle: q[1], embed: 'https://www.youtube-nocookie.com/embed/videoseries?list=' + q[1] };
-        return null;
     }
     return null;
 }
 
-/* ── Ajout, retrait, activation (indépendants de l'écran) ──────────── */
+function playlistEstLienSpotify(s) {
+    var t = String(s || '').replace(/\s+/g, '');
+    return /spotify\.(com|co)\//i.test(t) || /^spotify:/i.test(t);
+}
+
+/* ── Ajout, retrait, activation ────────────────────────────────────── */
 
 function playlistAjouterLien(brut) {
+    if (playlistEstLienSpotify(brut)) {
+        return { ok: false, message: 'Les playlists Spotify ne sont plus prises en charge. Colle plut\u00f4t le lien d\u2019une playlist YouTube \u2014 il contient \u00ab list= \u00bb.' };
+    }
     var lien = playlistDetecterLien(brut);
     if (!lien) {
-        return { ok: false, message: 'Lien non reconnu. Colle le lien d\u2019une playlist Spotify (open.spotify.com/playlist/\u2026) ou d\u2019une playlist YouTube (adresse contenant \u00ab list=\u00bb).' };
+        return { ok: false, message: 'Lien non reconnu. Colle le lien d\u2019une playlist YouTube : sur YouTube, ouvre ta playlist, touche Partager, puis Copier le lien.' };
     }
     var store = playlistLire();
-    var deja = store.liste.filter(function (p) { return p.service === lien.service && p.cle === lien.cle; })[0];
+    var deja = store.liste.filter(function (p) { return p.cle === lien.cle; })[0];
     if (deja) {
         store.active = deja.id;
         playlistEcrire(store);
         playlistVignette(deja);
-        return { ok: true, message: 'Cette playlist est d\u00e9j\u00e0 l\u00e0 — elle est affich\u00e9e.', playlist: deja };
+        return { ok: true, message: 'Cette playlist est d\u00e9j\u00e0 l\u00e0 \u2014 elle est affich\u00e9e.', playlist: deja };
     }
     var p = {
         id: 'pl' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-        service: lien.service,
+        service: 'youtube',
         cle: lien.cle,
         url: String(brut || '').trim().slice(0, 300),
         embed: lien.embed,
-        nom: lien.service === 'spotify' ? 'Playlist Spotify' : 'Playlist YouTube',
+        nom: 'Playlist YouTube',
         vignette: '',
         ajouteAt: new Date().toISOString()
     };
@@ -122,13 +120,11 @@ function playlistActiver(id) {
     playlistEcrire(store);
 }
 
-/* Le vrai nom et la pochette, quand le service les partage (oEmbed).
-   Si le service refuse, la carte reste belle sans pochette. */
+/* Le vrai nom et la pochette, quand YouTube les partage (oEmbed).
+   Si YouTube refuse, la carte reste belle sans pochette. */
 function playlistVignette(p) {
     if (!p || typeof fetch !== 'function') return;
-    var url = p.service === 'spotify'
-        ? 'https://open.spotify.com/oembed?url=' + encodeURIComponent('https://open.spotify.com/playlist/' + p.cle)
-        : 'https://www.youtube.com/oembed?url=' + encodeURIComponent('https://www.youtube.com/playlist?list=' + p.cle) + '&format=json';
+    var url = 'https://www.youtube.com/oembed?url=' + encodeURIComponent('https://www.youtube.com/playlist?list=' + p.cle) + '&format=json';
     fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
         if (!d) return;
         var store = playlistLire();
@@ -139,137 +135,6 @@ function playlistVignette(p) {
         playlistEcrire(store);
         playlistPeindre();
     }).catch(function () {});
-}
-
-/* ── La connexion Spotify (PKCE, sans secret partagé) ──────────────── */
-
-function spotifyClientId() {
-    var v = '';
-    try { if (typeof window !== 'undefined' && window.STUDYPLAN_SPOTIFY_CLIENT_ID) v = window.STUDYPLAN_SPOTIFY_CLIENT_ID; } catch (e) {}
-    if (!v && typeof STUDYPLAN_SPOTIFY_CLIENT_ID !== 'undefined' && STUDYPLAN_SPOTIFY_CLIENT_ID) v = STUDYPLAN_SPOTIFY_CLIENT_ID;
-    return String(v || '').trim();
-}
-
-function spotifyEstConfigure() {
-    return !!spotifyClientId();
-}
-
-function spotifyRedirectUri() {
-    return location.origin + location.pathname;
-}
-
-function spotifyAlea(n) {
-    var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    var s = '';
-    for (var i = 0; i < n; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
-    return s;
-}
-
-function spotifySeConnecter() {
-    if (!spotifyEstConfigure() || typeof crypto === 'undefined' || !crypto.subtle) return;
-    var verifier = spotifyAlea(64);
-    var etat = spotifyAlea(16);
-    try { localStorage.setItem(SPOTIFY_PKCE_CLE, JSON.stringify({ verifier: verifier, state: etat })); } catch (e) {}
-    crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)).then(function (h) {
-        var b64 = btoa(String.fromCharCode.apply(null, new Uint8Array(h)));
-        var challenge = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        var url = 'https://accounts.spotify.com/authorize?client_id=' + encodeURIComponent(spotifyClientId()) +
-            '&response_type=code&redirect_uri=' + encodeURIComponent(spotifyRedirectUri()) +
-            '&scope=' + encodeURIComponent('playlist-read-private playlist-read-collaborative') +
-            '&code_challenge_method=S256&code_challenge=' + challenge + '&state=' + encodeURIComponent(etat);
-        location.href = url;
-    }).catch(function () {});
-}
-
-/* Au retour de Spotify : l'adresse porte ?code=…&state=… */
-function spotifyTerminerConnexion() {
-    if (!spotifyEstConfigure() || typeof location === 'undefined' || typeof fetch !== 'function') return;
-    var recherche = '';
-    try { recherche = location.search || ''; } catch (e) { return; }
-    if (recherche.indexOf('code=') === -1) return;
-    var code = (recherche.match(/[?&]code=([^&]+)/) || [])[1];
-    var etat = (recherche.match(/[?&]state=([^&]+)/) || [])[1];
-    if (!code) return;
-    var garde = null;
-    try { garde = JSON.parse(localStorage.getItem(SPOTIFY_PKCE_CLE) || 'null'); } catch (e) {}
-    if (!garde || !garde.verifier || garde.state !== etat) return;
-    try { localStorage.removeItem(SPOTIFY_PKCE_CLE); } catch (e) {}
-    var corps = 'client_id=' + encodeURIComponent(spotifyClientId()) +
-        '&grant_type=authorization_code' +
-        '&code=' + encodeURIComponent(code) +
-        '&redirect_uri=' + encodeURIComponent(spotifyRedirectUri()) +
-        '&code_verifier=' + encodeURIComponent(garde.verifier);
-    fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: corps
-    }).then(function (r) { return r.json(); }).then(function (d) {
-        if (!d || !d.access_token) throw new Error('spotify');
-        try { history.replaceState(null, '', location.pathname); } catch (e) {}
-        spotifyGarderJeton(d);
-        playlistPeindre();
-    }).catch(function () {});
-}
-
-function spotifyGarderJeton(d) {
-    var s = {
-        access: d.access_token,
-        refresh: d.refresh_token || '',
-        expire: Date.now() + (Number(d.expires_in) || 3600) * 1000 - 60000,
-        nom: ''
-    };
-    try { localStorage.setItem(SPOTIFY_CLE, JSON.stringify(s)); } catch (e) {}
-}
-
-function spotifyAssurer() {
-    var s = null;
-    try { s = JSON.parse(localStorage.getItem(SPOTIFY_CLE) || 'null'); } catch (e) {}
-    if (!s || !s.access) return Promise.resolve(null);
-    if (!s.expire || Date.now() < s.expire) return Promise.resolve(s);
-    if (!s.refresh || !spotifyEstConfigure() || typeof fetch !== 'function') return Promise.resolve(null);
-    var corps = 'client_id=' + encodeURIComponent(spotifyClientId()) +
-        '&grant_type=refresh_token&refresh_token=' + encodeURIComponent(s.refresh);
-    return fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: corps
-    }).then(function (r) { return r.json(); }).then(function (d) {
-        if (!d || !d.access_token) {
-            spotifyDeconnecter();
-            return null;
-        }
-        s.access = d.access_token;
-        if (d.refresh_token) s.refresh = d.refresh_token;
-        s.expire = Date.now() + (Number(d.expires_in) || 3600) * 1000 - 60000;
-        try { localStorage.setItem(SPOTIFY_CLE, JSON.stringify(s)); } catch (e) {}
-        return s;
-    }).catch(function () { return null; });
-}
-
-function spotifyDeconnecter() {
-    try { localStorage.removeItem(SPOTIFY_CLE); } catch (e) {}
-    playlistPeindre();
-}
-
-/* Les playlists du compte Spotify connecté. */
-function spotifyChargerPlaylists() {
-    return spotifyAssurer().then(function (s) {
-        if (!s) return [];
-        var entetes = { Authorization: 'Bearer ' + s.access };
-        return fetch('https://api.spotify.com/v1/me', { headers: entetes }).then(function (r) {
-            return r.ok ? r.json() : null;
-        }).then(function (moi) {
-            if (moi && moi.display_name && s.nom !== moi.display_name) {
-                s.nom = String(moi.display_name).slice(0, 60);
-                try { localStorage.setItem(SPOTIFY_CLE, JSON.stringify(s)); } catch (e) {}
-            }
-            return fetch('https://api.spotify.com/v1/me/playlists?limit=50', { headers: entetes });
-        }).then(function (r) {
-            return r.ok ? r.json() : { items: [] };
-        }).then(function (d) {
-            return (d && Array.isArray(d.items) ? d.items : []).filter(function (x) { return x && x.id; });
-        });
-    }).catch(function () { return []; });
 }
 
 /* ── Les panneaux flottants (au-dessus des deux pages musique) ─────── */
@@ -301,11 +166,11 @@ function musiqueConstruire() {
         '</div></div>' +
         '<div class="focus-playlist-corps">' +
         '<div class="fp-ajout">' +
-        '<input id="fpLien" placeholder="Colle ici le lien de ta playlist Spotify ou YouTube" autocomplete="off">' +
+        '<input id="fpLien" placeholder="Colle ici le lien de ta playlist YouTube" autocomplete="off">' +
         '<button type="button" onclick="playlistAjouterDepuisChamp()">Ajouter</button>' +
         '</div>' +
         '<p id="fpMessage" class="fp-message"></p>' +
-        '<div id="fpSpotify"></div>' +
+        '<p class="fp-aide">Sur YouTube : ouvre ta playlist \u2192 Partager \u2192 Copier le lien, puis colle-le ici.</p>' +
         '<div id="fpListe" class="fp-liste"></div>' +
         '<div id="fpLecteur" class="fp-lecteur"></div>' +
         '</div></div>';
@@ -482,7 +347,6 @@ function playlistPeindre() {
     var liste = document.getElementById('fpListe');
     if (!liste) return;
     var store = playlistLire();
-    var zoneSpotify = document.getElementById('fpSpotify');
     var zoneLecteur = document.getElementById('fpLecteur');
 
     /* la liste des playlists enregistrées */
@@ -490,7 +354,7 @@ function playlistPeindre() {
     if (!store.liste.length) {
         var vide = document.createElement('p');
         vide.className = 'fp-vide';
-        vide.textContent = 'Aucune playlist pour l\u2019instant. Colle le lien de ta playlist Spotify ou YouTube ci-dessus : elle se joue ici, sans quitter le site.';
+        vide.textContent = 'Aucune playlist pour l\u2019instant. Colle le lien de ta playlist YouTube ci-dessus : elle se joue ici, sans quitter le site.';
         liste.appendChild(vide);
     } else {
         store.liste.forEach(function (p) {
@@ -498,12 +362,12 @@ function playlistPeindre() {
             carte.className = 'fp-carte' + (store.active === p.id ? ' is-on' : '');
             carte.setAttribute('role', 'button');
             carte.setAttribute('tabindex', '0');
-            carte.setAttribute('aria-label', p.nom + ' (' + (p.service === 'spotify' ? 'Spotify' : 'YouTube') + ')');
+            carte.setAttribute('aria-label', p.nom + ' (YouTube)');
             var visuel = p.vignette
                 ? '<img src="' + musiqueEchap(p.vignette) + '" alt="" loading="lazy">'
-                : '<div class="fp-carte-visuel ' + p.service + '">' + (p.service === 'spotify' ? '\uD83C\uDFA7' : '\u25B6\uFE0F') + '</div>';
+                : '<div class="fp-carte-visuel youtube">\u25B6\uFE0F</div>';
             carte.innerHTML = visuel +
-                '<div class="fp-carte-texte"><p>' + musiqueEchap(p.nom) + '</p><span>' + (p.service === 'spotify' ? 'Spotify' : 'YouTube') + '</span></div>';
+                '<div class="fp-carte-texte"><p>' + musiqueEchap(p.nom) + '</p><span>YouTube</span></div>';
             carte.onclick = function () {
                 playlistActiver(p.id);
                 playlistPeindre();
@@ -527,61 +391,11 @@ function playlistPeindre() {
     var active = store.liste.filter(function (p) { return p.id === store.active; })[0] || null;
     if (zoneLecteur) {
         if (active) {
-            zoneLecteur.className = 'fp-lecteur ' + active.service;
+            zoneLecteur.className = 'fp-lecteur';
             zoneLecteur.innerHTML = '<iframe src="' + musiqueEchap(active.embed) + '" title="' + musiqueEchap(active.nom) + '" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" allowfullscreen></iframe>';
         } else {
             zoneLecteur.className = 'fp-lecteur';
             zoneLecteur.innerHTML = '';
-        }
-    }
-
-    /* la connexion Spotify, quand elle est configurée */
-    if (zoneSpotify) {
-        if (!spotifyEstConfigure()) {
-            zoneSpotify.innerHTML = '';
-            zoneSpotify.style.display = 'none';
-        } else {
-            zoneSpotify.style.display = '';
-            zoneSpotify.innerHTML = '<p class="fp-spotify-chargement">Connexion Spotify\u2026</p>';
-            spotifyAssurer().then(function (s) {
-                if (!s) {
-                    zoneSpotify.innerHTML =
-                        '<button type="button" class="fp-spotify-bouton" onclick="spotifySeConnecter()">Se connecter avec Spotify</button>' +
-                        '<p class="fp-spotify-note">Tes playlists Spotify appara\u00eetront ici, pr\u00eates \u00e0 jouer. L\u2019\u00e9coute compl\u00e8te d\u00e9pend de ton compte Spotify.</p>';
-                    return;
-                }
-                zoneSpotify.innerHTML =
-                    '<p class="fp-spotify-nom">\uD83C\uDFA7 Playlists de ' + musiqueEchap(s.nom || 'ton compte') + '</p>' +
-                    '<button type="button" class="focus-sons-mini" style="width:auto;padding:0 0.8rem;" onclick="spotifyDeconnecter()">Se d\u00e9connecter</button>' +
-                    '<div class="fp-spotify-grille" id="fpSpotifyGrille"></div>' +
-                    '<p class="fp-spotify-note">Touche une pochette pour l\u2019\u00e9couter ici. L\u2019\u00e9coute compl\u00e8te d\u00e9pend de ton compte Spotify.</p>';
-                var grille = document.getElementById('fpSpotifyGrille');
-                if (!grille) return;
-                spotifyChargerPlaylists().then(function (items) {
-                    items.slice(0, 24).forEach(function (item) {
-                        var image = (item.images && item.images.length && item.images[0] && item.images[0].url) || '';
-                        var lien = (item.external_urls && item.external_urls.spotify) || ('https://open.spotify.com/playlist/' + item.id);
-                        var carte = document.createElement('button');
-                        carte.type = 'button';
-                        carte.className = 'fp-spotify-carte';
-                        carte.innerHTML = (image ? '<img src="' + musiqueEchap(image) + '" alt="" loading="lazy">' : '<div class="fp-carte-visuel spotify">\uD83C\uDFA7</div>') +
-                            '<p>' + musiqueEchap(item.name || 'Playlist') + '</p>';
-                        carte.onclick = function () {
-                            var resultat = playlistAjouterLien(lien);
-                            var message = document.getElementById('fpMessage');
-                            if (message) {
-                                message.textContent = resultat.message;
-                                message.className = 'fp-message' + (resultat.ok ? ' ok' : '');
-                            }
-                            playlistPeindre();
-                        };
-                        grille.appendChild(carte);
-                    });
-                    if (!grille.children.length) {
-                        grille.innerHTML = '<p class="fp-vide">Aucune playlist sur ce compte Spotify.</p>';
-                    }
-                });
-            });
         }
     }
 }
@@ -589,4 +403,3 @@ function playlistPeindre() {
 /* ── Démarrage ─────────────────────────────────────────────────────── */
 
 try { musiqueConstruire(); } catch (e) {}
-try { spotifyTerminerConnexion(); } catch (e) {}

@@ -19,7 +19,7 @@
  *   9. le bouton Continuer de la page Emploi du temps ouvre vraiment
  *      le planning, le Retour y ramène depuis le menu ;
  *  10. la musique : tomate au menu Pomodoro, section Playlist
- *      (Spotify · YouTube) à côté des Sons sur les deux pages.
+ *      (YouTube) à côté des Sons sur les deux pages, Spotify retiré.
  */
 import { chromium } from 'playwright';
 
@@ -244,34 +244,38 @@ if (!playlistOuverte) {
     echec("le panneau Playlist ne s'ouvre pas depuis la page Séance du jour");
 }
 const lecteurs = await page.evaluate(() => {
-    const spotify = playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=e2e');
     const youtube = playlistAjouterLien('https://www.youtube.com/playlist?list=PLE2Etest');
+    const spotify = playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=e2e');
+    const musique = playlistAjouterLien('https://music.youtube.com/playlist?list=RDCLB-e2e');
     playlistPeindre();
     const iframes = Array.from(document.querySelectorAll('#focusPlaylist iframe')).map(f => f.src);
     const cartes = Array.from(document.querySelectorAll('#fpListe .fp-carte')).length;
-    return { spotifyOk: spotify.ok, youtubeOk: youtube.ok, iframes: iframes, cartes: cartes };
+    return { youtubeOk: youtube.ok, spotifyOk: spotify.ok, spotifyMessage: spotify.message || '', musiqueOk: musique.ok, iframes: iframes, cartes: cartes };
 });
-if (!lecteurs.spotifyOk || !lecteurs.youtubeOk) {
-    echec('les liens Spotify et YouTube doivent être acceptés : ' + JSON.stringify(lecteurs));
+if (!lecteurs.youtubeOk || !lecteurs.musiqueOk) {
+    echec('les liens de playlists YouTube doivent être acceptés : ' + JSON.stringify(lecteurs));
+}
+if (lecteurs.spotifyOk || lecteurs.spotifyMessage.indexOf('YouTube') === -1) {
+    echec('un lien Spotify doit être refusé avec un message qui guide vers YouTube : ' + JSON.stringify(lecteurs));
 }
 if (lecteurs.cartes < 2) {
-    echec('les deux playlists doivent apparaître dans la liste : ' + JSON.stringify(lecteurs));
+    echec('les deux playlists YouTube doivent apparaître dans la liste : ' + JSON.stringify(lecteurs));
 }
 if (!lecteurs.iframes.some(src => src.indexOf('/embed/videoseries?list=') !== -1)) {
-    echec('le lecteur YouTube intégré manque (la playlist active est YouTube) : ' + JSON.stringify(lecteurs.iframes));
+    echec('le lecteur YouTube intégré manque : ' + JSON.stringify(lecteurs.iframes));
 }
-/* toucher la carte Spotify affiche son lecteur à la place */
-const spotifyAffiche = await page.evaluate(() => {
+/* toucher la première carte affiche son lecteur */
+const carteActivee = await page.evaluate(() => {
     const store = playlistLire();
-    const spotify = store.liste.filter(p => p.service === 'spotify')[0];
-    if (!spotify) return '';
-    playlistActiver(spotify.id);
+    const premiere = store.liste[0];
+    if (!premiere) return '';
+    playlistActiver(premiere.id);
     playlistPeindre();
     const cadre = document.querySelector('#focusPlaylist iframe');
     return cadre ? cadre.src : '';
 });
-if (spotifyAffiche.indexOf('open.spotify.com/embed/playlist/') === -1) {
-    echec('le lecteur Spotify intégré manque après activation de la carte : ' + spotifyAffiche);
+if (carteActivee.indexOf('/embed/videoseries?list=') === -1) {
+    echec('le lecteur de la playlist activée manque : ' + carteActivee);
 }
 const sonsAccueil = await page.evaluate(() => {
     focusFermerMusique();

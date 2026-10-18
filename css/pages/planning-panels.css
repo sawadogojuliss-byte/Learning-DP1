@@ -1278,7 +1278,7 @@ body.v3-deplacement, body.v3-deplacement * {
     user-select: none;
 }
 
-/* ─── MUSIQUE : Playlist (Spotify · YouTube) et Sons de la page Séance ─── */
+/* ─── MUSIQUE : Playlist (YouTube) et Sons de la page Séance ─── */
 /* Panneaux flottants : au-dessus du minuteur et de la page des séances. */
 .musique-flottant {
     position: fixed;
@@ -1316,7 +1316,7 @@ body.v3-deplacement, body.v3-deplacement * {
 }
 .fp-ajout input::placeholder { color: rgba(255,255,255,0.45); }
 .fp-ajout input:focus { outline: none; border-color: #10b981; }
-.fp-ajout button, .fp-spotify-bouton {
+.fp-ajout button {
     height: 2.6rem;
     padding: 0 1.05rem;
     border-radius: 0.85rem;
@@ -1329,40 +1329,10 @@ body.v3-deplacement, body.v3-deplacement * {
     cursor: pointer;
     white-space: nowrap;
 }
-.fp-ajout button:hover, .fp-spotify-bouton:hover { filter: brightness(1.1); }
+.fp-ajout button:hover { filter: brightness(1.1); }
 .fp-message { min-height: 1.05rem; margin: 0; font-size: 0.78rem; color: #fbbf24; line-height: 1.4; }
 .fp-message.ok { color: #34d399; }
-.fp-spotify {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    border: 1px solid rgba(29, 185, 84, 0.4);
-    background: rgba(29, 185, 84, 0.08);
-    border-radius: 0.9rem;
-    padding: 0.6rem 0.75rem;
-}
-.fp-spotify-bouton { background: #1DB954; }
-.fp-spotify-nom { margin: 0; font-size: 0.82rem; font-weight: 700; color: #fff; }
-.fp-spotify-chargement { margin: 0; font-size: 0.78rem; color: rgba(255,255,255,0.55); }
-.fp-spotify-note { flex-basis: 100%; margin: 0; font-size: 0.71rem; color: rgba(255,255,255,0.55); line-height: 1.4; }
-.fp-spotify-grille { display: flex; gap: 0.6rem; overflow-x: auto; flex-basis: 100%; padding: 0.2rem 0.1rem 0.35rem; }
-.fp-spotify-carte {
-    flex: 0 0 auto;
-    width: 6.2rem;
-    border: 1.5px solid rgba(255,255,255,0.14);
-    background: rgba(8, 12, 20, 0.6);
-    border-radius: 0.75rem;
-    padding: 0.4rem;
-    color: #fff;
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-    transition: border-color 0.15s ease, transform 0.15s ease;
-}
-.fp-spotify-carte:hover { border-color: #1DB954; transform: translateY(-2px); }
-.fp-spotify-carte img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 0.5rem; display: block; }
-.fp-spotify-carte p { margin: 0.35rem 0 0; font-size: 0.7rem; font-weight: 600; line-height: 1.25; max-height: 2.6em; overflow: hidden; }
+.fp-aide { margin: 0; font-size: 0.71rem; color: rgba(255,255,255,0.5); line-height: 1.4; }
 .fp-liste { display: flex; gap: 0.6rem; overflow-x: auto; padding: 0.15rem 0.1rem 0.4rem; align-items: stretch; }
 .fp-carte {
     position: relative;
@@ -1381,7 +1351,6 @@ body.v3-deplacement, body.v3-deplacement * {
 .fp-carte.is-on { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16,185,129,0.35); }
 .fp-carte img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #123; }
 .fp-carte-visuel { width: 100%; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
-.fp-carte-visuel.spotify { background: linear-gradient(135deg, #0f5132, #1DB954); }
 .fp-carte-visuel.youtube { background: linear-gradient(135deg, #7f1d1d, #ef4444); }
 .fp-carte-texte { padding: 0.4rem 0.55rem 0.5rem; }
 .fp-carte-texte p { margin: 0; font-size: 0.74rem; font-weight: 700; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1415,7 +1384,6 @@ body.v3-deplacement, body.v3-deplacement * {
     box-shadow: 0 14px 40px rgba(0,0,0,0.35);
 }
 .fp-lecteur iframe { display: block; width: 100%; border: none; }
-.fp-lecteur.spotify iframe { height: min(352px, 45vh); }
 .fp-lecteur.youtube iframe { aspect-ratio: 16 / 9; height: auto; }
 /* La barre musique de la page Séance de révision du jour. */
 .focus-accueil-musique {
@@ -1430,6 +1398,5 @@ body.v3-deplacement, body.v3-deplacement * {
     .musique-flottant { inset: 3.2rem 0.4rem 4.8rem; }
     .focus-playlist-corps { padding: 0.7rem 0.35rem 0.2rem 0.1rem; }
     .fp-carte { width: 7.2rem; }
-    .fp-lecteur.spotify iframe { height: 152px; }
     .focus-accueil-musique { right: 0.8rem; bottom: 0.8rem; }
 }

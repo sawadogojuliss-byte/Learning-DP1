@@ -5,10 +5,6 @@
    ============================================================ */
 
 window.STUDYPLAN_GOOGLE_CLIENT_ID = '775918983331-8igka68v1a6otqudt6nqr2ab1qtqiehj.apps.googleusercontent.com';
-/* L'ID client de l'application Spotify (tableau de bord développeur
-   Spotify, flux PKCE — aucun secret n'est nécessaire). Vide = la
-   connexion Spotify reste masquée ; coller un lien marche toujours. */
-window.STUDYPLAN_SPOTIFY_CLIENT_ID = '';
 window.STUDYPLAN_FIREBASE_CONFIG = {
     apiKey: 'AIzaSyCip0suxr92DLM6Cx5pX0z_SjWEKYWR23E',
     authDomain: 'study-plan-ib.firebaseapp.com',
