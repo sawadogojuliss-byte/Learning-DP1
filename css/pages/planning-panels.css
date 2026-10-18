@@ -1400,3 +1400,17 @@ body.v3-deplacement, body.v3-deplacement * {
     .fp-carte { width: 7.2rem; }
     .focus-accueil-musique { right: 0.8rem; bottom: 0.8rem; }
 }
+/* La porte de secours sous le lecteur : si YouTube refuse de jouer
+   dans le site, l'élève ouvre sa playlist sur YouTube en un clic. */
+.fp-secours {
+    display: block;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.75);
+    background: rgba(255,255,255,0.06);
+    border-top: 1px solid rgba(255,255,255,0.12);
+    text-decoration: none;
+    text-align: center;
+}
+.fp-secours:hover { color: #fff; background: rgba(255,255,255,0.12); }

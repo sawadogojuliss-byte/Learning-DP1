@@ -19,12 +19,13 @@ function playlistLire() {
         if (d && typeof d === 'object' && Array.isArray(d.liste)) {
             var liste = d.liste.filter(function (p) {
                 return p && p.id && p.service === 'youtube' &&
-                    /^https:\/\/www\.youtube-nocookie\.com\/embed\/videoseries\?list=/.test(p.embed);
+                    /^https:\/\/www\.youtube-nocookie\.com\/embed\/(?:videoseries|[A-Za-z0-9_-]{5,})\?list=[A-Za-z0-9_-]+$/.test(p.embed);
             }).map(function (p) {
                 return {
                     id: String(p.id),
                     service: 'youtube',
                     cle: String(p.cle || '').slice(0, 120),
+                    video: String(p.video || '').slice(0, 20),
                     url: String(p.url || '').slice(0, 300),
                     embed: String(p.embed).slice(0, 300),
                     nom: String(p.nom || '').slice(0, 90),
@@ -53,16 +54,30 @@ function playlistCompact() {
 /* Tout lien YouTube qui porte une vraie liste de lecture :
    « youtube.com/playlist?list=… », « youtu.be/…?list=… », « watch?v=…&list=… »,
    music.youtube.com, m.youtube.com, avec ou sans https://, avec ou
-   sans www. Le reste est refusé avec un message clair. */
+   sans www. Les Mix automatiques (RD…) sont refusés : YouTube ne les
+   donne jamais aux lecteurs intégrés (« Vidéo indisponible ») — sauf
+   les charts curatés RDCLB, qui sont de vraies playlists publiques.
+   Quand le lien porte une vidéo (v=… ou youtu.be/…), le lecteur
+   démarre sur elle : plus robuste que de laisser YouTube choisir. */
 function playlistDetecterLien(brut) {
     var s = String(brut || '').replace(/\s+/g, '');
     if (!s) return null;
     var domaine = s.replace(/^https?:\/\//i, '');
-    if (/^(www\.|m\.|music\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(domaine)) {
-        var q = s.match(/[?&]list=([A-Za-z0-9_-]+)/);
-        if (q) return { service: 'youtube', cle: q[1], embed: 'https://www.youtube-nocookie.com/embed/videoseries?list=' + q[1] };
+    if (!/^(www\.|m\.|music\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\//i.test(domaine)) return null;
+    var q = s.match(/[?&]list=([A-Za-z0-9_-]+)/);
+    if (!q) return null;
+    if (/^RD(?!CLB)/.test(q[1])) return { service: 'youtube', cle: q[1], mix: true, embed: '' };
+    var video = '';
+    var mv = s.match(/[?&]v=([A-Za-z0-9_-]{5,})/);
+    if (mv) video = mv[1];
+    else {
+        var mb = s.match(/youtu\.be\/([A-Za-z0-9_-]{5,})/);
+        if (mb) video = mb[1];
     }
-    return null;
+    var embed = video
+        ? 'https://www.youtube-nocookie.com/embed/' + video + '?list=' + q[1]
+        : 'https://www.youtube-nocookie.com/embed/videoseries?list=' + q[1];
+    return { service: 'youtube', cle: q[1], video: video, embed: embed };
 }
 
 function playlistEstLienSpotify(s) {
@@ -77,6 +92,9 @@ function playlistAjouterLien(brut) {
         return { ok: false, message: 'Les playlists Spotify ne sont plus prises en charge. Colle plut\u00f4t le lien d\u2019une playlist YouTube \u2014 il contient \u00ab list= \u00bb.' };
     }
     var lien = playlistDetecterLien(brut);
+    if (lien && lien.mix) {
+        return { ok: false, message: 'Les Mix automatiques de YouTube ne peuvent pas \u00eatre lus dans un site. Enregistre ces musiques dans une vraie playlist : sous une vid\u00e9o, touche Enregistrer \u2192 Nouvelle playlist, puis colle son lien ici.' };
+    }
     if (!lien) {
         return { ok: false, message: 'Lien non reconnu. Colle le lien d\u2019une playlist YouTube : sur YouTube, ouvre ta playlist, touche Partager, puis Copier le lien.' };
     }
@@ -92,6 +110,7 @@ function playlistAjouterLien(brut) {
         id: 'pl' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
         service: 'youtube',
         cle: lien.cle,
+        video: lien.video || '',
         url: String(brut || '').trim().slice(0, 300),
         embed: lien.embed,
         nom: 'Playlist YouTube',
@@ -121,18 +140,25 @@ function playlistActiver(id) {
 }
 
 /* Le vrai nom et la pochette, quand YouTube les partage (oEmbed).
-   Si YouTube refuse, la carte reste belle sans pochette. */
+   Si YouTube ne confirme pas la playlist, on le dit : le lecteur
+   affichera « Vidéo indisponible » tant qu'elle est privée. */
 function playlistVignette(p) {
     if (!p || typeof fetch !== 'function') return;
     var url = 'https://www.youtube.com/oembed?url=' + encodeURIComponent('https://www.youtube.com/playlist?list=' + p.cle) + '&format=json';
     fetch(url).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
-        if (!d) return;
         var store = playlistLire();
         var cible = store.liste.filter(function (x) { return x.id === p.id; })[0];
         if (!cible) return;
-        if (d.title) cible.nom = String(d.title).slice(0, 90);
-        if (d.thumbnail_url) cible.vignette = String(d.thumbnail_url).slice(0, 400);
+        if (d && d.title) cible.nom = String(d.title).slice(0, 90);
+        if (d && d.thumbnail_url) cible.vignette = String(d.thumbnail_url).slice(0, 400);
         playlistEcrire(store);
+        if (!d) {
+            var message = document.getElementById('fpMessage');
+            if (message) {
+                message.textContent = 'Playlist ajout\u00e9e, mais YouTube ne la confirme pas : si le lecteur affiche \u00ab Vid\u00e9o indisponible \u00bb, ouvre ta playlist sur YouTube et mets sa visibilit\u00e9 sur \u00ab Non r\u00e9pertori\u00e9e \u00bb ou \u00ab Publique \u00bb, puis rev\u00e9rifie ici.';
+                message.className = 'fp-message';
+            }
+        }
         playlistPeindre();
     }).catch(function () {});
 }
@@ -387,12 +413,15 @@ function playlistPeindre() {
         });
     }
 
-    /* le lecteur de la playlist affichée */
+    /* le lecteur de la playlist affichée — avec une porte de secours
+       vers YouTube si le lecteur refuse de jouer */
     var active = store.liste.filter(function (p) { return p.id === store.active; })[0] || null;
     if (zoneLecteur) {
         if (active) {
             zoneLecteur.className = 'fp-lecteur';
-            zoneLecteur.innerHTML = '<iframe src="' + musiqueEchap(active.embed) + '" title="' + musiqueEchap(active.nom) + '" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" allowfullscreen></iframe>';
+            var href = active.url && /^https?:\/\//.test(active.url) ? active.url : 'https://www.youtube.com/playlist?list=' + active.cle;
+            zoneLecteur.innerHTML = '<iframe src="' + musiqueEchap(active.embed) + '" title="' + musiqueEchap(active.nom) + '" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" allowfullscreen></iframe>' +
+                '<a class="fp-secours" href="' + musiqueEchap(href) + '" target="_blank" rel="noopener">Ne s\u2019affiche pas ici ? Ouvrir sur YouTube \u2197</a>';
         } else {
             zoneLecteur.className = 'fp-lecteur';
             zoneLecteur.innerHTML = '';

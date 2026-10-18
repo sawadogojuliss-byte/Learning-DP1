@@ -52,6 +52,9 @@ ok(css.indexOf('.fp-carte') !== -1 && css.indexOf('.fp-lecteur') !== -1, 'le ren
 ok(musiqueJs.indexOf('function playlistDetecterLien') !== -1, 'la reconnaissance des liens manque');
 ok(musiqueJs.indexOf('youtube-nocookie.com/embed/videoseries') !== -1, 'le lecteur YouTube intégré manque');
 ok(musiqueJs.indexOf('Partager') !== -1, 'l\u2019aide pour copier le lien YouTube manque');
+ok(musiqueJs.indexOf('RD(?!CLB)') !== -1, 'les Mix automatiques (RD…) doivent être refusés, pas les charts RDCLB');
+ok(musiqueJs.indexOf('Ouvrir sur YouTube') !== -1, 'la porte de secours vers YouTube manque');
+ok(css.indexOf('.fp-secours') !== -1, 'le style de la porte de secours manque');
 ok(navJs.indexOf('focusFermerMusique') !== -1, 'la navigation doit fermer les panneaux musique');
 ok(pomodoroPageJs.indexOf('focusFermerMusique') !== -1, 'les boutons du minuteur doivent fermer les panneaux musique');
 
@@ -89,24 +92,30 @@ vm.runInContext(musiqueJs, context);
 
 function detecte(lien) {
     var r = context.playlistDetecterLien(lien);
-    return r ? r.service + ':' + r.cle : null;
+    if (!r) return null;
+    if (r.mix) return 'mix:' + r.cle;
+    return r.service + ':' + r.cle + (r.video ? '@' + r.video : '');
 }
 ok(detecte('https://www.youtube.com/playlist?list=PLabc123def') === 'youtube:PLabc123def', 'lien playlist YouTube');
 ok(detecte('youtube.com/playlist?list=PLabc123def') === 'youtube:PLabc123def', 'lien sans https://');
 ok(detecte('https://m.youtube.com/playlist?list=PLm123') === 'youtube:PLm123', 'lien mobile m.youtube.com');
-ok(detecte('https://music.youtube.com/playlist?list=RDCLB-xyz') === 'youtube:RDCLB-xyz', 'lien YouTube Music');
-ok(detecte('https://youtu.be/video?list=PLxyz') === 'youtube:PLxyz', 'lien youtu.be avec liste');
-ok(detecte('https://www.youtube.com/watch?v=abc&list=PLdef&si=xyz') === 'youtube:PLdef', 'lien watch YouTube avec liste');
+ok(detecte('https://music.youtube.com/playlist?list=RDCLB-xyz') === 'youtube:RDCLB-xyz', 'lien YouTube Music (chart RDCLB, vraie playlist)');
+ok(detecte('https://youtu.be/video12345?list=PLxyz') === 'youtube:PLxyz@video12345', 'lien youtu.be avec liste : le lecteur démarre sur la vidéo');
+ok(detecte('https://www.youtube.com/watch?v=abc12345&list=PLdef&si=xyz') === 'youtube:PLdef@abc12345', 'lien watch YouTube avec liste et vidéo');
 ok(detecte('https://www.youtube-nocookie.com/embed/videoseries?list=PLnoc') === 'youtube:PLnoc', 'lien lecteur intégré YouTube');
 ok(detecte('  https://www.youtube.com/playlist?list=PLesp  ') === 'youtube:PLesp', 'lien avec espaces autour');
+ok(detecte('https://www.youtube.com/watch?v=abcdefgh&list=RDGMEMxyz') === 'mix:RDGMEMxyz', 'un lien de Mix (RD…) doit être reconnu comme Mix');
+ok(detecte('https://www.youtube.com/watch?v=abcdefgh&list=RDMMperso') === 'mix:RDMMperso', 'un lien de Mix personnel (RDMM) doit être reconnu comme Mix');
 ok(detecte('https://www.youtube.com/watch?v=abc') === null, 'une vidéo YouTube sans liste doit être refusée');
 ok(detecte('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=x') === null, 'un lien Spotify doit être refusé');
 ok(detecte('spotify:playlist:abcDEF123') === null, 'une URI Spotify doit être refusée');
 ok(detecte('bonjour') === null, 'un texte quelconque doit être refusé');
 
-/* l'embed porte le bon lecteur */
-const lienYoutube = context.playlistDetecterLien('https://www.youtube.com/playlist?list=PLabc');
-ok(lienYoutube.embed.indexOf('https://www.youtube-nocookie.com/embed/videoseries?list=PLabc') === 0, 'embed YouTube : ' + lienYoutube.embed);
+/* l'embed porte le bon lecteur, avec ou sans vidéo de départ */
+const lienPlaylist = context.playlistDetecterLien('https://www.youtube.com/playlist?list=PLabc');
+ok(lienPlaylist.embed.indexOf('https://www.youtube-nocookie.com/embed/videoseries?list=PLabc') === 0, 'embed YouTube : ' + lienPlaylist.embed);
+const lienWatch = context.playlistDetecterLien('https://www.youtube.com/watch?v=abc12345&list=PLdef');
+ok(lienWatch.embed === 'https://www.youtube-nocookie.com/embed/abc12345?list=PLdef', 'embed démarrant sur la vidéo du lien : ' + lienWatch.embed);
 
 /* ── 4. Le store, les refus clairs et le compte ────────────────────── */
 const resSpotify = context.playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=x');
@@ -118,6 +127,11 @@ const lu = context.playlistLire();
 ok(lu.liste.length === 1 && lu.liste[0].service === 'youtube' && lu.active === lu.liste[0].id, 'la playlist ajoutée doit être enregistrée et affichée');
 const res2 = context.playlistAjouterLien('https://www.youtube.com/watch?v=z&list=PLabc123def');
 ok(res2.ok === true && context.playlistLire().liste.length === 1, 'recoller le même lien ne doit pas dupliquer la playlist');
+const resMix = context.playlistAjouterLien('https://www.youtube.com/watch?v=abcdefghijk&list=RDGMEMcibPTYxyz');
+ok(resMix.ok === false && resMix.message.indexOf('Mix') !== -1,
+    'un lien de Mix doit être refusé avec le message des Mix : ' + (resMix.message || ''));
+const resChart = context.playlistAjouterLien('https://music.youtube.com/playlist?list=RDCLB5test_ok');
+ok(resChart.ok === true, 'une playlist chart RDCLB est une vraie playlist : elle doit être acceptée');
 const res3 = context.playlistAjouterLien('https://www.youtube.com/watch?v=abc');
 ok(res3.ok === false && res3.message, 'un lien sans playlist doit être refusé avec un message');
 
@@ -156,4 +170,4 @@ if (echecs.length) {
     echecs.forEach(function (e) { console.error(' - ' + e); });
     process.exit(1);
 }
-console.log('ok musique : tomate 🍅 au menu Pomodoro, section Playlist à côté des Sons sur le minuteur et la page Séance du jour, liens YouTube reconnus sous toutes leurs formes et joués dans le site, Spotify totalement retiré avec un message qui guide vers YouTube, playlists gardées et emportées par le compte');
+console.log('ok musique : tomate 🍅 au menu Pomodoro, section Playlist à côté des Sons sur le minuteur et la page Séance du jour, liens YouTube reconnus sous toutes leurs formes (lecteur démarrant sur la vidéo du lien), Mix refusés avec la marche à suivre, Spotify retiré, porte de secours vers YouTube sous le lecteur, playlists gardées et emportées par le compte');

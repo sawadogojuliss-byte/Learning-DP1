@@ -243,6 +243,27 @@ const playlistOuverte = await page.evaluate(() => {
 if (!playlistOuverte) {
     echec("le panneau Playlist ne s'ouvre pas depuis la page Séance du jour");
 }
+/* les Mix automatiques sont refusés avec la marche à suivre, et un
+   lien watch?v=…&list=… démarre le lecteur sur cette vidéo */
+const refusMix = await page.evaluate(() => {
+    return playlistAjouterLien('https://www.youtube.com/watch?v=abcdefghijk&list=RDGMEMmixE2E');
+});
+if (refusMix.ok || refusMix.message.indexOf('Mix') === -1) {
+    echec('un lien de Mix doit être refusé avec la marche à suivre : ' + JSON.stringify(refusMix));
+}
+const ajouts = await page.evaluate(() => {
+    const watch = playlistAjouterLien('https://www.youtube.com/watch?v=vidE2E12345&list=PLwatchE2E');
+    playlistPeindre();
+    return { ok: watch.ok, embed: playlistLire().liste.filter(p => p.cle === 'PLwatchE2E')[0].embed,
+        secours: (document.querySelector('#fpLecteur .fp-secours') || {}).href || '' };
+});
+if (!ajouts.ok || ajouts.embed !== 'https://www.youtube-nocookie.com/embed/vidE2E12345?list=PLwatchE2E') {
+    echec('le lecteur doit démarrer sur la vidéo du lien watch : ' + JSON.stringify(ajouts));
+}
+if (ajouts.secours.indexOf('PLwatchE2E') === -1 && ajouts.secours.indexOf('list=') === -1) {
+    echec('la porte de secours vers YouTube manque sous le lecteur : ' + JSON.stringify(ajouts));
+}
+
 const lecteurs = await page.evaluate(() => {
     const youtube = playlistAjouterLien('https://www.youtube.com/playlist?list=PLE2Etest');
     const spotify = playlistAjouterLien('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=e2e');
