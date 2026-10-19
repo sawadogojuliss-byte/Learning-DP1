@@ -787,8 +787,10 @@ function devoirsAdapterJour(events, dayIndex) {
            place des blocs d'étude du jour : la promesse de l'élève est
            tenue jusqu'au bout */
         devoirsGarantirSeances(jour, promessesDV);
-        jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
     }
 
+    /* la journée se lit dans l'ordre des heures : les devoirs du jour
+       se posent à leur place, pas à la fin de la liste */
+    jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
     return jour;
 }
