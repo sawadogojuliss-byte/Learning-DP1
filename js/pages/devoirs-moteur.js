@@ -144,14 +144,17 @@ function devoirsPoserEquilibre(seances, autos, trous) {
                 cur += dureeS + 10;
                 continue;
             }
-            var meilleur = null;
-            restantsAuto.forEach(function (a) {
-                if (a.duree <= trou.e - cur && (!meilleur || a.duree > meilleur.duree)) meilleur = a;
-            });
-            if (!meilleur) break;
-            restantsAuto.splice(restantsAuto.indexOf(meilleur), 1);
-            poses.push({ id: meilleur.id, titre: meilleur.titre, sous: meilleur.sous, debut: cur, fin: cur + meilleur.duree, icone: meilleur.icone, type: meilleur.type });
-            cur += meilleur.duree + 10;
+            /* les révisions automatiques se posent dans leur ordre de
+               priorité (la plus proche épreuve d'abord, révision puis
+               exercices) ; si la place manque, la première se rétrécit
+               à ce qui reste — jamais moins de 40 minutes — plutôt que
+               de perdre sa séance. Un examen sans révision parce que
+               les créneaux font 55 minutes serait un défaut. */
+            if (!restantsAuto.length || (trou.e - cur) < 40) break;
+            var meilleur = restantsAuto.shift();
+            var dureeA = Math.min(meilleur.duree, trou.e - cur);
+            poses.push({ id: meilleur.id, titre: meilleur.titre, sous: meilleur.sous, debut: cur, fin: cur + dureeA, icone: meilleur.icone, type: meilleur.type });
+            cur += dureeA + 10;
         }
     });
     return poses;
@@ -162,18 +165,21 @@ function devoirsPlacerDansTrou(blocs, trous) {
     var i = 0;
     trous.forEach(function (trou) {
         var cur = trou.s;
-        while (i < blocs.length && trou.e - cur >= blocs[i].duree) {
+        while (i < blocs.length && trou.e - cur >= 40) {
             var b = blocs[i];
+            /* même règle qu'en semaine : la révision se rétrécit à la
+               place disponible au lieu de disparaître */
+            var duree = Math.min(b.duree, trou.e - cur);
             poses.push({
                 id: b.id,
                 titre: b.titre,
                 sous: b.sous,
                 debut: cur,
-                fin: cur + b.duree,
+                fin: cur + duree,
                 icone: b.icone,
                 type: b.type
             });
-            cur += b.duree + 10;
+            cur += duree + 10;
             i++;
         }
     });

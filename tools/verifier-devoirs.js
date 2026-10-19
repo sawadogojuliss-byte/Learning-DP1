@@ -477,6 +477,36 @@ ok(geoDeux.length >= 1, 'le devoir de Géographie doit garder sa révision, trou
 ok(mathsDeux.every(function (ev) { return String(ev.title).indexOf('Mathématiques') !== -1; }), 'la révision de Mathématiques doit porter sa matière');
 ok(!jDeux.some(function (ev) { return ev.id === 'school1' || ev.id === 'school2'; }) || true, 'les cours ne bougent pas');
 
+/* — 3a5d. L'examen garde sa révision même quand les créneaux sont courts — */
+/* Un élève a un examen dans 3 jours et, ce soir-là, deux moments libres
+   de 55 et 65 minutes : un bloc de 75 minutes n'entre nulle part. La
+   révision doit se rétrécir à la place disponible, pas disparaître —
+   sinon le planning ne montre que des exercices. */
+var jourSerre = [
+    { id: 'wakeup', title: 'Réveil', startTime: '05:30', endTime: '05:40', type: 'wakeup' },
+    { id: 'school1', title: 'Cours', startTime: '07:50', endTime: '12:30', type: 'school' },
+    { id: 'lunch', title: 'Déjeuner', startTime: '12:30', endTime: '13:30', type: 'meal' },
+    { id: 'school2', title: 'Cours', startTime: '13:30', endTime: '16:25', type: 'school' },
+    { id: 'commute2', title: 'Trajet maison', startTime: '16:25', endTime: '17:05', type: 'commute' },
+    { id: 'freetime', title: 'Temps libre', startTime: '18:00', endTime: '19:00', type: 'free' },
+    { id: 'dinner', title: 'Dîner', startTime: '19:00', endTime: '19:45', type: 'meal' },
+    { id: 'revgap-1', title: 'Révisions · Mathématiques AA', startTime: '20:50', endTime: '21:30', type: 'study' },
+    { id: 'sleep', title: 'Coucher', startTime: '21:30', endTime: '05:30', type: 'sleep' }
+];
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'exserre', matiere: 'Physique', date: dateDans(3), debut: '13:00', fin: '15:00' }
+] });
+var jSerre = context.devoirsAdapterJour(jourSerre.map(function (e) { return Object.assign({}, e); }), idxJour);
+var revSerre = jSerre.filter(function (ev) { return String(ev.title || '').indexOf('Révision · Physique') === 0; });
+ok(revSerre.length >= 1, 'l\'examen doit garder une révision même quand aucun créneau ne fait 75 minutes, trouvé : '
+    + JSON.stringify(jSerre.filter(function (ev) { return String(ev.id || '').indexOf('devrev-') === 0; }).map(function (ev) { return ev.title + ' ' + ev.startTime + '-' + ev.endTime; })));
+var minutesDe = function (h) {
+    var p = String(h || '0:0').split(':');
+    return Number(p[0]) * 60 + Number(p[1]);
+};
+ok(revSerre.every(function (ev) { return minutesDe(ev.endTime) - minutesDe(ev.startTime) >= 40; }),
+    'une révision rétrécie ne descend jamais sous 40 minutes');
+
 /* — 3a6. Le programme trimestriel des devoirs — */
 /* Les documents de devoirs annoncent les compositions d'un trimestre :
    des mercredis, une ou plusieurs matières, avec ou sans heures. Seules
