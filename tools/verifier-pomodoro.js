@@ -78,6 +78,40 @@ ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisi
     'la page doit expliquer qu\'on choisit une séance avant le minuteur');
 ok(page.indexOf('focus-nom') === -1, 'le badge Pomodoro en haut à droite doit disparaître');
 ok(lire('css/pages/planning-panels.css').indexOf('.focus-nom') === -1, 'le style du badge doit disparaître');
+
+/* ── 3bis. Les décors : les photos ajoutées, et leur choix depuis la
+   page Séance de révision ── */
+/* 23 décors historiques plus les 9 photos d'octobre 2026 : fleurs,
+   montagnes, mer. Chaque décor a sa vignette, sinon la bande de choix
+   télécharge une pleine image pour chaque case. */
+var ajoutes = ['geraniums', 'chrysantheme', 'lac-montagne', 'arbre-couchant', 'canyon', 'lac-alpin', 'plage', 'mer-soleil', 'marguerites'];
+var fondsTrouves = (script.match(/src: 'images\/pomodoro\/[a-z-]+\.webp/g) || []);
+ok(fondsTrouves.length >= 32, 'les 32 décors doivent être déclarés, trouvé : ' + fondsTrouves.length);
+ajoutes.forEach(function (id) {
+    ok(script.indexOf("id: '" + id + "'") !== -1, 'le décor doit être proposé : ' + id);
+    ok(fs.existsSync(path.join(__dirname, '..', 'images', 'pomodoro', id + '.webp')), 'la photo manque : ' + id + '.webp');
+    ok(fs.existsSync(path.join(__dirname, '..', 'images', 'pomodoro', 'mini', id + '.webp')), 'la vignette manque : ' + id);
+    ok(script.indexOf("mini: 'images/pomodoro/mini/" + id + ".webp") !== -1, 'la vignette de ' + id + ' doit être déclarée');
+});
+/* chaque décor déclaré a bien son fichier : une image absente laisserait
+   un trou noir dans la galerie */
+var tousFonds = script.match(/src: 'images\/pomodoro\/([a-z-]+)\.webp[^']*'/g) || [];
+tousFonds.forEach(function (ligne) {
+    var m = ligne.match(/images\/pomodoro\/([a-z-]+)\.webp/);
+    ok(m && fs.existsSync(path.join(__dirname, '..', 'images', 'pomodoro', m[1] + '.webp')), 'le fichier du décor manque : ' + ligne);
+});
+
+/* le bouton de la galerie, sur la page Séance de révision */
+ok(seancesHtml.indexOf('id="accueilBtnFonds"') !== -1, 'la page des séances doit offrir le bouton « Changer l\'image »');
+ok(seancesHtml.indexOf("onclick=\"accueilBasculerFonds()\"") !== -1, 'le bouton doit ouvrir la galerie');
+ok(seancesHtml.indexOf('id="accueilFonds"') !== -1 && seancesHtml.indexOf('accueilFonds') !== -1, 'la galerie des décors manque sur la page des séances');
+var musiqueJs = lire('js/pages/musique.js');
+ok(musiqueJs.indexOf('function accueilBasculerFonds') !== -1, 'la galerie des décors ne s\'ouvre pas');
+ok(musiqueJs.indexOf('function accueilChoisirFond') !== -1 && musiqueJs.indexOf('focusPoserFond(index)') !== -1,
+    'choisir une photo doit poser le décor des deux pages');
+ok(musiqueJs.indexOf('function accueilPeindreFonds') !== -1, 'la photo choisie doit être marquée dans la galerie');
+/* le choix se range au même endroit que celui du minuteur */
+ok(script.indexOf("localStorage.setItem('studyPlanIB_focusFond'") !== -1, 'le décor choisi doit être gardé pour les deux pages');
 ok(fs.existsSync(path.join(__dirname, '..', 'pages/seances.html')), 'page de séance absente');
 ok(lire('js/registre.js').indexOf("'pages/seances.html'") !== -1, 'page de séance non enregistrée');
 ok(lire('js/registre.js').indexOf("'pages/pomodoro.html'") !== -1, 'page minuteur non enregistrée');

@@ -484,14 +484,66 @@ const sonsAccueil = await page.evaluate(() => {
 if (!sonsAccueil.ouvert || sonsAccueil.grille < 10) {
     echec("le panneau Sons de la page Séance du jour ne s'affiche pas ou sa grille est vide : " + JSON.stringify(sonsAccueil));
 }
-/* la navigation referme le panneau des sons */
+/* la galerie des décors : le bouton existe, la bande se remplit des
+   vingt-trois décors d'avant plus les neuf photos d'octobre 2026, et
+   choisir une photo pose le décor de la page Séance */
+await page.evaluate(() => { focusFermerMusique(); });
+const galerieAccueil = await page.evaluate(() => {
+    const bouton = document.getElementById('accueilBtnFonds');
+    if (!bouton) return { bouton: false };
+    accueilBasculerFonds();
+    const bande = document.getElementById('accueilFonds');
+    const vignettes = bande ? bande.querySelectorAll('.focus-vignette') : [];
+    const noms = FOCUS_FONDS.map(function (f) { return f.id; });
+    const indexLac = noms.indexOf('lac-alpin');
+    if (indexLac >= 0 && vignettes[indexLac]) vignettes[indexLac].click();
+    return {
+        bouton: true,
+        ouvert: !!bande && !bande.hidden,
+        vignettes: vignettes.length,
+        lacAlpin: indexLac !== -1,
+        index: indexLac,
+        choix: (function () {
+            const actifs = document.querySelectorAll('#accueilFonds .focus-vignette.is-on').length;
+            return actifs;
+        })(),
+        garde: (function () { try { return localStorage.getItem('studyPlanIB_focusFond'); } catch (e) { return ''; } })()
+    };
+});
+if (!galerieAccueil.bouton || !galerieAccueil.ouvert) {
+    echec("la page Séance du jour doit offrir le bouton « Changer l'image » et sa galerie : " + JSON.stringify(galerieAccueil));
+}
+if (galerieAccueil.vignettes < 32) {
+    echec('la galerie doit proposer les 32 décors (23 + 9 photos) : ' + galerieAccueil.vignettes);
+}
+if (!galerieAccueil.lacAlpin || galerieAccueil.choix !== 1) {
+    echec('choisir « Lac alpin » doit marquer cette photo dans la galerie : ' + JSON.stringify(galerieAccueil));
+}
+/* l'image est décodée avant d'être posée : on l'attend */
+let fondAlpin = false;
+try {
+    await page.waitForFunction(function () {
+        const fond = document.getElementById('focusAccueilFond');
+        return !!fond && String(fond.style.backgroundImage || '').indexOf('lac-alpin') !== -1;
+    }, null, { timeout: 15000 });
+    fondAlpin = true;
+} catch (e) {}
+if (!fondAlpin) {
+    echec('choisir « Lac alpin » doit poser ce décor sur la page Séance : ' + JSON.stringify(galerieAccueil));
+}
+/* le décor choisi ici est celui que le minuteur retrouvera */
+if (String(galerieAccueil.garde) !== String(galerieAccueil.index)) {
+    echec('le décor choisi sur la page Séance doit être gardé pour le minuteur : ' + JSON.stringify(galerieAccueil));
+}
+/* la navigation referme le panneau des sons et la galerie */
 await page.evaluate(() => { navigateTo('planning'); });
 const panneauReferme = await page.evaluate(() => {
     const panneau = document.getElementById('accueilSons');
-    return !panneau || panneau.hidden;
+    const galerie = document.getElementById('accueilFonds');
+    return (!panneau || panneau.hidden) && (!galerie || galerie.hidden);
 });
 if (!panneauReferme) {
-    echec("la navigation doit refermer le panneau des sons de la page Séance");
+    echec("la navigation doit refermer le panneau des sons et la galerie de la page Séance");
 }
 
 /* 6. aucune erreur JavaScript */
@@ -507,4 +559,4 @@ console.log('ok préparation en vrai navigateur : séance du devoir visible aujo
     + 'nombre de séances choisi tenu au compte exact sur chaque jour même planning plein, séances visibles et modifiables dans la liste des devoirs, jours fériés posés par date pour une semaine avec la carte Jour libre, '
     + 'vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
     + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
-    + 'tomate au menu Pomodoro, panneau Sons sur la page Séance du jour, section Playlist retirée, 0 erreur JavaScript');
+    + 'tomate au menu Pomodoro, panneau Sons et galerie de 32 décors sur la page Séance du jour, section Playlist retirée, 0 erreur JavaScript');

@@ -1299,7 +1299,18 @@ body.v3-deplacement, body.v3-deplacement * {
     gap: 0.6rem;
     z-index: 5;
 }
+/* La galerie des décors de la page Séance de révision : la même bande
+   de vignettes que le minuteur, posée au-dessus de la carte. */
+#accueilFonds {
+    z-index: 4;
+    left: 50%;
+    right: auto;
+    width: min(58rem, calc(100% - 2rem));
+    transform: translateX(-50%);
+    bottom: 4.9rem;
+}
 @media (max-width: 700px) {
     .musique-flottant { inset: 3.2rem 0.4rem 4.8rem; }
     .focus-accueil-musique { right: 0.8rem; bottom: 0.8rem; }
+    #accueilFonds { width: calc(100% - 1.6rem); bottom: 4.4rem; }
 }

@@ -30,7 +30,17 @@ var FOCUS_FONDS = [
     { id: 'lecture', nom: 'Lecture', src: 'images/pomodoro/lecture.webp?v=20261015p', mini: 'images/pomodoro/mini/lecture.webp?v=20261015p' },
     { id: 'cabine', nom: 'Cabine', src: 'images/pomodoro/cabine.webp?v=20261015p', mini: 'images/pomodoro/mini/cabine.webp?v=20261015p' },
     { id: 'tunnel', nom: 'Tunnel', src: 'images/pomodoro/tunnel.webp?v=20261015p', mini: 'images/pomodoro/mini/tunnel.webp?v=20261015p' },
-    { id: 'stade', nom: 'Stade', src: 'images/pomodoro/stade.webp?v=20261015p', mini: 'images/pomodoro/mini/stade.webp?v=20261015p' }
+    { id: 'stade', nom: 'Stade', src: 'images/pomodoro/stade.webp?v=20261015p', mini: 'images/pomodoro/mini/stade.webp?v=20261015p' },
+    /* Photos ajoutées en octobre 2026 : fleurs, montagnes, mer. */
+    { id: 'geraniums', nom: 'Géraniums', src: 'images/pomodoro/geraniums.webp?v=20261019d', mini: 'images/pomodoro/mini/geraniums.webp?v=20261019d' },
+    { id: 'chrysantheme', nom: 'Chrysanthème', src: 'images/pomodoro/chrysantheme.webp?v=20261019d', mini: 'images/pomodoro/mini/chrysantheme.webp?v=20261019d' },
+    { id: 'lac-montagne', nom: 'Lac de montagne', src: 'images/pomodoro/lac-montagne.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-montagne.webp?v=20261019d' },
+    { id: 'arbre-couchant', nom: 'Arbre au couchant', src: 'images/pomodoro/arbre-couchant.webp?v=20261019d', mini: 'images/pomodoro/mini/arbre-couchant.webp?v=20261019d' },
+    { id: 'canyon', nom: 'Canyon', src: 'images/pomodoro/canyon.webp?v=20261019d', mini: 'images/pomodoro/mini/canyon.webp?v=20261019d' },
+    { id: 'lac-alpin', nom: 'Lac alpin', src: 'images/pomodoro/lac-alpin.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-alpin.webp?v=20261019d' },
+    { id: 'plage', nom: 'Plage', src: 'images/pomodoro/plage.webp?v=20261019d', mini: 'images/pomodoro/mini/plage.webp?v=20261019d' },
+    { id: 'mer-soleil', nom: 'Mer au soleil', src: 'images/pomodoro/mer-soleil.webp?v=20261019d', mini: 'images/pomodoro/mini/mer-soleil.webp?v=20261019d' },
+    { id: 'marguerites', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -332,6 +342,7 @@ function focusPeindreAccueil() {
 
     var fond = document.getElementById('focusAccueilFond');
     if (fond) focusFondAccueil((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src);
+    if (typeof accueilPeindreFonds === 'function') accueilPeindreFonds();
 
     var bonjour = document.getElementById('focusAccueilBonjour');
     if (bonjour) {

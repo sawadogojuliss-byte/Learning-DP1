@@ -182,7 +182,9 @@ function creerContexte(typeReseau) {
 
     contexte.focusCharger();
     await lent.drainer();
-    ok(lent.vignettes().length === 23, 'les 23 vignettes doivent être créées');
+    var nbFonds = contexte.FOCUS_FONDS.length;
+    ok(nbFonds >= 32 && lent.vignettes().length === nbFonds,
+        'une vignette doit être créée pour chaque décor (' + nbFonds + ' attendues, trouvé ' + lent.vignettes().length + ')');
     ok(lent.imagesEnAttente() === 0, 'en 2G aucune image ne doit être préchargée d avance');
     ok(String(lent.vignettes()[0].style.backgroundImage).indexOf('mini/lumiere.webp') !== -1,
         'les vignettes doivent utiliser les petites images');
@@ -238,7 +240,8 @@ function creerContexte(typeReseau) {
         return !rapide.contexte.focusFondsPrets[f.src];
     });
     ok(restantes.length === 0, 'toutes les images doivent être préparées (' + restantes.length + ' restantes)');
-    ok(Object.keys(rapide.contexte.focusFondsPrets).length === 23, 'les 23 fonds doivent être prêts');
+    ok(Object.keys(rapide.contexte.focusFondsPrets).length === rapide.contexte.FOCUS_FONDS.length,
+        'chaque fond doit être prêt (' + rapide.contexte.FOCUS_FONDS.length + ')');
 
     /* Image déjà prête : le changement doit être immédiat, sans aucun délai. */
     var journalAvant = rapide.journal('focusBg').length;

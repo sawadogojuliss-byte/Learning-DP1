@@ -52,12 +52,15 @@ function accueilFermerSonsSiFond(event) {
 function focusFermerMusique() {
     var el = document.getElementById('accueilSons');
     if (el) el.hidden = true;
+    if (typeof accueilFermerFonds === 'function') accueilFermerFonds();
     accueilPeindreBoutonSons();
 }
 
 function focusBasculerSonsAccueil() {
     var panneau = document.getElementById('accueilSons');
     if (!panneau) return;
+    /* un seul panneau ouvert à la fois : la galerie des décors se ferme */
+    if (panneau.hidden && typeof accueilFermerFonds === 'function') accueilFermerFonds();
     panneau.hidden = !panneau.hidden;
     if (!panneau.hidden) accueilPeindreSons();
     accueilPeindreBoutonSons();
@@ -142,3 +145,68 @@ function accueilFiltrerSons() {
 /* ── Démarrage ─────────────────────────────────────────────────────── */
 
 try { musiqueConstruire(); } catch (e) {}
+
+/* ── La galerie des décors de la page Séance de révision ───────────── */
+/* Le Pomodoro a sa bande de vignettes ; la page des séances reçoit la
+   même, alimentée par les fonds communs (FOCUS_FONDS). Choisir ici
+   change le décor des deux pages : le choix est enregistré au même
+   endroit. */
+
+function accueilVignettesFonds() {
+    var galerie = document.getElementById('accueilFonds');
+    if (!galerie || galerie.childNodes.length) return;
+    if (typeof FOCUS_FONDS === 'undefined' || !Array.isArray(FOCUS_FONDS)) return;
+    FOCUS_FONDS.forEach(function (fond, i) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'focus-vignette';
+        btn.setAttribute('aria-label', fond.nom);
+        btn.title = fond.nom;
+        btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';
+        btn.style.backgroundPosition = 'center center';
+        btn.style.backgroundSize = 'cover';
+        btn.style.backgroundRepeat = 'no-repeat';
+        btn.onclick = function () { accueilChoisirFond(i); };
+        galerie.appendChild(btn);
+    });
+}
+
+function accueilChoisirFond(index) {
+    if (typeof focusPoserFond === 'function') focusPoserFond(index);
+    accueilPeindreFonds();
+}
+
+function accueilPeindreFonds() {
+    var galerie = document.getElementById('accueilFonds');
+    if (!galerie) return;
+    var actif = (typeof focusEtat !== 'undefined' && focusEtat && Number(focusEtat.fond)) || 0;
+    var vignettes = galerie.querySelectorAll('.focus-vignette');
+    for (var i = 0; i < vignettes.length; i++) {
+        if (i === actif) vignettes[i].classList.add('is-on');
+        else vignettes[i].classList.remove('is-on');
+    }
+    var bouton = document.getElementById('accueilBtnFonds');
+    if (bouton) bouton.classList.toggle('is-on', !galerie.hidden);
+}
+
+function accueilBasculerFonds() {
+    var galerie = document.getElementById('accueilFonds');
+    if (!galerie) return;
+    /* un seul panneau ouvert à la fois : les sons se ferment */
+    var sons = document.getElementById('accueilSons');
+    if (sons && !sons.hidden) sons.hidden = true;
+    if (typeof accueilPeindreBoutonSons === 'function') accueilPeindreBoutonSons();
+    accueilVignettesFonds();
+    galerie.hidden = !galerie.hidden;
+    accueilPeindreFonds();
+}
+
+/* Ferme la galerie des décors : appelée par la navigation et à
+   l'ouverture du panneau Sons, pour qu'elle ne reste jamais ouverte
+   par-dessus une autre page. */
+function accueilFermerFonds() {
+    var galerie = document.getElementById('accueilFonds');
+    if (galerie) galerie.hidden = true;
+    var bouton = document.getElementById('accueilBtnFonds');
+    if (bouton) bouton.classList.remove('is-on');
+}
