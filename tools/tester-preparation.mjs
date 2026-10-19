@@ -105,16 +105,37 @@ const semaine = await page.evaluate(() => {
     for (let i = 0; i < 7; i++) {
         const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
         const cle = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        const evts = generateDayEvents(i).map(function (e) {
-            return (e.title || '') + ' ' + (e.startTime || '') + '-' + (e.endTime || '');
-        });
-        jours.push({ cle: cle, evts: evts });
+        let evts = [];
+        let panne = '';
+        try {
+            evts = generateDayEvents(i).map(function (e) {
+                return (e.title || '') + ' ' + (e.startTime || '') + '-' + (e.endTime || '');
+            });
+        } catch (e) {
+            panne = String(e && e.message || e);
+        }
+        jours.push({ cle: cle, evts: evts, panne: panne });
     }
     return jours;
 });
 
 const cleDemain = jourCle(demain);
 if (!semaine.some(j => j.evts.some(t => t.indexOf('Révision · Physique') !== -1))) {
+    /* le journal dit exactement ce que le planning a reçu, jour par
+       jour, pour que la panne se lise sans revenir sur le site */
+    console.log('journal des sept jours :');
+    semaine.forEach(function (j) {
+        console.log('  ' + j.cle + (j.panne ? ' — ERREUR ' + j.panne : ' : ' + j.evts.join(' | ')));
+    });
+    console.log('programme du jour : ' + JSON.stringify(await page.evaluate(function () {
+        try {
+            return {
+                devoirs: (devoirsLireStore().devoirs || []).map(function (d) { return d.matiere + ' ' + d.date + ' ' + (d.seances == null ? 'auto' : d.seances) + ' → ' + devoirsNombreSeances(d); }),
+                examens: (devoirsLireStore().examens || []).map(function (d) { return d.matiere + ' ' + d.date + ' ' + (d.debut || ''); }),
+                sujetsDevoirs: (typeof planningSujetsDesDevoirs === 'function' ? planningSujetsDesDevoirs() : []).map(function (s) { return s.name; })
+            };
+        } catch (e) { return { erreur: String(e && e.message || e) }; }
+    })));
     echec("les révisions de l'examen de Physique n'apparaissent sur aucun jour de la semaine : "
         + JSON.stringify(semaine.map(j => j.cle)));
 }
