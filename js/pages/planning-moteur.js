@@ -1732,15 +1732,77 @@ function planningSujetsSaisis() {
    matières du profil en complément, pour n'en perdre aucune. Renvoie
    null sans emploi du temps chargé ou sans matière reconnue : le
    planning garde alors ses règles habituelles. */
+/* La matière de l'élève qui correspond au nom écrit sur un devoir :
+   « Maths AA » → Mathématiques AA SL, « Histoire » → Histoire. Le nom
+   exact d'abord, puis le début du nom, puis la famille de matières. */
+function planningSujetDuDevoir(nom) {
+    var liste = planningSujetsSaisis();
+    var cible = String(nom == null ? '' : nom);
+    var norm = function (x) {
+        return String(x == null ? '' : x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+    };
+    var n = norm(cible);
+    var i;
+    for (i = 0; i < liste.length; i++) {
+        if (norm(liste[i].name) === n) return liste[i];
+    }
+    for (i = 0; i < liste.length; i++) {
+        var nomSujet = norm(liste[i].name);
+        var motsSujet = nomSujet.split(' ');
+        var motsDevoir = n.split(' ');
+        if (nomSujet && motsSujet[0] && motsDevoir[0] && motsSujet[0] === motsDevoir[0]) return liste[i];
+    }
+    if (typeof devoirsFamillesEleve === 'function' && typeof devoirsMatieresLigneToutes === 'function') {
+        var familles = devoirsFamillesEleve();
+        var trouvees = devoirsMatieresLigneToutes(n, familles);
+        for (i = 0; i < trouvees.length; i++) {
+            for (var k = 0; k < liste.length; k++) {
+                if (norm(liste[k].name) === norm(trouvees[i])) return liste[k];
+            }
+        }
+    }
+    return null;
+}
+
+/* Les matières des devoirs proches, la plus urgente d'abord : ce sont
+   elles que le planning révise en premier — le temps de révision
+   coïncide avec ce qui sera vraiment composé. */
+function planningSujetsDesDevoirs() {
+    var liste = [];
+    if (typeof devoirsLireStore !== 'function') return liste;
+    var store;
+    try { store = devoirsLireStore(); } catch (e) { return liste; }
+    var maintenant = new Date();
+    var debut = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime();
+    var fin = debut + 7 * 86400000;
+    var proches = (store.devoirs || []).filter(function (d) {
+        if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(String(d.date || ''))) return false;
+        var t = new Date(String(d.date) + 'T00:00:00').getTime();
+        return t >= debut && t <= fin;
+    }).sort(function (a, b) { return String(a.date) < String(b.date) ? -1 : 1; });
+    var vus = {};
+    proches.forEach(function (d) {
+        var s = planningSujetDuDevoir(d.matiere);
+        if (!s || vus[s.name]) return;
+        vus[s.name] = 1;
+        liste.push(s);
+    });
+    return liste;
+}
+
 function emploiScolaireProgramme(dayIndex) {
-    if (typeof emploiScolaireActif !== 'function' || !emploiScolaireActif() || typeof emploiScolaireSujets !== 'function') return null;
+    var actif = typeof emploiScolaireActif === 'function' && emploiScolaireActif() && typeof emploiScolaireSujets === 'function';
     var jour = Number(dayIndex);
-    var vues = emploiScolaireSujets((jour >= 0 && jour <= 4) ? jour : null);
-    if (!vues.length) return null;
+    var vues = actif ? emploiScolaireSujets((jour >= 0 && jour <= 4) ? jour : null) : [];
+    /* les devoirs à venir passent devant les matières vues en classe :
+       le soir, on révise ce qui sera composé, même si le cours de la
+       matière n'était pas aujourd'hui */
+    var devoirs = typeof planningSujetsDesDevoirs === 'function' ? planningSujetsDesDevoirs() : [];
+    if (!vues.length && !devoirs.length) return null;
     var tout = planningSujetsSaisis();
     var vus = {};
     var out = [];
-    vues.concat(tout).forEach(function (s) {
+    devoirs.concat(vues).concat(tout).forEach(function (s) {
         if (!s || !s.name || vus[s.name]) return;
         vus[s.name] = 1;
         out.push(s);

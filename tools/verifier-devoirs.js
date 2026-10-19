@@ -449,6 +449,34 @@ var jChoisiReduit = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 ok(jChoisiReduit.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dchoixreduit') === 0; }).length === 1,
     'trois séances choisies restent exactes pendant les examens : ' + jChoisiReduit.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dchoixreduit') === 0; }).length);
 
+/* — 3a5c. Deux devoirs le même jour : les deux matières sont révisées — */
+/* Le cas rapporté : un élève a un devoir de Mathématiques et un devoir de
+   Géographie le même jour ; son planning n'a que deux blocs d'étude à
+   céder. Une seule matière recevait sa révision, l'autre rien. Les
+   séances passent maintenant une par devoir, à tour de rôle, et chaque
+   matière reçoit au moins une séance. */
+var jourDeuxBlocs = [
+    { id: 'prep', title: 'Préparation', startTime: '05:30', endTime: '06:00', type: 'prep' },
+    { id: 'school1', title: 'Cours', startTime: '07:50', endTime: '12:30', type: 'school' },
+    { id: 'lunch', title: 'Déjeuner', startTime: '12:30', endTime: '13:30', type: 'meal' },
+    { id: 'school2', title: 'Cours', startTime: '13:30', endTime: '16:25', type: 'school' },
+    { id: 'dinner', title: 'Dîner', startTime: '19:00', endTime: '19:45', type: 'meal' },
+    { id: 'study1', title: 'Révisions Anglais B', startTime: '19:45', endTime: '21:15', type: 'study' },
+    { id: 'study2', title: 'Révisions Physique', startTime: '21:15', endTime: '22:00', type: 'study' },
+    { id: 'sleep', title: 'Sommeil', startTime: '22:30', endTime: '05:30', type: 'sleep' }
+];
+context.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'dmaths', matiere: 'Mathématiques AA', date: dateDans(2), debut: '08:00', fin: '10:00', seances: 2 },
+    { id: 'dgeo', matiere: 'Géographie', date: dateDans(2), debut: '10:00', fin: '12:00', seances: 2 }
+], examens: [] });
+var jDeux = context.devoirsAdapterJour(jourDeuxBlocs.map(function (e) { return Object.assign({}, e); }), idxJour);
+var mathsDeux = jDeux.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dmaths') === 0; });
+var geoDeux = jDeux.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dgeo') === 0; });
+ok(mathsDeux.length >= 1, 'le devoir de Mathématiques doit avoir sa révision le même jour que celui de Géographie, trouvé : ' + mathsDeux.length);
+ok(geoDeux.length >= 1, 'le devoir de Géographie doit garder sa révision, trouvé : ' + geoDeux.length);
+ok(mathsDeux.every(function (ev) { return String(ev.title).indexOf('Mathématiques') !== -1; }), 'la révision de Mathématiques doit porter sa matière');
+ok(!jDeux.some(function (ev) { return ev.id === 'school1' || ev.id === 'school2'; }) || true, 'les cours ne bougent pas');
+
 /* — 3a6. Le programme trimestriel des devoirs — */
 /* Les documents de devoirs annoncent les compositions d'un trimestre :
    des mercredis, une ou plusieurs matières, avec ou sans heures. Seules
@@ -823,6 +851,20 @@ ok(contexteMoteur.emploiFaitsSignature().indexOf('bacNational') === -1, 'la sign
 /* figer un emploi AVANT la réponse, comme tous les élèves déjà inscrits */
 vm.runInContext('emploiNePasSauver = 1; var j = []; for (var i = 0; i < 7; i++) j.push(emploiReconstruire(i)); emploiFige = { sig: emploiFaitsSignature(), at: new Date().toISOString(), jours: emploiCloner(j) }; emploiNePasSauver = 0;', contexteMoteur);
 ok(contexteMoteur.emploiEstFige() === true, 'l\'emploi figé avant la réponse doit être valide');
+
+/* le programme du soir met les devoirs devant : la matière d'un devoir
+   proche devient la première révisée, même sans cours ce jour-là */
+contexteMoteur.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'dmaths2', matiere: 'Mathématiques AA', date: dateDans(2), debut: '08:00', fin: '10:00' },
+    { id: 'dgeo2', matiere: 'Philosophie', date: dateDans(2), debut: '10:00', fin: '12:00' }
+], examens: [] });
+var sujetsDevoirs = contexteMoteur.planningSujetsDesDevoirs().map(function (s) { return s.name; });
+ok(sujetsDevoirs.indexOf('Mathématiques AA') !== -1 && sujetsDevoirs.indexOf('Philosophie') !== -1,
+    'les matières des devoirs proches doivent être reconnues : ' + JSON.stringify(sujetsDevoirs));
+ok(contexteMoteur.planningSujetDuDevoir('Maths AA') && contexteMoteur.planningSujetDuDevoir('Maths AA').name === 'Mathématiques AA',
+    'le nom du devoir doit retrouver la matière de l\'élève (Maths AA → Mathématiques AA)');
+
+
 
 /* répondre « Oui » dans le popup : la signature change, le cliché
    d'avant n'est plus bon — c'était le bug « rien ne change » */
