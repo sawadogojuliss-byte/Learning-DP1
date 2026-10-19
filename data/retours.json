@@ -259,5 +259,21 @@
     }
   ],
   "feedbacks": [],
-  "reponses": []
+  "reponses": [
+    {
+      "type": "reponse",
+      "id": "r1a1528a7ad7e1c592b3",
+      "questionId": "q1a15187be1d029e0715",
+      "at": "2026-10-19T05:02:49.559Z",
+      "nom": "Sere Farid Abdourrahman",
+      "email": "ibstudyplan@gmail.com",
+      "destinataire": "doriilboudo235@gmail.com",
+      "texte": "Si par mégarde dans la configuration vous avez inclus des jours libres, il est tout à fait normal qu'ils apparaissent dans le planning. Au cas contraire, vous pouvez très bien changer cela dans les paramètres de l'application, dans l'option \"jours fériés\".",
+      "salutation": "Bonjour Kenzah,",
+      "mail": true,
+      "repondu": true,
+      "gmailId": "1wlf453iig5n7c2vhull63kn",
+      "partage": true
+    }
+  ]
 }

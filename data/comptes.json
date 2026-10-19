@@ -10770,6 +10770,9 @@
             }
           }
         ],
+        "holidayDays": [],
+        "holidayModes": {},
+        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 0,
         "freeTimeByDay": {
