@@ -55,7 +55,7 @@ await page.evaluate(function (programme) {
         ],
         optionalSubjects: [{ name: 'Physique', level: 'SL', icon: '⚛️' }],
         ibYear: 'DP2', transportMode: 'walking',
-        selectedActivities: [], holidayDays: [], holidayModes: {}, holidayDropped: {},
+        selectedActivities: [], holidayDates: {}, holidayDroppedDates: {},
         phoneDays: [], samePhoneDuration: true, phoneDuration: 30, phoneDayDurations: {},
         sameFreeTime: true, freeTimeMinutes: 60, freeTimeByDay: {},
         weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8
@@ -160,43 +160,60 @@ if (parEleve.eleveB.join(',') !== 'Économie') {
 
 /* 8. l'emploi du temps scolaire : les vrais cours remplacent les
    créneaux génériques et les heures creuses reçoivent du travail —
-   vérifié avec le vrai moteur du site déployé. */
-const demainIdx = (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1 + 1) % 7;
-const idxDemain = ((new Date().getDay() + 6) % 7 + 1) % 7;
+   vérifié avec le vrai moteur du site déployé, sur un jour de classe
+   de la semaine affichée (demain s'il est de classe, aujourd'hui le
+   vendredi, sinon le lundi affiché). Le temps de la vérification, le
+   devoir et l'examen du scénario sont mis de côté : sans eux, le soir
+   reste un soir de classe ordinaire. Tout est remis en place ensuite. */
+const idxJourDepart = (new Date().getDay() + 6) % 7;
+const idxJourSuivant = idxJourDepart + 1;
+const idxVerifie = (idxJourSuivant >= 1 && idxJourSuivant <= 4) ? idxJourSuivant : (idxJourDepart <= 4 ? idxJourDepart : 0);
 const emploi = await page.evaluate(function (idx) {
-    localStorage.setItem('studyPlanIB_emploiScolaire', JSON.stringify({
-        at: new Date().toISOString(),
-        jours: (() => { const j = [[], [], [], [], [], [], []]; j[idx] = [
-            { id: 'e1', nom: 'Maths AA', matiere: 'Mathématiques AA', debut: '08:00', fin: '09:30' },
-            { id: 'e2', nom: 'Chimie', matiere: 'Chimie', debut: '11:10', fin: '12:40' }
-        ]; return j; })()
-    }));
-    const evts = generateDayEvents(idx);
-    return evts.map(e => (e.id || '') + '|' + (e.title || '') + '|' + (e.startTime || '') + '-' + (e.endTime || ''));
-}, idxDemain);
-if (!emploi.some(l => l.indexOf('Maths AA|08:00-09:30') !== -1 || l.indexOf('|Maths AA|') !== -1 && l.indexOf('08:00-09:30') !== -1)) {
-    echec("le vrai cours de Maths AA (8h00-9h30) n'apparaît pas : " + JSON.stringify(emploi.slice(0, 12)));
+    const sauveEmploi = localStorage.getItem('studyPlanIB_emploiScolaire');
+    const sauveDevoirs = localStorage.getItem('studyPlanIB_devoirs');
+    const figeSauve = typeof emploiFige !== 'undefined' ? emploiFige : null;
+    try {
+        localStorage.setItem('studyPlanIB_devoirs', JSON.stringify({ bac: false, bacDemande: 2, devoirs: [], examens: [] }));
+        localStorage.setItem('studyPlanIB_emploiScolaire', JSON.stringify({
+            at: new Date().toISOString(),
+            jours: (() => { const j = [[], [], [], [], [], [], []]; j[idx] = [
+                { id: 'e1', nom: 'Maths AA', matiere: 'Mathématiques AA', debut: '08:00', fin: '09:30' },
+                { id: 'e2', nom: 'Chimie', matiere: 'Chimie', debut: '11:10', fin: '12:40' }
+            ]; return j; })()
+        }));
+        emploiFige = null;     /* le planning figé pendant la semaine de révision ne doit pas resservir ici */
+        emploiNePasSauver = 1; /* la vérification ne fige rien */
+        const evts = generateDayEvents(idx);
+        return {
+            lignes: evts.map(e => (e.id || '') + '|' + (e.title || '') + '|' + (e.startTime || '') + '-' + (e.endTime || '')),
+            programme: (typeof emploiScolaireProgramme === 'function' ? emploiScolaireProgramme(idx) : []).map(s => s.name)
+        };
+    } finally {
+        if (sauveEmploi == null) localStorage.removeItem('studyPlanIB_emploiScolaire'); else localStorage.setItem('studyPlanIB_emploiScolaire', sauveEmploi);
+        if (sauveDevoirs == null) localStorage.removeItem('studyPlanIB_devoirs'); else localStorage.setItem('studyPlanIB_devoirs', sauveDevoirs);
+        emploiFige = figeSauve;
+        emploiNePasSauver = 0;
+    }
+}, idxVerifie);
+if (!emploi.lignes.some(l => l.indexOf('Maths AA|08:00-09:30') !== -1 || l.indexOf('|Maths AA|') !== -1 && l.indexOf('08:00-09:30') !== -1)) {
+    echec("le vrai cours de Maths AA (8h00-9h30) n'apparaît pas : " + JSON.stringify(emploi.lignes.slice(0, 12)));
 }
-if (!emploi.some(l => l.indexOf('Chimie|11:10-12:40') !== -1 || l.indexOf('|Chimie|') !== -1 && l.indexOf('11:10-12:40') !== -1)) {
-    echec("le vrai cours de Chimie (11h10-12h40) n'apparaît pas : " + JSON.stringify(emploi.slice(0, 12)));
+if (!emploi.lignes.some(l => l.indexOf('Chimie|11:10-12:40') !== -1 || l.indexOf('|Chimie|') !== -1 && l.indexOf('11:10-12:40') !== -1)) {
+    echec("le vrai cours de Chimie (11h10-12h40) n'apparaît pas : " + JSON.stringify(emploi.lignes.slice(0, 12)));
 }
-if (emploi.some(l => l.indexOf('school1|') !== -1 || l.indexOf('school2|') !== -1)) {
-    echec('les créneaux Cours génériques doivent disparaître quand lemploi du temps est chargé : ' + JSON.stringify(emploi.slice(0, 12)));
+if (emploi.lignes.some(l => l.indexOf('school1|') !== -1 || l.indexOf('school2|') !== -1)) {
+    echec('les créneaux Cours génériques doivent disparaître quand lemploi du temps est chargé : ' + JSON.stringify(emploi.lignes.slice(0, 12)));
 }
-if (!emploi.some(l => l.indexOf('emploi-') !== -1)) {
-    echec("l'heure creuse 9h30-11h10 doit recevoir du travail : " + JSON.stringify(emploi.slice(0, 12)));
+if (!emploi.lignes.some(l => l.indexOf('emploi-') !== -1)) {
+    echec("l'heure creuse 9h30-11h10 doit recevoir du travail : " + JSON.stringify(emploi.lignes.slice(0, 12)));
 }
-
 /* le programme du planning suit l'emploi du temps : le soir, les
    matières vues dans la journée passent en premier, puis le complément */
-const programmeJour = await page.evaluate(function (idx) {
-    return emploiScolaireProgramme(idx).map(s => s.name);
-}, idxDemain);
-if (programmeJour.join(',') !== 'Mathématiques AA,Chimie,Physique') {
-    echec('le programme doit suivre l\'emploi du temps (matières vues puis complément) : ' + programmeJour.join(','));
+if (emploi.programme.join(',') !== 'Mathématiques AA,Chimie,Physique') {
+    echec('le programme doit suivre l\'emploi du temps (matières vues puis complément) : ' + emploi.programme.join(','));
 }
-if (!emploi.some(l => l.indexOf('study1|Révisions Mathématiques AA|') !== -1)) {
-    echec('le soir doit réviser la première matière vue dans la journée (Mathématiques AA) : ' + JSON.stringify(emploi.slice(0, 16)));
+if (!emploi.lignes.some(l => l.indexOf('study1|Révisions Mathématiques AA|') !== -1)) {
+    echec('le soir doit réviser la première matière vue dans la journée (Mathématiques AA) : ' + JSON.stringify(emploi.lignes.slice(0, 16)));
 }
 
 /* 8bis. le programme trimestriel des devoirs de niveau : l'analyse
