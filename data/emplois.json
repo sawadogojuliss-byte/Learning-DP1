@@ -6664,7 +6664,7 @@
       "type": "emploi",
       "id": "e_a1a12c3549c584e7eec0",
       "appareil": "a1a12c3549c584e7eec0",
-      "at": "2026-10-19T11:18:22.744Z",
+      "at": "2026-10-19T20:26:38.815Z",
       "nom": "RYAN",
       "classe": "DP2",
       "email": "",
@@ -7059,7 +7059,7 @@
             {
               "d": "13:50",
               "f": "14:50",
-              "t": "Révision · Géographie"
+              "t": "Révisions Géographie"
             },
             {
               "d": "14:55",
@@ -7149,7 +7149,7 @@
             {
               "d": "09:35",
               "f": "10:50",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions Anglais B"
             },
             {
               "d": "10:50",
@@ -7179,7 +7179,7 @@
             {
               "d": "14:55",
               "f": "16:25",
-              "t": "Révision · Géographie"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "16:25",
@@ -7239,7 +7239,7 @@
             {
               "d": "09:00",
               "f": "10:15",
-              "t": "Révision · Physique"
+              "t": "Révisions Français A"
             },
             {
               "d": "10:15",
@@ -7264,12 +7264,12 @@
             {
               "d": "13:30",
               "f": "15:25",
-              "t": "Révision · Géographie"
+              "t": "Révisions Géographie"
             },
             {
               "d": "15:25",
               "f": "16:55",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "16:55",
@@ -7329,7 +7329,7 @@
             {
               "d": "08:40",
               "f": "10:55",
-              "t": "Révision · Géographie"
+              "t": "Révisions · Géographie"
             },
             {
               "d": "10:55",
@@ -7354,12 +7354,12 @@
             {
               "d": "13:30",
               "f": "14:45",
-              "t": "Révision · Physique"
+              "t": "Révisions ESS"
             },
             {
               "d": "14:45",
               "f": "16:15",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "16:15",
@@ -7404,7 +7404,7 @@
       "type": "emploi",
       "id": "e_a1a113207989199d5d45",
       "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-19T09:45:11.980Z",
+      "at": "2026-10-19T17:15:48.463Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
@@ -7474,12 +7474,12 @@
             {
               "d": "09:35",
               "f": "10:15",
-              "t": "Révision · Physique"
+              "t": "Révision · Anglais B"
             },
             {
               "d": "10:15",
               "f": "11:10",
-              "t": "Révision · Géographie"
+              "t": "Révision · Mathématiques AA"
             },
             {
               "d": "11:10",
@@ -7544,7 +7544,7 @@
             {
               "d": "21:10",
               "f": "22:00",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révision · Physique"
             },
             {
               "d": "22:00",
@@ -7569,7 +7569,7 @@
             {
               "d": "05:40",
               "f": "06:45",
-              "t": "Révision · Géographie"
+              "t": "Révision · Mathématiques AA"
             },
             {
               "d": "06:45",

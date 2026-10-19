@@ -10405,6 +10405,249 @@
     },
     {
       "type": "profil",
+      "email": "ouedraogonassika@gmail.com",
+      "google": "ouedraogonassika@gmail.com",
+      "googleSub": "110183865767535122709",
+      "nom": "N",
+      "at": "2026-10-19T21:35:51.681Z",
+      "data": {
+        "v": 1,
+        "savedAt": "2026-10-19T21:35:51.681Z",
+        "etape": "emploi",
+        "profilComplet": false,
+        "userName": "N",
+        "targetScore": 40,
+        "weekdayWakeup": "06:00",
+        "saturdayWakeup": "07:00",
+        "sundayWakeup": "08:00",
+        "subjects": [
+          {
+            "name": "Mathématiques AA",
+            "level": "SL",
+            "grade": 6,
+            "icon": "🔢"
+          },
+          {
+            "name": "Anglais B",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🇬🇧"
+          },
+          {
+            "name": "Français A",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🇫🇷"
+          },
+          {
+            "name": "Biologie",
+            "level": "HL",
+            "grade": 6,
+            "icon": "🧬"
+          },
+          {
+            "name": "Géographie",
+            "level": "SL",
+            "grade": 7,
+            "icon": "🌍"
+          },
+          {
+            "name": "ESS",
+            "level": "SL",
+            "grade": 7,
+            "icon": "🌱"
+          }
+        ],
+        "optionalSubjects": [],
+        "ibYear": "DP2",
+        "memoirLevel": "",
+        "iaLevel": "",
+        "iaLevels": {},
+        "memoirPlan": [],
+        "iaPlans": {},
+        "eeVus": {},
+        "eeDemandes": {},
+        "transportMode": "moto",
+        "carDeparture": "07:30",
+        "carToSchool": 30,
+        "carFromSchool": 40,
+        "motoDeparture": "06:45",
+        "motoReturn": "17:00",
+        "motoToSchool": 40,
+        "motoFromSchool": 40,
+        "selectedActivities": [
+          {
+            "name": "Lectures",
+            "icon": "✨",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "sameTime": false,
+            "startTime": "22:00",
+            "endTime": "22:30",
+            "dayTimes": {
+              "0": {
+                "start": "22:00",
+                "end": "22:30"
+              },
+              "1": {
+                "start": "22:00",
+                "end": "19:00"
+              },
+              "2": {
+                "start": "22:00",
+                "end": "19:00"
+              },
+              "3": {
+                "start": "22:00",
+                "end": "19:00"
+              },
+              "4": {
+                "start": "22:00",
+                "end": "19:00"
+              },
+              "5": {
+                "start": "22:00",
+                "end": "19:00"
+              },
+              "6": {
+                "start": "22:00",
+                "end": "19:00"
+              }
+            }
+          },
+          {
+            "name": "Coran",
+            "icon": "✨",
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "sameTime": true,
+            "startTime": "18:30",
+            "endTime": "19:00",
+            "dayTimes": {
+              "0": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "1": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "2": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "3": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "4": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "5": {
+                "start": "18:30",
+                "end": "19:00"
+              },
+              "6": {
+                "start": "18:30",
+                "end": "19:00"
+              }
+            }
+          }
+        ],
+        "holidayDates": {},
+        "holidayDroppedDates": {},
+        "sameFreeTime": true,
+        "freeTimeMinutes": 120,
+        "freeTimeByDay": {
+          "0": 120,
+          "1": 120,
+          "2": 120,
+          "3": 120,
+          "4": 120,
+          "5": 120,
+          "6": 120
+        },
+        "weekdaySleepHours": 8,
+        "saturdaySleepHours": 8,
+        "sundaySleepHours": 8,
+        "habitudesDefinies": true,
+        "prepMatinMinutes": 30,
+        "prepMatinDebut": "06:15",
+        "prepMatinFin": "06:45",
+        "prepSoirMinutes": 30,
+        "prepSoirDebut": "19:30",
+        "prepSoirFin": "20:00",
+        "petitDejHeure": "05:30",
+        "petitDejMinutes": 25,
+        "dinerHeure": "20:30",
+        "dinerMinutes": 35,
+        "phoneDays": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ],
+        "samePhoneDuration": true,
+        "phoneDuration": 90,
+        "phoneDayDurations": {
+          "0": 60,
+          "1": 60,
+          "2": 60,
+          "3": 60,
+          "4": 60,
+          "5": 60,
+          "6": 60
+        },
+        "selectedDay": 0,
+        "customEvents": [],
+        "modifsSemaine": {
+          "semaine": "2026-10-19",
+          "events": []
+        },
+        "emploiFige": null,
+        "exercices": [],
+        "devoirsStore": {
+          "bac": null,
+          "bacDemande": 0,
+          "devoirs": [],
+          "examens": []
+        },
+        "emploiScolaire": null,
+        "currentMood": null,
+        "joursConnectes": 1,
+        "dernierJour": "Mon Oct 19 2026",
+        "flammes": 0,
+        "flammeJour": "",
+        "utilisateurId": "110183865767535122709",
+        "google": {
+          "sub": "110183865767535122709",
+          "email": "ouedraogonassika@gmail.com",
+          "name": "Nassika Ouedraogo",
+          "given_name": "Nassika",
+          "picture": "https://lh3.googleusercontent.com/a/ACg8ocJeHPt_vjyGlPJuzYm_JIhyeKQdg7aCGV6eQgoF4HdO4na9MWo=s96-c"
+        }
+      }
+    },
+    {
+      "type": "profil",
       "email": "rayyanouedraogo87@gmail.com",
       "google": "rayyanouedraogo87@gmail.com",
       "googleSub": "108029295239679260667",
