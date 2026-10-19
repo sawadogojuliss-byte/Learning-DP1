@@ -202,6 +202,64 @@ function devoirsRepartitionSeances(n, jours) {
     return rep;
 }
 
+/* Les jours qui séparent aujourd'hui du devoir, de date à date — le
+   jour du devoir lui-même ne porte jamais de séance, la veille en
+   porte toujours. */
+function devoirsJoursRestants(d) {
+    var maintenant = new Date();
+    var debut = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime();
+    var cible = devoirsInstant(d && d.date, '00:00').getTime();
+    if (!isFinite(cible)) return 1;
+    return Math.max(1, Math.round((cible - debut) / 86400000));
+}
+
+/* Le nombre de séances qu'un devoir doit porter.
+   - Le chiffre choisi par l'élève est tenu exactement.
+   - « auto » : c'est le site qui programme, et le nombre suit l'urgence
+     du moment — une séance quand le devoir est loin (plus de 10 jours),
+     deux à cinq-dix jours, trois à deux-quatre jours, jamais moins
+     d'une, et la veille en porte toujours une.
+   - Pendant les semaines d'examens, un devoir que le site programme se
+     réduit à sa séance de la veille : le temps de l'épreuve reste à
+     l'épreuve.
+   - Sans choix, rien : la rampe automatique d'avant s'en occupe. */
+function devoirsNombreSeances(d, opts) {
+    if (!d) return 0;
+    if (Number(d.seances) >= 1) return Math.round(Number(d.seances));
+    if (d.seances !== 'auto') return 0;
+    if (opts && opts.reduites) return 1;
+    /* le jour du devoir et les jours passés ne portent aucune séance */
+    var maintenant = new Date();
+    var debut = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime();
+    var cible = devoirsInstant(d.date, '00:00').getTime();
+    if (!isFinite(cible) || cible <= debut) return 0;
+    var jours = devoirsJoursRestants(d);
+    if (jours >= 11) return 1;
+    if (jours >= 5) return 2;
+    if (jours >= 2) return 3;
+    return 1;
+}
+
+/* Ce que la page affiche pour un devoir programmé par le site : le même
+   nombre que le planning, réduction pour l'examen comprise. Un devoir
+   qui tombe avant la première épreuve garde son plan normal. */
+function devoirsSeancesPrevues(d) {
+    var n = devoirsNombreSeances(d);
+    if (!n || !d || d.seances !== 'auto') return n;
+    try {
+        var store = typeof devoirsLireStore === 'function' ? devoirsLireStore() : null;
+        var maintenant = new Date().getTime();
+        var premier = null;
+        (store && store.examens || []).forEach(function (x) {
+            var s = devoirsInstant(x.date, x.debut).getTime();
+            if (s >= maintenant && (premier == null || s < premier)) premier = s;
+        });
+        if (premier != null && premier - maintenant <= 7 * 86400000 &&
+            devoirsInstant(d.date, '00:00').getTime() > premier) return 1;
+    } catch (e) {}
+    return n;
+}
+
 /* Le temps de préparation grandit à mesure que l'échéance approche :
    loin, un bloc léger par jour ; à deux semaines, deux blocs ; la
    dernière semaine, le rythme intensif. C'est la deadline qui décide. */
@@ -464,19 +522,27 @@ function devoirsAdapterJour(events, dayIndex) {
                les épreuves dont la fin est encore devant nous. */
             var restantes = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
             jour = jour.filter(function (ev) { return !devoirsBlocARetirer(ev); });
-            /* Les séances de devoirs choisies par l'élève passent d'abord :
-               c'est son engagement. Elles se posent dans les moments
-               libres, de plus en plus rapprochées vers l'échéance. */
+            /* Les séances de devoirs passent d'abord : celles que l'élève
+               a fixées comme celles que le site programme pour lui.
+               Elles se posent dans les moments libres, de plus en plus
+               rapprochées vers l'échéance. */
             var seancesSemaine = [];
             var promessesSemaine = [];
             (store.devoirs || []).forEach(function (d) {
-                if (!(Number(d.seances) >= 1) || d.date === cle) return;
+                if (d.date === cle) return;
                 if (devoirsInstant(d.date, d.fin).getTime() < maintenant.getTime()) return;
+                /* Pendant les semaines d'examens, le devoir que le site
+                   programme se réduit à sa séance de la veille : l'épreuve
+                   garde son temps. Un devoir qui tombe avant la première
+                   épreuve garde son plan normal. */
+                var reduit = devoirsInstant(d.date, '00:00').getTime() > premier.getTime();
+                var nbChoisiS = devoirsNombreSeances(d, { reduites: reduit });
+                if (!nbChoisiS) return;
                 /* les séances se répartissent sur les jours AVANT le
                    devoir, de date à date : le jour du devoir lui-même
                    n'en porte pas, la veille en porte toujours */
-                var joursRestantsS = Math.max(1, Math.round((devoirsInstant(d.date, '00:00').getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000));
-                var repS = devoirsRepartitionSeances(d.seances, joursRestantsS);
+                var joursRestantsS = devoirsJoursRestants(d);
+                var repS = devoirsRepartitionSeances(nbChoisiS, joursRestantsS);
                 var offS = Math.round((date.getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000);
                 var nbS = repS[offS] || 0;
                 for (var sS = 0; sS < nbS; sS++) {
@@ -561,15 +627,17 @@ function devoirsAdapterJour(events, dayIndex) {
         var promessesDV = [];
         var offJourDV = Math.round((date.getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000);
 
-        /* a) les séances choisies par l'élève */
+        /* a) les séances du devoir : le chiffre choisi par l'élève, ou
+           celui que le site programme pour lui (il suit l'urgence) */
         prochains.forEach(function (d) {
-            if (!(Number(d.seances) >= 1)) return;
+            var nbChoisi = devoirsNombreSeances(d);
+            if (!nbChoisi) return;
             matieresChoisies[d.matiere] = 1;
             /* de date à date : le jour du devoir ne porte pas de
                séances, la veille en porte toujours — quelle que soit
                l'heure du jour où le planning se dessine */
-            var joursRestants = Math.max(1, Math.round((devoirsInstant(d.date, '00:00').getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000));
-            var rep = devoirsRepartitionSeances(d.seances, joursRestants);
+            var joursRestants = devoirsJoursRestants(d);
+            var rep = devoirsRepartitionSeances(nbChoisi, joursRestants);
             var nb = rep[offJourDV] || 0;
             for (var s = 0; s < nb; s++) {
                 blocsDV.push({
@@ -592,8 +660,9 @@ function devoirsAdapterJour(events, dayIndex) {
             }
         });
 
-        /* b) la rampe automatique pour les autres devoirs */
-        var autoEntries = prochains.filter(function (d) { return !(Number(d.seances) >= 1) && !matieresChoisies[d.matiere]; });
+        /* b) la rampe automatique pour les devoirs encore sans choix
+           (l'élève n'a pas répondu à la question des séances) */
+        var autoEntries = prochains.filter(function (d) { return !devoirsNombreSeances(d) && !matieresChoisies[d.matiere]; });
         var vues = {};
         var epreuvesUniques = [];
         autoEntries.forEach(function (d) {

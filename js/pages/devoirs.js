@@ -885,6 +885,21 @@ function devoirsAppliquerSeances(ids, valeur) {
     devoirsEcrireStore(st);
 }
 
+/* Le site vient de programmer les devoirs : il annonce tout de suite
+   ce qu'il a posé dans l'emploi du temps, pour que l'élève le voie. */
+function devoirsAnnoncerAuto(ids) {
+    if (typeof v3Toast !== 'function') return;
+    try {
+        var st = devoirsLireStore();
+        var total = 0;
+        (ids || []).forEach(function (id) {
+            var d = (st.devoirs || []).filter(function (x) { return x.id === id; })[0];
+            if (d && d.seances === 'auto' && typeof devoirsSeancesPrevues === 'function') total += devoirsSeancesPrevues(d);
+        });
+        if (total) v3Toast('✨ Le site a programmé ' + total + ' séance' + (total > 1 ? 's' : '') + ' de révision dans ton emploi du temps', 'success');
+    } catch (e) {}
+}
+
 function devoirsDemanderSeances(ids) {
     if (!Array.isArray(ids) || !ids.length) return;
     var store = devoirsLireStore();
@@ -917,7 +932,8 @@ function devoirsDemanderSeances(ids) {
         '<h3 style="margin:0.6rem 0 0.35rem;font-size:1.1rem;font-weight:800;color:#111827;">' + titre + '</h3>' +
         '<p style="margin:0 0 1.1rem;font-size:0.88rem;color:#6b7280;line-height:1.5;">' + question + '</p>' +
         '<div style="display:flex;gap:0.5rem;margin-bottom:0.7rem;">' + boutons + '</div>' +
-        '<button id="seancesQuestionAuto" style="width:100%;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">✨ Propose-moi un planning pour les devoirs et examens</button></div>';
+        '<button id="seancesQuestionAuto" style="width:100%;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">✨ Propose-moi un planning pour les devoirs et examens</button>' +
+        '<p style="margin:0.55rem 0 0;font-size:0.75rem;color:#6b7280;line-height:1.4;">Le site choisit le nombre selon l\'urgence et pose les séances dans ton emploi du temps ; tu peux les changer à tout moment.</p></div>';
     document.body.appendChild(voile);
     var idsRestants = restants.map(function (d) { return d.id; });
     function choisir(valeur) {
@@ -925,6 +941,7 @@ function devoirsDemanderSeances(ids) {
         voile.remove();
         if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         devoirsRendre();
+        if (valeur === 'auto') devoirsAnnoncerAuto(idsRestants);
     }
     voile.querySelectorAll('[data-n]').forEach(function (b) {
         b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
@@ -999,11 +1016,14 @@ function devoirsEditerSeances(id) {
             '</div>';
     }
     var autoActif = d.seances === 'auto';
+    /* ce que le site propose aujourd'hui pour ce devoir */
+    var nbAuto = typeof devoirsSeancesPrevues === 'function' ? devoirsSeancesPrevues(d) : 0;
     voile.innerHTML =
         '<div style="background:white;border-radius:1.25rem;max-width:28rem;width:100%;padding:1.5rem;box-shadow:0 20px 50px rgba(0,0,0,0.25);text-align:center;">' +
         '<div style="font-size:2.2rem;line-height:1;">📚</div>' +
         '<h3 style="margin:0.6rem 0 0.35rem;font-size:1.1rem;font-weight:800;color:#111827;">' + devoirsEchap(d.matiere) + ' — ' + devoirsDateCourte(d.date) + '</h3>' +
-        '<p style="margin:0 0 1.1rem;font-size:0.88rem;color:#6b7280;line-height:1.5;">Combien de séances de révision avant ce devoir ?</p>' +
+        '<p style="margin:0 0 1.1rem;font-size:0.88rem;color:#6b7280;line-height:1.5;">Combien de séances de révision avant ce devoir ?' +
+        (autoActif ? '<br><span style="color:#b45309;font-weight:700;">Le site en propose ' + nbAuto + ' aujourd\'hui.</span>' : '') + '</p>' +
         champsHeures +
         '<div style="display:flex;gap:0.5rem;margin-bottom:0.7rem;">' + boutons + '</div>' +
         '<button id="seancesEditAuto" style="width:100%;padding:0.8rem;border:1.5px solid ' + (autoActif ? '#f59e0b' : '#e5e7eb') + ';border-radius:0.8rem;background:' + (autoActif ? '#fffbeb' : '#f9fafb') + ';color:' + (autoActif ? '#92400e' : '#374151') + ';font:inherit;font-weight:800;cursor:pointer;">✨ Laisse le site proposer</button></div>';
@@ -1026,6 +1046,7 @@ function devoirsEditerSeances(id) {
         voile.remove();
         if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         devoirsRendre();
+        if (valeur === 'auto') devoirsAnnoncerAuto([d.id]);
     }
     voile.querySelectorAll('[data-n]').forEach(function (b) {
         b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
@@ -1061,13 +1082,22 @@ function devoirsRendre() {
         } else {
             zone.innerHTML = liste.map(function (x) {
                 var horaire = (x.debut && x.fin) ? devoirsDateCourte(x.date) + ' · ' + devoirsEchap(x.debut) + ' → ' + devoirsEchap(x.fin) : devoirsDateCourte(x.date);
+                /* le nombre de séances que le devoir porte : le chiffre
+                   choisi, ou celui que le site programme selon l'urgence */
+                var nbSeances = typeof devoirsSeancesPrevues === 'function'
+                    ? devoirsSeancesPrevues(x)
+                    : (Number(x.seances) >= 1 ? Math.round(Number(x.seances)) : 0);
+                var autoSeances = x.seances === 'auto';
+                var ligneSeances = (genre === 'devoirs' && nbSeances)
+                    ? '<p style="margin:0;font-size:0.72rem;color:' + (autoSeances ? '#b45309' : '#047857') + ';">' + nbSeances + ' séance' + (nbSeances > 1 ? 's' : '') + ' de révision' + (autoSeances ? ' · choisie' + (nbSeances > 1 ? 's' : '') + ' par le site' : '') + '</p>'
+                    : '';
                 var boutonSeances = genre === 'devoirs'
-                    ? '<button type="button" onclick="devoirsEditerSeances(\'' + x.id + '\')" title="Séances de révision" style="border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:800;color:' + (Number(x.seances) >= 1 ? '#059669' : (x.seances === 'auto' ? '#f59e0b' : '#9ca3af')) + ';white-space:nowrap;">' + (Number(x.seances) >= 1 ? '📚 ' + Math.round(Number(x.seances)) : (x.seances === 'auto' ? '✨' : '📚 +')) + '</button>'
+                    ? '<button type="button" onclick="devoirsEditerSeances(\'' + x.id + '\')" title="Séances de révision' + (autoSeances ? ' (par le site)' : '') + '" style="border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:800;color:' + (autoSeances ? '#b45309' : (nbSeances ? '#059669' : '#9ca3af')) + ';white-space:nowrap;">' + (autoSeances ? (nbSeances ? '✨ ' + nbSeances : '✨') : (nbSeances ? '📚 ' + nbSeances : '📚 +')) + '</button>'
                     : '';
                 return '<div style="display:flex;align-items:center;gap:0.6rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.55rem 0.75rem;">' +
                     '<span style="font-size:1.1rem;">' + (genre === 'devoirs' ? '📝' : '🎓') + '</span>' +
                     '<div style="flex:1;min-width:0;"><p style="margin:0;font-weight:700;color:#111827;font-size:0.88rem;">' + devoirsEchap(x.matiere) + '</p>' +
-                    '<p style="margin:0;font-size:0.75rem;color:#6b7280;">' + horaire + '</p></div>' +
+                    '<p style="margin:0;font-size:0.75rem;color:#6b7280;">' + horaire + '</p>' + ligneSeances + '</div>' +
                     boutonSeances +
                     '<button type="button" onclick="devoirsSupprimer(\'' + genre + '\',\'' + x.id + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.95rem;">🗑️</button></div>';
             }).join('');

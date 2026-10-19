@@ -353,15 +353,23 @@ await page.evaluate(() => { navigateTo('devoirs'); });
 const listeSeances = await page.evaluate(function () {
     const sauve = localStorage.getItem('studyPlanIB_devoirs');
     try {
+        const dateLocale = function (n) {
+            const d = new Date(Date.now() + n * 86400000);
+            return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        };
         localStorage.setItem('studyPlanIB_devoirs', JSON.stringify({
             bac: false, bacDemande: 2,
-            devoirs: [{ id: 'e2eliste', matiere: 'Chimie', date: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10), debut: '13:00', fin: '14:30', seances: 3, ajouteAt: new Date().toISOString() }],
+            devoirs: [
+                { id: 'e2eliste', matiere: 'Chimie', date: dateLocale(3), debut: '13:00', fin: '14:30', seances: 3, ajouteAt: new Date().toISOString() },
+                { id: 'e2eauto', matiere: 'Physique', date: dateLocale(6), debut: '08:00', fin: '10:00', seances: 'auto', ajouteAt: new Date().toISOString() }
+            ],
             examens: []
         }));
         devoirsRendre();
         const zone = document.getElementById('devoirsListe');
         return {
             badge: zone ? zone.innerHTML.indexOf('📚 3') !== -1 : false,
+            auto: zone ? zone.innerHTML.indexOf('✨ 2') !== -1 && zone.innerHTML.indexOf('choisies par le site') !== -1 : false,
             editeur: typeof devoirsEditerSeances === 'function',
             bouton: zone ? zone.innerHTML.indexOf('devoirsEditerSeances') !== -1 : false
         };
@@ -371,6 +379,9 @@ const listeSeances = await page.evaluate(function () {
 });
 if (!listeSeances.editeur || !listeSeances.badge || !listeSeances.bouton) {
     echec('la liste des devoirs doit montrer les séances choisies et permettre de les changer : ' + JSON.stringify(listeSeances));
+}
+if (!listeSeances.auto) {
+    echec('la liste doit montrer le nombre de séances que le site programme (✨ 2, choisies par le site) : ' + JSON.stringify(listeSeances));
 }
 await page.evaluate(() => { navigateTo('planning'); });
 

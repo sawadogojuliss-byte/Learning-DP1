@@ -388,6 +388,67 @@ ok(context.devoirsAjouter('devoirs', { matiere: 'Physique', date: cleJour(demain
 var entreeSeances = context.devoirsLireStore().devoirs.filter(function (d) { return d.matiere === 'Physique'; })[0];
 ok(entreeSeances && entreeSeances.seances === 4, 'le choix de séances doit être gardé, trouvé : ' + JSON.stringify(entreeSeances && entreeSeances.seances));
 
+/* — 3a5. « Le site programme » : un nombre choisi selon l'urgence — */
+/* Aujourd'hui (figé) : mercredi 14 octobre. Le site décide lui-même du
+   nombre de séances : une quand le devoir est loin, deux à dix jours,
+   trois à quatre jours — jamais moins d'une, la veille en porte une.
+   Pendant les semaines d'examens, il se réduit à cette séance de la
+   veille : l'épreuve garde son temps. Le chiffre choisi par l'élève,
+   lui, n'est jamais réduit. */
+const dateDans = function (n) { return cleJour(new Date(aujourdhui.getTime() + n * 86400000)); };
+ok(context.devoirsNombreSeances({ date: dateDans(12), seances: 'auto' }) === 1, 'auto à 12 jours : une séance');
+ok(context.devoirsNombreSeances({ date: dateDans(10), seances: 'auto' }) === 2, 'auto à 10 jours : deux séances');
+ok(context.devoirsNombreSeances({ date: dateDans(5), seances: 'auto' }) === 2, 'auto à 5 jours : deux séances');
+ok(context.devoirsNombreSeances({ date: dateDans(4), seances: 'auto' }) === 3, 'auto à 4 jours : trois séances');
+ok(context.devoirsNombreSeances({ date: dateDans(2), seances: 'auto' }) === 3, 'auto à 2 jours : trois séances');
+ok(context.devoirsNombreSeances({ date: dateDans(1), seances: 'auto' }) === 1, 'auto la veille : une séance');
+ok(context.devoirsNombreSeances({ date: dateDans(4), seances: 'auto' }, { reduites: true }) === 1, 'auto pendant les examens : réduit à une');
+ok(context.devoirsNombreSeances({ date: dateDans(4), seances: 5 }) === 5, 'le chiffre choisi par l\'élève reste exact, même pendant les examens');
+ok(context.devoirsNombreSeances({ date: dateDans(4) }) === 0, 'sans choix de séances, le site ne compte rien');
+
+/* le devoir que le site programme porte exactement son compte : à six
+   jours, deux séances — une aujourd'hui, une la veille */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dauto', matiere: 'ESS', date: dateDans(6), debut: '08:00', fin: '10:00', seances: 'auto' }], examens: [] });
+var jAuto = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+var blocsAuto = jAuto.filter(function (ev) { return ev.devoirsBloc && String(ev.title) === 'Révision · ESS'; });
+ok(blocsAuto.length === 1, 'auto à 6 jours : une séance aujourd\'hui, l\'autre la veille, trouvé : ' + blocsAuto.length);
+ok(blocsAuto.length === 1 && String(blocsAuto[0].subtitle || '').indexOf('Devoir le mar. 20/10') !== -1, 'la séance annonce son devoir : ' + (blocsAuto[0] && blocsAuto[0].subtitle));
+
+/* un devoir dans quatre jours que le site programme : trois séances,
+   une aujourd'hui, une vendredi, une samedi — jamais le dimanche */
+context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dauto3', matiere: 'ESS', date: dateDans(4), debut: '08:00', fin: '10:00', seances: 'auto' }], examens: [] });
+var compteAuto = [];
+for (var ia = idxJour; ia <= 6; ia++) {
+    var jourAuto = context.devoirsAdapterJour(jourSimple.slice(), ia);
+    compteAuto.push(jourAuto.filter(function (ev) { return ev.devoirsBloc && String(ev.title) === 'Révision · ESS'; }).length);
+}
+ok(compteAuto.join(',') === '1,0,1,1,0', 'auto à 4 jours : trois séances exactement (aujourd\'hui, vendredi, samedi ; pas le jour du devoir), trouvé : ' + compteAuto.join(','));
+
+/* — 3a5b. Un examen proche : le devoir se réduit à sa veille — */
+/* Examen vendredi (dans 2 jours), devoir dimanche (dans 4 jours) : le
+   site ne pose plus trois séances mais une, samedi — le vendredi de
+   l'épreuve et les révisions d'examen restent intacts. */
+context.devoirsEcrireStore({ bac: false,
+    devoirs: [{ id: 'daureduit', matiere: 'ESS', date: dateDans(4), debut: '08:00', fin: '10:00', seances: 'auto' }],
+    examens: [{ id: 'xauto', matiere: 'Physique', date: dateDans(2), debut: '08:00', fin: '10:00' }] });
+var seancesDevoir = function (jour) {
+    return jour.filter(function (ev) { return ev.devoirsBloc && String(ev.title) === 'Révision · ESS'; });
+};
+var jAujReduit = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(seancesDevoir(jAujReduit).length === 0, 'auto réduit : rien aujourd\'hui quand l\'examen est dans deux jours');
+var jSamediReduit = context.devoirsAdapterJour(jourSimple.slice(), 5);
+ok(seancesDevoir(jSamediReduit).length === 1, 'auto réduit : la séance tombe la veille (samedi), trouvé : ' + seancesDevoir(jSamediReduit).length);
+var jVendrediExamen = context.devoirsAdapterJour(jourSimple.slice(), 4);
+ok(jVendrediExamen.filter(function (ev) { return String(ev.id || '') === 'exam-xauto'; }).length === 1, 'l\'épreuve du vendredi garde son bloc');
+ok(seancesDevoir(jVendrediExamen).length === 0, 'aucune séance du devoir le jour de l\'examen');
+/* le chiffre choisi, lui, n'est pas réduit : trois séances restent trois */
+context.devoirsEcrireStore({ bac: false,
+    devoirs: [{ id: 'dchoixreduit', matiere: 'ESS', date: dateDans(4), debut: '08:00', fin: '10:00', seances: 3 }],
+    examens: [{ id: 'xauto2', matiere: 'Physique', date: dateDans(2), debut: '08:00', fin: '10:00' }] });
+var jChoisiReduit = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(jChoisiReduit.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dchoixreduit') === 0; }).length === 1,
+    'trois séances choisies restent exactes pendant les examens : ' + jChoisiReduit.filter(function (ev) { return String(ev.id || '').indexOf('devrev-dchoixreduit') === 0; }).length);
+
 /* — 3a6. Le programme trimestriel des devoirs — */
 /* Les documents de devoirs annoncent les compositions d'un trimestre :
    des mercredis, une ou plusieurs matières, avec ou sans heures. Seules
