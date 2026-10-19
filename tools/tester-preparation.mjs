@@ -284,7 +284,9 @@ const devoirsNiveau = await page.evaluate(function () {
             devoirs: [{ id: 'e2egarantie', matiere: 'Chimie', date: cle(demain), debut: '08:00', fin: '10:00', seances: 3, ajouteAt: new Date().toISOString() }],
             examens: []
         }));
-        const joursRestants = Math.ceil((new Date(cle(demain) + 'T08:00:00').getTime() - aujourdhui.getTime()) / 86400000);
+        /* les séances se comptent de date à date : le jour du devoir
+           n'en porte pas, la veille en porte toujours */
+        const joursRestants = Math.max(1, Math.round((new Date(cle(demain) + 'T00:00:00').getTime() - new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate()).getTime()) / 86400000));
         const rep = devoirsRepartitionSeances(3, joursRestants);
         const lundi = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() - idxJour);
         const parJour = [];

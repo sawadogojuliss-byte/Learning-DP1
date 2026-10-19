@@ -472,7 +472,10 @@ function devoirsAdapterJour(events, dayIndex) {
             (store.devoirs || []).forEach(function (d) {
                 if (!(Number(d.seances) >= 1) || d.date === cle) return;
                 if (devoirsInstant(d.date, d.fin).getTime() < maintenant.getTime()) return;
-                var joursRestantsS = Math.ceil((devoirsInstant(d.date, d.debut).getTime() - maintenant.getTime()) / 86400000);
+                /* les séances se répartissent sur les jours AVANT le
+                   devoir, de date à date : le jour du devoir lui-même
+                   n'en porte pas, la veille en porte toujours */
+                var joursRestantsS = Math.max(1, Math.round((devoirsInstant(d.date, '00:00').getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000));
                 var repS = devoirsRepartitionSeances(d.seances, joursRestantsS);
                 var offS = Math.round((date.getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000);
                 var nbS = repS[offS] || 0;
@@ -562,7 +565,10 @@ function devoirsAdapterJour(events, dayIndex) {
         prochains.forEach(function (d) {
             if (!(Number(d.seances) >= 1)) return;
             matieresChoisies[d.matiere] = 1;
-            var joursRestants = Math.ceil((devoirsInstant(d.date, d.debut).getTime() - maintenant.getTime()) / 86400000);
+            /* de date à date : le jour du devoir ne porte pas de
+               séances, la veille en porte toujours — quelle que soit
+               l'heure du jour où le planning se dessine */
+            var joursRestants = Math.max(1, Math.round((devoirsInstant(d.date, '00:00').getTime() - new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime()) / 86400000));
             var rep = devoirsRepartitionSeances(d.seances, joursRestants);
             var nb = rep[offJourDV] || 0;
             for (var s = 0; s < nb; s++) {
