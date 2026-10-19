@@ -665,9 +665,9 @@ function emploiFaitsSignature() {
         sameFreeTime: typeof sameFreeTime !== 'undefined' ? !!sameFreeTime : true,
         freeTimeMinutes: typeof freeTimeMinutes !== 'undefined' ? freeTimeMinutes : null,
         freeTimeByDay: libre,
-        holidayDays: liste(typeof holidayDays !== 'undefined' ? holidayDays : [], function (n) { return Number(n); }).sort(),
-        holidayModes: typeof holidayModes !== 'undefined' ? holidayModes : {},
-        holidayDropped: typeof holidayDropped !== 'undefined' ? holidayDropped : {},
+        holidayDates: typeof holidayDates !== 'undefined' ? holidayDates : {},
+        holidayDroppedDates: typeof holidayDroppedDates !== 'undefined' ? holidayDroppedDates : {},
+        holidaySemaine: typeof holidaySemaineCourante === 'function' ? holidaySemaineCourante() : '',
         memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
         iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
         iaLevels: typeof iaLevels !== 'undefined' ? iaLevels : {},
@@ -675,7 +675,7 @@ function emploiFaitsSignature() {
             return p ? { id: p.id, text: p.text, done: !!p.done } : null;
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
-        reglesPlanning: '20261018b',
+        reglesPlanning: '20261019a',
         customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
             if (!e || e.id === 'boite-garde') return null;
             return {

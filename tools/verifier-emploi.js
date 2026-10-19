@@ -49,7 +49,7 @@ ok(moteurJs.indexOf('function emploiScolaireSujets') !== -1, 'l\'extraction des 
 ok(planningMoteur.indexOf('cours-reel-') !== -1, 'le planning n\'utilise pas les vrais cours');
 ok(planningMoteur.indexOf('function emploiScolaireProgramme') !== -1, 'le planning doit suivre le programme des matières vues');
 ok(planningMoteur.indexOf('emploiScolaireCompact') !== -1, 'l\'emploi du temps doit faire partie des faits (reconstruction)');
-ok(planningMoteur.indexOf("'20261018b'") !== -1, 'les règles du planning doivent être versionnées pour reconstruire les plannings figés');
+ok(planningMoteur.indexOf("'20261019a'") !== -1, 'les règles du planning doivent être versionnées pour reconstruire les plannings figés');
 const fonctionContinuer = emploiJs.slice(emploiJs.indexOf('function validateEmploiTemps'));
 ok(fonctionContinuer.indexOf("classList.remove('active')") !== -1, 'Continuer doit fermer la page Emploi du temps (elle restait au-dessus du planning)');
 const fonctionRetour = emploiJs.slice(emploiJs.indexOf('function goBackFromEmploi'));
@@ -215,7 +215,7 @@ const contexteMoteur = {
     weekdayWakeup: '05:30', saturdayWakeup: '08:30', sundayWakeup: '09:00',
     weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8,
     allSubj: [], customEvents: [], selectedActivities: [], phoneTime: 0, phoneDays: [],
-    holidayBypass: 0, holidayDays: [], holidayModes: {}, holidayDropped: {},
+    holidayBypass: 0, holidayDates: {}, holidayDroppedDates: {},
     COURS_DEBUT: 470, COURS_FIN: 985, COURS_FIN_MATIN: 750, transportMode: 'walking',
     carDeparture: '', carToSchool: 30, carFromSchool: 40, carReturnTime: '',
     motoDeparture: '', motoToSchool: 25, motoFromSchool: 25, motoReturn: '',

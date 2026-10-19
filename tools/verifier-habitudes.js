@@ -49,7 +49,7 @@ assert(moteur.indexOf('habitudesRepas') !== -1, 'le moteur doit lire les repas s
 assert(moteur.indexOf('habitudesDureeMatin') !== -1, 'le moteur doit lire la préparation du matin');
 assert(moteur.indexOf('poserPreparationSoir') !== -1, 'le moteur doit placer la préparation du soir');
 assert(moteur.indexOf('faits.habitudes') !== -1, 'la signature ne doit inclure les habitudes que si elles sont validées');
-assert(moteur.indexOf("reglesPlanning: '20261018b'") !== -1, 'ne pas forcer la reconstruction de tous les emplois');
+assert(moteur.indexOf("reglesPlanning: '20261019a'") !== -1, 'ne pas forcer la reconstruction de tous les emplois');
 
 var page = lire('pages/onboarding-habitudes.html');
 assert(page.indexOf('Tes habitudes') !== -1, 'titre manquant');
@@ -108,8 +108,7 @@ var sandbox = {
     motoToSchool: 25,
     motoFromSchool: 25,
     holidayBypass: false,
-    holidayDays: [],
-    holidayModes: {},
+    holidayDates: {},
     freeTimeMinutes: 60,
     sameFreeTime: true,
     freeTimeByDay: {},

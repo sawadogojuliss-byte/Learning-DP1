@@ -108,9 +108,8 @@ function memoireLireEtat() {
         motoToSchool: motoToSchool,
         motoFromSchool: motoFromSchool,
         selectedActivities: selectedActivities,
-        holidayDays: holidayDays,
-        holidayModes: holidayModes,
-        holidayDropped: holidayDropped,
+        holidayDates: typeof holidayDates !== 'undefined' ? holidayDates : {},
+        holidayDroppedDates: typeof holidayDroppedDates !== 'undefined' ? holidayDroppedDates : {},
         sameFreeTime: sameFreeTime,
         freeTimeMinutes: freeTimeMinutes,
         freeTimeByDay: freeTimeByDay,
@@ -258,9 +257,11 @@ function memoireAppliquer(data, opts) {
     if (data.motoToSchool) motoToSchool = data.motoToSchool;
     if (data.motoFromSchool) motoFromSchool = data.motoFromSchool;
     if (Array.isArray(data.selectedActivities)) selectedActivities = data.selectedActivities;
-    if (Array.isArray(data.holidayDays)) holidayDays = data.holidayDays.map(Number).filter(function (n) { return n >= 0 && n <= 6; });
-    if (data.holidayModes && typeof data.holidayModes === 'object') holidayModes = data.holidayModes;
-    if (data.holidayDropped && typeof data.holidayDropped === 'object') holidayDropped = data.holidayDropped;
+    /* Les jours fériés sont des dates, une semaine chacun. Les vieux
+       profils portaient des jours de semaine répétés chaque semaine :
+       ils ne sont plus repris — la page Jours fériés repart à vide. */
+    if (data.holidayDates && typeof data.holidayDates === 'object') holidayDates = data.holidayDates;
+    if (data.holidayDroppedDates && typeof data.holidayDroppedDates === 'object') holidayDroppedDates = data.holidayDroppedDates;
     if (typeof data.sameFreeTime === 'boolean') sameFreeTime = data.sameFreeTime;
     if (data.freeTimeMinutes != null) freeTimeMinutes = Math.min(180, Math.max(0, Number(data.freeTimeMinutes) || 0));
     if (data.freeTimeByDay && typeof data.freeTimeByDay === 'object') {
@@ -415,9 +416,8 @@ function memoireReinitialiser() {
     motoToSchool = 25;
     motoFromSchool = 25;
     selectedActivities = [];
-    holidayDays = [];
-    holidayModes = {};
-    holidayDropped = {};
+    holidayDates = {};
+    holidayDroppedDates = {};
     sameFreeTime = true;
     freeTimeMinutes = 60;
     freeTimeByDay = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
@@ -814,7 +814,7 @@ function memoireDemarrer() {
         'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
         'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',
         'setPhoneDurationValue', 'togglePhoneDay', 'v3ResetDay', 'v3PomoSetPreset', 'v3Save',
-        'adjustSleepHours', 'setBedtimeFromInput', 'toggleHolidayDay', 'setHolidayMode', 'toggleHolidayDrop', 'goToHolidays',
+        'adjustSleepHours', 'setBedtimeFromInput', 'holidayBasculerDate', 'holidayPoserMode', 'holidayDecocher', 'goToHolidays',
         'adjustFreeTime', 'setSameFreeTime', 'goToFreeTime'
     ].forEach(memoireBrancher);
 

@@ -159,12 +159,6 @@ function compteFusionnerProfils(copies) {
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             if (Array.isArray(b)) {
-                if (k === 'holidayDays') {
-                    var set = {};
-                    [].concat(base[k] || [], b).forEach(function (n) { if (n != null && n !== '') set[n] = 1; });
-                    base[k] = Object.keys(set).map(Number);
-                    return;
-                }
                 base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id');
                 return;
             }

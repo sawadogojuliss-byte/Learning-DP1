@@ -177,15 +177,6 @@
             }
           }
         ],
-        "holidayDays": [
-          0,
-          3
-        ],
-        "holidayModes": {
-          "0": "free",
-          "3": "free"
-        },
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 150,
         "freeTimeByDay": {
@@ -2303,9 +2294,6 @@
         "motoToSchool": 25,
         "motoFromSchool": 25,
         "selectedActivities": [],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 60,
         "freeTimeByDay": {
@@ -2432,9 +2420,6 @@
         "motoToSchool": 25,
         "motoFromSchool": 25,
         "selectedActivities": [],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 60,
         "freeTimeByDay": {
@@ -4934,9 +4919,6 @@
             }
           }
         ],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 150,
         "freeTimeByDay": {
@@ -7944,9 +7926,6 @@
             }
           }
         ],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 60,
         "freeTimeByDay": {
@@ -10791,9 +10770,6 @@
             }
           }
         ],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 0,
         "freeTimeByDay": {
@@ -13297,9 +13273,6 @@
         "motoToSchool": 20,
         "motoFromSchool": 20,
         "selectedActivities": [],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 30,
         "freeTimeByDay": {
@@ -13408,9 +13381,6 @@
         "motoToSchool": 25,
         "motoFromSchool": 25,
         "selectedActivities": [],
-        "holidayDays": [],
-        "holidayModes": {},
-        "holidayDropped": {},
         "sameFreeTime": true,
         "freeTimeMinutes": 60,
         "freeTimeByDay": {

@@ -94,7 +94,7 @@ var aide = planning.indexOf('id="menuAide"');
 ok(aide !== -1 && aide < feedback && feedback < annonce, 'Annonce est juste sous Feedback');
 ok(planning.indexOf('background:#ef4444') !== -1 && planning.indexOf('color:#111827') !== -1, 'cercle rouge, nombre noir');
 ok(fs.readFileSync('js/registre.js', 'utf8').indexOf('pages/annonce.html') !== -1, 'page enregistrée');
-ok(fs.readFileSync('js/boot.js', 'utf8').indexOf("20261018c") !== -1, 'cache rafraîchi');
+ok(fs.readFileSync('js/boot.js', 'utf8').indexOf("20261019a") !== -1, 'cache rafraîchi');
 ok(fs.readFileSync('js/pages/boite.js', 'utf8').indexOf('doc.annonces') !== -1, 'archive lit les annonces');
 ok(fs.readFileSync('tools/sync-emplois.py', 'utf8').indexOf('def fusionner_annonces') !== -1, 'synchro fusionne les annonces');
 ok(fs.readFileSync('.github/workflows/boite.yml', 'utf8').indexOf('data/annonces.json') !== -1, 'le flux enregistre le fichier');

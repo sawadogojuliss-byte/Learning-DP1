@@ -355,6 +355,55 @@ if (!listeSeances.editeur || !listeSeances.badge || !listeSeances.bouton) {
 }
 await page.evaluate(() => { navigateTo('planning'); });
 
+/* 8quater. les jours fériés : une date pour une semaine — la page
+   montre cette semaine et la suivante avec leurs vraies dates, et le
+   jour posé libère sa journée dans le planning */
+const feriesE2E = await page.evaluate(function () {
+    const auj = new Date();
+    const idx = (auj.getDay() + 6) % 7;
+    const demainIdx = idx + 1;
+    const res = { demainIdx: demainIdx, sections: '', pastilleDate: false, pose: false, carteLibre: false };
+    try {
+        navigateTo('feries');
+        const grille = document.getElementById('holidayDaysGrid');
+        res.sections = grille ? grille.textContent : '';
+        res.pastilleDate = !!grille && /\d{1,2}\/\d{2}/.test(grille.textContent);
+        if (demainIdx <= 6) {
+            const cle = holidayCleDate(holidayDateDuJour(demainIdx, 0));
+            holidayBasculerDate(cle);
+            holidayPoserMode(cle, 'free');
+            res.pose = holidayMode(demainIdx) === 'free';
+            navigateTo('planning');
+            selectDay(demainIdx);
+            const conteneur = document.getElementById('eventsContainer');
+            res.carteLibre = !!conteneur && conteneur.innerHTML.indexOf('jour-libre') !== -1;
+        }
+        return res;
+    } finally {
+        if (demainIdx <= 6) {
+            holidayToutEffacer();
+            navigateTo('planning');
+            selectDay(idx);
+        }
+    }
+});
+if (feriesE2E.demainIdx > 6) {
+    console.log('information : dimanche — la pose d\'un jour férié de la semaine affichée se vérifie la semaine prochaine');
+} else {
+    if (feriesE2E.sections.indexOf('Cette semaine') === -1 || feriesE2E.sections.indexOf('Semaine suivante') === -1) {
+        echec('la page des jours fériés doit montrer cette semaine et la suivante : ' + JSON.stringify(feriesE2E.sections));
+    }
+    if (!feriesE2E.pastilleDate) {
+        echec('les pastilles des jours fériés doivent porter leurs dates : ' + JSON.stringify(feriesE2E.sections));
+    }
+    if (!feriesE2E.pose) {
+        echec('la pose d\'un jour férié pour demain doit être enregistrée');
+    }
+    if (!feriesE2E.carteLibre) {
+        echec('le jour férié libre doit montrer la carte « Jour libre » dans le planning');
+    }
+}
+
 /* 9. le bouton Continuer de la page Emploi du temps mène vraiment au
    planning (la page se ferme), et le Retour y ramène depuis le menu */
 await page.evaluate(() => { showEmploiPage(); });
@@ -425,7 +474,7 @@ console.log('ok préparation en vrai navigateur : séance du devoir visible aujo
     + 'révisions de l\u2019examen dans la semaine, devoir à ses heures le jour J, aucun popup bac, '
     + 'l\u2019analyse ne propose que les matières de chaque élève, '
     + 'programme trimestriel des devoirs lu avec les matières de l\u2019élève, créneau DEVOIR DE NIVEAU remplacé par le devoir réel, '
-    + 'nombre de séances choisi tenu au compte exact sur chaque jour même planning plein, séances visibles et modifiables dans la liste des devoirs, '
+    + 'nombre de séances choisi tenu au compte exact sur chaque jour même planning plein, séances visibles et modifiables dans la liste des devoirs, jours fériés posés par date pour une semaine avec la carte Jour libre, '
     + 'vrais cours de l\u2019emploi du temps au planning avec travail dans les heures creuses, '
     + 'matières vues au programme de tout le planning, bouton Continuer de l\u2019emploi du temps ouvrant vraiment le planning, '
     + 'tomate au menu Pomodoro, panneau Sons sur la page Séance du jour, section Playlist retirée, 0 erreur JavaScript');
