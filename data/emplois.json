@@ -2659,14 +2659,14 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-17T17:13:05.189Z",
+      "at": "2026-10-19T00:20:12.960Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
       "google": "doriilboudo235@gmail.com",
       "googleNom": "Kenzah ILBOUDO",
       "googleSub": "102249607109048181085",
-      "flammes": 7,
+      "flammes": 1,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
@@ -7744,14 +7744,14 @@
       "type": "emploi",
       "id": "e_a1a12c8a4e260da4b22e",
       "appareil": "a1a12c8a4e260da4b22e",
-      "at": "2026-10-18T21:21:30.485Z",
+      "at": "2026-10-19T00:11:23.178Z",
       "nom": "Sere Farid Abdourrahman",
       "classe": "DP2",
       "email": "faridsere86@gmail.com",
       "google": "faridsere86@gmail.com",
       "googleNom": "Sere Farid Abdourrahman",
       "googleSub": "110718856042093635641",
-      "flammes": 8,
+      "flammes": 9,
       "matieres": [
         "Physique HL",
         "Histoire SL",
@@ -9089,7 +9089,7 @@
       "type": "emploi",
       "id": "e_a1a12f36746321e0e525",
       "appareil": "a1a12f36746321e0e525",
-      "at": "2026-10-19T00:01:30.917Z",
+      "at": "2026-10-19T00:25:48.451Z",
       "nom": "Yohann",
       "classe": "DP2",
       "email": "redminote13u@gmail.com",
@@ -9488,8 +9488,13 @@
             },
             {
               "d": "13:30",
-              "f": "16:25",
+              "f": "14:55",
               "t": "Cours"
+            },
+            {
+              "d": "14:55",
+              "f": "16:25",
+              "t": "Bac national"
             },
             {
               "d": "16:25",
@@ -9557,59 +9562,59 @@
           "j": "Samedi",
           "s": [
             {
-              "d": "08:00",
-              "f": "08:10",
+              "d": "07:00",
+              "f": "07:10",
               "t": "Réveil"
             },
             {
-              "d": "08:10",
-              "f": "08:40",
-              "t": "Petit-déjeuner"
-            },
-            {
-              "d": "08:40",
-              "f": "10:45",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "10:45",
-              "f": "11:30",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "11:30",
-              "f": "12:00",
+              "d": "07:10",
+              "f": "07:20",
               "t": "Préparation"
             },
             {
-              "d": "12:00",
-              "f": "12:30",
-              "t": "Révisions · Géographie"
+              "d": "07:20",
+              "f": "07:40",
+              "t": "Trajet école"
             },
             {
-              "d": "12:30",
-              "f": "13:30",
+              "d": "07:40",
+              "f": "08:00",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "08:00",
+              "f": "13:00",
+              "t": "Bac national"
+            },
+            {
+              "d": "13:00",
+              "f": "13:35",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "13:00",
+              "f": "14:00",
               "t": "Déjeuner"
             },
             {
-              "d": "13:30",
-              "f": "14:40",
+              "d": "14:00",
+              "f": "15:45",
+              "t": "Révisions Français A"
+            },
+            {
+              "d": "15:45",
+              "f": "16:25",
+              "t": "Révisions · Biologie"
+            },
+            {
+              "d": "17:00",
+              "f": "18:10",
               "t": "Révisions ESS"
             },
             {
-              "d": "14:40",
-              "f": "16:10",
-              "t": "Révisions · Mathématiques AA"
-            },
-            {
-              "d": "16:10",
-              "f": "17:40",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "17:40",
+              "d": "18:10",
               "f": "19:00",
-              "t": "Temps libre"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "19:00",
@@ -9619,7 +9624,7 @@
             {
               "d": "19:45",
               "f": "20:00",
-              "t": "Révisions · Biologie"
+              "t": "Révisions · Géographie"
             },
             {
               "d": "20:00",
@@ -9628,12 +9633,7 @@
             },
             {
               "d": "23:00",
-              "f": "00:00",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "00:00",
-              "f": "08:00",
+              "f": "07:00",
               "t": "Coucher"
             }
           ]

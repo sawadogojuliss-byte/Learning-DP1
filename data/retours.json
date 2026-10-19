@@ -1,5 +1,263 @@
 {
-  "questions": [],
+  "questions": [
+    {
+      "type": "question",
+      "id": "q1a15187be1d029e0715",
+      "at": "2026-10-19T00:20:12.957Z",
+      "nom": "Kenzah",
+      "appareil": "a1a122fe46e0a346ee30",
+      "classe": "DP2",
+      "texte": "Hello,\nPuis-je connaitre la raison des jours fériés (Libre) dans mon emploi du temps?",
+      "email": "doriilboudo235@gmail.com",
+      "google": "doriilboudo235@gmail.com",
+      "googleNom": "Kenzah ILBOUDO",
+      "googleSub": "102249607109048181085",
+      "matieres": [
+        "Mathématiques AA SL",
+        "Anglais B HL",
+        "Français A HL",
+        "Histoire SL",
+        "Physique SL",
+        "Économie HL"
+      ],
+      "flammes": 0,
+      "jours": [
+        {
+          "j": "Mardi",
+          "s": [
+            {
+              "d": "05:00",
+              "f": "05:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:10",
+              "f": "05:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "05:40",
+              "f": "06:30",
+              "t": "Évaluation interne · Mathéma"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            }
+          ]
+        },
+        {
+          "j": "Mercredi",
+          "s": [
+            {
+              "d": "05:00",
+              "f": "05:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:10",
+              "f": "06:30",
+              "t": "Révisions Économie"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "17:10",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Vendredi",
+          "s": [
+            {
+              "d": "05:00",
+              "f": "05:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:10",
+              "f": "06:30",
+              "t": "Révisions Histoire"
+            },
+            {
+              "d": "06:30",
+              "f": "07:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:00",
+              "f": "07:50",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "17:10",
+              "t": "Trajet maison"
+            }
+          ]
+        },
+        {
+          "j": "Samedi",
+          "s": [
+            {
+              "d": "06:10",
+              "f": "06:20",
+              "t": "Réveil"
+            },
+            {
+              "d": "06:20",
+              "f": "06:50",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "06:50",
+              "f": "07:30",
+              "t": "Révisions · Français A"
+            },
+            {
+              "d": "07:30",
+              "f": "08:00",
+              "t": "Préparation"
+            },
+            {
+              "d": "08:00",
+              "f": "16:00",
+              "t": "Cours particuliers"
+            },
+            {
+              "d": "16:00",
+              "f": "16:30",
+              "t": "Révisions · Français A"
+            },
+            {
+              "d": "16:30",
+              "f": "18:15",
+              "t": "Révisions Physique"
+            },
+            {
+              "d": "19:00",
+              "f": "19:45",
+              "t": "Dîner"
+            }
+          ]
+        },
+        {
+          "j": "Dimanche",
+          "s": [
+            {
+              "d": "06:05",
+              "f": "06:15",
+              "t": "Réveil"
+            },
+            {
+              "d": "07:05",
+              "f": "08:50",
+              "t": "Révisions Physique"
+            },
+            {
+              "d": "08:50",
+              "f": "09:35",
+              "t": "Évaluation interne · Mathéma"
+            },
+            {
+              "d": "09:35",
+              "f": "10:05",
+              "t": "Préparation"
+            },
+            {
+              "d": "10:05",
+              "f": "11:50",
+              "t": "Révisions Français A"
+            },
+            {
+              "d": "11:50",
+              "f": "12:30",
+              "t": "Révisions · Physique"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "14:00",
+              "t": "Révisions · Français A"
+            }
+          ]
+        }
+      ],
+      "questionId": "",
+      "destinataire": "",
+      "destinataires": [],
+      "personne": "",
+      "mail": false,
+      "repondu": false,
+      "gmailId": "",
+      "complet": 0
+    }
+  ],
   "feedbacks": [],
   "reponses": []
 }
