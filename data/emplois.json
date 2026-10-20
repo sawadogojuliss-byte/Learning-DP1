@@ -2654,14 +2654,14 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-19T06:33:53.807Z",
+      "at": "2026-10-20T21:21:13.616Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
       "google": "doriilboudo235@gmail.com",
       "googleNom": "Kenzah ILBOUDO",
       "googleSub": "102249607109048181085",
-      "flammes": 1,
+      "flammes": 2,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
@@ -3979,14 +3979,14 @@
       "type": "emploi",
       "id": "e_a1a1229930818b2308c1",
       "appareil": "a1a1229930818b2308c1",
-      "at": "2026-10-17T15:04:16.603Z",
+      "at": "2026-10-20T19:25:46.489Z",
       "nom": "Mathis",
       "classe": "DP2",
       "email": "mathis.kafando@enkoschools.com",
       "google": "mathis.kafando@enkoschools.com",
       "googleNom": "Aimery Mathis D. S Kafando",
       "googleSub": "117579065401460802672",
-      "flammes": 2,
+      "flammes": 1,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
@@ -4088,11 +4088,11 @@
             },
             {
               "d": "00:35",
-              "f": "01:35",
+              "f": "01:00",
               "t": "Révision Mathématiques AA"
             },
             {
-              "d": "01:35",
+              "d": "01:00",
               "f": "06:00",
               "t": "Coucher"
             }
@@ -6539,7 +6539,7 @@
       "type": "emploi",
       "id": "e_a1a12c3549c584e7eec0",
       "appareil": "a1a12c3549c584e7eec0",
-      "at": "2026-10-20T07:23:56.734Z",
+      "at": "2026-10-20T21:47:43.106Z",
       "nom": "RYAN",
       "classe": "DP2",
       "email": "",
@@ -6739,7 +6739,7 @@
             {
               "d": "17:35",
               "f": "18:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révision · Mathématiques AA"
             },
             {
               "d": "18:00",
@@ -6769,7 +6769,7 @@
             {
               "d": "22:30",
               "f": "23:00",
-              "t": "Révisions Anglais B"
+              "t": "Révision · Géographie"
             },
             {
               "d": "23:00",
