@@ -32,10 +32,15 @@ ok(moduleSrc.indexOf('formulaire') === -1 && moduleSrc.indexOf('document.getElem
 const morceaux = ['seance-fin', 'minutes-de-pause', 'minute-de-pause'];
 for (let i = 1; i <= 7; i++) morceaux.push('n-' + i);
 morceaux.forEach(function (nom) {
-    const f = path.join(racine, 'audio', 'voix', nom + '.mp3');
-    ok(fs.existsSync(f), 'morceau de voix manquant : ' + nom + '.mp3');
-    if (fs.existsSync(f)) ok(fs.statSync(f).size > 2000, 'morceau de voix tronqué : ' + nom + '.mp3');
+    const f = path.join(racine, 'audio', 'voix', nom + '.wav');
+    ok(fs.existsSync(f), 'morceau de voix manquant : ' + nom + '.wav');
+    if (fs.existsSync(f)) ok(fs.statSync(f).size > 2000, 'morceau de voix tronqué : ' + nom + '.wav');
 });
+/* Le son doit passer par l'AudioContext (autorisé dès le geste de départ),
+   pas par un lecteur créé à la fin : sinon un téléphone refuse de parler. */
+ok(moduleSrc.indexOf('decodeAudioData') !== -1, 'les morceaux doivent être décodés pour l\'AudioContext');
+ok(moduleSrc.indexOf('createBufferSource') !== -1, 'la voix doit se jouer dans l\'AudioContext');
+ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en WAV, lisible partout');
 
 /* ── 2 et 3. La logique, dans un bac à sable ────────────────────────── */
 const bac = {
@@ -77,7 +82,7 @@ ok(phrase1 && phrase1[phrase1.length - 1] === 'minute-de-pause',
 
 /* Chaque morceau que la phrase utilise doit exister sur le disque. */
 function morceauExiste(nom) {
-    return fs.existsSync(path.join(racine, 'audio', 'voix', nom + '.mp3'));
+    return fs.existsSync(path.join(racine, 'audio', 'voix', nom + '.wav'));
 }
 [1, 2, 3, 5, 7].forEach(function (n) {
     const morceauxPhrase = bac.chronoVoixPhrasePause(n) || [];
@@ -97,6 +102,16 @@ ok(page.indexOf('chronoAnnoncerReprise()') !== -1, 'la fin de pause doit garder 
 ok(page.indexOf('chronoVoixPreparer(') !== -1, 'le son doit être préparé au départ, sur le geste de l\'élève');
 ok(page.indexOf('else focusBip(2)') !== -1 && page.indexOf('else focusBip(1)') !== -1,
     'le bip doit rester quand la voix n\'est pas disponible');
+/* Rien ne se relance tout seul : la phase suivante est proposée, pas lancée. */
+ok(page.indexOf('focusEtat.running = false;\n    focusStopIntervalle();') !== -1,
+    'la fin de phase doit arrêter le chronomètre');
+ok(page.indexOf("focusChoisirMode(modePause, false)") !== -1,
+    'la pause doit être proposée sans démarrer');
+ok(page.indexOf("focusChoisirMode('focus', false)") !== -1,
+    'la concentration suivante doit être proposée sans démarrer');
+ok(page.indexOf('focusChoisirMode(modePause, true)') === -1 &&
+   page.indexOf("focusChoisirMode('focus', true)") === -1,
+    'plus aucune phase ne doit s\'enchaîner automatiquement');
 
 /* Une pause réglée à 15 minutes doit être dite « quinze minutes » :
    le nombre suit la configuration, jamais une valeur écrite à part. */

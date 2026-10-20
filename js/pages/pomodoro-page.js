@@ -627,20 +627,27 @@ function focusRecommencer() {
 
 function focusPhaseSuivante() {
     var fini = focusEtat.mode;
+    /* Le chronomètre s'arrête à la fin de la phase : la suivante est
+       proposée avec sa durée, jamais lancée. Personne ne se retrouve
+       dans une nouvelle concentration sans l'avoir demandée. */
+    focusEtat.running = false;
+    focusStopIntervalle();
     if (fini === 'focus') {
         focusEtat.cycles += 1;
         var modePause = focusEtat.cycles % 4 === 0 ? 'long' : 'short';
         /* la pause annoncée est celle de la configuration de l'élève,
            pas une valeur écrite dans le site */
         var minutesPause = focusDurees()[modePause];
-        focusChoisirMode(modePause, true);
+        focusChoisirMode(modePause, false);
         if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
         else focusBip(2);
     } else {
-        focusChoisirMode('focus', true);
+        focusChoisirMode('focus', false);
         if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
         else focusBip(1);
     }
+    focusPeindre();
+    focusTitre();
     focusNotifier(fini === 'focus' ? 'Pause' : 'Focus', fini === 'focus' ? 'Le temps de concentration est fini.' : 'La pause est finie.');
 }
 

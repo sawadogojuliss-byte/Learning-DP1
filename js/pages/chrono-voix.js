@@ -1,10 +1,17 @@
 /* ============================================================
    La fin d'un chronomètre : un bip doux, puis une voix qui
    annonce la pause. Rien de tout cela ne s'écrit à l'écran.
+
+   Le son passe par l'AudioContext du navigateur (et non par un
+   lecteur audio créé à la fin) : commencé sur le geste de départ,
+   il a le droit de parler vingt-cinq minutes plus tard, même sur
+   un téléphone. Les fichiers sont en WAV : toutes les plateformes
+   les lisent, sans dépendre de leur décodeur MP3.
    ============================================================ */
 
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261020a';
+var CHRONO_VOIX_VERSION = '20261020b';
+var CHRONO_VOIX_EXT = '.wav';
 
 /* Une phrase se compose de morceaux enregistrés séparément : le début,
    le nombre de minutes, puis « minutes de pause ». Le nombre est lu dans
@@ -18,21 +25,32 @@ var CHRONO_VOIX_NUMEROS = (function () {
 })();
 
 var chronoVoixCtx = null;
-var chronoVoixConnus = {};      /* nom -> true (présent) / false (introuvable) */
-var chronoVoixSons = {};        /* nom -> élément Audio gardé en mémoire */
+var chronoVoixTampons = {};        /* nom -> son décodé, prêt à jouer */
+var chronoVoixChargements = {};    /* nom -> chargement en cours */
+var chronoVoixAbsents = {};        /* nom -> introuvable sur l'appareil */
+var chronoVoixSources = [];        /* ce qui joue, pour pouvoir couper */
 
 function chronoVoixUrl(nom) {
-    return CHRONO_VOIX_DOSSIER + nom + '.mp3?v=' + CHRONO_VOIX_VERSION;
+    return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;
+}
+
+/* Le contexte audio, ouvert (ou réveillé) à chaque besoin : c'est lui qui
+   garde le droit de parler, pas le lecteur d'un fichier. */
+function chronoVoixContexte() {
+    try {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        if (!chronoVoixCtx) chronoVoixCtx = new AC();
+        if (chronoVoixCtx.state === 'suspended' && chronoVoixCtx.resume) chronoVoixCtx.resume();
+        return chronoVoixCtx;
+    } catch (e) { return null; }
 }
 
 /* Le bip : deux notes douces, la seconde plus grave, jamais stridentes. */
 function chronoBipDoux() {
     try {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        if (!chronoVoixCtx) chronoVoixCtx = new AC();
-        if (chronoVoixCtx.state === 'suspended') chronoVoixCtx.resume();
-        var ctx = chronoVoixCtx;
+        var ctx = chronoVoixContexte();
+        if (!ctx) return;
         var now = ctx.currentTime;
         [880, 660].forEach(function (frequence, i) {
             var osc = ctx.createOscillator();
@@ -52,7 +70,7 @@ function chronoBipDoux() {
 }
 
 /* Un numéro — « cinq », « quinze », « vingt-deux », « quarante-cinq » —
-   à partir des fichiers déjà là. Renvoie null si le nombre sort de ce
+   à partir des morceaux déjà là. Renvoie null si le nombre sort de ce
    que la voix enregistrée sait dire. */
 function chronoVoixNumero(nombre) {
     var n = Math.round(Number(nombre));
@@ -82,24 +100,29 @@ function chronoVoixPhrasePause(minutes) {
     return ['seance-fin'].concat(nombre, [n > 1 ? 'minutes-de-pause' : 'minute-de-pause']);
 }
 
-function chronoVoixSontLa(noms) {
-    for (var i = 0; i < noms.length; i++) {
-        if (chronoVoixConnus[noms[i]] === false) return false;
-    }
-    return true;
-}
-
-/* Charge un morceau une seule fois : réutilisé à chaque fin de séance,
-   il ne se télécharge pas deux fois et démarre sans attente. */
-function chronoVoixSon(nom) {
-    if (chronoVoixSons[nom]) return chronoVoixSons[nom];
-    var son;
-    try { son = new Audio(chronoVoixUrl(nom)); } catch (e) { return null; }
-    son.preload = 'auto';
-    son.addEventListener('canplaythrough', function () { chronoVoixConnus[nom] = true; });
-    son.addEventListener('error', function () { chronoVoixConnus[nom] = false; });
-    chronoVoixSons[nom] = son;
-    return son;
+/* Charge un morceau une seule fois, puis le garde décodé en mémoire :
+   la deuxième fois, il démarre sans le moindre téléchargement. */
+function chronoVoixCharger(nom) {
+    if (chronoVoixTampons[nom]) return Promise.resolve(chronoVoixTampons[nom]);
+    if (chronoVoixChargements[nom]) return chronoVoixChargements[nom];
+    var ctx = chronoVoixContexte();
+    if (!ctx) return Promise.reject(new Error('audio indisponible'));
+    chronoVoixChargements[nom] = fetch(chronoVoixUrl(nom), { cache: 'force-cache' }).then(function (reponse) {
+        if (!reponse.ok) throw new Error('absent : ' + nom);
+        return reponse.arrayBuffer();
+    }).then(function (octets) {
+        return new Promise(function (ok, ko) {
+            var suite = ctx.decodeAudioData(octets, ok, ko);
+            if (suite && suite.then) suite.then(ok, ko);
+        });
+    }).then(function (tampon) {
+        chronoVoixTampons[nom] = tampon;
+        return tampon;
+    }).catch(function (erreur) {
+        chronoVoixAbsents[nom] = true;
+        throw erreur;
+    });
+    return chronoVoixChargements[nom];
 }
 
 /* Prépare les morceaux utiles (au démarrage du chronomètre, sur le geste
@@ -107,6 +130,7 @@ function chronoVoixSon(nom) {
    pause courte ET la pause longue sont chargées : la quatrième séance
    annonce la longue sans avoir le temps de la télécharger. */
 function chronoVoixPreparer(minutes) {
+    chronoVoixContexte();
     var noms = ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et'];
     var pauses = [];
     if (Array.isArray(minutes)) pauses = minutes.slice();
@@ -121,41 +145,39 @@ function chronoVoixPreparer(minutes) {
         var nombre = chronoVoixNumero(m);
         if (nombre) noms = noms.concat(nombre);
     });
-    noms.forEach(function (nom) { chronoVoixSon(nom); });
+    noms.forEach(function (nom) { chronoVoixCharger(nom).catch(function () {}); });
 }
 
 /* Coupe net ce qui joue : un morceau manquant ne laisse pas la phrase
    à moitié dite sous la voix de secours. */
 function chronoVoixArreter() {
-    Object.keys(chronoVoixSons).forEach(function (nom) {
-        var son = chronoVoixSons[nom];
-        try { son.pause(); son.currentTime = 0; } catch (e) {}
+    chronoVoixSources.forEach(function (source) {
+        try { source.stop(); } catch (e) {}
     });
+    chronoVoixSources = [];
     try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
 }
 
+/* Joue les morceaux à la suite, sans trou : chacun démarre quand le
+   précédent se termine. */
 function chronoVoixJouerListe(noms, suite) {
-    var i = 0;
-    function suivant() {
-        if (i >= noms.length) { if (suite) suite(true); return; }
-        var son = chronoVoixSon(noms[i++]);
-        if (!son) { if (suite) suite(false); return; }
-        var dejaJoue = false;
-        function apres(ok) {
-            if (dejaJoue) return;
-            dejaJoue = true;
-            if (ok) suivant();
-            else if (suite) suite(false);
-        }
-        son.addEventListener('ended', function () { apres(true); }, { once: true });
-        son.addEventListener('error', function () { apres(false); }, { once: true });
-        try {
-            son.currentTime = 0;
-            var lecture = son.play();
-            if (lecture && lecture.catch) lecture.catch(function () { apres(false); });
-        } catch (e) { apres(false); }
-    }
-    suivant();
+    var ctx = chronoVoixContexte();
+    if (!ctx) { if (suite) suite(false); return; }
+    Promise.all(noms.map(chronoVoixCharger)).then(function (tampons) {
+        var quand = ctx.currentTime + 0.08;
+        tampons.forEach(function (tampon) {
+            var source = ctx.createBufferSource();
+            source.buffer = tampon;
+            source.connect(ctx.destination);
+            source.start(quand);
+            quand += tampon.duration + 0.07;
+            chronoVoixSources.push(source);
+        });
+        var attente = Math.max(0, (quand - ctx.currentTime) * 1000 + 150);
+        setTimeout(function () { if (suite) suite(true); }, attente);
+    }, function () {
+        if (suite) suite(false);
+    });
 }
 
 /* Si un morceau manque sur l'appareil, une voix française du navigateur
@@ -191,7 +213,8 @@ function chronoAnnoncerPause(minutes) {
     chronoBipDoux();
     var noms = chronoVoixPhrasePause(n);
     setTimeout(function () {
-        if (!noms || !chronoVoixSontLa(noms)) {
+        var manque = !noms || noms.some(function (nom) { return chronoVoixAbsents[nom]; });
+        if (manque) {
             chronoVoixArreter();
             chronoVoixSynthese(chronoPhrasePause(n));
             return;
@@ -208,7 +231,7 @@ function chronoAnnoncerPause(minutes) {
    cette phrase ; sinon elle est dite, avec la même voix. */
 function chronoAnnoncerReprise() {
     chronoBipDoux();
-    if (chronoVoixConnus['pause-fin'] === false) return;
+    if (chronoVoixAbsents['pause-fin']) return;
     setTimeout(function () {
         chronoVoixJouerListe(['pause-fin'], null);
     }, 760);
