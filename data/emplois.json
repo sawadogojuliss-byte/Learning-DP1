@@ -3299,14 +3299,14 @@
       "type": "emploi",
       "id": "e_a1a12169c5d9f0e55b77",
       "appareil": "a1a12169c5d9f0e55b77",
-      "at": "2026-10-16T08:34:11.295Z",
+      "at": "2026-10-19T11:42:55.568Z",
       "nom": "Maelys",
       "classe": "DP2",
       "email": "maelyskarelle@gmail.com",
       "google": "maelyskarelle@gmail.com",
       "googleNom": "Maelys Karelle Mensah",
       "googleSub": "104531189416264599214",
-      "flammes": 2,
+      "flammes": 1,
       "matieres": [
         "Français A HL",
         "Mathématiques AA SL",
@@ -4562,23 +4562,23 @@
     },
     {
       "type": "emploi",
-      "id": "e_a1a12c46f0cc2fe7b97a",
-      "appareil": "a1a12c46f0cc2fe7b97a",
-      "at": "2026-10-11T19:06:25.910Z",
+      "id": "e_a1a1561859ce48380d4a",
+      "appareil": "a1a1561859ce48380d4a",
+      "at": "2026-10-19T22:31:04.771Z",
       "nom": "Nassika",
       "classe": "DP2",
-      "email": "",
-      "google": "",
-      "googleNom": "",
-      "googleSub": "",
+      "email": "ouedraogonassika@gmail.com",
+      "google": "ouedraogonassika@gmail.com",
+      "googleNom": "Nassika Ouedraogo",
+      "googleSub": "110183865767535122709",
       "flammes": 1,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
         "Français A HL",
+        "Biologie HL",
         "Géographie SL",
-        "ESS SL",
-        "Biologie HL"
+        "ESS SL"
       ],
       "complet": 1,
       "fige": 1,
@@ -4587,34 +4587,29 @@
           "j": "Lundi",
           "s": [
             {
-              "d": "05:00",
-              "f": "05:10",
+              "d": "06:00",
+              "f": "06:10",
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "05:55",
-              "f": "06:25",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "06:25",
-              "f": "06:55",
+              "d": "06:45",
+              "f": "07:25",
               "t": "Trajet école"
             },
             {
-              "d": "06:55",
+              "d": "07:25",
               "f": "07:50",
-              "t": "Révisions Anglais B"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "07:50",
@@ -4632,17 +4627,17 @@
               "t": "Cours"
             },
             {
-              "d": "16:35",
-              "f": "17:00",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "17:00",
-              "f": "17:38",
+              "d": "16:25",
+              "f": "17:05",
               "t": "Trajet maison"
             },
             {
-              "d": "17:38",
+              "d": "16:25",
+              "f": "17:00",
+              "t": "Révisions Biologie"
+            },
+            {
+              "d": "17:40",
               "f": "18:00",
               "t": "Révisions · Biologie"
             },
@@ -4652,48 +4647,43 @@
               "t": "Temps libre"
             },
             {
-              "d": "18:01",
-              "f": "18:56",
-              "t": "Révisions Biologie"
+              "d": "18:30",
+              "f": "19:00",
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
-            },
-            {
-              "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "20:00",
-              "f": "20:20",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:20",
-              "f": "21:00",
-              "t": "Évaluation interne · Mathématiques AA"
-            },
-            {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
-            },
-            {
-              "d": "21:30",
-              "f": "22:20",
+              "f": "19:30",
               "t": "Exercices Biologie"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
+              "d": "19:30",
+              "f": "20:00",
+              "t": "Préparation du soir"
             },
             {
-              "d": "00:00",
-              "f": "05:00",
+              "d": "20:00",
+              "f": "20:30",
+              "t": "Révisions Anglais B"
+            },
+            {
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
+            },
+            {
+              "d": "21:05",
+              "f": "22:00",
+              "t": "Téléphone"
+            },
+            {
+              "d": "22:00",
+              "f": "22:30",
+              "t": "Lectures"
+            },
+            {
+              "d": "22:30",
+              "f": "06:00",
               "t": "Coucher"
             }
           ]
@@ -4702,34 +4692,24 @@
           "j": "Mardi",
           "s": [
             {
-              "d": "05:00",
-              "f": "05:10",
+              "d": "06:00",
+              "f": "06:10",
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "05:55",
-              "f": "06:25",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "06:25",
-              "f": "06:55",
+              "d": "06:45",
+              "f": "07:25",
               "t": "Trajet école"
-            },
-            {
-              "d": "06:55",
-              "f": "07:50",
-              "t": "Révisions Anglais B"
             },
             {
               "d": "07:50",
@@ -4747,68 +4727,48 @@
               "t": "Cours"
             },
             {
-              "d": "16:35",
-              "f": "17:00",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "17:00",
-              "f": "17:38",
+              "d": "16:25",
+              "f": "17:05",
               "t": "Trajet maison"
             },
             {
-              "d": "17:38",
-              "f": "18:00",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "18:00",
-              "f": "18:01",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:01",
-              "f": "18:56",
-              "t": "Révisions Biologie"
+              "d": "18:30",
+              "f": "19:00",
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
+              "f": "19:25",
+              "t": "Révisions · Biologie"
             },
             {
-              "d": "19:45",
+              "d": "19:30",
               "f": "20:00",
-              "t": "Révisions · Français A"
+              "t": "Préparation du soir"
             },
             {
               "d": "20:00",
               "f": "20:20",
-              "t": "Téléphone"
+              "t": "Révisions · Biologie"
             },
             {
               "d": "20:20",
-              "f": "21:00",
-              "t": "Évaluation interne · Géographie"
+              "f": "20:30",
+              "t": "Temps libre"
             },
             {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "21:30",
-              "f": "22:20",
-              "t": "Exercices Biologie"
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
-            },
-            {
-              "d": "00:00",
-              "f": "05:00",
+              "d": "19:00",
+              "f": "06:00",
               "t": "Coucher"
             }
           ]
@@ -4817,39 +4777,24 @@
           "j": "Mercredi",
           "s": [
             {
-              "d": "05:00",
-              "f": "05:10",
+              "d": "06:00",
+              "f": "06:10",
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "05:55",
-              "f": "06:25",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "06:25",
-              "f": "06:55",
+              "d": "06:45",
+              "f": "07:25",
               "t": "Trajet école"
-            },
-            {
-              "d": "06:55",
-              "f": "07:35",
-              "t": "Évaluation interne · Biologie"
-            },
-            {
-              "d": "07:35",
-              "f": "07:50",
-              "t": "Révisions · Biologie"
             },
             {
               "d": "07:50",
@@ -4867,63 +4812,43 @@
               "t": "Cours"
             },
             {
-              "d": "16:35",
-              "f": "17:00",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "17:00",
-              "f": "17:38",
+              "d": "16:25",
+              "f": "17:05",
               "t": "Trajet maison"
             },
             {
-              "d": "17:38",
-              "f": "18:00",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "18:00",
-              "f": "18:01",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:01",
+              "d": "18:30",
               "f": "19:00",
-              "t": "Révisions Français A"
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
+              "f": "19:25",
+              "t": "Révisions · Biologie"
             },
             {
-              "d": "19:45",
+              "d": "19:30",
               "f": "20:00",
-              "t": "Révisions · ESS"
+              "t": "Préparation du soir"
             },
             {
               "d": "20:00",
-              "f": "21:00",
-              "t": "Téléphone"
+              "f": "20:30",
+              "t": "Révisions Français A"
             },
             {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "21:30",
-              "f": "23:00",
-              "t": "Révisions Biologie"
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
-            },
-            {
-              "d": "00:00",
-              "f": "05:00",
+              "d": "19:00",
+              "f": "06:00",
               "t": "Coucher"
             }
           ]
@@ -4932,39 +4857,24 @@
           "j": "Jeudi",
           "s": [
             {
-              "d": "05:00",
-              "f": "05:10",
+              "d": "06:00",
+              "f": "06:10",
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Révisions · Biologie"
-            },
-            {
-              "d": "05:55",
-              "f": "06:25",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "06:25",
-              "f": "06:55",
+              "d": "06:45",
+              "f": "07:25",
               "t": "Trajet école"
-            },
-            {
-              "d": "06:55",
-              "f": "07:35",
-              "t": "Évaluation interne · Mathématiques AA"
-            },
-            {
-              "d": "07:35",
-              "f": "07:50",
-              "t": "Révisions · Français A"
             },
             {
               "d": "07:50",
@@ -4982,63 +4892,43 @@
               "t": "Cours"
             },
             {
-              "d": "16:35",
-              "f": "17:00",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "17:00",
-              "f": "17:38",
+              "d": "16:25",
+              "f": "17:05",
               "t": "Trajet maison"
             },
             {
-              "d": "17:38",
-              "f": "18:00",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "18:00",
-              "f": "18:01",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:01",
+              "d": "18:30",
               "f": "19:00",
-              "t": "Révisions Français A"
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
+              "f": "19:25",
+              "t": "Révisions · Français A"
             },
             {
-              "d": "19:45",
+              "d": "19:30",
               "f": "20:00",
-              "t": "Révisions · Géographie"
+              "t": "Préparation du soir"
             },
             {
               "d": "20:00",
-              "f": "21:00",
-              "t": "Téléphone"
+              "f": "20:30",
+              "t": "Révisions Français A"
             },
             {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "21:30",
-              "f": "23:00",
-              "t": "Révisions Biologie"
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
-            },
-            {
-              "d": "00:00",
-              "f": "05:00",
+              "d": "19:00",
+              "f": "06:00",
               "t": "Coucher"
             }
           ]
@@ -5047,34 +4937,24 @@
           "j": "Vendredi",
           "s": [
             {
-              "d": "05:00",
-              "f": "05:10",
+              "d": "06:00",
+              "f": "06:10",
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "05:55",
-              "f": "06:25",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "06:25",
-              "f": "06:55",
+              "d": "06:45",
+              "f": "07:25",
               "t": "Trajet école"
-            },
-            {
-              "d": "06:55",
-              "f": "07:50",
-              "t": "Révisions Français A"
             },
             {
               "d": "07:50",
@@ -5092,68 +4972,48 @@
               "t": "Cours"
             },
             {
-              "d": "16:35",
-              "f": "17:00",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "17:00",
-              "f": "17:38",
+              "d": "16:25",
+              "f": "17:05",
               "t": "Trajet maison"
             },
             {
-              "d": "17:38",
-              "f": "18:00",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "18:00",
-              "f": "18:01",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:01",
-              "f": "18:51",
-              "t": "Révisions ESS"
+              "d": "18:30",
+              "f": "19:00",
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
+              "f": "19:25",
+              "t": "Révisions · Français A"
             },
             {
-              "d": "19:45",
+              "d": "19:30",
               "f": "20:00",
-              "t": "Révisions · Géographie"
+              "t": "Préparation du soir"
             },
             {
               "d": "20:00",
               "f": "20:20",
-              "t": "Téléphone"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "20:20",
-              "f": "21:00",
-              "t": "Évaluation interne · Géographie"
+              "f": "20:30",
+              "t": "Temps libre"
             },
             {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "21:30",
-              "f": "22:20",
-              "t": "Exercices Biologie"
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
-            },
-            {
-              "d": "00:00",
-              "f": "05:00",
+              "d": "19:00",
+              "f": "06:00",
               "t": "Coucher"
             }
           ]
@@ -5167,82 +5027,52 @@
               "t": "Réveil"
             },
             {
-              "d": "07:10",
-              "f": "07:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "07:40",
-              "f": "09:45",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "09:45",
-              "f": "10:30",
-              "t": "Évaluation interne · Biologie"
-            },
-            {
-              "d": "10:30",
-              "f": "11:00",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "11:00",
-              "f": "12:30",
-              "t": "Révisions ESS"
-            },
-            {
-              "d": "12:30",
-              "f": "13:30",
-              "t": "Déjeuner"
-            },
-            {
-              "d": "13:30",
-              "f": "15:00",
-              "t": "Révisions · Géographie"
-            },
-            {
-              "d": "15:00",
-              "f": "16:30",
-              "t": "Révisions · Mathématiques AA"
-            },
-            {
-              "d": "16:30",
+              "d": "18:30",
               "f": "19:00",
-              "t": "Temps libre"
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
+              "f": "19:20",
+              "t": "Révisions · ESS"
             },
             {
-              "d": "19:45",
+              "d": "19:30",
               "f": "20:00",
-              "t": "Révisions · Anglais B"
+              "t": "Préparation du soir"
             },
             {
               "d": "20:00",
-              "f": "21:00",
-              "t": "Téléphone"
-            },
-            {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
-            },
-            {
-              "d": "21:30",
-              "f": "22:00",
+              "f": "20:30",
               "t": "Révisions · Anglais B"
             },
             {
-              "d": "22:00",
-              "f": "23:00",
-              "t": "Lecture"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "23:00",
+              "d": "21:05",
+              "f": "21:35",
+              "t": "Révisions · Biologie"
+            },
+            {
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
+            },
+            {
+              "d": "19:00",
               "f": "07:00",
               "t": "Coucher"
             }
@@ -5257,87 +5087,52 @@
               "t": "Réveil"
             },
             {
-              "d": "08:10",
-              "f": "08:40",
+              "d": "05:30",
+              "f": "05:55",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "08:40",
-              "f": "10:10",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "10:10",
-              "f": "11:20",
-              "t": "Révisions Géographie"
-            },
-            {
-              "d": "11:30",
-              "f": "12:00",
+              "d": "06:15",
+              "f": "06:45",
               "t": "Préparation"
             },
             {
-              "d": "12:00",
-              "f": "12:30",
-              "t": "Révisions · Géographie"
-            },
-            {
-              "d": "12:30",
-              "f": "13:30",
-              "t": "Déjeuner"
-            },
-            {
-              "d": "13:30",
-              "f": "14:10",
-              "t": "Évaluation interne · Mathématiques AA"
-            },
-            {
-              "d": "14:10",
-              "f": "15:40",
-              "t": "Révisions · Mathématiques AA"
-            },
-            {
-              "d": "15:40",
-              "f": "16:30",
-              "t": "Révisions · Anglais B"
-            },
-            {
-              "d": "16:30",
+              "d": "18:30",
               "f": "19:00",
-              "t": "Temps libre"
+              "t": "Coran"
             },
             {
               "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
-            },
-            {
-              "d": "19:45",
-              "f": "20:00",
+              "f": "19:20",
               "t": "Révisions · Anglais B"
             },
             {
+              "d": "19:30",
+              "f": "20:00",
+              "t": "Préparation du soir"
+            },
+            {
               "d": "20:00",
-              "f": "21:00",
-              "t": "Téléphone"
+              "f": "20:30",
+              "t": "Révisions · Anglais B"
             },
             {
-              "d": "21:00",
-              "f": "21:30",
-              "t": "Arts"
+              "d": "20:30",
+              "f": "21:05",
+              "t": "Dîner"
             },
             {
-              "d": "21:30",
-              "f": "23:00",
-              "t": "Révisions · Biologie"
+              "d": "21:05",
+              "f": "21:50",
+              "t": "Révisions · Géographie"
             },
             {
-              "d": "23:00",
-              "f": "00:00",
-              "t": "Lecture"
+              "d": "22:00",
+              "f": "19:00",
+              "t": "Lectures"
             },
             {
-              "d": "00:00",
+              "d": "19:00",
               "f": "08:00",
               "t": "Coucher"
             }
