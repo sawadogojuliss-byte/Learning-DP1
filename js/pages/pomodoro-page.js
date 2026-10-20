@@ -600,6 +600,11 @@ function focusBasculer() {
     focusLancerIntervalle();
     focusDemanderNotif();
     focusInitAudio();
+    /* la musique d'ambiance que la pause avait arrêtée revient pour ce
+       temps de concentration, pas avant */
+    if (focusEtat.mode === 'focus' && typeof chronoRendreMusique === 'function') {
+        try { chronoRendreMusique(); } catch (e) {}
+    }
     /* le geste de départ autorise le son : les morceaux de la fin de
        séance se chargent maintenant, pas au moment de parler */
     if (typeof chronoVoixPreparer === 'function') {

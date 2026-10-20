@@ -46,13 +46,9 @@ ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en 
 const bac = {
     console: console,
     setTimeout: function () {},
-    Audio: function (src) {
-        this.src = src;
-        this.preload = '';
-        this.currentTime = 0;
-        this.play = function () { return { catch: function () {} }; };
-        this.addEventListener = function () {};
-    },
+    Promise: Promise,
+    fetch: function () { return Promise.reject(new Error('hors ligne')); },
+    Audio: function () { this.play = function () { return { catch: function () {} }; }; this.addEventListener = function () {}; },
     SpeechSynthesisUtterance: function (texte) { this.text = texte; },
     speechSynthesis: { speak: function () {}, cancel: function () {}, getVoices: function () { return []; } },
     window: {}
@@ -66,12 +62,49 @@ function memeListe(a, b) {
     return Array.isArray(a) && Array.isArray(b) && a.length === b.length && a.every(function (x, i) { return x === b[i]; });
 }
 
-ok(memeListe(bac.chronoVoixNumero(5), ['n-5']), 'le numéro 5 doit se dire « cinq » : ' + JSON.stringify(bac.chronoVoixNumero(5)));
-ok(memeListe(bac.chronoVoixNumero(21), ['n-20', 'et', 'n-1']), 'le numéro 21 doit se dire « vingt et une » : ' + JSON.stringify(bac.chronoVoixNumero(21)));
-ok(memeListe(bac.chronoVoixNumero(45), ['n-40', 'n-5']), 'le numéro 45 doit se dire « quarante-cinq » : ' + JSON.stringify(bac.chronoVoixNumero(45)));
-ok(memeListe(bac.chronoVoixNumero(60), ['n-60']), 'le numéro 60 doit se dire « soixante » : ' + JSON.stringify(bac.chronoVoixNumero(60)));
-ok(bac.chronoVoixNumero(75) === null, 'au-delà de 60, la voix ne sait pas : le repli doit exister');
-ok(bac.chronoVoixNumero(1) && bac.chronoVoixNumero(1)[0] === 'n-1', 'une minute doit se dire « une »');
+/* Les mots : la grammaire française, au féminin (minutes). */
+const attendus = {
+    1: 'une', 2: 'deux', 5: 'cinq', 7: 'sept', 10: 'dix', 11: 'onze',
+    16: 'seize', 17: 'dix-sept', 18: 'dix-huit', 19: 'dix-neuf', 20: 'vingt',
+    21: 'vingt et une', 22: 'vingt-deux', 29: 'vingt-neuf', 30: 'trente',
+    31: 'trente et une', 35: 'trente-cinq', 40: 'quarante', 41: 'quarante et une',
+    45: 'quarante-cinq', 50: 'cinquante', 51: 'cinquante et une',
+    60: 'soixante'
+};
+Object.keys(attendus).forEach(function (cle) {
+    const n = Number(cle);
+    ok(bac.chronoNombreEnMots(n) === attendus[cle],
+        'le nombre ' + n + ' doit se dire « ' + attendus[cle] + ' » : '
+        + JSON.stringify(bac.chronoNombreEnMots(n)));
+});
+/* aucun chiffre ne doit rester dans une phrase : c'est ce qui se lisait
+   « five minutes » sur une machine qui compte à l'anglaise */
+for (let n = 1; n <= 60; n++) {
+    const phrase = bac.chronoPhrasePause(n);
+    ok(!/[0-9]/.test(phrase), 'la phrase pour ' + n + ' minutes contient encore un chiffre : ' + phrase);
+    ok(bac.chronoNombreEnMots(n) !== null, 'le nombre ' + n + ' n\'a pas de mots');
+}
+ok(bac.chronoPhrasePause(1).indexOf('une minute de pause') !== -1,
+    'une minute doit être dite au singulier : ' + bac.chronoPhrasePause(1));
+ok(bac.chronoPhrasePause(21).indexOf('vingt et une minutes de pause') !== -1,
+    'vingt et une minutes doit s\'accorder au féminin : ' + bac.chronoPhrasePause(21));
+
+/* Chaque nombre de 1 à 60 se compose avec des morceaux qui existent tous :
+   la voix enregistrée suffit, sans passer par la machine du navigateur. */
+function morceauExiste(nom) {
+    return fs.existsSync(path.join(racine, 'audio', 'voix', nom + '.wav'));
+}
+for (let n = 1; n <= 60; n++) {
+    const morceaux = bac.chronoVoixMorceauxNombre(n);
+    ok(Array.isArray(morceaux) && morceaux.length > 0, 'le nombre ' + n + ' n\'a pas de morceaux de voix');
+    (morceaux || []).forEach(function (nom) {
+        ok(morceauExiste(nom), 'morceau manquant pour ' + n + ' : ' + nom + '.wav');
+    });
+}
+ok(memeListe(bac.chronoVoixMorceauxNombre(21), ['n-20', 'et', 'n-1']),
+    'vingt et une se compose de « vingt », « et », « une » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(21)));
+ok(memeListe(bac.chronoVoixMorceauxNombre(45), ['n-40', 'n-5']),
+    'quarante-cinq se compose de « quarante » et « cinq » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(45)));
 
 const phrase5 = bac.chronoVoixPhrasePause(5);
 ok(memeListe(phrase5, ['seance-fin', 'n-5', 'minutes-de-pause']),
@@ -79,17 +112,6 @@ ok(memeListe(phrase5, ['seance-fin', 'n-5', 'minutes-de-pause']),
 const phrase1 = bac.chronoVoixPhrasePause(1);
 ok(phrase1 && phrase1[phrase1.length - 1] === 'minute-de-pause',
     'une minute de pause doit se dire au singulier : ' + JSON.stringify(phrase1));
-
-/* Chaque morceau que la phrase utilise doit exister sur le disque. */
-function morceauExiste(nom) {
-    return fs.existsSync(path.join(racine, 'audio', 'voix', nom + '.wav'));
-}
-[1, 2, 3, 5, 7].forEach(function (n) {
-    const morceauxPhrase = bac.chronoVoixPhrasePause(n) || [];
-    morceauxPhrase.forEach(function (nom) {
-        ok(morceauExiste(nom), 'la phrase de ' + n + ' minutes réclame un morceau absent : ' + nom);
-    });
-});
 
 /* ── 4. Le minuteur s'en sert, avec la pause configurée ─────────────── */
 const page = lire('js/pages/pomodoro-page.js');
@@ -100,6 +122,10 @@ ok(page.indexOf('var minutesPause = focusDurees()[modePause];') !== -1,
     'la pause annoncée doit venir de la configuration de l\'élève');
 ok(page.indexOf('chronoAnnoncerReprise()') !== -1, 'la fin de pause doit garder son signal');
 ok(page.indexOf('chronoVoixPreparer(') !== -1, 'le son doit être préparé au départ, sur le geste de l\'élève');
+ok(page.indexOf('chronoRendreMusique()') !== -1, 'la musique doit revenir au temps de concentration suivant');
+ok(moduleSrc.indexOf('function chronoCouperMusique') !== -1, 'le module doit savoir couper la musique');
+ok(/function chronoAnnoncerPause[\s\S]{0,220}chronoCouperMusique\(\)/.test(moduleSrc),
+    'la musique doit être coupée AVANT que la voix parle');
 ok(page.indexOf('else focusBip(2)') !== -1 && page.indexOf('else focusBip(1)') !== -1,
     'le bip doit rester quand la voix n\'est pas disponible');
 /* Rien ne se relance tout seul : la phase suivante est proposée, pas lancée. */
