@@ -600,6 +600,11 @@ function focusBasculer() {
     focusLancerIntervalle();
     focusDemanderNotif();
     focusInitAudio();
+    /* le geste de départ autorise le son : les morceaux de la fin de
+       séance se chargent maintenant, pas au moment de parler */
+    if (typeof chronoVoixPreparer === 'function') {
+        try { chronoVoixPreparer([focusDurees().short, focusDurees().long]); } catch (e) {}
+    }
     focusPeindre();
 }
 
@@ -624,11 +629,18 @@ function focusPhaseSuivante() {
     var fini = focusEtat.mode;
     if (fini === 'focus') {
         focusEtat.cycles += 1;
-        focusChoisirMode(focusEtat.cycles % 4 === 0 ? 'long' : 'short', true);
+        var modePause = focusEtat.cycles % 4 === 0 ? 'long' : 'short';
+        /* la pause annoncée est celle de la configuration de l'élève,
+           pas une valeur écrite dans le site */
+        var minutesPause = focusDurees()[modePause];
+        focusChoisirMode(modePause, true);
+        if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
+        else focusBip(2);
     } else {
         focusChoisirMode('focus', true);
+        if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
+        else focusBip(1);
     }
-    focusBip(fini === 'focus' ? 2 : 1);
     focusNotifier(fini === 'focus' ? 'Pause' : 'Focus', fini === 'focus' ? 'Le temps de concentration est fini.' : 'La pause est finie.');
 }
 

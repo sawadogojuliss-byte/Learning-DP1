@@ -61,6 +61,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/emploi-temps.js',
     'js/pages/emploi-temps-moteur.js',
     'js/pages/planning-moteur.js',
+    'js/pages/chrono-voix.js',
     'js/pages/pomodoro.js',
     'js/pages/planning-interface.js',
     'js/pages/planning-export.js',
