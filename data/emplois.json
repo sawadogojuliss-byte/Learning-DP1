@@ -2664,14 +2664,14 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-20T21:21:13.616Z",
+      "at": "2026-10-21T09:09:26.108Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
       "google": "doriilboudo235@gmail.com",
       "googleNom": "Kenzah ILBOUDO",
       "googleSub": "102249607109048181085",
-      "flammes": 2,
+      "flammes": 3,
       "matieres": [
         "Mathématiques AA SL",
         "Anglais B HL",
@@ -7287,16 +7287,16 @@
     },
     {
       "type": "emploi",
-      "id": "e_a1a113207989199d5d45",
-      "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-21T04:35:29.876Z",
+      "id": "e_a1a12a4f01340eb2bd2d",
+      "appareil": "a1a12a4f01340eb2bd2d",
+      "at": "2026-10-21T07:32:48.734Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
       "google": "sawadogojuliss@gmail.com",
       "googleNom": "Sawadogo Juliss Bill Owen",
       "googleSub": "116965022060639990571",
-      "flammes": 11,
+      "flammes": 1,
       "matieres": [
         "Mathématiques AA SL",
         "ESS SL",
@@ -7317,19 +7317,19 @@
               "t": "Réveil"
             },
             {
-              "d": "05:05",
-              "f": "05:10",
+              "d": "05:10",
+              "f": "05:40",
               "t": "Petit-déjeuner"
             },
             {
-              "d": "05:10",
-              "f": "05:40",
-              "t": "Révisions · Géographie"
+              "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
             },
             {
-              "d": "05:40",
-              "f": "05:55",
-              "t": "Activité physique"
+              "d": "06:20",
+              "f": "06:45",
+              "t": "Révisions · Physique"
             },
             {
               "d": "06:45",
@@ -7343,43 +7343,23 @@
             },
             {
               "d": "07:35",
-              "f": "08:00",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "08:00",
-              "f": "09:30",
-              "t": "Geography"
-            },
-            {
-              "d": "09:35",
-              "f": "10:15",
-              "t": "Évaluation interne"
-            },
-            {
-              "d": "10:15",
-              "f": "11:10",
+              "f": "07:50",
               "t": "Révisions · Physique"
             },
             {
-              "d": "11:10",
-              "f": "12:40",
-              "t": "Theory of knowledge"
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
             },
             {
-              "d": "12:45",
-              "f": "13:25",
+              "d": "12:30",
+              "f": "13:30",
               "t": "Déjeuner"
             },
             {
-              "d": "13:25",
-              "f": "14:55",
-              "t": "ESS"
-            },
-            {
-              "d": "14:55",
+              "d": "13:30",
               "f": "16:25",
-              "t": "Physics"
+              "t": "Cours"
             },
             {
               "d": "16:25",
@@ -7387,14 +7367,9 @@
               "t": "Trajet maison"
             },
             {
-              "d": "16:45",
-              "f": "17:35",
-              "t": "Révisions ESS"
-            },
-            {
-              "d": "17:40",
+              "d": "16:55",
               "f": "18:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions Mathématiques AA"
             },
             {
               "d": "18:00",
@@ -7404,27 +7379,22 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Anglais B"
+              "t": "Révisions · Physique"
             },
             {
               "d": "19:00",
-              "f": "20:00",
+              "f": "19:45",
               "t": "Dîner"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
+              "d": "19:45",
+              "f": "21:35",
+              "t": "Révisions Physique"
             },
             {
-              "d": "20:15",
-              "f": "21:10",
-              "t": "Exercices Physique"
-            },
-            {
-              "d": "21:10",
+              "d": "21:35",
               "f": "22:00",
-              "t": "Révisions Géographie"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "22:00",
@@ -7448,8 +7418,13 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions · Physique"
             },
             {
               "d": "06:45",
@@ -7463,38 +7438,23 @@
             },
             {
               "d": "07:35",
-              "f": "08:00",
-              "t": "Révisions · Anglais B"
+              "f": "07:50",
+              "t": "Révisions · Physique"
             },
             {
-              "d": "08:00",
-              "f": "09:30",
-              "t": "Maths AA"
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
             },
             {
-              "d": "09:40",
-              "f": "11:10",
-              "t": "English B"
-            },
-            {
-              "d": "11:10",
-              "f": "12:40",
-              "t": "K4C"
-            },
-            {
-              "d": "12:45",
-              "f": "13:25",
+              "d": "12:30",
+              "f": "13:30",
               "t": "Déjeuner"
             },
             {
-              "d": "13:25",
-              "f": "14:55",
-              "t": "French A: language and literature"
-            },
-            {
-              "d": "14:55",
+              "d": "13:30",
               "f": "16:25",
-              "t": "Sport"
+              "t": "Cours"
             },
             {
               "d": "16:25",
@@ -7502,9 +7462,9 @@
               "t": "Trajet maison"
             },
             {
-              "d": "16:45",
+              "d": "16:55",
               "f": "18:00",
-              "t": "Révisions Anglais B"
+              "t": "Révisions Mathématiques AA"
             },
             {
               "d": "18:00",
@@ -7514,7 +7474,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Français A"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "19:00",
@@ -7523,18 +7483,13 @@
             },
             {
               "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · ESS"
+              "f": "21:35",
+              "t": "Révisions Physique"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
+              "d": "21:35",
               "f": "22:00",
-              "t": "Révisions Mathématiques AA"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "22:00",
@@ -7558,8 +7513,13 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
-              "t": "Révision · Anglais B"
+              "t": "Révisions · Physique"
             },
             {
               "d": "06:45",
@@ -7573,48 +7533,128 @@
             },
             {
               "d": "07:35",
-              "f": "08:00",
-              "t": "Révisions · Géographie"
+              "f": "07:50",
+              "t": "Révisions · Mathématiques AA"
             },
             {
-              "d": "08:00",
-              "f": "09:25",
-              "t": "Geography"
-            },
-            {
-              "d": "09:30",
-              "f": "10:55",
-              "t": "Physics"
-            },
-            {
-              "d": "10:55",
-              "f": "12:20",
-              "t": "English B"
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
             },
             {
               "d": "12:30",
-              "f": "13:00",
+              "f": "13:30",
               "t": "Déjeuner"
             },
             {
-              "d": "13:00",
-              "f": "15:00",
-              "t": "Devoir · Géographie"
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
             },
             {
-              "d": "15:00",
-              "f": "16:30",
-              "t": "Devoir · Mathématiques AA"
-            },
-            {
-              "d": "16:30",
-              "f": "16:50",
+              "d": "16:25",
+              "f": "16:45",
               "t": "Trajet maison"
             },
             {
-              "d": "16:50",
-              "f": "17:55",
-              "t": "Révision · Physique"
+              "d": "16:55",
+              "f": "18:00",
+              "t": "Révisions Mathématiques AA"
+            },
+            {
+              "d": "18:00",
+              "f": "18:30",
+              "t": "Temps libre"
+            },
+            {
+              "d": "18:30",
+              "f": "19:00",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "19:00",
+              "f": "19:45",
+              "t": "Dîner"
+            },
+            {
+              "d": "19:45",
+              "f": "21:35",
+              "t": "Révisions Physique"
+            },
+            {
+              "d": "21:35",
+              "f": "22:00",
+              "t": "Révisions · Anglais B"
+            },
+            {
+              "d": "22:00",
+              "f": "05:00",
+              "t": "Coucher"
+            }
+          ]
+        },
+        {
+          "j": "Jeudi",
+          "s": [
+            {
+              "d": "05:00",
+              "f": "05:10",
+              "t": "Réveil"
+            },
+            {
+              "d": "05:10",
+              "f": "05:40",
+              "t": "Petit-déjeuner"
+            },
+            {
+              "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
+              "f": "06:45",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "06:45",
+              "f": "07:15",
+              "t": "Préparation"
+            },
+            {
+              "d": "07:15",
+              "f": "07:35",
+              "t": "Trajet école"
+            },
+            {
+              "d": "07:35",
+              "f": "07:50",
+              "t": "Révisions · Mathématiques AA"
+            },
+            {
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
+            },
+            {
+              "d": "12:30",
+              "f": "13:30",
+              "t": "Déjeuner"
+            },
+            {
+              "d": "13:30",
+              "f": "16:25",
+              "t": "Cours"
+            },
+            {
+              "d": "16:25",
+              "f": "16:45",
+              "t": "Trajet maison"
+            },
+            {
+              "d": "16:55",
+              "f": "18:00",
+              "t": "Révisions Anglais B"
             },
             {
               "d": "18:00",
@@ -7633,128 +7673,13 @@
             },
             {
               "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · Mathématiques AA"
+              "f": "21:35",
+              "t": "Révisions Mathématiques AA"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
-              "f": "21:10",
-              "t": "Révision · Mathématiques AA"
-            },
-            {
-              "d": "21:30",
+              "d": "21:35",
               "f": "22:00",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "22:00",
-              "f": "05:00",
-              "t": "Coucher"
-            }
-          ]
-        },
-        {
-          "j": "Jeudi",
-          "s": [
-            {
-              "d": "05:00",
-              "f": "05:10",
-              "t": "Réveil"
-            },
-            {
-              "d": "05:40",
-              "f": "06:45",
-              "t": "Petit-déjeuner"
-            },
-            {
-              "d": "06:45",
-              "f": "07:15",
-              "t": "Préparation"
-            },
-            {
-              "d": "07:15",
-              "f": "07:35",
-              "t": "Trajet école"
-            },
-            {
-              "d": "07:35",
-              "f": "08:00",
-              "t": "Révisions · Mathématiques AA"
-            },
-            {
-              "d": "08:00",
-              "f": "09:30",
-              "t": "Maths AA"
-            },
-            {
-              "d": "09:40",
-              "f": "11:10",
-              "t": "French A: language and literature"
-            },
-            {
-              "d": "11:10",
-              "f": "12:40",
-              "t": "ESS"
-            },
-            {
-              "d": "12:45",
-              "f": "13:45",
-              "t": "Déjeuner"
-            },
-            {
-              "d": "13:50",
-              "f": "14:45",
-              "t": "Révisions Géographie"
-            },
-            {
-              "d": "14:55",
-              "f": "16:25",
-              "t": "Geography"
-            },
-            {
-              "d": "16:25",
-              "f": "16:45",
-              "t": "Trajet maison"
-            },
-            {
-              "d": "16:45",
-              "f": "18:00",
-              "t": "Révisions Français A"
-            },
-            {
-              "d": "18:00",
-              "f": "18:30",
-              "t": "Temps libre"
-            },
-            {
-              "d": "18:30",
-              "f": "19:00",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "19:00",
-              "f": "19:45",
-              "t": "Dîner"
-            },
-            {
-              "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · ESS"
-            },
-            {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
-              "f": "22:00",
-              "t": "Révision · Physique"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "22:00",
@@ -7778,8 +7703,13 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
-              "t": "Révisions · Physique"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "06:45",
@@ -7793,38 +7723,23 @@
             },
             {
               "d": "07:35",
-              "f": "08:00",
+              "f": "07:50",
               "t": "Révisions · Anglais B"
             },
             {
-              "d": "08:00",
-              "f": "09:30",
-              "t": "Physics"
+              "d": "07:50",
+              "f": "12:30",
+              "t": "Cours"
             },
             {
-              "d": "09:35",
-              "f": "10:50",
-              "t": "Révision · Anglais B"
-            },
-            {
-              "d": "10:50",
-              "f": "11:10",
-              "t": "Révisions · Français A"
-            },
-            {
-              "d": "11:10",
-              "f": "12:40",
-              "t": "English B"
-            },
-            {
-              "d": "12:45",
-              "f": "13:25",
+              "d": "12:30",
+              "f": "13:30",
               "t": "Déjeuner"
             },
             {
-              "d": "13:25",
+              "d": "13:30",
               "f": "14:55",
-              "t": "French A: language and literature"
+              "t": "Cours"
             },
             {
               "d": "14:55",
@@ -7837,7 +7752,7 @@
               "t": "Trajet maison"
             },
             {
-              "d": "16:45",
+              "d": "16:55",
               "f": "18:00",
               "t": "Révisions Anglais B"
             },
@@ -7849,7 +7764,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "19:00",
@@ -7858,18 +7773,13 @@
             },
             {
               "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · ESS"
+              "f": "21:35",
+              "t": "Révisions Mathématiques AA"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
+              "d": "21:35",
               "f": "22:00",
-              "t": "Révision · Physique"
+              "t": "Révisions · Français A"
             },
             {
               "d": "22:00",
@@ -7893,8 +7803,13 @@
             },
             {
               "d": "05:40",
+              "f": "06:20",
+              "t": "Évaluation interne · Mathématiques AA"
+            },
+            {
+              "d": "06:20",
               "f": "06:45",
-              "t": "Révisions · Géographie"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "06:45",
@@ -7909,7 +7824,7 @@
             {
               "d": "07:35",
               "f": "08:00",
-              "t": "Révisions · ESS"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "08:00",
@@ -7929,17 +7844,17 @@
             {
               "d": "14:00",
               "f": "15:50",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions Anglais B"
             },
             {
               "d": "15:50",
               "f": "16:25",
-              "t": "Révisions · Physique"
+              "t": "Révisions · Français A"
             },
             {
               "d": "16:45",
               "f": "18:00",
-              "t": "Révisions Géographie"
+              "t": "Révisions · Français A"
             },
             {
               "d": "18:00",
@@ -7949,7 +7864,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions · ESS"
             },
             {
               "d": "19:00",
@@ -7958,18 +7873,13 @@
             },
             {
               "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · Anglais B"
+              "f": "21:35",
+              "t": "Révisions Français A"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
+              "d": "21:35",
               "f": "22:00",
-              "t": "Révisions · Français A"
+              "t": "Révisions · Géographie"
             },
             {
               "d": "22:00",
@@ -7993,13 +7903,13 @@
             },
             {
               "d": "06:10",
-              "f": "07:25",
-              "t": "Révisions Géographie"
+              "f": "08:00",
+              "t": "Révisions Anglais B"
             },
             {
-              "d": "07:25",
+              "d": "08:00",
               "f": "08:30",
-              "t": "Temps libre"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "08:30",
@@ -8008,18 +7918,18 @@
             },
             {
               "d": "09:00",
-              "f": "10:15",
-              "t": "Révisions ESS"
+              "f": "10:50",
+              "t": "Révisions Français A"
             },
             {
-              "d": "10:15",
-              "f": "11:45",
-              "t": "Temps libre"
+              "d": "10:50",
+              "f": "11:30",
+              "t": "Mémoire · Avancer le mémoire"
             },
             {
-              "d": "11:45",
+              "d": "11:30",
               "f": "12:30",
-              "t": "Révisions · Physique"
+              "t": "Révisions · Français A"
             },
             {
               "d": "12:30",
@@ -8029,17 +7939,17 @@
             {
               "d": "13:30",
               "f": "15:00",
-              "t": "Révisions · Mathématiques AA"
+              "t": "Révisions · Français A"
             },
             {
               "d": "15:00",
               "f": "16:30",
-              "t": "Révision · Anglais B"
+              "t": "Révisions · ESS"
             },
             {
               "d": "16:30",
               "f": "18:00",
-              "t": "Révisions · Français A"
+              "t": "Révisions · Géographie"
             },
             {
               "d": "18:00",
@@ -8049,7 +7959,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révisions · Géographie"
+              "t": "Révisions · Physique"
             },
             {
               "d": "19:00",
@@ -8058,18 +7968,13 @@
             },
             {
               "d": "19:45",
-              "f": "20:00",
-              "t": "Révisions · ESS"
+              "f": "21:15",
+              "t": "Révisions · Physique"
             },
             {
-              "d": "20:00",
-              "f": "20:15",
-              "t": "Téléphone"
-            },
-            {
-              "d": "20:15",
+              "d": "21:15",
               "f": "22:00",
-              "t": "Révision · Physique"
+              "t": "Temps libre"
             },
             {
               "d": "22:00",
