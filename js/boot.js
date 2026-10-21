@@ -29,7 +29,33 @@
         }
     }
 
-var version = '20261020c';
+var version = '20261020d';
+
+    /* ── Le site se met à jour tout seul ──────────────────────────────
+       Un navigateur garde volontiers l'ancienne page : sans cela, un
+       élève qui revient sur son onglet continue d'utiliser le code
+       d'hier, et les corrections ne lui parviennent jamais. Au
+       démarrage, on regarde la version publiée ; si elle est plus
+       récente, la page se recharge une fois, sans rien dire. La marque
+       posée dans la session évite toute boucle si le réseau répond
+       encore l'ancienne version. */
+    (function seMettreAJour() {
+        try {
+            if (typeof fetch !== 'function' || !window.sessionStorage) return;
+            var marque = 'studyPlanIB_version';
+            fetch('js/boot.js', { cache: 'no-store' }).then(function (reponse) {
+                return reponse.ok ? reponse.text() : '';
+            }).then(function (texte) {
+                var trouve = /var version = '([^']+)'/.exec(texte || '');
+                if (!trouve || trouve[1] === version) return;
+                if (sessionStorage.getItem(marque) === trouve[1]) return;
+                sessionStorage.setItem(marque, trouve[1]);
+                var url = new URL(window.location.href);
+                url.searchParams.set('v', trouve[1]);
+                window.location.replace(url.toString());
+            }).catch(function () {});
+        } catch (e) {}
+    })();
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {

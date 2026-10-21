@@ -41,6 +41,23 @@ morceaux.forEach(function (nom) {
 ok(moduleSrc.indexOf('decodeAudioData') !== -1, 'les morceaux doivent être décodés pour l\'AudioContext');
 ok(moduleSrc.indexOf('createBufferSource') !== -1, 'la voix doit se jouer dans l\'AudioContext');
 ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en WAV, lisible partout');
+/* Trois chemins : tampons décodés, lecteurs ordinaires, voix du navigateur.
+   Si le premier échoue sur un appareil, le suivant prend le relais. */
+ok(moduleSrc.indexOf('function chronoVoixJouerTampons') !== -1, 'le premier chemin (AudioContext) manque');
+ok(moduleSrc.indexOf('function chronoVoixJouerLecteurs') !== -1, 'le second chemin (lecteurs audio) manque');
+ok(/function chronoAnnoncerPause[\s\S]{0,700}chronoVoixJouerLecteurs\(noms[\s\S]{0,200}chronoVoixSynthese/.test(moduleSrc),
+    'la voix doit essayer les trois chemins, sans jamais rester muette');
+ok(moduleSrc.indexOf('delete chronoVoixChargements[nom]') !== -1,
+    'un chargement raté doit pouvoir être retenté (pas de panne définitive)');
+ok(moduleSrc.indexOf('lecteur.pause()') !== -1,
+    'la musique doit être arrêtée sur les lecteurs eux-mêmes, avant toute repeinture');
+/* Le site doit pouvoir se mettre à jour sans qu'on le lui demande : sans
+   cela, un élève garde le code d'hier dans son onglet. */
+const boot = lire('js/boot.js');
+ok(boot.indexOf('function seMettreAJour') !== -1 || boot.indexOf('(function seMettreAJour') !== -1,
+    'le site doit vérifier sa version au démarrage');
+ok(boot.indexOf("cache: 'no-store'") !== -1, 'la version publiée doit être lue sans cache');
+ok(boot.indexOf('location.replace') !== -1, 'une version plus récente doit recharger la page');
 
 /* ── 2 et 3. La logique, dans un bac à sable ────────────────────────── */
 const bac = {

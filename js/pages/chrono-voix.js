@@ -2,18 +2,24 @@
    La fin d'un chronomètre : un bip doux, puis une voix qui
    annonce la pause. Rien de tout cela ne s'écrit à l'écran.
 
-   Le son passe par l'AudioContext du navigateur (et non par un
-   lecteur audio créé à la fin) : commencé sur le geste de départ,
-   il a le droit de parler vingt-cinq minutes plus tard, même sur
-   un téléphone. Les fichiers sont en WAV : toutes les plateformes
-   les lisent, sans dépendre de leur décodeur MP3.
+   Trois chemins pour parler, du meilleur au plus simple — le
+   premier qui marche gagne, sans que personne ait à s'en occuper :
+     1. les morceaux décodés joués par l'AudioContext ouvert au
+        moment du clic « Démarrer » (aucune permission à redemander
+        vingt-cinq minutes plus tard) ;
+     2. les mêmes fichiers lus par des lecteurs audio ordinaires,
+        si le décodage échoue sur l'appareil ;
+     3. la voix française du navigateur, avec la phrase en toutes
+        lettres — jamais un chiffre, qui se lirait à l'anglaise.
+   Si même la voix du navigateur manque, le bip reste : le signal
+   de fin ne disparaît jamais.
 
-   À la pause, la musique d'ambiance s'arrête complètement avant
-   que la voix parle : on l'entend, elle, sans la pluie par-dessus.
+   Et avant que la voix parle, la musique d'ambiance s'arrête : on
+   entend la voix seule, sans la pluie par-dessus.
    ============================================================ */
 
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261020c';
+var CHRONO_VOIX_VERSION = '20261020d';
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────
@@ -24,14 +30,13 @@ var CHRONO_VOIX_EXT = '.wav';
        que devant « un » : vingt et une, trente et une… puis vingt-deux,
        trente-trois ;
      · 17, 18 et 19 sont des mots à part entière : « dix-sept »,
-       « dix-huit » (liaison en z), « dix-neuf » — et non « dix » suivi
-       d'un chiffre ;
+       « dix-huit » (liaison en z), « dix-neuf » ;
      · 60 se dit « soixante » ; au-delà, le site ne va pas (une pause
        est bornée à 60 minutes).
 
    Les mots ci-dessous sont ceux qu'on écrit pour la voix de secours :
-   aucun chiffre, jamais — c'est un nombre en chiffres qui se faisait
-   lire « five » ou « 5 » par une machine qui compte à l'anglaise. */
+   aucun chiffre, jamais — un nombre en chiffres se ferait lire « five »
+   ou « 5 » par une machine qui compte à l'anglaise. */
 var CHRONO_VOIX_MOTS = {
     1: 'une', 2: 'deux', 3: 'trois', 4: 'quatre', 5: 'cinq', 6: 'six',
     7: 'sept', 8: 'huit', 9: 'neuf', 10: 'dix', 11: 'onze', 12: 'douze',
@@ -43,8 +48,9 @@ var CHRONO_VOIX_MOTS = {
 var chronoVoixCtx = null;
 var chronoVoixTampons = {};        /* nom -> son décodé, prêt à jouer */
 var chronoVoixChargements = {};    /* nom -> chargement en cours */
-var chronoVoixAbsents = {};        /* nom -> introuvable sur l'appareil */
+var chronoVoixAbsents = {};        /* nom -> vraiment absent du site */
 var chronoVoixSources = [];        /* ce qui joue, pour pouvoir couper */
+var chronoVoixLecteurs = {};       /* nom -> lecteur audio ordinaire */
 var chronoSonsCoupes = null;       /* ambiances arrêtées par la pause */
 
 /* Le numéro en toutes lettres, au féminin (minutes) :
@@ -119,28 +125,48 @@ function chronoBipDoux() {
 }
 
 /* Charge un morceau une seule fois, puis le garde décodé en mémoire :
-   la deuxième fois, il démarre sans le moindre téléchargement. */
+   la deuxième fois, il démarre sans le moindre téléchargement. Un échec
+   n'est jamais définitif : seule une absence réelle (404) est retenue. */
 function chronoVoixCharger(nom) {
     if (chronoVoixTampons[nom]) return Promise.resolve(chronoVoixTampons[nom]);
     if (chronoVoixChargements[nom]) return chronoVoixChargements[nom];
     var ctx = chronoVoixContexte();
-    if (!ctx) return Promise.reject(new Error('audio indisponible'));
+    if (!ctx || !ctx.decodeAudioData || typeof fetch !== 'function') {
+        return Promise.reject(new Error('décodage indisponible'));
+    }
     chronoVoixChargements[nom] = fetch(chronoVoixUrl(nom), { cache: 'force-cache' }).then(function (reponse) {
-        if (!reponse.ok) throw new Error('absent : ' + nom);
+        if (reponse && reponse.status === 404) chronoVoixAbsents[nom] = true;
+        if (!reponse || !reponse.ok) throw new Error('non chargé : ' + nom);
         return reponse.arrayBuffer();
     }).then(function (octets) {
         return new Promise(function (ok, ko) {
-            var suite = ctx.decodeAudioData(octets, ok, ko);
-            if (suite && suite.then) suite.then(ok, ko);
+            try {
+                var suite = ctx.decodeAudioData(octets, ok, ko);
+                if (suite && suite.then) suite.then(ok, ko);
+            } catch (e) { ko(e); }
         });
     }).then(function (tampon) {
         chronoVoixTampons[nom] = tampon;
+        delete chronoVoixAbsents[nom];
         return tampon;
     }).catch(function (erreur) {
-        chronoVoixAbsents[nom] = true;
+        /* on oublie la tentative : la prochaine fois, on réessaie */
+        delete chronoVoixChargements[nom];
         throw erreur;
     });
     return chronoVoixChargements[nom];
+}
+
+/* Un lecteur audio ordinaire pour le même morceau : le second chemin,
+   quand l'appareil refuse de décoder pour l'AudioContext. */
+function chronoVoixLecteur(nom) {
+    if (chronoVoixLecteurs[nom]) return chronoVoixLecteurs[nom];
+    if (typeof Audio !== 'function') return null;
+    var son = new Audio(chronoVoixUrl(nom));
+    son.preload = 'auto';
+    son.volume = 1;
+    chronoVoixLecteurs[nom] = son;
+    return son;
 }
 
 /* Prépare les morceaux utiles (au démarrage du chronomètre, sur le geste
@@ -163,13 +189,17 @@ function chronoVoixPreparer(minutes) {
         var nombre = chronoVoixMorceauxNombre(m);
         if (nombre) noms = noms.concat(nombre);
     });
-    noms.forEach(function (nom) { chronoVoixCharger(nom).catch(function () {}); });
+    noms.forEach(function (nom) {
+        chronoVoixCharger(nom).catch(function () {});
+        chronoVoixLecteur(nom);
+    });
 }
 
 /* ── La musique s'arrête avant que la voix parle ─────────────────────── */
-/* Les ambiances sont des lecteurs partagés par la page Séance et le
-   minuteur : on les coupe tous. Celles qui jouaient sont notées, pour
-   revenir au prochain temps de concentration — pas pendant la pause. */
+/* L'arrêt se fait d'abord sur les lecteurs eux-mêmes, avant toute
+   repeinture : même si l'écran échoue à se redessiner, le son se tait.
+   Les ambiances arrêtées sont notées pour revenir au temps de
+   concentration suivant — jamais pendant la pause. */
 function chronoCouperMusique() {
     var actifs = [];
     try {
@@ -180,17 +210,30 @@ function chronoCouperMusique() {
         }
     } catch (e) {}
     chronoSonsCoupes = actifs.length ? actifs : null;
+
     try {
-        if (typeof focusArreterSon === 'function') {
-            focusArreterSon();
-        } else if (typeof focusCouperSon === 'function') {
-            focusCouperSon();
+        if (typeof focusLecteurs !== 'undefined' && focusLecteurs) {
+            Object.keys(focusLecteurs).forEach(function (id) {
+                var lecteur = focusLecteurs[id];
+                if (!lecteur) return;
+                try { lecteur.pause(); } catch (e) {}
+                try { lecteur.currentTime = 0; } catch (e) {}
+            });
         }
     } catch (e) {}
+
     try {
-        if (typeof accueilPeindreSons === 'function') accueilPeindreSons();
-        if (typeof accueilPeindreBoutonSons === 'function') accueilPeindreBoutonSons();
+        if (typeof focusEtat !== 'undefined' && focusEtat) {
+            focusEtat.son = 'off';
+            focusEtat.enPause = false;
+            focusEtat.sonPause = null;
+        }
     } catch (e) {}
+
+    try { if (typeof focusCouperSon === 'function') focusCouperSon(); } catch (e) {}
+    try { if (typeof focusArreterSon === 'function') focusArreterSon(); } catch (e) {}
+    try { if (typeof accueilPeindreSons === 'function') accueilPeindreSons(); } catch (e) {}
+    try { if (typeof accueilPeindreBoutonSons === 'function') accueilPeindreBoutonSons(); } catch (e) {}
 }
 
 /* Le prochain temps de concentration reprend les ambiances de l'élève. */
@@ -216,15 +259,21 @@ function chronoVoixArreter() {
         try { source.stop(); } catch (e) {}
     });
     chronoVoixSources = [];
-    try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+    Object.keys(chronoVoixLecteurs).forEach(function (nom) {
+        var son = chronoVoixLecteurs[nom];
+        try { son.pause(); } catch (e) {}
+    });
+    try {
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    } catch (e) {}
 }
 
-/* Joue les morceaux à la suite, sans trou : chacun démarre quand le
-   précédent se termine. */
-function chronoVoixJouerListe(noms, suite) {
+/* Premier chemin : les morceaux décodés, joués à la suite sans trou. */
+function chronoVoixJouerTampons(noms, suite) {
     var ctx = chronoVoixContexte();
     if (!ctx) { if (suite) suite(false); return; }
     Promise.all(noms.map(chronoVoixCharger)).then(function (tampons) {
+        if (!tampons.length) { if (suite) suite(false); return; }
         var quand = ctx.currentTime + 0.08;
         tampons.forEach(function (tampon) {
             var source = ctx.createBufferSource();
@@ -241,24 +290,68 @@ function chronoVoixJouerListe(noms, suite) {
     });
 }
 
-/* Si un morceau manque sur l'appareil, une voix française du navigateur
-   prend le relais : la phrase reste dite, jamais un silence inexpliqué. */
+/* Deuxième chemin : les mêmes fichiers, lus par des lecteurs ordinaires. */
+function chronoVoixJouerLecteurs(noms, suite) {
+    var i = 0;
+    function suivant() {
+        if (i >= noms.length) { if (suite) suite(true); return; }
+        var son = chronoVoixLecteur(noms[i++]);
+        if (!son) { if (suite) suite(false); return; }
+        var fini = false;
+        function apres(ok) {
+            if (fini) return;
+            fini = true;
+            if (ok) suivant();
+            else if (suite) suite(false);
+        }
+        try {
+            son.addEventListener('ended', function () { apres(true); }, { once: true });
+            son.addEventListener('error', function () { apres(false); }, { once: true });
+            son.currentTime = 0;
+            var lecture = son.play();
+            if (lecture && lecture.catch) lecture.catch(function () { apres(false); });
+        } catch (e) { apres(false); }
+    }
+    suivant();
+}
+
+/* Troisième chemin : la voix du navigateur, phrase en toutes lettres. */
 function chronoVoixSynthese(phrase) {
+    function dire() {
+        try {
+            if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') return;
+            var dit = new SpeechSynthesisUtterance(phrase);
+            dit.lang = 'fr-FR';
+            dit.rate = 0.92;
+            dit.pitch = 1.05;
+            dit.volume = 1;
+            var voix = (window.speechSynthesis.getVoices() || []).filter(function (v) {
+                return /^fr/i.test(v.lang || '');
+            });
+            var douce = voix.filter(function (v) {
+                return /amelie|amélie|audrey|aurelie|aurélie|julie|harmonie|aure|female|femme/i.test(v.name || '');
+            });
+            if (douce.length) dit.voice = douce[0];
+            else if (voix.length) dit.voice = voix[0];
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(dit);
+            if (window.speechSynthesis.resume) window.speechSynthesis.resume();
+        } catch (e) {}
+    }
     try {
-        if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') return;
-        var dit = new SpeechSynthesisUtterance(phrase);
-        dit.lang = 'fr-FR';
-        dit.rate = 0.92;
-        dit.pitch = 1.05;
-        dit.volume = 1;
-        var voix = (window.speechSynthesis.getVoices() || []).filter(function (v) {
-            return /^fr/i.test(v.lang || '') &&
-                /amelie|amélie|audrey|aurelie|aurélie|julie|harmonie|aure|female|femme/i.test(v.name || '');
-        });
-        if (voix.length) dit.voice = voix[0];
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(dit);
+        var voixDispo = (window.speechSynthesis.getVoices() || []).length;
+        if (!voixDispo && window.speechSynthesis.addEventListener) {
+            var déjà = false;
+            window.speechSynthesis.addEventListener('voiceschanged', function () {
+                if (déjà) return;
+                déjà = true;
+                dire();
+            });
+            setTimeout(function () { if (!déjà) { déjà = true; dire(); } }, 600);
+            return;
+        }
     } catch (e) {}
+    dire();
 }
 
 /* La phrase de secours : les nombres en toutes lettres, accords compris. */
@@ -288,16 +381,17 @@ function chronoAnnoncerPause(minutes) {
     chronoBipDoux();
     var noms = chronoVoixPhrasePause(n);
     setTimeout(function () {
-        var manque = !noms || noms.some(function (nom) { return chronoVoixAbsents[nom]; });
-        if (manque) {
-            chronoVoixArreter();
+        chronoVoixArreter();
+        if (!noms) {
             chronoVoixSynthese(chronoPhrasePause(n));
             return;
         }
-        chronoVoixJouerListe(noms, function (ok) {
+        chronoVoixJouerTampons(noms, function (ok) {
             if (ok) return;
-            chronoVoixArreter();
-            chronoVoixSynthese(chronoPhrasePause(n));
+            chronoVoixJouerLecteurs(noms, function (ok2) {
+                if (ok2) return;
+                chronoVoixSynthese(chronoPhrasePause(n));
+            });
         });
     }, 760);
 }
@@ -308,6 +402,6 @@ function chronoAnnoncerReprise() {
     chronoBipDoux();
     if (chronoVoixAbsents['pause-fin']) return;
     setTimeout(function () {
-        chronoVoixJouerListe(['pause-fin'], null);
+        chronoVoixJouerTampons(['pause-fin'], null);
     }, 760);
 }
