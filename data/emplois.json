@@ -240,9 +240,9 @@
     },
     {
       "type": "emploi",
-      "id": "e_a1a15a5b8a8d29d3f1cc",
-      "appareil": "a1a15a5b8a8d29d3f1cc",
-      "at": "2026-10-20T17:28:31.197Z",
+      "id": "e_a1a15c310103c9276b4f",
+      "appareil": "a1a15c310103c9276b4f",
+      "at": "2026-10-21T02:01:17.929Z",
       "nom": "E2E Preparation",
       "classe": "DP2",
       "email": "",
@@ -532,6 +532,11 @@
               "t": "Trajet école"
             },
             {
+              "d": "08:00",
+              "f": "10:00",
+              "t": "Devoir · Chimie"
+            },
+            {
               "d": "07:50",
               "f": "12:30",
               "t": "Cours"
@@ -618,16 +623,11 @@
             },
             {
               "d": "12:30",
-              "f": "13:00",
+              "f": "13:30",
               "t": "Déjeuner"
             },
             {
-              "d": "13:00",
-              "f": "15:00",
-              "t": "Examen · Physique"
-            },
-            {
-              "d": "15:00",
+              "d": "13:30",
               "f": "16:25",
               "t": "Cours"
             },
@@ -635,6 +635,11 @@
               "d": "16:25",
               "f": "17:05",
               "t": "Trajet maison"
+            },
+            {
+              "d": "17:05",
+              "f": "18:00",
+              "t": "Révision · Physique"
             },
             {
               "d": "18:00",
@@ -645,6 +650,11 @@
               "d": "19:00",
               "f": "19:45",
               "t": "Dîner"
+            },
+            {
+              "d": "19:45",
+              "f": "20:30",
+              "t": "Exercices · Physique"
             },
             {
               "d": "20:50",
@@ -7279,14 +7289,14 @@
       "type": "emploi",
       "id": "e_a1a113207989199d5d45",
       "appareil": "a1a113207989199d5d45",
-      "at": "2026-10-20T07:19:44.494Z",
+      "at": "2026-10-21T04:35:29.876Z",
       "nom": "Sawadogo Juliss Bill Owen",
       "classe": "DP2",
       "email": "sawadogojuliss@gmail.com",
       "google": "sawadogojuliss@gmail.com",
       "googleNom": "Sawadogo Juliss Bill Owen",
       "googleSub": "116965022060639990571",
-      "flammes": 10,
+      "flammes": 11,
       "matieres": [
         "Mathématiques AA SL",
         "ESS SL",
@@ -7439,7 +7449,7 @@
             {
               "d": "05:40",
               "f": "06:45",
-              "t": "Révision · Géographie"
+              "t": "Révisions · Mathématiques AA"
             },
             {
               "d": "06:45",
@@ -7454,7 +7464,7 @@
             {
               "d": "07:35",
               "f": "08:00",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions · Anglais B"
             },
             {
               "d": "08:00",
@@ -7494,7 +7504,7 @@
             {
               "d": "16:45",
               "f": "18:00",
-              "t": "Révision · Géographie"
+              "t": "Révisions Anglais B"
             },
             {
               "d": "18:00",
@@ -7504,7 +7514,7 @@
             {
               "d": "18:30",
               "f": "19:00",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révisions · Français A"
             },
             {
               "d": "19:00",
@@ -7524,7 +7534,7 @@
             {
               "d": "20:15",
               "f": "22:00",
-              "t": "Révision · Géographie"
+              "t": "Révisions Mathématiques AA"
             },
             {
               "d": "22:00",
@@ -7549,7 +7559,7 @@
             {
               "d": "05:40",
               "f": "06:45",
-              "t": "Révisions Géographie"
+              "t": "Révision · Anglais B"
             },
             {
               "d": "06:45",
@@ -7634,7 +7644,7 @@
             {
               "d": "20:15",
               "f": "21:10",
-              "t": "Exercices Physique"
+              "t": "Révision · Mathématiques AA"
             },
             {
               "d": "21:30",
@@ -7744,7 +7754,7 @@
             {
               "d": "20:15",
               "f": "22:00",
-              "t": "Révision · Anglais B"
+              "t": "Révision · Physique"
             },
             {
               "d": "22:00",
@@ -7794,7 +7804,7 @@
             {
               "d": "09:35",
               "f": "10:50",
-              "t": "Révision · Mathématiques AA"
+              "t": "Révision · Anglais B"
             },
             {
               "d": "10:50",
@@ -7919,7 +7929,7 @@
             {
               "d": "14:00",
               "f": "15:50",
-              "t": "Révision · Physique"
+              "t": "Révision · Mathématiques AA"
             },
             {
               "d": "15:50",
@@ -8059,7 +8069,7 @@
             {
               "d": "20:15",
               "f": "22:00",
-              "t": "Révisions · Physique"
+              "t": "Révision · Physique"
             },
             {
               "d": "22:00",
