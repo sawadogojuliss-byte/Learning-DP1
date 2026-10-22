@@ -2664,7 +2664,7 @@
       "type": "emploi",
       "id": "e_a1a122fe46e0a346ee30",
       "appareil": "a1a122fe46e0a346ee30",
-      "at": "2026-10-22T04:35:40.231Z",
+      "at": "2026-10-22T11:16:30.177Z",
       "nom": "Kenzah",
       "classe": "DP2",
       "email": "doriilboudo235@gmail.com",
@@ -2872,11 +2872,6 @@
               "t": "Réveil"
             },
             {
-              "d": "05:10",
-              "f": "06:30",
-              "t": "Révisions Économie"
-            },
-            {
               "d": "06:30",
               "f": "07:00",
               "t": "Préparation"
@@ -2909,17 +2904,17 @@
             {
               "d": "17:10",
               "f": "18:00",
-              "t": "Évaluation interne · Mathématiques AA"
+              "t": "Révisions Histoire"
             },
             {
               "d": "18:00",
-              "f": "18:01",
-              "t": "Temps libre"
+              "f": "18:40",
+              "t": "Évaluation interne · Mathématiques AA"
             },
             {
-              "d": "18:01",
-              "f": "18:56",
-              "t": "Exercices Mathématiques AA"
+              "d": "18:45",
+              "f": "19:00",
+              "t": "Révisions · Économie"
             },
             {
               "d": "19:00",
@@ -2929,22 +2924,27 @@
             {
               "d": "19:45",
               "f": "20:00",
-              "t": "Révisions · Économie"
+              "t": "Révisions · Histoire"
             },
             {
               "d": "20:00",
-              "f": "21:30",
+              "f": "20:30",
               "t": "Téléphone"
             },
             {
-              "d": "21:30",
-              "f": "23:00",
-              "t": "Révisions Histoire"
+              "d": "20:30",
+              "f": "21:30",
+              "t": "Temps libre"
             },
             {
-              "d": "23:15",
+              "d": "21:30",
+              "f": "22:25",
+              "t": "Exercices Mathématiques AA"
+            },
+            {
+              "d": "22:25",
               "f": "00:00",
-              "t": "Révisions · Histoire"
+              "t": "Révisions Économie"
             },
             {
               "d": "00:00",
@@ -3212,7 +3212,7 @@
               "t": "Lecture"
             },
             {
-              "d": "03:00",
+              "d": "01:10",
               "f": "06:10",
               "t": "Coucher"
             }
