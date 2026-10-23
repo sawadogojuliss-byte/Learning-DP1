@@ -3999,7 +3999,7 @@
       "type": "emploi",
       "id": "e_a1a1229930818b2308c1",
       "appareil": "a1a1229930818b2308c1",
-      "at": "2026-10-20T19:25:46.489Z",
+      "at": "2026-10-23T01:15:59.568Z",
       "nom": "Mathis",
       "classe": "DP2",
       "email": "mathis.kafando@enkoschools.com",
@@ -6559,14 +6559,14 @@
       "type": "emploi",
       "id": "e_a1a12c3549c584e7eec0",
       "appareil": "a1a12c3549c584e7eec0",
-      "at": "2026-10-21T20:24:07.944Z",
+      "at": "2026-10-23T00:03:56.105Z",
       "nom": "RYAN",
       "classe": "DP2",
       "email": "",
       "google": "",
       "googleNom": "",
       "googleSub": "",
-      "flammes": 3,
+      "flammes": 1,
       "matieres": [
         "Anglais B HL",
         "Physique HL",
@@ -7074,7 +7074,7 @@
             {
               "d": "14:55",
               "f": "16:25",
-              "t": "Révisions · Anglais B"
+              "t": "Révision · Anglais B"
             },
             {
               "d": "16:25",
@@ -7085,6 +7085,11 @@
               "d": "17:00",
               "f": "19:00",
               "t": "Football"
+            },
+            {
+              "d": "19:00",
+              "f": "19:40",
+              "t": "Révision · Physique"
             },
             {
               "d": "19:40",
