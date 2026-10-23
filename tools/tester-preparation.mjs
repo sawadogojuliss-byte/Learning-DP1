@@ -36,7 +36,13 @@ function jourCle(d) {
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 const erreurs = [];
-page.on('pageerror', function (e) { erreurs.push(String(e)); });
+page.on('pageerror', function (e) {
+    erreurs.push(String(e));
+    console.error('ERREUR JS ' + e);
+});
+page.on('console', function (m) {
+    if (m.type() === 'error') console.error('CONSOLE ' + m.text().slice(0, 300));
+});
 
 await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
@@ -74,7 +80,12 @@ await page.evaluate(function (programme) {
 }, { demain: jourCle(demain), examen: jourCle(dans3jours) });
 
 await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
-await page.waitForFunction(() => window.__STUDYPLAN_READY === true, null, { timeout: 60000 });
+try {
+    await page.waitForFunction(() => window.__STUDYPLAN_READY === true, null, { timeout: 60000 });
+} catch (e) {
+    console.error('ECHEC le site n’a pas fini de démarrer. Erreurs JS : ' + JSON.stringify(erreurs.slice(0, 6)));
+    process.exit(1);
+}
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;

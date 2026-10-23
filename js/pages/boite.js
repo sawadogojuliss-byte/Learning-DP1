@@ -59,9 +59,33 @@ function boiteMots(s) {
    admins, reconnus par leur identifiant opaque. Un visiteur peut
    toujours fabriquer une session locale : il verra alors des sections
    vides, car les règles Firestore refusent la lecture. */
+var boiteAdminVerifie = false;
+var boiteAdminTente = false;
+
 function boiteEstAdmin() {
+    if (boiteAdminVerifie) return true;
     var session = boiteSession();
     return !!(session && session.sub && BOITE_ADMINS_SUB.indexOf(String(session.sub)) !== -1);
+}
+
+/* Filet de sécurité : si la liste locale des identifiants ne reconnaît
+   pas un compte que les règles Firestore acceptent (identifiant
+   différent selon le fournisseur), la première lecture réussie le
+   rétablit comme admin — sans jamais ouvrir la lecture à un autre. */
+function boiteVerifierAdmin() {
+    if (boiteAdminVerifie || boiteAdminTente) return Promise.resolve(boiteEstAdmin());
+    if (!boiteSession()) return Promise.resolve(false);
+    boiteAdminTente = true;
+    return boiteFirebasePret().then(function (user) {
+        if (!user) return false;
+        return firebase.firestore().collection(BOITE_COLLECTION).limit(1).get().then(function () {
+            boiteAdminVerifie = true;
+            boiteMajMenu();
+            return true;
+        }, function () {
+            return false;
+        });
+    }).catch(function () { return false; });
 }
 
 function boiteEchap(s) {
@@ -251,6 +275,7 @@ function boiteRetirerFile(id) {
 }
 
 function boiteMajMenu() {
+    try { boiteVerifierAdmin(); } catch (e) {}
     var admin = boiteEstAdmin();
     if (admin && typeof boiteSignalerOuverture === 'function') boiteSignalerOuverture();
     ['menuRetours', 'menuQuestions', 'menuEmplois'].forEach(function (id) {

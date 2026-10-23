@@ -409,11 +409,21 @@ function initTutoriel() {
 function tutorielPreparer() {
     tutorielListe = tutorielFusionner(tutorielLireLocal());
     tutorielMajMenu();
-    tutorielCharger().then(function () {
-        var hash = '';
-        try { hash = location.hash; } catch (e) {}
-        if (hash === '#tutoriel' && tutorielSectionVisible() && typeof navigateTo === 'function') navigateTo('tutoriel');
-    });
+    var suite = function () {
+        tutorielCharger().then(function () {
+            var hash = '';
+            try { hash = location.hash; } catch (e) {}
+            if (hash === '#tutoriel' && tutorielSectionVisible() && typeof navigateTo === 'function') navigateTo('tutoriel');
+        });
+    };
+    /* Charger Firebase pendant le démarrage ralentissait tout le site
+       pour un visiteur non connecté : on attend que la page soit posée.
+       Un compte connecté charge tout de suite : il en a besoin. */
+    var connecte = false;
+    try { connecte = typeof boiteSession === 'function' && !!boiteSession(); } catch (e) { connecte = false; }
+    if (connecte) { suite(); return; }
+    if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(suite, { timeout: 5000 });
+    else setTimeout(suite, 3000);
 }
 
 if (typeof document !== 'undefined') tutorielPreparer();

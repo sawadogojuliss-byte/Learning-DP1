@@ -1351,18 +1351,30 @@ function compteChargerScript(url) {
     });
 }
 
+var compteFirebasePromesse = null;
+
 function compteChargerFirebase() {
     if (window.firebase && firebase.apps && firebase.apps.length) return Promise.resolve(firebase);
+    /* Un seul chargement à la fois : deux appels simultanés voyaient le
+       script déjà posé, le croyaient chargé, et `firebase` n'existait
+       pas encore. */
+    if (compteFirebasePromesse) return compteFirebasePromesse;
     var cfg = window.STUDYPLAN_FIREBASE_CONFIG;
     if (!cfg || !cfg.apiKey) return Promise.reject(new Error('firebase'));
     var base = 'https://www.gstatic.com/firebasejs/10.14.1/';
-    return compteChargerScript(base + 'firebase-app-compat.js')
+    compteFirebasePromesse = compteChargerScript(base + 'firebase-app-compat.js')
         .then(function () { return compteChargerScript(base + 'firebase-auth-compat.js'); })
         .then(function () { return compteChargerScript(base + 'firebase-firestore-compat.js'); })
         .then(function () {
+            if (!window.firebase) throw new Error('firebase');
             if (!firebase.apps.length) firebase.initializeApp(cfg);
             return firebase;
+        })
+        .catch(function (err) {
+            compteFirebasePromesse = null;
+            throw err;
         });
+    return compteFirebasePromesse;
 }
 
 function compteNomInterdit(nom) {
@@ -1443,6 +1455,14 @@ function compteFirebaseOuvrir(session, idToken) {
     }).then(function (result) {
         var user = result && result.user;
         if (!user) return null;
+        /* Une connexion vient d'aboutir : la boîte peut vérifier si ce
+           compte est l'un des quatre admins (les règles décident). */
+        if (typeof boiteVerifierAdmin === 'function') {
+            try {
+                if (typeof boiteAdminTente !== 'undefined') boiteAdminTente = false;
+                boiteVerifierAdmin();
+            } catch (e) {}
+        }
         return compteFirebaseLireDoc(user).then(function (doc) {
             return { user: user, doc: doc };
         });
@@ -1641,6 +1661,12 @@ function compteDeconnecter() {
     try {
         if (window.firebase && firebase.apps && firebase.apps.length) firebase.auth().signOut();
     } catch (e) {}
+    if (typeof boiteAdminVerifie !== 'undefined') {
+        boiteAdminVerifie = false;
+        boiteAdminTente = false;
+        if (typeof boiteListesCache !== 'undefined') boiteListesCache = null;
+        if (typeof boiteMajMenu === 'function') boiteMajMenu();
+    }
     compteRafraichir();
     if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Le nom et l’emploi du temps restent liés à ce compte.', 'info');
 }
