@@ -1219,63 +1219,15 @@ function compteReassembler(items, session) {
 }
 
 function compteLireCopiesPartagees(session) {
-    if (!session || !session.email && !session.sub) return Promise.resolve([]);
-    var lectures = [];
-    lectures.push(fetch('data/comptes.json?t=' + Date.now(), { cache: 'no-store' }).then(function (res) {
-        return res.ok ? res.json() : { comptes: [] };
-    }).then(function (doc) {
-        return (doc && doc.comptes) || [];
-    }).catch(function () { return []; }));
-    if (typeof boiteLireNtfy === 'function') {
-        lectures.push(boiteLireNtfy().catch(function () { return []; }));
-    }
-    return Promise.all(lectures).then(function (listes) {
-        var items = [];
-        listes.forEach(function (liste) { items = items.concat(liste || []); });
-        return compteReassembler(items, session).filter(function (data) {
-            return data && compteUtile(data);
-        });
-    });
+    /* La progression d'un élève ne circule plus par un fil public ni par
+       un fichier du dépôt : elle est dans son document Firestore
+       « comptes/{uid} », que lui seul peut lire. */
+    return Promise.resolve([]);
 }
 
 function comptePublierMorceaux(session, data) {
-    if (!session || !session.email || typeof boiteEcrireNtfy !== 'function') return Promise.resolve();
-    var json = JSON.stringify(compteSansDocuments(data));
-    var idBase = 'p_' + compteEmailCle(session.email).replace(/[^a-z0-9]/g, '').slice(0, 40);
-    var profilId = idBase + '_' + Date.now().toString(36);
-    var at = new Date().toISOString();
-    var morceaux = [];
-    var offset = 0;
-    while (offset < json.length) {
-        var part = json.slice(offset, offset + 1400);
-        var morceau = {
-            type: 'profilpart',
-            profilId: profilId,
-            id: profilId + '_' + morceaux.length,
-            index: morceaux.length,
-            total: 1,
-            at: at,
-            email: session.email,
-            google: session.email,
-            googleSub: session.sub,
-            nom: data.userName || '',
-            part: part
-        };
-        while (JSON.stringify(morceau).length > 3600 && part.length > 100) {
-            part = part.slice(0, Math.floor(part.length * 0.75));
-            morceau.part = part;
-        }
-        morceaux.push(morceau);
-        offset += part.length;
-    }
-    morceaux.forEach(function (morceau, index) {
-        morceau.index = index;
-        morceau.total = morceaux.length;
-        morceau.id = profilId + '_' + index;
-    });
-    return morceaux.reduce(function (chaine, morceau) {
-        return chaine.then(function () { return boiteEcrireNtfy(morceau).catch(function () {}); });
-    }, Promise.resolve());
+    /* Plus rien n'est publié hors de « comptes/{uid} ». */
+    return Promise.resolve();
 }
 
 function comptePublierProgression(session) {
@@ -1307,7 +1259,7 @@ function comptePublierProgression(session) {
 function compteRetrouverApresChargement(essai) {
     var session = window.compteSession;
     if (!session || !session.sub) return;
-    if (typeof boiteLireNtfy !== 'function' && (essai || 0) < 24) {
+    if (typeof boiteLireBoite !== 'function' && (essai || 0) < 24) {
         setTimeout(function () { compteRetrouverApresChargement((essai || 0) + 1); }, 250);
         return;
     }
@@ -1683,6 +1635,12 @@ function compteDeconnecter() {
     if (window.google && google.accounts && google.accounts.id) {
         try { google.accounts.id.disableAutoSelect(); } catch (e) {}
     }
+    /* Quitter le compte Google doit aussi fermer la session Firebase :
+       sinon, sur un appareil partagé, l'élève suivant resterait reconnu
+       comme l'admin et pourrait lire la boîte. */
+    try {
+        if (window.firebase && firebase.apps && firebase.apps.length) firebase.auth().signOut();
+    } catch (e) {}
     compteRafraichir();
     if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Le nom et l’emploi du temps restent liés à ce compte.', 'info');
 }

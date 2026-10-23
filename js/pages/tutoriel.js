@@ -255,8 +255,10 @@ function tutorielMemoriser(liste) {
 }
 
 function tutorielDepuisNtfy() {
-    if (typeof boiteLireNtfy !== 'function') return Promise.resolve([]);
-    return boiteLireNtfy().catch(function () { return []; });
+    if (typeof boiteLireBoite !== 'function') return Promise.resolve([]);
+    return boiteLireBoite().then(function (items) {
+        return (items || []).filter(function (item) { return item && item.type === 'tutoriel'; });
+    }).catch(function () { return []; });
 }
 
 function tutorielDepuisFichier() {
@@ -268,22 +270,10 @@ function tutorielDepuisFichier() {
 }
 
 function tutorielDepuisCoffres() {
-    if (typeof boiteLireConfig !== 'function') return Promise.resolve([]);
-    return boiteLireConfig().then(function (cfg) {
-        var lectures = [];
-        if (cfg && cfg.kvdb && typeof boiteLireKvdb === 'function') lectures.push(boiteLireKvdb(cfg.kvdb).catch(function () { return []; }));
-        if (cfg && cfg.archive && typeof boiteFetch === 'function') {
-            lectures.push(boiteFetch(cfg.archive, { cache: 'no-store' }, 12000).then(function (res) {
-                return res.ok ? res.json() : {};
-            }).then(function (doc) {
-                return (doc && doc.tutoriels) || [];
-            }).catch(function () { return []; }));
-        }
-        if (boiteListesCache && boiteListesCache.tutoriels) lectures.push(Promise.resolve(boiteListesCache.tutoriels));
-        return Promise.all(lectures).then(function (lots) {
-            return lots.reduce(function (tout, lot) { return tout.concat(lot || []); }, []);
-        });
-    }).catch(function () { return []; });
+    /* Plus de coffre externe : les tutoriels publics viennent de la
+       collection « publie », déjà lue par tutorielDepuisNtfy. */
+    if (boiteListesCache && boiteListesCache.tutoriels) return Promise.resolve(boiteListesCache.tutoriels);
+    return Promise.resolve([]);
 }
 
 function tutorielCharger() {
@@ -294,9 +284,12 @@ function tutorielCharger() {
     });
 }
 
+/* Les vidéos sont publiques par nature : elles partent sur un fil
+   public dédié, distinct de la boîte privée. */
+var TUTORIEL_SUJET = 'ibx-videos-publiques-3d7a1c5e9b2f';
+
 function tutorielDeposerFichier(fichier) {
-    var sujet = typeof BOITE_SUJET !== 'undefined' ? BOITE_SUJET : '';
-    if (!sujet) return Promise.reject(new Error('sujet'));
+    var sujet = TUTORIEL_SUJET;
     var nom = String(fichier.name || 'video.mp4').replace(/[^\w.\-]+/g, '_').slice(0, 80) || 'video.mp4';
     return fetch('https://ntfy.sh/' + encodeURIComponent(sujet), {
         method: 'PUT',

@@ -421,31 +421,33 @@ function annonceDestinataires(fusion, comptes) {
 }
 
 function annonceLireComptes() {
-    var lire = typeof boiteFetch === 'function' ? boiteFetch : function (url) { return fetch(url); };
-    return lire('data/comptes.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
-        .then(function (res) { return res.ok ? res.json() : {}; })
-        .then(function (doc) { return (doc && doc.comptes) || []; })
-        .catch(function () { return []; });
+    /* Les destinataires viennent de la boîte privée, que seuls les
+       admins peuvent lire : plus de fichier de comptes public. */
+    return Promise.resolve([]);
 }
 
 function annoncePosterMail(email, nom, item) {
     var quand = new Date();
     var sujet = ('Annonce — ' + String(item.titre || 'Study Plan IB') + ' — Study Plan IB').slice(0, 180);
     var nonce = annonceNonce(item.id, email);
-    var payload = {
-        secret: typeof BOITE_SCRIPT_SECRET !== 'undefined' ? BOITE_SCRIPT_SECRET : '',
-        nonce: nonce,
-        to: email,
-        replyTo: typeof BOITE_EXPEDITEUR !== 'undefined' ? BOITE_EXPEDITEUR : 'ibstudyplan@gmail.com',
-        subject: sujet,
-        text: annonceTexteMail(item, nom, quand),
-        html: annonceHtmlMail(item, nom, quand)
-    };
-    return boiteUrlScript().then(function (url) {
+    return Promise.all([
+        boiteUrlScript(),
+        typeof boiteSecretMail === 'function' ? boiteSecretMail() : Promise.reject(new Error('script'))
+    ]).then(function (prets) {
+        var url = prets[0];
+        var payload = {
+            secret: prets[1],
+            nonce: nonce,
+            to: email,
+            replyTo: typeof BOITE_EXPEDITEUR !== 'undefined' ? BOITE_EXPEDITEUR : 'ibstudyplan@gmail.com',
+            subject: sujet,
+            text: annonceTexteMail(item, nom, quand),
+            html: annonceHtmlMail(item, nom, quand)
+        };
         function secours() {
             if (typeof boitePosterChamps === 'function') {
                 return boitePosterChamps(url, payload).catch(function () {
-                    return boitePosterFormulaire(url, payload).then(function () { return boiteAttendreConfirmation(nonce); });
+                    return boitePosterFormulaire(url, payload);
                 });
             }
             return Promise.reject(new Error('mail'));

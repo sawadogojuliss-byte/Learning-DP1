@@ -1,40 +1,42 @@
 /* ============================================================
    Aide, Feedback, et les trois sections des quatre comptes.
-   Le nom saisi à l'accueil décide de l'accès, pas le nom Google.
+
+   Les messages sont privés. Ils sont écrits dans Firestore et
+   lisibles seulement par les quatre comptes Google admins : la
+   décision est prise par les règles Firebase, côté serveur, pas
+   par cette page. Rien ici ne contient d'adresse, de nom d'admin,
+   de mot de passe ni de nom de canal public.
    ============================================================ */
 
-var BOITE_SUJET = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b';
-var BOITE_ADMINS = [
-    'sawadogo juliss bill owen',
-    'sere farid abdourrahman',
-    'sere farid abdourraham',
-    'tamini ashley kania harisoa',
-    'ouedraogo wendsom rayyan',
-    'ouedraogo wendsom ryyan'
+var BOITE_COLLECTION = 'boite';
+var BOITE_PUBLIE = 'publie';
+/* Identifiants Google opaques (sub) des quatre comptes admins.
+   Ils servent uniquement à afficher les sections réservées ; la
+   vraie serrure est dans firestore.rules. */
+var BOITE_ADMINS_SUB = [
+    '116965022060639990571',
+    '110718856042093635641',
+    '107483800962626598897',
+    '108029295239679260667'
 ];
+/* Le nom gardé de chaque compte admin : il ne sert qu'à signer les
+   messages, jamais à décider d'un accès. */
+var BOITE_ADMINS_NOM = {
+    '116965022060639990571': 'Sawadogo Juliss Bill Owen',
+    '110718856042093635641': 'Sere Farid Abdourrahman',
+    '107483800962626598897': 'Tamini Ashley Kania Harisoa',
+    '108029295239679260667': 'Ouedraogo Wendsom Rayyan'
+};
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
-/* Les quatre comptes admins : chaque question ou suggestion partie
-   d'un utilisateur les prévient ici, par mail et dans le site. */
-var BOITE_ADMINS_MAIL = [
-    { nom: 'Juliss', complet: 'Sawadogo Juliss Bill Owen', email: 'sawadogojuliss@gmail.com' },
-    { nom: 'Farid', complet: 'Sere Farid Abdourrahman', email: 'faridsere86@gmail.com' },
-    { nom: 'Ashley', complet: 'Tamini Ashley Kania Harisoa', email: 'ashleytamini10@gmail.com' },
-    { nom: 'Rayyan', complet: 'Ouedraogo Wendsom Rayyan', email: 'rayyanouedraogo87@gmail.com' }
-];
-var BOITE_SCRIPT_SECRET = 'spib-7c4e9a2b8d1f6c3e';
-var BOITE_GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.send email';
-var boiteJetonMail = '';
-var boiteJetonMailFin = 0;
 var BOITE_FILE = 'studyPlanIB_boiteFile';
 var BOITE_VUS = 'studyPlanIB_boiteVus';
-var BOITE_URL_LOCALE = 'studyPlanIB_boiteUrl';
 var BOITE_EMPLOI_HASH = 'studyPlanIB_boiteEmploiHash';
+var BOITE_FICHE_ENVOI = 'studyPlanIB_boiteFicheEnvoi';
 var BOITE_COMPLET = 'studyPlanIB_boiteComplet';
 var BOITE_COMPLET_VERSION = '20261008b';
-var boiteConfigCache = null;
-var boiteConfigPromise = null;
 var boiteListesCache = null;
 var boiteEnvoiEnCours = false;
+var boiteFirebasePromesse = null;
 var aideBranchee = false;
 var feedbackBranche = false;
 var boiteAdminBranche = false;
@@ -53,25 +55,13 @@ function boiteMots(s) {
     return boiteNormaliser(s).split(' ').filter(Boolean);
 }
 
-function boiteNomEstAdmin(nom) {
-    var mots = boiteMots(nom || '');
-    if (mots.length < 3) return false;
-    return BOITE_ADMINS.some(function (admin) {
-        var attendus = boiteMots(admin);
-        return attendus.every(function (mot) { return mots.indexOf(mot) !== -1; });
-    });
-}
-
-function boiteEstAdmin(nom) {
-    if (boiteNomEstAdmin(nom == null ? (typeof userName !== 'undefined' ? userName : '') : nom)) return true;
-    /* Un admin reconnecté avec son compte Google garde ses droits : le
-       compte porte alors le nom Google (« Juliss Sawadogo »), pas le nom
-       tapé à l'accueil (« Sawadogo Juliss Bill Owen »). */
-    var session = (typeof boiteSession === 'function') ? boiteSession() : null;
-    var email = String((session && session.email) || '').toLowerCase();
-    return !!email && BOITE_ADMINS_MAIL.some(function (admin) {
-        return String(admin.email).toLowerCase() === email;
-    });
+/* Les sections réservées s'affichent pour les quatre comptes Google
+   admins, reconnus par leur identifiant opaque. Un visiteur peut
+   toujours fabriquer une session locale : il verra alors des sections
+   vides, car les règles Firestore refusent la lecture. */
+function boiteEstAdmin() {
+    var session = boiteSession();
+    return !!(session && session.sub && BOITE_ADMINS_SUB.indexOf(String(session.sub)) !== -1);
 }
 
 function boiteEchap(s) {
@@ -127,6 +117,116 @@ function boiteFetch(url, options, ms) {
     });
 }
 
+/* ---------- Firestore : la seule serrure des messages ----------
+
+   Écrire ne demande aucun compte : la règle Firestore autorise la
+   création d'un message par n'importe qui. Lire exige un compte Google
+   dont l'adresse est dans la liste des admins — vérifié par Firebase,
+   pas par la page. Un visiteur qui bricole le code ne peut donc pas
+   lire les messages des autres. */
+
+function boiteFirebase() {
+    if (typeof compteChargerFirebase !== 'function') return Promise.reject(new Error('firebase'));
+    return compteChargerFirebase();
+}
+
+function boiteFirebasePret() {
+    if (!boiteFirebasePromesse) {
+        boiteFirebasePromesse = boiteFirebase().then(function () {
+            return new Promise(function (resolve) {
+                var fini = false;
+                var timer = setTimeout(function () {
+                    if (fini) return;
+                    fini = true;
+                    resolve();
+                }, 6000);
+                firebase.auth().onAuthStateChanged(function () {
+                    if (fini) return;
+                    fini = true;
+                    clearTimeout(timer);
+                    resolve();
+                });
+            });
+        }).catch(function (err) {
+            boiteFirebasePromesse = null;
+            throw err;
+        });
+    }
+    return boiteFirebasePromesse.then(function () {
+        return (window.firebase && firebase.auth() ? firebase.auth().currentUser : null) || null;
+    });
+}
+
+function boiteSansVides(record) {
+    try { return JSON.parse(JSON.stringify(record)); } catch (e) { return null; }
+}
+
+/* Lecture incrémentale : la première lecture prend tout, les suivantes
+   ne demandent que ce qui est arrivé depuis. Sans cela, la surveillance
+   de la boîte coûterait des milliers de lectures par heure. */
+var boiteBruts = [];
+var boiteDernierAt = '';
+
+function boiteLireCollection(nom, depuis, max) {
+    var base = firebase.firestore().collection(nom);
+    var requete = depuis ? base.where('at', '>', depuis) : base;
+    return requete.orderBy('at', 'asc').limit(max || 400).get()
+        .then(function (snap) {
+            var out = [];
+            snap.forEach(function (doc) {
+                var data = doc.data();
+                if (data && data.type) out.push(data);
+            });
+            return out;
+        });
+}
+
+function boiteAjouterBruts(items) {
+    (items || []).forEach(function (item) {
+        if (!item) return;
+        var cle = String(item.id || '') + '|' + String(item.at || '');
+        if (boiteBruts.some(function (deja) {
+            return String(deja.id || '') + '|' + String(deja.at || '') === cle;
+        })) return;
+        boiteBruts.push(item);
+        if (String(item.at || '') > boiteDernierAt) boiteDernierAt = String(item.at || '');
+    });
+    if (boiteBruts.length > 2500) boiteBruts = boiteBruts.slice(-2000);
+}
+
+/* Écrit un message. Les annonces et les tutoriels sont publics par
+   nature : ils vont dans « publie ». Tout le reste — questions,
+   suggestions, emplois du temps, profils, réponses — va dans « boite »,
+   que seuls les admins peuvent lire. */
+function boiteEcrireBoite(record) {
+    var propre = boiteSansVides(record);
+    if (!propre || !propre.type || propre.type === 'coffre') return Promise.reject(new Error('record'));
+    var publique = propre.type === 'annonce' || propre.type === 'tutoriel';
+    return boiteFirebasePret().then(function () {
+        return firebase.firestore().collection(publique ? BOITE_PUBLIE : BOITE_COLLECTION).add(propre);
+    }).then(function () { return true; });
+}
+
+/* Relit les messages. Un visiteur non admin ne reçoit que la partie
+   publique : la lecture de « boite » lui est refusée par les règles. */
+function boiteLireBoite() {
+    return boiteFirebasePret().then(function () {
+        var publique = boiteLireCollection(BOITE_PUBLIE, '', 200).catch(function () { return []; });
+        if (!boiteEstAdmin()) return publique;
+        var depuis = boiteBruts.length ? boiteDernierAt : '';
+        var privee = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1200).catch(function (err) {
+            boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
+            return [];
+        });
+        return Promise.all([privee, publique]).then(function (deux) {
+            boiteAjouterBruts(deux[0]);
+            return boiteBruts.concat(deux[1]);
+        });
+    });
+}
+
+var boiteErreurLecture = '';
+
 function boiteLireJson(cle) {
     try { return JSON.parse(localStorage.getItem(cle) || 'null'); } catch (e) { return null; }
 }
@@ -181,69 +281,11 @@ function boiteMajMenu() {
     });
 }
 
+/* Plus de coffre externe : la configuration distante a disparu avec le
+   canal public. La fonction reste pour les appelants qui la consultent
+   (tutoriels), et renvoie une configuration vide. */
 function boiteLireConfig() {
-    if (boiteConfigCache && (boiteConfigCache.kvdb || boiteConfigCache.archive)) {
-        return Promise.resolve(boiteConfigCache);
-    }
-    if (boiteConfigPromise) return boiteConfigPromise;
-    boiteConfigPromise = boiteFetch('data/boite-url.json?t=' + Date.now(), { cache: 'no-store' }, 8000)
-        .then(function (res) { return res.ok ? res.json() : {}; })
-        .catch(function () { return {}; })
-        .then(function (data) {
-            data = data || {};
-            if (data.sujet) BOITE_SUJET = String(data.sujet);
-            var local = boiteLireJson(BOITE_URL_LOCALE) || {};
-            boiteConfigCache = {
-                sujet: BOITE_SUJET,
-                kvdb: data.kvdb || local.kvdb || '',
-                archive: data.archive || local.archive || ''
-            };
-            return boiteConfigCache;
-        });
-    return boiteConfigPromise;
-}
-
-function boiteMemoriserCoffre(cfg) {
-    if (!cfg) return;
-    var local = boiteLireJson(BOITE_URL_LOCALE) || {};
-    if (cfg.kvdb) local.kvdb = cfg.kvdb;
-    if (cfg.archive) local.archive = cfg.archive;
-    boiteEcrireJson(BOITE_URL_LOCALE, local);
-    boiteConfigCache = {
-        sujet: BOITE_SUJET,
-        kvdb: (boiteConfigCache && boiteConfigCache.kvdb) || local.kvdb || '',
-        archive: (boiteConfigCache && boiteConfigCache.archive) || local.archive || ''
-    };
-}
-
-function boiteKvdbConnu(cfg) {
-    /* Le coffre n'est plus créé depuis le navigateur : la création échouait
-       (compte kvdb non vérifié, écriture refusée) et retardait même l'envoi
-       de la question. On n'utilise qu'un coffre déjà configuré — par le
-       workflow « Boîte partagée », qui inscrit l'adresse dans
-       data/boite-url.json — ou mémorisé sur cet appareil. */
-    var local = boiteLireJson(BOITE_URL_LOCALE);
-    return String((cfg && cfg.kvdb) || (local && local.kvdb) || '');
-}
-
-function boiteCleKvdb(record) {
-    if (record.type === 'emploi') return 'e_' + String(record.appareil || record.id || 'x').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 40);
-    var prefix = record.type === 'feedback' ? 'f_' : (record.type === 'annonce' ? 'a_' : (record.type === 'tutoriel' ? 't_' : 'q_'));
-    return prefix + String(record.id || boiteId(prefix)).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 60);
-}
-
-function boiteEcrireKvdb(url, record) {
-    var cle = boiteCleKvdb(record);
-    function envoyer(ttl) {
-        return boiteFetch(url.replace(/\/$/, '') + '/' + encodeURIComponent(cle) + '?ttl=' + ttl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(record)
-        }, 12000).then(function (res) {
-            if (!res.ok) throw new Error('kvdb');
-        });
-    }
-    return envoyer(31536000).catch(function () { return envoyer(604800); });
+    return Promise.resolve({});
 }
 
 function boiteJoursCompacts(jours, maxSlots) {
@@ -257,107 +299,10 @@ function boiteJoursCompacts(jours, maxSlots) {
     });
 }
 
-function boiteCorpsNtfy(record) {
-    var json = JSON.stringify(record);
-    if (json.length <= 3800) return json;
-    if (record.type === 'annonce') {
-        var annonce = {
-            type: 'annonce', id: record.id, at: record.at, titre: String(record.titre || '').slice(0, 80),
-            texte: String(record.texte || '').slice(0, 1500), nom: record.nom || '', auteurCle: record.auteurCle || '',
-            programme: record.programme || '', programmeActif: record.programmeActif ? 1 : 0,
-            acceptations: record.acceptations || {}, publie: record.publie ? 1 : 0, publieAt: record.publieAt || '',
-            envoyeAt: record.envoyeAt || '', envoyes: (record.envoyes || []).slice(0, 40),
-            envoiVerrou: record.envoiVerrou || '', retire: record.retire ? 1 : 0
-        };
-        if (JSON.stringify(annonce).length > 3800) annonce.texte = String(annonce.texte || '').slice(0, 700);
-        return JSON.stringify(annonce);
-    }
-    if (record.type !== 'emploi') {
-        var jours = boiteJoursCompacts(record.jours, 8);
-        var copie = {
-            type: record.type, id: record.id, at: record.at, nom: record.nom,
-            appareil: record.appareil || '', classe: record.classe || '',
-            texte: String(record.texte || '').slice(0, 500),
-            email: record.email || '', google: record.google || '', googleNom: record.googleNom || '',
-            googleSub: record.googleSub || '', matieres: record.matieres || [],
-            flammes: Number(record.flammes || 0),
-            jours: jours,
-            questionId: record.questionId || '', destinataire: record.destinataire || '',
-            destinataires: record.destinataires || [], personne: record.personne || '',
-            mail: !!record.mail, repondu: !!record.repondu, gmailId: record.gmailId || ''
-        };
-        while (jours.length && JSON.stringify(copie).length > 3800) {
-            jours = jours.slice(0, -1);
-            copie.jours = jours;
-        }
-        if (JSON.stringify(copie).length > 3800) {
-            copie.jours = [];
-            copie.texte = String(copie.texte || '').slice(0, 240);
-        }
-        copie.complet = 0;
-        return JSON.stringify(copie);
-    }
-    var jours = (record.jours || []).slice(0, 6);
-    var copie = record;
-    while (jours.length && JSON.stringify(copie).length > 3800) {
-        jours = jours.slice(0, -1);
-        copie = {
-            type: 'emploi', id: record.id, appareil: record.appareil, at: record.at,
-            nom: record.nom, classe: record.classe || '', email: record.email || '',
-            google: record.google || '', googleNom: record.googleNom || '', googleSub: record.googleSub || '',
-            flammes: Number(record.flammes || 0),
-            matieres: record.matieres || [],
-            complet: 0,
-            jours: jours.map(function (jour) {
-                return {
-                    j: jour.j,
-                    s: (jour.s || []).slice(0, 6).map(function (slot) {
-                        return { d: slot.d, f: slot.f, t: String(slot.t || '').slice(0, 24) };
-                    })
-                };
-            })
-        };
-    }
-    return JSON.stringify(copie);
-}
-
-function boiteEcrireNtfy(record) {
-    function tentative() {
-        return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain', Title: record.type || 'message', Priority: 'min' },
-            body: boiteCorpsNtfy(record)
-        }, 6000).then(function (res) {
-            if (!res.ok) throw new Error('ntfy');
-        });
-    }
-    /* Le fil peut hoqueter une fois : on reprend après un court délai
-       avant de déclarer l'envoi perdu. */
-    return tentative().catch(function () {
-        return new Promise(function (resolve) { setTimeout(resolve, 1500); }).then(tentative);
-    });
-}
-
-function boiteEnvoyerDistant(record, options) {
-    options = options || {};
-    function coffre() {
-        var kvdb = boiteKvdbConnu(boiteConfigCache);
-        if (!kvdb || options.sansKvdb || (record && record.partie)) return Promise.resolve(false);
-        return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return false; });
-    }
-    /* La question part d'abord vers le fil, avec une reprise : c'est le canal
-       qui marche. Le coffre n'est plus créé ni attendu — sa création échouait
-       et retardait l'envoi ; il ne sert plus que de recours s'il est déjà
-       configuré. */
-    return boiteEcrireNtfy(record).then(function () {
-        coffre();
-        return true;
-    }, function () {
-        return coffre().then(function (ok) {
-            if (!ok) throw new Error('envoi');
-            return true;
-        });
-    }).then(function (ok) {
+function boiteEnvoyerDistant(record) {
+    /* Un seul endroit écrit : Firestore. Le message est retiré de la
+       file locale quand le serveur l'a accepté. */
+    return boiteEcrireBoite(record).then(function (ok) {
         boiteRetirerFile(record.id);
         return ok;
     });
@@ -572,23 +517,12 @@ function boiteReassemblerEmplois(items) {
 
 function boiteEnvoyer(record) {
     var morceaux = boiteDecouperEmploi(record);
-    var decoupe = !!(record && record.type === 'emploi' && morceaux.length > 1);
     morceaux.forEach(boiteGarderFile);
     var envoi = morceaux.reduce(function (chaine, morceau) {
-        return chaine.then(function () { return boiteEnvoyerDistant(morceau, { sansKvdb: decoupe }); });
+        return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
     }, Promise.resolve(true));
-    if (decoupe) {
-        envoi = envoi.then(function () {
-            return boiteLireConfig().then(function (cfg) {
-                var kvdb = boiteKvdbConnu(cfg);
-                if (!kvdb) return true;
-                return boiteEcrireKvdb(kvdb, record).then(function () { return true; }).catch(function () { return true; });
-            }).catch(function () { return true; });
-        });
-    }
     return envoi.then(function (ok) {
         boiteGarderVu(record);
-        if (record && (record.type === 'emploi' || record.type === 'tutoriel' || record.type === 'annonce')) boiteAjouterArchive(record);
         return ok;
     });
 }
@@ -600,66 +534,6 @@ function boiteReessayer() {
         return chaine.then(function () { return boiteEnvoyerDistant(record).catch(function () {}); });
     }, Promise.resolve());
 }
-
-function boiteParserMessage(texte) {
-    try {
-        var data = JSON.parse(texte);
-        if (data && data.type) return data;
-    } catch (e) {}
-    return null;
-}
-
-function boiteLireNtfy() {
-    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=all', { cache: 'no-store' }, 20000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('ntfy');
-            return res.text();
-        })
-        .then(function (texte) {
-            var out = [];
-            String(texte || '').split('\n').forEach(function (ligne) {
-                if (!ligne.trim()) return;
-                var enveloppe = null;
-                try { enveloppe = JSON.parse(ligne); } catch (e) { return; }
-                if (!enveloppe || enveloppe.event && enveloppe.event !== 'message') return;
-                var data = boiteParserMessage(enveloppe.message || '');
-                if (data) out.push(data);
-            });
-            return out;
-        });
-}
-
-function boiteLireKvdb(url) {
-    if (!url) return Promise.resolve([]);
-    return boiteFetch(url.replace(/\/$/, '') + '/?values=true&format=json&limit=2000', { cache: 'no-store' }, 12000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('kvdb');
-            return res.json();
-        })
-        .then(function (lignes) {
-            var out = [];
-            (Array.isArray(lignes) ? lignes : []).forEach(function (ligne) {
-                var valeur = Array.isArray(ligne) ? ligne[1] : ligne;
-                if (typeof valeur === 'string') valeur = boiteParserMessage(valeur);
-                if (valeur && valeur.type) out.push(valeur);
-            });
-            return out;
-        });
-}
-
-function boiteLireArchive(url) {
-    if (!url) return Promise.resolve([]);
-    return boiteFetch(url + (url.indexOf('?') === -1 ? '?' : '&') + 't=' + Date.now(), { cache: 'no-store' }, 12000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('archive');
-            return res.json();
-        })
-        .then(function (doc) {
-            doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [], doc.annonces || []);
-        });
-}
-
 
 function boiteMailPersonne(item) {
     return String((item && (item.google || item.email)) || '').trim().toLowerCase();
@@ -910,258 +784,26 @@ function boiteFusionner(items) {
     };
 }
 
-function boiteDocument(fusion) {
-    function leger(item) {
-        return {
-            type: item.type,
-            id: item.id,
-            appareil: item.appareil || '',
-            at: item.at || '',
-            nom: item.nom || '',
-            classe: item.classe || '',
-            texte: item.texte || '',
-            email: item.email || '',
-            google: item.google || '',
-            googleNom: item.googleNom || '',
-            googleSub: item.googleSub || '',
-            flammes: Number(item.flammes || 0),
-            matieres: item.matieres || [],
-            complet: item.complet ? 1 : 0,
-            jours: item.jours || [],
-            questionId: item.questionId || '',
-            destinataire: item.destinataire || '',
-            destinataires: item.destinataires || [],
-            personne: item.personne || '',
-            gmailId: item.gmailId || '',
-            salutation: item.salutation || '',
-            mail: !!item.mail,
-            repondu: !!item.repondu,
-            partage: !!item.partage,
-            data: item.data || null,
-            titre: item.titre || '',
-            url: item.url || '',
-            publie: item.publie ? 1 : 0,
-            retire: item.retire ? 1 : 0,
-            auteurCle: item.auteurCle || '',
-            acceptations: item.acceptations || null,
-            programme: item.programme || '',
-            programmeActif: item.programmeActif ? 1 : 0,
-            publieAt: item.publieAt || '',
-            envoyeAt: item.envoyeAt || '',
-            envoyes: item.envoyes || [],
-            envoiVerrou: item.envoiVerrou || ''
-        };
-    }
-    var doc = {
-        questions: fusion.questions.slice(0, 60).map(leger),
-        feedbacks: fusion.feedbacks.slice(0, 60).map(leger),
-        reponses: (fusion.reponses || []).slice(0, 60).map(leger),
-        emplois: fusion.emplois.map(leger),
-        profils: (fusion.profils || []).slice(0, 20).map(leger),
-        connexions: (fusion.connexions || []).slice(0, 4).map(leger),
-        tutoriels: (fusion.tutoriels || []).slice(0, 40).map(leger),
-        annonces: (fusion.annonces || []).slice(0, 40).map(leger)
-    };
-    if (JSON.stringify(doc).length > 60000) {
-        doc.questions = doc.questions.slice(0, 30);
-        doc.feedbacks = doc.feedbacks.slice(0, 30);
-        doc.profils = (doc.profils || []).map(function (item) {
-            var copie = item;
-            delete copie.data;
-            return copie;
-        });
-    }
-    return doc;
-}
-
-function boiteArchiver(cfg, fusion) {
-    if (!cfg || !cfg.archive) return Promise.resolve();
-    return boiteFetch(cfg.archive, { cache: 'no-store' }, 12000).then(function (res) {
-        if (!res.ok) throw new Error('archive');
-        return res.json();
-    }).then(function (doc) {
-        doc = doc && typeof doc === 'object' ? doc : {};
-        var mix = boiteFusionner([].concat(
-            doc.questions || [], doc.feedbacks || [], doc.emplois || [], doc.reponses || [], doc.profils || [], doc.connexions || [], doc.tutoriels || [], doc.annonces || [],
-            fusion.questions || [], fusion.feedbacks || [], fusion.emplois || [], fusion.reponses || [], fusion.profils || [], fusion.connexions || [], fusion.tutoriels || [], fusion.annonces || []
-        ));
-        return boiteFetch(cfg.archive, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(boiteDocument(mix))
-        }, 12000);
-    }).then(function () {}, function () {});
-}
-
-function boiteAjouterArchive(record) {
-    if (!record) return Promise.resolve();
-    return boiteLireConfig().then(function (cfg) {
-        var connu = cfg && cfg.archive ? Promise.resolve(cfg.archive) : boiteCreerArchive();
-        return connu.then(function (url) {
-            if (!url) return;
-            var fusion = { questions: [], feedbacks: [], reponses: [], emplois: [], profils: [], connexions: [], annonces: [] };
-            if (record.type === 'annonce') fusion.annonces = [record];
-            else if (record.type === 'tutoriel') fusion.tutoriels = [record];
-            else if (record.type === 'feedback') fusion.feedbacks = [record];
-            else if (record.type === 'reponse') fusion.reponses = [record];
-            else if (record.type === 'question') fusion.questions = [record];
-            else if (record.type === 'profil') fusion.profils = [record];
-            else if (record.type === 'connexion') fusion.connexions = [record];
-            else fusion.emplois = [record];
-            return boiteArchiver({ archive: url }, fusion);
-        });
-    }).catch(function () {});
-}
-
-function boiteUrlsKvdb(cfg, messages) {
-    var urls = [];
-    function ajouter(url) {
-        if (url && urls.indexOf(url) === -1) urls.push(url);
-    }
-    ajouter(cfg && cfg.kvdb);
-    var local = boiteLireJson(BOITE_URL_LOCALE);
-    if (local) ajouter(local.kvdb);
-    (messages || []).forEach(function (item) {
-        if (item && item.type === 'coffre') ajouter(item.kvdb);
-    });
-    return urls.slice(0, 6);
-}
-
-function boiteLireAnnoncesFichier() {
-    return boiteFetch('data/annonces.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('annonces');
-            return res.json();
-        })
-        .then(function (doc) {
-            return ((doc || {}).annonces || []).filter(function (item) { return item && item.type === 'annonce'; });
-        })
-        .catch(function () { return []; });
-}
-
-function boiteLireRetoursFichier() {
-    return boiteFetch('data/retours.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
-        .then(function (res) {
-            if (!res.ok) throw new Error('retours');
-            return res.json();
-        })
-        .then(function (doc) {
-            doc = doc || {};
-            return [].concat(doc.questions || [], doc.feedbacks || [], doc.reponses || [], doc.emplois || []);
-        })
-        .catch(function () { return []; });
-}
-
-function boiteLireEmploisFichier() {
-    function une() {
-        return boiteFetch('data/emplois.json?t=' + Date.now(), { cache: 'no-store' }, 12000)
-            .then(function (res) {
-                if (!res.ok) throw new Error('emplois');
-                return res.json();
-            })
-            .then(function (doc) {
-                doc = doc || {};
-                return [].concat(doc.emplois || []);
-            });
-    }
-    return une().catch(function () { return une(); }).catch(function () { return []; });
-}
-
+/* Relit la boîte : Firestore pour tout le monde (partie publique), et
+   la partie privée pour les quatre admins seulement. Le fichier local
+   ne sert plus qu'à garder les envois pas encore partis. */
 function boiteChargerListes(force) {
     if (boiteListesCache && !force) return Promise.resolve(boiteListesCache);
-    return boiteLireConfig().then(function (cfg) {
-        var archiveP = cfg.archive
-            ? boiteLireArchive(cfg.archive).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; })
-            : Promise.resolve({ ok: false, items: [] });
-        var archiveOk = false;
-        return Promise.all([
-            archiveP,
-            boiteLireNtfy().catch(function () { return boiteLireNtfy(); }).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; }),
-            boiteLireEmploisFichier().then(function (items) { return { ok: true, items: items }; }),
-            boiteLireRetoursFichier().then(function (items) { return { ok: true, items: items }; }),
-            boiteLireAnnoncesFichier().then(function (items) { return { ok: true, items: items }; })
-        ]).then(function (premiers) {
-            archiveOk = premiers[0].ok;
-            var messages = premiers[1].items || [];
-            messages.forEach(function (item) {
-                if (!item || item.type !== 'coffre') return;
-                if (item.kvdb || item.archive) boiteMemoriserCoffre({ kvdb: item.kvdb || '', archive: item.archive || '' });
-            });
-            var lectures = boiteUrlsKvdb(cfg, messages).map(function (url) {
-                return boiteLireKvdb(url).then(function (items) { return { ok: true, items: items }; }).catch(function () { return { ok: false, items: [] }; });
-            });
-            return Promise.all(lectures).then(function (coffres) {
-                return premiers.concat(coffres);
-            });
-        }).then(function (sources) {
-            var items = boiteLireFile().concat(boiteLireVus());
-            var ok = false;
-            sources.forEach(function (source) {
-                if (source.ok) ok = true;
-                items = items.concat(source.items || []);
-            });
-            var fusion = boiteFusionner(items);
-            fusion.partiel = !ok;
-            boiteListesCache = fusion;
-            boiteMemoriserVus(fusion);
-            boiteProlongerNtfy(fusion);
-            boiteAssurerArchive(fusion);
-            return fusion;
-        });
+    return boiteLireBoite().then(function (items) {
+        return { ok: !(boiteEstAdmin() && boiteErreurLecture), items: items };
+    }, function () {
+        return { ok: false, items: [] };
+    }).then(function (source) {
+        var items = boiteLireFile().concat(boiteLireVus(), source.items || []);
+        var fusion = boiteFusionner(items);
+        fusion.partiel = !source.ok;
+        /* Un admin dont la session Firebase a expiré doit le savoir :
+           sinon la boîte paraît vide sans raison. */
+        fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
+        boiteListesCache = fusion;
+        boiteMemoriserVus(fusion);
+        return fusion;
     });
-}
-
-var boiteProlongeFait = false;
-function boiteProlongerNtfy(fusion) {
-    if (boiteProlongeFait) return;
-    boiteProlongeFait = true;
-    var morceaux = [];
-    (fusion.emplois || []).forEach(function (item) {
-        boiteDecouperEmploi(item).forEach(function (morceau) { morceaux.push(morceau); });
-    });
-    morceaux.slice(0, 48).reduce(function (chaine, item) {
-        return chaine.then(function () { return boiteEcrireNtfy(item).catch(function () {}); });
-    }, Promise.resolve());
-}
-
-var boiteArchivePromesse = null;
-function boiteAnnoncerCoffre(extra) {
-    return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET), {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain', Title: 'coffre', Priority: 'min' },
-        body: JSON.stringify(Object.assign({ type: 'coffre' }, extra || {}))
-    }, 8000).catch(function () {});
-}
-
-function boiteCreerArchive() {
-    if (boiteConfigCache && boiteConfigCache.archive) return Promise.resolve(boiteConfigCache.archive);
-    if (boiteArchivePromesse) return boiteArchivePromesse;
-    boiteArchivePromesse = boiteFetch('https://jsonblob.com/api/jsonBlob', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ questions: [], feedbacks: [], reponses: [], emplois: [] })
-    }, 12000).then(function (res) {
-        if (!res.ok) throw new Error('archive');
-        var loc = res.headers.get('Location') || '';
-        var id = res.headers.get('X-jsonblob') || '';
-        if (loc.indexOf('/') === 0) loc = 'https://jsonblob.com' + loc;
-        if (!loc && id) loc = 'https://jsonblob.com/api/jsonBlob/' + id;
-        if (loc.indexOf('https://jsonblob.com/api/jsonBlob/') !== 0) throw new Error('archive');
-        boiteMemoriserCoffre({ archive: loc });
-        return boiteAnnoncerCoffre({ archive: loc }).then(function () { return loc; });
-    }).catch(function () {
-        boiteArchivePromesse = null;
-        return '';
-    });
-    return boiteArchivePromesse;
-}
-
-function boiteAssurerArchive(fusion) {
-    var connu = boiteConfigCache && boiteConfigCache.archive;
-    var suite = connu ? Promise.resolve(connu) : boiteCreerArchive();
-    suite.then(function (url) {
-        if (url) boiteArchiver({ archive: url }, fusion);
-    }).catch(function () {});
 }
 
 function boiteCarte(titre, meta, corps) {
@@ -1200,7 +842,7 @@ function boiteRendreRetours(fusion) {
     });
     cartes.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
     if (!cartes.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.partiel ? 'Les retours ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun retour pour le moment.') + '</p>';
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : (fusion.partiel ? 'Les retours ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun retour pour le moment.')) + '</p>';
     } else {
         liste.innerHTML = cartes.map(function (carte) { return carte.html; }).join('');
     }
@@ -1351,7 +993,7 @@ function boiteRendreQuestions(fusion) {
             + '</section>';
     }
     if (!fusion.questions.length && fusion.partiel) {
-        liste.innerHTML = '<p style="color:#6b7280;">Les questions ne sont pas accessibles pour le moment. Réessaie.</p>';
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : 'Les questions ne sont pas accessibles pour le moment. Réessaie.') + '</p>';
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
@@ -1386,57 +1028,6 @@ function boiteBase64(str) {
 
 function boiteBase64Url(str) {
     return boiteBase64(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function boiteLettre(destinataire, message, question) {
-    var sujet = 'Réponse à ta question — Study Plan IB';
-    var corps = String(message || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    if (question) corps += '\n\n—\nTa question :\n' + String(question).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    corps += '\n\n— Study Plan IB';
-    return [
-        'From: Study Plan IB <' + BOITE_EXPEDITEUR + '>',
-        'To: ' + destinataire,
-        'Reply-To: ' + BOITE_EXPEDITEUR,
-        'Subject: =?UTF-8?B?' + boiteBase64(sujet) + '?=',
-        'MIME-Version: 1.0',
-        'Content-Type: text/plain; charset=UTF-8',
-        'Content-Transfer-Encoding: base64',
-        '',
-        boiteBase64(corps).replace(/(.{76})/g, '$1\r\n')
-    ].join('\r\n');
-}
-
-function boiteOublierJetonMail() {
-    boiteJetonMail = '';
-    boiteJetonMailFin = 0;
-}
-
-function boiteDemanderJetonMail() {
-    if (boiteJetonMail && Date.now() < boiteJetonMailFin - 60000) return Promise.resolve(boiteJetonMail);
-    if (!window.google || !google.accounts || !google.accounts.oauth2 || typeof compteClientId !== 'function' || !compteClientId()) {
-        return Promise.reject(new Error('google'));
-    }
-    return new Promise(function (resolve, reject) {
-        var fini = false;
-        function ok(token) { if (!fini) { fini = true; resolve(token); } }
-        function ko(err) { if (!fini) { fini = true; reject(err || new Error('jeton')); } }
-        var client = google.accounts.oauth2.initTokenClient({
-            client_id: compteClientId(),
-            scope: BOITE_GMAIL_SCOPE,
-            hint: BOITE_EXPEDITEUR,
-            include_granted_scopes: false,
-            callback: function (resp) {
-                if (resp && resp.access_token) {
-                    boiteJetonMail = resp.access_token;
-                    boiteJetonMailFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
-                    ok(boiteJetonMail);
-                } else ko(resp || new Error('jeton'));
-            },
-            error_callback: function (err) { ko(err || new Error('jeton')); }
-        });
-        try { client.requestAccessToken({ prompt: 'select_account', hint: BOITE_EXPEDITEUR }); }
-        catch (e) { ko(e); }
-    });
 }
 
 function boiteLignes(s) {
@@ -1546,24 +1137,6 @@ function boiteHtmlMail(message, question, nom, quand) {
         + '</td></tr></table></td></tr></table>';
 }
 
-function boiteCompteExpediteur(token) {
-    return boiteFetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-        headers: { Authorization: 'Bearer ' + token }
-    }, 12000).then(function (res) {
-        if (!res.ok) {
-            boiteOublierJetonMail();
-            throw new Error('profil');
-        }
-        return res.json();
-    }).then(function (profil) {
-        if (String(profil.email || '').toLowerCase() !== BOITE_EXPEDITEUR) {
-            boiteOublierJetonMail();
-            throw new Error('compte');
-        }
-        return token;
-    });
-}
-
 function boiteMessageEchecMail(err, data) {
     var type = err && (err.type || err.message) || '';
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
@@ -1640,12 +1213,33 @@ function boiteUrlScript() {
     });
 }
 
-function boitePayloadMail(email, message, question, nonce, nom, quand) {
+/* Le secret d'envoi n'est plus écrit dans la page : il vit dans le
+   document Firestore « config/mail », que seuls les admins peuvent
+   lire. Un élève qui ouvre le code ne le voit donc jamais. */
+var boiteSecretCache = '';
+
+function boiteSecretMail() {
+    if (boiteSecretCache) return Promise.resolve(boiteSecretCache);
+    return boiteFirebasePret().then(function (user) {
+        if (!user || !boiteEstAdmin()) throw new Error('script');
+        return firebase.firestore().collection('config').doc('mail').get();
+    }).then(function (snap) {
+        var data = snap && snap.exists ? snap.data() : null;
+        var secret = data && data.secret ? String(data.secret) : '';
+        if (!secret) throw new Error('script');
+        boiteSecretCache = secret;
+        return secret;
+    }).catch(function () {
+        throw new Error('script');
+    });
+}
+
+function boitePayloadMail(email, message, question, nonce, nom, quand, secret) {
     var moment = quand instanceof Date ? quand : new Date();
     var destinataire = boiteNomCourrier(nom) || boiteNomPourMail({ email: email, nom: nom });
     var ligne = boiteSalutation(destinataire, moment);
     return {
-        secret: BOITE_SCRIPT_SECRET,
+        secret: secret || '',
         nonce: nonce,
         to: email,
         replyTo: BOITE_EXPEDITEUR,
@@ -1689,22 +1283,6 @@ function boitePosterFormulaire(url, payload) {
     return new Promise(function (resolve) { setTimeout(resolve, 400); });
 }
 
-function boiteAttendreConfirmation(nonce) {
-    var fin = Date.now() + 28000;
-    var depuis = Math.floor(Date.now() / 1000) - 600;
-    function essai() {
-        return boiteFetch('https://ntfy.sh/' + encodeURIComponent(BOITE_SUJET) + '/json?poll=1&since=' + depuis, { cache: 'no-store' }, 12000)
-            .then(function (res) { return res.ok ? res.text() : ''; })
-            .catch(function () { return ''; })
-            .then(function (texte) {
-                if (texte.indexOf(nonce) !== -1 && texte.indexOf('mail-ok') !== -1) return { id: nonce };
-                if (Date.now() >= fin) throw new Error('mail');
-                return new Promise(function (resolve) { setTimeout(resolve, 2000); }).then(essai);
-            });
-    }
-    return essai();
-}
-
 function boitePosterChamps(url, payload) {
     return new Promise(function (resolve, reject) {
         var xhr = new XMLHttpRequest();
@@ -1728,16 +1306,10 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var nonce = boiteNonce();
     var moment = quand instanceof Date ? quand : new Date();
-    return boiteUrlScript().then(function (url) {
-        var payload = boitePayloadMail(email, message, question, nonce, nom, moment);
+    return Promise.all([boiteUrlScript(), boiteSecretMail()]).then(function (prets) {
+        var url = prets[0];
+        var payload = boitePayloadMail(email, message, question, nonce, nom, moment, prets[1]);
         if (!boiteMailCommenceBien(payload)) return Promise.reject(new Error('salutation'));
-        function secours() {
-            return boitePosterChamps(url, payload).catch(function () {
-                return boitePosterFormulaire(url, payload).then(function () {
-                    return boiteAttendreConfirmation(nonce);
-                });
-            });
-        }
         return fetch(url, {
             method: 'POST',
             redirect: 'follow',
@@ -1746,80 +1318,12 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
         }).then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (data) {
                 if (res.ok && boiteMailAccepte(data, nonce)) return data;
-                return secours();
+                return boitePosterChamps(url, payload);
             });
-        }).catch(secours);
+        }).catch(function () {
+            return boitePosterChamps(url, payload);
+        });
     });
-}
-
-/* Empreinte stable d'un envoi de notification : le script Google s'en
-   sert pour ne pas expédier deux fois le même avis (le navigateur et la
-   synchronisation peuvent tous deux prévenir). */
-function boiteCleAvertir(id, email) {
-    var s = String(id) + '|' + String(email).toLowerCase();
-    var a = 5381;
-    var b = 5271;
-    var i;
-    for (i = 0; i < s.length; i++) {
-        a = ((a * 33) + s.charCodeAt(i)) >>> 0;
-        b = ((b * 31) + s.charCodeAt(i) + i) >>> 0;
-    }
-    var cle = 'n' + a.toString(16) + b.toString(16);
-    while (cle.length < 17) cle += '0';
-    return cle.slice(0, 40);
-}
-
-/* Dès que l'utilisateur appuie sur Envoyer, les quatre comptes admins
-   reçoivent un mail — en parallèle de l'envoi, pas après : même si le
-   fil hoquette, l'avis part. Le même avis part de la synchronisation si
-   le navigateur n'a pas pu l'envoyer ; l'empreinte ci-dessus évite le
-   doublon. Renvoie une promesse : vrai si au moins un avis est parti. */
-function boiteAvertirAdmins(record) {
-    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return Promise.resolve(false);
-    var moi = String((boiteSession() && boiteSession().email) || '').toLowerCase();
-    var question = record.type === 'question';
-    var qui = boiteNomExpediteur(record);
-    var expediteur = qui.nom + (qui.email ? ' (' + qui.email + ')' : '');
-    var extrait = boiteLignes(record.texte).slice(0, 500);
-    return boiteUrlScript().then(function (url) {
-        var envois = [];
-        BOITE_ADMINS_MAIL.forEach(function (admin) {
-            if (!admin.email || admin.email.toLowerCase() === moi) return;
-            var salut = boiteSalutation(admin.nom, new Date());
-            var sujet = (question ? 'Nouvelle question — Study Plan IB' : 'Nouvelle suggestion — Study Plan IB');
-            var texte = salut + '\n\n' + expediteur + (question ? ' t’a envoyé une question' : ' t’a envoyé une suggestion') + ' depuis Study Plan IB :\n\n« ' + extrait + ' »\n\nRéponds depuis la page ' + (question ? 'Questions' : 'Retours des feedbacks') + ' du site.\n\nÀ bientôt,\nL\'équipe Study Plan IB';
-            var html = '<p style="margin:0 0 14px;font-family:Arial,Helvetica,sans-serif;font-size:18px;font-weight:700;color:#111827;">' + boiteEchapHtml(salut) + '</p>'
-                + '<p style="margin:0 0 10px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#374151;">' + boiteEchap(expediteur) + (question ? ' t’a envoyé une question' : ' t’a envoyé une suggestion') + ' depuis <strong>Study Plan IB</strong> :</p>'
-                + '<p style="margin:0 0 14px;padding:12px 14px;background:#f0fdf4;border-left:3px solid #34d399;border-radius:10px;font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#1f2937;">' + boiteEchapHtml(extrait) + '</p>'
-                + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#6b7280;">Réponds depuis la page ' + (question ? 'Questions' : 'Retours des feedbacks') + ' du site.</p>';
-            var payload = {
-                secret: BOITE_SCRIPT_SECRET,
-                nonce: boiteCleAvertir(record.id, admin.email),
-                to: admin.email,
-                replyTo: BOITE_EXPEDITEUR,
-                nom: admin.nom,
-                salutation: salut,
-                subject: sujet,
-                text: texte,
-                html: html
-            };
-            var envoi = fetch(url, {
-                method: 'POST',
-                redirect: 'follow',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            }).then(function (res) {
-                return res.ok;
-            }).catch(function () {
-                if (typeof boitePosterChamps !== 'function') return false;
-                return boitePosterChamps(url, payload).then(function () { return true; }, function () { return false; });
-            });
-            envois.push(envoi);
-        });
-        return Promise.all(envois).then(function (res) {
-            return res.some(function (ok) { return ok; });
-        });
-    }).catch(function () { return false; });
 }
 
 function boiteDireDans(el, texte, erreur) {
@@ -1959,7 +1463,11 @@ function boiteRendreEmplois(fusion) {
         return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
     });
     if (!rows.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (personnes.length ? 'Aucun nom ne correspond.' : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.' : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici une seule fois, dès qu\'elle génère son planning ou envoie une question.')) + '</p>';
+        var vide = personnes.length ? 'Aucun nom ne correspond.'
+            : (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.'
+                : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.'
+                    : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici une seule fois, dès qu\'elle génère son planning ou envoie une question.'));
+        liste.innerHTML = '<p style="color:#6b7280;">' + vide + '</p>';
     } else {
         liste.innerHTML = rows.map(function (item) {
             var incomplet = false;
@@ -2093,21 +1601,12 @@ function boiteBrancherAdmin() {
 }
 
 function boiteNom() {
-    var nom = (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
-    if (boiteNomEstAdmin(nom)) return nom;
-    /* Un admin connecté avec son compte Google signe toujours du nom du
-       compte gardé, même si l'appareil affiche le nom Google : il ne
-       reste qu'un seul compte, « Sawadogo Juliss Bill Owen ». */
+    /* Un admin connecté avec son compte Google signe toujours du nom
+       gardé : un seul compte, une seule fiche, quel que soit l'appareil. */
     var session = (typeof boiteSession === 'function') ? boiteSession() : null;
-    var email = String((session && session.email) || '').toLowerCase();
-    if (email) {
-        for (var i = 0; i < BOITE_ADMINS_MAIL.length; i++) {
-            if (String(BOITE_ADMINS_MAIL[i].email).toLowerCase() === email) {
-                return BOITE_ADMINS_MAIL[i].complet;
-            }
-        }
-    }
-    return nom;
+    var garde = session && session.sub ? BOITE_ADMINS_NOM[String(session.sub)] : '';
+    if (garde) return garde;
+    return (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
 }
 
 function boiteDire(id, texte, erreur) {
@@ -2173,25 +1672,13 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
         return;
     }
-    /* Les quatre admins sont prévenus dès l'appui, en parallèle de
-       l'envoi : l'avis ne dépend pas du fil. */
-    var avis = Promise.resolve(false);
-    try {
-        avis = boiteAvertirAdmins(record);
-    } catch (e) {}
     boiteEnvoyer(record).then(function () {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
         boiteDire('aideStatut', 'Question envoyée.', false);
     }).catch(function () {
-        return avis.then(function (parti) {
-            if (parti) {
-                boiteDire('aideStatut', 'Question envoyée par mail — elle rejoindra la boîte un peu plus tard.', false);
-            } else {
-                boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
-            }
-        });
+        boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
     }).then(function () {
         boiteEnvoiEnCours = false;
     });
@@ -2273,22 +1760,11 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
             return;
         }
-        /* Les quatre admins sont prévenus dès l'appui, en parallèle. */
-        var avis = Promise.resolve(false);
-        try {
-            avis = boiteAvertirAdmins(record);
-        } catch (e) {}
         boiteEnvoyer(record).then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
         }).catch(function () {
-            return avis.then(function (parti) {
-                if (parti) {
-                    boiteDire('feedbackStatut', 'Suggestion envoyée par mail — elle rejoindra la boîte un peu plus tard.', false);
-                } else {
-                    boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
-                }
-            });
+            boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
         }).then(function () {
             boiteEnvoiEnCours = false;
         });
@@ -2644,14 +2120,29 @@ function boiteVerifierFiche() {
     if (!record) return;
     var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteSignatureJours(record);
     if (cle === boiteVerifCle) return;
-    boiteVerifEnCours = true;
-    boiteChargerListes(false).then(function (fusion) {
-        if (!boiteFicheIncomplete(fusion, record)) return null;
-        return boiteEnvoyer(record);
-    }).catch(function () {
-        return boiteEnvoyer(record);
-    }).then(function () {
+    /* Ce qui est déjà parti ne repart pas : la trace est gardée sur
+       l'appareil, sans relire la boîte (que seuls les admins peuvent
+       lire). Une fiche modifiée change la clé et repart. */
+    var deja = boiteLireJson(BOITE_FICHE_ENVOI);
+    if (deja && deja.cle === cle && Date.now() - Number(deja.at || 0) < 12 * 60 * 60 * 1000) {
         boiteVerifCle = cle;
+        return;
+    }
+    boiteVerifEnCours = true;
+    var envoi;
+    if (boiteEstAdmin()) {
+        envoi = boiteChargerListes(false).then(function (fusion) {
+            if (!boiteFicheIncomplete(fusion, record)) return null;
+            return boiteEnvoyer(record);
+        }).catch(function () {
+            return boiteEnvoyer(record);
+        });
+    } else {
+        envoi = boiteEnvoyer(record);
+    }
+    envoi.then(function () {
+        boiteVerifCle = cle;
+        boiteEcrireJson(BOITE_FICHE_ENVOI, { cle: cle, at: Date.now() });
         boiteVerifEnCours = false;
     }, function () {
         boiteVerifEnCours = false;

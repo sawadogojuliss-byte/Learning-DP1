@@ -1,6 +1,67 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    /* Les quatre comptes admins. La liste des identifiants Google (uid)
+       et celle des adresses sont acceptées : si Firebase attribue un
+       uid différent de l'identifiant Google, l'adresse prend le relais.
+       Ce fichier n'est pas servi par le site. */
+    function estAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && (request.auth.uid in [
+              '116965022060639990571',
+              '110718856042093635641',
+              '107483800962626598897',
+              '108029295239679260667'
+            ]
+            || request.auth.token.email in [
+              'sawadogojuliss@gmail.com',
+              'faridsere86@gmail.com',
+              'ashleytamini10@gmail.com',
+              'rayyanouedraogo87@gmail.com'
+            ]);
+    }
+
+    /* Un message a la forme attendue : un type connu, une date, un
+       identifiant, et pas des milliers de champs. */
+    function messageValide() {
+      return request.resource.data.type is string
+        && request.resource.data.type in [
+             'question', 'feedback', 'emploi', 'reponse',
+             'profil', 'profilpart', 'connexion', 'annonce', 'tutoriel'
+           ]
+        && request.resource.data.at is string
+        && request.resource.data.id is string
+        && request.resource.data.size() < 80;
+    }
+
+    /* Messages privés : questions, suggestions, emplois du temps,
+       profils, réponses. Tout le monde peut écrire ; seuls les admins
+       peuvent lire. Personne ne peut modifier ni supprimer. */
+    match /boite/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide();
+      allow update, delete: if false;
+    }
+
+    /* Contenu public par nature : annonces et tutoriels. Tout le monde
+       peut lire ; seuls les admins publient. */
+    match /publie/{message} {
+      allow read: if true;
+      allow create: if estAdmin() && messageValide();
+      allow update, delete: if false;
+    }
+
+    /* Configuration privée (secret d'envoi des mails). Créée une fois
+       dans la console Firebase, lisible par les admins seulement. */
+    match /config/{doc} {
+      allow read: if estAdmin();
+      allow write: if false;
+    }
+
+    /* Progression personnelle : chaque compte ne lit et n'écrit que la
+       sienne. */
     match /comptes/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }

@@ -25,5 +25,3 @@ jobs:
             echo "── $f"
             node "$f"
           done
-      - name: Le fil de la boîte accepte les envois des navigateurs
-        run: python3 tools/verifier-question-fil.py
