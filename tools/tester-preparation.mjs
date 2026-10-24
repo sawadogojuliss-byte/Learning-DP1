@@ -212,11 +212,15 @@ const importExamens = await page.evaluate(() => {
     const original = devoirsLireStore();
     navigateTo('devoirs');
     devoirsBasculerOnglet('examens');
+    const actifAuDebut = document.getElementById('panelDevoirs').className;
     const zone = document.getElementById('devoirsConfirmation');
     document.getElementById('devoirsTexteColleExam').value = 'Physique — 31/02/2027, 08h00 à 10h00';
     devoirsLireDocument('examens');
     const proposition = zone.querySelector('[data-prop]');
     const date = zone.querySelector('.prop-date');
+    const focusApresLecture = document.activeElement && document.activeElement.className;
+    const panelApresLecture = document.getElementById('panelDevoirs').className;
+    const panelScrollLecture = document.getElementById('panelDevoirs').scrollTop;
     const rectApercu = zone.getBoundingClientRect();
     const apercuVisible = !!proposition && !!date && !date.value &&
         rectApercu.height > 0 && rectApercu.top < innerHeight && rectApercu.bottom > 0 &&
@@ -247,6 +251,7 @@ const importExamens = await page.evaluate(() => {
     devoirsBasculerOnglet('devoirs');
     devoirsMontrerPropositions('', 'devoirs', true);
     const focusAvantRefus = document.activeElement && document.activeElement.className;
+    const panelAvantRefus = document.getElementById('panelDevoirs').className;
     const ligneOcrVide = zone.querySelector('[data-prop]');
     const champsCompleter = !!ligneOcrVide && !!zone.querySelector('.prop-matiere') &&
         !!zone.querySelector('.prop-date') &&
@@ -267,7 +272,7 @@ const importExamens = await page.evaluate(() => {
             rectApercu: { top: rectApercu.top, bottom: rectApercu.bottom, height: rectApercu.height },
             date: date && date.value, zoneParent: zone.parentElement && zone.parentElement.id,
             viewport: innerHeight, nombreApresRefus, nombreAvant: original.devoirs.length,
-            champActifApresRefus, focusAvantRefus,
+            champActifApresRefus, focusAvantRefus, panelAvantRefus, actifAuDebut, focusApresLecture, panelApresLecture, panelScrollLecture,
             panel: document.getElementById('panelDevoirs').className,
             panelScroll: document.getElementById('panelDevoirs').scrollTop,
             panelHauteur: document.getElementById('panelDevoirs').scrollHeight,
