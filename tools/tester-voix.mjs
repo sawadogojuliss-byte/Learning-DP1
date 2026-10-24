@@ -40,7 +40,8 @@ await page.addInitScript(function () {
             const source = vraiBuffer.apply(this, arguments);
             const vraiStart = source.start;
             source.start = function (quand) {
-                window.__sonsProgrammes.push({ quand: quand, duree: source.buffer ? source.buffer.duration : 0 });
+                window.__sonsProgrammes.push({ quand: quand, duree: source.buffer ? source.buffer.duration : 0,
+                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['n-7']) });
                 return vraiStart.apply(source, arguments);
             };
             return source;
@@ -68,7 +69,8 @@ await page.evaluate(function () {
         sameFreeTime: true, freeTimeMinutes: 60, freeTimeByDay: {},
         weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8
     }));
-    localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify({ focus: 25, short: 5, long: 15 }));
+    /* Sept minutes permet de vérifier la même prise corrigée dans les deux parcours. */
+    localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify({ focus: 25, short: 7, long: 15 }));
 });
 await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForFunction(() => window.__STUDYPLAN_READY === true, null, { timeout: 60000 });
@@ -94,7 +96,8 @@ const lance = await page.evaluate(function () {
 if (!lance.enMarche) echec('le minuteur ne démarre pas (bouton : ' + lance.bouton + ')');
 
 /* les morceaux de la fin de séance se préparent sur ce geste */
-await page.waitForTimeout(1500);
+await page.waitForFunction(() => Object.keys(window.chronoVoixTampons || {}).length > 0,
+    null, { timeout: 10000 }).catch(() => {});
 const prepares = await page.evaluate(function () {
     return {
         tampons: Object.keys(window.chronoVoixTampons || {}),
@@ -149,6 +152,54 @@ if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : '
 if (fin.sons.length < 3) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
 const total = fin.sons.reduce(function (s, x) { return s + (x.duree || 0); }, 0);
 if (total < 6) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
+if (!fin.sons.some(s => s.septCorrige)) echec('Pomodoro ne lit pas le fichier corrigé de « sept »');
+
+/* Le lancement depuis « Séance de révision du jour » mène au même minuteur.
+   Une séance fictive du moment ne quitte jamais ce navigateur, et ne modifie
+   ni le planning ni les données enregistrées. */
+const seance = await page.evaluate(() => {
+    window.__voixGenerationOrig = generateDayEvents;
+    window.__voixHeureOrig = focusMinutesMaintenant;
+    generateDayEvents = jour => jour === focusJourIndex() ? [
+        { id: 'voix-session', title: 'Révision de physique', type: 'study',
+            startTime: '12:00', endTime: '13:00' }
+    ] : [];
+    focusMinutesMaintenant = () => 12 * 60 + 30;
+    focusChoisirMode('focus', false);
+    focusEtat.cycles = 0;
+    navigateTo('seances');
+    const accessible = !document.getElementById('focusAccueilContinuer').disabled;
+    focusEntrerPiece();
+    const liee = !!focusSeanceMinuteur && focusSeanceMinuteur.id === 'voix-session';
+    const minuteur = document.getElementById('panelPomodoro').classList.contains('active');
+    if (liee && minuteur) document.getElementById('focusPlay').click();
+    return { accessible, liee, minuteur, lancee: focusEtat.running };
+});
+if (!Object.values(seance).every(Boolean)) echec('impossible de lancer la séance témoin : ' + JSON.stringify(seance));
+await page.evaluate(() => {
+    window.__sonsProgrammes = [];
+    focusEtat.restant = 0;
+    focusEtat.fin = Date.now() - 50;
+    focusTick();
+});
+await page.waitForTimeout(1800);
+const sonSeance = await page.evaluate(() => ({
+    mode: focusEtat.mode,
+    sons: window.__sonsProgrammes,
+    url: chronoVoixUrl('n-7')
+}));
+if (sonSeance.mode !== 'short' || !sonSeance.sons.some(s => s.septCorrige) ||
+    !sonSeance.url.includes('/n-7.wav?v='))
+    echec('la séance de révision ne joue pas le même « sept » que Pomodoro : ' + JSON.stringify(sonSeance));
+await page.evaluate(() => {
+    generateDayEvents = window.__voixGenerationOrig;
+    focusMinutesMaintenant = window.__voixHeureOrig;
+    delete window.__voixGenerationOrig;
+    delete window.__voixHeureOrig;
+    sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours');
+    focusSeanceMinuteur = null;
+});
+
 /* Lot 13 : les réglages survivent, et couper la voix laisse le bip.
    Aucun texte d'annonce ni nouveau son n'est programmé après ce choix. */
 const muetAvant = await page.evaluate(() => {
