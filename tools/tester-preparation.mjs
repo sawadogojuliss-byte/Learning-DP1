@@ -857,6 +857,31 @@ if (!gardeSeances.jourPlanningInchange || !gardeSeances.jourSeance || !gardeSean
     echec('garde des séances du moment et décor du lot 3 : ' + JSON.stringify(gardeSeances));
 }
 
+/* Lots 10–11 : l'identifiant du devoir et ses révisions survivent à
+   l'édition ; le même import met à jour au lieu de dupliquer. */
+const correctionDevoir = await page.evaluate(() => {
+    const avant = devoirsLireStore();
+    const date = new Date(Date.now() + 12 * 86400000);
+    const cle = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+    const id = devoirsAjouter('devoirs', { matiere: 'Physique', date: cle, debut: '08:00', fin: '10:00', seances: 3 });
+    navigateTo('devoirs');
+    devoirsEditer('devoirs', id);
+    const modal = document.getElementById('devoirsEditionModal');
+    if (!modal) return { erreur: 'édition inaccessible' };
+    modal.querySelector('#devoirsEditDebut').value = '09:00';
+    modal.querySelector('#devoirsEditFin').value = '11:00';
+    modal.querySelector('#devoirsEditSauver').click();
+    const corrige = devoirsLireStore().devoirs.find(d => d.id === id);
+    const choix = corrige && corrige.seances === 3 && corrige.debut === '09:00';
+    const previsualisation = devoirsChercherDoublon(devoirsLireStore(), 'devoirs', { matiere: 'Physique', date: cle });
+    devoirsEcrireStore(avant);
+    devoirsRendre();
+    navigateTo('planning');
+    return { choix, memeId: previsualisation?.id === id, modaleFermee: !modal.isConnected };
+});
+if (!correctionDevoir.choix || !correctionDevoir.memeId || !correctionDevoir.modaleFermee)
+    echec('lots 10–11, édition du devoir : ' + JSON.stringify(correctionDevoir));
+
 /* Lot 5 : un exercice réellement ajouté dans CE navigateur, coché,
    filtré puis relu après rechargement. Aucun envoi distant ni mail. */
 const exercicesAvantLot5 = await page.evaluate(() => {
@@ -900,6 +925,16 @@ if (!exerciceAjoute.id || !exerciceAjoute.badge.includes('1 exercice') ||
     exerciceAjoute.filtre !== 'true') {
     echec('exercice ajouté et compteurs : ' + JSON.stringify(exerciceAjoute));
 }
+const exerciceDansPlanning = await page.evaluate(() => {
+    const id = exercices[0].id, day = indexJourCourant();
+    customEvents.push({ id: 'e2e-exercice-fait', day, exoId: id, source: 'exercice', pinned: true,
+        title: 'Exercices Physique', startTime: '18:00', endTime: '18:30', type: 'study' });
+    exercices[0].scheduledSlot = 'Aujourd’hui · 18:00–18:30';
+    localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+    v3Save();
+    return generateDayEvents(day).some(e => e.exoId === id);
+});
+if (!exerciceDansPlanning) echec('le créneau lié à un exercice à faire doit figurer au planning');
 await page.evaluate(() => switchExoTab('liste'));
 await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
 const exerciceFait = await page.evaluate(() => {
@@ -909,6 +944,9 @@ const exerciceFait = await page.evaluate(() => {
         carte: document.getElementById('exoListContainer').textContent,
         enStock: JSON.parse(localStorage.getItem('studyPlanIB_exercices'))[0]?.done };
 });
+const exerceRetireDuPlanning = await page.evaluate(() =>
+    !generateDayEvents(indexJourCourant()).some(e => e.exoId === exercices[0].id));
+if (!exerceRetireDuPlanning) echec('Fait laisse le créneau de cet exercice dans l’emploi du temps');
 if (!exerciceFait.done || !exerciceFait.enStock || !exerciceFait.badge.includes('0 exercice') ||
     !exerciceFait.resume.includes('0min') || !exerciceFait.resume.includes('Tous les exercices sont faits') ||
     !exerciceFait.carte.includes('À faire')) echec('état Fait et compteurs : ' + JSON.stringify(exerciceFait));
@@ -923,12 +961,16 @@ if (!await page.locator('#exoListContainer [onclick^="basculerExoFait"]').count(
 }
 await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
 await page.waitForFunction(() => window.__STUDYPLAN_READY === true && !document.body.classList.contains('booting'), null, { timeout: 60000 });
+if (await page.evaluate(() => generateDayEvents(indexJourCourant()).some(e => e.exoId === exercices[0]?.id)))
+    echec('un exercice fait réapparaît au premier affichage du planning après rechargement');
 const apresRechargement = await page.evaluate(() => {
     navigateTo('exercices');
     switchExoTab('liste');
     return { done: exercices[0]?.done, carte: document.getElementById('exoListContainer').textContent,
         badge: document.getElementById('exoCountBadge').textContent };
 });
+if (await page.evaluate(() => generateDayEvents(indexJourCourant()).some(e => e.exoId === exercices[0].id)))
+    echec('un exercice fait réapparaît dans le planning après rechargement');
 if (!apresRechargement.done || !apresRechargement.carte.includes('À faire') ||
     !apresRechargement.badge.includes('0 exercice')) {
     echec('l’état Fait ne survit pas au rechargement : ' + JSON.stringify(apresRechargement));
@@ -937,12 +979,16 @@ await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
 const exerciceRetabli = await page.evaluate(() => ({ done: exercices[0]?.done,
     badge: document.getElementById('exoCountBadge').textContent,
     carte: document.getElementById('exoListContainer').textContent }));
+if (!await page.evaluate(() => generateDayEvents(indexJourCourant()).some(e => e.exoId === exercices[0].id)))
+    echec('remettre À faire ne restaure pas le créneau de l’exercice');
 if (exerciceRetabli.done || !exerciceRetabli.badge.includes('1 exercice') ||
     !exerciceRetabli.carte.includes('✓ Fait')) echec('décochement réversible : ' + JSON.stringify(exerciceRetabli));
 await page.evaluate((avant) => {
     if (avant == null) localStorage.removeItem('studyPlanIB_exercices');
     else localStorage.setItem('studyPlanIB_exercices', avant);
     exercices = avant ? JSON.parse(avant) : [];
+    customEvents = customEvents.filter(e => e && e.id !== 'e2e-exercice-fait');
+    v3Save();
     navigateTo('planning');
 }, exercicesAvantLot5);
 

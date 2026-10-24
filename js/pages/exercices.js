@@ -6,6 +6,12 @@
 
 // ── PAGE EXERCICES ───────────────────────────────────────────
 let exercices = [];
+/* Le planning peut s'ouvrir avant la page Exercices : charger l'état dès
+   ce module, sinon un exercice fait réapparaît au premier affichage. */
+try {
+    const sauvegardes = JSON.parse(localStorage.getItem('studyPlanIB_exercices') || '[]');
+    if (Array.isArray(sauvegardes)) exercices = sauvegardes;
+} catch (e) { console.warn('Exercices enregistrés illisibles', e); }
 let selectedExoSubject = null;
 let exoDuration = 60;
 let planifyTarget = null;
@@ -41,6 +47,8 @@ function basculerExoFait(id) {
     exoMajBadge();
     renderExoList();
     renderPlanifier();
+    if (typeof renderPlanning === 'function' && document.getElementById('eventsContainer')) renderPlanning();
+    if (typeof focusPeindreAccueil === 'function' && document.getElementById('panelSeances')?.classList.contains('active')) focusPeindreAccueil();
     /* Le rendu remplace la carte : rendre le focus à l'action inverse,
        ou au filtre qui permet de la retrouver. */
     const bouton = document.querySelector('[data-exo-fait="' + id + '"]');
@@ -240,7 +248,7 @@ function renderExoList() {
             '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">' +
             '<span style="background:#f3f4f6;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;color:#374151;">⏱️ ' + dur + '</span>' +
             (exo.done ? '<span style="background:#dcfce7;color:#166534;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">✓ Fait</span>' : '<span style="background:' + urgencyBg + ';color:' + urgency + ';border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">' + urgencyLabel + '</span>') +
-            (exo.scheduledSlot ? '<span style="background:#ecfdf5;color:#059669;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;">✓ Planifié</span>' : '') +
+            (!exo.done && exo.scheduledSlot ? '<span style="background:#ecfdf5;color:#059669;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;">✓ Planifié</span>' : '') +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">' +
             '<button type="button" data-exo-fait="' + exo.id + '" onclick="basculerExoFait(\'' + exo.id + '\')" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre cet exercice à faire' : 'Marquer cet exercice comme fait') + '" style="background:' + (exo.done ? 'white' : '#ecfdf5') + ';color:#047857;border:1px solid #a7f3d0;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +

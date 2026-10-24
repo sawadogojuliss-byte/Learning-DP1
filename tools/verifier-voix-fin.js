@@ -26,8 +26,8 @@ const moduleSrc = lire('js/pages/chrono-voix.js');
 ok(registre.indexOf("'js/pages/chrono-voix.js'") !== -1, 'le module de fin de chronomètre n\'est pas chargé');
 ok(registre.indexOf('js/pages/chrono-voix.js') < registre.indexOf('js/pages/pomodoro-page.js'),
     'le module doit se charger avant le minuteur');
-ok(moduleSrc.indexOf('formulaire') === -1 && moduleSrc.indexOf('document.getElementById') === -1,
-    'le module de son ne doit rien afficher dans la page');
+ok(moduleSrc.indexOf('formulaire') === -1 && !moduleSrc.includes('innerHTML'),
+    'le module de son ne doit afficher aucune annonce dans la page');
 
 const morceaux = ['seance-fin', 'minutes-de-pause', 'minute-de-pause'];
 for (let i = 1; i <= 7; i++) morceaux.push('n-' + i);
@@ -45,7 +45,7 @@ ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en 
    Si le premier échoue sur un appareil, le suivant prend le relais. */
 ok(moduleSrc.indexOf('function chronoVoixJouerTampons') !== -1, 'le premier chemin (AudioContext) manque');
 ok(moduleSrc.indexOf('function chronoVoixJouerLecteurs') !== -1, 'le second chemin (lecteurs audio) manque');
-ok(/function chronoAnnoncerPause[\s\S]{0,700}chronoVoixJouerLecteurs\(noms[\s\S]{0,200}chronoVoixSynthese/.test(moduleSrc),
+ok(/function chronoAnnoncerPause[\s\S]*?chronoVoixJouerTampons\(noms[\s\S]*?chronoVoixJouerLecteurs\(noms[\s\S]*?chronoVoixSynthese/.test(moduleSrc),
     'la voix doit essayer les trois chemins, sans jamais rester muette');
 ok(moduleSrc.indexOf('delete chronoVoixChargements[nom]') !== -1,
     'un chargement raté doit pouvoir être retenté (pas de panne définitive)');
@@ -166,7 +166,7 @@ ok(/long: focusBorner\(sauve\.long, 15, 1, 60\)/.test(durees), 'la pause longue 
 ['pages/pomodoro.html', 'pages/seances.html', 'pages/planning.html'].forEach(function (f) {
     const html = lire(f);
     ok(!/[Bb]ip/.test(html), 'la page ' + f + ' ne doit pas décrire le bip');
-    ok(!/[Vv]oix/.test(html), 'la page ' + f + ' ne doit pas décrire la voix');
+    ok(f === 'pages/pomodoro.html' ? html.includes('id="focusVoixActive"') : !/[Vv]oix/.test(html), 'seul le réglage fonctionnel de la voix est visible');
 });
 
 if (echecs.length) {

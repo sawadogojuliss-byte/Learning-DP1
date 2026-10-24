@@ -18,6 +18,40 @@
    entend la voix seule, sans la pluie par-dessus.
    ============================================================ */
 
+var chronoAnnonceEnCours = false;
+var chronoAnnonceGeneration = 0;
+var chronoSonsAttente = [];
+function chronoVoixActive() {
+    try { return localStorage.getItem('studyPlanIB_voixActive') !== 'false'; } catch (e) { return true; }
+}
+function chronoVoixVolume() {
+    try { var lu = localStorage.getItem('studyPlanIB_voixVolume'); if (lu === null) return 0.7; var v = Number(lu); return isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; } catch (e) { return 0.7; }
+}
+function chronoChargerReglagesVoix() {
+    var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
+    if (active) active.checked = chronoVoixActive();
+    if (volume) volume.value = String(Math.round(chronoVoixVolume() * 100));
+}
+function chronoSauverReglagesVoix() {
+    var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
+    try {
+        if (active) localStorage.setItem('studyPlanIB_voixActive', String(active.checked));
+        if (volume) localStorage.setItem('studyPlanIB_voixVolume', String(Math.min(1, Math.max(0, Number(volume.value) / 100))));
+    } catch (e) {}
+    if (!chronoVoixActive()) chronoVoixArreter();
+}
+function chronoMettreSonEnAttente(id) {
+    if (chronoSonsAttente.indexOf(id) === -1) chronoSonsAttente.push(id);
+}
+function chronoFinAnnonce(generation) {
+    if (generation !== chronoAnnonceGeneration) return;
+    chronoAnnonceEnCours = false;
+    var sons = chronoSonsAttente.slice();
+    chronoSonsAttente = [];
+    if (typeof focusEtat !== 'undefined' && focusEtat.mode === 'focus' && focusEtat.running) {
+        sons.forEach(function (id) { if (typeof focusLireSon === 'function') focusLireSon(id); });
+    }
+}
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
 var CHRONO_VOIX_VERSION = '20261023a';
 var CHRONO_VOIX_EXT = '.wav';
@@ -164,7 +198,7 @@ function chronoVoixLecteur(nom) {
     if (typeof Audio !== 'function') return null;
     var son = new Audio(chronoVoixUrl(nom));
     son.preload = 'auto';
-    son.volume = 1;
+    son.volume = chronoVoixVolume();
     chronoVoixLecteurs[nom] = son;
     return son;
 }
@@ -238,6 +272,11 @@ function chronoCouperMusique() {
 
 /* Le prochain temps de concentration reprend les ambiances de l'élève. */
 function chronoRendreMusique() {
+    if (chronoAnnonceEnCours) {
+        (chronoSonsCoupes || []).forEach(chronoMettreSonEnAttente);
+        chronoSonsCoupes = null;
+        return;
+    }
     if (!chronoSonsCoupes || !chronoSonsCoupes.length) return;
     var ids = chronoSonsCoupes;
     chronoSonsCoupes = null;
@@ -278,7 +317,10 @@ function chronoVoixJouerTampons(noms, suite) {
         tampons.forEach(function (tampon) {
             var source = ctx.createBufferSource();
             source.buffer = tampon;
-            source.connect(ctx.destination);
+            var gain = ctx.createGain();
+            gain.gain.value = chronoVoixVolume();
+            source.connect(gain);
+            gain.connect(ctx.destination);
             source.start(quand);
             quand += tampon.duration + 0.07;
             chronoVoixSources.push(source);
@@ -307,6 +349,7 @@ function chronoVoixJouerLecteurs(noms, suite) {
         try {
             son.addEventListener('ended', function () { apres(true); }, { once: true });
             son.addEventListener('error', function () { apres(false); }, { once: true });
+            son.volume = chronoVoixVolume();
             son.currentTime = 0;
             var lecture = son.play();
             if (lecture && lecture.catch) lecture.catch(function () { apres(false); });
@@ -324,7 +367,7 @@ function chronoVoixSynthese(phrase) {
             dit.lang = 'fr-FR';
             dit.rate = 0.92;
             dit.pitch = 1.05;
-            dit.volume = 1;
+            dit.volume = chronoVoixVolume();
             var voix = (window.speechSynthesis.getVoices() || []).filter(function (v) {
                 return /^fr/i.test(v.lang || '');
             });
@@ -377,20 +420,28 @@ function chronoVoixPhrasePause(minutes) {
 function chronoAnnoncerPause(minutes) {
     var n = Math.round(Number(minutes));
     if (!isFinite(n) || n < 1) n = 5;
+    var generation = ++chronoAnnonceGeneration;
+    chronoAnnonceEnCours = true;
     chronoCouperMusique();
     chronoBipDoux();
     var noms = chronoVoixPhrasePause(n);
     setTimeout(function () {
+        if (generation !== chronoAnnonceGeneration) return;
         chronoVoixArreter();
+        if (!chronoVoixActive()) { chronoFinAnnonce(generation); return; }
         if (!noms) {
             chronoVoixSynthese(chronoPhrasePause(n));
+            setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
             return;
         }
         chronoVoixJouerTampons(noms, function (ok) {
-            if (ok) return;
+            if (generation !== chronoAnnonceGeneration) return;
+            if (ok) { chronoFinAnnonce(generation); return; }
             chronoVoixJouerLecteurs(noms, function (ok2) {
-                if (ok2) return;
-                chronoVoixSynthese(chronoPhrasePause(n));
+                if (generation !== chronoAnnonceGeneration) return;
+                if (!ok2) chronoVoixSynthese(chronoPhrasePause(n));
+                if (ok2) chronoFinAnnonce(generation);
+                else setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
             });
         });
     }, 760);
@@ -400,7 +451,7 @@ function chronoAnnoncerPause(minutes) {
    cette phrase ; sinon elle est dite, avec la même voix. */
 function chronoAnnoncerReprise() {
     chronoBipDoux();
-    if (chronoVoixAbsents['pause-fin']) return;
+    if (!chronoVoixActive() || chronoVoixAbsents['pause-fin']) return;
     setTimeout(function () {
         chronoVoixJouerTampons(['pause-fin'], null);
     }, 760);

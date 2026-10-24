@@ -29,7 +29,7 @@
         }
     }
 
-var version = '20261024p';
+var version = '20261024q';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un
@@ -60,6 +60,7 @@ var version = '20261024p';
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
+            s.async = false; /* téléchargés ensemble, exécutés dans l'ordre du registre */
             s.src = src + '?v=' + version;
             s.onload = function () { resolve(); };
             s.onerror = function () { reject(new Error('Script introuvable : ' + src)); };
@@ -90,21 +91,39 @@ var version = '20261024p';
         });
     })).then(function (parts) {
         root.innerHTML = parts.join('\n');
-        var chain = Promise.resolve();
-        scripts.forEach(function (src) {
-            chain = chain.then(function () {
-                return loadScript(src).then(function () {
-                    etapesFaites += 1;
-                    avancer(etapesFaites, etapesTotales);
-                });
+        var erreurs = [];
+        return Promise.all(scripts.map(function (src) {
+            return loadScript(src).catch(function (e) {
+                erreurs.push(src);
+                console.error('Module indisponible', src, e);
+            }).then(function () {
+                etapesFaites += 1;
+                avancer(etapesFaites, etapesTotales);
             });
+        })).then(function () {
+            if (erreurs.length) {
+                /* Le reste du site reste utilisable, sans page blanche. */
+                var alerte = document.createElement('p');
+                alerte.setAttribute('role', 'alert');
+                alerte.className = 'boot-modules-erreur';
+                alerte.textContent = 'Certaines fonctions ne sont pas disponibles. Recharge la page quand le réseau revient.';
+                root.prepend(alerte);
+            }
         });
-        return chain;
     }).then(function () {
         avancer(etapesTotales, etapesTotales);
         document.body.classList.add('boot-fini');
         if (status) status.hidden = true;
         window.__STUDYPLAN_READY = true;
+        /* Hors-ligne après une première visite ; ne bloque pas l'écran. */
+        if ('serviceWorker' in navigator) {
+            var inscrire = function () {
+                navigator.serviceWorker.register('service-worker.js?v=' + version, { updateViaCache: 'none' })
+                    .catch(function (e) { console.warn('Hors-ligne indisponible', e); });
+            };
+            if ('requestIdleCallback' in window) requestIdleCallback(inscrire, { timeout: 1800 });
+            else setTimeout(inscrire, 0);
+        }
         if (typeof memoireHistoriqueActiver === 'function') memoireHistoriqueActiver();
         /* La question du bac national doit atteindre TOUS les DP2 déjà
            connectés : ceux qui n'ont jamais répondu, et une fois de plus

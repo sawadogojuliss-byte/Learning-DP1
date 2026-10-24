@@ -101,6 +101,17 @@ function renderPlanning() {
         const subtitle = event.subtitle || '';
         const pinBadge = event.kind === 'pinned' ? '<span title="Heure fixée par toi" style="font-size:0.7rem;margin-right:0.2rem;">📌</span>' : '';
 
+        /* Deux épreuves simultanées choisies par l'élève restent visibles
+           côte à côte ; elles ne se recouvrent jamais dans la liste. */
+        const memeEpreuve = function (a, b) {
+            return a && b && a.devoirsBloc && b.devoirsBloc &&
+                ['devoir-', 'exam-'].some(function (prefixe) { return String(a.id).startsWith(prefixe); }) &&
+                ['devoir-', 'exam-'].some(function (prefixe) { return String(b.id).startsWith(prefixe); }) &&
+                timeToMinutes(a.startTime) < timeToMinutes(b.endTime) && timeToMinutes(b.startTime) < timeToMinutes(a.endTime);
+        };
+        const avecAvant = memeEpreuve(events[idx - 1], event);
+        const avecApres = memeEpreuve(event, events[idx + 1]);
+        if (!avecAvant && avecApres) eventsHtml += '<div class="devoirs-paralleles">';
         eventsHtml += '<div data-v3-idx="' + idx + '" onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
@@ -113,7 +124,8 @@ function renderPlanning() {
                 (durLabel ? '<p style="font-size:0.68rem;color:' + bColor + ';font-weight:600;margin-top:0.1rem;">' + durLabel + '</p>' : '') +
             '</div>' +
             '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;text-align:center;color:#d1d5db;' + (event.editable ? '' : 'visibility:hidden;') + '"><span style="font-size:0.8rem;">✏️</span></div>' +
-        '</div>' + chainLine;
+        '</div>' + (avecAvant || avecApres ? '' : chainLine);
+        if (avecAvant && !avecApres) eventsHtml += '</div>' + chainLine;
     });
 
     // Lien discret pour revenir au planning automatique du jour (si modifié)

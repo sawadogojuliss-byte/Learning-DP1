@@ -44,10 +44,14 @@
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">✍️ Ou ajoute un devoir à la main</label>
-                    <input id="devManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Mathématiques)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
+                    <label class="focus-sr" for="devManuelMatiere">Matière</label>
+                        <input id="devManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Mathématiques)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
                     <div style="display:flex;gap:0.5rem;">
+                        <label class="focus-sr" for="devManuelDate">Date</label>
                         <input id="devManuelDate" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <label class="focus-sr" for="devManuelDebut">Début</label>
                         <input id="devManuelDebut" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <label class="focus-sr" for="devManuelFin">Fin</label>
                         <input id="devManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
                     </div>
                     <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #a7f3d0;border-radius:0.8rem;background:#ecfdf5;color:#065f46;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter le devoir</button>
@@ -56,6 +60,11 @@
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">📋 Mes devoirs</label>
+                    <div class="devoirs-outils"><label for="devoirsRecherche">Rechercher dans mes devoirs</label>
+                        <input id="devoirsRecherche" type="search" placeholder="Chercher une matière" oninput="devoirsRendre()">
+                        <label for="devoirsFiltre">Afficher</label><select id="devoirsFiltre" onchange="devoirsRendre()">
+                            <option value="tous">À venir et passés</option><option value="avenir">À venir</option><option value="passes">Passés</option>
+                        </select></div>
                     <div id="devoirsListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
                 </div>
             </div>
@@ -81,10 +90,14 @@
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">✍️ Ou ajoute un examen à la main</label>
-                    <input id="exaManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Physique)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
+                    <label class="focus-sr" for="exaManuelMatiere">Matière</label>
+                        <input id="exaManuelMatiere" list="devoirsMatiereListe" placeholder="Matière (ex. : Physique)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;outline:none;">
                     <div style="display:flex;gap:0.5rem;">
+                        <label class="focus-sr" for="exaManuelDate">Date</label>
                         <input id="exaManuelDate" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <label class="focus-sr" for="exaManuelDebut">Début</label>
                         <input id="exaManuelDebut" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
+                        <label class="focus-sr" for="exaManuelFin">Fin</label>
                         <input id="exaManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
                     </div>
                     <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #99f6e4;border-radius:0.8rem;background:#f0fdfa;color:#134e4a;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter l'examen</button>
@@ -93,6 +106,11 @@
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">🎓 Mes examens</label>
+                    <div class="devoirs-outils"><label for="examensRecherche">Rechercher dans mes examens</label>
+                        <input id="examensRecherche" type="search" placeholder="Chercher une matière" oninput="devoirsRendre()">
+                        <label for="examensFiltre">Afficher</label><select id="examensFiltre" onchange="devoirsRendre()">
+                            <option value="tous">À venir et passés</option><option value="avenir">À venir</option><option value="passes">Passés</option>
+                        </select></div>
                     <div id="examensListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
                 </div>
             </div>

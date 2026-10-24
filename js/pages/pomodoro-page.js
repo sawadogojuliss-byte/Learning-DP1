@@ -59,6 +59,7 @@ var focusEtat = {
     astuce: false
 };
 var focusTaches = [];
+var focusAmbianceChoisie = [];
 var focusMenuTache = null;
 var focusSousCible = null;
 var focusTimer = null;
@@ -137,6 +138,9 @@ function focusCharger() {
     try { tache = localStorage.getItem('studyPlanIB_focusTache') || ''; } catch (e) {}
     var champ = document.getElementById('focusTache');
     if (champ && tache) champ.value = tache;
+    focusAmbianceChoisie = focusLireJson('studyPlanIB_focusAmbiance', []);
+    if (!Array.isArray(focusAmbianceChoisie)) focusAmbianceChoisie = [];
+    if (typeof chronoChargerReglagesVoix === 'function') chronoChargerReglagesVoix();
     focusTaches = focusLireJson('studyPlanIB_focusTaches', []);
     if (!Array.isArray(focusTaches)) focusTaches = [];
     focusPreparerFonds();
@@ -439,13 +443,29 @@ function focusEntrerPiece(libre) {
         focusPeindreAccueil();
         return;
     }
+    var objectif = document.getElementById('focusTache');
+    var saisi = objectif ? objectif.value.trim() : '';
+    if (saisi && saisi !== choisie.titre && typeof confirmerAction === 'function') {
+        confirmerAction({ titre: 'Garder ton objectif ?',
+            detail: 'Un objectif est déjà saisi. Garde-le ou ajoute le titre de la séance.',
+            annulerTexte: 'Garder mon objectif', annuler: function () { focusValiderSeance(choisie, saisi); },
+            action: 'Accoler la séance', confirmer: function () { focusValiderSeance(choisie, saisi + ' · ' + choisie.titre); }
+        });
+        return;
+    }
+    focusValiderSeance(choisie, choisie.titre);
+}
+
+function focusValiderSeance(choisie, objectif) {
+    /* Le créneau peut expirer pendant que l'élève choisit son objectif. */
+    if (focusEtatSeance(choisie).cle !== 'encours') { focusPeindreAccueil(); return; }
     focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin,
         date: new Date().toDateString() };
     focusEntreeDepuisSeance = true;
     try { sessionStorage.setItem('studyPlanIB_focusSeanceEnCours', JSON.stringify(focusSeanceMinuteur)); } catch (e) {}
     var champ = document.getElementById('focusTache');
     if (champ) {
-        champ.value = choisie.titre;
+        champ.value = objectif;
         focusMemoriserObjectif();
     }
     focusPeindre();
@@ -615,6 +635,10 @@ function focusChoisirMode(mode, enchainement) {
     focusEtat.restant = focusEtat.total;
     if (enchainement && focusEtat.running) focusEtat.fin = Date.now() + focusEtat.restant * 1000;
     focusPeindre();
+    if (enchainement !== false) {
+        var statut = document.getElementById('focusModeStatut');
+        if (statut) statut.textContent = mode === 'focus' ? 'Concentration sélectionnée' : mode === 'short' ? 'Pause courte sélectionnée' : 'Pause longue sélectionnée';
+    }
 }
 
 function focusBasculer() {
@@ -639,7 +663,6 @@ function focusBasculer() {
     focusEtat.running = true;
     focusEtat.fin = Date.now() + focusEtat.restant * 1000;
     focusLancerIntervalle();
-    focusDemanderNotif();
     focusInitAudio();
     /* la musique d'ambiance que la pause avait arrêtée revient pour ce
        temps de concentration, pas avant */
@@ -694,7 +717,7 @@ function focusPhaseSuivante() {
     }
     focusPeindre();
     focusTitre();
-    focusNotifier(fini === 'focus' ? 'Pause' : 'Focus', fini === 'focus' ? 'Le temps de concentration est fini.' : 'La pause est finie.');
+
 }
 
 function focusTick() {
@@ -724,7 +747,7 @@ function focusPeindre() {
     if (time) time.textContent = focusTexte(focusEtat.restant);
     ['focus', 'short', 'long'].forEach(function (mode) {
         var btn = document.getElementById(mode === 'focus' ? 'focusModeFocus' : mode === 'short' ? 'focusModeShort' : 'focusModeLong');
-        if (btn) btn.classList.toggle('is-on', focusEtat.mode === mode);
+        if (btn) { btn.classList.toggle('is-on', focusEtat.mode === mode); btn.setAttribute('aria-pressed', String(focusEtat.mode === mode)); }
     });
     var iconePlay = document.getElementById('focusIconPlay');
     var iconePause = document.getElementById('focusIconPause');
@@ -1179,9 +1202,6 @@ function focusImageDansImage() {
                 focusPip = null;
                 focusPeindrePipBouton();
             });
-            win.document.addEventListener('copy', function (event) { event.preventDefault(); });
-            win.document.addEventListener('cut', function (event) { event.preventDefault(); });
-            win.document.addEventListener('selectstart', function (event) { event.preventDefault(); });
             focusPipMaj();
             focusPeindrePipBouton();
         }).catch(function () { focusOuvrirPipLocal(); });
@@ -1267,6 +1287,10 @@ function focusSonActif(id) {
 }
 
 function focusLireSon(id) {
+    if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours) {
+        if (typeof chronoMettreSonEnAttente === 'function') chronoMettreSonEnAttente(id);
+        return;
+    }
     var son = focusSonParId(id);
     if (!son) return;
     if (!focusLecteurs[id]) {
@@ -1345,7 +1369,8 @@ function focusPeindreSons() {
         boite.className = 'focus-son-case' + (actif ? ' is-on' : '');
         var btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'focus-son' + (actif ? ' is-on' : '');
+        btn.className = 'focus-son' + (actif ? ' is-on' : (focusAmbianceChoisie.includes(son.id) ? ' is-choisi' : ''));
+        btn.setAttribute('aria-pressed', String(actif));
         btn.setAttribute('aria-label', son.nom);
         var icone = document.createElement('span');
         icone.className = 'focus-son-icone';
@@ -1383,6 +1408,9 @@ function focusChoisirSon(id) {
         focusEtat.enPause = false;
         focusLireSon(id);
     }
+    focusAmbianceChoisie = Object.keys(focusLecteurs).filter(focusSonActif);
+    if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours && focusAmbianceChoisie.indexOf(id) === -1) focusAmbianceChoisie.push(id);
+    try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
     focusPeindreSons();
     focusPeindreSonBouton();
 }
@@ -1403,6 +1431,8 @@ function focusPauseSon() {
 
 function focusReinitSon() {
     focusArreterSon();
+    focusAmbianceChoisie = [];
+    try { localStorage.removeItem('studyPlanIB_focusAmbiance'); } catch (e) {}
     var filtre = document.getElementById('focusFiltreSon');
     if (filtre) filtre.value = 'tous';
     focusPeindreSons();
@@ -1424,6 +1454,8 @@ function focusJouerListe(liste) {
     (liste.sons || []).forEach(function (id) {
         if (focusSonParId(id)) focusLireSon(id);
     });
+    focusAmbianceChoisie = (liste.sons || []).filter(focusSonParId);
+    try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
     focusEtat.enPause = false;
     focusPeindreSonBouton();
     focusPeindreListes();
@@ -1592,31 +1624,6 @@ function focusBrancher() {
         champ.addEventListener('change', focusMemoriserObjectif);
         champ.addEventListener('blur', focusMemoriserObjectif);
     }
-    if (!window.__focusCopie) {
-        window.__focusCopie = true;
-        document.addEventListener('copy', function (event) {
-            var panel = document.getElementById('panelPomodoro');
-            if (panel && panel.classList.contains('active')) event.preventDefault();
-        });
-        document.addEventListener('cut', function (event) {
-            var panel = document.getElementById('panelPomodoro');
-            if (panel && panel.classList.contains('active')) event.preventDefault();
-        });
-        document.addEventListener('selectstart', function (event) {
-            var panel = document.getElementById('panelPomodoro');
-            if (panel && panel.classList.contains('active')) event.preventDefault();
-        });
-        document.addEventListener('contextmenu', function (event) {
-            var panel = document.getElementById('panelPomodoro');
-            if (panel && panel.classList.contains('active')) event.preventDefault();
-        });
-        document.addEventListener('keydown', function (event) {
-            var panel = document.getElementById('panelPomodoro');
-            if (!panel || !panel.classList.contains('active')) return;
-            var touche = (event.key || '').toLowerCase();
-            if ((event.ctrlKey || event.metaKey) && (touche === 'c' || touche === 'x' || touche === 'a')) event.preventDefault();
-        });
-    }
     if (!window.__focusMenusTaches) {
         window.__focusMenusTaches = true;
         document.addEventListener('click', function (event) {
@@ -1646,7 +1653,7 @@ function focusBrancher() {
             var accueil = document.getElementById('focusAccueil');
             if (accueil && !accueil.hidden) return;
             var cible = event.target;
-            if (cible && (cible.tagName === 'INPUT' || cible.tagName === 'TEXTAREA')) return;
+            if (cible && (cible.closest && cible.closest('button, input, textarea, select, a, [contenteditable], [role=button]'))) return;
             event.preventDefault();
             focusBasculer();
         });

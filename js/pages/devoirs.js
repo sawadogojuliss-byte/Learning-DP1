@@ -14,6 +14,7 @@
    ============================================================ */
 
 var DEVOIRS_CLE = 'studyPlanIB_devoirs';
+var DEVOIRS_MAX_SEANCES = 6;
 var devoirsOngletActif = 'devoirs';
 var devoirsOcrEnCours = false;
 var devoirsFileCourant = null;
@@ -328,7 +329,7 @@ function devoirsNormaliserGarde(s) {
 function devoirsNormaliserApresMidi(norm) {
     norm = norm.replace(/(\d{1,2})(:\d{2})\s*pm\b/g, function (x, h, mn) { return ((Number(h) % 12) + 12) + mn; });
     norm = norm.replace(/(\d{1,2})\s*pm\b/g, function (x, h) { return ((Number(h) % 12) + 12) + ':00'; });
-    norm = norm.replace(/(\d{1,2})(:\d{2})?\s*am\b/g, function (x, h, mn) { return ('0' + Number(h)).slice(-2) + (mn || ':00'); });
+    norm = norm.replace(/(\d{1,2})(:\d{2})?\s*am\b/g, function (x, h, mn) { return ('0' + (Number(h) % 12)).slice(-2) + (mn || ':00'); });
     return norm;
 }
 
@@ -797,8 +798,10 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     var sansHeures = genre === 'examens' ? devoirsPropositions.filter(function (p) { return !p.debut || !p.fin; }).length : 0;
     var lignes = devoirsPropositions.map(function (p) {
         var passe = p.date && devoirsEstPasse(p.date, p.fin);
+        var doublon = p.matiere && p.date && devoirsChercherDoublon(devoirsLireStore(), genre, p);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
             (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#9ca3af;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
+            (doublon ? '<span style="font-size:0.72rem;font-weight:800;color:#065f46;">Mettre à jour le créneau existant</span>' : '') +
             (!p.date ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Date à préciser</span>' : '') +
             (!p.matiere ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Matière à préciser</span>' : '') +
             (genre === 'examens' && (!p.debut || !p.fin) ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Heures à préciser</span>' : '') +
@@ -873,9 +876,12 @@ function devoirsConfirmerPropositions(genre) {
         var fin = champ('.prop-fin', p.fin);
         if (!matiere.valeur) manque = { texte: 'Matière à préciser avant l’ajout.', champ: matiere.input };
         else if (!date.valeur) manque = { texte: 'Date à préciser avant l’ajout au planning.', champ: date.input };
-        else if (!!debut.valeur !== !!fin.valeur || (genre === 'examens' && !debut.valeur && !fin.valeur) ||
-            (genre === 'devoirs' && !debut.valeur && !fin.valeur && !devoirsCreneauDunJour(date.valeur))) {
+        else if (!!debut.valeur !== !!fin.valeur || (genre === 'examens' && !debut.valeur && !fin.valeur)) {
             manque = { texte: 'Heures de début et de fin à préciser pour planifier ce créneau.', champ: debut.input };
+        }
+        if (!manque) {
+            var valide = devoirsValider({ matiere: matiere.valeur, date: date.valeur, debut: debut.valeur, fin: fin.valeur }, genre);
+            if (valide.erreur) manque = { texte: valide.erreur, champ: fin.input || date.input };
         }
         return !!manque;
     });
@@ -885,10 +891,14 @@ function devoirsConfirmerPropositions(genre) {
         return;
     }
     var ajoutes = 0;
+    var misAJour = 0;
     var refuse = '';
     var passes = 0;
     var idsDevoirs = [];
-    devoirsPropositions.forEach(function (p) {
+    var propositions = devoirsPropositions.slice();
+    function traiter(index) {
+        if (index >= propositions.length) { finir(); return; }
+        var p = propositions[index];
         var el = document.querySelector('[data-prop="' + p.cle + '"]');
         var matiere = p.matiere, date = p.date, debut = p.debut, fin = p.fin;
         if (el) {
@@ -897,29 +907,108 @@ function devoirsConfirmerPropositions(genre) {
             debut = (el.querySelector('.prop-debut') || {}).value || debut;
             fin = (el.querySelector('.prop-fin') || {}).value || fin;
         }
-        var sansHeures = !debut && !fin;
-        if (!matiere || !date || (!debut !== !fin) || (genre !== 'devoirs' && sansHeures) ||
-            (!sansHeures && devoirsH2M(fin) <= devoirsH2M(debut))) {
-            refuse = 'Certaines lignes incomplètes n\'ont pas été ajoutées.';
-            return;
+        var champs = devoirsValider({ matiere: matiere, date: date, debut: debut, fin: fin }, genre);
+        if (champs.erreur) { refuse = champs.erreur; traiter(index + 1); return; }
+        if (devoirsEstPasse(champs.date, champs.fin)) { passes++; traiter(index + 1); return; }
+        var existant = devoirsChercherDoublon(devoirsLireStore(), genre, champs);
+        devoirsProposerConflit(champs, existant && existant.id, function () {
+        if (existant) {
+            var erreur = devoirsModifier(genre, existant.id, champs);
+            if (erreur) { refuse = erreur; traiter(index + 1); return; }
+            misAJour++;
+            traiter(index + 1); return;
         }
-        if (devoirsEstPasse(date, fin)) { passes++; return; }
-        var idAjoute = devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
-        if (!idAjoute) { refuse = 'Certaines lignes incomplètes n\'ont pas été ajoutées.'; return; }
+        var idAjoute = devoirsAjouter(genre, champs);
+        if (!idAjoute) { refuse = 'Ce créneau n’a pas été ajouté.'; traiter(index + 1); return; }
         ajoutes++;
         if (genre === 'devoirs' && idAjoute) idsDevoirs.push(idAjoute);
-    });
+        traiter(index + 1);
+        }, function () { /* la proposition reste affichée pour corriger */ });
+    }
+    function finir() {
     devoirsViderPropositions();
     devoirsRendre();
     if (idsDevoirs.length) devoirsDemanderSeances(idsDevoirs);
     devoirsDireOcr(genre,
         ajoutes + ' créneau' + (ajoutes > 1 ? 'x' : '') + ' ajouté' + (ajoutes > 1 ? 's' : '') + ' au planning.' +
         (passes ? ' ' + passes + ' créneau' + (passes > 1 ? 'x' : '') + ' déjà passé' + (passes > 1 ? 's' : '') + ' ignoré' + (passes > 1 ? 's' : '') + '.' : '') +
-        (refuse ? ' ' + refuse : ''), false);
+        (misAJour ? ' ' + misAJour + ' créneau' + (misAJour > 1 ? 'x' : '') + ' mis à jour.' : '') +
+        (refuse ? ' ' + refuse : ''), !!refuse);
+    }
+    traiter(0);
 }
 
 function devoirsEchap(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* Une validation commune à l'import, à l'ajout manuel et à l'édition.
+   Les anciens devoirs sans heure restent compatibles et modifiables. */
+function devoirsValider(champs, genre) {
+    var matiere = String(champs.matiere || '').trim().slice(0, 60);
+    var date = String(champs.date || '').trim();
+    var debut = String(champs.debut || '').trim();
+    var fin = String(champs.fin || '').trim();
+    if (!matiere) return { erreur: 'Indique la matière.' };
+    var jour = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(date);
+    var valide = jour && new Date(Number(jour[1]), Number(jour[2]) - 1, Number(jour[3]));
+    if (!valide || valide.getFullYear() !== Number(jour[1]) || valide.getMonth() !== Number(jour[2]) - 1 || valide.getDate() !== Number(jour[3]))
+        return { erreur: 'Indique une date valide.' };
+    if (!!debut !== !!fin || (genre === 'examens' && !debut))
+        return { erreur: 'Précise les deux heures de l’épreuve.' };
+    if (debut) {
+        var heure = /^([0-9]{2}):([0-9]{2})$/;
+        var a = heure.exec(debut), b = heure.exec(fin);
+        if (!a || !b || Number(a[1]) > 23 || Number(b[1]) > 23 || Number(a[2]) > 59 || Number(b[2]) > 59 ||
+            devoirsH2M(fin) <= devoirsH2M(debut)) return { erreur: 'La fin doit être après le début.' };
+    }
+    return { matiere: matiere, date: date, debut: debut, fin: fin };
+}
+
+/* Le planning est construit à la demande : le rafraîchir ne doit pas
+   faire quitter la page Devoirs ni ouvrir une autre fenêtre. */
+function devoirsActualiserPlanning() {
+    if (typeof renderPlanning === 'function' && document.getElementById('eventsContainer')) {
+        try { renderPlanning(); } catch (e) { console.error('Planning des devoirs', e); }
+    }
+    if (typeof focusPeindreAccueil === 'function' && document.getElementById('panelSeances')?.classList.contains('active')) focusPeindreAccueil();
+}
+
+function devoirsChercherDoublon(store, genre, champs) {
+    var matiere = devoirsNormaliser(champs.matiere);
+    return (store[genre] || []).find(function (d) {
+        return d.date === champs.date && devoirsNormaliser(d.matiere) === matiere;
+    }) || null;
+}
+
+function devoirsConflits(champs, saufId) {
+    if (!champs.debut || !champs.fin) return [];
+    var store = devoirsLireStore();
+    return (store.devoirs || []).concat(store.examens || []).filter(function (d) {
+        return d.id !== saufId && d.date === champs.date && d.debut && d.fin &&
+            devoirsH2M(d.debut) < devoirsH2M(champs.fin) && devoirsH2M(d.fin) > devoirsH2M(champs.debut);
+    });
+}
+function devoirsProposerConflit(champs, saufId, continuer, corriger) {
+    var conflits = devoirsConflits(champs, saufId);
+    if (!conflits.length) { continuer(); return; }
+    confirmerAction({
+        titre: 'Chevauchement avec ' + conflits.map(function (x) { return x.matiere; }).join(', '),
+        detail: 'Ce créneau recouvre une autre épreuve le ' + devoirsDateCourte(champs.date) +
+            '. Tu peux corriger les heures ou garder volontairement les deux.',
+        action: 'Garder les deux', annulerTexte: 'Corriger les heures', annuler: corriger,
+        confirmer: continuer
+    });
+}
+
+function devoirsNettoyerRevisions(id) {
+    if (typeof customEvents === 'undefined') return;
+    var prefixe = 'devrev-' + id + '-';
+    var avant = customEvents.length;
+    customEvents = customEvents.filter(function (e) {
+        return !e || (String(e.id || '').indexOf(prefixe) !== 0 && String(e.replacesId || '').indexOf(prefixe) !== 0);
+    });
+    if (customEvents.length !== avant && typeof v3Save === 'function') v3Save();
 }
 
 /* ── Ajout, suppression, rendu ─────────────────────────────────────── */
@@ -937,29 +1026,38 @@ function devoirsEstPasse(date, fin) {
 }
 
 function devoirsAjouter(genre, champs) {
+    var cle = genre === 'examens' ? 'examens' : 'devoirs';
+    var valide = devoirsValider(champs, cle);
+    if (valide.erreur || devoirsEstPasse(valide.date, valide.fin)) return false;
     var store = devoirsLireStore();
-    var entree = {
-        id: devoirsId(genre === 'devoirs' ? 'd' : 'x'),
-        matiere: String(champs.matiere || '').slice(0, 60),
-        date: String(champs.date || '').slice(0, 10),
-        debut: String(champs.debut || '').slice(0, 5),
-        fin: String(champs.fin || '').slice(0, 5),
-        seances: (Number(champs.seances) >= 1 && Number(champs.seances) <= 10) ? Math.round(Number(champs.seances)) : undefined,
-        ajouteAt: new Date().toISOString()
-    };
-    if (!entree.matiere || !/^\d{4}-\d{2}-\d{2}$/.test(entree.date)) return false;
-    /* un devoir peut attendre ses heures : le créneau du jour les
-       donnera. Un examen, lui, a toujours ses heures d'épreuve. */
-    var sansHeures = !entree.debut && !entree.fin;
-    if (genre !== 'devoirs' && sansHeures) return false;
-    if (!sansHeures && (!/^\d{2}:\d{2}$/.test(entree.debut) || !/^\d{2}:\d{2}$/.test(entree.fin))) return false;
-    if (!sansHeures && devoirsH2M(entree.fin) <= devoirsH2M(entree.debut)) return false;
-    if (devoirsEstPasse(entree.date, entree.fin)) return false;
-    if (entree.seances == null) delete entree.seances;
-    store[genre === 'devoirs' ? 'devoirs' : 'examens'].push(entree);
+    var entree = Object.assign({ id: devoirsId(cle === 'devoirs' ? 'd' : 'x'), ajouteAt: new Date().toISOString() }, valide);
+    if (champs.seances === 'auto' || (Number(champs.seances) >= 0 && Number(champs.seances) <= DEVOIRS_MAX_SEANCES && champs.seances !== '' && champs.seances != null))
+        entree.seances = champs.seances === 'auto' ? 'auto' : Math.round(Number(champs.seances));
+    store[cle].push(entree);
     devoirsEcrireStore(store);
+    devoirsActualiserPlanning();
     return entree.id;
 }
+
+function devoirsModifier(genre, id, champs) {
+    var cle = genre === 'examens' ? 'examens' : 'devoirs';
+    var valide = devoirsValider(champs, cle);
+    if (valide.erreur) return valide.erreur;
+    var store = devoirsLireStore();
+    var cible = store[cle].find(function (d) { return d.id === id; });
+    if (!cible) return 'Ce créneau n’existe plus.';
+    Object.assign(cible, valide);
+    if (cle === 'devoirs' && champs.seances !== undefined) {
+        cible.seances = champs.seances === 'auto' ? 'auto' : Math.max(0, Math.min(DEVOIRS_MAX_SEANCES, Math.round(Number(champs.seances) || 0)));
+    }
+    devoirsEcrireStore(store);
+    devoirsNettoyerRevisions(id);
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    devoirsRendre();
+    devoirsActualiserPlanning();
+    return '';
+}
+
 
 /* ── Combien de séances avant de composer ? ────────────────────────── */
 /* Après l'analyse du document, l'élève choisit son nombre de séances
@@ -969,7 +1067,7 @@ function devoirsAjouter(genre, champs) {
    (la rampe automatique par deadline). */
 function devoirsAppliquerSeances(ids, valeur) {
     if (!Array.isArray(ids) || !ids.length) return;
-    if (valeur !== 'auto' && !(Number(valeur) >= 1 && Number(valeur) <= 6)) return;
+    if (valeur !== 'auto' && (valeur == null || valeur === '' || !(Number(valeur) >= 0 && Number(valeur) <= DEVOIRS_MAX_SEANCES))) return;
     var st = devoirsLireStore();
     st.devoirs.forEach(function (x) {
         if (ids.indexOf(x.id) !== -1) {
@@ -999,7 +1097,7 @@ function devoirsDemanderSeances(ids) {
     var store = devoirsLireStore();
     var restants = ids.map(function (id) {
         return (store.devoirs || []).filter(function (d) { return d.id === id; })[0];
-    }).filter(Boolean).filter(function (d) { return !(Number(d.seances) >= 1) && d.seances !== 'auto'; });
+    }).filter(Boolean).filter(function (d) { return d.seances == null; });
     if (!restants.length) {
         if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         return;
@@ -1009,9 +1107,11 @@ function devoirsDemanderSeances(ids) {
     if (ancien) ancien.remove();
     var voile = document.createElement('div');
     voile.id = 'seancesQuestionModal';
+    voile.setAttribute('role', 'dialog');
+    voile.setAttribute('aria-modal', 'true');
     voile.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:320;display:flex;align-items:center;justify-content:center;padding:1rem;';
     var boutons = '';
-    for (var n = 1; n <= 6; n++) {
+    for (var n = 1; n <= DEVOIRS_MAX_SEANCES; n++) {
         boutons += '<button data-n="' + n + '" style="flex:1;padding:0.8rem 0;border:1.5px solid #e5e7eb;border-radius:0.8rem;background:#f9fafb;color:#374151;font:inherit;font-weight:800;cursor:pointer;font-size:1.05rem;">' + n + '</button>';
     }
     var titre = plusieurs
@@ -1026,6 +1126,7 @@ function devoirsDemanderSeances(ids) {
         '<h3 style="margin:0.6rem 0 0.35rem;font-size:1.1rem;font-weight:800;color:#111827;">' + titre + '</h3>' +
         '<p style="margin:0 0 1.1rem;font-size:0.88rem;color:#6b7280;line-height:1.5;">' + question + '</p>' +
         '<div style="display:flex;gap:0.5rem;margin-bottom:0.7rem;">' + boutons + '</div>' +
+        '<div class="devoirs-edit-actions"><button type="button" id="seancesQuestionAnnuler">Annuler</button><button type="button" id="seancesQuestionAucune">Aucune séance</button></div>' +
         '<button id="seancesQuestionAuto" style="width:100%;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">✨ Propose-moi un planning pour les devoirs et examens</button>' +
         '<p style="margin:0.55rem 0 0;font-size:0.75rem;color:#6b7280;line-height:1.4;">Le site choisit le nombre selon l\'urgence et pose les séances dans ton emploi du temps ; tu peux les changer à tout moment.</p></div>';
     document.body.appendChild(voile);
@@ -1041,6 +1142,10 @@ function devoirsDemanderSeances(ids) {
         b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
     });
     voile.querySelector('#seancesQuestionAuto').onclick = function () { choisir('auto'); };
+    voile.querySelector('#seancesQuestionAucune').onclick = function () { choisir(0); };
+    voile.querySelector('#seancesQuestionAnnuler').onclick = function () { voile.remove(); devoirsActualiserPlanning(); };
+    devoirsModalClavier(voile, function () { voile.remove(); devoirsActualiserPlanning(); });
+    voile.querySelector('#seancesQuestionAnnuler').focus();
 }
 
 function devoirsAjouterManuel() {
@@ -1061,7 +1166,14 @@ function devoirsAjouterManuel() {
         devoirsDire(zone, 'Ce créneau est déjà passé : il n\'entre pas dans le planning.', true);
         return;
     }
-    var nouvelId = devoirsAjouter(genre, { matiere: matiere, date: date, debut: debut, fin: fin });
+    var champs = devoirsValider({ matiere: matiere, date: date, debut: debut, fin: fin }, genre);
+    if (champs.erreur) { devoirsDire(zone, champs.erreur, true); return; }
+    devoirsProposerConflit(champs, null, function () { devoirsAjouterManuelConfirme(genre, prefixe, zone, champs); }, function () {
+        document.getElementById(prefixe + 'Debut').focus();
+    });
+}
+function devoirsAjouterManuelConfirme(genre, prefixe, zone, champs) {
+    var nouvelId = devoirsAjouter(genre, champs);
     if (nouvelId) {
         ['Matiere', 'Autre', 'Date', 'Debut', 'Fin'].forEach(function (suf) {
             var el = document.getElementById(prefixe + suf);
@@ -1087,7 +1199,7 @@ function devoirsSupprimer(genre, id) {
     }) : [];
     function actualiser() {
         devoirsRendre();
-        if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+        devoirsActualiserPlanning();
     }
     function supprimer() {
         suppressionAvecAnnulation({
@@ -1124,6 +1236,63 @@ function devoirsSupprimer(genre, id) {
     } else supprimer();
 }
 
+/* La même fenêtre corrige un devoir ou un examen, sans changer son id ni
+   perdre son choix de révisions. Pas de confirmation native bloquante. */
+function devoirsEditer(genre, id) {
+    var cle = genre === 'examens' ? 'examens' : 'devoirs';
+    var item = devoirsLireStore()[cle].find(function (x) { return x.id === id; });
+    if (!item) return;
+    var ancien = document.getElementById('devoirsEditionModal');
+    if (ancien) ancien.remove();
+    var voile = document.createElement('div');
+    voile.id = 'devoirsEditionModal';
+    voile.className = 'devoirs-voile';
+    voile.innerHTML = '<div class="devoirs-dialogue" role="dialog" aria-modal="true" aria-labelledby="devoirsEditTitre">' +
+        '<h3 id="devoirsEditTitre">Modifier ' + (cle === 'examens' ? 'l’examen' : 'le devoir') + '</h3>' +
+        '<label for="devoirsEditMatiere">Matière</label><input id="devoirsEditMatiere" maxlength="60" list="devoirsMatiereListe" value="' + devoirsEchap(item.matiere) + '">' +
+        '<label for="devoirsEditDate">Date</label><input id="devoirsEditDate" type="date" value="' + devoirsEchap(item.date) + '">' +
+        '<div class="devoirs-edit-heures"><div><label for="devoirsEditDebut">Début</label><input id="devoirsEditDebut" type="time" value="' + devoirsEchap(item.debut) + '"></div>' +
+        '<div><label for="devoirsEditFin">Fin</label><input id="devoirsEditFin" type="time" value="' + devoirsEchap(item.fin) + '"></div></div>' +
+        (cle === 'devoirs' ? '<label for="devoirsEditNombre">Séances de révision</label><select id="devoirsEditNombre"><option value="auto">Le site propose</option>' +
+            Array.from({length: DEVOIRS_MAX_SEANCES + 1}, function (_, n) { return '<option value="' + n + '"' + (String(item.seances) === String(n) ? ' selected' : '') + '>' + n + (n ? ' séance' + (n > 1 ? 's' : '') : ' — aucune séance') + '</option>'; }).join('') +
+            '</select>' : '') +
+        '<p id="devoirsEditErreur" role="alert" aria-live="polite"></p>' +
+        '<div class="devoirs-edit-actions"><button type="button" id="devoirsEditAnnuler">Annuler</button><button type="button" id="devoirsEditSauver">Enregistrer</button></div></div>';
+    document.body.appendChild(voile);
+    var retour = document.activeElement;
+    function fermer() { voile.remove(); if (retour && typeof retour.focus === 'function') retour.focus(); }
+    voile.querySelector('#devoirsEditAnnuler').onclick = fermer;
+    voile.querySelector('#devoirsEditSauver').onclick = function () {
+        var champs = {
+            matiere: voile.querySelector('#devoirsEditMatiere').value,
+            date: voile.querySelector('#devoirsEditDate').value,
+            debut: voile.querySelector('#devoirsEditDebut').value,
+            fin: voile.querySelector('#devoirsEditFin').value
+        };
+        if (cle === 'devoirs') champs.seances = voile.querySelector('#devoirsEditNombre').value;
+        var valide = devoirsValider(champs, cle);
+        if (valide.erreur) { voile.querySelector('#devoirsEditErreur').textContent = valide.erreur; return; }
+        devoirsProposerConflit(champs, id, function () {
+            var erreur = devoirsModifier(cle, id, champs);
+            if (erreur) { voile.querySelector('#devoirsEditErreur').textContent = erreur; return; }
+            fermer();
+        }, function () { voile.querySelector('#devoirsEditDebut').focus(); });
+    };
+    devoirsModalClavier(voile, fermer);
+    voile.querySelector('#devoirsEditMatiere').focus();
+}
+
+function devoirsModalClavier(voile, fermer) {
+    voile.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') { e.preventDefault(); fermer(); return; }
+        if (e.key !== 'Tab') return;
+        var els = [...voile.querySelectorAll('button, input, select')].filter(function (x) { return !x.disabled; });
+        if (!els.length) return;
+        if (e.shiftKey && document.activeElement === els[0]) { e.preventDefault(); els[els.length - 1].focus(); }
+        else if (!e.shiftKey && document.activeElement === els[els.length - 1]) { e.preventDefault(); els[0].focus(); }
+    });
+}
+
 /* ── Modifier les séances d'un devoir, à tout moment ───────────────── */
 /* Depuis la liste des devoirs : le nombre de séances se change quand
    l'élève veut, et un devoir sans heures se complète ici. */
@@ -1135,10 +1304,12 @@ function devoirsEditerSeances(id) {
     if (ancien) ancien.remove();
     var voile = document.createElement('div');
     voile.id = 'seancesEditModal';
+    voile.setAttribute('role', 'dialog');
+    voile.setAttribute('aria-modal', 'true');
     voile.style.cssText = 'position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:320;display:flex;align-items:center;justify-content:center;padding:1rem;';
     var boutons = '';
-    for (var n = 1; n <= 6; n++) {
-        var actif = Number(d.seances) === n;
+    for (var n = 0; n <= DEVOIRS_MAX_SEANCES; n++) {
+        var actif = d.seances != null && d.seances !== 'auto' && Number(d.seances) === n;
         boutons += '<button data-n="' + n + '" style="flex:1;padding:0.8rem 0;border:1.5px solid ' + (actif ? '#059669' : '#e5e7eb') + ';border-radius:0.8rem;background:' + (actif ? '#ecfdf5' : '#f9fafb') + ';color:' + (actif ? '#065f46' : '#374151') + ';font:inherit;font-weight:800;cursor:pointer;font-size:1.05rem;">' + n + '</button>';
     }
     var champsHeures = '';
@@ -1187,6 +1358,8 @@ function devoirsEditerSeances(id) {
         b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
     });
     voile.querySelector('#seancesEditAuto').onclick = function () { choisir('auto'); };
+    devoirsModalClavier(voile, function () { voile.remove(); });
+    voile.querySelector('[data-n]').focus();
 }
 
 function devoirsDateCourte(cle) {
@@ -1194,6 +1367,13 @@ function devoirsDateCourte(cle) {
         var d = new Date(cle + 'T12:00:00');
         return ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'][d.getDay()] + ' ' + d.getDate() + '/' + ('0' + (d.getMonth() + 1)).slice(-2);
     } catch (e) { return cle; }
+}
+
+function devoirsDelai(date) {
+    var n = new Date(), cible = new Date(date + 'T12:00:00');
+    var jours = Math.round((new Date(cible.getFullYear(), cible.getMonth(), cible.getDate()) -
+        new Date(n.getFullYear(), n.getMonth(), n.getDate())) / 86400000);
+    return jours === 0 ? 'Aujourd’hui' : jours > 0 ? 'J−' + jours : 'Il y a ' + (-jours) + ' j';
 }
 
 function devoirsRendre() {
@@ -1212,10 +1392,13 @@ function devoirsRendre() {
         var zone = document.getElementById(genre === 'devoirs' ? 'devoirsListe' : 'examensListe');
         if (!zone) return;
         var liste = store[genre].slice().sort(function (a, b) { return String(a.date) < String(b.date) ? -1 : 1; });
-        if (!liste.length) {
-            zone.innerHTML = '<p style="margin:0;font-size:0.85rem;color:#9ca3af;">Aucun créneau pour l\'instant.</p>';
-        } else {
-            zone.innerHTML = liste.map(function (x) {
+        var filtre = (document.getElementById(genre + 'Filtre') || {}).value || 'tous';
+        var recherche = devoirsNormaliser((document.getElementById(genre + 'Recherche') || {}).value || '');
+        liste = liste.filter(function (x) { return !recherche || devoirsNormaliser(x.matiere).indexOf(recherche) !== -1; });
+        var aVenir = liste.filter(function (x) { return !devoirsEstPasse(x.date, x.fin); });
+        var passes = liste.filter(function (x) { return devoirsEstPasse(x.date, x.fin); });
+        function rendreLignes(lignes) {
+            return lignes.map(function (x) {
                 var horaire = (x.debut && x.fin) ? devoirsDateCourte(x.date) + ' · ' + devoirsEchap(x.debut) + ' → ' + devoirsEchap(x.fin) : devoirsDateCourte(x.date);
                 /* le nombre de séances que le devoir porte : le chiffre
                    choisi, ou celui que le site programme selon l'urgence */
@@ -1223,7 +1406,7 @@ function devoirsRendre() {
                     ? devoirsSeancesPrevues(x)
                     : (Number(x.seances) >= 1 ? Math.round(Number(x.seances)) : 0);
                 var autoSeances = x.seances === 'auto';
-                var ligneSeances = (genre === 'devoirs' && nbSeances)
+                var ligneSeances = (genre === 'devoirs')
                     ? '<p style="margin:0;font-size:0.72rem;color:' + (autoSeances ? '#b45309' : '#047857') + ';">' + nbSeances + ' séance' + (nbSeances > 1 ? 's' : '') + ' de révision' + (autoSeances ? ' · choisie' + (nbSeances > 1 ? 's' : '') + ' par le site' : '') + '</p>'
                     : '';
                 var boutonSeances = genre === 'devoirs'
@@ -1232,11 +1415,17 @@ function devoirsRendre() {
                 return '<div style="display:flex;align-items:center;gap:0.6rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.55rem 0.75rem;">' +
                     '<span style="font-size:1.1rem;">' + (genre === 'devoirs' ? '📝' : '🎓') + '</span>' +
                     '<div style="flex:1;min-width:0;"><p style="margin:0;font-weight:700;color:#111827;font-size:0.88rem;">' + devoirsEchap(x.matiere) + '</p>' +
-                    '<p style="margin:0;font-size:0.75rem;color:#6b7280;">' + horaire + '</p>' + ligneSeances + '</div>' +
+                    '<p style="margin:0;font-size:0.75rem;color:#6b7280;">' + horaire +
+                    (!x.debut ? ' · heure à confirmer' : '') + ' · ' + devoirsDelai(x.date) + '</p>' + ligneSeances + '</div>' +
+                    '<button type="button" onclick="devoirsEditer(\'' + genre + '\',\'' + x.id + '\')" aria-label="Modifier ' + (genre === 'examens' ? 'l’examen' : 'le devoir') + ' de ' + devoirsEchap(x.matiere) + '" title="Modifier" style="border:none;background:none;cursor:pointer;font-size:0.95rem;">✏️</button>' +
                     boutonSeances +
                     '<button type="button" onclick="devoirsSupprimer(\'' + genre + '\',\'' + x.id + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.95rem;">🗑️</button></div>';
             }).join('');
         }
+        zone.innerHTML = (filtre === 'passes' ? '' : '<h3 class="devoirs-groupe">À venir (' + aVenir.length + ')</h3>' +
+            (aVenir.length ? rendreLignes(aVenir) : '<p>Aucun créneau à venir.</p>')) +
+            (filtre === 'avenir' || !passes.length ? '' : '<details class="devoirs-passes"' + (filtre === 'passes' ? ' open' : '') + '><summary>Passés (' + passes.length + ')</summary>' + rendreLignes(passes) + '</details>');
+        if (!zone.innerHTML) zone.innerHTML = '<p>Aucun créneau trouvé.</p>';
     });
     /* Le réglage du bac n'est plus sur cette page : la question est
        posée par le popup, une seule fois, à tous les DP2. */

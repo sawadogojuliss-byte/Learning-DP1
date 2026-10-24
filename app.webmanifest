@@ -1,0 +1,16 @@
+{
+  "name": "Study Plan IB",
+  "short_name": "Study Plan IB",
+  "lang": "fr",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "icons": [
+    {
+      "src": "images/logo.png",
+      "sizes": "any",
+      "type": "image/png"
+    }
+  ]
+}

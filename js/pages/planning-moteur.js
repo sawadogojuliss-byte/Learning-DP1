@@ -155,10 +155,20 @@ function v3DurLabel(mins) {
     return (h > 0 ? h + 'h' : '') + (m > 0 ? (h > 0 ? String(m).padStart(2, '0') : m + ' min') : (h > 0 ? '' : '0 min'));
 }
 // Dernière modification enregistrée pour un créneau généré (id) un jour donné
+/* « Fait » masque uniquement les créneaux de cet exercice. Les conserver
+   permet de les retrouver si l'élève repasse à « À faire ». */
+function planningExerciceFait(id) {
+    if (!id) return false;
+    var liste = typeof exercices !== 'undefined' && Array.isArray(exercices) ? exercices : [];
+    return liste.some(function (exercice) { return exercice && exercice.id === id && exercice.done === true; });
+}
+function planningSansExercicesFaits(jour) {
+    return (jour || []).filter(function (ev) { return !ev || !planningExerciceFait(ev.exoId); });
+}
 function v3FindOverride(id, day) {
     for (let i = customEvents.length - 1; i >= 0; i--) {
         const e = customEvents[i];
-        if (e && e.replacesId === id && e.day === day) return e;
+        if (e && e.replacesId === id && e.day === day && !planningExerciceFait(e.exoId)) return e;
     }
     return null;
 }
@@ -1086,7 +1096,7 @@ function generateDayEvents(dayIndex) {
             try { evts = devoirsAdapterJour(evts, jour); } catch (e) {}
         }
     }
-    return evts;
+    return planningSansExercicesFaits(evts);
 }
 
 function planningDepuisProgression() {
@@ -1478,7 +1488,7 @@ function genererJourBrut(dayIndex) {
     });
 
     // ── CRÉNEAUX AJOUTÉS PAR L'ÉLÈVE (heure choisie → fixés 📌) ──
-    customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex)).forEach(event => {
+    customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex) && !planningExerciceFait(e.exoId)).forEach(event => {
         events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
             type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole });
     });

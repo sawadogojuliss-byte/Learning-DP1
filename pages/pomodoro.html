@@ -17,9 +17,9 @@
             <label class="focus-sr" for="focusTache">Sur quoi veux-tu te concentrer ?</label>
             <input id="focusTache" class="focus-question" maxlength="120" placeholder="Sur quoi veux-tu te concentrer ?" autocomplete="off">
             <div class="focus-modes" role="tablist">
-                <button type="button" id="focusModeFocus" class="is-on" role="tab" onclick="focusChoisirMode('focus')">CONCENTRATION</button>
-                <button type="button" id="focusModeShort" role="tab" onclick="focusChoisirMode('short')">PAUSE COURTE</button>
-                <button type="button" id="focusModeLong" role="tab" onclick="focusChoisirMode('long')">PAUSE LONGUE</button>
+                <button type="button" id="focusModeFocus" class="is-on" aria-pressed="true" onclick="focusChoisirMode('focus')">CONCENTRATION</button>
+                <button type="button" id="focusModeShort" aria-pressed="false" onclick="focusChoisirMode('short')">PAUSE COURTE</button>
+                <button type="button" id="focusModeLong" aria-pressed="false" onclick="focusChoisirMode('long')">PAUSE LONGUE</button>
             </div>
             <p class="focus-time" id="focusTime">25:00</p>
             <div class="focus-controls">
@@ -70,6 +70,8 @@
             <label>Pause courte <input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"></label>
             <label>Pause longue <input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"></label>
             <p class="focus-note">La pause longue arrive toutes les 4 concentrations.</p>
+            <label><input id="focusVoixActive" type="checkbox" checked onchange="chronoSauverReglagesVoix()"> Annonce vocale</label>
+            <label for="focusVoixVolume">Volume de la voix</label><input id="focusVoixVolume" type="range" min="0" max="100" value="70" oninput="chronoSauverReglagesVoix()">
         </aside>
         <div id="focusSons" class="focus-sons" hidden onclick="focusFermerSonsSiFond(event)">
             <div class="focus-sons-carte" role="dialog" aria-label="Sons">
@@ -93,6 +95,7 @@
                 <div id="focusSonsGrille" class="focus-sons-grille"></div>
             </div>
         </div>
+        <p id="focusModeStatut" class="focus-sr" role="status" aria-live="polite"></p>
         <footer class="focus-bottom">
             <div class="focus-outils">
                 <button type="button" id="focusBtnTaches" class="focus-rond" onclick="focusBasculerTaches()" aria-label="Tâches">

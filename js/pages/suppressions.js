@@ -78,9 +78,10 @@ function confirmerAction(options) {
     boite.appendChild(detail);
     var actions = document.createElement('div');
     actions.style.cssText = 'display:flex;gap:0.5rem;flex-wrap:wrap;';
-    function fermer() {
+    function fermer(annule) {
         voile.remove();
         if (precedent && typeof precedent.focus === 'function') precedent.focus();
+        if (annule !== false && typeof options.annuler === 'function') options.annuler();
     }
     function ajouter(libelle, action, danger) {
         var b = document.createElement('button');
@@ -91,9 +92,9 @@ function confirmerAction(options) {
         actions.appendChild(b);
         return b;
     }
-    var annuler = ajouter('Annuler', fermer, false);
+    var annuler = ajouter(options.annulerTexte || 'Annuler', fermer, false);
     if (typeof options.exporter === 'function') ajouter('Télécharger mes données', options.exporter, false);
-    ajouter(options.action || 'Confirmer', function () { fermer(); options.confirmer(); }, true);
+    ajouter(options.action || 'Confirmer', function () { fermer(false); options.confirmer(); }, true);
     boite.appendChild(actions);
     voile.appendChild(boite);
     voile.onclick = function (event) { if (event.target === voile) fermer(); };

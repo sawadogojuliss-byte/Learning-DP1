@@ -332,10 +332,12 @@ ok(context.devoirsLireStore().devoirs.length === 0 && statutDevTest.textContent.
 context.devoirsPropositions = [{ cle: 'prop0', matiere: 'Physique', date: '2026-11-12', debut: '', fin: '' }];
 const creneauOriginal = context.devoirsCreneauDunJour;
 context.devoirsCreneauDunJour = function () { return null; };
+const demanderAvant = context.devoirsDemanderSeances;
+context.devoirsDemanderSeances = function () {};
 context.devoirsConfirmerPropositions('devoirs');
-ok(statutDevTest.textContent.includes('Heures de début et de fin') &&
-    context.devoirsLireStore().devoirs.length === 0,
-    'sans créneau scolaire, un devoir OCR sans heures serait invisible dans le planning');
+ok(context.devoirsLireStore().devoirs.some(function (d) { return d.matiere === 'Physique' && !d.debut; }),
+    'un devoir OCR sans créneau scolaire doit rester visible avec une heure à confirmer');
+context.devoirsDemanderSeances = demanderAvant;
 context.devoirsCreneauDunJour = creneauOriginal;
 context.devoirsViderPropositions();
 context.document.getElementById = getElOriginal;
@@ -735,7 +737,7 @@ ok(jC6.some(function (ev) { return String(ev.title).indexOf('DEVOIR DE NIVEAU') 
 const jourSansCreneau = jourCreneau.filter(function (ev) { return ev.id !== 'cours-reel-3'; });
 context.devoirsEcrireStore({ bac: false, devoirs: [{ id: 'dc9', matiere: 'Mathématiques AA', date: cleJour(aujourdhui) }], examens: [] });
 var jC7 = context.devoirsAdapterJour(jourSansCreneau.slice(), idxJour);
-ok(!jC7.some(function (ev) { return String(ev.title).indexOf('Devoir ·') !== -1; }), 'sans créneau, un devoir sans heures n\'est posé nulle part (il reste dans la liste)');
+ok(jC7.some(function (ev) { return String(ev.title).indexOf('Devoir ·') !== -1 && ev.subtitle === 'Heure à confirmer'; }), 'sans créneau, un devoir sans heures est réservé à une heure libre à confirmer');
 
 /* — 3a8. La promesse des séances est tenue, même planning plein — */
 /* Une journée sans aucun moment libre : les séances choisies prennent

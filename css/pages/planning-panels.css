@@ -1318,3 +1318,29 @@ body.v3-deplacement, body.v3-deplacement * {
     .focus-accueil-musique { right: 0.8rem; bottom: 0.8rem; }
     #accueilFonds { width: calc(100% - 1.6rem); bottom: 4.4rem; }
 }
+
+/* Devoirs : édition et filtres, sans modifier la grille du planning. */
+.devoirs-voile { position:fixed; inset:0; z-index:320; display:flex; align-items:center; justify-content:center; padding:1rem; background:rgba(17,24,39,.55); }
+.devoirs-dialogue { width:min(100%,28rem); max-height:90vh; overflow:auto; padding:1.5rem; background:#fff; border-radius:1.2rem; box-shadow:0 20px 50px rgba(0,0,0,.25); }
+.devoirs-dialogue h3 { margin:0 0 1rem; color:#111827; }
+.devoirs-dialogue label { display:block; margin:.65rem 0 .3rem; font-size:.84rem; font-weight:700; }
+.devoirs-dialogue input, .devoirs-dialogue select, .devoirs-outils input, .devoirs-outils select { box-sizing:border-box; width:100%; padding:.65rem; border:1px solid #9ca3af; border-radius:.6rem; background:#fff; color:#111827; font:inherit; }
+.devoirs-edit-heures { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; }
+.devoirs-edit-actions { display:flex; gap:.6rem; margin-top:1rem; }
+.devoirs-edit-actions button { flex:1; padding:.7rem; border:1px solid #a7f3d0; border-radius:.7rem; background:#ecfdf5; color:#065f46; font:inherit; font-weight:700; cursor:pointer; }
+.devoirs-edit-actions button:last-child { background:#059669; color:white; }
+#devoirsEditErreur { color:#b91c1c; font-weight:700; }
+.devoirs-outils { display:grid; gap:.35rem; margin-bottom:.8rem; }
+.devoirs-outils label { font-size:.8rem; font-weight:700; }
+.devoirs-groupe { font-size:.9rem; margin:.7rem 0 .4rem; }
+.devoirs-passes { margin-top:.85rem; }
+.devoirs-passes summary { cursor:pointer; font-weight:700; margin-bottom:.6rem; }
+.devoirs-passes > div { margin-bottom:.5rem; }
+
+.devoirs-paralleles { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.5rem; }
+.devoirs-paralleles [data-v3-idx] { min-width:0; padding:.65rem !important; gap:.35rem !important; flex-wrap:wrap; align-content:flex-start; }
+.devoirs-paralleles [data-v3-idx] > div:last-child { margin-left:auto; }
+@media(max-width:360px) { .devoirs-paralleles { grid-template-columns:1fr; } }
+
+/* Choix conservé, sans lecture automatique au rechargement. */
+.focus-son.is-choisi { outline:2px solid #059669; outline-offset:2px; }

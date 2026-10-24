@@ -237,7 +237,8 @@ function devoirsJoursRestants(d) {
    - Sans choix, rien : la rampe automatique d'avant s'en occupe. */
 function devoirsNombreSeances(d, opts) {
     if (!d) return 0;
-    if (Number(d.seances) >= 1) return Math.round(Number(d.seances));
+    if (d.seances === 0) return 0;
+    if (Number(d.seances) >= 1) return Math.min(DEVOIRS_MAX_SEANCES, Math.round(Number(d.seances)));
     if (d.seances !== 'auto') return 0;
     if (opts && opts.reduites) return 1;
     /* le jour du devoir et les jours passés ne portent aucune séance */
@@ -519,6 +520,19 @@ function devoirsEnTourDeRole(parDevoir) {
     return out;
 }
 
+function devoirsTrouverHeureLibre(jour) {
+    /* Aucune heure n'est affirmée comme certaine : le bloc est marqué à
+       confirmer et ne prend jamais la place d'un cours/repas/trajet. */
+    for (var debut = 16 * 60 + 30; debut <= 21 * 60; debut += 15) {
+        if (!(jour || []).some(function (e) {
+            if (!e || !e.startTime || !e.endTime) return false;
+            var a = devoirsH2M(e.startTime), b = devoirsH2M(e.endTime);
+            return a < debut + 45 && b > debut;
+        })) return debut;
+    }
+    return null;
+}
+
 function devoirsAdapterJour(events, dayIndex) {
     if (!Array.isArray(events)) return events;
     var store = typeof devoirsLireStore === 'function' ? devoirsLireStore() : { devoirs: [], examens: [] };
@@ -578,6 +592,20 @@ function devoirsAdapterJour(events, dayIndex) {
                 });
             });
         }
+        /* Sans créneau scolaire de composition, réserver un moment réellement
+           libre plutôt que de masquer le devoir ou de recouvrir un cours. */
+        if (sansHeures.length && !creneaux.length) {
+            sansHeures.forEach(function (d) {
+                var debut = devoirsTrouverHeureLibre(jour);
+                if (debut == null) return;
+                jour = devoirsPoserBloc(jour, {
+                    id: 'devoir-' + d.id, titre: 'Devoir · ' + d.matiere,
+                    sous: 'Heure à confirmer', debut: devoirsM2H(debut),
+                    fin: devoirsM2H(debut + 45), icone: '📝', type: 'school'
+                });
+            });
+        }
+
     }
 
     /* Le planning est recalculé pour toute la semaine, même lundi et mardi
