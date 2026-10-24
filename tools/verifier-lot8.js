@@ -132,7 +132,14 @@ admin.firebase = { firestore() { return { collection() { return {
 }; } }; } };
 admin.boiteMessageDepuisFirestore = (nom, item) => item;
 admin.boiteNormaliser = (v) => String(v || '').toLowerCase();
-admin.boiteEmploiRetire = () => false;
+const ficheE2 = { type: 'emploi', id: 'e_essai', nom: 'E2E Preparation', classe: 'DP2',
+    jours: [{ j: 'Lundi', s: [{ d: '08:00', f: '09:00', t: 'Maths' }] }] };
+assert(admin.boiteEmploiRetire(ficheE2), 'E2E Preparation · DP2 est retiré du site');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, classe: 'DP1' }), 'E2E Preparation en DP1 reste affiché');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2E Preparation 2' }), 'autre nom en DP2 reste affiché');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2' }), 'autre compte E2 reste affiché');
+assert.equal(admin.boitePersonnes({ emplois: [ficheE2, { ...ficheE2, id: 'autre', nom: 'Autre élève' }] }).length,
+    1, 'la vue administrateur ne présente plus cette fiche de test');
 (async () => {
     const records = await admin.boiteLireCollectionHistorique('emplois_du_temps');
     assert.equal(records.length, 825, 'pagination au-delà des 1200 entrées');

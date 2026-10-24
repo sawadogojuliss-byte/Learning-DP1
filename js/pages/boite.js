@@ -660,7 +660,11 @@ function boiteEmploiRetire(item) {
     var id = String(item.id || '').replace(/^e_/, '');
     if (BOITE_EMPLOIS_RETIRES[appareil] || BOITE_EMPLOIS_RETIRES[id]) return true;
     var nom = boiteNormaliser(item.nom || '');
-    return nom === 'julia' || nom === 'u';
+    /* Retrait de la fiche de test demandée dans la vue du site uniquement.
+       Le nom ET la classe doivent correspondre : aucun autre DP2 ou E2
+       n'est retiré, et les documents Firestore ne sont pas supprimés. */
+    var ficheE2 = nom === 'e2e preparation' && boiteNormaliser(item.classe || '') === 'dp2';
+    return nom === 'julia' || nom === 'u' || ficheE2;
 }
 
 function boiteCleEmploi(item) {
