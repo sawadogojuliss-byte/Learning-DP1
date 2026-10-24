@@ -53,6 +53,11 @@ jobs:
           npm install --no-audit --no-fund playwright@1.49.1
           npx playwright install --with-deps chromium
 
+      - name: Vérifier la popup de chevauchement sans données réelles
+        run: |
+          set -o pipefail
+          node tools/tester-chevauchement.mjs 2>&1 | tee /tmp/sortie-chevauchement.txt
+
       - name: Vérifier en vrai navigateur la préparation des devoirs, examens et emploi du temps
         run: |
           set -o pipefail
@@ -62,11 +67,6 @@ jobs:
         run: |
           set -o pipefail
           node tools/tester-atelier.mjs 2>&1 | tee /tmp/sortie-atelier.txt
-
-      - name: Vérifier la popup de chevauchement sans données réelles
-        run: |
-          set -o pipefail
-          node tools/tester-chevauchement.mjs 2>&1 | tee /tmp/sortie-chevauchement.txt
 
       - name: Vérifier en vrai navigateur la fin de chronomètre (musique, bip, voix)
         run: |
