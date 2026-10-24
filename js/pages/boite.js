@@ -204,7 +204,7 @@ var boiteDernierAt = '';
 function boiteLireCollection(nom, depuis, max) {
     var base = firebase.firestore().collection(nom);
     var requete = depuis ? base.where('at', '>', depuis) : base;
-    return requete.orderBy('at', 'asc').limit(max || 400).get()
+    return requete.orderBy('at', depuis ? 'asc' : 'desc').limit(max || 400).get()
         .then(function (snap) {
             var out = [];
             snap.forEach(function (doc) {
@@ -225,7 +225,7 @@ function boiteAjouterBruts(items) {
         boiteBruts.push(item);
         if (String(item.at || '') > boiteDernierAt) boiteDernierAt = String(item.at || '');
     });
-    if (boiteBruts.length > 2500) boiteBruts = boiteBruts.slice(-2000);
+    if (boiteBruts.length > 6000) boiteBruts = boiteBruts.slice(-5000);
 }
 
 /* Chaque type a sa collection. Tant que les nouvelles règles ne sont pas
@@ -258,12 +258,12 @@ function boiteLireBoite() {
         if (!boiteEstAdmin()) return publique;
         boiteErreurLecture = '';
         var depuis = boiteBruts.length ? boiteDernierAt : '';
-        var legacy = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1200).catch(function (err) {
+        var legacy = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1800).catch(function (err) {
             boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
             return [];
         });
         var lectures = BOITE_PRIVEES.map(function (nom) {
-            return boiteLireCollection(nom, depuis, depuis ? 300 : 1200).catch(function (err) {
+            return boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois' ? 1200 : 400)).catch(function (err) {
                 /* Anciennes règles : les collections n'existent pas encore.
                    La boîte d'archives reste la référence jusqu'à publication. */
                 if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
