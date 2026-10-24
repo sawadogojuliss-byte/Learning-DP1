@@ -246,6 +246,7 @@ const importExamens = await page.evaluate(() => {
     const autreBrouillonGarde = document.getElementById('devoirsTexteColle').value === 'brouillon devoir';
     devoirsBasculerOnglet('devoirs');
     devoirsMontrerPropositions('', 'devoirs', true);
+    const focusAvantRefus = document.activeElement && document.activeElement.className;
     const ligneOcrVide = zone.querySelector('[data-prop]');
     const champsCompleter = !!ligneOcrVide && !!zone.querySelector('.prop-matiere') &&
         !!zone.querySelector('.prop-date') &&
@@ -266,7 +267,11 @@ const importExamens = await page.evaluate(() => {
             rectApercu: { top: rectApercu.top, bottom: rectApercu.bottom, height: rectApercu.height },
             date: date && date.value, zoneParent: zone.parentElement && zone.parentElement.id,
             viewport: innerHeight, nombreApresRefus, nombreAvant: original.devoirs.length,
-            champActifApresRefus
+            champActifApresRefus, focusAvantRefus,
+            panel: document.getElementById('panelDevoirs').className,
+            panelScroll: document.getElementById('panelDevoirs').scrollTop,
+            panelHauteur: document.getElementById('panelDevoirs').scrollHeight,
+            zoneVisible: getComputedStyle(zone).display
         } };
 });
 if (!importExamens || Object.entries(importExamens).some(([cle, resultat]) => cle !== 'diagnostic' && !resultat)) {
