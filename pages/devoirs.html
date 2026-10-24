@@ -38,8 +38,7 @@
                     <input type="file" id="devoirsFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument()">
                     <textarea id="devoirsTexteColle" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
                     <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
-                    <p id="devoirsOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
-                    <div id="devoirsConfirmation" style="margin-top:0.6rem;"></div>
+                    <p id="devoirsOcrStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
                     <datalist id="devoirsMatiereListe"></datalist>
                 </div>
 
@@ -52,7 +51,7 @@
                         <input id="devManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
                     </div>
                     <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #a7f3d0;border-radius:0.8rem;background:#ecfdf5;color:#065f46;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter le devoir</button>
-                    <p id="devoirsAjoutStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                    <p id="devoirsAjoutStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
                 </div>
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
@@ -74,10 +73,10 @@
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
                         <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
                     </div>
-                    <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;">
+                    <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument('examens')">
                     <textarea id="devoirsTexteColleExam" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;outline:none;"></textarea>
-                    <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#0d9488,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le planning</button>
-                    <p id="exaOcrStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                    <button type="button" onclick="devoirsLireDocument('examens')" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#0d9488,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le planning</button>
+                    <p id="exaOcrStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
                 </div>
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
@@ -89,7 +88,7 @@
                         <input id="exaManuelFin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;outline:none;">
                     </div>
                     <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #99f6e4;border-radius:0.8rem;background:#f0fdfa;color:#134e4a;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter l'examen</button>
-                    <p id="exaAjoutStatut" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                    <p id="exaAjoutStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
                 </div>
 
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
@@ -97,5 +96,7 @@
                     <div id="examensListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
                 </div>
             </div>
+            <!-- Aperçu unique, visible sous les deux onglets -->
+            <div id="devoirsConfirmation" style="margin-top:0.6rem;"></div>
         </div>
     </div>

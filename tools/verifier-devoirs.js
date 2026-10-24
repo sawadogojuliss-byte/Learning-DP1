@@ -45,6 +45,16 @@ const devoirsSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'de
 const moteurSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'pages', 'devoirs-moteur.js'), 'utf8');
 
 ok(devoirsHtml.indexOf('id="panelDevoirs"') !== -1, 'le panneau Devoirs et Examens manque');
+ok((devoirsHtml.match(/id="devoirsConfirmation"/g) || []).length === 1 &&
+    devoirsHtml.indexOf('id="devoirsConfirmation"') > devoirsHtml.indexOf('id="onglet-examens"'),
+    'l’aperçu des créneaux doit être unique et placé sous les deux onglets');
+ok(devoirsHtml.includes('id="devoirsFichierExam"') &&
+    devoirsHtml.includes('onchange="devoirsLireDocument(\'examens\')"'),
+    'choisir une photo d’examen doit déclencher sa lecture');
+['devoirsOcrStatut', 'exaOcrStatut', 'devoirsAjoutStatut', 'exaAjoutStatut'].forEach(function (id) {
+    ok(new RegExp('id="' + id + '" role="status" aria-live="polite"').test(devoirsHtml),
+        'le statut n’est pas annoncé au lecteur d’écran : ' + id);
+});
 ok(planning.indexOf('Devoirs et Examens') !== -1, 'le bouton du menu manque');
 ok(planning.indexOf('Devoirs et Examens') > planning.indexOf('Mes Exercices'), 'Devoirs et Examens doit venir après Mes Exercices dans le menu');
 ok(planning.indexOf('Devoirs et Examens') < planning.indexOf('EE &amp; IA'), 'Devoirs et Examens doit venir avant EE & IA dans le menu');
@@ -255,6 +265,56 @@ const propsAmPm = context.devoirsParserTexte('ESS : lundi, 1:25 pm - 2:55 pm');
 ok(propsAmPm.length === 1 && propsAmPm[0].debut === '13:25' && propsAmPm[0].fin === '14:55' && propsAmPm[0].matiere === 'ESS',
     'heures am/pm : ' + JSON.stringify(propsAmPm[0] || {}));
 
+/* Une date dont le jour et le quantième ne coïncident pas dans
+   les 60 jours ne doit plus se transformer en aujourd'hui + 60. */
+const dateAmbigue = context.devoirsParserTexte('Physique — lundi 31, 08h00 à 10h00');
+ok(dateAmbigue.length === 1 && dateAmbigue[0].date === '' && dateAmbigue[0].matiere === 'Physique',
+    'le lundi 31 ambigu doit garder la ligne sans inventer de date : ' + JSON.stringify(dateAmbigue));
+['Physique — 31/02/2026, 08h00 à 10h00',
+ 'Physique — 31 février, 08h00 à 10h00'].forEach(function (texteFaux) {
+    var lu = context.devoirsParserTexte(texteFaux);
+    ok(lu.length === 1 && lu[0].date === '',
+        'une date impossible a été normalisée en un autre jour : ' + JSON.stringify(lu));
+});
+const dateDansTableau = context.devoirsParserTexte([
+    '20/10/2026', '08:00 - 10:00', 'Histoire',
+    'lundi 31', '13:00 - 15:00', 'Physique',
+    '22/10/2026', '10:00 - 12:00', 'Mathématiques'
+].join('\n'));
+ok(dateDansTableau.length === 3 && dateDansTableau[0].date === '2026-10-20' &&
+    dateDansTableau[1].date === '' && dateDansTableau[2].date === '2026-10-22',
+    'la date ambiguë d’un tableau hérite de la date précédente ou contamine la suivante : ' + JSON.stringify(dateDansTableau));
+
+/* Le même aperçu est rendu pour un examen ; sans date le bouton ne
+   doit rien enregistrer ni vider la ligne, même si l'onglet a changé. */
+const getElOriginal = context.document.getElementById;
+const queryOriginal = context.document.querySelector;
+const apercuTest = { innerHTML: '' }, statutExamTest = { textContent: '', style: {} }, statutDevTest = { textContent: '', style: {} };
+const champsTest = {
+    devoirsConfirmation: apercuTest, exaOcrStatut: statutExamTest,
+    devoirsOcrStatut: statutDevTest,
+    devoirsTexteColleExam: { value: 'brouillon' }, devoirsTexteColle: { value: 'autre brouillon' },
+    devoirsFichierExam: { value: 'planning.png' }, devoirsFichier: { value: 'devoirs.png' }
+};
+context.document.getElementById = function (id) { return champsTest[id] || getElOriginal(id); };
+context.document.querySelector = function () { return null; };
+context.devoirsOngletActif = 'devoirs';
+context.devoirsMontrerPropositions('Physique — lundi 31, 08h00 à 10h00', 'examens', false);
+ok(apercuTest.innerHTML.includes('Date à préciser') && apercuTest.innerHTML.includes('Examens à vérifier'),
+    'l’aperçu des examens ne montre pas la date à corriger');
+ok(statutExamTest.textContent.includes('Date à préciser') && !statutDevTest.textContent,
+    'la lecture d’un examen répond dans le mauvais onglet');
+const nombreExamensAvant = context.devoirsLireStore().examens.length;
+context.devoirsConfirmerPropositions('examens');
+ok(context.devoirsLireStore().examens.length === nombreExamensAvant &&
+    apercuTest.innerHTML.includes('Date à préciser') && statutExamTest.textContent.includes('Date à préciser'),
+    'une date ambiguë a été enregistrée ou son aperçu perdu');
+context.devoirsViderPropositions();
+ok(!champsTest.devoirsTexteColleExam.value && champsTest.devoirsTexteColle.value === 'autre brouillon',
+    'Tout effacer a supprimé le brouillon de l’autre onglet');
+context.document.getElementById = getElOriginal;
+context.document.querySelector = queryOriginal;
+
 /* la re-demande du popup : tout DP2 déjà connecté doit le revoir une fois */
 context.devoirsEcrireStore({ bac: true, devoirs: [], examens: [] });
 ok(context.devoirsBacADemander() === true, 'une réponse d\'avant la correction doit déclencher le popup à nouveau');
@@ -323,8 +383,8 @@ ok(revisionsDemain.length >= 1, 'aucune révision posée la veille du devoir');
 ok(revisionsDemain.length <= 3, 'au plus trois révisions de devoir par jour, trouvé : ' + revisionsDemain.length);
 ok(apresDevoir.every(function (ev) { return !ev.devoirsBloc || String(ev.title).indexOf('Devoir') === -1; }), 'le devoir ne doit pas apparaître avant sa date');
 
-/* — 3a2. Dès l'ajout d'un examen, même des semaines à l'avance, des
-   révisions se posent — sans toucher au reste de l'emploi du temps. */
+/* — 3a2. Hors de J-14, un examen ne prépare rien : les autres
+   événements de l'élève restent inchangés. */
 context.devoirsEcrireStore({
     bac: false, devoirs: [],
     examens: [{ id: 'xloin', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 20 * 86400000)), debut: '08:00', fin: '13:00' }]
@@ -338,8 +398,23 @@ const jourPreparation = context.devoirsAdapterJour(jourSimple.concat([
 ok(jourPreparation.some(function (ev) { return ev.type === 'memoir'; }), 'loin de l\'épreuve, le mémoire reste : la préparation ne retire rien');
 ok(jourPreparation.some(function (ev) { return ev.type === 'activity'; }), 'loin de l\'épreuve, les activités restent');
 const blocsPrep = jourPreparation.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Physique') !== -1; });
-ok(blocsPrep.length >= 1, 'un examen dans 20 jours doit déjà donner des révisions, trouvé : ' + blocsPrep.length);
-ok(blocsPrep.length <= 2, 'au plus deux blocs de préparation par jour, trouvé : ' + blocsPrep.length);
+ok(blocsPrep.length === 0, 'un examen dans 20 jours ne doit pas générer de révision, trouvé : ' + blocsPrep.length);
+const loin90 = cleJour(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + 90));
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'x90', matiere: 'Physique', date: loin90, debut: '08:00', fin: '10:00' }
+] });
+const jourLoin90 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(!jourLoin90.some(function (ev) { return ev.devoirsBloc; }), 'un examen dans trois mois produit déjà une révision');
+const dans14 = cleJour(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + 14));
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'x14', matiere: 'Physique', date: dans14, debut: '08:00', fin: '10:00' },
+    { id: 'x90', matiere: 'Histoire', date: loin90, debut: '08:00', fin: '10:00' }
+] });
+const jourJ14 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(jourJ14.some(function (ev) { return ev.devoirsBloc && /Révision · Physique/.test(ev.title); }),
+    'J-14 doit ouvrir la préparation de Physique');
+ok(!jourJ14.some(function (ev) { return ev.devoirsBloc && /Révision · Histoire/.test(ev.title); }),
+    'l’examen lointain reçoit des révisions à cause d’un autre examen proche');
 
 /* — 3a3. Dès l'ajout d'un devoir, même loin de l'échéance — */
 context.devoirsEcrireStore({
@@ -375,11 +450,17 @@ var j2 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 var b2 = blocsDe('Chimie', j2);
 ok(b2.length === 3, 'devoir a 2 jours : 3 blocs attendus, trouvé : ' + b2.length);
 ok(b2.length >= 1 && String(b2[0].subtitle || '').indexOf('dans 2 j') !== -1, 'le compte a rebours manque : ' + JSON.stringify(b2[0] && b2[0].subtitle));
-/* examen dans 20 jours : un seul bloc leger */
+/* À J-15 rien, à J-14 le jour s'ouvre sans modifier les devoirs. */
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'xe15', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + 15)), debut: '08:00', fin: '13:00' }
+] });
+ok(!context.devoirsAdapterJour(jourSimple.slice(), idxJour).some(function (ev) { return ev.devoirsBloc; }),
+    'J-15 ne doit pas encore ouvrir la préparation de l’examen');
+/* examen dans 20 jours : aucune révision encore */
 context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [{ id: 'xe20', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 20 * 86400000)), debut: '08:00', fin: '13:00' }] });
 var je20 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 var be20 = blocsDe('Physique', je20);
-ok(be20.length === 1, 'examen a 20 jours : 1 bloc attendu, trouvé : ' + be20.length);
+ok(be20.length === 0, 'examen à 20 jours : aucune révision avant J-14, trouvé : ' + be20.length);
 /* examen dans 10 jours : deux blocs, matieres les plus proches d'abord */
 context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
     { id: 'xea', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getTime() + 10 * 86400000)), debut: '08:00', fin: '10:00' },
@@ -388,6 +469,17 @@ context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
 var je10 = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 ok(blocsDe('Physique', je10).length === 1 && blocsDe('Histoire', je10).length === 1, 'examen a 10 jours : une révision par matière (les deux plus proches)');
 ok(blocsDe('Physique', je10).length === 1 && minutesBloc(blocsDe('Physique', je10)[0]) === 45, 'examen a 10 jours : bloc de 45 min');
+
+/* L'épreuve voisine reste seule pendant sa semaine intensive :
+   une seconde épreuve dans trois mois ne prend pas sa place. */
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'x5', matiere: 'Physique', date: cleJour(new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + 5)), debut: '08:00', fin: '13:00' },
+    { id: 'x90', matiere: 'Histoire', date: loin90, debut: '08:00', fin: '10:00' }
+] });
+const intensifMixte = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
+ok(intensifMixte.some(function (ev) { return ev.devoirsBloc && /Physique/.test(ev.title); }) &&
+   !intensifMixte.some(function (ev) { return ev.devoirsBloc && /Histoire/.test(ev.title); }),
+   'un examen lointain entre dans les révisions intensives d’un examen proche');
 
 /* — 3a4b. Les séances choisies par l'élève — */
 /* la répartition : n séances sur les jours restants, la veille en porte

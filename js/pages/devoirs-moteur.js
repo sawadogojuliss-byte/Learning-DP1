@@ -272,9 +272,20 @@ function devoirsSeancesPrevues(d) {
     return n;
 }
 
+/* Chaque examen ouvre sa propre fenêtre J-14. Seule la date du
+   jour affiché compte : une épreuve lointaine n'est pas préparée dans
+   les semaines proches, même si une autre épreuve a déjà commencé. */
+function devoirsExamenEnPreparation(epreuve, date) {
+    if (!epreuve || !epreuve.date || !date) return false;
+    var cible = devoirsInstant(epreuve.date, '00:00');
+    if (!isFinite(cible.getTime())) return false;
+    var debut = new Date(cible.getFullYear(), cible.getMonth(), cible.getDate() - 14);
+    return date.getTime() >= debut.getTime() && date.getTime() < cible.getTime();
+}
+
 /* Le temps de préparation grandit à mesure que l'échéance approche :
-   loin, un bloc léger par jour ; à deux semaines, deux blocs ; la
-   dernière semaine, le rythme intensif. C'est la deadline qui décide. */
+   à J-14, deux blocs ; la dernière semaine, le rythme intensif.
+   Les devoirs gardent leur budget actuel hors de cette règle d'examen. */
 function devoirsBudgetPreparation(jours) {
     if (jours <= 3) return { blocs: 3, duree: 75 };
     if (jours <= 7) return { blocs: 2, duree: 75 };
@@ -601,7 +612,9 @@ function devoirsAdapterJour(events, dayIndex) {
         if (enRevision || enSemaineExamens) {
             /* 3) Une matière composée n'est plus révisée : ne restent que
                les épreuves dont la fin est encore devant nous. */
-            var restantes = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
+            var restantes = avenir.filter(function (x) {
+                return x.fin.getTime() > maintenant.getTime() && devoirsExamenEnPreparation(x.e, date);
+            }).map(function (x) { return x.e; });
             jour = jour.filter(function (ev) { return !devoirsBlocARetirer(ev); });
             /* Les séances de devoirs passent d'abord : celles que l'élève
                a fixées comme celles que le site programme pour lui.
@@ -673,14 +686,15 @@ function devoirsAdapterJour(events, dayIndex) {
             return jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
         }
 
-        /* 2bis) L'épreuve est encore loin : la préparation commence
-           dès maintenant, quel que soit le jour où le planning a été
-           chargé. On ne touche à rien du reste de l'emploi du temps —
-           seuls deux blocs de révision se posent dans les moments
-           libres, pour les épreuves les plus proches. */
-        var preparables = avenir.filter(function (x) { return x.fin.getTime() > maintenant.getTime() && x.e.date !== cle; }).map(function (x) { return x.e; });
+        /* 2bis) Avant la semaine de révision intensive, seules les
+           épreuves dont la fenêtre J-14 a commencé se préparent.
+           L'emploi du temps habituel reste intact hors de ces fenêtres. */
+        var preparables = avenir.filter(function (x) {
+            return x.fin.getTime() > maintenant.getTime() && devoirsExamenEnPreparation(x.e, date);
+        }).map(function (x) { return x.e; });
         if (preparables.length && !enSemaineExamens) {
-            var joursEcheance = Math.max(1, Math.ceil((premier.getTime() - maintenant.getTime()) / 86400000));
+            var premierPreparable = devoirsInstant(preparables[0].date, '00:00');
+            var joursEcheance = Math.max(1, Math.round((premierPreparable.getTime() - date.getTime()) / 86400000));
             var budgetPrep = devoirsBudgetPreparation(joursEcheance);
             var blocsPrep = devoirsBlocsRevisions(preparables, 'preparation', { dureeRevision: budgetPrep.duree }).slice(0, budgetPrep.blocs);
             var trousPrep = devoirsTrous(jour, devoirsReveilJour(dayIndex) + 45, devoirsCoucherJour(dayIndex) - 30);

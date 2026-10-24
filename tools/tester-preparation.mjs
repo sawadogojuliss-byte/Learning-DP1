@@ -172,6 +172,112 @@ if (!revisionsLot2 || !revisionsLot2.habituelsRetires || !revisionsLot2.proteges
     echec('révisions du lot 2 dans le navigateur : ' + JSON.stringify(revisionsLot2));
 }
 
+/* Chaque examen a sa fenêtre J-14, testée sur le code du site
+   déployé sans conserver les données provisoires de ce navigateur. */
+const fenetreExamen = await page.evaluate(() => {
+    const sauvegarde = devoirsLireStore();
+    const cle = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+        '-' + String(d.getDate()).padStart(2, '0');
+    const aujourdhui = new Date();
+    const dans = n => new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate() + n);
+    const idx = indexJourCourant();
+    const base = [{ id: 'repas-local', title: 'Déjeuner', startTime: '12:00', endTime: '13:00', type: 'meal' }];
+    try {
+        devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+            { id: 'loin-local', matiere: 'Physique', date: cle(dans(90)), debut: '08:00', fin: '10:00' }
+        ] });
+        const loin = devoirsAdapterJour(base.slice(), idx);
+        devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+            { id: 'proche-local', matiere: 'Physique', date: cle(dans(14)), debut: '08:00', fin: '10:00' },
+            { id: 'loin-local', matiere: 'Chimie', date: cle(dans(90)), debut: '08:00', fin: '10:00' }
+        ] });
+        const proche = devoirsAdapterJour(base.slice(), idx);
+        return {
+            pasDeRevisionLoin: !loin.some(ev => ev.devoirsBloc),
+            revisionJ14: proche.some(ev => ev.devoirsBloc && /Physique/.test(ev.title)),
+            autreExamenIgnore: !proche.some(ev => ev.devoirsBloc && /Chimie/.test(ev.title)),
+            repasGarde: proche.some(ev => ev.id === 'repas-local')
+        };
+    } finally {
+        devoirsEcrireStore(sauvegarde);
+    }
+});
+if (!fenetreExamen || Object.values(fenetreExamen).some(resultat => !resultat)) {
+    echec('fenêtre de préparation des examens : ' + JSON.stringify(fenetreExamen));
+}
+
+/* Lots 1 et 2.3/2.4 : import et aperçu réellement visibles dans
+   les deux onglets. Le test ne touche qu'au stockage de CE navigateur. */
+const importExamens = await page.evaluate(() => {
+    const original = devoirsLireStore();
+    navigateTo('devoirs');
+    devoirsBasculerOnglet('examens');
+    const zone = document.getElementById('devoirsConfirmation');
+    document.getElementById('devoirsTexteColleExam').value = 'Physique — 31/02/2027, 08h00 à 10h00';
+    devoirsLireDocument('examens');
+    const proposition = zone.querySelector('[data-prop]');
+    const date = zone.querySelector('.prop-date');
+    const apercuVisible = !!proposition && !!date && !date.value &&
+        zone.getBoundingClientRect().height > 0 &&
+        !document.getElementById('onglet-devoirs').contains(zone) &&
+        !document.getElementById('onglet-examens').contains(zone);
+    const dateSignalee = document.getElementById('exaOcrStatut').textContent.includes('Date à préciser');
+    const aucunAjout = devoirsLireStore().examens.length;
+    devoirsConfirmerPropositions('examens');
+    const refusDate = devoirsLireStore().examens.length === aucunAjout &&
+        zone.querySelector('.prop-date') === date;
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 10);
+    date.value = demain.getFullYear() + '-' + String(demain.getMonth() + 1).padStart(2, '0') +
+        '-' + String(demain.getDate()).padStart(2, '0');
+    document.getElementById('devoirsTexteColle').value = 'brouillon devoir';
+    devoirsBasculerOnglet('devoirs');
+    const visibleApresChangement = zone.getBoundingClientRect().height > 0;
+    devoirsConfirmerPropositions('examens');
+    const ajouteDansExamens = devoirsLireStore().examens.length === aucunAjout + 1 &&
+        devoirsLireStore().devoirs.length === original.devoirs.length;
+    const bilanBonOnglet = document.getElementById('exaOcrStatut').textContent.includes('ajouté');
+    devoirsBasculerOnglet('examens');
+    document.getElementById('devoirsTexteColleExam').value = 'Physique — 31/02/2027, 08h00 à 10h00';
+    devoirsLireDocument('examens');
+    devoirsBasculerOnglet('devoirs');
+    devoirsViderPropositions();
+    const autreBrouillonGarde = document.getElementById('devoirsTexteColle').value === 'brouillon devoir';
+    devoirsEcrireStore(original);
+    devoirsRendre();
+    document.getElementById('devoirsTexteColle').value = '';
+    navigateTo('planning');
+    return { apercuVisible, dateSignalee, refusDate, visibleApresChangement,
+        ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde };
+});
+if (!importExamens || Object.values(importExamens).some(resultat => !resultat)) {
+    echec('aperçu commun, date à préciser et confirmation des examens : ' + JSON.stringify(importExamens));
+}
+
+/* Le changement du fichier dans Examens déclenche bien la lecture ;
+   reconnaissance simulée ici pour tester l'interface sans gros OCR. */
+await page.evaluate(() => {
+    navigateTo('devoirs');
+    devoirsBasculerOnglet('examens');
+    window.__lecturePhotoOriginale = devoirsOcrImage;
+    window.devoirsOcrImage = () => Promise.resolve('Physique — 31/02/2027, 08h00 à 10h00');
+});
+await page.locator('#devoirsFichierExam').setInputFiles({
+    name: 'planning.png', mimeType: 'image/png', buffer: Buffer.from('photo simulée')
+});
+try {
+    await page.waitForFunction(() => document.getElementById('exaOcrStatut')?.textContent.includes('Date à préciser'),
+        null, { timeout: 10000 });
+} catch (e) {
+    echec('sélectionner une photo dans Examens ne déclenche pas la lecture');
+}
+await page.evaluate(() => {
+    window.devoirsOcrImage = window.__lecturePhotoOriginale;
+    delete window.__lecturePhotoOriginale;
+    devoirsViderPropositions();
+    navigateTo('planning');
+});
+
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;

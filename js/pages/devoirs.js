@@ -18,6 +18,7 @@ var devoirsOngletActif = 'devoirs';
 var devoirsOcrEnCours = false;
 var devoirsFileCourant = null;
 var devoirsPropositions = [];
+var devoirsPropositionsGenre = 'devoirs';
 
 /* ── Stockage ──────────────────────────────────────────────────────── */
 
@@ -359,6 +360,7 @@ function devoirsParserTexte(texte, connues) {
     var lignes = String(texte || '').split(/[\n\r]+/);
     var propositions = [];
     var dateCourante = ''; /* dernière date rencontrée : elle vaut pour les lignes suivantes */
+    var dateCouranteIncertaine = false; /* le document mentionne une date, mais elle est illisible */
     var i, j;
     /* Un planning d'épreuves se présente souvent en tableau : une date,
        puis plusieurs créneaux horaires, puis les matières, puis les
@@ -387,14 +389,14 @@ function devoirsParserTexte(texte, connues) {
         }
         /* des matières sans heures pour ce jour-là : le créneau du jour
            les recevra — les heures se complètent à la confirmation */
-        if (!blocHeures.length && blocMatieres.length && dateCourante) {
+        if (!blocHeures.length && blocMatieres.length && (dateCourante || dateCouranteIncertaine)) {
             blocMatieres.forEach(function (mm) {
                 propositions.push({ matiere: mm, date: dateCourante, debut: '', fin: '', ligne: '' });
             });
         }
         /* des heures sans matière ne sont proposées à compléter que si
            le bloc ne parle pas d'une matière que l'élève ne suit pas */
-        if (blocHeures.length && !blocMatieres.length && dateCourante && !blocRefuse) {
+        if (blocHeures.length && !blocMatieres.length && (dateCourante || dateCouranteIncertaine) && !blocRefuse) {
             for (k = 0; k < blocHeures.length; k++) {
                 if (devoirsH2Mvalide(blocHeures[k])) {
                     propositions.push({ matiere: '', date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
@@ -420,17 +422,31 @@ function devoirsParserTexte(texte, connues) {
 
         /* date : 23/10, 23-10-2026, lundi 23, 23 octobre */
         var dateTrouvee = '';
+        var dateIllisible = false;
         var dm = norm.match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?\b/);
+        /* « 13:00 - 15:00 » contient « 00 - 15 » : ce n'est pas
+           une date erronée, mais une plage d'heures à conserver. */
+        if (dm && /\d[:h.]$/.test(norm.slice(0, dm.index).trim())) dm = null;
         if (dm) {
             var an = dm[3] ? (dm[3].length === 2 ? 2000 + Number(dm[3]) : Number(dm[3])) : devoirsAnneePour(Number(dm[2]) - 1);
             var dObj = new Date(an, Number(dm[2]) - 1, Number(dm[1]));
-            if (!isNaN(dObj.getTime()) && Number(dm[1]) >= 1 && Number(dm[1]) <= 31 && Number(dm[2]) >= 1 && Number(dm[2]) <= 12) {
-                dateTrouvee = devoirsCle(dObj);
-            }
+            /* Date() corrige silencieusement « 31/02 » en mars :
+               ne jamais inventer un autre jour pour une date illisible. */
+            if (Number(dm[1]) >= 1 && Number(dm[2]) >= 1 && Number(dm[2]) <= 12 &&
+                dObj.getFullYear() === an && dObj.getMonth() === Number(dm[2]) - 1 &&
+                dObj.getDate() === Number(dm[1])) dateTrouvee = devoirsCle(dObj);
+            else dateIllisible = true;
         }
         if (!dateTrouvee) {
             var jm = norm.match(/\b(\d{1,2})(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/);
-            if (jm) dateTrouvee = devoirsCle(new Date(devoirsAnneePour(DEVOIRS_MOIS[jm[2]]), DEVOIRS_MOIS[jm[2]], Number(jm[1])));
+            if (jm) {
+                var moisLu = DEVOIRS_MOIS[jm[2]];
+                var anneeLue = devoirsAnneePour(moisLu);
+                var dateNomme = new Date(anneeLue, moisLu, Number(jm[1]));
+                if (dateNomme.getMonth() === moisLu && dateNomme.getDate() === Number(jm[1]))
+                    dateTrouvee = devoirsCle(dateNomme);
+                else dateIllisible = true;
+            }
         }
         if (!dateTrouvee) {
             var clesJours = Object.keys(DEVOIRS_JOURS);
@@ -441,14 +457,26 @@ function devoirsParserTexte(texte, connues) {
                         /* lundi 23 du mois en cours ou du suivant */
                         var essai = new Date();
                         for (var k = 0; k < 60; k++) {
-                            if (essai.getDate() === Number(avecJour[1]) && essai.getDay() === DEVOIRS_JOURS[clesJours[j]]) break;
+                            if (essai.getDate() === Number(avecJour[1]) && essai.getDay() === DEVOIRS_JOURS[clesJours[j]]) {
+                                dateTrouvee = devoirsCle(essai);
+                                break;
+                            }
                             essai.setDate(essai.getDate() + 1);
                         }
-                        dateTrouvee = devoirsCle(essai);
+                        if (!dateTrouvee) dateIllisible = true;
                     }
                     break;
                 }
             }
+        }
+
+        if (dateTrouvee) dateIllisible = false;
+        if (dateIllisible) {
+            /* Une date fausse ne doit pas hériter de la date du bloc
+               précédent. Conserver les matières et heures à corriger. */
+            viderBloc();
+            dateCourante = '';
+            dateCouranteIncertaine = true;
         }
 
         var matieres = profilConnu ? devoirsMatieresLigneToutes(norm, famillesEleve) : devoirsMatieresDicoToutes(norm, connuesListe);
@@ -507,7 +535,7 @@ function devoirsParserTexte(texte, connues) {
                     });
                 }
             }
-            if (dateTrouvee) dateCourante = dateTrouvee;
+            if (dateTrouvee) { dateCourante = dateTrouvee; dateCouranteIncertaine = false; }
             continue;
         }
         /* 1bis) un jour et ses matières, sans heures : chaque matière
@@ -518,12 +546,14 @@ function devoirsParserTexte(texte, connues) {
                 propositions.push({ matiere: mm, date: dateTrouvee, debut: '', fin: '', ligne: String(ligne).trim().slice(0, 90) });
             });
             dateCourante = dateTrouvee;
+            dateCouranteIncertaine = false;
             continue;
         }
         /* 2) une date seule : un nouveau bloc commence */
         if (dateTrouvee && !heures && !matieres.length) {
             viderBloc();
             dateCourante = dateTrouvee;
+            dateCouranteIncertaine = false;
             continue;
         }
         /* 3) des heures seules : elles s'empilent pour le bloc */
@@ -541,6 +571,7 @@ function devoirsParserTexte(texte, connues) {
             viderBloc();
             propositions.push({ matiere: '', date: dateTrouvee, debut: heures.debut, fin: heures.fin, ligne: String(ligne).trim().slice(0, 90) });
             dateCourante = dateTrouvee;
+            dateCouranteIncertaine = false;
             continue;
         }
     }
@@ -659,8 +690,14 @@ function devoirsDire(id, texte, erreur) {
     el.style.color = erreur ? '#b45309' : '#047857';
 }
 
-function devoirsLireDocument() {
-    var genre = devoirsOngletActif;
+/* Toutes les annonces OCR suivent le genre du document, même si
+   l'utilisateur change d'onglet pendant la lecture. */
+function devoirsDireOcr(genre, texte, erreur) {
+    devoirsDire(genre === 'examens' ? 'exaOcrStatut' : 'devoirsOcrStatut', texte, erreur);
+}
+
+function devoirsLireDocument(genreChoisi) {
+    var genre = genreChoisi === 'examens' || genreChoisi === 'devoirs' ? genreChoisi : devoirsOngletActif;
     var suffixe = genre === 'devoirs' ? '' : 'Exam';
     var input = document.getElementById('devoirsFichier' + suffixe);
     var fichier = input && input.files && input.files[0];
@@ -669,19 +706,18 @@ function devoirsLireDocument() {
     if (fichier) {
         if (devoirsOcrEnCours) return;
         devoirsOcrEnCours = true;
-        var zoneStatut = devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut';
-        devoirsDire(zoneStatut, 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
-        devoirsOcrImage(fichier, function (message) { devoirsDire(zoneStatut, message, false); }).then(function (texte) {
+        devoirsDireOcr(genre, 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
+        devoirsOcrImage(fichier, function (message) { devoirsDireOcr(genre, message, false); }).then(function (texte) {
             devoirsOcrEnCours = false;
             devoirsMontrerPropositions(texte, genre, true);
         }).catch(function (e) {
             devoirsOcrEnCours = false;
-            devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut', (e && e.message) || 'La lecture a échoué. Ajoute les créneaux à la main ci-dessous.', true);
+            devoirsDireOcr(genre, (e && e.message) || 'La lecture a échoué. Ajoute les créneaux à la main ci-dessous.', true);
         });
     } else if (colle) {
         devoirsMontrerPropositions(colle, genre, false);
     } else {
-        devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut', 'Choisis une photo du document, ou colle son texte dans la zone.', true);
+        devoirsDireOcr(genre, 'Choisis une photo du document, ou colle son texte dans la zone.', true);
     }
 }
 
@@ -735,6 +771,8 @@ function devoirsRemplirCreneaux(propositions) {
 }
 
 function devoirsMontrerPropositions(texte, genre, estOcr) {
+    genre = genre === 'examens' ? 'examens' : 'devoirs';
+    devoirsPropositionsGenre = genre;
     var propositions = devoirsParserTexte(texte);
     if (genre === 'devoirs') devoirsRemplirCreneaux(propositions);
     devoirsPropositions = propositions.map(function (p, i) {
@@ -747,14 +785,17 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
         zone.innerHTML = '<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:0.9rem 1rem;font-size:0.85rem;color:#92400e;">' +
             (estOcr ? "La lecture n'a rien reconnu de sûr dans ce document." : "Aucun créneau décodé dans ce texte.") +
             ' Vérifie la photo (lumière, netteté) ou ajoute les créneaux à la main ci-dessous.</div>';
+        devoirsDireOcr(genre, 'Aucun créneau détecté. Vérifie le document ou ajoute-le à la main.', true);
         return;
     }
+    var sansDate = devoirsPropositions.filter(function (p) { return !p.date; }).length;
     var lignes = devoirsPropositions.map(function (p) {
-        var passe = devoirsEstPasse(p.date, p.fin);
+        var passe = p.date && devoirsEstPasse(p.date, p.fin);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
             (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#9ca3af;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
+            (!p.date ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Date à préciser</span>' : '') +
             '<input class="prop-matiere" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
-            '<input class="prop-date" type="date" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
+            '<input class="prop-date" type="date" aria-label="Date à préciser ou à vérifier" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-debut" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<span style="color:#9ca3af;">→</span>' +
             '<input class="prop-fin" type="time" value="' + devoirsEchap(p.fin) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
@@ -763,13 +804,16 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     }).join('');
     zone.innerHTML =
         '<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;">' +
-        '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne avant d\'ajouter. Les créneaux marqués « Passé » resteront hors du planning :</p>' +
+        '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' +
+        (genre === 'examens' ? 'Examens à vérifier : ' : 'Devoirs à vérifier : ') + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne avant d\'ajouter. Les créneaux marqués « Passé » resteront hors du planning :</p>' +
         '<div style="display:flex;flex-direction:column;gap:0.5rem;">' + lignes + '</div>' +
         '<div style="display:flex;gap:0.6rem;margin-top:0.75rem;">' +
         '<button type="button" onclick="devoirsViderPropositions()" style="flex:1;padding:0.7rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;background:white;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Tout effacer</button>' +
         '<button type="button" onclick="devoirsConfirmerPropositions(\'' + genre + '\')" style="flex:2;padding:0.7rem;border:none;border-radius:0.75rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">Ajouter au planning</button>' +
         '</div></div>';
-    devoirsDire('devoirsOcrStatut', '', false);
+    devoirsDireOcr(genre, devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') +
+        ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + '.' +
+        (sansDate ? ' Date à préciser pour ' + sansDate + ' ligne' + (sansDate > 1 ? 's' : '') + ' avant l’ajout.' : ''), !!sansDate);
 }
 
 function devoirsRetirerProposition(cle) {
@@ -783,13 +827,27 @@ function devoirsViderPropositions() {
     devoirsPropositions = [];
     var zone = document.getElementById('devoirsConfirmation');
     if (zone) zone.innerHTML = '';
-    ['devoirsFichier', 'devoirsFichierExam', 'devoirsTexteColle', 'devoirsTexteColleExam'].forEach(function (id) {
+    /* La confirmation est commune, mais n'efface pas un brouillon
+       encore saisi dans l'autre onglet. */
+    var suffixe = devoirsPropositionsGenre === 'examens' ? 'Exam' : '';
+    ['devoirsFichier' + suffixe, 'devoirsTexteColle' + suffixe].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
     });
 }
 
 function devoirsConfirmerPropositions(genre) {
+    genre = devoirsPropositionsGenre || genre;
+    /* N'enregistrer aucune ligne avec une date inventée ou manquante.
+       L'aperçu reste en place pour que l'élève la corrige. */
+    var sansDate = devoirsPropositions.some(function (p) {
+        var el = document.querySelector('[data-prop="' + p.cle + '"]');
+        return !(el ? (el.querySelector('.prop-date') || {}).value : p.date);
+    });
+    if (sansDate) {
+        devoirsDireOcr(genre, 'Date à préciser avant l’ajout au planning. Corrige la ligne ci-dessous.', true);
+        return;
+    }
     var ajoutes = 0;
     var refuse = '';
     var passes = 0;
@@ -818,7 +876,7 @@ function devoirsConfirmerPropositions(genre) {
     devoirsViderPropositions();
     devoirsRendre();
     if (idsDevoirs.length) devoirsDemanderSeances(idsDevoirs);
-    devoirsDire(devoirsOngletActif === 'devoirs' ? 'devoirsOcrStatut' : 'exaOcrStatut',
+    devoirsDireOcr(genre,
         ajoutes + ' créneau' + (ajoutes > 1 ? 'x' : '') + ' ajouté' + (ajoutes > 1 ? 's' : '') + ' au planning.' +
         (passes ? ' ' + passes + ' créneau' + (passes > 1 ? 'x' : '') + ' déjà passé' + (passes > 1 ? 's' : '') + ' ignoré' + (passes > 1 ? 's' : '') + '.' : '') +
         (refuse ? ' ' + refuse : ''), false);
