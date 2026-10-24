@@ -19,11 +19,12 @@ try {
         window.__testEvents = [{ id: 'sport', title: 'Sport', type: 'activity', icon: '⚽',
             startTime: '18:00', endTime: '19:00', editable: true, kind: 'pinned' }];
         window.generateDayEvents = () => {
-            const out = window.__testEvents.map(ev => {
-                const ov = customEvents.find(item => item.replacesId === ev.id);
-                return ov ? { ...ev, startTime: ov.startTime, endTime: ov.endTime } : ev;
-            });
-            return out.concat(customEvents.filter(ev => !ev.replacesId));
+            const out = window.__testEvents.filter(ev => !customEvents.some(item => item.deleted && item.replacesId === ev.id))
+                .map(ev => {
+                    const ov = customEvents.find(item => item.replacesId === ev.id && !item.deleted);
+                    return ov ? { ...ev, startTime: ov.startTime, endTime: ov.endTime } : ev;
+                });
+            return out.concat(customEvents.filter(ev => !ev.replacesId && !ev.deleted));
         };
         window.v3Save = () => { window.__testSaves++; };
         window.renderPlanning = () => {};
@@ -38,7 +39,8 @@ try {
     });
     const popup = page.locator('#chevauchementPopup');
     assert.equal(await popup.count(), 1);
-    assert.match(await popup.innerText(), /Rien n’a été modifié/);
+    assert.doesNotMatch(await popup.innerText(), /Rien n’a été modifié|ÉTAPE 1 SUR 2|Ce créneau ne peut pas être déplacé automatiquement|Vérifier cet horaire/);
+    assert.equal(await popup.locator('[data-placer]').isDisabled(), true);
     assert.match(await popup.innerText(), /Sport/);
     assert.equal(await popup.locator('[data-deplacer]').count(), 1);
     assert.equal(await popup.locator('.chev-dialogue').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
@@ -49,6 +51,12 @@ try {
     await popup.locator('[data-retour]').click();
     await popup.locator('[data-autre-creneau]').click();
     assert(await popup.locator('.chev-proposition').count() > 0);
+    await popup.locator('#chevauchementDebut').fill('19:00');
+    assert.match(await popup.locator('#chevauchementVerdict').innerText(), /Créneau libre/);
+    assert.equal(await popup.locator('[data-placer]').isEnabled(), true);
+    await popup.locator('#chevauchementDebut').fill('18:30');
+    assert.match(await popup.locator('#chevauchementVerdict').innerText(), /Sport/);
+    assert.equal(await popup.locator('[data-placer]').isDisabled(), true);
     await popup.locator('#chevauchementChoix [data-annuler]').click();
     assert.equal(await popup.count(), 0);
     assert.equal(await page.evaluate(() => window.__testSaves), 0);
@@ -70,20 +78,57 @@ try {
             start: '18:30', end: '19:00', excludeIds: [], conflits: window.__testEvents });
     });
     assert.equal(await popup.locator('[data-deplacer]').count(), 0, 'ne jamais déplacer un cours');
+    await popup.locator('[data-remplacer]').click();
+    assert.equal(await popup.locator('.chev-retrait').count(), 1);
+    assert.equal(await popup.locator('[data-continuer]').isDisabled(), true, 'aucune suppression implicite');
+    await popup.locator('.chev-retrait input').check();
+    await popup.locator('[data-continuer]').click();
+    assert.match(await popup.locator('#chevauchementApercu').innerText(), /Retirés du planning :.*Cours/s);
+    await popup.locator('[data-confirmer]').click();
+    assert.match(await popup.locator('#chevConfirmEssentiels').innerText(), /Deuxième confirmation.*Cours/s);
+    assert.equal(await page.evaluate(() => window.__testSaves), 1);
+    await popup.locator('[data-renoncer-essentiel]').click();
+    assert.equal(await popup.locator('#chevConfirmEssentiels').count(), 0);
     await page.keyboard.press('Escape');
     assert.equal(await popup.count(), 0);
+    assert.equal(await page.evaluate(() => window.__testSaves), 1);
     await page.evaluate(() => {
         window.__testEvents = [
             { id: 'sport', title: 'Sport', type: 'activity', startTime: '18:00', endTime: '19:00', editable: true },
-            { id: 'danse', title: 'Danse', type: 'activity', startTime: '18:15', endTime: '18:45', editable: true }
+            { id: 'danse', title: 'Danse', type: 'activity', startTime: '18:15', endTime: '18:45', editable: true },
+            { id: 'prep', title: 'Préparation', type: 'prep', startTime: '17:50', endTime: '18:10' }
         ];
         v3OuvrirChoixChevauchement({ mode: 'ajout', day: 0, title: 'Lecture', icon: '📖',
             start: '18:30', end: '19:00', excludeIds: [], conflits: window.__testEvents });
     });
     assert.equal(await popup.locator('.chev-carte-deja').count(), 2);
     assert.equal(await popup.locator('[data-deplacer]').count(), 0);
+    await popup.locator('[data-remplacer]').click();
+    assert.equal(await popup.locator('.chev-retrait').count(), 2, 'ne proposer que les conflits réels du résultat');
+    assert.equal(await popup.locator('.chev-retrait').filter({ hasText: 'Préparation' }).count(), 0);
+    await popup.locator('input[name="chevMode"][value="prendre"]').check();
+    assert.equal(await popup.locator('#chevSource').inputValue(), '0');
+    assert.match(await popup.locator('#chevResultat').innerText(), /18:00 → 19:00 · 1 h/);
+    assert.equal(await popup.locator('.chev-retrait').count(), 3, 'Préparation chevauche les nouvelles heures seulement');
+    assert.equal(await popup.locator('.chev-retrait input:checked').count(), 1, 'source explicitement cochée en mode exact');
+    await popup.locator('.chev-retrait').filter({ hasText: 'Danse' }).locator('input').check();
+    assert.equal(await popup.locator('[data-continuer]').isDisabled(), true, 'Préparation ne disparaît pas automatiquement');
+    await popup.locator('.chev-retrait').filter({ hasText: 'Préparation' }).locator('input').check();
+    assert.equal(await popup.locator('[data-continuer]').isEnabled(), true);
+    await popup.locator('[data-continuer]').click();
+    assert.match(await popup.locator('#chevauchementApercu').innerText(), /18:00 → 19:00/);
+    assert.equal(await page.evaluate(() => window.__testSaves), 1);
+    await popup.locator('[data-confirmer]').click();
+    assert.match(await popup.locator('#chevConfirmEssentiels').innerText(), /Préparation/);
+    assert.equal(await page.evaluate(() => window.__testSaves), 1);
+    await popup.locator('[data-confirmer-essentiel]').click();
+    assert.equal(await popup.count(), 0);
+    assert.deepEqual(await page.evaluate(() => ({
+        saves: window.__testSaves,
+        visibles: generateDayEvents(0).map(ev => [ev.title, ev.startTime, ev.endTime])
+    })), { saves: 2, visibles: [['Lecture', '18:00', '19:00']] });
     assert.deepEqual(errors, [], 'erreurs JavaScript : ' + errors.join(' | '));
-    console.log('ok popup navigateur mobile : ajout réel, choix/retour/annulation, aperçu, deux durées, cours protégé, conflits multiples, aucune donnée envoyée');
+    console.log('ok popup navigateur mobile : verdict immédiat, choix exact ou durée conservée, retrait ciblé, double confirmation et annulation sans envoi');
 } finally {
     await browser.close();
 }

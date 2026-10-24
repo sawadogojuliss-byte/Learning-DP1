@@ -1358,7 +1358,6 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup [hidden] { display:none !important; }
 #chevauchementPopup .chev-entete { display:flex; align-items:center; gap:.8rem; margin-bottom:.55rem; }
 #chevauchementPopup .chev-symbole { display:grid; place-items:center; flex:0 0 2.7rem; height:2.7rem; border-radius:.9rem; background:#ecfdf5; color:#047857; font-size:1.5rem; font-weight:800; }
-#chevauchementPopup .chev-etape { display:block; color:#047857; font-size:.68rem; font-weight:800; letter-spacing:.08em; }
 #chevauchementPopup h2 { margin:.15rem 0 0; color:#111827; font-size:1.18rem; line-height:1.25; font-weight:800; }
 #chevauchementPopup .chev-intro { margin:.45rem 0 .9rem; color:#4b5563; font-size:.87rem; line-height:1.5; }
 #chevauchementPopup .chev-intro strong { color:#065f46; }
@@ -1375,7 +1374,22 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup .chev-bouton-vert { background:#047857; color:#fff; border-color:#047857; }
 #chevauchementPopup .chev-bouton-clair { background:#f0fdf4; color:#065f46; border-color:#a7f3d0; }
 #chevauchementPopup .chev-bouton-lien { background:white; color:#4b5563; border-color:#e5e7eb; }
-#chevauchementPopup button:focus-visible, #chevauchementPopup input:focus-visible { outline:3px solid #0d9488; outline-offset:2px; }
+#chevauchementPopup .chev-bouton:disabled { opacity:.5; cursor:not-allowed; }
+#chevauchementPopup .chev-mode, #chevauchementPopup .chev-retrait { display:flex; align-items:center; gap:.7rem; margin:.45rem 0; padding:.72rem .85rem; border:1px solid #d1fae5; border-radius:.8rem; background:#f8fffb; font-size:.83rem; line-height:1.4; cursor:pointer; }
+#chevauchementPopup .chev-mode:has(input:checked) { border-color:#059669; background:#ecfdf5; color:#065f46; font-weight:700; }
+#chevauchementPopup .chev-retrait { background:#fffbeb; border-color:#fde68a; }
+#chevauchementPopup .chev-retrait:has(input:checked) { border-color:#d97706; background:#fef3c7; }
+#chevauchementPopup .chev-mode input, #chevauchementPopup .chev-retrait input { flex:none; width:1.05rem; height:1.05rem; accent-color:#047857; }
+#chevauchementPopup #chevSource { box-sizing:border-box; width:100%; padding:.7rem; border:1px solid #9ca3af; border-radius:.7rem; background:#fff; font:inherit; color:#111827; }
+#chevauchementPopup .chev-resultat { padding:.7rem .85rem; margin:.7rem 0; border-radius:.8rem; background:#ecfdf5; color:#065f46; font-size:.84rem; font-weight:700; }
+#chevauchementPopup .chev-verdict { margin:.6rem 0; font-size:.81rem; line-height:1.45; font-weight:700; color:#9a3412; }
+#chevauchementPopup .chev-verdict[data-valide="true"] { color:#047857; }
+#chevauchementPopup .chev-retrait-titre { margin:1rem 0 .35rem; font-size:.85rem; font-weight:800; color:#92400e; }
+#chevauchementPopup .chev-retrait-apercu { margin:.25rem 0; padding:.5rem .75rem; border-radius:.6rem; background:#fffbeb; color:#78350f; font-size:.82rem; }
+#chevauchementPopup .chev-confirm-essentiels { margin-top:.8rem; padding:1rem; border:1.5px solid #f59e0b; border-radius:.85rem; background:#fffbeb; color:#78350f; font-size:.85rem; line-height:1.5; }
+#chevauchementPopup .chev-confirm-essentiels p { margin:0 0 .7rem; }
+#chevauchementPopup .chev-confirm-essentiels button + button { margin-top:.45rem; }
+#chevauchementPopup button:focus-visible, #chevauchementPopup input:focus-visible, #chevauchementPopup select:focus-visible { outline:3px solid #0d9488; outline-offset:2px; }
 #chevauchementPopup .chev-note { margin:.7rem 0 0; color:#6b7280; font-size:.77rem; line-height:1.45; }
 #chevauchementPopup .chev-propositions { display:flex; flex-wrap:wrap; gap:.45rem; color:#6b7280; font-size:.8rem; }
 #chevauchementPopup .chev-proposition { padding:.55rem .7rem; border:1px solid #a7f3d0; border-radius:.7rem; background:#f0fdf4; color:#065f46; font:inherit; font-size:.8rem; font-weight:750; cursor:pointer; }

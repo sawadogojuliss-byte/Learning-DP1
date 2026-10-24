@@ -1102,7 +1102,28 @@ function generateDayEvents(dayIndex) {
             try { evts = devoirsAdapterJour(evts, jour); } catch (e) {}
         }
     }
-    return planningSansExercicesFaits(evts);
+    var visible = planningSansExercicesFaits(evts);
+    /* Remplacement explicite dans la popup : les faits du profil (heure de
+       réveil, cours, trajets…) restent intacts, mais les cartes que l'élève a
+       choisi de retirer sont masquées pour ce jour de semaine. Les horaires
+       confirmés doivent survivre à un recalcul et au gel hebdomadaire. */
+    var remplacements = (customEvents || []).filter(function (e) {
+        return e && e.day === jour && e.remplacementConflit;
+    });
+    if (!remplacements.length) return visible;
+    var retires = new Set(remplacements.filter(function (e) { return e.deleted; }).map(function (e) { return e.replacesId; }));
+    var choisis = remplacements.filter(function (e) { return !e.deleted; });
+    visible = visible.filter(function (ev) { return !retires.has(ev.id); }).map(function (ev) {
+        var force = choisis.find(function (e) { return (e.replacesId || e.id) === ev.id; });
+        return force ? Object.assign({}, ev, { title: force.title, startTime: force.startTime, endTime: force.endTime }) : ev;
+    });
+    choisis.forEach(function (force) {
+        var id = force.replacesId || force.id;
+        if (visible.some(function (ev) { return ev.id === id; })) return;
+        visible.push({ id: id, title: force.title, startTime: force.startTime, endTime: force.endTime,
+            type: force.type, icon: force.icon || '📌', editable: true, kind: 'pinned', source: 'custom' });
+    });
+    return visible.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
 }
 
 function planningDepuisProgression() {

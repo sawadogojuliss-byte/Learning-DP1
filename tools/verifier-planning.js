@@ -62,9 +62,14 @@ ok(interfaceJs.indexOf('var voisines = v3ConflitsCreneau(day, newStart, newEnd, 
 ok(interfaceJs.indexOf('var voisinesAjout = v3ConflitsCreneau(selectedDay, startTime, endTime, []);') !== -1,
     'l’ajout doit prévenir dès qu’un créneau voisin se chevauche');
 var conflits = entre(interfaceJs, 'function v3ConflitsCreneau', 'function v3PeutDeplacerChevauchement');
-ok(conflits.indexOf("ev.id === 'wakeup' || ev.id === 'sleep'") !== -1, 'le réveil et le coucher ne comptent pas');
+ok(conflits.indexOf("ev.id === 'sleep'") !== -1 && conflits.indexOf("ev.id === 'wakeup' || ev.id === 'sleep'") === -1,
+    'le réveil et le coucher doivent pouvoir être proposés pour un retrait explicite');
 ok(conflits.indexOf('v3ActivitesChevauchees') !== -1, 'les activités saisies doivent être comparées');
-ok(popup.indexOf('Rien n’a été modifié') !== -1, 'la popup doit confirmer qu’aucun horaire ne change avant confirmation');
+ok(popup.indexOf('Rien n’a été modifié') === -1 && popup.indexOf('Vérifier cet horaire') === -1 &&
+    popup.indexOf('ÉTAPE 1 SUR 2') === -1, 'les anciens textes et la vérification manuelle doivent disparaître');
+ok(popup.indexOf('majFin()') !== -1 && popup.indexOf('chevauchementVerdict') !== -1,
+    'le verdict doit suivre directement la saisie de l’heure');
+ok(popup.indexOf('chevConfirmEssentiels') !== -1, 'les créneaux essentiels exigent une seconde confirmation');
 ok(popup.indexOf('Ce qui est déjà prévu') !== -1, 'la popup doit lister ce qui occupe le créneau');
 ok(popup.indexOf('Choisir un autre horaire') !== -1, 'la popup doit proposer un autre horaire');
 ok(popup.indexOf('Garder mon horaire et déplacer') !== -1, 'le déplacement doit expliquer son effet');

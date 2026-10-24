@@ -5,9 +5,11 @@ const vm = require('node:vm');
 const path = require('node:path');
 const file = fs.readFileSync(path.join(__dirname, '../js/pages/planning-interface.js'), 'utf8');
 const source = file.slice(file.indexOf('function v3EstActivite('), file.indexOf('function v3SignalerChevauchementJour('));
+const moteur = fs.readFileSync(path.join(__dirname, '../js/pages/planning-moteur.js'), 'utf8');
+const moteurSource = moteur.slice(moteur.indexOf('function generateDayEvents('), moteur.indexOf('function planningDepuisProgression('));
 const minutes = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
 const clock = n => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
-function scenario(base) {
+function scenario(base, utiliserMoteur = false) {
     let saves = 0;
     let closed = 0;
     const storage = new Map();
@@ -32,6 +34,18 @@ function scenario(base) {
         return out.concat(records.filter(ev => !ev.replacesId).map(ev => ({ ...ev })));
     };
     vm.runInContext(source, ctx);
+    if (utiliserMoteur) {
+        Object.assign(ctx, {
+            emploiGelSuspendu: true, v3Repas: events => events,
+            planningGarantirJour: events => events,
+            planningSansExercicesFaits: events => events,
+            genererJourBrut: () => base.map(ev => {
+                const ov = ctx.customEvents.find(item => item.replacesId === ev.id && !item.deleted);
+                return ov ? { ...ev, startTime: ov.startTime, endTime: ov.endTime } : { ...ev };
+            }).concat(ctx.customEvents.filter(ev => !ev.replacesId && !ev.deleted).map(ev => ({ ...ev })))
+        });
+        vm.runInContext(moteurSource, ctx);
+    }
     const current = { mode: 'ajout', day: 0, title: 'Lecture', type: 'activity', icon: '📖',
         start: '18:30', end: '19:00', excludeIds: [], conflits: [base.find(ev => ev.id === 'sport')] };
     return { ctx, current, get saves() { return saves; }, get closed() { return closed; },
@@ -90,4 +104,50 @@ assert.equal(erreurSauvegarde.eval('v3AppliquerChoixChevauchement(current, choix
 assert.equal(erreurSauvegarde.ctx.customEvents.length, 0);
 assert.equal(erreurSauvegarde.ctx.localStorage.getItem('studyPlanIB_customEvents_juliss'), '[]',
     'un échec tardif doit restaurer la copie locale');
+// Le moteur régénère les créneaux fondamentaux : vérifier le résultat réel,
+// puis une seconde génération (gel/rechargement) et aucune suppression tacite.
+const base = [sport, { id: 'danse', title: 'Danse', type: 'activity', startTime: '18:15', endTime: '18:45' },
+    { id: 'prep', title: 'Préparation', type: 'prep', startTime: '17:50', endTime: '18:10' },
+    { id: 'sleep', title: 'Coucher', type: 'sleep', startTime: '22:00', endTime: '06:00' }];
+const remplace = scenario(base, true);
+const opts = { current: remplace.current, choix: { utilisateur: { start: '18:30', end: '19:00' },
+    supprimerIds: ['sport', 'danse'], type: 'remplacer' } };
+assert.equal(remplace.eval('v3VerifierChoixChevauchement(current, choix).valid', opts), true);
+assert.equal(remplace.eval('v3AppliquerChoixChevauchement(current, choix)', opts), true);
+assert.equal(remplace.saves, 1);
+assert.deepEqual(remplace.ctx.generateDayEvents(0).map(e => e.id).sort(), ['activity-Lecture-0-new', 'prep', 'sleep']);
+assert.deepEqual(remplace.ctx.generateDayEvents(0).find(e => e.title === 'Lecture').endTime, '19:00');
+assert.equal(remplace.ctx.customEvents.filter(e => e.deleted && e.remplacementConflit).length, 2);
+assert.equal(remplace.ctx.generateDayEvents(0).some(e => e.id === 'prep'), true, 'Préparation préservée sans case cochée');
+const exact = scenario(base, true);
+assert.equal(exact.eval('v3AppliquerChoixChevauchement(current, choix)', { current: exact.current,
+    choix: { utilisateur: { start: '18:00', end: '19:00' }, sourceId: 'sport',
+        type: 'remplacerExact', supprimerIds: ['sport', 'danse', 'prep'] } }), true);
+assert.equal(exact.ctx.generateDayEvents(0).find(e => e.title === 'Lecture').endTime, '19:00');
+assert.deepEqual(exact.ctx.generateDayEvents(0).map(e => e.id).sort(), ['activity-Lecture-0-new', 'sleep']);
+const nonChoisi = scenario(base, true);
+assert.equal(nonChoisi.eval('v3VerifierChoixChevauchement(current, choix).valid', { current: nonChoisi.current,
+    choix: { utilisateur: { start: '18:30', end: '19:00' }, supprimerIds: ['sport'] } }), false);
+assert.equal(nonChoisi.eval('v3VerifierChoixChevauchement(current, choix).valid', { current: nonChoisi.current,
+    choix: { utilisateur: { start: '18:30', end: '19:00' }, supprimerIds: ['sport', 'prep', 'danse'] } }), false,
+    'impossible de supprimer un bloc qui ne chevauche pas le résultat');
+assert.equal(nonChoisi.saves, 0);
+const essentiel = scenario([{ id: 'wakeup', title: 'Réveil', type: 'wakeup', startTime: '06:00', endTime: '06:10' },
+    { id: 'prep', title: 'Préparation', type: 'prep', startTime: '06:10', endTime: '06:30' },
+    { id: 'sleep', title: 'Coucher', type: 'sleep', startTime: '22:00', endTime: '06:00' }], true);
+const matin = { utilisateur: { start: '06:00', end: '06:30' }, supprimerIds: ['wakeup', 'prep'] };
+assert.equal(essentiel.eval('v3VerifierChoixChevauchement(current, choix).valid', { current: essentiel.current, choix: matin }), true);
+assert.equal(essentiel.eval('v3AppliquerChoixChevauchement(current, choix)', { current: essentiel.current, choix: matin }), true);
+assert.deepEqual(essentiel.ctx.generateDayEvents(0).map(e => e.id).sort(), ['activity-Lecture-0-new', 'sleep']);
+const reintroduit = scenario([sport], true);
+reintroduit.ctx.planningSansExercicesFaits = events => events.concat({ ...sport });
+const force = { utilisateur: { start: '18:30', end: '19:00' }, supprimerIds: ['sport'] };
+assert.equal(reintroduit.eval('v3AppliquerChoixChevauchement(current, choix)', { current: reintroduit.current, choix: force }), true,
+    'un bloc régénéré reste masqué par le choix explicite');
+const echecs = scenario([sport], false);
+echecs.ctx.generateDayEvents = () => [{ ...sport }, { id: 'activity-Lecture-0-new', title: 'Lecture', startTime: '18:30', endTime: '19:00' }];
+assert.equal(echecs.eval('v3AppliquerChoixChevauchement(current, choix)', { current: echecs.current, choix: force }), false,
+    'ne pas prétendre supprimer si le moteur refuse de masquer');
+assert.equal(echecs.ctx.customEvents.length, 0);
+assert.equal(echecs.saves, 0);
 console.log('ok popup : durées inchangées, alternative, cours protégé, conflit multiple, refus de chevauchement, annulation et reprise après échec');
