@@ -104,10 +104,16 @@ for (const [type, collection] of Object.entries({
     }
 }
 
-if (await page.evaluate(() => window.BOITE_EMPLOIS_SUSPENDUS !== true ||
-    typeof boiteEmploiAvecCreneaux !== 'function' ||
-    boiteEmploiAvecCreneaux({ jours: [] }) !== false)) {
-    echec('le site déployé peut encore envoyer des emplois du temps pendant la purge');
+const emploiTest = await page.evaluate(async () => ({
+    reprise: window.BOITE_EMPLOIS_SUSPENDUS === false,
+    isole: window.__STUDYPLAN_E2E === true,
+    videRefuse: typeof boiteEmploiAvecCreneaux === 'function' &&
+        boiteEmploiAvecCreneaux({ jours: [] }) === false,
+    aucunEnvoi: await boiteEnvoyer({ type: 'emploi', id: 'e-local-test',
+        at: new Date().toISOString(), nom: 'E2E Preparation', jours: [] }) === false
+}));
+if (!Object.values(emploiTest).every(Boolean)) {
+    echec('la reprise privée ou l’isolement du navigateur de test a échoué : ' + JSON.stringify(emploiTest));
 }
 
 /* Vérifie également la présentation du planning dans Firestore, sans
