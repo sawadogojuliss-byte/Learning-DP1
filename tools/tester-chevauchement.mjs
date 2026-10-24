@@ -99,7 +99,8 @@ try {
             { id: 'prep', title: 'Préparation', type: 'prep', startTime: '17:50', endTime: '18:10' }
         ];
         v3OuvrirChoixChevauchement({ mode: 'ajout', day: 0, title: 'Lecture', icon: '📖',
-            start: '18:30', end: '19:00', excludeIds: [], conflits: window.__testEvents });
+            start: '18:30', end: '19:00', excludeIds: [],
+            conflits: v3ConflitsCreneau(0, '18:30', '19:00', []) });
     });
     assert.equal(await popup.locator('.chev-carte-deja').count(), 2);
     assert.equal(await popup.locator('[data-deplacer]').count(), 0);
