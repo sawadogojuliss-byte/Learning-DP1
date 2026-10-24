@@ -39,6 +39,7 @@ function v3Save() {
         window.__v3SaveEnCours = false;
     }
     localStorage.setItem(V3_STORAGE_KEY, JSON.stringify(customEvents));
+    if (typeof boiteApresMemoire === 'function' && !window.compteRestaurationEnCours) boiteApresMemoire();
     if (typeof memoireSauvegarder === 'function' && !window.__v3SaveMemoire) {
         window.__v3SaveMemoire = true;
         try { memoireSauvegarder(); } catch (e) {}

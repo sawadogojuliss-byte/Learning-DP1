@@ -85,10 +85,12 @@ ok(regles.includes("ficheValide('question', '04_question')") && regles.includes(
 const archiveCreation = regles.split('match /boite/{message} {')[1].split('allow update')[0];
 ok(!archiveCreation.includes("'question'") && !archiveCreation.includes("'feedback'"),
     'un ancien onglet peut encore archiver des questions/feedbacks à plat');
-['emplois_du_temps', 'emplois'].forEach(function (nom) {
-    const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
-    ok(bloc.split('}')[0].includes('allow create: if false;'), 'la pause des emplois est levée pour ' + nom);
-});
+const emploiCreation = regles.split('match /emplois_du_temps/{message} {')[1] || '';
+ok(emploiCreation.includes('allow read: if estAdmin();') && emploiCreation.includes('allow create: if emploiValide();'),
+    'les emplois valides ne sont pas reçus uniquement par les admins');
+ok(regles.includes('request.resource.data.z_donnees_techniques.firebaseUid == request.auth.uid') &&
+    regles.includes('request.resource.data.z_donnees_techniques.jours.size() == 7'), 'identité ou semaine non vérifiée');
+ok((regles.split('match /emplois/{message} {')[1] || '').includes('allow create: if false;'), 'écriture dans l’ancienne collection rétablie');
 ok(!regles.split('match /boite/{message} {')[1].split('allow update')[0].includes("'emploi'"), 'l’archive peut recevoir de nouveaux emplois');
 
 /* — Le site trie chaque message — */
@@ -97,7 +99,8 @@ ok(boite.indexOf("var BOITE_COLLECTION = 'boite';") !== -1, 'nom de la collectio
 ok(boite.indexOf("var BOITE_PUBLIE = 'publie';") !== -1, 'nom de la collection publique inattendu');
 ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont pas triés');
 ok(boite.includes("emploi: 'emplois_du_temps'"), 'l’emploi du temps part ailleurs');
-ok(boite.includes('var BOITE_EMPLOIS_SUSPENDUS = true;'), 'les nouveaux envois d’emplois ne sont pas suspendus');
+ok(boite.includes('var BOITE_EMPLOIS_SUSPENDUS = false;'), 'la publication des emplois est suspendue');
+ok(boite.includes('BOITE_EMPLOI_FILE') && boite.includes('boiteRetirerFile(record)'), 'une édition hors ligne peut se perdre');
 ok(boite.includes('boiteEmploiAvecCreneaux(record)'), 'les emplois vides ne sont pas filtrés');
 ok(!boite.includes('collection(BOITE_COLLECTION).add(propre)'), 'un envoi refusé retombe silencieusement dans l’archive');
 ok(boite.indexOf('boiteNettoyerSession') !== -1, 'les copies admin ne sont pas nettoyées');

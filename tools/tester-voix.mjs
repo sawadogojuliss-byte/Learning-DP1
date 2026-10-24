@@ -22,6 +22,7 @@ const browser = await chromium.launch({
     args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio']
 });
 const page = await browser.newPage();
+await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; }); /* profil de test local seulement */
 const erreurs = [];
 page.on('pageerror', function (e) { erreurs.push(String(e)); });
 

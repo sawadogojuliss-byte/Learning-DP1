@@ -58,11 +58,16 @@ function emploiScolaireLire() {
 
 function emploiScolaireEcrire(data) {
     try { localStorage.setItem(EMPLOI_CLE, JSON.stringify(emploiScolaireNormaliser(data)));
-        emploiCacheBrut = null; emploiCacheStore = null; } catch (e) {}
+        emploiCacheBrut = null; emploiCacheStore = null;
+        if (!window.compteRestaurationEnCours && typeof boiteApresMemoire === 'function') boiteApresMemoire();
+    } catch (e) {}
 }
 
 function emploiScolaireVider() {
-    try { localStorage.removeItem(EMPLOI_CLE); emploiCacheBrut = null; emploiCacheStore = null; } catch (e) {}
+    try {
+        localStorage.removeItem(EMPLOI_CLE); emploiCacheBrut = null; emploiCacheStore = null;
+        if (!window.compteRestaurationEnCours && typeof boiteApresMemoire === 'function') boiteApresMemoire();
+    } catch (e) {}
 }
 
 function emploiScolaireCompact() {

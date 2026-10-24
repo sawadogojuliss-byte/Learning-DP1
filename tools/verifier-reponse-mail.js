@@ -480,34 +480,28 @@ attendre(200).then(function () {
         assert.strictEqual(relecture.emplois[0].jours[1].s[0].t, 'Physique', 'le site a perdu les vrais créneaux');
         assert.strictEqual(relecture.emplois[0].jours[0].s[0].t, 'Français', 'le tri d’affichage a modifié le planning source');
         assert.strictEqual(relecture.emplois[0].appareil, 'app-awa', 'l’identifiant du planning est perdu');
-        /* Pause : ne pas recréer la collection et jeter les anciens
-           emplois en attente sans perdre les questions en attente. */
+        /* Nouvelle semaine complète : la migration conserve la file, la
+           création distante est reçue, la question en attente subsiste. */
         const nombreAvant = bdd.emplois_du_temps.length;
         store[context.BOITE_FILE] = JSON.stringify([
             planning,
             { type: 'question', id: 'q-pending', at: new Date().toISOString(), '04_question': 'Question en attente' }
         ]);
+        const enAttente = context.boiteLireFile();
+        assert.ok(enAttente.some(function (item) { return item.type === 'emploi'; }), 'ancien emploi en attente effacé');
+        assert.ok(JSON.parse(store[context.BOITE_FILE]).some(function (item) { return item.id === 'q-pending'; }), 'question en attente effacée');
+        planning.jours = planning.jours.concat(['Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(function (j) { return { j: j, s: [] }; }));
+        planning.complet = 1;
+        planning.schema = 2;
         return context.boiteEnvoyer(planning).then(function (ok) {
-            assert.strictEqual(ok, false, 'l’emploi en pause a été marqué comme envoyé');
-            assert.strictEqual(bdd.emplois_du_temps.length, nombreAvant, 'un emploi en pause a été écrit');
-            context.boiteLireFile(); /* le démarrage purge la file locale */
-            const enAttente = JSON.parse(store[context.BOITE_FILE] || '[]');
-            assert.ok(!enAttente.some(function (item) { return item.type === 'emploi'; }), 'un ancien emploi va être renvoyé');
-            assert.ok(enAttente.some(function (item) { return item.id === 'q-pending'; }), 'les questions en attente ont été effacées');
-            return context.boiteEcrireBoite(planning).then(function () {
-                throw new Error('écriture directe d’un emploi suspendu autorisée');
-            }, function (err) {
-                assert.strictEqual(err.message, 'emploi_suspendu', 'pause non appliquée à l’écriture directe');
-                assert.strictEqual(context.boiteEmploiAvecCreneaux({ jours: [] }), false, 'un planning vide est validé');
-                assert.strictEqual(context.boiteEmploiAvecCreneaux({ jours: [{ j: 'Lundi', s: [] }] }), false, 'un jour vide est validé');
-                assert.strictEqual(context.boiteEmploiAvecCreneaux(planning), true, 'un vrai planning est rejeté');
-                context.BOITE_EMPLOIS_SUSPENDUS = false;
-                return context.boiteEcrireBoite({ type: 'emploi', id: 'e-vide', at: new Date().toISOString(), jours: [] }).then(function () {
-                    throw new Error('un planning vide pourrait repartir après la pause');
-                }, function (vide) {
-                    assert.strictEqual(vide.message, 'emploi_vide', 'aucune validation à la reprise');
-                }).then(function () { context.BOITE_EMPLOIS_SUSPENDUS = true; });
-            });
+            assert.strictEqual(ok, true, 'l’emploi complet doit être reçu');
+            assert.strictEqual(bdd.emplois_du_temps.length, nombreAvant + 1, 'la copie n’est pas dans Firestore');
+            assert.strictEqual(bdd.emplois_du_temps.at(-1).z_donnees_techniques.jours.length, 7, 'semaine partielle');
+            assert.strictEqual(Object.keys(JSON.parse(store[context.BOITE_EMPLOI_FILE] || '{}')).length, 0, 'ACK non retiré');
+            assert.strictEqual(context.boiteEmploiAvecCreneaux({ jours: [] }), false, 'un planning vide est validé');
+            return context.boiteEcrireBoite({ type: 'emploi', id: 'e-vide', at: new Date().toISOString(), jours: [] }).then(function () {
+                throw new Error('un planning vide pourrait partir');
+            }, function (vide) { assert.strictEqual(vide.message, 'emploi_vide'); });
         });
     }).then(function () {
         store[context.BOITE_VUS] = JSON.stringify({ questions: [{ texte: 'copie privée' }] });

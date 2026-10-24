@@ -84,11 +84,54 @@ service cloud.firestore {
       allow create: if ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
-    /* Pause des emplois : même un ancien onglet ne peut plus alimenter
-       cette collection. Les admins peuvent toujours consulter l'archive. */
+    /* Les nouvelles semaines arrivent en documents immuables : une
+       modification crée une version, sans effacer la précédente. La lecture
+       reste strictement réservée aux admins. Un compte authentifié doit
+       prouver son UID Firebase ; un visiteur ne peut pas se faire passer
+       pour un compte Google. Les anciens formats restent lisibles. */
+    function emploiValide() {
+      return request.resource.data.keys().hasAll([
+               'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
+               '03_emploi_du_temps', 'z_donnees_techniques'
+             ])
+        && request.resource.data.keys().hasOnly([
+             'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
+             '03_emploi_du_temps', 'z_donnees_techniques'
+           ])
+        && request.resource.data.type == 'emploi'
+        && request.resource.data.id is string
+        && request.resource.data.id.size() <= 100
+        && request.resource.data.at is string
+        && request.resource.data.at.size() <= 50
+        && request.resource.data['01_nom_utilisateur'] is string
+        && request.resource.data['01_nom_utilisateur'].size() > 0
+        && request.resource.data['01_nom_utilisateur'].size() <= 80
+        && request.resource.data['02_matieres'] is list
+        && request.resource.data['02_matieres'].size() <= 6
+        && request.resource.data['03_emploi_du_temps'] is map
+        && request.resource.data['03_emploi_du_temps'].size() <= 7
+        && request.resource.data.z_donnees_techniques is map
+        && request.resource.data.z_donnees_techniques.jours is list
+        && request.resource.data.z_donnees_techniques.jours.size() == 7
+        && request.resource.data.z_donnees_techniques.schema == 2
+        && request.resource.data.z_donnees_techniques.complet == 1
+        && request.resource.data.z_donnees_techniques.firebaseUid is string
+        && request.resource.data.z_donnees_techniques.googleSub is string
+        && request.resource.data.z_donnees_techniques.google is string
+        && request.resource.data.z_donnees_techniques.email is string
+        && (request.auth != null
+            ? (request.resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
+               && request.resource.data.z_donnees_techniques.google == request.resource.data.z_donnees_techniques.email
+               && (request.resource.data.z_donnees_techniques.email == ''
+                   || request.resource.data.z_donnees_techniques.email == request.auth.token.email))
+            : (request.resource.data.z_donnees_techniques.firebaseUid == ''
+               && request.resource.data.z_donnees_techniques.googleSub == ''
+               && request.resource.data.z_donnees_techniques.google == ''
+               && request.resource.data.z_donnees_techniques.email == ''));
+    }
     match /emplois_du_temps/{message} {
       allow read: if estAdmin();
-      allow create: if false;
+      allow create: if emploiValide();
       allow update, delete: if false;
     }
     /* Les collections de transition restent privées si elles existent.

@@ -35,6 +35,7 @@ function jourCle(d) {
 
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
+await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; }); /* aucun document de test dans Firestore */
 const erreurs = [];
 page.on('pageerror', function (e) {
     erreurs.push(String(e));

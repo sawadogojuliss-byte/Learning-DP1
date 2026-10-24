@@ -6,6 +6,7 @@ const SITE = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ serviceWorkers: 'allow' });
 const page = await context.newPage();
+await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; }); /* profil de test local seulement */
 try {
     await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });

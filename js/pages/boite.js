@@ -10,8 +10,8 @@
 
 var BOITE_COLLECTION = 'boite'; /* archive conservée, jamais utilisée pour les nouveaux formulaires */
 var BOITE_PUBLIE = 'publie';
-/* Pause temporaire : aucun nouveau document type emploi n'est envoyé. */
-var BOITE_EMPLOIS_SUSPENDUS = true;
+/* Les semaines valides sont désormais publiées ; les archives restent intactes. */
+var BOITE_EMPLOIS_SUSPENDUS = false;
 var BOITE_COLLECTIONS = {
     question: 'questions', feedback: 'feedbacks', emploi: 'emplois_du_temps',
     reponse: 'reponses', profil: 'boite', profilpart: 'boite',
@@ -39,6 +39,7 @@ var BOITE_ADMINS_NOM = {
 };
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
 var BOITE_FILE = 'studyPlanIB_boiteFile';
+var BOITE_EMPLOI_FILE = 'studyPlanIB_emploisEnAttente';
 var BOITE_VUS = 'studyPlanIB_boiteVus';
 var BOITE_EMPLOI_HASH = 'studyPlanIB_boiteEmploiHash';
 var BOITE_FICHE_ENVOI = 'studyPlanIB_boiteFicheEnvoi';
@@ -208,6 +209,7 @@ function boiteSansVides(record) {
 var boiteBruts = [];
 var boiteIndexBruts = Object.create(null);
 var boiteDernierParCollection = Object.create(null);
+var boiteDernierScanComplet = Object.create(null);
 
 /* Les anciens messages ont « at » au premier niveau ; les nouveaux ont
    la même date dans le seul groupe technique. On lit les deux formats sans
@@ -318,6 +320,13 @@ function boiteEmploiAvecCreneaux(record) {
     }));
 }
 
+function boiteEmploiVideAutorise(record) {
+    /* Une semaine entièrement vidée est une édition, pas une inscription
+       vide : elle ne part que si cette personne a déjà une copie reçue. */
+    var ack = boiteLireJson(BOITE_EMPLOI_HASH);
+    return !!(record && ack && ack.cle && ack.cle === boiteCleFileEmploi(record));
+}
+
 /* À l'écriture, seules les informations de lecture restent à plat.
    Le contact pour répondre et la date ISO utilisée pour trier résident
    dans un unique groupe technique repliable dans la console Firebase. */
@@ -374,14 +383,29 @@ function boiteMessageDepuisFirestore(collection, data, identifiant) {
 function boiteEcrireBoite(record) {
     if (record && record.type === 'emploi') {
         if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
-        if (!boiteEmploiAvecCreneaux(record)) return Promise.reject(new Error('emploi_vide'));
+        if (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) return Promise.reject(new Error('emploi_vide'));
     }
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
     if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre);
     if (collection === 'questions' || collection === 'feedbacks') propre = boiteMessagePourFirestore(propre);
     if (!collection) return Promise.reject(new Error('record'));
-    return boiteFirebasePret().then(function () {
+    return boiteFirebasePret().then(function (user) {
+        if (collection === 'emplois_du_temps') {
+            var tech = propre.z_donnees_techniques;
+            tech.firebaseUid = user && user.uid ? user.uid : '';
+            /* Les attributs du compte viennent de Firebase Auth, jamais de
+               champs locaux modifiables par un autre utilisateur. */
+            if (user) {
+                var fournisseur = (user.providerData || []).filter(function (p) { return p && p.providerId === 'google.com'; })[0];
+                tech.googleSub = fournisseur && fournisseur.uid || '';
+                tech.email = user.email || '';
+                tech.google = tech.email;
+                tech.googleNom = user.displayName || '';
+            } else {
+                tech.googleSub = ''; tech.google = ''; tech.email = ''; tech.googleNom = '';
+            }
+        }
         return firebase.firestore().collection(collection).add(propre);
     }).then(function () { return true; });
 }
@@ -397,16 +421,18 @@ function boiteLireBoite() {
         if (!boiteEstAdmin()) return publique;
         boiteErreurLecture = '';
         function depuisPour(nom, champ) { return boiteDernierParCollection[nom + '|' + (champ || 'at')] || ''; }
-        function retenirDate(nom, champ, items) {
+        function retenirDate(nom, champ, items, complet) {
             if (generation !== boiteSessionGeneration) return items;
             var cle = nom + '|' + (champ || 'at');
+            if (complet) boiteDernierScanComplet[cle] = Date.now();
             (items || []).forEach(function (item) {
                 if (String(item.at || '') > (boiteDernierParCollection[cle] || '')) boiteDernierParCollection[cle] = String(item.at);
             });
             return items;
         }
-        var legacy = boiteLireCollectionHistorique(BOITE_COLLECTION, 'at', depuisPour(BOITE_COLLECTION, 'at'))
-            .then(function (items) { return retenirDate(BOITE_COLLECTION, 'at', items); }).catch(function (err) {
+        var dateArchive = depuisPour(BOITE_COLLECTION, 'at');
+        var legacy = boiteLireCollectionHistorique(BOITE_COLLECTION, 'at', dateArchive)
+            .then(function (items) { return retenirDate(BOITE_COLLECTION, 'at', items, !dateArchive); }).catch(function (err) {
             boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
             return [];
         });
@@ -414,14 +440,20 @@ function boiteLireBoite() {
             var champs = (nom === 'questions' || nom === 'feedbacks')
                 ? ['at', 'z_donnees_techniques.at'] : ['at'];
             champs.forEach(function (champ) {
-                var depuis = depuisPour(nom, champ);
-                toutes.push(((nom === 'emplois_du_temps' || nom === 'emplois')
+                var cle = nom + '|' + champ;
+                var dateConnue = depuisPour(nom, champ);
+                /* Un envoi hors ligne peut arriver après un document plus
+                   récent avec un ancien `at`. Refaire un balayage complet
+                   toutes les 5 minutes ; le cache mémoire ne perd rien. */
+                var tout = !dateConnue || Date.now() - (boiteDernierScanComplet[cle] || 0) > 5 * 60 * 1000;
+                var depuis = tout ? '' : dateConnue;
+                toutes.push(((nom === 'emplois_du_temps' || nom === 'emplois' || nom === 'questions' || nom === 'feedbacks')
                     ? boiteLireCollectionHistorique(nom, champ, depuis)
                     : boiteLireCollection(nom, depuis, depuis ? 300 : 400, champ))
-                    .then(function (items) { return retenirDate(nom, champ, items); }).catch(function (err) {
+                    .then(function (items) { return retenirDate(nom, champ, items, tout); }).catch(function (err) {
                     /* Avant la publication des règles, la lecture des nouvelles
                        collections est refusée ; ne rien divulguer au visiteur. */
-                    if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
+                    boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
                     return [];
                 }));
             });
@@ -446,26 +478,59 @@ function boiteEcrireJson(cle, valeur) {
     try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch (e) {}
 }
 
+function boiteCleFileEmploi(item) {
+    var sub = String(item && item.googleSub || '').trim();
+    if (sub) return 'sub:' + sub;
+    return 'app:' + String(item && item.appareil || '') + '|' + boiteNormaliser(item && item.nom || '');
+}
+
+function boiteLireEmploisEnAttente() {
+    var file = boiteLireJson(BOITE_EMPLOI_FILE);
+    return file && typeof file === 'object' && !Array.isArray(file) ? file : {};
+}
+
 function boiteLireFile() {
     var file = boiteLireJson(BOITE_FILE);
-    if (!Array.isArray(file)) return [];
-    /* Supprimer les anciennes tentatives non envoyées : elles ne doivent
-       pas repeupler la collection après sa purge dans Firebase. */
-    if (BOITE_EMPLOIS_SUSPENDUS && file.some(function (item) { return item && item.type === 'emploi'; })) {
+    if (!Array.isArray(file)) file = [];
+    /* Les anciennes files mélangées ne doivent pas perdre un emploi en
+       attente : migrer chaque fiche vers le stockage non plafonné. */
+    var anciens = file.filter(function (item) { return item && item.type === 'emploi'; });
+    if (anciens.length) {
+        var emplois = boiteLireEmploisEnAttente();
+        anciens.forEach(function (item) { emplois[boiteCleFileEmploi(item)] = item; });
+        localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois));
         file = file.filter(function (item) { return item && item.type !== 'emploi'; });
         boiteEcrireJson(BOITE_FILE, file);
     }
-    return file;
+    var enAttente = boiteLireEmploisEnAttente();
+    return file.concat(Object.keys(enAttente).map(function (cle) { return enAttente[cle]; }));
 }
 
 function boiteGarderFile(record) {
-    var file = boiteLireFile().filter(function (item) { return item && item.id !== record.id; });
+    if (record.type === 'emploi') {
+        var emplois = boiteLireEmploisEnAttente();
+        emplois[boiteCleFileEmploi(record)] = record; /* le plus récent remplace l'attente précédente */
+        localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois)); /* erreur de quota : ne pas mentir */
+        return;
+    }
+    var file = boiteLireFile().filter(function (item) { return item && item.type !== 'emploi' && item.id !== record.id; });
     file.push(record);
     boiteEcrireJson(BOITE_FILE, file.slice(-40));
 }
 
-function boiteRetirerFile(id) {
-    boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.id !== id; }));
+function boiteRetirerFile(record) {
+    if (record.type === 'emploi') {
+        var emplois = boiteLireEmploisEnAttente();
+        var cle = boiteCleFileEmploi(record);
+        if (emplois[cle] && JSON.stringify(emplois[cle]) === JSON.stringify(record)) {
+            delete emplois[cle];
+            localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois));
+        }
+        return;
+    }
+    boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) {
+        return item && item.type !== 'emploi' && item.id !== record.id;
+    }));
 }
 
 function boiteMajMenu() {
@@ -518,11 +583,28 @@ function boiteJoursCompacts(jours, maxSlots) {
     });
 }
 
+var boiteEmploisEnCours = {};
 function boiteEnvoyerDistant(record) {
-    /* Un seul endroit écrit : Firestore. Le message est retiré de la
-       file locale quand le serveur l'a accepté. */
+    /* Sérialiser les versions d'un même élève ; une ancienne réponse du
+       serveur ne peut pas acquitter une version plus récente. */
+    if (record && record.type === 'emploi') {
+        var cle = boiteCleFileEmploi(record);
+        var precedent = boiteEmploisEnCours[cle] || Promise.resolve();
+        var envoi = precedent.catch(function () {}).then(function () {
+            var courant = boiteLireEmploisEnAttente()[cle];
+            if (!courant || JSON.stringify(courant) !== JSON.stringify(record)) return false;
+            return boiteEcrireBoite(record).then(function () {
+                boiteRetirerFile(record);
+                return true;
+            });
+        });
+        boiteEmploisEnCours[cle] = envoi;
+        envoi.then(function () { if (boiteEmploisEnCours[cle] === envoi) delete boiteEmploisEnCours[cle]; },
+            function () { if (boiteEmploisEnCours[cle] === envoi) delete boiteEmploisEnCours[cle]; });
+        return envoi;
+    }
     return boiteEcrireBoite(record).then(function (ok) {
-        boiteRetirerFile(record.id);
+        boiteRetirerFile(record);
         return ok;
     });
 }
@@ -542,6 +624,7 @@ function boiteNettoyerSession() {
     boiteBruts = [];
     boiteIndexBruts = Object.create(null);
     boiteDernierParCollection = Object.create(null);
+    boiteDernierScanComplet = Object.create(null);
     boiteListesCache = null;
     boiteSecretCache = '';
     boiteErreurLecture = '';
@@ -550,7 +633,7 @@ function boiteNettoyerSession() {
     /* Ne pas laisser sur l'appareil une réponse mail restée en attente. */
     try {
         boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) {
-            return item && item.type !== 'reponse';
+            return item && item.type !== 'reponse' && item.type !== 'emploi';
         }));
     } catch (e) {}
     ['questionsListe', 'retoursListe', 'emploisListe'].forEach(function (id) {
@@ -623,7 +706,7 @@ function boiteJoursOrdonnes(jours) {
 }
 
 function boiteJoindreJours(anciens, nouveaux, nouveauComplet) {
-    if (nouveauComplet && nouveaux && nouveaux.length) return boiteJoursOrdonnes(nouveaux);
+    if (nouveauComplet && nouveaux && nouveaux.length === 7) return boiteJoursOrdonnes(nouveaux);
     var map = {};
     (anciens || []).forEach(function (jour) {
         if (jour && jour.j) map[jour.j] = jour;
@@ -648,7 +731,9 @@ function boiteSignatureJours(item) {
 }
 
 function boiteEstComplet(item) {
-    return !!(item && Number(item.complet) && !item.partie && (item.jours || []).length);
+    if (!item || !Number(item.complet) || item.partie || !Array.isArray(item.jours) || item.jours.length !== 7) return false;
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    return noms.every(function (nom) { return item.jours.filter(function (jour) { return jour && jour.j === nom && Array.isArray(jour.s); }).length === 1; });
 }
 
 var BOITE_EMPLOIS_RETIRES = {
@@ -728,15 +813,17 @@ function boiteReassemblerEmplois(items) {
 }
 
 function boiteEnvoyer(record) {
-    if (record && record.type === 'emploi' &&
-        (BOITE_EMPLOIS_SUSPENDUS || !boiteEmploiAvecCreneaux(record))) return Promise.resolve(false);
+    if (record && record.type === 'emploi') {
+        if (window.__STUDYPLAN_E2E || boiteEmploiRetire(record)) return Promise.resolve(false);
+        if (BOITE_EMPLOIS_SUSPENDUS || (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) || !boiteEstComplet(record)) return Promise.resolve(false);
+    }
     var morceaux = boiteDecouperEmploi(record);
-    morceaux.forEach(boiteGarderFile);
+    try { morceaux.forEach(boiteGarderFile); } catch (e) { return Promise.reject(e); }
     var envoi = morceaux.reduce(function (chaine, morceau) {
         return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
     }, Promise.resolve(true));
     return envoi.then(function (ok) {
-        boiteGarderVu(record);
+        if (ok) boiteGarderVu(record);
         return ok;
     });
 }
@@ -745,7 +832,12 @@ function boiteReessayer() {
     var file = boiteLireFile();
     if (!file.length) return Promise.resolve();
     return file.reduce(function (chaine, record) {
-        return chaine.then(function () { return boiteEnvoyerDistant(record).catch(function () {}); });
+        return chaine.then(function () {
+            var sub = window.compteSession && window.compteSession.sub || '';
+            if (record.type === 'emploi' && (!boiteEstComplet(record) || (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) ||
+                boiteEmploiRetire(record) || window.__STUDYPLAN_E2E || (record.googleSub && record.googleSub !== sub))) return;
+            return boiteEnvoyerDistant(record).catch(function () {});
+        });
     }, Promise.resolve());
 }
 
@@ -789,13 +881,18 @@ function boiteMemePersonne(a, b) {
     if (!a || !b) return false;
     var subA = String(a.googleSub || '').trim();
     var subB = String(b.googleSub || '').trim();
+    var uidA = String(a.firebaseUid || '').trim();
+    var uidB = String(b.firebaseUid || '').trim();
+    if (uidA && uidB) return uidA === uidB;
     if (subA && subB) return subA === subB;
     var mailA = boiteMailPersonne(a);
     var mailB = boiteMailPersonne(b);
-    if (mailA && mailB) return mailA === mailB;
+    /* Une archive anonyme peut contenir une adresse déclarative. Elle
+       ne prouve pas l'identité d'un compte Firebase authentifié. */
+    if (mailA && mailB && !uidA && !uidB) return mailA === mailB;
     var nomA = boiteNormaliser(boiteNomUtile(a));
     var nomB = boiteNormaliser(boiteNomUtile(b));
-    if (nomA && nomB && nomA === nomB) return true;
+    /* Deux homonymes sans lien de compte ne sont pas la même personne. */
     var appA = String(a.appareil || '').trim();
     var appB = String(b.appareil || '').trim();
     if (appA && appA === appB) {
@@ -829,6 +926,7 @@ function boiteJoindrePersonne(a, b) {
         google: recent.google || ancien.google || recent.email || ancien.email || '',
         googleNom: recent.googleNom || ancien.googleNom || '',
         googleSub: recent.googleSub || ancien.googleSub || '',
+        firebaseUid: recent.firebaseUid || ancien.firebaseUid || '',
         flammes: recent.flammes != null ? Number(recent.flammes || 0) : Number(ancien.flammes || 0),
         matieres: (recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || []),
         jours: boiteJoindreJours(ancien.jours, recent.jours, complet),
@@ -889,7 +987,8 @@ function boitePersonneDepuisMessage(item) {
 
 function boitePersonnes(fusion) {
     var liste = (fusion && fusion.emplois || []).slice();
-    (fusion && fusion.questions || []).concat(fusion && fusion.feedbacks || []).forEach(function (item) {
+    if (fusion && Array.isArray(fusion.personnesMessages)) liste = liste.concat(fusion.personnesMessages);
+    else (fusion && fusion.questions || []).concat(fusion && fusion.feedbacks || []).forEach(function (item) {
         var personne = boitePersonneDepuisMessage(item);
         if (personne) liste.push(personne);
     });
@@ -995,6 +1094,7 @@ function boiteFusionner(items) {
     });
     brutsEmplois = boiteReassemblerEmplois(brutsEmplois);
     var listeEmplois = boiteFusionnerPersonnes(brutsEmplois);
+    var personnesMessages = boiteFusionnerPersonnes(questions.concat(feedbacks).map(boitePersonneDepuisMessage).filter(Boolean));
     questions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
     reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
@@ -1010,6 +1110,7 @@ function boiteFusionner(items) {
         profils: profils.slice(0, 80),
         connexions: connexions.slice(0, 8),
         emplois: listeEmplois,
+        personnesMessages: personnesMessages,
         tutoriels: tutoriels.slice(0, 40),
         annonces: annonces.slice(0, 40)
     };
@@ -1027,7 +1128,8 @@ function boiteChargerListes(force) {
         return { ok: false, items: [] };
     }).then(function (source) {
         if (generation !== boiteSessionGeneration) return boiteFusionner([]);
-        var items = (boiteEstAdmin() && source.ok ? boiteLireFile() : []).concat(source.items || []);
+        /* Une fiche locale non acquittée ne doit pas être présentée comme reçue. */
+        var items = (boiteEstAdmin() && source.ok ? boiteLireFile().filter(function (item) { return item.type !== 'emploi'; }) : []).concat(source.items || []);
         var fusion = boiteFusionner(items);
         fusion.partiel = !source.ok;
         /* Un admin dont la session Firebase a expiré doit le savoir :
@@ -2036,16 +2138,18 @@ function boiteSnapshotEmploi() {
     var i;
     for (i = 0; i < 7; i++) {
         var evs = [];
-        try { evs = generateDayEvents(i) || []; } catch (e) { evs = []; }
+        try { evs = generateDayEvents(i); } catch (e) { return null; }
+        if (!Array.isArray(evs)) return null;
         var slots = [];
         var k;
-        for (k = 0; k < evs.length && slots.length < 40; k++) {
+        for (k = 0; k < evs.length; k++) {
             var ev = evs[k];
             if (!ev || !ev.title || !ev.startTime) continue;
             if (i === 5 && (ev.id === 'eco' || boiteNormaliser(ev.title).indexOf('cours d economie') !== -1)) continue;
+            if (slots.length >= 120) return null; /* jamais tronquer une journée silencieusement */
             slots.push({ d: ev.startTime, f: ev.endTime || '', t: String(ev.title).slice(0, 42) });
         }
-        if (slots.length) jours.push({ j: noms[i], s: slots });
+        jours.push({ j: noms[i], s: slots });
     }
     var session = (typeof boiteSession === 'function' ? boiteSession() : null) || window.compteSession || {};
     var matieres = [];
@@ -2071,7 +2175,8 @@ function boiteSnapshotEmploi() {
         matieres: matieres,
         jours: jours,
         flammes: boiteFlammes(),
-        complet: 0
+        complet: 1,
+        schema: 2
     };
 }
 
@@ -2080,6 +2185,11 @@ function boiteStabiliserComplet(record) {
     if (!record) return record;
     if (!(record.jours || []).length) {
         record.complet = 0;
+        return record;
+    }
+    if (record.schema === 2 && record.jours.length === 7) {
+        record.complet = 1;
+        record.fige = 1;
         return record;
     }
     var sig = boiteSignatureJours(record);
@@ -2102,11 +2212,11 @@ function boiteInscrit() {
 }
 
 function boitePublierEmploi(force) {
-    if (BOITE_EMPLOIS_SUSPENDUS) return;
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return;
     if (!boiteNom()) return;
     if (!force && !boiteInscrit()) return;
     var record = boiteStabiliserComplet(boiteSnapshotEmploi());
-    if (!boiteEmploiAvecCreneaux(record)) return;
+    if ((!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) || !boiteEstComplet(record) || boiteEmploiRetire(record)) return;
     var empreinte = JSON.stringify({
         nom: record.nom,
         classe: record.classe,
@@ -2119,9 +2229,10 @@ function boitePublierEmploi(force) {
     var deja = boiteLireJson(BOITE_EMPLOI_HASH);
     var dejaComplet = '';
     try { dejaComplet = localStorage.getItem(BOITE_COMPLET) || ''; } catch (e) {}
-    if (!force && dejaComplet === BOITE_COMPLET_VERSION && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
-    boiteEnvoyer(record).then(function () {
-        boiteEcrireJson(BOITE_EMPLOI_HASH, { hash: empreinte, at: Date.now() });
+    if (dejaComplet === BOITE_COMPLET_VERSION && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
+    boiteEnvoyer(record).then(function (ok) {
+        if (!ok) return;
+        boiteEcrireJson(BOITE_EMPLOI_HASH, { hash: empreinte, cle: boiteCleFileEmploi(record), at: Date.now() });
         try { localStorage.setItem(BOITE_COMPLET, BOITE_COMPLET_VERSION); } catch (e) {}
     }).catch(function () {});
 }
@@ -2374,39 +2485,10 @@ function boiteFicheIncomplete(fusion, record) {
 var boiteVerifEnCours = false;
 var boiteVerifCle = '';
 function boiteVerifierFiche() {
-    if (BOITE_EMPLOIS_SUSPENDUS) return;
-    if (!boiteNom() || boiteVerifEnCours) return;
-    var record = boiteFicheCourante();
-    if (!boiteEmploiAvecCreneaux(record)) return;
-    var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteSignatureJours(record);
-    if (cle === boiteVerifCle) return;
-    /* Ce qui est déjà parti ne repart pas : la trace est gardée sur
-       l'appareil, sans relire la boîte (que seuls les admins peuvent
-       lire). Une fiche modifiée change la clé et repart. */
-    var deja = boiteLireJson(BOITE_FICHE_ENVOI);
-    if (deja && deja.cle === cle && Date.now() - Number(deja.at || 0) < 12 * 60 * 60 * 1000) {
-        boiteVerifCle = cle;
-        return;
-    }
-    boiteVerifEnCours = true;
-    var envoi;
-    if (boiteEstAdmin()) {
-        envoi = boiteChargerListes(false).then(function (fusion) {
-            if (!boiteFicheIncomplete(fusion, record)) return null;
-            return boiteEnvoyer(record);
-        }).catch(function () {
-            return boiteEnvoyer(record);
-        });
-    } else {
-        envoi = boiteEnvoyer(record);
-    }
-    envoi.then(function () {
-        boiteVerifCle = cle;
-        boiteEcrireJson(BOITE_FICHE_ENVOI, { cle: cle, at: Date.now() });
-        boiteVerifEnCours = false;
-    }, function () {
-        boiteVerifEnCours = false;
-    });
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return;
+    /* Le même chemin vérifie le cache, met en file puis attend l'ACK
+       Firestore pour les modifications du profil et du planning. */
+    boitePublierEmploi(false);
 }
 
 function boiteApresMemoire() {
@@ -2415,7 +2497,7 @@ function boiteApresMemoire() {
     clearTimeout(boiteEmploiTimer);
     boiteEmploiTimer = setTimeout(function () {
         boiteVerifierFiche();
-        boiteRejouerPasses();
+        /* Ne pas republier les anciens profils locaux avec l'emploi scolaire d'un autre compte. */
     }, 1500);
 }
 
@@ -2563,7 +2645,7 @@ function boiteSignalerOuverture(force) {
 if (typeof document !== 'undefined') {
     boiteMemoriserVus();
     /* Les anciennes réponses en attente ne doivent plus rester lisibles. */
-    try { boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.type !== 'reponse'; })); } catch (e) {}
+    try { boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.type !== 'reponse' && item.type !== 'emploi'; })); } catch (e) {}
     boiteMajMenu();
     /* Un envoi raté reste dans la file : on le retente tant que la page
        est ouverte, pas seulement à son ouverture. */
