@@ -62,6 +62,22 @@ listées ici sont utilisées par une autre application sur **la même base**,
 vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
 collection sans règle correspondante sera inaccessible depuis les applications.
 
+## Présentation des questions dans Firebase
+
+Les **nouvelles** questions ont désormais quatre champs lisibles en premier,
+numérotés parce que la console Firebase trie les champs par leur nom :
+`01_heure_envoi` (heure d'Ouagadougou), `02_nom_utilisateur`,
+`03_compte_gmail` (seulement si une adresse Gmail a été fournie ou si ce
+Gmail est connecté), puis `04_question` (texte complet). L'adresse de contact
+pour répondre est conservée séparément dans `z_email_reponse`. Les champs
+techniques `at`, `id` et `type` restent nécessaires au site ; la console peut
+les afficher à la suite, on ne peut pas personnaliser son interface.
+
+Les nouveaux documents ne recopient plus le planning dans la question : il
+part séparément dans `emplois_du_temps`. Les anciennes questions restent sous
+leur format d'origine, et le site lit les deux formats. Publier des règles
+Firestore ne transforme pas les documents déjà présents.
+
 ## Anciennes entrées de `boite` (ne pas effacer)
 
 Les données déjà présentes dans `boite` restent **mélangées dans cette archive**,

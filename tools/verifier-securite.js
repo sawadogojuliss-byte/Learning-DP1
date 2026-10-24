@@ -85,6 +85,7 @@ ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont
 ok(boite.includes("emploi: 'emplois_du_temps'"), 'l’emploi du temps part ailleurs');
 ok(!boite.includes('collection(BOITE_COLLECTION).add(propre)'), 'un envoi refusé retombe silencieusement dans l’archive');
 ok(boite.indexOf('boiteNettoyerSession') !== -1, 'les copies admin ne sont pas nettoyées');
+ok(boite.includes("'01_heure_envoi'") && boite.includes("'04_question'"), 'la fiche question Firebase a perdu son ordre');
 ok(boite.indexOf('boiteSecretMail') !== -1, 'le secret d’envoi ne vient plus de la configuration privée');
 
 /* — Les flux qui publiaient les données ont disparu — */

@@ -760,6 +760,21 @@ function boiteCompleterIdentite(record) {
     return record;
 }
 
+/* Les nouvelles questions sont compactes dans Firestore : quatre lignes
+   lisibles, numérotées pour l'ordre de la console. Cette adaptation ne
+   modifie pas les documents en base et garde compatibles les anciennes
+   questions (type/at/id/nom/texte/email). */
+function boiteQuestionDepuisDocument(item) {
+    if (!item || item.type !== 'question' || !Object.prototype.hasOwnProperty.call(item, '04_question')) return item;
+    return Object.assign({}, item, {
+        nom: String(item['02_nom_utilisateur'] || ''),
+        texte: String(item['04_question'] || ''),
+        email: String(item.z_email_reponse || ''),
+        google: String(item.z_google_connecte || ''),
+        googleNom: String(item.z_google_nom || '')
+    });
+}
+
 function boiteFusionner(items) {
     var questions = [];
     var feedbacks = [];
@@ -776,6 +791,7 @@ function boiteFusionner(items) {
     var vusC = {};
     var vusT = {};
     (items || []).forEach(function (item) {
+        item = boiteQuestionDepuisDocument(item);
         if (!item || !item.type || item.type === 'coffre') return;
         /* Les envois de test de la vérification navigatrice ne doivent
            jamais s'afficher chez les admins. */
@@ -1716,17 +1732,29 @@ function boiteQuestion(session) {
     }
     var record;
     try {
-        record = boiteCompleterIdentite({
+        /* Ne plus mettre le planning ni le profil dans la question :
+           l'emploi du temps est envoyé dans sa propre collection. La
+           console Firebase affiche les champs par nom, d'où 01..04. */
+        var maintenant = new Date();
+        var compteGoogle = String(session && session.email || '').trim();
+        var gmail = /@gmail\.com$/i.test(compteGoogle) ? compteGoogle :
+            (/@gmail\.com$/i.test(email) ? email : '');
+        record = {
             type: 'question',
             id: boiteId('q'),
-            at: new Date().toISOString(),
-            nom: boiteNom(),
-            texte: valeur.slice(0, 800),
-            email: email,
-            google: email,
-            googleNom: session && session.name ? session.name : '',
-            googleSub: session && session.sub ? session.sub : ''
-        });
+            at: maintenant.toISOString(),
+            '01_heure_envoi': maintenant.toLocaleString('fr-FR', {
+                timeZone: 'Africa/Ouagadougou',
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) + ' (Ouagadougou)',
+            '02_nom_utilisateur': boiteNom() || 'Sans nom',
+            '04_question': valeur.slice(0, 800),
+            z_email_reponse: email
+        };
+        if (gmail) record['03_compte_gmail'] = gmail;
+        if (compteGoogle) record.z_google_connecte = compteGoogle;
+        if (compteGoogle && session.name) record.z_google_nom = session.name;
         /* L'emploi du temps part à part : s'il échoue, la question part quand même. */
         try { boitePublierEmploi(true); } catch (e) {}
     } catch (e) {

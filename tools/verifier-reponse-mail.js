@@ -227,10 +227,19 @@ attendre(200).then(function () {
     assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'statut reçu : ' + aideStatut.textContent);
     assert.strictEqual(bdd.questions.length, 1, 'la question n’est pas partie dans la boîte privée');
     assert.strictEqual(bdd.questions[0].type, 'question');
-    assert.strictEqual(bdd.questions[0].email, 'eleve@example.com');
-    assert.ok(String(bdd.questions[0].texte).indexOf('mémoire de français') !== -1, 'le texte manque');
+    const nouvelleQuestion = bdd.questions[0];
+    assert.strictEqual(nouvelleQuestion.z_email_reponse, 'eleve@example.com');
+    assert.strictEqual(nouvelleQuestion['02_nom_utilisateur'], 'Awa');
+    assert.ok(/Ouagadougou/.test(nouvelleQuestion['01_heure_envoi']), 'heure de l’envoi illisible');
+    assert.ok(String(nouvelleQuestion['04_question']).indexOf('mémoire de français') !== -1, 'le texte manque');
+    assert.ok(!('03_compte_gmail' in nouvelleQuestion), 'un visiteur sans Gmail a un faux compte');
+    assert.ok(!('jours' in nouvelleQuestion) && !('matieres' in nouvelleQuestion), 'l’emploi du temps est copié dans la question');
+    const lecture = context.boiteFusionner([nouvelleQuestion]);
+    assert.strictEqual(lecture.questions[0].texte, 'Où est le mémoire de français ?', 'le site ne relit plus les questions compactes');
+    assert.strictEqual(lecture.questions[0].email, 'eleve@example.com', 'l’adresse pour répondre est perdue');
     assert.strictEqual(aideTexte.value, '', 'la question n’a pas été effacée après l’envoi');
     assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après un envoi réussi');
+    assert.strictEqual(context.boiteQuestionDepuisDocument({ type: 'question', '02_nom_utilisateur': 'Awa', '03_compte_gmail': 'awa@gmail.com', '04_question': 'Bonjour', z_email_reponse: 'contact@example.com', z_google_connecte: 'awa@gmail.com' }).google, 'awa@gmail.com', 'le Gmail connecté disparaît dans la rubrique admin');
     assert.ok(!appels.some(function (item) {
         return item && item.url && (item.url.indexOf('ntfy.sh') !== -1 || item.url.indexOf('kvdb.io') !== -1);
     }), 'un service public a été appelé');
@@ -247,7 +256,7 @@ attendre(200).then(function () {
     assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après l’échec');
     const file = JSON.parse(store[context.BOITE_FILE] || '[]');
     assert.ok(file.some(function (item) {
-        return item.type === 'question' && String(item.texte).indexOf('base est muette') !== -1;
+        return item.type === 'question' && String(item['04_question']).indexOf('base est muette') !== -1;
     }), 'la question ratée n’est pas gardée en file');
 
     /* — La base revient : la file se vide — */
@@ -256,7 +265,7 @@ attendre(200).then(function () {
     return context.boiteReessayer().then(function () { return attendre(80); });
 }).then(function () {
     const file = JSON.parse(store[context.BOITE_FILE] || '[]');
-    assert.ok(!file.some(function (item) { return String(item.texte).indexOf('base est muette') !== -1; }), 'la question gardée n’a pas été rejouée');
+    assert.ok(!file.some(function (item) { return String(item['04_question']).indexOf('base est muette') !== -1; }), 'la question gardée n’a pas été rejouée');
     assert.strictEqual(bdd.questions.length, 1, 'la reprise n’a rien écrit');
 
     /* — Le mail de réponse : secret lu dans la configuration privée — */
