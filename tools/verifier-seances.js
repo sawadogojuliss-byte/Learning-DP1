@@ -41,8 +41,8 @@ ok(seances.indexOf('id="panelSeances"') !== -1, 'le panneau seances manque');
 ok(seances.indexOf('Séance de révision du jour') !== -1, 'le titre de la page manque');
 ok(seances.indexOf('id="focusAccueil"') !== -1, 'la liste des séances manque');
 ok(seances.indexOf('focusAccueilListe') !== -1 && seances.indexOf('focusAccueilStats') !== -1, 'les séances et les compteurs manquent');
-ok(seances.indexOf('focusEntrerPiece()') !== -1 && seances.indexOf('focusEntrerPiece(true)') !== -1,
-    'les deux boutons doivent mener au minuteur');
+ok(seances.indexOf('focusEntrerPiece()') !== -1 && seances.indexOf('focusEntrerPiece(true)') === -1,
+    'seule la séance en cours mène au minuteur');
 ok(registre.indexOf("'pages/seances.html'") !== -1, 'la page n\'est pas enregistrée');
 ok(pomodoro.indexOf('focusAccueil') === -1, 'l\'accueil doit avoir quitté la page Pomodoro');
 ok(pomodoro.indexOf('Tes séances du jour') === -1, 'l\'ancien titre doit disparaître de la page Pomodoro');

@@ -750,7 +750,15 @@ function memoireEffacerSuite() {
 }
 
 function memoireEffacer() {
-    if (!confirm('Effacer toute la progression enregistrée sur cet appareil ?')) return;
+    confirmerAction({
+        titre: 'Effacer la progression de cet appareil ?',
+        detail: 'Ton profil et les données enregistrées sur cet appareil seront supprimés. Cette action est irréversible.',
+        action: 'Effacer ma progression',
+        confirmer: memoireEffacerConfirme
+    });
+}
+
+function memoireEffacerConfirme() {
     if (typeof sauvegardeEffacerLocal === 'function') {
         try { sauvegardeEffacerLocal(); } catch (e) {}
     }
@@ -813,7 +821,7 @@ function memoireDemarrer() {
         'adjustScore', 'handleScoreInput', 'navigateTo', 'selectDay',
         'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
         'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',
-        'setPhoneDurationValue', 'togglePhoneDay', 'v3ResetDay', 'v3PomoSetPreset', 'v3Save',
+        'setPhoneDurationValue', 'togglePhoneDay', 'v3ResetDay', 'v3Save',
         'adjustSleepHours', 'setBedtimeFromInput', 'holidayBasculerDate', 'holidayPoserMode', 'holidayDecocher', 'goToHolidays',
         'adjustFreeTime', 'setSameFreeTime', 'goToFreeTime'
     ].forEach(memoireBrancher);

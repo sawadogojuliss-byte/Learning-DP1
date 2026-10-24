@@ -12,6 +12,7 @@
 /* L'icône des activités change à chaque semaine : le coureur, la fléchette,
    puis le trophée, et on recommence. La semaine commence le lundi, pour tout
    le monde en même temps. */
+var v3LastRendered = [];
 var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];
 
 function v3IconeActivitesSemaine() {
@@ -146,13 +147,19 @@ function v3OpenEditByIndex(idx) {
 
 function v3ResetDay() {
     const day = selectedDay;
-    const snapshot = customEvents.slice();
-    if (!confirm('Remettre le planning automatique de ' + V3_DAY_NAMES[day] + ' ? Tes modifications de ce jour seront retirées.')) return;
-    customEvents = customEvents.filter(e => !(e && e.day === day));
-    v3Save();
-    v3SyncExoLabels();
-    renderPlanning();
-    v3Toast('↺ Planning de ' + V3_DAY_NAMES[day] + ' réinitialisé', 'info', { undo: function () { customEvents = snapshot; v3Save(); v3SyncExoLabels(); renderPlanning(); } });
+    confirmerAction({
+        titre: 'Réinitialiser le planning de ' + V3_DAY_NAMES[day] + ' ?',
+        detail: 'Tes modifications de ce jour seront retirées. Tu pourras ensuite annuler pendant quelques secondes.',
+        action: 'Réinitialiser ce jour',
+        confirmer: function () {
+            const snapshot = customEvents.slice();
+            customEvents = customEvents.filter(e => !(e && e.day === day));
+            v3Save();
+            v3SyncExoLabels();
+            renderPlanning();
+            v3Toast('↺ Planning de ' + V3_DAY_NAMES[day] + ' réinitialisé', 'info', { undo: function () { customEvents = snapshot; v3Save(); v3SyncExoLabels(); renderPlanning(); } });
+        }
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════

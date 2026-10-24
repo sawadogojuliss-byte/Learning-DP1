@@ -1076,11 +1076,52 @@ function devoirsAjouterManuel() {
 }
 
 function devoirsSupprimer(genre, id) {
-    var store = devoirsLireStore();
     var cle = genre === 'devoirs' ? 'devoirs' : 'examens';
-    store[cle] = store[cle].filter(function (x) { return x.id !== id; });
-    devoirsEcrireStore(store);
-    devoirsRendre();
+    var liste = devoirsLireStore()[cle];
+    var index = liste.findIndex(function (x) { return x.id === id; });
+    if (index < 0) return;
+    var objet = liste[index];
+    var prefix = 'devrev-' + id + '-';
+    var lies = typeof customEvents !== 'undefined' ? customEvents.filter(function (e) {
+        return e && (String(e.replacesId || '').indexOf(prefix) === 0 || String(e.id || '').indexOf(prefix) === 0);
+    }) : [];
+    function actualiser() {
+        devoirsRendre();
+        if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    }
+    function supprimer() {
+        suppressionAvecAnnulation({
+            message: (cle === 'examens' ? 'Examen' : 'Devoir') + ' « ' + objet.matiere + ' » supprimé · Annuler',
+            retirer: function () {
+                var courant = devoirsLireStore();
+                courant[cle] = courant[cle].filter(function (x) { return x.id !== id; });
+                devoirsEcrireStore(courant);
+                if (lies.length && typeof customEvents !== 'undefined') {
+                    customEvents = customEvents.filter(function (e) { return lies.indexOf(e) === -1; });
+                    if (typeof v3Save === 'function') v3Save();
+                }
+            },
+            restaurer: function () {
+                var courant = devoirsLireStore();
+                if (!courant[cle].some(function (x) { return x.id === id; })) {
+                    courant[cle].splice(Math.min(index, courant[cle].length), 0, objet);
+                    devoirsEcrireStore(courant);
+                }
+                if (lies.length && typeof customEvents !== 'undefined') {
+                    lies.forEach(function (e) { if (!customEvents.some(function (x) { return x.id === e.id; })) customEvents.push(e); });
+                    if (typeof v3Save === 'function') v3Save();
+                }
+            },
+            actualiser: actualiser
+        });
+    }
+    if (cle === 'examens') {
+        confirmerAction({
+            titre: 'Supprimer l’examen de ' + objet.matiere + ' ?',
+            detail: 'Ses révisions planifiées disparaîtront aussi. Tu pourras annuler la suppression pendant 8 secondes.',
+            action: 'Supprimer cet examen', confirmer: supprimer
+        });
+    } else supprimer();
 }
 
 /* ── Modifier les séances d'un devoir, à tout moment ───────────────── */

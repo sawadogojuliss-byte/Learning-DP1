@@ -128,6 +128,10 @@ function focusCharger() {
     focusEtat.total = durees.focus * 60;
     focusEtat.restant = focusEtat.total;
     var fond = focusIndexParId('lumiere');
+    try {
+        var choix = localStorage.getItem('studyPlanIB_focusFond');
+        if (choix !== null && /^\d+$/.test(choix) && Number(choix) < FOCUS_FONDS.length) fond = Number(choix);
+    } catch (e) {}
     focusEtat.fond = fond;
     var tache = '';
     try { tache = localStorage.getItem('studyPlanIB_focusTache') || ''; } catch (e) {}
@@ -160,7 +164,8 @@ function focusOuvrirSeances() {
     if (accueil) accueil.hidden = false;
     var page = document.getElementById('focusPage');
     if (page) page.hidden = true;
-    focusPoserFond(focusIndexParId('lumiere'), true);
+    focusSeanceMinuteur = null;
+    try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
     focusPeindreFlamme();
     focusPeindre();
     focusChoisirSeance();
@@ -176,7 +181,11 @@ function focusOuvrirMinuteur() {
     if (accueil) accueil.hidden = true;
     var page = document.getElementById('focusPage');
     if (page) page.hidden = false;
-    focusPoserFond(focusIndexParId('lumiere'), true);
+    if (!focusEntreeDepuisSeance) {
+        focusSeanceMinuteur = null;
+        try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
+    }
+    focusEntreeDepuisSeance = false;
     focusPeindreFlamme();
     focusPeindre();
     focusAmorcerFonds();
@@ -189,6 +198,8 @@ function focusOuvrir() {
 
 // ── ACCUEIL : les séances de révision et d'exercices du jour ───────────
 var focusSeanceChoisie = null;
+var focusSeanceMinuteur = null;
+var focusEntreeDepuisSeance = false;
 
 function focusMinutesMaintenant() {
     var d = new Date();
@@ -214,23 +225,16 @@ function focusDureeTexte(mins) {
     return m + ' min';
 }
 
-function focusPomodorosTexte(mins) {
-    if (typeof v3PomodoroLabel === 'function') {
-        try { return v3PomodoroLabel(mins); } catch (e) {}
-    }
-    var n = Math.max(1, Math.round(Number(mins) / 25));
-    return n + ' × 25 min';
+function focusNombrePomodoros(mins) {
+    return Math.max(1, Math.ceil(Math.max(1, Number(mins) || 1) / focusDurees().focus));
 }
 
-function focusNombrePomodoros(mins) {
-    if (typeof v3PomodoroCount === 'function') {
-        try { return v3PomodoroCount(mins); } catch (e) {}
-    }
-    return Math.max(1, Math.round(Number(mins) / 25));
+function focusPomodorosTexte(mins) {
+    return focusNombrePomodoros(mins) + ' × ' + focusDurees().focus + ' min';
 }
 
 function focusJourIndex() {
-    if (typeof selectedDay === 'number' && selectedDay >= 0 && selectedDay <= 6) return selectedDay;
+    /* Le jour sélectionné dans le planning n'est jamais le jour de la séance. */
     if (typeof indexJourCourant === 'function') return indexJourCourant();
     return (new Date().getDay() + 6) % 7;
 }
@@ -239,7 +243,6 @@ function focusJourIndex() {
 function focusSeancesJour() {
     var seances = [];
     if (typeof generateDayEvents !== 'function') return seances;
-    if (typeof poserJourCourant === 'function') { try { poserJourCourant(); } catch (e) {} }
     var evenements = [];
     try { evenements = generateDayEvents(focusJourIndex()) || []; } catch (e) { return seances; }
     evenements.forEach(function (ev) {
@@ -274,10 +277,12 @@ function focusEtatSeance(seance) {
     return { cle: 'passee', texte: 'Terminée' };
 }
 
-function focusDateTexte() {
+function focusDateTexte(index) {
     var texte = '';
     try {
-        texte = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+        var date = new Date();
+        date.setDate(date.getDate() + (index == null ? focusJourIndex() : index) - ((date.getDay() + 6) % 7));
+        texte = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
     } catch (e) { texte = ''; }
     if (!texte) return '';
     return texte.charAt(0).toUpperCase() + texte.slice(1);
@@ -288,6 +293,8 @@ function focusAjouterCarteSeance(seance) {
     bouton.type = 'button';
     bouton.className = 'focus-seance' + (focusSeanceChoisie === seance.id ? ' is-on' : '');
     var etat = focusEtatSeance(seance);
+    bouton.disabled = etat.cle !== 'encours';
+    if (bouton.disabled) bouton.title = 'Disponible uniquement pendant ce créneau';
     var icone = document.createElement('span');
     icone.className = 'focus-seance-icone';
     icone.textContent = seance.icone;
@@ -339,6 +346,7 @@ function focusPeindreAccueil() {
     var liste = document.getElementById('focusAccueilListe');
     if (!liste) return;
     var seances = focusSeancesJour();
+    focusChoisirSeance();
 
     var fond = document.getElementById('focusAccueilFond');
     if (fond) focusFondAccueil((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src);
@@ -349,7 +357,7 @@ function focusPeindreAccueil() {
         var heure = new Date().getHours();
         var mot = heure < 18 ? 'Bonjour' : 'Bonsoir';
         var nom = (typeof userName !== 'undefined' && userName) ? String(userName) : '';
-        var date = focusDateTexte();
+        var date = focusDateTexte(focusJourIndex());
         bonjour.textContent = mot + (nom ? ' ' + nom : '') + (date ? ' · ' + date : '');
     }
 
@@ -365,14 +373,14 @@ function focusPeindreAccueil() {
         stats.innerHTML = '';
         stats.appendChild(focusAjouterStat(String(seances.length), seances.length > 1 ? 'séances' : 'séance', false));
         stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'de travail', false));
-        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions de 25 min', true));
+        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions de ' + focusDurees().focus + ' min', true));
     }
 
     liste.innerHTML = '';
     if (!seances.length) {
         var vide = document.createElement('p');
         vide.className = 'focus-accueil-vide';
-        vide.textContent = "Aucune séance de révision ou d'exercices n'est prévue aujourd'hui. Tu peux lancer un minuteur libre, ou ajouter une séance dans ton emploi du temps.";
+        vide.textContent = "Aucune séance de révision ou d'exercices n'est prévue aujourd'hui. Ajoute une séance dans ton emploi du temps.";
         liste.appendChild(vide);
     } else {
         seances.forEach(function (s) { liste.appendChild(focusAjouterCarteSeance(s)); });
@@ -382,42 +390,43 @@ function focusPeindreAccueil() {
     if (note) {
         var choisie = null;
         seances.forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
-        if (choisie) note.textContent = 'Séance choisie : « ' + choisie.titre + ' » de ' + choisie.debutTexte + ' à ' + choisie.finTexte + '. Elle deviendra ton objectif sur le minuteur.';
-        else if (seances.length) note.textContent = 'Choisis une séance, puis lance le minuteur Pomodoro.';
-        else note.textContent = 'Le minuteur reste disponible à tout moment.';
+        if (choisie) note.textContent = 'Séance en cours : « ' + choisie.titre + ' » de ' + choisie.debutTexte + ' à ' + choisie.finTexte + '.';
+        else if (seances.length) note.textContent = 'Aucune séance en cours. Les séances passées ou à venir ne peuvent pas être lancées.';
+        else note.textContent = 'Aucune séance ne peut être lancée pour le moment.';
+        var continuer = document.getElementById('focusAccueilContinuer');
+        if (continuer) continuer.disabled = !choisie || focusEtatSeance(choisie).cle !== 'encours';
     }
 }
 
-/* La séance du moment est choisie d'avance : celle qui est en cours, sinon la
-   première de la journée. Le choix reste si la personne revient en arrière. */
+/* Seule une séance qui a commencé et n'est pas finie est sélectionnable. */
 function focusChoisirSeance() {
-    if (focusSeanceChoisie && focusSeancesJour().some(function (s) { return s.id === focusSeanceChoisie; })) return;
-    var seances = focusSeancesJour();
-    var maintenant = focusMinutesMaintenant();
-    var choix = null;
-    seances.forEach(function (s) {
-        if (choix === null && maintenant >= s.debut && maintenant < s.fin) choix = s.id;
-    });
-    if (choix === null && seances.length) choix = seances[0].id;
-    focusSeanceChoisie = choix;
+    var seances = focusSeancesJour().filter(function (s) { return focusEtatSeance(s).cle === 'encours'; });
+    if (seances.some(function (s) { return s.id === focusSeanceChoisie; })) return;
+    focusSeanceChoisie = seances.length ? seances[0].id : null;
 }
 
 // De la liste au minuteur : une nouvelle étape dans l'historique, donc le
 // bouton retour du navigateur ramène d'abord sur la séance de révision.
 function focusEntrerPiece(libre) {
-    if (!libre && !focusSeanceChoisie) focusChoisirSeance();
-    if (!libre && focusSeanceChoisie) {
-        var choisie = null;
-        focusSeancesJour().forEach(function (s) { if (s.id === focusSeanceChoisie) choisie = s; });
-        var champ = document.getElementById('focusTache');
-        if (choisie && champ) {
-            champ.value = choisie.titre;
-            focusMemoriserObjectif();
-        }
+    if (libre) return; /* ancien raccourci : ne doit jamais contourner le créneau */
+    focusChoisirSeance();
+    var choisie = focusSeancesJour().filter(function (s) {
+        return s.id === focusSeanceChoisie && focusEtatSeance(s).cle === 'encours';
+    })[0];
+    if (!choisie) {
+        focusPeindreAccueil();
+        return;
+    }
+    focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin,
+        date: new Date().toDateString() };
+    focusEntreeDepuisSeance = true;
+    try { sessionStorage.setItem('studyPlanIB_focusSeanceEnCours', JSON.stringify(focusSeanceMinuteur)); } catch (e) {}
+    var champ = document.getElementById('focusTache');
+    if (champ) {
+        champ.value = choisie.titre;
+        focusMemoriserObjectif();
     }
     focusPeindre();
-    /* Le minuteur est une vraie étape : le bouton retour du navigateur
-       ramène sur la séance de révision, puis sur le planning. */
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
     else focusOuvrirMinuteur();
@@ -592,6 +601,16 @@ function focusBasculer() {
     focusCharger();
     if (focusEtat.running) {
         focusPause();
+        return;
+    }
+    if (focusEtat.mode === 'focus' && focusSeanceMinuteur &&
+        (focusSeanceMinuteur.date !== new Date().toDateString() ||
+         focusMinutesMaintenant() < focusSeanceMinuteur.debut ||
+         focusMinutesMaintenant() >= focusSeanceMinuteur.fin)) {
+        focusSeanceMinuteur = null;
+        try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
+        if (typeof memoireAller === 'function') memoireAller('seances');
+        else if (typeof navigateTo === 'function') navigateTo('seances');
         return;
     }
     if (focusEtat.restant <= 0) focusEtat.restant = focusEtat.total;
@@ -1615,6 +1634,22 @@ function focusBrancher() {
 function focusReprendreApresRafraichissement() {
     if (!window.__memoirePomodoroEnAttente) return;
     window.__memoirePomodoroEnAttente = false;
+    /* Une séance planifiée garde sa contrainte après rafraîchissement.
+       Le Pomodoro indépendant, lui, n'a pas de séance liée. */
+    try {
+        var liee = JSON.parse(sessionStorage.getItem('studyPlanIB_focusSeanceEnCours') || 'null');
+        if (liee && liee.id) {
+            if (liee.date !== new Date().toDateString() ||
+                focusMinutesMaintenant() < liee.debut || focusMinutesMaintenant() >= liee.fin) {
+                sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours');
+                if (typeof memoireAller === 'function') memoireAller('seances');
+                else if (typeof navigateTo === 'function') navigateTo('seances');
+                return;
+            }
+            focusSeanceMinuteur = liee;
+            focusEntreeDepuisSeance = true;
+        }
+    } catch (e) {}
     /* Un rafraîchissement sur le minuteur y revient directement : la personne
        n'a pas à retraverser la liste des séances. */
     if (typeof memoireAller === 'function') memoireAller('pomodoro');

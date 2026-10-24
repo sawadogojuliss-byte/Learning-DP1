@@ -804,6 +804,53 @@ if (!panneauReferme) {
     echec("la navigation doit refermer le panneau des sons et la galerie de la page Séance");
 }
 
+/* Lot 3 : la page Séance lit aujourd'hui, pas le jour cliqué dans le
+   planning. Horloge et trois créneaux simulés, sans modifier le profil. */
+const fondAvantLots34 = await page.evaluate(() => localStorage.getItem('studyPlanIB_focusFond'));
+const gardeSeances = await page.evaluate(() => {
+    const ancienJour = selectedDay;
+    const ancienneGeneration = generateDayEvents;
+    const ancienneHeure = focusMinutesMaintenant;
+    selectedDay = (indexJourCourant() + 1) % 7;
+    focusMinutesMaintenant = () => 10 * 60 + 30;
+    generateDayEvents = (jour) => jour === indexJourCourant() ? [
+        { id: 'lot3-passe', title: 'Passée', startTime: '09:00', endTime: '10:00', type: 'study' },
+        { id: 'lot3-actuelle', title: 'En cours', startTime: '10:00', endTime: '11:00', type: 'study' },
+        { id: 'lot3-future', title: 'À venir', startTime: '11:00', endTime: '12:00', type: 'study' }
+    ] : [{ id: 'lot3-autre-jour', title: 'Mauvais jour', startTime: '10:00', endTime: '11:00', type: 'study' }];
+    navigateTo('seances');
+    focusPeindreAccueil();
+    const cartes = [...document.querySelectorAll('#focusAccueilListe .focus-seance')];
+    const resultat = {
+        jourPlanningInchange: selectedDay === (indexJourCourant() + 1) % 7,
+        jourSeance: focusJourIndex() === indexJourCourant(),
+        date: document.getElementById('focusAccueilBonjour').textContent.includes(focusDateTexte(indexJourCourant())),
+        cartes: cartes.length, etats: cartes.map(b => b.disabled),
+        choix: focusSeanceChoisie, lancer: !document.getElementById('focusAccueilContinuer').disabled,
+        sansLibre: !document.querySelector('#panelSeances .focus-accueil-libre')
+    };
+    focusEntrerPiece(true);
+    resultat.blocageLibre = document.getElementById('panelSeances').classList.contains('active');
+    focusMinutesMaintenant = () => 12 * 60 + 30;
+    focusEntrerPiece();
+    resultat.blocagePasse = document.getElementById('panelSeances').classList.contains('active');
+    focusMinutesMaintenant = ancienneHeure;
+    generateDayEvents = ancienneGeneration;
+    selectedDay = ancienJour;
+    focusPoserFond(5);
+    navigateTo('planning');
+    navigateTo('seances');
+    resultat.fondConserveAuRetour = focusEtat.fond === 5 && localStorage.getItem('studyPlanIB_focusFond') === '5';
+    navigateTo('planning');
+    return resultat;
+});
+if (!gardeSeances.jourPlanningInchange || !gardeSeances.jourSeance || !gardeSeances.date ||
+    gardeSeances.cartes !== 3 || gardeSeances.etats.join('|') !== 'true|false|true' ||
+    gardeSeances.choix !== 'lot3-actuelle' || !gardeSeances.lancer || !gardeSeances.sansLibre ||
+    !gardeSeances.blocageLibre || !gardeSeances.blocagePasse || !gardeSeances.fondConserveAuRetour) {
+    echec('garde des séances du moment et décor du lot 3 : ' + JSON.stringify(gardeSeances));
+}
+
 /* Lot 5 : un exercice réellement ajouté dans CE navigateur, coché,
    filtré puis relu après rechargement. Aucun envoi distant ni mail. */
 const exercicesAvantLot5 = await page.evaluate(() => {
@@ -892,6 +939,92 @@ await page.evaluate((avant) => {
     exercices = avant ? JSON.parse(avant) : [];
     navigateTo('planning');
 }, exercicesAvantLot5);
+
+/* Le rechargement utilisé pour le lot 5 prouve aussi la persistance
+   du décor du lot 3. Les préférences de ce navigateur seront restaurées. */
+const fondApresReload = await page.evaluate(() => {
+    navigateTo('seances');
+    return { indice: focusEtat.fond, stocke: localStorage.getItem('studyPlanIB_focusFond') };
+});
+if (fondApresReload.indice !== 5 || fondApresReload.stocke !== '5') {
+    echec('le décor de la séance ne survit pas au rechargement : ' + JSON.stringify(fondApresReload));
+}
+await page.evaluate((avant) => {
+    if (avant == null) localStorage.removeItem('studyPlanIB_focusFond');
+    else localStorage.setItem('studyPlanIB_focusFond', avant);
+    focusPoserFond(avant == null ? focusIndexParId('lumiere') : Number(avant), true);
+    navigateTo('planning');
+}, fondAvantLots34);
+
+/* Lot 4 : trois suppressions testées sur des données locales provisoires,
+   sans toucher au profil réel ni appeler un service externe. */
+const annulations = await page.evaluate(() => {
+    const coursAvant = localStorage.getItem('studyPlanIB_emploiScolaire');
+    const devoirsAvant = localStorage.getItem('studyPlanIB_devoirs');
+    const exosAvant = localStorage.getItem('studyPlanIB_exercices');
+    const eventsAvant = localStorage.getItem('studyPlanIB_customEvents_juliss');
+    const anciensExos = exercices.slice();
+    const anciensEvents = customEvents.slice();
+    const jour = indexJourCourant();
+    const modele = { jours: [[], [], [], [], [], [], []], at: new Date().toISOString() };
+    modele.jours[jour] = [
+        { id: 'lot4-a', nom: 'Physique', matiere: 'Physique', debut: '09:00', fin: '10:00' },
+        { id: 'lot4-b', nom: 'Physique', matiere: 'Physique', debut: '11:00', fin: '12:00' },
+        { id: 'lot4-c', nom: 'Chimie', matiere: 'Chimie', debut: '13:00', fin: '14:00' }
+    ];
+    emploiScolaireEcrire(modele);
+    const original = devoirsLireStore();
+    const devoir = { id: 'lot4-dev', matiere: 'Physique', date: '2027-01-10', debut: '09:00', fin: '10:00' };
+    const examen = { id: 'lot4-exa', matiere: 'Chimie', date: '2027-01-12', debut: '09:00', fin: '10:00' };
+    devoirsEcrireStore({ ...original, devoirs: original.devoirs.concat(devoir), examens: original.examens.concat(examen) });
+    exercices = [{ id: 'lot4-exo', subject: 'Physique', subjectIcon: '📚', text: 'Témoin', duration: 30,
+        deadline: '2027-01-09', done: false, scheduledSlot: 'Aujourd’hui' }];
+    localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+    customEvents.push({ id: 'lot4-lie', exoId: 'lot4-exo', day: jour, title: 'Exercice Physique',
+        startTime: '16:00', endTime: '16:30', type: 'study', pinned: true });
+    localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents));
+    const boutonAnnuler = () => [...document.querySelectorAll('.suppression-toast button')].find(b => b.textContent === 'Annuler');
+    emploiSupprimer(jour, 'lot4-b');
+    const coursRetire = !emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
+    const deplacementPropose = !![...document.querySelectorAll('.suppression-toast button')]
+        .find(b => b.textContent.includes('Déplacer les révisions'));
+    boutonAnnuler()?.click();
+    const coursRestaure = emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
+    emploiToutEffacer();
+    const confirmeEffacer = !!document.getElementById('confirmationAction') &&
+        emploiScolaireLire().jours[jour].length === 3 &&
+        document.getElementById('confirmationAction').textContent.includes('Télécharger mes données');
+    document.querySelector('#confirmationAction button')?.click();
+    const pasEfface = emploiScolaireLire().jours[jour].length === 3;
+    devoirsSupprimer('devoirs', 'lot4-dev');
+    const devoirRetire = !devoirsLireStore().devoirs.some(d => d.id === 'lot4-dev');
+    boutonAnnuler()?.click();
+    const devoirRestaure = devoirsLireStore().devoirs.some(d => d.id === 'lot4-dev');
+    devoirsSupprimer('examens', 'lot4-exa');
+    const examenProtege = devoirsLireStore().examens.some(d => d.id === 'lot4-exa') &&
+        !!document.getElementById('confirmationAction');
+    document.querySelector('#confirmationAction button')?.click();
+    deleteExo('lot4-exo');
+    const exerciceRetire = !exercices.some(e => e.id === 'lot4-exo') &&
+        !customEvents.some(e => e.exoId === 'lot4-exo');
+    boutonAnnuler()?.click();
+    const exerciceRestaure = exercices.some(e => e.id === 'lot4-exo') &&
+        customEvents.some(e => e.exoId === 'lot4-exo');
+    if (coursAvant == null) localStorage.removeItem('studyPlanIB_emploiScolaire');
+    else localStorage.setItem('studyPlanIB_emploiScolaire', coursAvant);
+    if (devoirsAvant == null) localStorage.removeItem('studyPlanIB_devoirs');
+    else localStorage.setItem('studyPlanIB_devoirs', devoirsAvant);
+    if (exosAvant == null) localStorage.removeItem('studyPlanIB_exercices');
+    else localStorage.setItem('studyPlanIB_exercices', exosAvant);
+    if (eventsAvant == null) localStorage.removeItem('studyPlanIB_customEvents_juliss');
+    else localStorage.setItem('studyPlanIB_customEvents_juliss', eventsAvant);
+    exercices = anciensExos;
+    customEvents = anciensEvents;
+    generatePlanning();
+    return { coursRetire, deplacementPropose, coursRestaure, confirmeEffacer, pasEfface,
+        devoirRetire, devoirRestaure, examenProtege, exerciceRetire, exerciceRestaure };
+});
+if (Object.values(annulations).some(v => !v)) echec('annulations et confirmations du lot 4 : ' + JSON.stringify(annulations));
 
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {

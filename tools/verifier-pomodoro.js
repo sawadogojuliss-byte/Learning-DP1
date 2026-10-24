@@ -57,10 +57,10 @@ ok(script.indexOf('function focusChoisirSeance') !== -1, 'la sélection d\'une s
 /* ── 3. La page « Séance de révision du jour », à part, avant le minuteur ── */
 ['id="panelSeances"', 'id="focusAccueil"', 'id="focusAccueilListe"', 'id="focusAccueilStats"',
  'id="focusAccueilBonjour"', 'id="focusAccueilContinuer"', 'Séance de révision du jour',
- 'focusEntrerPiece(true)', 'focusEntrerPiece()'].forEach(function (extrait) {
+ 'focusEntrerPiece()'].forEach(function (extrait) {
     ok(seancesHtml.indexOf(extrait) !== -1, 'page de séance incomplète : ' + extrait);
 });
-ok(seancesHtml.indexOf('Minuteur libre') !== -1, 'le minuteur libre doit rester accessible');
+ok(seancesHtml.indexOf('Minuteur libre') === -1, 'la page Séance ne doit plus offrir le minuteur libre');
 ok(seancesHtml.indexOf('Lancer le minuteur') !== -1, 'le bouton doit lancer le minuteur');
 ok(script.indexOf('function focusSeancesJour') !== -1, 'les séances du jour ne sont pas lues dans l\'emploi du temps');
 ok(script.indexOf('function focusPeindreAccueil') !== -1, 'la page des séances ne se peint pas');
@@ -74,8 +74,8 @@ ok(script.indexOf("if (page) page.hidden = true;") !== -1,
     'revenir sur la page des séances doit cacher le minuteur');
 ok(page.indexOf('id="focusAccueil"') === -1, 'l\'accueil des séances ne doit plus vivre dans le minuteur');
 ok(page.indexOf('Tes séances du jour') === -1, 'l\'ancien accueil doit disparaître du minuteur');
-ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Choisis une séance, puis lance le minuteur Pomodoro') !== -1,
-    'la page doit expliquer qu\'on choisit une séance avant le minuteur');
+ok(seancesHtml.indexOf('focusAccueilSous') !== -1 && seancesHtml.indexOf('Lance uniquement la séance en cours') !== -1,
+    'la page doit demander de lancer uniquement la séance en cours');
 ok(page.indexOf('focus-nom') === -1, 'le badge Pomodoro en haut à droite doit disparaître');
 ok(lire('css/pages/planning-panels.css').indexOf('.focus-nom') === -1, 'le style du badge doit disparaître');
 
@@ -148,7 +148,7 @@ ok(page.indexOf('focusDots') === -1, 'la ligne de points doit disparaitre');
 ok(page.indexOf('Ma musique') === -1, 'Ma musique doit être retirée');
 ok(page.indexOf('Ma playlist') === -1, 'la playlist ne doit plus apparaître');
 ok(page.indexOf('focusImageDansImage') !== -1, 'le bouton image dans l image manque');
-ok(lire('js/pages/pomodoro.js').indexOf('if (!modal) return;') !== -1, 'la fenêtre du planning ne doit plus être appelée');
+ok(lire('js/registre.js').indexOf("'js/pages/pomodoro.js'") === -1, 'le second moteur Pomodoro doit être débranché');
 
 /* ── 6. Plus aucune tomate, ni en image, ni en mot dans les libellés ──
    La tomate revient à SA place : l'icône du menu Pomodoro (demande
@@ -158,15 +158,14 @@ var menuPomo = lire('pages/planning.html');
 var debutMenu = menuPomo.indexOf('id="menuMinuteur"');
 var blocMenu = menuPomo.slice(debutMenu, menuPomo.indexOf('</button>', debutMenu));
 ['pages/planning.html', 'pages/seances.html', 'pages/pomodoro.html', 'js/pages/planning-interface.js',
- 'js/pages/planning-base.js', 'js/pages/pomodoro.js', 'js/pages/pomodoro-page.js', 'style_v3.css',
+ 'js/pages/planning-base.js', 'js/pages/pomodoro-page.js', 'style_v3.css',
  'css/pages/planning-panels.css', 'js/pages/musique.js'].forEach(function (rel) {
     var texte = lire(rel);
     if (rel === 'pages/planning.html') texte = texte.replace(blocMenu, '');
     ok(texte.indexOf('🍅') === -1, 'il reste une tomate dans ' + rel + ' (seule l\u2019icône du menu Pomodoro y a droit)');
 });
-var pomo = lire('js/pages/pomodoro.js');
-ok(pomo.indexOf("' × 25 min'") !== -1, 'le décompte doit s\'écrire en minutes, sans tomate');
-ok(script.indexOf('sessions de 25 min') !== -1, 'la statistique doit parler de sessions de 25 min');
+ok(script.indexOf("' × ' + focusDurees().focus") !== -1, 'le décompte suit la durée réglée');
+ok(script.indexOf("'sessions de ' + focusDurees().focus") !== -1, 'la statistique suit la durée réglée');
 
 /* ── 7. Les fonds WebP, posés d'un coup, jamais de fondu ── */
 ['lumiere', 'kiosque', 'sommets', 'hublot', 'dunes', 'chalet', 'pont', 'riviere', 'prairie', 'noel', 'cafe', 'cafe-nuit', 'foret', 'campagne', 'tente', 'savane', 'recif', 'sentier', 'pluie-nuit', 'lecture', 'cabine', 'tunnel', 'stade'].forEach(function (id) {
@@ -198,8 +197,8 @@ ok(cssFonds.indexOf('transition: none') !== -1, 'le décor ne doit plus changer 
 ok(cssFonds.indexOf('background: #04140f') !== -1, 'le fond opaque de sécurité manque');
 ok(cssFonds.indexOf('images/pomodoro/lumiere.webp?v=') !== -1, 'le décor de secours doit être en WebP');
 ok(script.indexOf('is-chargement') !== -1, 'la vignette doit montrer qu elle charge');
-ok(script.indexOf("focusPoserFond(focusIndexParId('lumiere'), true)") !== -1, 'le minuteur doit ouvrir sur la lumiere du site');
-ok(script.indexOf("focusPoserFond(focusIndexParId('lumiere'), true)") !== -1, 'la séance de révision doit ouvrir sur la lumiere du site');
+ok(script.indexOf("focusPoserFond(focusIndexParId('lumiere'), true)") === -1, 'une ouverture ne doit plus écraser le décor choisi');
+ok(script.indexOf("localStorage.getItem('studyPlanIB_focusFond')") !== -1, 'le décor choisi doit être relu');
 
 /* ── 8. Le style de la page ── */
 var css = lire('css/pages/planning-panels.css');

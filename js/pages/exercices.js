@@ -251,11 +251,36 @@ function renderExoList() {
 }
 
 function deleteExo(id) {
-    exercices = exercices.filter(e => e.id !== id);
-    localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
-    exoMajBadge();
-    renderExoList();
-    renderPlanifier();
+    const index = exercices.findIndex(e => e.id === id);
+    if (index < 0) return;
+    const exercice = exercices[index];
+    const lies = typeof customEvents !== 'undefined' ? customEvents.filter(e => e && e.exoId === id) : [];
+    function actualiser() {
+        exoMajBadge();
+        renderExoList();
+        renderPlanifier();
+        if (typeof renderPlanning === 'function' && document.getElementById('eventsContainer')) renderPlanning();
+    }
+    suppressionAvecAnnulation({
+        message: 'Exercice « ' + exercice.subject + ' » supprimé · Annuler',
+        retirer: function () {
+            exercices = exercices.filter(e => e.id !== id);
+            if (lies.length && typeof customEvents !== 'undefined') {
+                customEvents = customEvents.filter(e => !e || e.exoId !== id);
+                if (typeof v3Save === 'function') v3Save();
+            }
+            localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+        },
+        restaurer: function () {
+            if (!exercices.some(e => e.id === id)) exercices.splice(Math.min(index, exercices.length), 0, exercice);
+            localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+            if (lies.length && typeof customEvents !== 'undefined') {
+                lies.forEach(e => { if (!customEvents.some(x => x.id === e.id)) customEvents.push(e); });
+                if (typeof v3Save === 'function') v3Save();
+            }
+        },
+        actualiser: actualiser
+    });
 }
 
 function renderPlanifier() {
@@ -498,6 +523,7 @@ function applyExerciseSlot(exo, slot, title) {
         });
         customEvents.push({
             id: 'del-' + slot.replacesId + '-' + slot.planDay,
+            exoId: exo.id,
             replacesId: slot.replacesId,
             day: slot.planDay,
             deleted: true,

@@ -14,12 +14,11 @@
                 <p class="focus-accueil-bonjour" id="focusAccueilBonjour"></p>
             </div>
             <h2 class="focus-accueil-titre">Séance de révision du jour</h2>
-            <p class="focus-accueil-sous" id="focusAccueilSous">Les révisions et les exercices prévus aujourd'hui. Choisis une séance, puis lance le minuteur Pomodoro.</p>
+            <p class="focus-accueil-sous" id="focusAccueilSous">Les révisions et les exercices prévus aujourd'hui. Lance uniquement la séance en cours.</p>
             <div class="focus-accueil-stats" id="focusAccueilStats"></div>
             <div class="focus-accueil-liste" id="focusAccueilListe"></div>
-            <p class="focus-accueil-note" id="focusAccueilNote"></p>
+            <p class="focus-accueil-note" id="focusAccueilNote" role="status" aria-live="polite"></p>
             <div class="focus-accueil-bas">
-                <button type="button" class="focus-accueil-libre" onclick="focusEntrerPiece(true)">Minuteur libre</button>
                 <button type="button" class="focus-accueil-continuer" id="focusAccueilContinuer" onclick="focusEntrerPiece()">Lancer le minuteur</button>
             </div>
         </div>

@@ -463,11 +463,61 @@ function emploiAjouterManuel() {
 
 function emploiSupprimer(jour, id) {
     var store = emploiScolaireLire();
-    store.jours[jour] = store.jours[jour].filter(function (c) { return c.id !== id; });
-    store.at = new Date().toISOString();
-    emploiScolaireEcrire(store);
-    emploiRendre();
-    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    if (!(jour >= 0 && jour <= 6)) return;
+    var index = store.jours[jour].findIndex(function (c) { return c.id === id; });
+    if (index < 0) return;
+    var cours = store.jours[jour][index];
+    var options = typeof emploiScolaireOptionsJour === 'function' ? emploiScolaireOptionsJour() : {};
+    var liees = typeof emploiScolaireTrous === 'function' && typeof emploiScolaireBlocsTravail === 'function'
+        ? emploiScolaireTrous(store.jours[jour]).filter(function (trou) { return trou.avant.id === id; })
+            .reduce(function (blocs, trou) {
+                return blocs.concat(emploiScolaireBlocsTravail(trou, options).filter(function (b) { return b.id.indexOf('emploi-rev-') === 0; }));
+            }, []) : [];
+    var restantes = store.jours[jour].filter(function (c) { return c.id !== id; });
+    var trous = typeof emploiScolaireTrous === 'function' ? emploiScolaireTrous(restantes, 60) : [];
+    var deplaces = [];
+    function actualiser() {
+        emploiRendre();
+        if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    }
+    suppressionAvecAnnulation({
+        message: 'Cours « ' + cours.nom + ' » supprimé' + (liees.length ? ' · ' + liees.length + ' révision' + (liees.length > 1 ? 's' : '') + ' liée' + (liees.length > 1 ? 's' : '') + '. Annuler pour les retrouver.' : '.'),
+        retirer: function () {
+            var courant = emploiScolaireLire();
+            courant.jours[jour] = courant.jours[jour].filter(function (c) { return c.id !== id; });
+            courant.at = new Date().toISOString();
+            emploiScolaireEcrire(courant);
+        },
+        restaurer: function () {
+            if (deplaces.length && typeof customEvents !== 'undefined') {
+                customEvents = customEvents.filter(function (e) { return !e || deplaces.indexOf(e.id) === -1; });
+                if (typeof v3Save === 'function') v3Save();
+            }
+            var courant = emploiScolaireLire();
+            if (!courant.jours[jour].some(function (c) { return c.id === id; })) {
+                courant.jours[jour].splice(Math.min(index, courant.jours[jour].length), 0, cours);
+                emploiScolaireEcrire(courant);
+            }
+        },
+        deplacer: liees.length && trous.length ? function () {
+            if (typeof customEvents === 'undefined') return;
+            /* Uniquement dans un creux encore libre entre deux cours ; le
+               moteur adapte les autres études autour de ce bloc fixé. */
+            liees.forEach(function (bloc) {
+                var place = trous.filter(function (t) { return t.fin - t.debut >= bloc.duree + 15; })[0];
+                if (!place) return;
+                var debut = place.debut + 5;
+                var identifiant = 'emploi-deplace-' + id + '-' + Date.now() + '-' + deplaces.length;
+                customEvents.push({ id: identifiant, day: jour, title: bloc.titre,
+                    startTime: emploiM2H(debut), endTime: emploiM2H(debut + bloc.duree),
+                    type: 'study', icon: bloc.icone, pinned: true, source: 'emploi-deplace', timestamp: Date.now() });
+                deplaces.push(identifiant);
+                place.debut = debut + bloc.duree + 10;
+            });
+            if (typeof v3Save === 'function') v3Save();
+        } : null,
+        actualiser: actualiser
+    });
 }
 
 function emploiRendre() {
@@ -490,14 +540,38 @@ function emploiRendre() {
             }).join('') + '</div>';
     }).join('');
     zone.innerHTML = total
-        ? '<p style="margin:0 0 0.5rem;font-size:0.82rem;font-weight:700;color:#065f46;">' + total + ' cours enregistré' + (total > 1 ? 's' : '') + ' — modèle appliqué chaque semaine <button type="button" onclick="emploiToutEffacer()" style="border:none;background:none;color:#dc2626;font-weight:700;cursor:pointer;font-size:0.78rem;text-decoration:underline;">tout effacer</button></p>' + html
+        ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">' +
+            '<p style="margin:0;font-size:0.82rem;font-weight:700;color:#065f46;">' + total + ' cours enregistré' + (total > 1 ? 's' : '') + ' — modèle appliqué chaque semaine</p>' +
+            '<button type="button" onclick="emploiToutEffacer()" style="border:1px solid #fca5a5;background:#fff;color:#b91c1c;border-radius:0.5rem;padding:0.4rem;font:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Tout effacer</button></div>' + html
         : '<p style="margin:0;font-size:0.82rem;color:#9ca3af;">Aucun cours pour l\u2019instant : sans emploi du temps, le planning garde des créneaux « Cours » génériques.</p>';
 }
 
+function emploiExporterAvantEffacement() {
+    var blob = new Blob([JSON.stringify(emploiScolaireLire(), null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var lien = document.createElement('a');
+    lien.href = url;
+    lien.download = 'studyplan-emploi-du-temps.json';
+    document.body.appendChild(lien);
+    lien.click();
+    lien.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
 function emploiToutEffacer() {
-    emploiScolaireVider();
-    emploiRendre();
-    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    var nombre = emploiScolaireLire().jours.reduce(function (n, liste) { return n + liste.length; }, 0);
+    if (!nombre) return;
+    confirmerAction({
+        titre: 'Effacer les ' + nombre + ' cours de l’emploi du temps ?',
+        detail: 'Le modèle hebdomadaire et ses révisions générées disparaîtront. Tu peux télécharger tes cours avant de confirmer.',
+        action: 'Effacer les cours',
+        exporter: emploiExporterAvantEffacement,
+        confirmer: function () {
+            emploiScolaireVider();
+            emploiRendre();
+            if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+        }
+    });
 }
 
 /* ── Navigation dans le parcours ──────────────────────────────────── */
