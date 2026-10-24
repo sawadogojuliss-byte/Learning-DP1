@@ -1118,7 +1118,7 @@ function devoirsSupprimer(genre, id) {
     if (cle === 'examens') {
         confirmerAction({
             titre: 'Supprimer l’examen de ' + objet.matiere + ' ?',
-            detail: 'Ses révisions planifiées disparaîtront aussi. Tu pourras annuler la suppression pendant 8 secondes.',
+            detail: 'Les révisions de ' + objet.matiere + ' disparaîtront aussi. Tu pourras annuler la suppression pendant 8 secondes.',
             action: 'Supprimer cet examen', confirmer: supprimer
         });
     } else supprimer();

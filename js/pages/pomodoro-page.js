@@ -171,10 +171,25 @@ function focusOuvrirSeances() {
     focusChoisirSeance();
     focusPeindreAccueil();
     focusAmorcerFonds();
+    /* Quand une séance commence ou finit pendant que la page est ouverte,
+       les boutons suivent l'heure réelle sans exiger un rechargement. */
+    if (focusRafraichirSeancesTimer) clearInterval(focusRafraichirSeancesTimer);
+    var signature = focusSignatureSeances();
+    focusRafraichirSeancesTimer = setInterval(function () {
+        var panel = document.getElementById('panelSeances');
+        if (!panel || !panel.classList.contains('active')) {
+            clearInterval(focusRafraichirSeancesTimer);
+            focusRafraichirSeancesTimer = null;
+            return;
+        }
+        var suivante = focusSignatureSeances();
+        if (suivante !== signature) { signature = suivante; focusPeindreAccueil(); }
+    }, 10000);
 }
 
 /* La page Pomodoro : le minuteur seul. */
 function focusOuvrirMinuteur() {
+    if (focusRafraichirSeancesTimer) { clearInterval(focusRafraichirSeancesTimer); focusRafraichirSeancesTimer = null; }
     focusCharger();
     focusFondsArret = false;
     var accueil = document.getElementById('focusAccueil');
@@ -197,6 +212,7 @@ function focusOuvrir() {
 }
 
 // ── ACCUEIL : les séances de révision et d'exercices du jour ───────────
+var focusRafraichirSeancesTimer = null;
 var focusSeanceChoisie = null;
 var focusSeanceMinuteur = null;
 var focusEntreeDepuisSeance = false;
@@ -396,6 +412,12 @@ function focusPeindreAccueil() {
         var continuer = document.getElementById('focusAccueilContinuer');
         if (continuer) continuer.disabled = !choisie || focusEtatSeance(choisie).cle !== 'encours';
     }
+}
+
+function focusSignatureSeances() {
+    return new Date().toDateString() + '|' + focusSeancesJour().map(function (s) {
+        return s.id + ':' + focusEtatSeance(s).cle;
+    }).join('|');
 }
 
 /* Seule une séance qui a commencé et n'est pas finie est sélectionnable. */

@@ -831,7 +831,12 @@ const gardeSeances = await page.evaluate(() => {
     };
     focusEntrerPiece(true);
     resultat.blocageLibre = document.getElementById('panelSeances').classList.contains('active');
+    focusEntrerPiece();
+    resultat.ouvertureActuelle = document.getElementById('panelPomodoro').classList.contains('active') &&
+        !!sessionStorage.getItem('studyPlanIB_focusSeanceEnCours');
     focusMinutesMaintenant = () => 12 * 60 + 30;
+    focusBasculer();
+    resultat.blocageMinuteur = !focusEtat.running && document.getElementById('panelSeances').classList.contains('active');
     focusEntrerPiece();
     resultat.blocagePasse = document.getElementById('panelSeances').classList.contains('active');
     focusMinutesMaintenant = ancienneHeure;
@@ -847,7 +852,8 @@ const gardeSeances = await page.evaluate(() => {
 if (!gardeSeances.jourPlanningInchange || !gardeSeances.jourSeance || !gardeSeances.date ||
     gardeSeances.cartes !== 3 || gardeSeances.etats.join('|') !== 'true|false|true' ||
     gardeSeances.choix !== 'lot3-actuelle' || !gardeSeances.lancer || !gardeSeances.sansLibre ||
-    !gardeSeances.blocageLibre || !gardeSeances.blocagePasse || !gardeSeances.fondConserveAuRetour) {
+    !gardeSeances.blocageLibre || !gardeSeances.ouvertureActuelle || !gardeSeances.blocageMinuteur ||
+    !gardeSeances.blocagePasse || !gardeSeances.fondConserveAuRetour) {
     echec('garde des séances du moment et décor du lot 3 : ' + JSON.stringify(gardeSeances));
 }
 
@@ -990,6 +996,13 @@ const annulations = await page.evaluate(() => {
         .find(b => b.textContent.includes('Déplacer les révisions'));
     boutonAnnuler()?.click();
     const coursRestaure = emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
+    emploiSupprimer(jour, 'lot4-b');
+    [...document.querySelectorAll('.suppression-toast button')]
+        .find(b => b.textContent.includes('Déplacer les révisions'))?.click();
+    const revisionDeplacee = customEvents.some(e => e.source === 'emploi-deplace');
+    boutonAnnuler()?.click();
+    const deplacementAnnule = !customEvents.some(e => e.source === 'emploi-deplace') &&
+        emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
     emploiToutEffacer();
     const confirmeEffacer = !!document.getElementById('confirmationAction') &&
         emploiScolaireLire().jours[jour].length === 3 &&
@@ -1021,7 +1034,7 @@ const annulations = await page.evaluate(() => {
     exercices = anciensExos;
     customEvents = anciensEvents;
     generatePlanning();
-    return { coursRetire, deplacementPropose, coursRestaure, confirmeEffacer, pasEfface,
+    return { coursRetire, deplacementPropose, coursRestaure, revisionDeplacee, deplacementAnnule, confirmeEffacer, pasEfface,
         devoirRetire, devoirRestaure, examenProtege, exerciceRetire, exerciceRestaure };
 });
 if (Object.values(annulations).some(v => !v)) echec('annulations et confirmations du lot 4 : ' + JSON.stringify(annulations));
