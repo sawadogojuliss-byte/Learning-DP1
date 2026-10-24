@@ -217,8 +217,9 @@ const importExamens = await page.evaluate(() => {
     devoirsLireDocument('examens');
     const proposition = zone.querySelector('[data-prop]');
     const date = zone.querySelector('.prop-date');
+    const rectApercu = zone.getBoundingClientRect();
     const apercuVisible = !!proposition && !!date && !date.value &&
-        zone.getBoundingClientRect().height > 0 &&
+        rectApercu.height > 0 && rectApercu.top < innerHeight && rectApercu.bottom > 0 &&
         !document.getElementById('onglet-devoirs').contains(zone) &&
         !document.getElementById('onglet-examens').contains(zone);
     const dateSignalee = document.getElementById('exaOcrStatut').textContent.includes('Date à préciser');
@@ -243,12 +244,23 @@ const importExamens = await page.evaluate(() => {
     devoirsBasculerOnglet('devoirs');
     devoirsViderPropositions();
     const autreBrouillonGarde = document.getElementById('devoirsTexteColle').value === 'brouillon devoir';
+    devoirsBasculerOnglet('devoirs');
+    devoirsMontrerPropositions('', 'devoirs', true);
+    const ligneOcrVide = zone.querySelector('[data-prop]');
+    const champsCompleter = !!ligneOcrVide && !!zone.querySelector('.prop-matiere') &&
+        !!zone.querySelector('.prop-date') &&
+        document.getElementById('devoirsOcrStatut').textContent.includes('Complète la ligne');
+    devoirsConfirmerPropositions('devoirs');
+    const rienPlanifieSansMatiere = devoirsLireStore().devoirs.length === original.devoirs.length &&
+        document.activeElement === zone.querySelector('.prop-matiere');
+    devoirsViderPropositions();
     devoirsEcrireStore(original);
     devoirsRendre();
     document.getElementById('devoirsTexteColle').value = '';
     navigateTo('planning');
     return { apercuVisible, dateSignalee, refusDate, visibleApresChangement,
-        ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde };
+        ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde,
+        champsCompleter, rienPlanifieSansMatiere };
 });
 if (!importExamens || Object.values(importExamens).some(resultat => !resultat)) {
     echec('aperçu commun, date à préciser et confirmation des examens : ' + JSON.stringify(importExamens));

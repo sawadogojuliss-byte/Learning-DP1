@@ -379,7 +379,7 @@ function devoirsParserTexte(texte, connues) {
     function devoirsH2Mvalide(h) {
         return h && devoirsH2M(h.fin) > devoirsH2M(h.debut);
     }
-    function viderBloc() {
+    function viderBloc(dernier) {
         var n = Math.min(blocHeures.length, blocMatieres.length);
         var k;
         for (k = 0; k < n; k++) {
@@ -389,14 +389,14 @@ function devoirsParserTexte(texte, connues) {
         }
         /* des matières sans heures pour ce jour-là : le créneau du jour
            les recevra — les heures se complètent à la confirmation */
-        if (!blocHeures.length && blocMatieres.length && (dateCourante || dateCouranteIncertaine)) {
+        if (!blocHeures.length && blocMatieres.length && (dateCourante || dateCouranteIncertaine || (dernier && !propositions.length))) {
             blocMatieres.forEach(function (mm) {
                 propositions.push({ matiere: mm, date: dateCourante, debut: '', fin: '', ligne: '' });
             });
         }
         /* des heures sans matière ne sont proposées à compléter que si
            le bloc ne parle pas d'une matière que l'élève ne suit pas */
-        if (blocHeures.length && !blocMatieres.length && (dateCourante || dateCouranteIncertaine) && !blocRefuse) {
+        if (blocHeures.length && !blocMatieres.length && (dateCourante || dateCouranteIncertaine || (dernier && !propositions.length)) && !blocRefuse) {
             for (k = 0; k < blocHeures.length; k++) {
                 if (devoirsH2Mvalide(blocHeures[k])) {
                     propositions.push({ matiere: '', date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
@@ -575,7 +575,7 @@ function devoirsParserTexte(texte, connues) {
             continue;
         }
     }
-    viderBloc();
+    viderBloc(true);
     return propositions;
 }
 
@@ -774,6 +774,10 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     genre = genre === 'examens' ? 'examens' : 'devoirs';
     devoirsPropositionsGenre = genre;
     var propositions = devoirsParserTexte(texte);
+    var rienReconnu = estOcr && !propositions.length;
+    /* Même si la photo n'a rien donné, l'élève peut remplir la ligne
+       sous le document : l'OCR ne crée jamais une date ou un cours. */
+    if (rienReconnu) propositions = [{ matiere: '', date: '', debut: '', fin: '', ligne: '' }];
     if (genre === 'devoirs') devoirsRemplirCreneaux(propositions);
     devoirsPropositions = propositions.map(function (p, i) {
         p.cle = 'prop' + i;
@@ -789,16 +793,20 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
         return;
     }
     var sansDate = devoirsPropositions.filter(function (p) { return !p.date; }).length;
+    var sansMatiere = devoirsPropositions.filter(function (p) { return !p.matiere; }).length;
+    var sansHeures = genre === 'examens' ? devoirsPropositions.filter(function (p) { return !p.debut || !p.fin; }).length : 0;
     var lignes = devoirsPropositions.map(function (p) {
         var passe = p.date && devoirsEstPasse(p.date, p.fin);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
             (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#9ca3af;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
             (!p.date ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Date à préciser</span>' : '') +
-            '<input class="prop-matiere" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
+            (!p.matiere ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Matière à préciser</span>' : '') +
+            (genre === 'examens' && (!p.debut || !p.fin) ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Heures à préciser</span>' : '') +
+            '<input class="prop-matiere" aria-label="Matière du créneau" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-date" type="date" aria-label="Date à préciser ou à vérifier" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
-            '<input class="prop-debut" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
+            '<input class="prop-debut" aria-label="Heure de début" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<span style="color:#9ca3af;">→</span>' +
-            '<input class="prop-fin" type="time" value="' + devoirsEchap(p.fin) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
+            '<input class="prop-fin" aria-label="Heure de fin" type="time" value="' + devoirsEchap(p.fin) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<button type="button" onclick="devoirsRetirerProposition(\'' + p.cle + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:1rem;">✕</button>' +
             '</div>';
     }).join('');
@@ -811,9 +819,21 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
         '<button type="button" onclick="devoirsViderPropositions()" style="flex:1;padding:0.7rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;background:white;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Tout effacer</button>' +
         '<button type="button" onclick="devoirsConfirmerPropositions(\'' + genre + '\')" style="flex:2;padding:0.7rem;border:none;border-radius:0.75rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">Ajouter au planning</button>' +
         '</div></div>';
-    devoirsDireOcr(genre, devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') +
-        ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + '.' +
-        (sansDate ? ' Date à préciser pour ' + sansDate + ' ligne' + (sansDate > 1 ? 's' : '') + ' avant l’ajout.' : ''), !!sansDate);
+    devoirsDireOcr(genre,
+        (rienReconnu ? 'Aucun créneau reconnu avec certitude. Complète la ligne ci-dessous : matière, date' +
+            (genre === 'examens' ? ' et heures.' : ', et heures si tu ne connais pas de créneau scolaire.') :
+            devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') +
+            ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + '.' +
+            (sansDate ? ' Date à préciser pour ' + sansDate + ' ligne' + (sansDate > 1 ? 's' : '') + '.' : '') +
+            (sansMatiere ? ' Matière à préciser.' : '') +
+            (sansHeures ? ' Heures à préciser.' : '')),
+        !!(rienReconnu || sansDate || sansMatiere || sansHeures));
+    /* L'aperçu commun se trouve après les onglets : l'afficher vraiment
+       sous les yeux de l'élève, puis l'amener au premier champ manquant. */
+    if (typeof zone.scrollIntoView === 'function') zone.scrollIntoView({ block: 'start', behavior: 'auto' });
+    var selecteurManquant = sansMatiere ? '.prop-matiere' : sansDate ? '.prop-date' : sansHeures ? '.prop-debut' : '';
+    var premierChamp = selecteurManquant && zone.querySelector ? zone.querySelector(selecteurManquant) : null;
+    if (premierChamp && typeof premierChamp.focus === 'function') premierChamp.focus();
 }
 
 function devoirsRetirerProposition(cle) {
@@ -838,14 +858,30 @@ function devoirsViderPropositions() {
 
 function devoirsConfirmerPropositions(genre) {
     genre = devoirsPropositionsGenre || genre;
-    /* N'enregistrer aucune ligne avec une date inventée ou manquante.
-       L'aperçu reste en place pour que l'élève la corrige. */
-    var sansDate = devoirsPropositions.some(function (p) {
+    /* On vérifie toutes les informations indispensables avant la moindre
+       écriture : une erreur OCR reste corrigible dans l'aperçu commun. */
+    var manque = null;
+    devoirsPropositions.some(function (p) {
         var el = document.querySelector('[data-prop="' + p.cle + '"]');
-        return !(el ? (el.querySelector('.prop-date') || {}).value : p.date);
+        function champ(classe, repli) {
+            var input = el && el.querySelector(classe);
+            return { input: input, valeur: input ? String(input.value || '').trim() : String(repli || '').trim() };
+        }
+        var matiere = champ('.prop-matiere', p.matiere);
+        var date = champ('.prop-date', p.date);
+        var debut = champ('.prop-debut', p.debut);
+        var fin = champ('.prop-fin', p.fin);
+        if (!matiere.valeur) manque = { texte: 'Matière à préciser avant l’ajout.', champ: matiere.input };
+        else if (!date.valeur) manque = { texte: 'Date à préciser avant l’ajout au planning.', champ: date.input };
+        else if (!!debut.valeur !== !!fin.valeur || (genre === 'examens' && !debut.valeur && !fin.valeur) ||
+            (genre === 'devoirs' && !debut.valeur && !fin.valeur && !devoirsCreneauDunJour(date.valeur))) {
+            manque = { texte: 'Heures de début et de fin à préciser pour planifier ce créneau.', champ: debut.input };
+        }
+        return !!manque;
     });
-    if (sansDate) {
-        devoirsDireOcr(genre, 'Date à préciser avant l’ajout au planning. Corrige la ligne ci-dessous.', true);
+    if (manque) {
+        devoirsDireOcr(genre, manque.texte + ' Complète la ligne ci-dessous.', true);
+        if (manque.champ && typeof manque.champ.focus === 'function') manque.champ.focus();
         return;
     }
     var ajoutes = 0;

@@ -276,6 +276,14 @@ ok(dateAmbigue.length === 1 && dateAmbigue[0].date === '' && dateAmbigue[0].mati
     ok(lu.length === 1 && lu[0].date === '',
         'une date impossible a été normalisée en un autre jour : ' + JSON.stringify(lu));
 });
+const matiereSansDate = context.devoirsParserTexte('Physique');
+ok(matiereSansDate.length === 1 && matiereSansDate[0].matiere === 'Physique' &&
+    matiereSansDate[0].date === '' && !matiereSansDate[0].debut,
+    'si l’OCR voit seulement la matière, il faut proposer la ligne à compléter : ' + JSON.stringify(matiereSansDate));
+const heuresSansDate = context.devoirsParserTexte('08h00 - 10h00');
+ok(heuresSansDate.length === 1 && heuresSansDate[0].date === '' &&
+    heuresSansDate[0].matiere === '' && heuresSansDate[0].debut === '08:00',
+    'l’OCR doit conserver les heures reconnues et demander matière + date : ' + JSON.stringify(heuresSansDate));
 const dateDansTableau = context.devoirsParserTexte([
     '20/10/2026', '08:00 - 10:00', 'Histoire',
     'lundi 31', '13:00 - 15:00', 'Physique',
@@ -312,6 +320,24 @@ ok(context.devoirsLireStore().examens.length === nombreExamensAvant &&
 context.devoirsViderPropositions();
 ok(!champsTest.devoirsTexteColleExam.value && champsTest.devoirsTexteColle.value === 'autre brouillon',
     'Tout effacer a supprimé le brouillon de l’autre onglet');
+/* Aucun élément reconnu : un formulaire vide permet de compléter
+   les informations au lieu d'abandonner le document OCR. */
+context.devoirsMontrerPropositions('', 'devoirs', true);
+ok(context.devoirsPropositions.length === 1 && apercuTest.innerHTML.includes('Matière à préciser') &&
+    apercuTest.innerHTML.includes('Date à préciser') && statutDevTest.textContent.includes('Complète la ligne'),
+    'une photo OCR illisible doit proposer de compléter les champs manquants');
+context.devoirsConfirmerPropositions('devoirs');
+ok(context.devoirsLireStore().devoirs.length === 0 && statutDevTest.textContent.includes('Matière à préciser'),
+    'un OCR vide a créé un faux devoir');
+context.devoirsPropositions = [{ cle: 'prop0', matiere: 'Physique', date: '2026-11-12', debut: '', fin: '' }];
+const creneauOriginal = context.devoirsCreneauDunJour;
+context.devoirsCreneauDunJour = function () { return null; };
+context.devoirsConfirmerPropositions('devoirs');
+ok(statutDevTest.textContent.includes('Heures de début et de fin') &&
+    context.devoirsLireStore().devoirs.length === 0,
+    'sans créneau scolaire, un devoir OCR sans heures serait invisible dans le planning');
+context.devoirsCreneauDunJour = creneauOriginal;
+context.devoirsViderPropositions();
 context.document.getElementById = getElOriginal;
 context.document.querySelector = queryOriginal;
 
