@@ -49,7 +49,7 @@ try {
     await popup.locator('[data-retour]').click();
     await popup.locator('[data-autre-creneau]').click();
     assert(await popup.locator('.chev-proposition').count() > 0);
-    await popup.locator('[data-annuler]').click();
+    await popup.locator('#chevauchementChoix [data-annuler]').click();
     assert.equal(await popup.count(), 0);
     assert.equal(await page.evaluate(() => window.__testSaves), 0);
     await page.evaluate(() => confirmAddActivity());
