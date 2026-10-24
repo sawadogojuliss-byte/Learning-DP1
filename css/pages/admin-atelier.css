@@ -56,7 +56,11 @@
     width:2.8rem;height:2.8rem;display:grid;place-items:center;color:#fff;margin-bottom:1.4rem;
 }
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-liens {
-    display:flex;flex-direction:column;align-items:center;gap:.55rem;width:100%;
+    /* Le sélecteur global « nav » de style_v1 ajoute normalement un grand
+       voile blanc flouté : dans le rail il doit rester entièrement vert. */
+    position:static;z-index:auto;background:transparent;backdrop-filter:none;
+    border:0;display:flex;flex-direction:column;align-items:center;gap:.48rem;
+    width:100%;padding:.35rem .2rem;border-radius:1rem;
 }
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-retour,
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-lien {
@@ -64,10 +68,16 @@
     padding:0;border:0;border-radius:.75rem;background:transparent;color:#c5e3cf;
     font:inherit;font-size:1.3rem;cursor:pointer;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-retour:hover,
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-lien:hover { background:#317255; }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-lien[aria-current="page"] {
-    background:#e9f5e9;color:#235d4a;
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien {
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);
+    transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien:hover {
+    background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.22);transform:translateY(-1px);
+}
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-retour:hover { background:#317255; }
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien[aria-current="page"] {
+    background:#e3f0e6;border-color:#e3f0e6;color:#235d4a;box-shadow:0 5px 14px rgba(0,0,0,.12);
 }
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav button:focus-visible {
     outline:3px solid #ffcf93;outline-offset:2px;
@@ -176,8 +186,8 @@
     :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-marque {
         width:2.4rem;height:2.4rem;font-size:1.5rem;margin-bottom:.6rem;
     }
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-lien,
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-retour {
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien,
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-retour {
         width:2.4rem;height:2.4rem;font-size:1.15rem;
     }
     #panelAdmin .admin-atelier-retour-mobile,#panelEmplois .emploi-atelier-retour-mobile { display:none; }

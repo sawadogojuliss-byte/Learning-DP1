@@ -38,4 +38,8 @@ assert.match(annonces, /panneau\.classList\.toggle\('annonce-public', !admin\)/)
 assert.match(css, /#panelAnnonce\.annonce-public \.admin-nav-prive[^\n]*display:none/);
 assert.match(css, /#panelAnnonce\.annonce-public \.admin-nav-lien\[aria-current="page"\][^\n]*display:grid/);
 assert.match(css, /@media\(max-width:750px\)/);
-console.log('ok pages admin Atelier : rail persistant, dossier et quatre accès, lecteur public protégé, actions et champs préservés');
+assert.match(css, /\.admin-nav-liens\s*\{[^}]*background:transparent;backdrop-filter:none;/s,
+    'le fond blanc global de nav ne doit pas couvrir le rail vert');
+assert.match(css, /\.admin-nav \.admin-nav-lien\s*\{[^}]*background:rgba\(255,255,255,\.07\)/s,
+    'chaque icône du rail doit partager un fond discret');
+console.log('ok pages admin Atelier : rail persistant uniforme, dossier et quatre accès, lecteur public protégé, actions et champs préservés');

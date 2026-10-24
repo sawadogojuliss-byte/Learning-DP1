@@ -65,6 +65,11 @@ try {
         assert.equal(await nav.locator('.admin-nav-lien[aria-label="Espace admin"]').isVisible(), true,
             'le dossier reste visible dans ' + name);
         assert.equal(await nav.locator('.admin-nav-lien').count(), 5);
+        assert.deepEqual(await nav.locator('.admin-nav-liens').evaluate(el => {
+            const style = getComputedStyle(el);
+            return [style.backgroundColor, style.backdropFilter, style.borderBottomWidth];
+        }), ['rgba(0, 0, 0, 0)', 'none', '0px'], 'pas de bande blanchâtre dans le rail ' + name);
+        assert.equal(await nav.evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(22, 70, 51)');
         await page.evaluate(() => navigateTo('admin'));
     }
     await page.setViewportSize({ width: 390, height: 844 });
