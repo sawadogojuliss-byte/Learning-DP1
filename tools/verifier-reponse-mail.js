@@ -396,9 +396,32 @@ attendre(200).then(function () {
         assert.ok(items.some(function (item) { return item.id === 'f-new'; }), 'nouveau feedback absent');
         assert.ok(items.some(function (item) { return item.id === 'r-new'; }), 'nouvelle réponse absente');
         assert.ok(items.some(function (item) { return item.id === 'e-new'; }), 'nouvel emploi du temps absent');
-        return context.boiteEcrireBoite({ type: 'emploi', id: 'e-envoye', at: new Date().toISOString() });
+        const planning = {
+            type: 'emploi', id: 'e-envoye', at: new Date().toISOString(),
+            nom: 'Awa', classe: 'DP2', appareil: 'app-awa',
+            matieres: ['Mathématiques AA SL', 'Physique HL'],
+            jours: [
+                { j: 'Lundi', s: [
+                    { d: '10:00', f: '11:00', t: 'Français' },
+                    { d: '08:00', f: '09:30', t: 'Mathématiques' }
+                ] },
+                { j: 'Mardi', s: [{ d: '14:00', f: '15:00', t: 'Physique' }] }
+            ]
+        };
+        assert.strictEqual(context.boiteDecouperEmploi(planning).length, 1, 'un planning Firestore a été découpé par jour');
+        return context.boiteEcrireBoite(planning);
     }).then(function () {
-        assert.ok(bdd.emplois_du_temps.some(function (item) { return item.id === 'e-envoye'; }), 'écriture emploi du temps dans la mauvaise collection');
+        const document = bdd.emplois_du_temps.find(function (item) { return item.id === 'e-envoye'; });
+        assert.ok(document, 'écriture emploi du temps dans la mauvaise collection');
+        assert.strictEqual(document['01_nom_utilisateur'], 'Awa', 'nom absent en tête');
+        assert.strictEqual(document['02_matieres'][1], 'Physique HL', 'matières absentes');
+        assert.strictEqual(document['03_emploi_du_temps']['01_Lundi'][0], '08h00 – 09h30  ·  Mathématiques', 'premier jour illisible ou non trié par heure');
+        assert.strictEqual(document['03_emploi_du_temps']['02_Mardi'][0], '14h00 – 15h00  ·  Physique', 'semaine incomplète');
+        assert.ok(!('jours' in document) && !('matieres' in document) && !('nom' in document), 'champs techniques mélangés à la fiche lisible');
+        const relecture = context.boiteFusionner([document]);
+        assert.strictEqual(relecture.emplois[0].jours[1].s[0].t, 'Physique', 'le site a perdu les vrais créneaux');
+        assert.strictEqual(relecture.emplois[0].jours[0].s[0].t, 'Français', 'le tri d’affichage a modifié le planning source');
+        assert.strictEqual(relecture.emplois[0].appareil, 'app-awa', 'l’identifiant du planning est perdu');
         store[context.BOITE_VUS] = JSON.stringify({ questions: [{ texte: 'copie privée' }] });
         context.boiteSecretCache = 'secret temporaire';
         context.boiteNettoyerSession();

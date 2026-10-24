@@ -234,9 +234,53 @@ function boiteAjouterBruts(items) {
    collection. Si les règles refusent une écriture, on la signale à
    l'appelant et la file locale la conserve pour réessayer : ne jamais
    afficher « envoyé » après un repli silencieux dans l'archive. */
+/* Format lisible par un responsable dans la console Firestore. Elle trie
+   les champs par nom : 01 nom, 02 matières, 03 semaine. Les vrais créneaux
+   restent intacts sous z_donnees_techniques pour le planning du site. */
+function boiteEmploiPourFirestore(record) {
+    if (!record || record.type !== 'emploi' || Object.prototype.hasOwnProperty.call(record, '03_emploi_du_temps')) return record;
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    var semaine = {};
+    (record.jours || []).forEach(function (jour) {
+        var rang = noms.indexOf(jour && jour.j);
+        if (rang === -1) return;
+        var cle = String(rang + 1).padStart(2, '0') + '_' + noms[rang];
+        semaine[cle] = (jour.s || []).slice().sort(function (a, b) {
+            return String(a && a.d || '').localeCompare(String(b && b.d || ''));
+        }).map(function (slot) {
+            var debut = String(slot && slot.d || '').trim();
+            var fin = String(slot && slot.f || '').trim();
+            function heureLisible(h) { return /^\d{1,2}:\d{2}$/.test(h) ? h.replace(':', 'h') : h; }
+            var periode = heureLisible(debut) + (fin ? ' – ' + heureLisible(fin) : '');
+            return (periode ? periode + '  ·  ' : '') + String(slot && slot.t || '').trim();
+        });
+    });
+    var technique = Object.assign({}, record);
+    ['type', 'id', 'at', 'nom', 'matieres'].forEach(function (champ) { delete technique[champ]; });
+    return {
+        type: 'emploi', id: record.id, at: record.at,
+        '01_nom_utilisateur': String(record.nom || 'Sans nom'),
+        '02_matieres': Array.isArray(record.matieres) ? record.matieres : [],
+        '03_emploi_du_temps': semaine,
+        z_donnees_techniques: technique
+    };
+}
+
+function boiteEmploiDepuisDocument(item) {
+    if (!item || item.type !== 'emploi' || !Object.prototype.hasOwnProperty.call(item, '03_emploi_du_temps')) return item;
+    var technique = item.z_donnees_techniques || {};
+    return Object.assign({}, technique, {
+        type: 'emploi', id: item.id, at: item.at,
+        nom: String(item['01_nom_utilisateur'] || ''),
+        matieres: Array.isArray(item['02_matieres']) ? item['02_matieres'] : [],
+        jours: Array.isArray(technique.jours) ? technique.jours : []
+    });
+}
+
 function boiteEcrireBoite(record) {
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
+    if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre);
     if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function () {
         return firebase.firestore().collection(collection).add(propre);
@@ -506,32 +550,12 @@ function boiteCleEmploi(item) {
     return 'app:' + String(item.appareil || item.id || item.nom || '');
 }
 
+/* Firestore accepte le planning de toute la semaine dans un document.
+   L'ancien découpage en morceaux (limite du canal ntfy supprimé) rendait
+   illisible la semaine dans la console ; les anciens morceaux restent
+   pris en charge par boiteReassemblerEmplois à la lecture. */
 function boiteDecouperEmploi(record) {
-    if (!record || record.type !== 'emploi') return [record];
-    var jours = record.jours || [];
-    if (!jours.length || JSON.stringify(record).length <= 3200) return [record];
-    return jours.map(function (jour, index) {
-        var morceau = {
-            type: 'emploi',
-            id: record.id,
-            appareil: record.appareil,
-            at: record.at,
-            nom: record.nom,
-            classe: record.classe || '',
-            email: record.email || '',
-            google: record.google || '',
-            googleNom: record.googleNom || '',
-            googleSub: record.googleSub || '',
-            flammes: Number(record.flammes || 0),
-            matieres: record.matieres || [],
-            jours: [jour],
-            complet: 0,
-            partie: index + 1,
-            total: jours.length
-        };
-        if (JSON.stringify(morceau).length > 3600) morceau.coupee = 1;
-        return morceau;
-    });
+    return [record];
 }
 
 function boiteReassemblerEmplois(items) {
@@ -791,7 +815,7 @@ function boiteFusionner(items) {
     var vusC = {};
     var vusT = {};
     (items || []).forEach(function (item) {
-        item = boiteQuestionDepuisDocument(item);
+        item = boiteEmploiDepuisDocument(boiteQuestionDepuisDocument(item));
         if (!item || !item.type || item.type === 'coffre') return;
         /* Les envois de test de la vérification navigatrice ne doivent
            jamais s'afficher chez les admins. */

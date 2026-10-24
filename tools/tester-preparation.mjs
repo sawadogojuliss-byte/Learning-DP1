@@ -99,6 +99,24 @@ for (const [type, collection] of Object.entries({
     }
 }
 
+/* Vérifie également la présentation du planning dans Firestore, sans
+   écrire de document ni envoyer de mail : toute la semaine dans une fiche. */
+const fiche = await page.evaluate(() => {
+    if (typeof boiteEmploiPourFirestore !== 'function' || typeof boiteEmploiDepuisDocument !== 'function') return null;
+    const brut = { type: 'emploi', id: 'e-local', at: new Date().toISOString(),
+        nom: 'Élève', matieres: ['Physique HL'],
+        jours: [{ j: 'Lundi', s: [{ d: '08:00', f: '09:00', t: 'Physique' }] }] };
+    const format = boiteEmploiPourFirestore(brut);
+    return { nom: format['01_nom_utilisateur'],
+        matieres: format['02_matieres'],
+        jour: format['03_emploi_du_temps']?.['01_Lundi']?.[0],
+        retour: boiteEmploiDepuisDocument(format).jours[0]?.s[0]?.t };
+});
+if (!fiche || fiche.nom !== 'Élève' || fiche.matieres[0] !== 'Physique HL' ||
+    fiche.jour !== '08h00 – 09h00  ·  Physique' || fiche.retour !== 'Physique') {
+    echec('fiche emploi du temps déployée incorrecte : ' + JSON.stringify(fiche));
+}
+
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;

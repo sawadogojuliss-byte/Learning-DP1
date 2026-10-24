@@ -78,6 +78,23 @@ part séparément dans `emplois_du_temps`. Les anciennes questions restent sous
 leur format d'origine, et le site lit les deux formats. Publier des règles
 Firestore ne transforme pas les documents déjà présents.
 
+## Présentation des emplois du temps dans Firebase
+
+Pour les **nouveaux envois** dans `emplois_du_temps`, la console montre en
+premier `01_nom_utilisateur`, puis `02_matieres` et enfin
+`03_emploi_du_temps`. Ce dernier champ déroule les jours de la semaine dans
+l'ordre (`01_Lundi`, `02_Mardi`, etc.), avec une ligne par créneau, par exemple
+`08h00 – 09h30  ·  Mathématiques`. Un planning hebdomadaire tient dans **un
+seul document**, plutôt que d'être découpé en morceaux par jour.
+
+Les champs techniques indispensables au site sont rangés sous
+`z_donnees_techniques`. Le site reconstitue le planning exact depuis ces
+champs, sans changer les vrais cours, trajets ou autres créneaux. Les anciens
+documents conservent leur format : il faudrait une migration distincte pour
+les réécrire. La console Firebase ne permet pas d'ajouter couleurs, tableau
+ou mise en page personnalisée à ces documents ; un rendu plus visuel doit
+être fait dans une page réservée aux admins, séparément.
+
 ## Anciennes entrées de `boite` (ne pas effacer)
 
 Les données déjà présentes dans `boite` restent **mélangées dans cette archive**,
