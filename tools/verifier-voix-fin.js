@@ -30,11 +30,16 @@ ok(moduleSrc.indexOf('formulaire') === -1 && !moduleSrc.includes('innerHTML'),
     'le module de son ne doit afficher aucune annonce dans la page');
 
 const morceaux = ['seance-fin', 'minutes-de-pause', 'minute-de-pause'];
-for (let i = 1; i <= 7; i++) morceaux.push('n-' + i);
+for (let i = 1; i <= 30; i++) morceaux.push('n-' + i);
 morceaux.forEach(function (nom) {
     const f = path.join(racine, 'audio', 'voix', nom + '.wav');
     ok(fs.existsSync(f), 'morceau de voix manquant : ' + nom + '.wav');
     if (fs.existsSync(f)) ok(fs.statSync(f).size > 2000, 'morceau de voix tronqué : ' + nom + '.wav');
+});
+['nombres-corriges', 'nombres-1-a-30'].forEach(function (nom) {
+    const f = path.join(racine, 'audio', nom + '.wav');
+    ok(fs.existsSync(f) && fs.statSync(f).size > 100000,
+        'écoute publique manquante ou tronquée : ' + nom + '.wav');
 });
 /* Le numéro arrive vite après « vous avez droit à ». Mesure les vraies
    marges des WAV, pas seulement la valeur du délai dans le code. */
@@ -54,7 +59,7 @@ function margeSilencieuse(nom, fin) {
 }
 const attenteNombre = margeSilencieuse('seance-fin', true) + 0.07 +
     Math.max.apply(null, Array.from({ length: 30 }, function (_, n) {
-        return margeSilencieuse('n-' + (n < 20 ? n + 1 : n === 29 ? 30 : 20), false);
+        return margeSilencieuse('n-' + (n + 1), false);
     }));
 ok(attenteNombre < 0.32, 'pause trop longue entre « vous avez droit à » et le nombre : ' + attenteNombre.toFixed(2) + ' s');
 /* Le son doit passer par l'AudioContext (autorisé dès le geste de départ),
@@ -139,8 +144,10 @@ for (let n = 1; n <= 60; n++) {
         ok(morceauExiste(nom), 'morceau manquant pour ' + n + ' : ' + nom + '.wav');
     });
 }
-ok(memeListe(bac.chronoVoixMorceauxNombre(21), ['n-20', 'et', 'n-1']),
-    'vingt et une se compose de « vingt », « et », « une » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(21)));
+for (let n = 21; n <= 30; n++) {
+    ok(memeListe(bac.chronoVoixMorceauxNombre(n), ['n-' + n]),
+        'le nombre ' + n + ' doit utiliser une prise complète, sans collage : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(n)));
+}
 ok(memeListe(bac.chronoVoixMorceauxNombre(45), ['n-40', 'n-5']),
     'quarante-cinq se compose de « quarante » et « cinq » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(45)));
 

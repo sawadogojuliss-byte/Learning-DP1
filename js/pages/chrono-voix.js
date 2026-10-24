@@ -53,7 +53,7 @@ function chronoFinAnnonce(generation) {
     }
 }
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261024b';
+var CHRONO_VOIX_VERSION = '20261024c';
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────
@@ -101,13 +101,14 @@ function chronoNombreEnMots(nombre) {
     return base + '-' + CHRONO_VOIX_MOTS[unite];
 }
 
-/* Les morceaux de voix d'un numéro, dans l'ordre. Chaque nombre a son
-   morceau : « dix-huit » ne se recolle pas à partir de « dix » et
-   « huit » sans perdre sa liaison. */
+/* Les morceaux de voix d'un numéro, dans l'ordre. De 1 à 30, chaque
+   nombre a son propre enregistrement : « vingt et une » garde sa liaison
+   et « vingt-deux » ne devient plus deux mots coupés. Au-delà de 30,
+   seuls les nombres non disponibles en entier se composent. */
 function chronoVoixMorceauxNombre(nombre) {
     var n = Math.round(Number(nombre));
     if (!isFinite(n) || n < 1) return null;
-    if (n <= 20) return ['n-' + n];
+    if (n <= 30) return ['n-' + n];
     if (n < 60) {
         var dizaine = Math.floor(n / 10) * 10;
         var unite = n % 10;

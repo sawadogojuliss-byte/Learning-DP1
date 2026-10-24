@@ -103,6 +103,18 @@ const prepares = await page.evaluate(function () {
 });
 if (!prepares.tampons.length) echec('aucun morceau de voix n\'a pu être chargé : absents = ' + JSON.stringify(prepares.absents));
 
+/* Les nombres corrigés, en particulier 21–30, ont chacun une prise entière.
+   Ils doivent réellement se décoder dans le navigateur, pas seulement exister
+   sous forme de fichiers dans le dépôt. */
+await page.evaluate(function () {
+    chronoVoixPreparer([2, 6, 7, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]);
+});
+await page.waitForFunction(function () {
+    return [2, 6, 7, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].every(function (n) {
+        return !!chronoVoixTampons['n-' + n];
+    });
+}, null, { timeout: 30000 });
+
 /* une ambiance en cours, comme un élève qui écoute la pluie */
 const ambiance = await page.evaluate(function () {
     if (typeof focusChoisirSon === 'function') focusChoisirSon('pluie');
