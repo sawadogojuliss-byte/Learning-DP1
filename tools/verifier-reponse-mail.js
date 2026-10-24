@@ -32,6 +32,10 @@ const aideTexte = { value: '' };
 const aideEmail = { value: '' };
 const aideStatut = { textContent: '', style: {} };
 const aideChoix = { style: {} };
+const feedbackTexte = { value: '' };
+const feedbackEmail = { value: '' };
+const feedbackStatut = { textContent: '', style: {} };
+const feedbackEnvoi = { onclick: null };
 
 let reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
 let firestoreEchec = false;
@@ -40,6 +44,7 @@ let utilisateur = null;
 const bdd = { boite: [], publie: [], config: { mail: { secret: 'spx-test-secret' } } };
 
 function fausseCollection(nom) {
+    let champOrdre = '';
     return {
         add: function (data) {
             if (firestoreEchec) return Promise.reject(new Error('firestore'));
@@ -48,11 +53,15 @@ function fausseCollection(nom) {
             bdd[nom].push(data);
             return Promise.resolve({ id: nom + bdd[nom].length });
         },
-        orderBy: function () { return this; },
+        orderBy: function (champ) { champOrdre = champ; return this; },
         where: function () { return this; },
         limit: function () { return this; },
         get: function () {
-            var docs = (bdd[nom] || []).map(function (d) {
+            var docs = (bdd[nom] || []).filter(function (d) {
+                if (champOrdre === 'at') return !!d.at;
+                if (champOrdre === 'z_donnees_techniques.at') return !!(d.z_donnees_techniques && d.z_donnees_techniques.at);
+                return true;
+            }).map(function (d) {
                 return { data: function () { return d; } };
             });
             return Promise.resolve({ forEach: function (fn) { docs.forEach(fn); } });
@@ -120,6 +129,10 @@ context.document = {
         if (id === 'aideEmail') return aideEmail;
         if (id === 'aideStatut') return aideStatut;
         if (id === 'aideChoix') return aideChoix;
+        if (id === 'feedbackTexte') return feedbackTexte;
+        if (id === 'feedbackEmail') return feedbackEmail;
+        if (id === 'feedbackStatut') return feedbackStatut;
+        if (id === 'feedbackEnvoi') return feedbackEnvoi;
         return null;
     },
     body: { contains: function () { return true; }, appendChild: function () {} },
@@ -202,6 +215,7 @@ assert.ok(/allow create: if messageValide\(\)/.test(regles), 'l’écriture doit
 assert.ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne peut pas lire');
 assert.ok(regles.indexOf('allow read: if true') !== -1, 'les annonces et tutoriels doivent rester publics');
 assert.ok(regles.indexOf("request.auth.token.email in [") !== -1, 'les admins ne sont pas reconnus par leur compte');
+assert.ok(regles.includes("ficheValide('question', '04_question')") && regles.includes("ficheValide('feedback', '04_feedback')"), 'le format compact est refusé');
 
 /* — Les identifiants admins, et eux seuls — */
 context.compteSession = { sub: '116965022060639990571', email: 'x@y.z' };
@@ -226,15 +240,18 @@ context.boiteQuestion(null);
 attendre(200).then(function () {
     assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'statut reçu : ' + aideStatut.textContent);
     assert.strictEqual(bdd.questions.length, 1, 'la question n’est pas partie dans la boîte privée');
-    assert.strictEqual(bdd.questions[0].type, 'question');
     const nouvelleQuestion = bdd.questions[0];
-    assert.strictEqual(nouvelleQuestion.z_email_reponse, 'eleve@example.com');
+    assert.deepStrictEqual(Object.keys(nouvelleQuestion).sort(),
+        ['01_heure_envoi', '02_nom_utilisateur', '04_question', 'z_donnees_techniques'].sort(),
+        'la fiche a encore des champs techniques visibles');
+    assert.strictEqual(nouvelleQuestion.z_donnees_techniques.type, 'question');
+    assert.strictEqual(nouvelleQuestion.z_donnees_techniques.email_reponse, 'eleve@example.com');
     assert.strictEqual(nouvelleQuestion['02_nom_utilisateur'], 'Awa');
     assert.ok(/Ouagadougou/.test(nouvelleQuestion['01_heure_envoi']), 'heure de l’envoi illisible');
     assert.ok(String(nouvelleQuestion['04_question']).indexOf('mémoire de français') !== -1, 'le texte manque');
     assert.ok(!('03_compte_gmail' in nouvelleQuestion), 'un visiteur sans Gmail a un faux compte');
     assert.ok(!('jours' in nouvelleQuestion) && !('matieres' in nouvelleQuestion), 'l’emploi du temps est copié dans la question');
-    const lecture = context.boiteFusionner([nouvelleQuestion]);
+    const lecture = context.boiteFusionner([context.boiteMessageDepuisFirestore('questions', nouvelleQuestion, 'doc-question')]);
     assert.strictEqual(lecture.questions[0].texte, 'Où est le mémoire de français ?', 'le site ne relit plus les questions compactes');
     assert.strictEqual(lecture.questions[0].email, 'eleve@example.com', 'l’adresse pour répondre est perdue');
     assert.strictEqual(aideTexte.value, '', 'la question n’a pas été effacée après l’envoi');
@@ -243,6 +260,23 @@ attendre(200).then(function () {
     assert.ok(!appels.some(function (item) {
         return item && item.url && (item.url.indexOf('ntfy.sh') !== -1 || item.url.indexOf('kvdb.io') !== -1);
     }), 'un service public a été appelé');
+
+    /* — Le vrai formulaire feedback suit le même format sans Gmail — */
+    bdd.feedbacks = [];
+    feedbackTexte.value = 'Suggestion locale';
+    feedbackEmail.value = 'retour@example.com';
+    context.initFeedback();
+    feedbackEnvoi.onclick();
+    return attendre(200);
+}).then(function () {
+    assert.strictEqual(feedbackStatut.textContent, 'Suggestion envoyée.');
+    assert.strictEqual(bdd.feedbacks.length, 1);
+    const avis = bdd.feedbacks[0];
+    assert.deepStrictEqual(Object.keys(avis).sort(),
+        ['01_heure_envoi', '02_nom_utilisateur', '04_feedback', 'z_donnees_techniques'].sort());
+    assert.strictEqual(avis['04_feedback'], 'Suggestion locale');
+    assert.strictEqual(avis.z_donnees_techniques.email_reponse, 'retour@example.com');
+    assert.strictEqual(avis.z_donnees_techniques.type, 'feedback');
 
     /* — La base refuse : la question est gardée, l'échec annoncé — */
     firestoreEchec = true;
@@ -386,6 +420,16 @@ attendre(200).then(function () {
         assert.strictEqual(admin, true, 'le compte entreprise ne voit pas la boîte');
         bdd.boite = [{ type: 'question', id: 'q-archive', at: '2026-10-19T06:00:00Z', texte: 'Ancienne question' }];
         bdd.feedbacks = [{ type: 'feedback', id: 'f-new', at: '2026-10-24T06:00:00Z', texte: 'Feedback privé' }];
+        const avis = context.boiteMessagePourFirestore({
+            type: 'feedback', id: 'f2-new', at: '2026-10-24T06:01:00Z',
+            '01_heure_envoi': '24/10/2026 06:01 (Ouagadougou)',
+            '02_nom_utilisateur': 'Awa', '03_compte_gmail': 'awa@gmail.com',
+            '04_feedback': 'Avis privé', z_email_reponse: 'contact@example.com',
+            z_google_connecte: 'awa@gmail.com', z_google_nom: 'Awa'
+        });
+        assert.deepStrictEqual(Object.keys(avis).sort(),
+            ['01_heure_envoi', '02_nom_utilisateur', '03_compte_gmail', '04_feedback', 'z_donnees_techniques'].sort());
+        bdd.feedbacks.push(avis);
         bdd.reponses = [{ type: 'reponse', id: 'r-new', at: '2026-10-24T06:01:00Z', texte: 'Réponse privée' }];
         bdd.emplois_du_temps = [{ type: 'emploi', id: 'e-new', at: '2026-10-24T06:02:00Z' }];
         context.boiteBruts = [];
@@ -393,7 +437,8 @@ attendre(200).then(function () {
         return context.boiteLireBoite();
     }).then(function (items) {
         assert.ok(items.some(function (item) { return item.id === 'q-archive'; }), 'ancienne question perdue');
-        assert.ok(items.some(function (item) { return item.id === 'f-new'; }), 'nouveau feedback absent');
+        assert.ok(items.some(function (item) { return item.id === 'f-new'; }), 'ancien feedback absent');
+        assert.ok(items.some(function (item) { return item.id === 'f2-new' && item.texte === 'Avis privé' && item.email === 'contact@example.com'; }), 'feedback compact ou adresse de réponse perdu');
         assert.ok(items.some(function (item) { return item.id === 'r-new'; }), 'nouvelle réponse absente');
         assert.ok(items.some(function (item) { return item.id === 'e-new'; }), 'nouvel emploi du temps absent');
         const planning = {

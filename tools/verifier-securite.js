@@ -76,6 +76,7 @@ ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compt
     ok(bloc.split('}')[0].includes('allow read: if estAdmin();'), 'collection lisible par tous : ' + nom);
 });
 ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne peut pas lire');
+ok(regles.includes("ficheValide('question', '04_question')") && regles.includes("ficheValide('feedback', '04_feedback')"), 'le nouveau format des messages est refusé');
 ['emplois_du_temps', 'emplois'].forEach(function (nom) {
     const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
     ok(bloc.split('}')[0].includes('allow create: if false;'), 'la pause des emplois est levée pour ' + nom);
@@ -92,7 +93,8 @@ ok(boite.includes('var BOITE_EMPLOIS_SUSPENDUS = true;'), 'les nouveaux envois d
 ok(boite.includes('boiteEmploiAvecCreneaux(record)'), 'les emplois vides ne sont pas filtrés');
 ok(!boite.includes('collection(BOITE_COLLECTION).add(propre)'), 'un envoi refusé retombe silencieusement dans l’archive');
 ok(boite.indexOf('boiteNettoyerSession') !== -1, 'les copies admin ne sont pas nettoyées');
-ok(boite.includes("'01_heure_envoi'") && boite.includes("'04_question'"), 'la fiche question Firebase a perdu son ordre');
+ok(boite.includes("'01_heure_envoi'") && boite.includes("'04_question'") && boite.includes("'04_feedback'"), 'les fiches Firebase ont perdu leur ordre');
+ok(boite.includes("'z_donnees_techniques.at'"), 'les nouveaux messages ne sont plus relus');
 ok(boite.indexOf('boiteSecretMail') !== -1, 'le secret d’envoi ne vient plus de la configuration privée');
 
 /* — Les flux qui publiaient les données ont disparu — */

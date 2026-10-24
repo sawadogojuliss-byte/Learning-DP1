@@ -205,15 +205,19 @@ function boiteSansVides(record) {
 var boiteBruts = [];
 var boiteDernierAt = '';
 
-function boiteLireCollection(nom, depuis, max) {
+/* Les anciens messages ont « at » au premier niveau ; les nouveaux ont
+   la même date dans le seul groupe technique. On lit les deux formats sans
+   modifier l'historique et sans exposer la boîte aux non-admins. */
+function boiteLireCollection(nom, depuis, max, champDate) {
+    var date = champDate || 'at';
     var base = firebase.firestore().collection(nom);
-    var requete = depuis ? base.where('at', '>', depuis) : base;
-    return requete.orderBy('at', depuis ? 'asc' : 'desc').limit(max || 400).get()
+    var requete = depuis ? base.where(date, '>', depuis) : base;
+    return requete.orderBy(date, depuis ? 'asc' : 'desc').limit(max || 400).get()
         .then(function (snap) {
             var out = [];
             snap.forEach(function (doc) {
-                var data = doc.data();
-                if (data && data.type) out.push(data);
+                var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
+                if (data && data.type && data.id && data.at) out.push(data);
             });
             return out;
         });
@@ -290,6 +294,46 @@ function boiteEmploiAvecCreneaux(record) {
     }));
 }
 
+/* À l'écriture, seules les informations de lecture restent à plat.
+   Le contact pour répondre et la date ISO utilisée pour trier résident
+   dans un unique groupe technique repliable dans la console Firebase. */
+function boiteMessagePourFirestore(record) {
+    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return record;
+    var cleTexte = record.type === 'question' ? '04_question' : '04_feedback';
+    var technique = {
+        type: record.type, id: record.id, at: record.at,
+        email_reponse: String(record.z_email_reponse || record.email || ''),
+        google_connecte: String(record.z_google_connecte || ''),
+        google_nom: String(record.z_google_nom || '')
+    };
+    var fiche = {
+        '01_heure_envoi': String(record['01_heure_envoi'] || ''),
+        '02_nom_utilisateur': String(record['02_nom_utilisateur'] || record.nom || 'Sans nom'),
+        z_donnees_techniques: technique
+    };
+    if (record['03_compte_gmail']) fiche['03_compte_gmail'] = String(record['03_compte_gmail']);
+    fiche[cleTexte] = String(record[cleTexte] || record.texte || '');
+    return fiche;
+}
+
+function boiteMessageDepuisFirestore(collection, data, identifiant) {
+    if (!data || !data.z_donnees_techniques ||
+        (collection !== 'questions' && collection !== 'feedbacks')) return data;
+    var technique = data.z_donnees_techniques;
+    var type = collection === 'questions' ? 'question' : 'feedback';
+    if (technique.type !== type) return null;
+    var cleTexte = type === 'question' ? '04_question' : '04_feedback';
+    return {
+        type: type, id: String(technique.id || identifiant || ''),
+        at: String(technique.at || ''),
+        nom: String(data['02_nom_utilisateur'] || ''),
+        texte: String(data[cleTexte] || ''),
+        email: String(technique.email_reponse || ''),
+        google: String(technique.google_connecte || ''),
+        googleNom: String(technique.google_nom || '')
+    };
+}
+
 function boiteEcrireBoite(record) {
     if (record && record.type === 'emploi') {
         if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
@@ -298,6 +342,7 @@ function boiteEcrireBoite(record) {
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
     if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre);
+    if (collection === 'questions' || collection === 'feedbacks') propre = boiteMessagePourFirestore(propre);
     if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function () {
         return firebase.firestore().collection(collection).add(propre);
@@ -319,14 +364,19 @@ function boiteLireBoite() {
             boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
             return [];
         });
-        var lectures = BOITE_PRIVEES.map(function (nom) {
-            return boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois_du_temps' ? 1200 : 400)).catch(function (err) {
-                /* Avant la publication des règles, la lecture des nouvelles
-                   collections est refusée ; ne rien divulguer au visiteur. */
-                if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
-                return [];
+        var lectures = BOITE_PRIVEES.reduce(function (toutes, nom) {
+            var champs = (nom === 'questions' || nom === 'feedbacks')
+                ? ['at', 'z_donnees_techniques.at'] : ['at'];
+            champs.forEach(function (champ) {
+                toutes.push(boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois_du_temps' ? 1200 : 400), champ).catch(function (err) {
+                    /* Avant la publication des règles, la lecture des nouvelles
+                       collections est refusée ; ne rien divulguer au visiteur. */
+                    if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
+                    return [];
+                }));
             });
-        });
+            return toutes;
+        }, []);
         return Promise.all([legacy, publique].concat(lectures)).then(function (listes) {
             if (generation !== boiteSessionGeneration) return [];
             listes.slice(2).forEach(function (items) { boiteAjouterBruts(items); });
@@ -810,15 +860,16 @@ function boiteCompleterIdentite(record) {
     return record;
 }
 
-/* Les nouvelles questions sont compactes dans Firestore : quatre lignes
-   lisibles, numérotées pour l'ordre de la console. Cette adaptation ne
-   modifie pas les documents en base et garde compatibles les anciennes
-   questions (type/at/id/nom/texte/email). */
+/* Lecture des envois encore en file locale (les documents Firestore,
+   eux, sont convertis par boiteMessageDepuisFirestore). Les archives de
+   l'ancienne version conservent leurs champs nom/texte/email. */
 function boiteQuestionDepuisDocument(item) {
-    if (!item || item.type !== 'question' || !Object.prototype.hasOwnProperty.call(item, '04_question')) return item;
+    if (!item || (item.type !== 'question' && item.type !== 'feedback')) return item;
+    var texte = item.type === 'question' ? '04_question' : '04_feedback';
+    if (!Object.prototype.hasOwnProperty.call(item, texte)) return item;
     return Object.assign({}, item, {
         nom: String(item['02_nom_utilisateur'] || ''),
-        texte: String(item['04_question'] || ''),
+        texte: String(item[texte] || ''),
         email: String(item.z_email_reponse || ''),
         google: String(item.z_google_connecte || ''),
         googleNom: String(item.z_google_nom || '')
@@ -1883,17 +1934,28 @@ function initFeedback() {
         var sessionEnvoi = boiteSession();
         var record;
         try {
-            record = boiteCompleterIdentite({
+            /* Les feedbacks ont la même fiche lisible que les questions.
+               Aucun planning n'est copié dans un avis. */
+            var maintenant = new Date();
+            var compteGoogle = String(sessionEnvoi && sessionEnvoi.email || '').trim();
+            var gmail = /@gmail\.com$/i.test(compteGoogle) ? compteGoogle :
+                (/@gmail\.com$/i.test(adresse) ? adresse : '');
+            record = {
                 type: 'feedback',
                 id: boiteId('f'),
-                at: new Date().toISOString(),
-                nom: boiteNom(),
-                texte: texte.slice(0, 800),
-                email: adresse.slice(0, 120),
-                google: sessionEnvoi && sessionEnvoi.email ? sessionEnvoi.email : adresse.slice(0, 120),
-                googleNom: sessionEnvoi && sessionEnvoi.name ? sessionEnvoi.name : '',
-                googleSub: sessionEnvoi && sessionEnvoi.sub ? sessionEnvoi.sub : ''
-            });
+                at: maintenant.toISOString(),
+                '01_heure_envoi': maintenant.toLocaleString('fr-FR', {
+                    timeZone: 'Africa/Ouagadougou',
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                }) + ' (Ouagadougou)',
+                '02_nom_utilisateur': boiteNom() || 'Sans nom',
+                '04_feedback': texte.slice(0, 800),
+                z_email_reponse: adresse.slice(0, 120)
+            };
+            if (gmail) record['03_compte_gmail'] = gmail;
+            if (compteGoogle) record.z_google_connecte = compteGoogle;
+            if (compteGoogle && sessionEnvoi.name) record.z_google_nom = sessionEnvoi.name;
             try { boitePublierEmploi(true); } catch (e) {}
         } catch (e) {
             boiteEnvoiEnCours = false;

@@ -30,6 +30,35 @@ service cloud.firestore {
         && request.resource.data.size() < 80;
     }
 
+    /* Nouveau format des questions/feedbacks : quatre champs lisibles
+       et un unique groupe technique privé. Les archives au format plat
+       restent compatibles, sans ouvrir la lecture à d'autres comptes. */
+    function ficheValide(type, champTexte) {
+      return request.resource.data.keys().hasAll([
+               '01_heure_envoi', '02_nom_utilisateur', champTexte,
+               'z_donnees_techniques'
+             ])
+        && request.resource.data.keys().hasOnly([
+             '01_heure_envoi', '02_nom_utilisateur', '03_compte_gmail',
+             champTexte, 'z_donnees_techniques'
+           ])
+        && request.resource.data['01_heure_envoi'] is string
+        && request.resource.data['02_nom_utilisateur'] is string
+        && request.resource.data[champTexte] is string
+        && request.resource.data.z_donnees_techniques is map
+        && request.resource.data.z_donnees_techniques.keys().hasAll([
+             'type', 'at', 'id', 'email_reponse'
+           ])
+        && request.resource.data.z_donnees_techniques.keys().hasOnly([
+             'type', 'at', 'id', 'email_reponse',
+             'google_connecte', 'google_nom'
+           ])
+        && request.resource.data.z_donnees_techniques.type == type
+        && request.resource.data.z_donnees_techniques.at is string
+        && request.resource.data.z_donnees_techniques.id is string
+        && request.resource.data.z_donnees_techniques.email_reponse is string;
+    }
+
     /* Archives : les anciens documents restent visibles pour les cinq
        admins. Les anciens onglets peuvent encore écrire le temps que tous
        les navigateurs chargent la nouvelle version du site. */
@@ -48,12 +77,18 @@ service cloud.firestore {
        L'élève peut déposer ses données, jamais consulter celles d'autrui. */
     match /questions/{message} {
       allow read: if estAdmin();
-      allow create: if messageValide() && request.resource.data.type == 'question';
+      allow create: if (request.resource.data.keys().hasAll(['type', 'id', 'at'])
+                        && messageValide()
+                        && request.resource.data.type == 'question')
+                    || ficheValide('question', '04_question');
       allow update, delete: if false;
     }
     match /feedbacks/{message} {
       allow read: if estAdmin();
-      allow create: if messageValide() && request.resource.data.type == 'feedback';
+      allow create: if (request.resource.data.keys().hasAll(['type', 'id', 'at'])
+                        && messageValide()
+                        && request.resource.data.type == 'feedback')
+                    || ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
     /* Pause des emplois : même un ancien onglet ne peut plus alimenter

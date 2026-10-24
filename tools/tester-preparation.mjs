@@ -123,6 +123,22 @@ if (!fiche || fiche.nom !== 'Élève' || fiche.matieres[0] !== 'Physique HL' ||
     echec('fiche emploi du temps déployée incorrecte : ' + JSON.stringify(fiche));
 }
 
+/* Schéma déployé : aucune écriture distante ni aucun mail. */
+const messageCompact = await page.evaluate(() => {
+    if (typeof boiteMessagePourFirestore !== 'function' || typeof boiteMessageDepuisFirestore !== 'function') return null;
+    const brut = { type: 'feedback', id: 'f-local', at: new Date().toISOString(),
+        '01_heure_envoi': '24/10/2026 10:30', '02_nom_utilisateur': 'Élève',
+        '04_feedback': 'Avis local', z_email_reponse: 'eleve@example.com' };
+    const doc = boiteMessagePourFirestore(brut);
+    const relu = boiteMessageDepuisFirestore('feedbacks', doc, 'id-firebase');
+    return { champs: Object.keys(doc).sort(), email: relu.email, texte: relu.texte };
+});
+if (!messageCompact || messageCompact.champs.join('|') !==
+    '01_heure_envoi|02_nom_utilisateur|04_feedback|z_donnees_techniques' ||
+    messageCompact.email !== 'eleve@example.com' || messageCompact.texte !== 'Avis local') {
+    echec('fiche feedback déployée incorrecte : ' + JSON.stringify(messageCompact));
+}
+
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;

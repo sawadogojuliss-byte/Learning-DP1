@@ -92,21 +92,31 @@ Supprimer `emplois_du_temps` ne supprime **pas** ces archives : ne pas effacer
 `boite` à l'aveugle. Une purge des seules anciennes fiches `emploi` demande
 un inventaire et une sauvegarde des autres types avant d'agir.
 
-## Présentation des questions dans Firebase
+## Présentation des questions et feedbacks dans Firebase
 
-Les **nouvelles** questions ont désormais quatre champs lisibles en premier,
-numérotés parce que la console Firebase trie les champs par leur nom :
-`01_heure_envoi` (heure d'Ouagadougou), `02_nom_utilisateur`,
-`03_compte_gmail` (seulement si une adresse Gmail a été fournie ou si ce
-Gmail est connecté), puis `04_question` (texte complet). L'adresse de contact
-pour répondre est conservée séparément dans `z_email_reponse`. Les champs
-techniques `at`, `id` et `type` restent nécessaires au site ; la console peut
-les afficher à la suite, on ne peut pas personnaliser son interface.
+Pour les **nouveaux** documents `questions` et `feedbacks`, la fiche affiche
+`01_heure_envoi` (heure d'Ouagadougou), `02_nom_utilisateur`, puis
+`03_compte_gmail` si une adresse Gmail a été fournie, et enfin
+`04_question` ou `04_feedback`. La console trie les champs par leur nom.
 
-Les nouveaux documents ne recopient plus le planning dans la question.
-L'envoi séparé dans `emplois_du_temps` est pour l'instant suspendu. Les anciennes questions restent sous
-leur format d'origine, et le site lit les deux formats. Publier des règles
-Firestore ne transforme pas les documents déjà présents.
+Les anciennes lignes `at`, `id`, `type`, `z_email_reponse`,
+`z_google_connecte`, `z_google_nom` ne sont **plus des champs distincts** des
+nouveaux documents. Date de tri, type, identifiant et adresse de réponse
+indispensables au site sont rassemblés dans **un seul groupe repliable**
+`z_donnees_techniques`. Ne pas supprimer ce groupe : sans l'adresse de
+réponse, les utilisateurs sans Gmail connecté ne pourraient plus recevoir
+leurs réponses. La console Firebase peut ouvrir automatiquement ce groupe ;
+son état visuel n'est pas contrôlable par le site.
+
+Publier les nouvelles [`firestore.rules`](firestore.rules) **avant** de vérifier
+un nouvel envoi : les anciennes règles refuseraient ces fiches sans `at`,
+`id` et `type` au premier niveau. Le site signale alors l'échec et garde le
+message sur l'appareil pour réessayer. Les documents déjà reçus conservent
+leur ancien format : le site lit **les deux versions**, mais les règles ne
+réécrivent pas l'historique dans Firebase.
+
+Les nouveaux messages ne recopient pas le planning dans la question ou le
+feedback. L'envoi séparé dans `emplois_du_temps` reste suspendu.
 
 ## Présentation des emplois du temps dans Firebase
 
