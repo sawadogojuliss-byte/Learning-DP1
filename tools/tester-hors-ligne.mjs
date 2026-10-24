@@ -1,5 +1,7 @@
 /* Lot 15 : navigateur réel, cache à jour et planning accessible hors réseau. */
 import { chromium } from 'playwright';
+import { readFileSync } from 'node:fs';
+const VERSION = /var version = '([^']+)'/.exec(readFileSync(new URL('../js/boot.js', import.meta.url), 'utf8'))[1];
 const SITE = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ serviceWorkers: 'allow' });
@@ -17,18 +19,19 @@ try {
             weekdayWakeup: '05:30', saturdayWakeup: '08:00', sundayWakeup: '09:00', selectedActivities: [], phoneDays: [],
             ibYear: 'DP1', targetScore: 36 }));
     });
-    await page.waitForFunction(async () => {
-        if (!navigator.serviceWorker.controller) return false;
-        return (await caches.keys()).some(k => k.startsWith('study-plan-coquille-'));
-    }, null, { timeout: 90000 });
+    await page.waitForFunction(async (version) => {
+        if (!navigator.serviceWorker.controller?.scriptURL.includes('v=' + version)) return false;
+        return (await caches.keys()).includes('study-plan-coquille-' + version);
+    }, VERSION, { timeout: 90000 });
     /* Installation atomique : la coquille entière, pas seulement l'index. */
-    await page.waitForFunction(async () => {
-        const key = (await caches.keys()).find(k => k.startsWith('study-plan-coquille-'));
-        if (!key) return false;
+    await page.waitForFunction(async (version) => {
+        const key = 'study-plan-coquille-' + version;
+        if (!(await caches.keys()).includes(key)) return false;
         const c = await caches.open(key);
-        return !!(await c.match(new URL('pages/planning.html?v=20261024r', location.href))) &&
-            !!(await c.match(new URL('js/pages/planning-moteur.js?v=20261024r', location.href)));
-    }, null, { timeout: 90000 });
+        return !!(await c.match(new URL('index.html?v=' + version, location.href))) &&
+            !!(await c.match(new URL('pages/planning.html?v=' + version, location.href))) &&
+            !!(await c.match(new URL('js/pages/planning-moteur.js?v=' + version, location.href)));
+    }, VERSION, { timeout: 90000 });
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
     const chaud = await page.evaluate(() => performance.getEntriesByType('resource').reduce((a, e) => {
