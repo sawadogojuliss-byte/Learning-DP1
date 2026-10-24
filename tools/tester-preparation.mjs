@@ -804,6 +804,95 @@ if (!panneauReferme) {
     echec("la navigation doit refermer le panneau des sons et la galerie de la page Séance");
 }
 
+/* Lot 5 : un exercice réellement ajouté dans CE navigateur, coché,
+   filtré puis relu après rechargement. Aucun envoi distant ni mail. */
+const exercicesAvantLot5 = await page.evaluate(() => {
+    const ancien = localStorage.getItem('studyPlanIB_exercices');
+    localStorage.setItem('studyPlanIB_exercices', '[]');
+    exercices = [];
+    navigateTo('exercices');
+    return ancien;
+});
+const erreurMatiereExo = await page.evaluate(() => {
+    addExercice();
+    return !!document.getElementById('exoSubjectErreur').textContent &&
+        document.activeElement === document.querySelector('#exoSubjectGrid button');
+});
+if (!erreurMatiereExo) echec('le formulaire Exercices doit signaler la matière sous le champ et y placer le focus');
+await page.locator('#exoSubjectGrid [data-exo-idx="0"]').click();
+const erreurContenuExo = await page.evaluate(() => {
+    addExercice();
+    return !!document.getElementById('exoContenuErreur').textContent &&
+        document.activeElement === document.getElementById('exoTextInput');
+});
+if (!erreurContenuExo) echec('le formulaire Exercices doit signaler la description sous le champ');
+await page.locator('#exoTextInput').fill('Exercice témoin du lot cinq');
+const erreurDateExo = await page.evaluate(() => {
+    addExercice();
+    return !!document.getElementById('exoDeadlineErreur').textContent &&
+        document.activeElement === document.getElementById('exoDeadline');
+});
+if (!erreurDateExo) echec('le formulaire Exercices doit demander la date sous le champ');
+const demainExo = new Date(Date.now() + 86400000);
+await page.locator('#exoDeadline').fill(jourCle(demainExo));
+await page.locator('[onclick="addExercice()"]').click();
+const exerciceAjoute = await page.evaluate(() => {
+    switchExoTab('planifier');
+    return { badge: document.getElementById('exoCountBadge').textContent,
+        minutes: document.getElementById('planifierContent').textContent,
+        id: exercices[0]?.id, filtre: document.querySelector('[data-exo-filtre="tous"]').getAttribute('aria-pressed') };
+});
+if (!exerciceAjoute.id || !exerciceAjoute.badge.includes('1 exercice') ||
+    !exerciceAjoute.minutes.includes('60') && !exerciceAjoute.minutes.includes('1h') ||
+    exerciceAjoute.filtre !== 'true') {
+    echec('exercice ajouté et compteurs : ' + JSON.stringify(exerciceAjoute));
+}
+await page.evaluate(() => switchExoTab('liste'));
+await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
+const exerciceFait = await page.evaluate(() => {
+    switchExoTab('planifier');
+    return { done: exercices[0]?.done, badge: document.getElementById('exoCountBadge').textContent,
+        resume: document.getElementById('planifierContent').textContent,
+        carte: document.getElementById('exoListContainer').textContent,
+        enStock: JSON.parse(localStorage.getItem('studyPlanIB_exercices'))[0]?.done };
+});
+if (!exerciceFait.done || !exerciceFait.enStock || !exerciceFait.badge.includes('0 exercice') ||
+    !exerciceFait.resume.includes('0min') || !exerciceFait.resume.includes('Tous les exercices sont faits') ||
+    !exerciceFait.carte.includes('À faire')) echec('état Fait et compteurs : ' + JSON.stringify(exerciceFait));
+await page.evaluate(() => switchExoTab('liste'));
+await page.locator('[data-exo-filtre="afaire"]').click();
+if (!await page.locator('#exoListContainer').textContent().then(t => t.includes('Aucun exercice à faire'))) {
+    echec('le filtre à faire garde des exercices déjà terminés');
+}
+await page.locator('[data-exo-filtre="faits"]').click();
+if (!await page.locator('#exoListContainer [onclick^="basculerExoFait"]').count()) {
+    echec('le filtre faits doit montrer l’exercice terminé');
+}
+await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+await page.waitForFunction(() => window.__STUDYPLAN_READY === true && !document.body.classList.contains('booting'), null, { timeout: 60000 });
+const apresRechargement = await page.evaluate(() => {
+    navigateTo('exercices');
+    switchExoTab('liste');
+    return { done: exercices[0]?.done, carte: document.getElementById('exoListContainer').textContent,
+        badge: document.getElementById('exoCountBadge').textContent };
+});
+if (!apresRechargement.done || !apresRechargement.carte.includes('À faire') ||
+    !apresRechargement.badge.includes('0 exercice')) {
+    echec('l’état Fait ne survit pas au rechargement : ' + JSON.stringify(apresRechargement));
+}
+await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
+const exerciceRetabli = await page.evaluate(() => ({ done: exercices[0]?.done,
+    badge: document.getElementById('exoCountBadge').textContent,
+    carte: document.getElementById('exoListContainer').textContent }));
+if (exerciceRetabli.done || !exerciceRetabli.badge.includes('1 exercice') ||
+    !exerciceRetabli.carte.includes('✓ Fait')) echec('décochement réversible : ' + JSON.stringify(exerciceRetabli));
+await page.evaluate((avant) => {
+    if (avant == null) localStorage.removeItem('studyPlanIB_exercices');
+    else localStorage.setItem('studyPlanIB_exercices', avant);
+    exercices = avant ? JSON.parse(avant) : [];
+    navigateTo('planning');
+}, exercicesAvantLot5);
+
 /* 6. aucune erreur JavaScript */
 if (erreurs.length) {
     echec('erreurs JavaScript dans la page : ' + erreurs.join(' | ').slice(0, 400));

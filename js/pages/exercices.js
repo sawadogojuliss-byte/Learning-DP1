@@ -9,6 +9,64 @@ let exercices = [];
 let selectedExoSubject = null;
 let exoDuration = 60;
 let planifyTarget = null;
+let exoFiltre = 'tous';
+
+function exoRestants() { return exercices.filter(e => !e.done); }
+function exoMajBadge() {
+    const restant = exoRestants().length;
+    const badge = document.getElementById('exoCountBadge');
+    if (badge) badge.textContent = restant + ' exercice' + (restant > 1 ? 's' : '') + ' à faire';
+}
+
+/* Le filtre ne modifie jamais les exercices : on peut toujours revenir
+   à Tous ou décocher un exercice terminé. */
+function filtrerExos(filtre) {
+    if (!['tous', 'afaire', 'faits'].includes(filtre)) return;
+    exoFiltre = filtre;
+    document.querySelectorAll('[data-exo-filtre]').forEach(btn => {
+        const actif = btn.getAttribute('data-exo-filtre') === filtre;
+        btn.setAttribute('aria-pressed', String(actif));
+        btn.style.background = actif ? '#ecfdf5' : 'white';
+        btn.style.borderColor = actif ? '#10b981' : '#e5e7eb';
+        btn.style.color = actif ? '#047857' : '#374151';
+    });
+    renderExoList();
+}
+
+function basculerExoFait(id) {
+    const exo = exercices.find(e => e.id === id);
+    if (!exo) return;
+    exo.done = !exo.done;
+    localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+    exoMajBadge();
+    renderExoList();
+    renderPlanifier();
+    /* Le rendu remplace la carte : rendre le focus à l'action inverse,
+       ou au filtre qui permet de la retrouver. */
+    const bouton = document.querySelector('[data-exo-fait="' + id + '"]');
+    const suivant = bouton || document.querySelector('[data-exo-filtre="' + (exo.done ? 'faits' : 'afaire') + '"]');
+    if (suivant) suivant.focus();
+}
+
+function exoEffacerErreur(champ) {
+    const ids = { matiere: 'exoSubjectErreur', contenu: 'exoContenuErreur', date: 'exoDeadlineErreur' };
+    const id = ids[champ];
+    const zone = document.getElementById(id);
+    if (zone) zone.textContent = '';
+    const entree = document.getElementById(champ === 'matiere' ? 'exoSubjectGrid' : champ === 'contenu' ? 'exoTextInput' : 'exoDeadline');
+    if (entree) entree.removeAttribute('aria-invalid');
+}
+
+function exoSignalerErreur(champ, texte) {
+    exoEffacerErreur(champ);
+    const ids = { matiere: 'exoSubjectErreur', contenu: 'exoContenuErreur', date: 'exoDeadlineErreur' };
+    const entree = document.getElementById(champ === 'matiere' ? 'exoSubjectGrid' : champ === 'contenu' ? 'exoTextInput' : 'exoDeadline');
+    const zone = document.getElementById(ids[champ]);
+    if (zone) zone.textContent = texte;
+    if (entree) entree.setAttribute('aria-invalid', 'true');
+    const cible = champ === 'matiere' ? (entree.querySelector('button') || entree) : entree;
+    if (cible) cible.focus();
+}
 
 function initExercices() {
     buildExoSubjectGrid();
@@ -19,7 +77,7 @@ function initExercices() {
     document.getElementById('exoDeadline').min = today;
     document.getElementById('exoDeadline').value = '';
     switchExoTab('ajouter');
-    document.getElementById('exoCountBadge').textContent = exercices.length + ' exercice' + (exercices.length > 1 ? 's' : '');
+    exoMajBadge();
 }
 
 function buildExoSubjectGrid() {
@@ -36,6 +94,7 @@ function buildExoSubjectGrid() {
 function selectExoSubject(idx) {
     const allSubj = typeof subjects !== 'undefined' ? [...subjects, ...(optionalSubjects||[])] : [];
     selectedExoSubject = allSubj[idx];
+    if (selectedExoSubject) exoEffacerErreur('matiere');
     document.querySelectorAll('[data-exo-idx]').forEach((btn, i) => {
         if (i === idx) { btn.style.background = '#ecfdf5'; btn.style.borderColor = '#10b981'; btn.style.color = '#059669'; }
         else { btn.style.background = 'white'; btn.style.borderColor = '#e5e7eb'; btn.style.color = '#374151'; }
@@ -81,8 +140,10 @@ function showUploadedFile(file) {
     el.style.display = 'flex';
     el.innerHTML = '📎 <strong>' + file.name + '</strong> (' + (file.size/1024).toFixed(0) + ' Ko) <button onclick="clearUpload()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#dc2626;">✕</button>';
     el.setAttribute('data-filename', file.name);
+    exoEffacerErreur('contenu');
 }
 function clearUpload() {
+    document.getElementById('uploadedFileName').removeAttribute('data-filename');
     document.getElementById('uploadedFileName').style.display = 'none';
     document.getElementById('fileUploadInput').value = '';
 }
@@ -93,9 +154,9 @@ function addExercice() {
     const filename = fileEl.getAttribute('data-filename') || null;
     const deadline = document.getElementById('exoDeadline').value;
 
-    if (!selectedExoSubject) { alert('⚠️ Choisis une matière d\'abord !'); return; }
-    if (!text && !filename) { alert('⚠️ Décris ton exercice ou upload un fichier.'); return; }
-    if (!deadline) { alert('⚠️ Choisis une date limite.'); return; }
+    if (!selectedExoSubject) { exoSignalerErreur('matiere', 'Choisis une matière avant d’ajouter cet exercice.'); return; }
+    if (!text && !filename) { exoSignalerErreur('contenu', 'Décris ton exercice ou choisis un fichier.'); return; }
+    if (!deadline) { exoSignalerErreur('date', 'Choisis une date limite.'); return; }
 
     const exo = {
         id: 'exo-' + Date.now(),
@@ -114,6 +175,7 @@ function addExercice() {
     localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
 
     // Reset form
+    ['matiere', 'contenu', 'date'].forEach(exoEffacerErreur);
     document.getElementById('exoTextInput').value = '';
     clearUpload();
     document.getElementById('exoDeadline').value = '';
@@ -121,7 +183,7 @@ function addExercice() {
     document.querySelectorAll('[data-exo-idx]').forEach(b => { b.style.background='white';b.style.borderColor='#e5e7eb';b.style.color='#374151'; });
     exoDuration = 60; setExoDuration(60);
 
-    document.getElementById('exoCountBadge').textContent = exercices.length + ' exercice' + (exercices.length > 1 ? 's' : '');
+    exoMajBadge();
 
     // Show success
     showExoSuccess();
@@ -140,15 +202,22 @@ function renderExoList() {
     const container = document.getElementById('exoListContainer');
     if (!container) return;
     const saved = localStorage.getItem('studyPlanIB_exercices');
-    if (saved) try { exercices = JSON.parse(saved); } catch(e) {}
+    if (saved) try { const lus = JSON.parse(saved); if (Array.isArray(lus)) exercices = lus; } catch(e) {}
+    exoMajBadge();
 
     if (exercices.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><div style="font-size:3rem;margin-bottom:1rem;">📝</div><p style="font-weight:600;">Aucun exercice pour l\'instant</p><p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l\'onglet ➕</p></div>';
         return;
     }
 
-    // Trier par deadline
-    const sorted = [...exercices].sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+    // Trier par deadline sans masquer les exercices faits par défaut.
+    const visibles = exercices.filter(e => exoFiltre === 'tous' || (exoFiltre === 'faits' ? !!e.done : !e.done));
+    if (!visibles.length) {
+        container.innerHTML = '<p style="text-align:center;padding:2rem 1rem;color:#6b7280;">' +
+            (exoFiltre === 'faits' ? 'Aucun exercice fait pour l’instant.' : 'Aucun exercice à faire.') + '</p>';
+        return;
+    }
+    const sorted = visibles.slice().sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
     const today = new Date(); today.setHours(0,0,0,0);
 
     container.innerHTML = sorted.map(exo => {
@@ -159,7 +228,7 @@ function renderExoList() {
         const urgencyLabel = diffDays <= 0 ? '⚠️ Aujourd\'hui !' : diffDays === 1 ? '⏰ Demain' : 'Dans ' + diffDays + 'j';
         const dur = exo.duration >= 60 ? Math.floor(exo.duration/60)+'h'+(exo.duration%60?exo.duration%60+'min':'') : exo.duration+'min';
 
-        return '<div class="exo-card" style="margin-bottom:0.875rem;">' +
+        return '<div class="exo-card" style="margin-bottom:0.875rem;' + (exo.done ? 'background:#f0fdf4;border-color:#a7f3d0;' : '') + '">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;">' +
             '<div style="display:flex;align-items:center;gap:0.625rem;">' +
             '<span style="font-size:1.5rem;">' + iconeHtml(exo.subjectIcon, '1.5rem') + '</span>' +
@@ -167,22 +236,24 @@ function renderExoList() {
             '<p style="font-size:0.75rem;color:#6b7280;">' + (exo.filename ? '📎 ' + exo.filename : exo.text.substring(0,50) + (exo.text.length>50?'...':'')) + '</p></div></div>' +
             '<button onclick="deleteExo(\'' + exo.id + '\')" style="background:#fef2f2;border:none;border-radius:0.5rem;width:1.75rem;height:1.75rem;cursor:pointer;color:#dc2626;font-size:0.75rem;">✕</button>' +
             '</div>' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;">' +
-            '<div style="display:flex;align-items:center;gap:0.5rem;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">' +
+            '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">' +
             '<span style="background:#f3f4f6;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;color:#374151;">⏱️ ' + dur + '</span>' +
-            '<span style="background:' + urgencyBg + ';color:' + urgency + ';border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">' + urgencyLabel + '</span>' +
+            (exo.done ? '<span style="background:#dcfce7;color:#166534;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">✓ Fait</span>' : '<span style="background:' + urgencyBg + ';color:' + urgency + ';border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">' + urgencyLabel + '</span>') +
             (exo.scheduledSlot ? '<span style="background:#ecfdf5;color:#059669;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;">✓ Planifié</span>' : '') +
             '</div>' +
-            '<button onclick="openPlanifier(\'' + exo.id + '\')" style="background:linear-gradient(to right,#10b981,#059669);color:white;border:none;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' +
-            (exo.scheduledSlot ? '📅 Replanifier' : '+ Planifier') +
-            '</button></div></div>';
+            '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">' +
+            '<button type="button" data-exo-fait="' + exo.id + '" onclick="basculerExoFait(\'' + exo.id + '\')" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre à faire : ' : 'Marquer fait : ') + exo.subject + '" style="background:' + (exo.done ? 'white' : '#ecfdf5') + ';color:#047857;border:1px solid #a7f3d0;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +
+            (exo.done ? '' : '<button onclick="openPlanifier(\'' + exo.id + '\')" style="background:linear-gradient(to right,#10b981,#059669);color:white;border:none;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' +
+            (exo.scheduledSlot ? '📅 Replanifier' : '+ Planifier') + '</button>') +
+            '</div></div></div>';
     }).join('');
 }
 
 function deleteExo(id) {
     exercices = exercices.filter(e => e.id !== id);
     localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
-    document.getElementById('exoCountBadge').textContent = exercices.length + ' exercice' + (exercices.length > 1 ? 's' : '');
+    exoMajBadge();
     renderExoList();
     renderPlanifier();
 }
@@ -190,14 +261,14 @@ function deleteExo(id) {
 function renderPlanifier() {
     const container = document.getElementById('planifierContent');
     if (!container) return;
-    const unplanned = exercices.filter(e => !e.scheduledSlot);
     if (exercices.length === 0) {
         container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><div style="font-size:3rem;margin-bottom:1rem;">📅</div><p style="font-weight:600;">Ajoute d\'abord des exercices</p><p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l\'onglet ➕ pour commencer</p></div>';
         return;
     }
 
     // Global time estimate
-    const totalMins = exercices.filter(e => !e.done).reduce((s, e) => s + e.duration, 0);
+    const restants = exoRestants();
+    const totalMins = restants.reduce((s, e) => s + (Number(e.duration) || 0), 0);
     const totalH = Math.floor(totalMins / 60), totalM = totalMins % 60;
     const totalLabel = totalH > 0 ? totalH + 'h' + (totalM > 0 ? totalM + 'min' : '') : totalM + 'min';
 
@@ -207,12 +278,13 @@ function renderPlanifier() {
         '</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">' +
         '<div style="background:white;border-radius:0.75rem;padding:0.75rem;text-align:center;"><p style="font-size:1.25rem;font-weight:800;color:#059669;">' + totalLabel + '</p><p style="font-size:0.7rem;color:#6b7280;">temps minimum total</p></div>' +
-        '<div style="background:white;border-radius:0.75rem;padding:0.75rem;text-align:center;"><p style="font-size:1.25rem;font-weight:800;color:#3b82f6;">' + exercices.filter(e=>!e.done).length + '</p><p style="font-size:0.7rem;color:#6b7280;">exercice(s) restant(s)</p></div>' +
+        '<div style="background:white;border-radius:0.75rem;padding:0.75rem;text-align:center;"><p style="font-size:1.25rem;font-weight:800;color:#3b82f6;">' + restants.length + '</p><p style="font-size:0.7rem;color:#6b7280;">exercice(s) restant(s)</p></div>' +
         '</div></div>';
 
     // Individual planifier
     const today = new Date(); today.setHours(0,0,0,0);
-    exercices.filter(e => !e.done).sort((a,b) => new Date(a.deadline)-new Date(b.deadline)).forEach(exo => {
+    if (!restants.length) html += '<p style="text-align:center;color:#047857;font-weight:700;">Tous les exercices sont faits !</p>';
+    restants.slice().sort((a,b) => new Date(a.deadline)-new Date(b.deadline)).forEach(exo => {
         const dl = new Date(exo.deadline);
         const diffDays = Math.ceil((dl - today) / 86400000);
         const urgency = diffDays <= 1 ? '#dc2626' : diffDays <= 3 ? '#d97706' : '#059669';
@@ -498,7 +570,7 @@ function scheduleExo(exoId, slotIdx) {
 
     exo.scheduledSlot = exo.scheduledSlot || slot.dateStr;
     refreshPlanningAfterExercise(slot.planDay);
-    document.getElementById('exoCountBadge').textContent = exercices.length + ' exercice' + (exercices.length > 1 ? 's' : '');
+    exoMajBadge();
 
     const toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:linear-gradient(to right,#10b981,#059669);color:white;padding:0.875rem 1.5rem;border-radius:0.875rem;font-weight:700;font-size:0.85rem;z-index:200;box-shadow:0 8px 20px rgba(16,185,129,0.4);animation:fadeInUp 0.3s;max-width:92%;text-align:center;';
