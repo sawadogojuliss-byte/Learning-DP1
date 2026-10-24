@@ -1036,13 +1036,13 @@ const annulations = await page.evaluate(() => {
         startTime: '16:00', endTime: '16:30', type: 'study', pinned: true });
     localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents));
     const boutonAnnuler = () => [...document.querySelectorAll('.suppression-toast button')].find(b => b.textContent === 'Annuler');
-    emploiSupprimer(jour, 'lot4-b');
+    emploiSupprimer('lot4-b');
     const coursRetire = !emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
     const deplacementPropose = !![...document.querySelectorAll('.suppression-toast button')]
         .find(b => b.textContent.includes('Déplacer les révisions'));
     boutonAnnuler()?.click();
     const coursRestaure = emploiScolaireLire().jours[jour].some(c => c.id === 'lot4-b');
-    emploiSupprimer(jour, 'lot4-b');
+    emploiSupprimer('lot4-b');
     [...document.querySelectorAll('.suppression-toast button')]
         .find(b => b.textContent.includes('Déplacer les révisions'))?.click();
     const revisionDeplacee = customEvents.some(e => e.source === 'emploi-deplace');

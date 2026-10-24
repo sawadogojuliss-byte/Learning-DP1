@@ -15,6 +15,7 @@ const ctx = {
     console, Date, Math, setTimeout,
     subjects: [], optionalSubjects: [], ibYear: 'DP2',
     generatePlanning() { ctx.plannings++; }, plannings: 0,
+    suppressionAvecAnnulation(action) { action.retirer(); action.actualiser(); ctx.suppression = action; },
 };
 ctx.window = ctx;
 vm.createContext(ctx);
@@ -54,6 +55,9 @@ assert.equal(ctx.emploiScolaireJour(0).length, 1, 'ancien jour corrigé');
 assert.equal(el('emploiAjouterBouton').textContent, 'Ajouter le cours');
 ctx.emploiSupprimer(id);
 assert.equal(ctx.emploiScolaireJour(2).length, 0, 'recherche sur les sept jours');
+ctx.suppression.restaurer();
+assert.equal(ctx.emploiScolaireJour(2)[0].id, id, 'annulation restaure cours et identité');
+ctx.emploiSupprimer(id);
 formulaire(0, 'Français', '08:35', '09:15');
 ctx.emploiAjouterManuel();
 el('emploiConflitRemplacer').onclick();

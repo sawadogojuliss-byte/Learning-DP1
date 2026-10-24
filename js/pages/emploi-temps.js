@@ -565,17 +565,65 @@ function emploiAjouterManuel() {
 
 function emploiSupprimer(id) {
     var store = emploiScolaireLire();
-    for (var jour = 0; jour < 7; jour++) {
-        var index = store.jours[jour].findIndex(function (c) { return c.id === id; });
-        if (index < 0) continue;
-        store.jours[jour].splice(index, 1);
-        store.at = new Date().toISOString();
-        emploiScolaireEcrire(store);
-        if (emploiEditionId === id) emploiEditionFinir();
+    var jour = store.jours.findIndex(function (liste) {
+        return liste.some(function (c) { return c.id === id; });
+    });
+    if (jour < 0) return;
+    if (emploiEditionId === id) emploiEditionFinir();
+    var index = store.jours[jour].findIndex(function (c) { return c.id === id; });
+    if (index < 0) return;
+    var cours = store.jours[jour][index];
+    var options = typeof emploiScolaireOptionsJour === 'function' ? emploiScolaireOptionsJour() : {};
+    var liees = typeof emploiScolaireTrous === 'function' && typeof emploiScolaireBlocsTravail === 'function'
+        ? emploiScolaireTrous(store.jours[jour]).filter(function (trou) { return trou.avant.id === id; })
+            .reduce(function (blocs, trou) {
+                return blocs.concat(emploiScolaireBlocsTravail(trou, options).filter(function (b) { return b.id.indexOf('emploi-rev-') === 0; }));
+            }, []) : [];
+    var restantes = store.jours[jour].filter(function (c) { return c.id !== id; });
+    var trous = typeof emploiScolaireTrous === 'function' ? emploiScolaireTrous(restantes, 60) : [];
+    var deplaces = [];
+    function actualiser() {
         emploiRendre();
         if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
-        return;
     }
+    suppressionAvecAnnulation({
+        message: 'Cours « ' + cours.nom + ' » supprimé' + (liees.length ? ' · ' + liees.length + ' révision' + (liees.length > 1 ? 's' : '') + ' liée' + (liees.length > 1 ? 's' : '') + '. Annuler pour les retrouver.' : '.'),
+        retirer: function () {
+            var courant = emploiScolaireLire();
+            courant.jours[jour] = courant.jours[jour].filter(function (c) { return c.id !== id; });
+            courant.at = new Date().toISOString();
+            emploiScolaireEcrire(courant);
+        },
+        restaurer: function () {
+            if (deplaces.length && typeof customEvents !== 'undefined') {
+                customEvents = customEvents.filter(function (e) { return !e || deplaces.indexOf(e.id) === -1; });
+                if (typeof v3Save === 'function') v3Save();
+            }
+            var courant = emploiScolaireLire();
+            if (!courant.jours[jour].some(function (c) { return c.id === id; })) {
+                courant.jours[jour].splice(Math.min(index, courant.jours[jour].length), 0, cours);
+                emploiScolaireEcrire(courant);
+            }
+        },
+        deplacer: liees.length && trous.length ? function () {
+            if (typeof customEvents === 'undefined') return;
+            /* Uniquement dans un creux encore libre entre deux cours ; le
+               moteur adapte les autres études autour de ce bloc fixé. */
+            liees.forEach(function (bloc) {
+                var place = trous.filter(function (t) { return t.fin - t.debut >= bloc.duree + 15; })[0];
+                if (!place) return;
+                var debut = place.debut + 5;
+                var identifiant = 'emploi-rev-deplace-' + id + '-' + Date.now() + '-' + deplaces.length;
+                customEvents.push({ id: identifiant, day: jour, title: bloc.titre,
+                    startTime: emploiM2H(debut), endTime: emploiM2H(debut + bloc.duree),
+                    type: 'study', icon: bloc.icone, pinned: true, source: 'emploi-deplace', timestamp: Date.now() });
+                deplaces.push(identifiant);
+                place.debut = debut + bloc.duree + 10;
+            });
+            if (typeof v3Save === 'function') v3Save();
+        } : null,
+        actualiser: actualiser
+    });
 }
 
 function emploiRendre() {
