@@ -54,30 +54,25 @@ ok(css.indexOf('#eventsContainer [data-v3-idx] { position: relative; }') !== -1,
 ok(css.indexOf('!important') !== -1, 'les cartes ont un style en ligne : le repère doit primer');
 
 // ── Popup de chevauchement ────────────────────────────────────────────
-var popup = entre(interfaceJs, 'function v3OuvrirChoixChevauchement', 'function v3SignalerChevauchementJour');
+var popup = entre(interfaceJs, 'function v3OuvrirChoixChevauchement', '// ═══════════════════════════════════════════════════════════════════\n//  4. DÉPLACEMENT');
 ok(popup.length > 500, 'le popup de chevauchement est introuvable');
-ok(interfaceJs.indexOf('function v3ConflitsCreneau') !== -1, 'la détection des activités voisines manque');
+ok(interfaceJs.indexOf('function v3ConflitsCreneau') !== -1, 'la détection des créneaux voisins manque');
 ok(interfaceJs.indexOf('var voisines = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);') !== -1,
-    'la modification doit prévenir dès qu\'une activité voisine se chevauche');
+    'la modification doit prévenir dès qu’un créneau voisin se chevauche');
 ok(interfaceJs.indexOf('var voisinesAjout = v3ConflitsCreneau(selectedDay, startTime, endTime, []);') !== -1,
-    'l\'ajout doit prévenir dès qu\'une activité voisine se chevauche');
-ok(interfaceJs.indexOf('v3EstActivite(editingEvent) || activites.some(v3EstActivite)') === -1,
-    'le popup ne doit plus se limiter aux activités');
-ok(interfaceJs.indexOf('function v3ConflitsCreneau(day, start, end, excludeIds) {') !== -1, 'la liste des voisines est mal nommée');
-var conflits = entre(interfaceJs, 'function v3ConflitsCreneau', 'function v3CreneauModifie');
+    'l’ajout doit prévenir dès qu’un créneau voisin se chevauche');
+var conflits = entre(interfaceJs, 'function v3ConflitsCreneau', 'function v3PeutDeplacerChevauchement');
 ok(conflits.indexOf("ev.id === 'wakeup' || ev.id === 'sleep'") !== -1, 'le réveil et le coucher ne comptent pas');
-ok(conflits.indexOf('v3IntervallesSeCroisent') !== -1, 'les voisines doivent être comparées aux vraies heures');
-ok(popup.indexOf('Ta modification') !== -1, 'le popup doit rappeler la modification');
-ok(popup.indexOf('Ce qui est déjà à ce moment') !== -1, 'le popup doit lister ce qui occupe le créneau');
-ok(popup.indexOf('Prendre son créneau') !== -1, 'le popup doit proposer de prendre le créneau');
-ok(popup.indexOf('Choisir un autre horaire') !== -1, 'le popup doit proposer un autre horaire');
-ok(popup.indexOf('Elle commence avant la tienne') !== -1, 'l\'activité qui précède doit être expliquée');
-ok(popup.indexOf('Elle commence après la tienne') !== -1, 'l\'activité qui suit doit être expliquée');
-ok(popup.indexOf('Cette activité se chevauche') !== -1 && popup.indexOf('Ces activités se chevauchent') !== -1,
-    'le titre doit s\'accorder au nombre de conflits');
-ok(popup.indexOf('minutesCourt') !== -1, 'la durée doit être lisible dans le popup');
-ok(popup.indexOf('data-propositions') !== -1 && popup.indexOf('data-placer') !== -1 && popup.indexOf('data-annuler') !== -1,
-    'les actions du popup manquent');
+ok(conflits.indexOf('v3ActivitesChevauchees') !== -1, 'les activités saisies doivent être comparées');
+ok(popup.indexOf('Rien n’a été modifié') !== -1, 'la popup doit confirmer qu’aucun horaire ne change avant confirmation');
+ok(popup.indexOf('Ce qui est déjà prévu') !== -1, 'la popup doit lister ce qui occupe le créneau');
+ok(popup.indexOf('Choisir un autre horaire') !== -1, 'la popup doit proposer un autre horaire');
+ok(popup.indexOf('Garder mon horaire et déplacer') !== -1, 'le déplacement doit expliquer son effet');
+ok(popup.indexOf('Confirmer ces horaires') !== -1 && popup.indexOf('Retour aux choix') !== -1,
+    'la popup doit montrer la vérification avant confirmation');
+ok(popup.indexOf('data-annuler') !== -1, 'il faut pouvoir annuler sans enregistrer');
+ok(popup.indexOf('Prendre son créneau') === -1 && popup.indexOf('se décale juste après') === -1,
+    'les anciennes promesses trompeuses doivent disparaître');
 
 /* ── Page retour des feedbacks, habillage Pomodoro ───────────────────── */
 var html = lire('pages/boite.html');
