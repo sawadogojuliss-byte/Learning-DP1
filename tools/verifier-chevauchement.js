@@ -150,4 +150,14 @@ assert.equal(echecs.eval('v3AppliquerChoixChevauchement(current, choix)', { curr
     'ne pas prétendre supprimer si le moteur refuse de masquer');
 assert.equal(echecs.ctx.customEvents.length, 0);
 assert.equal(echecs.saves, 0);
+const decalageImplicite = scenario([sport, { id: 'prep', title: 'Préparation', type: 'prep',
+    startTime: '17:30', endTime: '18:00' }], true);
+decalageImplicite.ctx.planningSansExercicesFaits = events => events.map(ev =>
+    ev.id === 'prep' && decalageImplicite.ctx.customEvents.some(e => e.deleted)
+        ? { ...ev, startTime: '17:40', endTime: '18:10' } : ev);
+assert.equal(decalageImplicite.eval('v3AppliquerChoixChevauchement(current, choix)', {
+    current: decalageImplicite.current, choix: force }), false,
+    'ne jamais déplacer Préparation sans accord, même lors de la régénération');
+assert.equal(decalageImplicite.saves, 0);
+assert.equal(decalageImplicite.ctx.customEvents.length, 0);
 console.log('ok popup : durées inchangées, alternative, cours protégé, conflit multiple, refus de chevauchement, annulation et reprise après échec');

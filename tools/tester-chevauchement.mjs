@@ -105,6 +105,8 @@ try {
     assert.equal(await popup.locator('.chev-carte-deja').count(), 2);
     assert.equal(await popup.locator('[data-deplacer]').count(), 0);
     await popup.locator('[data-remplacer]').click();
+    assert.match(await popup.locator('.chev-mode').nth(0).innerText(), /18:30 → 19:00 · 30 min/);
+    assert.match(await popup.locator('.chev-mode').nth(1).innerText(), /18:00 → 19:00 · 1 h/);
     assert.equal(await popup.locator('.chev-retrait').count(), 2, 'ne proposer que les conflits réels du résultat');
     assert.equal(await popup.locator('.chev-retrait').filter({ hasText: 'Préparation' }).count(), 0);
     await popup.locator('input[name="chevMode"][value="prendre"]').check();

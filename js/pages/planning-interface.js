@@ -773,6 +773,9 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
     if (!valid.valid) { v3DireChevauchement(valid.error); return false; }
     var depart = customEvents.slice();
     var idAffiche = '';
+    // Le remplacement ne peut pas faire disparaître ou déplacer en secret un
+    // autre bloc lorsque le moteur reconstruit la journée.
+    var avant = (choix.supprimerIds || []).length ? generateDayEvents(ctx.day) : [];
     // Capturer la sélection avant tout recalcul : retirer le premier bloc
     // peut réordonner les blocs générés qui suivent dans la journée.
     var selection = v3ConflitsCreneau(ctx.day, choix.utilisateur.start, choix.utilisateur.end, ctx.excludeIds);
@@ -823,6 +826,11 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
             return !!(ev && ev.startTime === plage.start && ev.endTime === plage.end);
         }
         if (!horaireAttendu(idAffiche, choix.utilisateur) ||
+            avant.some(function (ev) {
+                if ((choix.supprimerIds || []).indexOf(ev.id) !== -1 || ev.id === idAffiche) return false;
+                var garde = (apres || []).find(function (item) { return item.id === ev.id; });
+                return !garde || garde.startTime !== ev.startTime || garde.endTime !== ev.endTime;
+            }) ||
             (choix.supprimerIds || []).some(function (id) {
                 return (apres || []).some(function (ev) { return ev.id === id; });
             }) ||
@@ -946,8 +954,8 @@ function v3OuvrirChoixChevauchement(ctx) {
         '<p id="chevauchementVerdict" class="chev-verdict" role="status" aria-live="polite"></p>' +
         '<button type="button" class="chev-bouton chev-bouton-clair" data-placer disabled>Choisir cet horaire</button></div>' +
         '<div id="chevRemplacement" hidden><span class="chev-section">Quel résultat veux-tu ?</span>' +
-        '<label class="chev-mode"><input type="radio" name="chevMode" value="garder" checked> Garder mes heures (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ')</label>' +
-        '<label class="chev-mode"><input type="radio" name="chevMode" value="prendre"> Prendre exactement les heures du créneau choisi</label>' +
+        '<label class="chev-mode"><input type="radio" name="chevMode" value="garder" checked> Garder mes heures (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' · ' + v3DureeCourte(duree) + ')</label>' +
+        '<label class="chev-mode"><input type="radio" name="chevMode" value="prendre"> Prendre les heures et la durée du créneau choisi <span id="chevExactExemple"></span></label>' +
         '<div id="chevSourceGroupe" hidden><label class="chev-libelle" for="chevSource">Créneau dont prendre les heures et la durée</label><select id="chevSource"></select></div>' +
         '<p id="chevResultat" class="chev-resultat"></p>' +
         '<span class="chev-section">Quels créneaux retirer du planning ?</span>' +
@@ -993,6 +1001,10 @@ function v3OuvrirChoixChevauchement(ctx) {
         var optionExact = el.querySelector('input[name="chevMode"][value="prendre"]');
         optionExact.disabled = true;
         optionExact.parentNode.appendChild(document.createTextNode(' (horaire traversant minuit)'));
+    } else {
+        var sourceInitiale = ctx.conflits[Number(source.value)];
+        el.querySelector('#chevExactExemple').textContent = ' (' + sourceInitiale.startTime + ' → ' +
+            sourceInitiale.endTime + ' · ' + v3DureeCourte(timeToMinutes(sourceInitiale.endTime) - timeToMinutes(sourceInitiale.startTime)) + ')';
     }
     var mode = function () { return el.querySelector('input[name="chevMode"]:checked').value; };
     function choixRetrait() {
@@ -1006,6 +1018,11 @@ function v3OuvrirChoixChevauchement(ctx) {
         var ev = ctx.conflits[Number(source.value)] || ctx.conflits[0];
         var exact = mode() === 'prendre' && ev;
         var plage = exact ? { start: ev.startTime, end: ev.endTime } : { start: ctx.start, end: ctx.end };
+        if (source.options.length) {
+            var selectionne = ctx.conflits[Number(source.value)];
+            el.querySelector('#chevExactExemple').textContent = ' (' + selectionne.startTime + ' → ' +
+                selectionne.endTime + ' · ' + v3DureeCourte(timeToMinutes(selectionne.endTime) - timeToMinutes(selectionne.startTime)) + ')';
+        }
         el.querySelector('#chevSourceGroupe').hidden = !exact;
         el.querySelector('#chevResultat').textContent = '« ' + ctx.title + ' » : ' + plage.start + ' → ' + plage.end +
             ' · ' + v3DureeCourte(timeToMinutes(plage.end) - timeToMinutes(plage.start)) +
