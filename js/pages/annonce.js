@@ -15,6 +15,20 @@ var annonceListe = [];
 var annonceBranchee = false;
 var annonceEnvoiEnCours = false;
 var annonceSessionEnvoi = false;
+var annonceBrouillons = [];
+var annonceBrouillonCourant = '';
+var annonceAccordEnCours = false;
+
+/* Le nom affiché est modifiable. L'accord utilise l'identifiant Google du
+   compte personnel, pas le champ « Ton nom complet ». */
+function annonceMoi() {
+    var session = typeof boiteSession === 'function' ? boiteSession() : null;
+    var sub = session && String(session.sub || '');
+    var ids = typeof BOITE_ADMINS_SUB !== 'undefined' ? BOITE_ADMINS_SUB : [];
+    var index = ids.indexOf(sub);
+    return annonceEstAdmin() && index >= 0 ? annonceCles()[index] : '';
+}
+
 
 function annonceMots(nom) {
     if (typeof boiteMots === 'function') return boiteMots(nom);
@@ -49,7 +63,8 @@ function annonceCles() {
 }
 
 function annonceEstAdmin() {
-    return typeof boiteEstAdmin === 'function' && boiteEstAdmin() && !!annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
+    return typeof boiteEstAdmin === 'function' && boiteEstAdmin() && !!(typeof boiteSession === 'function' && boiteSession() &&
+        typeof BOITE_ADMINS_SUB !== 'undefined' && BOITE_ADMINS_SUB.indexOf(String(boiteSession().sub || '')) !== -1);
 }
 
 function annonceNormaliser(item) {
@@ -228,7 +243,7 @@ function annonceMajMenu() {
         bouton.style.display = admin ? 'none' : 'flex';
         bouton.style.marginTop = '0';
     }
-    var nombre = annonceCompteBadge(annonceListe, annonceEstAdmin());
+    var nombre = annonceCompteBadge(annonceListe, admin);
     if (nombre > 0 && bouton && !admin) bouton.style.marginTop = '0.85rem';
     annoncePoserBadge(document.getElementById('annonceBadge'), nombre);
     annoncePoserBadge(document.getElementById('adminAnnonceBadge'), nombre);
@@ -246,8 +261,8 @@ function annonceDateLisible(iso) {
 }
 
 function annonceCarte(item) {
-    var admin = annonceEstAdmin();
-    var moi = annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
+    var admin = typeof boiteEstAdmin === 'function' && boiteEstAdmin();
+    var moi = annonceMoi();
     var echap = typeof boiteEchap === 'function' ? boiteEchap : function (s) { return String(s || ''); };
     var manquants = annonceManquants(item).map(annonceLabel);
     var accords = annonceCles().filter(function (cle) {
@@ -255,27 +270,27 @@ function annonceCarte(item) {
     }).map(annonceLabel);
     var etat = 'Publiée';
     if (!item.publie && item.programmeActif) etat = 'Envoi programmé';
-    else if (!item.publie && annonceValidee(item)) etat = 'Prête à publier';
+    else if (!item.publie && annonceValidee(item)) etat = 'Validée · publication en cours';
     else if (!item.publie) etat = 'En attente de validation';
     var actions = '';
     if (admin && !item.publie && !item.programmeActif) {
         if (moi && moi !== item.auteurCle && !(item.acceptations && item.acceptations[moi])) {
-            actions += '<button type="button" data-annonce-accepter="' + echap(item.id) + '" style="width:100%;margin-top:0.75rem;padding:0.75rem 1rem;border:none;border-radius:0.8rem;background:#111827;color:white;font-weight:800;cursor:pointer;">J\'accepte la publication</button>';
+            actions += '<button type="button" data-annonce-voir="' + echap(item.id) + '" class="annonce-lire-valider">Lire et valider l’annonce</button>';
         }
+
         if (annonceValidee(item)) {
-            var futur = item.programme && new Date(item.programme).getTime() > Date.now();
-            actions += '<button type="button" data-annonce-publier="' + echap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.75rem 1rem;border:none;border-radius:0.8rem;background:#059669;color:white;font-weight:800;cursor:pointer;">' + (futur ? 'Programmer l\'envoi' : 'Publier') + '</button>';
+            actions += '<button type="button" data-annonce-publier="' + echap(item.id) + '" class="annonce-reprise">Relancer la publication (3 accords reçus)</button>';
         }
         if (moi && moi === item.auteurCle) {
             actions += '<button type="button" data-annonce-retirer="' + echap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.7rem 1rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;background:white;color:#6b7280;font-weight:700;cursor:pointer;">Retirer</button>';
         }
     }
-    if (admin && item.publie) {
+    if (annonceEstAdmin() && item.publie) {
         actions += '<button type="button" data-annonce-renvoyer="' + echap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.7rem 1rem;border:1.5px solid #a7f3d0;border-radius:0.8rem;background:white;color:#047857;font-weight:700;cursor:pointer;">Renvoyer les mails manquants</button>';
     }
     if (!admin && !item.publie) return '';
     var meta = admin
-        ? '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">Par ' + echap(item.nom || annonceLabel(item.auteurCle)) + ' · ' + echap(etat) + (accords.length ? ' · accords : ' + echap(accords.join(', ')) : '') + (manquants.length && !item.publie ? ' · il manque : ' + echap(manquants.join(', ')) : '') + (item.programme ? ' · ' + echap(annonceDateLisible(item.programme)) : '') + '</p>'
+        ? '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">Par ' + echap(item.nom || annonceLabel(item.auteurCle)) + ' · ' + echap(etat) + (accords.length ? ' · accords : ' + echap(accords.join(', ')) : '') + (manquants.length && !item.publie ? ' · il manque : ' + echap(manquants.join(', ')) : '') + (item.programme ? ' · ' + echap(annonceDateLisible(item.programme)) : '') + (item.publie ? ' · ' + item.envoyes.length + ' adresse(s) confirmée(s) par le service d’envoi (réception non garantie)' : '') + '</p>'
         : '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">De l\'équipe Study Plan IB · ' + echap(annonceDateLisible(item.publieAt || item.envoyeAt || item.at)) + '</p>';
     return '<article style="background:white;border:1.5px solid #f3f4f6;border-radius:1rem;padding:0.95rem 1rem;margin-bottom:0.75rem;">'
         + '<p style="margin:0;font-size:1.15rem;font-weight:800;color:#059669;">Annonce</p>'
@@ -295,7 +310,7 @@ function annonceRendre() {
     var composer = document.getElementById('annonceComposer');
     if (composer) composer.style.display = annonceEstAdmin() ? 'block' : 'none';
     if (!liste) return;
-    var cartes = annonceListe.map(annonceCarte).filter(Boolean).join('');
+    var cartes = (annonceEstAdmin() ? annonceBrouillons.map(annonceCarteBrouillon) : []).concat(annonceListe.map(annonceCarte).filter(Boolean)).join('');
     liste.innerHTML = cartes || '<p style="color:#6b7280;font-size:0.9rem;">Aucune annonce pour le moment.</p>';
 }
 
@@ -314,7 +329,7 @@ function annonceLireFichier() {
 
 function annonceEnAttentePourMoi() {
     if (!annonceEstAdmin()) return [];
-    var moi = annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
+    var moi = annonceMoi();
     if (!moi) return [];
     return annonceListe.filter(function (item) {
         return !item.publie && !item.programmeActif && item.auteurCle !== moi && !(item.acceptations && item.acceptations[moi]);
@@ -322,58 +337,76 @@ function annonceEnAttentePourMoi() {
 }
 
 function annonceAlerteCle() {
-    return 'studyPlanIB_annoncesAlerte';
+    var session = typeof boiteSession === 'function' ? boiteSession() : null;
+    return 'studyPlanIB_annoncesAlerte:' + String(session && session.sub || '');
 }
 
 function annonceAlertesVues() {
     try {
         var vus = JSON.parse(sessionStorage.getItem(annonceAlerteCle()) || '[]');
         return Array.isArray(vus) ? vus : [];
-    } catch (e) {
-        return [];
-    }
+    } catch (e) { return []; }
 }
 
 function annonceMarquerAlerte(ids) {
     try {
         var vus = annonceAlertesVues();
-        (ids || []).forEach(function (id) {
-            if (vus.indexOf(id) === -1) vus.push(id);
-        });
+        (ids || []).forEach(function (id) { if (vus.indexOf(id) === -1) vus.push(id); });
         sessionStorage.setItem(annonceAlerteCle(), JSON.stringify(vus.slice(-40)));
     } catch (e) {}
 }
 
-function annonceOuvrirAlerte() {
-    if (typeof document === 'undefined' || !document.body) return;
-    var panel = document.getElementById('panelAnnonce');
-    if (panel && panel.classList.contains('active')) return;
-    var deja = annonceAlertesVues();
-    var attente = annonceEnAttentePourMoi().filter(function (item) { return deja.indexOf(item.id) === -1; });
-    if (!attente.length || document.getElementById('annonceAlerte') || document.getElementById('boiteAlerteRetours')) return;
+function annonceFermerAlerte() {
+    var el = document.getElementById('annonceAlerte');
+    if (el) el.remove();
+}
+
+function annonceOuvrirAlerte(id) {
+    if (typeof document === 'undefined' || !document.body || !annonceEstAdmin()) return;
+    var attentes = id ? annonceEnAttentePourMoi().filter(function (item) { return item.id === id; })
+        : annonceEnAttentePourMoi().filter(function (item) { return annonceAlertesVues().indexOf(item.id) === -1; });
+    if (!attentes.length || (!id && document.getElementById('boiteAlerteRetours'))) return;
+    if (!id && document.getElementById('panelAnnonce').classList.contains('active')) return;
+    var item = attentes[0];
+    annonceFermerAlerte();
     var echap = typeof boiteEchap === 'function' ? boiteEchap : function (s) { return String(s || ''); };
-    var lignes = attente.slice(0, 4).map(function (item) {
-        return '<p style="margin:0.35rem 0;color:#1c1917;font-size:1rem;line-height:1.4;">' + echap(item.nom || annonceLabel(item.auteurCle)) + ' a écrit « ' + echap(item.titre) + ' ».</p>';
-    }).join('');
     var el = document.createElement('div');
     el.id = 'annonceAlerte';
-    el.style.cssText = 'position:fixed;inset:0;z-index:221;background:rgba(17,24,39,0.55);display:flex;align-items:center;justify-content:center;padding:1rem;';
-    el.innerHTML = '<div style="max-width:26rem;width:100%;background:white;border-radius:1.25rem;padding:1.35rem 1.2rem;box-shadow:0 24px 60px rgba(0,0,0,0.18);">'
-        + '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Study Plan IB</p>'
-        + '<h3 style="margin:0 0 0.7rem;font-size:1.22rem;color:#1c1917;">Annonce à accepter</h3>'
-        + lignes
-        + '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.1rem;">'
-        + '<button type="button" id="annonceAlerteVoir" style="width:100%;border:none;background:#059669;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Voir</button>'
-        + '<button type="button" id="annonceAlerteFermer" style="width:100%;border:1.5px solid #e7e5e4;background:white;color:#44403c;border-radius:0.85rem;padding:0.75rem 1rem;font-weight:700;cursor:pointer;">Fermer</button>'
-        + '</div></div>';
+    el.className = 'annonce-validation-fond';
+    el.innerHTML = '<section class="annonce-validation" role="dialog" aria-modal="true" aria-labelledby="annonceValidationTitre" tabindex="-1">' +
+        '<p class="annonce-validation-surtitre">📣 ANNONCE · VALIDATION</p>' +
+        '<h3 id="annonceValidationTitre">Une annonce attend votre validation</h3>' +
+        '<p class="annonce-validation-auteur">De ' + echap(item.nom || annonceLabel(item.auteurCle)) +
+        (item.programme ? ' · envoi prévu ' + echap(annonceDateLisible(item.programme)) : '') + '</p>' +
+        '<div class="annonce-validation-lecture"><strong>' + echap(item.titre) + '</strong><p>' + echap(item.texte) + '</p></div>' +
+        '<p class="annonce-validation-note">Lis l’annonce avant de donner ton accord. Il faut trois accords distincts. Le dernier déclenche la publication ou l’envoi programmé.</p>' +
+        '<p class="annonce-validation-erreur" role="alert" aria-live="polite"></p>' +
+        '<div class="annonce-validation-actions"><button type="button" data-annonce-confirmer>✓ J’ai lu, je valide l’envoi</button>' +
+        '<button type="button" data-annonce-plus-tard>Plus tard</button></div></section>';
     document.body.appendChild(el);
-    annonceMarquerAlerte(attente.map(function (item) { return item.id; }));
-    document.getElementById('annonceAlerteFermer').onclick = function () {
-        if (el.parentNode) el.parentNode.removeChild(el);
+    annonceMarquerAlerte([item.id]);
+    var precedent = document.activeElement;
+    el.querySelector('[role="dialog"]').focus();
+    function fermer() { annonceFermerAlerte(); if (precedent && precedent.isConnected) precedent.focus(); }
+    el.querySelector('[data-annonce-plus-tard]').onclick = fermer;
+    el.querySelector('[data-annonce-confirmer]').onclick = function () {
+        var bouton = this;
+        bouton.disabled = true;
+        annonceAccepter(item.id).then(function (sauve) {
+            if (!sauve) { bouton.disabled = false; return; }
+            fermer();
+        }).catch(function () {
+            el.querySelector('.annonce-validation-erreur').textContent = 'L’accord n’a pas été enregistré. Réessaie.';
+            bouton.disabled = false;
+        });
     };
-    document.getElementById('annonceAlerteVoir').onclick = function () {
-        if (el.parentNode) el.parentNode.removeChild(el);
-        if (typeof navigateTo === 'function') navigateTo('annonce');
+    el.onkeydown = function (event) {
+        if (event.key === 'Escape') { event.preventDefault(); fermer(); }
+        if (event.key === 'Tab') {
+            var boutons = Array.from(el.querySelectorAll('button:not(:disabled)'));
+            if (event.shiftKey && document.activeElement === boutons[0]) { event.preventDefault(); boutons[boutons.length - 1].focus(); }
+            else if (!event.shiftKey && document.activeElement === boutons[boutons.length - 1]) { event.preventDefault(); boutons[0].focus(); }
+        }
     };
 }
 
@@ -392,14 +425,104 @@ function annonceCharger(force) {
 function annonceSauver(record) {
     var copie = annonceNormaliser(record);
     copie.at = copie.at || new Date().toISOString();
+    var precedente = annonceListe.slice();
     annonceListe = annonceFusionner(annonceListe.concat([copie]));
     annonceRendre();
     if (typeof boiteGarderVu === 'function') boiteGarderVu(copie);
     if (typeof boiteListesCache !== 'undefined' && boiteListesCache) {
         boiteListesCache.annonces = annonceFusionner((boiteListesCache.annonces || []).concat([copie]));
     }
-    var envoi = typeof boiteEnvoyer === 'function' ? boiteEnvoyer(copie) : Promise.resolve(true);
-    return envoi.then(function () { return copie; });
+    var envoi = typeof boiteEnvoyer === 'function' ? boiteEnvoyer(copie) : Promise.reject(new Error('stockage_indisponible'));
+    return envoi.then(function (ok) {
+        if (!ok) throw new Error('stockage_indisponible');
+        return copie;
+    }).catch(function (err) {
+        annonceListe = precedente;
+        if (typeof boiteListesCache !== 'undefined' && boiteListesCache) boiteListesCache.annonces = precedente;
+        annonceRendre();
+        throw err;
+    });
+}
+
+function annonceUtilisateur() {
+    if (!annonceEstAdmin()) return Promise.reject(new Error('admin_requis'));
+    return boiteFirebasePret().then(function (user) {
+        var session = boiteSession();
+        var google = user && (user.providerData || []).filter(function (p) { return p.providerId === 'google.com'; })[0];
+        if (!user || !google || !session || String(google.uid) !== String(session.sub)) {
+            throw new Error('compte_admin_non_confirme');
+        }
+        return user;
+    });
+}
+
+/* Un brouillon ne va JAMAIS dans « publie » (lisible par les élèves).
+   Il reste dans comptes/{uid}, protégé par les règles déjà en place. */
+function annonceLireBrouillons() {
+    if (!annonceEstAdmin()) return Promise.resolve([]);
+    return annonceUtilisateur().then(function (user) {
+        return firebase.firestore().collection('comptes').doc(user.uid).get();
+    }).then(function (snap) {
+        var map = snap && snap.exists && snap.data().annoncesBrouillons || {};
+        annonceBrouillons = Object.keys(map).map(function (id) { return map[id]; }).filter(function (item) {
+            return item && item.brouillon === 1 && item.auteurCle === annonceMoi();
+        }).sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); }).slice(0, 10);
+        annonceRendre();
+        return annonceBrouillons;
+    });
+}
+
+function annonceSauverBrouillon(record) {
+    if (!annonceEstAdmin() || !annonceMoi() || annonceTrouver(record.id) ||
+        (!annonceBrouillonCourant && annonceBrouillons.length >= 10)) return Promise.reject(new Error('brouillons_limite'));
+    return annonceUtilisateur().then(function (user) {
+        var data = { annoncesBrouillons: {} };
+        data.annoncesBrouillons[record.id] = record;
+        return firebase.firestore().collection('comptes').doc(user.uid).set(data, { merge: true });
+    }).then(function () {
+        annonceBrouillonCourant = record.id;
+        annonceBrouillons = [record].concat(annonceBrouillons.filter(function (b) { return b.id !== record.id; })).slice(0, 10);
+        annonceRendre();
+        return record;
+    });
+}
+
+function annonceEffacerBrouillon(id) {
+    if (!id) return Promise.resolve();
+    return annonceUtilisateur().then(function (user) {
+        var champ = new firebase.firestore.FieldPath('annoncesBrouillons', id);
+        return firebase.firestore().collection('comptes').doc(user.uid).update(champ, firebase.firestore.FieldValue.delete());
+    }).then(function () {
+        annonceBrouillons = annonceBrouillons.filter(function (b) { return b.id !== id; });
+        annonceBrouillonCourant = '';
+        annonceRendre();
+    });
+}
+
+function annonceCarteBrouillon(item) {
+    var echap = typeof boiteEchap === 'function' ? boiteEchap : function (s) { return String(s || ''); };
+    return '<article class="annonce-brouillon"><span class="annonce-brouillon-tag">BROUILLON PRIVÉ · PAS ENCORE SOUMIS</span>' +
+        '<h4>' + echap(item.titre) + '</h4><p>' + echap(item.texte) + '</p>' +
+        '<button type="button" data-annonce-reprendre="' + echap(item.id) + '">Reprendre la rédaction</button>' +
+        '<button type="button" data-annonce-supprimer-brouillon="' + echap(item.id) + '">Supprimer ce brouillon</button></article>';
+}
+
+function annonceReprendreBrouillon(id) {
+    if (!annonceEstAdmin()) return;
+    var item = annonceBrouillons.find(function (b) { return b.id === id; });
+    if (!item) return;
+    annonceBrouillonCourant = id;
+    document.getElementById('annonceTitre').value = item.titre;
+    document.getElementById('annonceTexte').value = item.texte;
+    var date = document.getElementById('annonceProgramme');
+    if (date) {
+        var quand = new Date(item.programme);
+        date.value = item.programme && isFinite(quand.getTime())
+            ? new Date(quand.getTime() - quand.getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '';
+    }
+    document.getElementById('annonceComposer').scrollIntoView({ block: 'start' });
+    document.getElementById('annonceTitre').focus();
+    annonceDire('Brouillon chargé. Enregistre-le ou soumets-le aux autres administrateurs.', false);
 }
 
 function annonceDestinataires(fusion, comptes) {
@@ -593,22 +716,37 @@ function annonceTrouver(id) {
 }
 
 function annonceAccepter(id) {
-    if (!annonceEstAdmin()) return;
+    if (!annonceEstAdmin() || annonceAccordEnCours) return Promise.resolve(false);
     var item = annonceTrouver(id);
-    var moi = annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
-    if (!item || !moi || moi === item.auteurCle || (item.acceptations && item.acceptations[moi])) return;
+    var moi = annonceMoi();
+    if (!item || item.publie || item.programmeActif || !moi || moi === item.auteurCle ||
+        (item.acceptations && item.acceptations[moi])) return Promise.resolve(false);
+    annonceAccordEnCours = true;
     var acceptations = Object.assign({}, item.acceptations);
     acceptations[moi] = new Date().toISOString();
-    annonceDire('Accord enregistré.', false);
-    annonceSauver(Object.assign({}, item, { at: acceptations[moi], acceptations: acceptations })).catch(function () {
-        annonceDire('L\'accord n\'a pas pu être partagé. Réessaie.', true);
-    });
+    return annonceUtilisateur().then(function () {
+        return annonceSauver(Object.assign({}, item, { at: acceptations[moi], acceptations: acceptations }));
+    }).then(function (sauve) {
+        annonceDire('Accord enregistré.', false);
+        if (annonceValidee(sauve)) {
+            var futur = sauve.programme && new Date(sauve.programme).getTime() > Date.now();
+            return (futur ? annonceProgrammer(sauve) : annoncePublierMaintenant(sauve))
+                .then(function () { return true; }).catch(function () {
+                    annonceDire('Accord enregistré, mais publication interrompue. Utilise « Relancer la publication » dans la liste.', true);
+                    return true;
+                });
+        }
+        return true;
+    }).catch(function (err) {
+        annonceDire('La validation ou la publication a échoué. Vérifie l’état avant de réessayer.', true);
+        throw err;
+    }).then(function (res) { annonceAccordEnCours = false; return res; }, function (err) { annonceAccordEnCours = false; throw err; });
 }
 
 function annonceRetirer(id) {
     if (!annonceEstAdmin()) return;
     var item = annonceTrouver(id);
-    var moi = annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
+    var moi = annonceMoi();
     if (!item || item.publie || moi !== item.auteurCle) return;
     annonceSauver(Object.assign({}, item, { at: new Date().toISOString(), retire: 1 })).then(function () {
         annonceListe = annonceListe.filter(function (candidat) { return candidat.id !== id; });
@@ -678,7 +816,7 @@ function annonceMontrerAnalyse(texte, erreurs) {
         + '</div>';
 }
 
-function annonceSoumettre(forcer) {
+function annonceSoumettre(forcer, garder) {
     if (!annonceEstAdmin()) {
         annonceDire('Seuls les comptes administrateur peuvent écrire une annonce.', true);
         return;
@@ -696,40 +834,53 @@ function annonceSoumettre(forcer) {
         annonceDire('Écris le message avant de le soumettre.', true);
         return;
     }
-    var auteurCle = annonceCleAdmin(typeof boiteNom === 'function' ? boiteNom() : '');
+    var auteurCle = annonceMoi();
     if (!auteurCle) {
         annonceDire('Ce nom n\'est pas reconnu comme l\'un des quatre comptes admin.', true);
         return;
     }
     function envoyer() {
+        if (annonceBrouillonCourant && annonceTrouver(annonceBrouillonCourant)) {
+            annonceDire('Cette annonce a déjà été soumise. Commence une nouvelle annonce.', true);
+            return;
+        }
         var programme = programmeEl && programmeEl.value ? annonceHeureProgramme(programmeEl.value) : '';
         var record = {
             type: 'annonce',
-            id: typeof boiteId === 'function' ? boiteId('a') : ('a' + Date.now().toString(16)),
+            id: annonceBrouillonCourant || (typeof boiteId === 'function' ? boiteId('a') : ('a' + Date.now().toString(16))),
             at: new Date().toISOString(),
-            titre: titre.slice(0, 80),
-            texte: texte.slice(0, 1500),
-            nom: typeof boiteNom === 'function' ? boiteNom() : '',
-            auteurCle: auteurCle,
-            programme: programme,
-            programmeActif: 0,
-            acceptations: {},
-            publie: 0,
-            retire: 0,
-            envoyes: []
+            titre: titre.slice(0, 80), texte: texte.slice(0, 1500),
+            nom: typeof boiteNom === 'function' ? boiteNom() : '', auteurCle: auteurCle,
+            programme: programme, programmeActif: 0, acceptations: {},
+            publie: 0, retire: 0, envoyes: []
         };
-        annonceDire('Envoi aux trois autres comptes…', false);
-        annonceSauver(record).then(function () {
+        if (garder) {
+            record.brouillon = 1;
+            annonceSauverBrouillon(record).then(function () {
+                annonceDire('Brouillon privé enregistré. Aucun accord demandé, aucun envoi.', false);
+            }).catch(function () { annonceDire('Brouillon non enregistré. Réessaie une fois connecté.', true); });
+            return;
+        }
+        annonceDire('Soumission aux trois autres comptes…', false);
+        annonceUtilisateur().then(function () { return annonceSauver(record); }).then(function () {
             if (titreEl) titreEl.value = '';
             if (texteEl) texteEl.value = '';
             if (programmeEl) programmeEl.value = '';
             annonceMontrerAnalyse('', []);
-            annonceDire('Annonce soumise. Elle pourra être publiée quand les trois autres comptes auront accepté.', false);
+            if (!annonceBrouillonCourant) {
+                annonceDire('Annonce soumise. En attente des trois accords.', false);
+                return;
+            }
+            return annonceEffacerBrouillon(record.id).then(function () {
+                annonceDire('Annonce soumise. En attente des trois accords.', false);
+            }).catch(function () {
+                annonceDire('Annonce soumise, mais le brouillon reste visible. Ne la soumets pas une deuxième fois.', true);
+            });
         }).catch(function () {
             annonceDire('L\'annonce n\'a pas pu être partagée. Réessaie.', true);
         });
     }
-    if (forcer || typeof langueAnalyser !== 'function') {
+    if (garder || forcer || typeof langueAnalyser !== 'function') {
         envoyer();
         return;
     }
@@ -751,20 +902,35 @@ function annonceSoumettre(forcer) {
 function initAnnonce() {
     if (typeof boiteMajMenu === 'function') boiteMajMenu();
     annonceRendre();
+    annonceLireBrouillons().catch(function () {});
     annonceCharger(true).then(annonceEnvoyerDues).catch(function () {});
     if (annonceBranchee) return;
     annonceBranchee = true;
     var envoi = document.getElementById('annonceEnvoi');
-    if (envoi) envoi.onclick = function () { annonceSoumettre(false); };
+    if (envoi) envoi.onclick = function () { annonceSoumettre(false, false); };
+    var brouillon = document.getElementById('annonceGarderBrouillon');
+    if (brouillon) brouillon.onclick = function () { annonceSoumettre(false, true); };
+    var nouveau = document.getElementById('annonceNouveau');
+    if (nouveau) nouveau.onclick = function () {
+        annonceBrouillonCourant = '';
+        ['annonceTitre','annonceTexte','annonceProgramme'].forEach(function (id) { document.getElementById(id).value = ''; });
+        annonceDire('Nouvelle annonce vierge. Les brouillons enregistrés restent dans la liste.', false);
+    };
     var liste = document.getElementById('annonceListe');
     if (liste && !liste.__annonce) {
         liste.__annonce = true;
         liste.addEventListener('click', function (e) {
-            var accepter = e.target && e.target.closest ? e.target.closest('[data-annonce-accepter]') : null;
+            var voir = e.target && e.target.closest ? e.target.closest('[data-annonce-voir]') : null;
+            var reprendre = e.target && e.target.closest ? e.target.closest('[data-annonce-reprendre]') : null;
+            var supprimerBrouillon = e.target && e.target.closest ? e.target.closest('[data-annonce-supprimer-brouillon]') : null;
             var publier = e.target && e.target.closest ? e.target.closest('[data-annonce-publier]') : null;
             var retirer = e.target && e.target.closest ? e.target.closest('[data-annonce-retirer]') : null;
             var renvoyer = e.target && e.target.closest ? e.target.closest('[data-annonce-renvoyer]') : null;
-            if (accepter) annonceAccepter(accepter.getAttribute('data-annonce-accepter'));
+            if (voir) annonceOuvrirAlerte(voir.getAttribute('data-annonce-voir'));
+            if (reprendre) annonceReprendreBrouillon(reprendre.getAttribute('data-annonce-reprendre'));
+            if (supprimerBrouillon) annonceEffacerBrouillon(supprimerBrouillon.getAttribute('data-annonce-supprimer-brouillon')).catch(function () {
+                annonceDire('Impossible de supprimer ce brouillon. Réessaie.', true);
+            });
             if (publier) annonceLancerPublication(publier.getAttribute('data-annonce-publier'));
             if (retirer) annonceRetirer(retirer.getAttribute('data-annonce-retirer'));
             if (renvoyer) annonceRenvoyer(renvoyer.getAttribute('data-annonce-renvoyer'));

@@ -4,7 +4,21 @@
      Script : js/pages/tutoriel.js
      ============================================================ -->
 <div class="app-panel" id="panelTutoriel">
-    <div style="max-width:480px;margin:0 auto;padding:0 1rem 4rem;">
+    <div class="tutoriel-cadre">
+        <aside class="admin-nav tutoriel-rail" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce">📣</button>
+                <button type="button" class="admin-nav-lien" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+                <button type="button" class="admin-nav-lien admin-nav-actif" onclick="navigateTo('tutoriel')" aria-label="Tutoriel" title="Tutoriel" aria-current="page">▶</button>
+            </nav>
+        </aside>
+        <main class="tutoriel-contenu">
         <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
             <div style="display:flex;align-items:center;gap:0.75rem;">
                 <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
@@ -34,5 +48,6 @@
 
         <div id="tutorielListe"></div>
         <p id="tutorielVide" style="color:#6b7280;font-size:0.9rem;"></p>
+        </main>
     </div>
 </div>

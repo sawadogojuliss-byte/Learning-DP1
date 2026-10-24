@@ -95,7 +95,7 @@ function tutorielEmbed(url) {
 function tutorielMajMenu() {
     var bouton = document.getElementById('menuTutoriel');
     if (!bouton) return;
-    bouton.style.display = tutorielSectionVisible() ? 'flex' : 'none';
+    bouton.style.display = !tutorielEstAdmin() && tutorielSectionVisible() ? 'flex' : 'none';
 }
 
 function tutorielDire(texte, erreur) {
@@ -223,6 +223,8 @@ function tutorielRendre() {
     if (!liste) return;
     var admin = tutorielEstAdmin();
     if (compose) compose.style.display = admin ? 'block' : 'none';
+    var panneau = document.getElementById('panelTutoriel');
+    if (panneau) panneau.classList.toggle('tutoriel-admin', admin);
     var publies = tutorielPublies(tutorielListe);
     if (!publies.length) {
         liste.innerHTML = '';
@@ -386,6 +388,8 @@ function initTutoriel() {
     }
     var compose = document.getElementById('tutorielCompose');
     if (compose) compose.style.display = tutorielEstAdmin() ? 'block' : 'none';
+    var panneau = document.getElementById('panelTutoriel');
+    if (panneau) panneau.classList.toggle('tutoriel-admin', tutorielEstAdmin());
     tutorielRendre();
     if (!tutorielBranche) {
         tutorielBranche = true;

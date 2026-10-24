@@ -629,6 +629,11 @@ function boiteGarderVu() { boiteMemoriserVus(); }
 
 function boiteNettoyerSession() {
     boiteSessionGeneration++;
+    /* Les brouillons d’annonce appartiennent à un seul compte Google. */
+    if (typeof annonceBrouillons !== 'undefined') annonceBrouillons = [];
+    if (typeof annonceBrouillonCourant !== 'undefined') annonceBrouillonCourant = '';
+    if (typeof annonceListe !== 'undefined') annonceListe = [];
+    if (typeof annonceFermerAlerte === 'function') annonceFermerAlerte();
     boiteMemoriserVus();
     boiteBruts = [];
     boiteIndexBruts = Object.create(null);

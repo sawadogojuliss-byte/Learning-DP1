@@ -43,6 +43,8 @@ var page = fs.readFileSync(path.join(root, 'pages/tutoriel.html'), 'utf8');
 attendre('titre avant insertion', page.indexOf('tutorielTitre') < page.indexOf('tutorielChoisir'));
 attendre('publier présent', page.indexOf('tutorielPublier') > page.indexOf('tutorielChoisir'));
 attendre('compose caché', page.indexOf('id="tutorielCompose" style="display:none;') !== -1);
+attendre('accès admin', fs.readFileSync(path.join(root,'pages/boite.html'),'utf8').includes("navigateTo('tutoriel')"));
+attendre('lecture élèves', fs.readFileSync(path.join(root,'js/pages/tutoriel.js'),'utf8').includes('!tutorielEstAdmin() && tutorielSectionVisible()'));
 
 console.log('échecs', echecs);
 if (echecs) process.exit(1);

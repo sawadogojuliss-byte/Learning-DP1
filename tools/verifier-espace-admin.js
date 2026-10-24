@@ -12,7 +12,8 @@ assert.match(menu, /id="menuEspaceAdmin"[^>]*navigateTo\('admin'\)/);
 assert.match(page, /id="panelAdmin"/);
 for (const [texte, cible] of [
     ['Annonce','annonce'], ['Retour des feedbacks','retours'],
-    ['Questions des utilisateurs','questions'], ['Emplois du temps','emplois']
+    ['Questions des utilisateurs','questions'], ['Emplois du temps','emplois'],
+    ['Tutoriel','tutoriel']
 ]) {
     assert.ok(page.includes('onclick="navigateTo(\'' + cible + '\')"'), 'carte manquante : ' + texte);
     assert.ok(page.includes('<strong>' + texte + '</strong>'), 'titre absent : ' + texte);
@@ -60,4 +61,4 @@ admin = false;
 context.boiteMajMenu(); context.annonceMajMenu();
 assert.equal(elements.menuEspaceAdmin.style.display, 'none', 'entrée admin retirée après déconnexion');
 assert.equal(elements.menuAnnonce.style.display, 'flex');
-console.log('ok Espace admin : quatre liens, rail Atelier, mobile, compte admin uniquement et Annonce publique préservée');
+console.log('ok Espace admin : cinq liens dont Tutoriel, rail Atelier, mobile et Annonce publique préservée');

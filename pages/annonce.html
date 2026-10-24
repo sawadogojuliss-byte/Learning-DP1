@@ -16,6 +16,7 @@
                 <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
                 <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
                 <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('tutoriel')" aria-label="Tutoriel" title="Tutoriel">▶</button>
             </nav>
         </aside>
         <main class="admin-page-main">
@@ -32,15 +33,15 @@
                 <section id="annonceComposer" class="admin-page-carte" style="display:none;">
                     <p class="admin-page-surtitre">RÉDIGER</p>
                     <h3>Nouvelle annonce</h3>
-                    <p style="font-size:0.78rem;color:#6b7280;line-height:1.45;margin:0 0 0.85rem;">Seul un compte administrateur peut écrire. Les trois autres doivent accepter avant que l'annonce puisse être publiée. Elle part alors dans la boîte mail de chaque personne inscrite.</p>
+                    <p style="font-size:0.78rem;color:#6b7280;line-height:1.45;margin:0 0 0.85rem;">Un des quatre administrateurs personnels rédige. Les trois autres lisent et valident avant la publication. Le troisième accord déclenche la publication ou attend l’heure programmée. La distribution des e-mails dépend des adresses connues du site.</p>
                     <label for="annonceTitre">Titre</label>
                     <input id="annonceTitre" type="text" maxlength="80" placeholder="Titre de l'annonce">
                     <label for="annonceTexte">Message</label>
                     <textarea id="annonceTexte" maxlength="1500" rows="6" placeholder="Écris l'annonce…"></textarea>
                     <label for="annonceProgramme">Programmer l'envoi (facultatif)</label>
                     <input id="annonceProgramme" type="datetime-local">
-                    <p class="admin-page-note">Sans date, l'envoi part dès la publication. Avec une date, il attend cette heure, et seulement après les trois accords. Il part alors dès qu'un navigateur ouvre le site.</p>
-                    <button type="button" id="annonceEnvoi" class="admin-page-actualiser admin-page-primaire">Soumettre aux autres comptes</button>
+                    <p class="admin-page-note">Sans date, la publication part après le troisième accord. Avec une date, elle attend cette heure et un passage sur le site. Un brouillon privé ne demande aucun accord.</p>
+                    <div class="annonce-composer-actions"><button type="button" id="annonceNouveau" class="admin-page-actualiser">Nouvelle annonce</button><button type="button" id="annonceGarderBrouillon" class="admin-page-actualiser">Enregistrer un brouillon privé</button><button type="button" id="annonceEnvoi" class="admin-page-actualiser admin-page-primaire">Soumettre aux autres comptes</button></div>
                     <div id="annonceAnalyse"></div>
                     <p id="annonceStatut" class="admin-page-statut" role="status" aria-live="polite"></p>
                 </section>

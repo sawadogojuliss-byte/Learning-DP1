@@ -41,48 +41,48 @@
     #panelAdmin .admin-atelier-carte { min-height:6.5rem;padding:1rem; }
 }
 
-/* Rail commun : dossier toujours visible, quatre destinations en dessous.
-   Les quatre pages reprennent les proportions, les couleurs et l'écriture de
+/* Rail commun : dossier toujours visible, cinq destinations en dessous.
+   Les pages reprennent les proportions, les couleurs et l'écriture de
    la page Emplois du temps, sans toucher aux contrôles métier. */
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois).app-panel { background:#f6f7f1; color:#1c3028; }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) * { box-sizing:border-box; }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin).app-panel { background:#f6f7f1; color:#1c3028; }
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) * { box-sizing:border-box; }
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav {
     position:sticky;top:0;align-self:start;height:100dvh;z-index:2;
     display:flex;align-items:center;flex-direction:column;gap:1.1rem;
     padding:1.55rem .45rem;background:#164633;color:#d4ead4;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-marque {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-marque {
     font:italic 1.85rem Georgia,serif;border:1px solid #8eb99d;border-radius:.85rem;
     width:2.8rem;height:2.8rem;display:grid;place-items:center;color:#fff;margin-bottom:1.4rem;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-liens {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-liens {
     /* Le sélecteur global « nav » de style_v1 ajoute normalement un grand
        voile blanc flouté : dans le rail il doit rester entièrement vert. */
     position:static;z-index:auto;background:transparent;backdrop-filter:none;
     border:0;display:flex;flex-direction:column;align-items:center;gap:.48rem;
     width:100%;padding:.35rem .2rem;border-radius:1rem;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-retour,
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-lien {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-retour,
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-lien {
     flex:none;display:grid;place-items:center;width:2.7rem;height:2.7rem;
     padding:0;border:0;border-radius:.75rem;background:transparent;color:#c5e3cf;
     font:inherit;font-size:1.3rem;cursor:pointer;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-lien {
     background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.07);
     transition:background .18s ease,border-color .18s ease,transform .18s ease;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien:hover {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-lien:hover {
     background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.22);transform:translateY(-1px);
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-retour:hover { background:#317255; }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien[aria-current="page"] {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-retour:hover { background:#317255; }
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-lien[aria-current="page"] {
     background:#e3f0e6;border-color:#e3f0e6;color:#235d4a;box-shadow:0 5px 14px rgba(0,0,0,.12);
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav button:focus-visible {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav button:focus-visible {
     outline:3px solid #ffcf93;outline-offset:2px;
 }
-:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-separation {
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-separation {
     width:1.5rem;border-top:1px solid #ffffff55;margin:.25rem 0;
 }
 #panelAnnonce.annonce-public .admin-nav-prive,#panelAnnonce.annonce-public .admin-nav-separation { display:none; }
@@ -180,14 +180,14 @@
     :is(#panelAnnonce,#panelRetours,#panelQuestions) .admin-page {
         display:grid;grid-template-columns:3.4rem minmax(0,1fr);
     }
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav {
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav {
         display:flex;padding:.85rem .25rem;gap:.55rem;
     }
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav-marque {
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-marque {
         width:2.4rem;height:2.4rem;font-size:1.5rem;margin-bottom:.6rem;
     }
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-lien,
-    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois) .admin-nav .admin-nav-retour {
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-lien,
+    :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav .admin-nav-retour {
         width:2.4rem;height:2.4rem;font-size:1.15rem;
     }
     #panelAdmin .admin-atelier-retour-mobile,#panelEmplois .emploi-atelier-retour-mobile { display:none; }
@@ -200,4 +200,51 @@
 @media(max-width:390px) {
     :is(#panelAnnonce,#panelRetours,#panelQuestions) .admin-page-entete h2 { font-size:1.65rem; }
     :is(#panelAnnonce,#panelRetours,#panelQuestions) .admin-page-sous-titre { font-size:.75rem; }
+}
+
+/* Annonces : une validation dédiée, centrée sur le texte à lire. */
+#panelAnnonce .annonce-composer-actions { display:grid;gap:.5rem;margin-top:1rem; }
+#panelAnnonce .annonce-composer-actions .admin-page-actualiser { width:100%;margin:0; }
+#panelAnnonce .annonce-lire-valider,#panelAnnonce .annonce-reprise {
+    width:100%;margin-top:.75rem;border:1px solid #236449;border-radius:.8rem;
+    background:#235d4a;color:#fff;padding:.75rem 1rem;font:inherit;font-weight:750;cursor:pointer;
+}
+#panelAnnonce .annonce-reprise { background:#fff;color:#235d4a; }
+#panelAnnonce .annonce-brouillon { border-left:4px solid #b3824e !important; }
+#panelAnnonce .annonce-brouillon-tag { color:#9b6138;font-size:.7rem;font-weight:850;letter-spacing:.08em; }
+#panelAnnonce .annonce-brouillon h4 { margin:.5rem 0;font:normal 1.25rem Georgia,serif; }
+#panelAnnonce .annonce-brouillon p { white-space:pre-wrap;line-height:1.5; }
+#panelAnnonce .annonce-brouillon button { margin:.4rem .45rem 0 0;border:1px solid #c6d7c8;border-radius:.7rem;background:#f2f8f1;color:#245d43;padding:.55rem .7rem;cursor:pointer; }
+.annonce-validation-fond { position:fixed;inset:0;z-index:221;background:rgba(13,38,26,.73);display:grid;place-items:center;padding:1rem; }
+.annonce-validation { box-sizing:border-box;width:min(100%,34rem);max-height:min(90dvh,50rem);overflow:auto;background:#f8faf5;border:1px solid #d9e8d7;border-radius:1.25rem;padding:clamp(1rem,4vw,2rem);box-shadow:0 30px 80px #112d28aa;color:#233a2d; }
+.annonce-validation:focus { outline:none; }
+.annonce-validation-surtitre { margin:0 0 .8rem;color:#4e8860;font-size:.7rem;font-weight:850;letter-spacing:.15em; }
+.annonce-validation h3 { margin:0;font:normal clamp(1.6rem,5vw,2.2rem)/1.1 Georgia,serif; }
+.annonce-validation-auteur { color:#607765;font-size:.8rem;line-height:1.5; }
+.annonce-validation-lecture { max-height:37dvh;overflow:auto;padding:1.1rem;border:1px solid #d5e5d4;border-radius:.9rem;background:white;overflow-wrap:anywhere; }
+.annonce-validation-lecture strong { font:normal 1.3rem Georgia,serif; }
+.annonce-validation-lecture p { white-space:pre-wrap;line-height:1.65;margin:.8rem 0 0; }
+.annonce-validation-note { color:#647668;font-size:.78rem;line-height:1.55; }
+.annonce-validation-erreur { color:#ae3f35;font-size:.8rem; }
+.annonce-validation-actions { display:grid;gap:.55rem; }
+.annonce-validation-actions button { padding:.85rem 1rem;border:1px solid #235d4a;border-radius:.75rem;background:#235d4a;color:white;font:inherit;font-weight:750;cursor:pointer; }
+.annonce-validation-actions button:last-child { background:white;color:#235d4a; }
+.annonce-validation-actions button:disabled { opacity:.5;cursor:wait; }
+.annonce-validation button:focus-visible { outline:3px solid #cc944f;outline-offset:2px; }
+
+/* Tutoriel : gestion dans le bureau, lecture conservée côté élèves. */
+#panelAdmin .admin-atelier-carte:nth-child(5) .admin-atelier-icone { background:#eeeaf6; }
+#panelTutoriel .tutoriel-rail { display:none; }
+#panelTutoriel .tutoriel-contenu { max-width:480px;margin:0 auto;padding:0 1rem 4rem; }
+#panelTutoriel.tutoriel-admin { background:#f6f7f1; }
+#panelTutoriel.tutoriel-admin .tutoriel-cadre { display:grid;grid-template-columns:4.75rem minmax(0,1fr);min-height:100%; }
+#panelTutoriel.tutoriel-admin .tutoriel-rail { display:flex; }
+#panelTutoriel.tutoriel-admin .tutoriel-contenu { max-width:60rem;width:100%;padding:clamp(1.2rem,3vw,3.2rem); }
+#panelTutoriel.tutoriel-admin .tutoriel-contenu > div:first-child { background:transparent !important;backdrop-filter:none !important;border-color:#dce8dd !important; }
+#panelTutoriel.tutoriel-admin .tutoriel-contenu h2 { font:normal clamp(2rem,4vw,3rem) Georgia,serif !important; }
+#panelTutoriel.tutoriel-admin #tutorielCompose,#panelTutoriel.tutoriel-admin #tutorielListe article { box-shadow:0 16px 55px #3659400a;border-color:#dfe8dc !important; }
+@media(max-width:750px) {
+    #panelTutoriel.tutoriel-admin .tutoriel-cadre { grid-template-columns:3.4rem minmax(0,1fr); }
+    #panelTutoriel.tutoriel-admin .tutoriel-rail { display:flex;padding:.85rem .25rem;gap:.55rem; }
+    #panelTutoriel.tutoriel-admin .tutoriel-contenu { padding:1.15rem .8rem 2.5rem; }
 }
