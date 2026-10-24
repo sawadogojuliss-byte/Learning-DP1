@@ -243,7 +243,7 @@ function renderExoList() {
             (exo.scheduledSlot ? '<span style="background:#ecfdf5;color:#059669;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;">✓ Planifié</span>' : '') +
             '</div>' +
             '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">' +
-            '<button type="button" data-exo-fait="' + exo.id + '" onclick="basculerExoFait(\'' + exo.id + '\')" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre à faire : ' : 'Marquer fait : ') + exo.subject + '" style="background:' + (exo.done ? 'white' : '#ecfdf5') + ';color:#047857;border:1px solid #a7f3d0;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +
+            '<button type="button" data-exo-fait="' + exo.id + '" onclick="basculerExoFait(\'' + exo.id + '\')" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre cet exercice à faire' : 'Marquer cet exercice comme fait') + '" style="background:' + (exo.done ? 'white' : '#ecfdf5') + ';color:#047857;border:1px solid #a7f3d0;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +
             (exo.done ? '' : '<button onclick="openPlanifier(\'' + exo.id + '\')" style="background:linear-gradient(to right,#10b981,#059669);color:white;border:none;border-radius:0.625rem;padding:0.375rem 0.75rem;font-size:0.75rem;font-weight:700;cursor:pointer;">' +
             (exo.scheduledSlot ? '📅 Replanifier' : '+ Planifier') + '</button>') +
             '</div></div></div>';
