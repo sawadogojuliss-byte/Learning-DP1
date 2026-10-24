@@ -334,9 +334,7 @@ function memoireAppliquer(data, opts) {
         /* L'emploi du temps scolaire revient avec le compte. */
         if (data.emploiScolaire && data.emploiScolaire.jours) {
             try { emploiScolaireEcrire(data.emploiScolaire); } catch (e) {}
-        } else if (data.profilComplet) {
-            try { emploiScolaireVider(); } catch (e) {}
-        }
+        } /* Une ancienne copie sans champ emploiScolaire ne doit pas effacer les cours locaux. */
     }
     if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
         /* Les devoirs, les examens et la réponse au bac national reviennent

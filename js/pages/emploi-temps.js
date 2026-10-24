@@ -9,44 +9,60 @@
    ============================================================ */
 
 var EMPLOI_CLE = 'studyPlanIB_emploiScolaire';
+var emploiCacheBrut = null;
+var emploiCacheStore = null;
 var emploiPropositions = [];
 var emploiOcrEnCours = false;
 
 /* ── Le store ─────────────────────────────────────────────────────── */
 
+function emploiScolaireNormaliser(d) {
+    if (!d || !Array.isArray(d.jours) || d.jours.length !== 7) return { at: '', jours: [[], [], [], [], [], [], []] };
+    return { at: d.at || '', jours: d.jours.map(function (jour) {
+        var vus = {};
+        return (Array.isArray(jour) ? jour : []).filter(function (c) {
+            return c && c.id && /^\d{2}:\d{2}$/.test(c.debut) && /^\d{2}:\d{2}$/.test(c.fin);
+        }).map(function (c) {
+            var cours = { id: String(c.id), nom: String(c.nom || '').slice(0, 80),
+                matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin,
+                src: c.src === 'doc' || c.src === 'manuel' ? c.src : '' };
+            if (c.parallele) cours.parallele = true;
+            return cours;
+        }).filter(function (c) {
+            var cle = c.debut + '|' + c.fin + '|' + c.nom.toLowerCase().replace(/\s+/g, ' ').trim();
+            if (vus[cle]) return false;
+            vus[cle] = true;
+            return true;
+        }).sort(function (a, b) { return a.debut.localeCompare(b.debut); });
+    }) };
+}
+
+function emploiScolaireLireCache() {
+    var brut = localStorage.getItem(EMPLOI_CLE);
+    if (brut !== emploiCacheBrut || !emploiCacheStore) {
+        var data = null;
+        try { data = JSON.parse(brut || 'null'); } catch (e) {}
+        emploiCacheStore = emploiScolaireNormaliser(data);
+        emploiCacheBrut = brut;
+    }
+    return emploiCacheStore;
+}
+
 function emploiScolaireLire() {
-    try {
-        var d = JSON.parse(localStorage.getItem(EMPLOI_CLE) || 'null');
-        if (d && typeof d === 'object' && Array.isArray(d.jours) && d.jours.length === 7) {
-            var jours = d.jours.map(function (j) {
-                var propres = (Array.isArray(j) ? j : []).filter(function (c) {
-                    return c && c.id && c.debut && c.fin && /^\d{2}:\d{2}$/.test(c.debut) && /^\d{2}:\d{2}$/.test(c.fin);
-                }).map(function (c) {
-                    return { id: String(c.id), nom: String(c.nom || '').slice(0, 80), matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin, src: c.src === 'doc' || c.src === 'manuel' ? c.src : '' };
-                });
-                /* Un même cours enregistré deux fois (une analyse confirmée
-                   deux fois, par exemple) n'apparaît qu'une fois : les
-                   plannings déjà doublés se réparent tout seuls. */
-                var vus = {};
-                return propres.filter(function (c) {
-                    var cle = c.debut + '|' + c.fin + '|' + String(c.nom).toLowerCase().replace(/\s+/g, ' ').trim();
-                    if (vus[cle]) return false;
-                    vus[cle] = 1;
-                    return true;
-                }).sort(function (a, b) { return a.debut < b.debut ? -1 : 1; });
-            });
-            return { at: d.at || '', jours: jours };
-        }
-    } catch (e) {}
-    return { at: '', jours: [[], [], [], [], [], [], []] };
+    /* Copie indépendante pour les appelants qui modifient le store. */
+    var cache = emploiScolaireLireCache();
+    return { at: cache.at, jours: cache.jours.map(function (jour) {
+        return jour.map(function (cours) { return Object.assign({}, cours); });
+    }) };
 }
 
 function emploiScolaireEcrire(data) {
-    try { localStorage.setItem(EMPLOI_CLE, JSON.stringify(data)); } catch (e) {}
+    try { localStorage.setItem(EMPLOI_CLE, JSON.stringify(emploiScolaireNormaliser(data)));
+        emploiCacheBrut = null; emploiCacheStore = null; } catch (e) {}
 }
 
 function emploiScolaireVider() {
-    try { localStorage.removeItem(EMPLOI_CLE); } catch (e) {}
+    try { localStorage.removeItem(EMPLOI_CLE); emploiCacheBrut = null; emploiCacheStore = null; } catch (e) {}
 }
 
 function emploiScolaireCompact() {
@@ -58,7 +74,7 @@ function emploiScolaireCompact() {
 function emploiScolaireJour(dayIndex) {
     var j = Number(dayIndex);
     if (!(j >= 0 && j <= 6)) return [];
-    return emploiScolaireLire().jours[j];
+    return emploiScolaireLireCache().jours[j].map(function (c) { return Object.assign({}, c); });
 }
 
 function emploiScolaireActif() {
@@ -436,88 +452,130 @@ function emploiConfirmerPropositions() {
 
 /* ── Ajout manuel, liste, effacement ──────────────────────────────── */
 
+var emploiEditionId = '';
+
+function emploiEditionFinir() {
+    emploiEditionId = '';
+    var bouton = document.getElementById('emploiAjouterBouton');
+    if (bouton) bouton.textContent = 'Ajouter le cours';
+    var annuler = document.getElementById('emploiAnnulerEdition');
+    if (annuler) annuler.hidden = true;
+}
+
+function emploiEditer(id) {
+    var store = emploiScolaireLire();
+    for (var jour = 0; jour < 7; jour++) {
+        var cours = store.jours[jour].find(function (c) { return c.id === id; });
+        if (!cours) continue;
+        emploiEditionId = id;
+        ['Jour', 'Nom', 'Debut', 'Fin'].forEach(function (champ) {
+            var el = document.getElementById('emploiManuel' + champ);
+            if (el) el.value = champ === 'Jour' ? String(jour) : cours[champ.toLowerCase()];
+        });
+        var bouton = document.getElementById('emploiAjouterBouton');
+        if (bouton) bouton.textContent = 'Enregistrer le cours';
+        var annuler = document.getElementById('emploiAnnulerEdition');
+        if (annuler) annuler.hidden = false;
+        var nom = document.getElementById('emploiManuelNom');
+        if (nom && nom.focus) nom.focus();
+        return;
+    }
+}
+
+function emploiChoisirConflit(conflits, suite) {
+    var zone = document.getElementById('emploiConflit');
+    var texte = document.getElementById('emploiConflitTexte');
+    if (!zone || !texte) return; /* Jamais de remplacement implicite. */
+    texte.textContent = 'Ce créneau chevauche : ' + conflits.map(function (c) {
+        return '« ' + c.nom + ' » (' + c.debut + '–' + c.fin + ')';
+    }).join(', ') + '.';
+    zone.hidden = false;
+    ['remplacer', 'garder', 'annuler'].forEach(function (choix) {
+        var bouton = document.getElementById('emploiConflit' + choix.charAt(0).toUpperCase() + choix.slice(1));
+        if (!bouton) return;
+        bouton.onclick = function () {
+            zone.hidden = true;
+            var ajout = document.getElementById('emploiAjouterBouton');
+            if (ajout && ajout.focus) ajout.focus();
+            suite(choix);
+        };
+        if (choix === 'annuler' && bouton.focus) bouton.focus();
+    });
+}
+
 function emploiAjouterManuel() {
-    var jour = parseInt((document.getElementById('emploiManuelJour') || {}).value, 10);
-    var nom = (document.getElementById('emploiManuelNom') || {}).value || '';
+    var jour = Number((document.getElementById('emploiManuelJour') || {}).value);
+    var nom = String((document.getElementById('emploiManuelNom') || {}).value || '').trim();
     var debut = (document.getElementById('emploiManuelDebut') || {}).value || '';
     var fin = (document.getElementById('emploiManuelFin') || {}).value || '';
     var zone = document.getElementById('emploiAjoutStatut');
     function dire(t, err) { if (zone) { zone.textContent = t; zone.style.color = err ? '#b45309' : '#047857'; } }
-    if (!(jour >= 0 && jour <= 6) || !nom || !debut || !fin || fin <= debut) {
+    if (!Number.isInteger(jour) || jour < 0 || jour > 6 || !nom || !/^\d{2}:\d{2}$/.test(debut) || !/^\d{2}:\d{2}$/.test(fin) || fin <= debut) {
         dire('Jour, nom et heures (fin après le début) sont nécessaires.', true);
         return;
     }
+    var brutAvant = localStorage.getItem(EMPLOI_CLE);
     var store = emploiScolaireLire();
-    store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: 'manuel' });
-    store.jours[jour].sort(function (a, b) { return a.debut < b.debut ? -1 : 1; });
+    var ancien = null;
+    var ancienJour = -1;
+    if (emploiEditionId) for (var j = 0; j < 7; j++) {
+        ancien = store.jours[j].find(function (c) { return c.id === emploiEditionId; });
+        if (ancien) { ancienJour = j; break; }
+    }
+    if (emploiEditionId && !ancien) { emploiEditionFinir(); dire('Ce cours n’existe plus. Réessaie.', true); return; }
+    var conflits = store.jours[jour].filter(function (c) {
+        return c.id !== emploiEditionId && debut < c.fin && fin > c.debut;
+    });
+    if (conflits.length) {
+        emploiChoisirConflit(conflits, appliquer);
+        return;
+    }
+    appliquer('aucun');
+
+    function appliquer(choix) {
+    if (choix === 'annuler') { dire('Modification annulée.', true); return; }
+    if (localStorage.getItem(EMPLOI_CLE) !== brutAvant) {
+        dire('L’emploi du temps a changé. Réessaie sans perdre les nouveaux cours.', true); return;
+    }
+    var parallele = ancien ? !!ancien.parallele : false;
+    if (choix === 'remplacer') {
+        var ids = conflits.map(function (c) { return c.id; });
+        store.jours[jour] = store.jours[jour].filter(function (c) { return ids.indexOf(c.id) === -1; });
+        parallele = false;
+    } else if (choix === 'garder') {
+        parallele = true;
+        conflits.forEach(function (c) { c.parallele = true; });
+    }
+    if (ancien) store.jours[ancienJour] = store.jours[ancienJour].filter(function (c) { return c.id !== emploiEditionId; });
+    store.jours[jour].push({ id: ancien ? ancien.id : emploiId(), nom: nom.slice(0, 80),
+        matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: ancien ? ancien.src : 'manuel', parallele: parallele });
+    store.jours[jour].sort(function (a, b) { return a.debut.localeCompare(b.debut); });
     store.at = new Date().toISOString();
     emploiScolaireEcrire(store);
     ['emploiManuelNom', 'emploiManuelDebut', 'emploiManuelFin'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.value = '';
     });
-    dire('Cours ajouté ✓', false);
+    dire(ancien ? 'Cours modifié ✓' : 'Cours ajouté ✓', false);
+    emploiEditionFinir();
     emploiRendre();
     if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+    }
 }
 
-function emploiSupprimer(jour, id) {
+function emploiSupprimer(id) {
     var store = emploiScolaireLire();
-    if (!(jour >= 0 && jour <= 6)) return;
-    var index = store.jours[jour].findIndex(function (c) { return c.id === id; });
-    if (index < 0) return;
-    var cours = store.jours[jour][index];
-    var options = typeof emploiScolaireOptionsJour === 'function' ? emploiScolaireOptionsJour() : {};
-    var liees = typeof emploiScolaireTrous === 'function' && typeof emploiScolaireBlocsTravail === 'function'
-        ? emploiScolaireTrous(store.jours[jour]).filter(function (trou) { return trou.avant.id === id; })
-            .reduce(function (blocs, trou) {
-                return blocs.concat(emploiScolaireBlocsTravail(trou, options).filter(function (b) { return b.id.indexOf('emploi-rev-') === 0; }));
-            }, []) : [];
-    var restantes = store.jours[jour].filter(function (c) { return c.id !== id; });
-    var trous = typeof emploiScolaireTrous === 'function' ? emploiScolaireTrous(restantes, 60) : [];
-    var deplaces = [];
-    function actualiser() {
+    for (var jour = 0; jour < 7; jour++) {
+        var index = store.jours[jour].findIndex(function (c) { return c.id === id; });
+        if (index < 0) continue;
+        store.jours[jour].splice(index, 1);
+        store.at = new Date().toISOString();
+        emploiScolaireEcrire(store);
+        if (emploiEditionId === id) emploiEditionFinir();
         emploiRendre();
         if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
+        return;
     }
-    suppressionAvecAnnulation({
-        message: 'Cours « ' + cours.nom + ' » supprimé' + (liees.length ? ' · ' + liees.length + ' révision' + (liees.length > 1 ? 's' : '') + ' liée' + (liees.length > 1 ? 's' : '') + '. Annuler pour les retrouver.' : '.'),
-        retirer: function () {
-            var courant = emploiScolaireLire();
-            courant.jours[jour] = courant.jours[jour].filter(function (c) { return c.id !== id; });
-            courant.at = new Date().toISOString();
-            emploiScolaireEcrire(courant);
-        },
-        restaurer: function () {
-            if (deplaces.length && typeof customEvents !== 'undefined') {
-                customEvents = customEvents.filter(function (e) { return !e || deplaces.indexOf(e.id) === -1; });
-                if (typeof v3Save === 'function') v3Save();
-            }
-            var courant = emploiScolaireLire();
-            if (!courant.jours[jour].some(function (c) { return c.id === id; })) {
-                courant.jours[jour].splice(Math.min(index, courant.jours[jour].length), 0, cours);
-                emploiScolaireEcrire(courant);
-            }
-        },
-        deplacer: liees.length && trous.length ? function () {
-            if (typeof customEvents === 'undefined') return;
-            /* Uniquement dans un creux encore libre entre deux cours ; le
-               moteur adapte les autres études autour de ce bloc fixé. */
-            liees.forEach(function (bloc) {
-                var place = trous.filter(function (t) { return t.fin - t.debut >= bloc.duree + 15; })[0];
-                if (!place) return;
-                var debut = place.debut + 5;
-                var identifiant = 'emploi-rev-deplace-' + id + '-' + Date.now() + '-' + deplaces.length;
-                customEvents.push({ id: identifiant, day: jour, title: bloc.titre,
-                    startTime: emploiM2H(debut), endTime: emploiM2H(debut + bloc.duree),
-                    type: 'study', icon: bloc.icone, pinned: true, source: 'emploi-deplace', timestamp: Date.now() });
-                deplaces.push(identifiant);
-                place.debut = debut + bloc.duree + 10;
-            });
-            if (typeof v3Save === 'function') v3Save();
-        } : null,
-        actualiser: actualiser
-    });
 }
 
 function emploiRendre() {
@@ -536,7 +594,8 @@ function emploiRendre() {
                     '<span style="font-size:0.95rem;">🏫</span>' +
                     '<div style="flex:1;min-width:0;"><p style="margin:0;font-weight:700;color:#111827;font-size:0.82rem;">' + emploiEchap(c.nom) + (c.matiere && c.matiere !== c.nom ? ' <span style="font-weight:600;color:#059669;font-size:0.72rem;">· ' + emploiEchap(c.matiere) + '</span>' : '') + '</p>' +
                     '<p style="margin:0;font-size:0.72rem;color:#6b7280;">' + c.debut + ' → ' + c.fin + '</p></div>' +
-                    '<button type="button" onclick="emploiSupprimer(' + idx + ',\'' + c.id + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.9rem;">🗑️</button></div>';
+                    '<button type="button" aria-label="Modifier ' + emploiEchap(c.nom) + '" onclick="emploiEditer(' + emploiEchap(JSON.stringify(c.id)) + ')" style="border:none;background:none;color:#047857;cursor:pointer;font-size:0.9rem;">✏️</button>' +
+                    '<button type="button" aria-label="Supprimer ' + emploiEchap(c.nom) + '" onclick="emploiSupprimer(' + emploiEchap(JSON.stringify(c.id)) + ')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.9rem;">🗑️</button></div>';
             }).join('') + '</div>';
     }).join('');
     zone.innerHTML = total
@@ -568,6 +627,7 @@ function emploiToutEffacer() {
         exporter: emploiExporterAvantEffacement,
         confirmer: function () {
             emploiScolaireVider();
+            emploiEditionFinir();
             emploiRendre();
             if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         }

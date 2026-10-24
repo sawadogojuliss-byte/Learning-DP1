@@ -203,7 +203,8 @@ function boiteSansVides(record) {
    ne demandent que ce qui est arrivé depuis. Sans cela, la surveillance
    de la boîte coûterait des milliers de lectures par heure. */
 var boiteBruts = [];
-var boiteDernierAt = '';
+var boiteIndexBruts = Object.create(null);
+var boiteDernierParCollection = Object.create(null);
 
 /* Les anciens messages ont « at » au premier niveau ; les nouveaux ont
    la même date dans le seul groupe technique. On lit les deux formats sans
@@ -223,17 +224,37 @@ function boiteLireCollection(nom, depuis, max, champDate) {
         });
 }
 
+/* La liste admin est une archive, pas une fenêtre des 1200 derniers envois.
+   Les pages sont lues uniquement au premier chargement de la session ; les
+   rafraîchissements suivants restent incrémentaux. */
+function boiteLireCollectionHistorique(nom, champDate, depuis) {
+    var out = [];
+    var date = champDate || 'at';
+    var base = firebase.firestore().collection(nom);
+    if (depuis) base = base.where(date, '>', depuis);
+    function page(apres) {
+        var q = base.orderBy(date, depuis ? 'asc' : 'desc');
+        if (apres) q = q.startAfter(apres);
+        return q.limit(400).get().then(function (snap) {
+            snap.forEach(function (doc) {
+                var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
+                if (data && data.type && data.id && data.at) out.push(data);
+            });
+            return snap.docs && snap.docs.length === 400 ? page(snap.docs[snap.docs.length - 1]) : out;
+        });
+    }
+    return page(null);
+}
+
 function boiteAjouterBruts(items) {
     (items || []).forEach(function (item) {
         if (!item) return;
         var cle = String(item.id || '') + '|' + String(item.at || '');
-        if (boiteBruts.some(function (deja) {
-            return String(deja.id || '') + '|' + String(deja.at || '') === cle;
-        })) return;
+        if (boiteIndexBruts[cle]) return;
+        boiteIndexBruts[cle] = true;
         boiteBruts.push(item);
-        if (String(item.at || '') > boiteDernierAt) boiteDernierAt = String(item.at || '');
     });
-    if (boiteBruts.length > 6000) boiteBruts = boiteBruts.slice(-5000);
+    /* Ne pas perdre les anciens emplois lors du prochain rafraîchissement. */
 }
 
 /* Questions, feedbacks, emplois du temps et réponses ont chacun leur
@@ -372,8 +393,17 @@ function boiteLireBoite() {
         var publique = boiteLireCollection(BOITE_PUBLIE, '', 200).catch(function () { return []; });
         if (!boiteEstAdmin()) return publique;
         boiteErreurLecture = '';
-        var depuis = boiteBruts.length ? boiteDernierAt : '';
-        var legacy = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1800).catch(function (err) {
+        function depuisPour(nom, champ) { return boiteDernierParCollection[nom + '|' + (champ || 'at')] || ''; }
+        function retenirDate(nom, champ, items) {
+            if (generation !== boiteSessionGeneration) return items;
+            var cle = nom + '|' + (champ || 'at');
+            (items || []).forEach(function (item) {
+                if (String(item.at || '') > (boiteDernierParCollection[cle] || '')) boiteDernierParCollection[cle] = String(item.at);
+            });
+            return items;
+        }
+        var legacy = boiteLireCollectionHistorique(BOITE_COLLECTION, 'at', depuisPour(BOITE_COLLECTION, 'at'))
+            .then(function (items) { return retenirDate(BOITE_COLLECTION, 'at', items); }).catch(function (err) {
             boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
             return [];
         });
@@ -381,7 +411,11 @@ function boiteLireBoite() {
             var champs = (nom === 'questions' || nom === 'feedbacks')
                 ? ['at', 'z_donnees_techniques.at'] : ['at'];
             champs.forEach(function (champ) {
-                toutes.push(boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois_du_temps' ? 1200 : 400), champ).catch(function (err) {
+                var depuis = depuisPour(nom, champ);
+                toutes.push(((nom === 'emplois_du_temps' || nom === 'emplois')
+                    ? boiteLireCollectionHistorique(nom, champ, depuis)
+                    : boiteLireCollection(nom, depuis, depuis ? 300 : 400, champ))
+                    .then(function (items) { return retenirDate(nom, champ, items); }).catch(function (err) {
                     /* Avant la publication des règles, la lecture des nouvelles
                        collections est refusée ; ne rien divulguer au visiteur. */
                     if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
@@ -503,7 +537,8 @@ function boiteNettoyerSession() {
     boiteSessionGeneration++;
     boiteMemoriserVus();
     boiteBruts = [];
-    boiteDernierAt = '';
+    boiteIndexBruts = Object.create(null);
+    boiteDernierParCollection = Object.create(null);
     boiteListesCache = null;
     boiteSecretCache = '';
     boiteErreurLecture = '';
@@ -747,10 +782,10 @@ function boiteMemePersonne(a, b) {
     if (!a || !b) return false;
     var subA = String(a.googleSub || '').trim();
     var subB = String(b.googleSub || '').trim();
-    if (subA && subA === subB) return true;
+    if (subA && subB) return subA === subB;
     var mailA = boiteMailPersonne(a);
     var mailB = boiteMailPersonne(b);
-    if (mailA && mailB && mailA === mailB) return true;
+    if (mailA && mailB) return mailA === mailB;
     var nomA = boiteNormaliser(boiteNomUtile(a));
     var nomB = boiteNormaliser(boiteNomUtile(b));
     if (nomA && nomB && nomA === nomB) return true;
@@ -967,7 +1002,7 @@ function boiteFusionner(items) {
         reponses: reponses.slice(0, 120),
         profils: profils.slice(0, 80),
         connexions: connexions.slice(0, 8),
-        emplois: listeEmplois.slice(0, 300),
+        emplois: listeEmplois,
         tutoriels: tutoriels.slice(0, 40),
         annonces: annonces.slice(0, 40)
     };

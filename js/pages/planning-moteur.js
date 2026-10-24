@@ -732,14 +732,19 @@ function emploiEstFige() {
 
 function emploiReconstruire(dayIndex) {
     emploiGelSuspendu++;
-    var jours = [];
-    var i;
     try {
-        for (i = 0; i < 7; i++) jours.push(genererJourBrut(i) || []);
+        var sig = emploiFaitsSignature();
+        var ancien = emploiFige && emploiFige.sig === sig && Array.isArray(emploiFige.jours)
+            && emploiFige.jours.length === 7 ? emploiFige : null;
+        if (ancien && Array.isArray(ancien.jours[dayIndex])) return emploiCloner(ancien.jours[dayIndex]);
+        /* Un jour absent du cache ne nécessite pas de recalculer les six autres. */
+        var jour = genererJourBrut(dayIndex) || [];
         if (!emploiNePasSauver) {
-            emploiFige = { sig: emploiFaitsSignature(), at: new Date().toISOString(), jours: emploiCloner(jours) };
+            var jours = ancien ? ancien.jours.slice() : [null, null, null, null, null, null, null];
+            jours[dayIndex] = emploiCloner(jour);
+            emploiFige = { sig: sig, at: new Date().toISOString(), jours: jours };
         }
-        return emploiCloner(jours[dayIndex] || []);
+        return emploiCloner(jour);
     } finally {
         emploiGelSuspendu--;
     }
@@ -1338,10 +1343,13 @@ function genererJourBrut(dayIndex) {
         if (coursReels.length) {
             poserPreparationMatin();
             const premierCours = emploiH2M(coursReels[0].debut);
-            const dernierCours = emploiH2M(coursReels[coursReels.length - 1].fin);
+            const dernierCours = Math.max.apply(null, coursReels.map(function (c) { return emploiH2M(c.fin); }));
             chain('commute1', 'Trajet école', trajet.aller + ' min · départ ' + trajet.depart, trajet.aller, 'transport', trajet.icon, true);
             coursReels.forEach(function (c, i) {
-                fixed('cours-reel-' + i, c.nom, coursTexte(emploiH2M(c.debut)) + ' → ' + coursTexte(emploiH2M(c.fin)), c.debut, c.fin, 'school', '🏫');
+                const precedent = cursor;
+                fixed('cours-reel-' + (c.id || i), c.nom, coursTexte(emploiH2M(c.debut)) + ' → ' + coursTexte(emploiH2M(c.fin)), c.debut, c.fin, 'school', '🏫');
+                if (c.parallele) events[events.length - 1].parallele = true;
+                if (c.parallele && precedent > cursor) cursor = precedent;
             });
             if (dayIndex === 4 && typeof devoirsFaitBac === 'function' && devoirsFaitBac() &&
                 !coursReels.some(function (c) { return emploiH2M(c.debut) < 16 * 60 + 25 && emploiH2M(c.fin) > 14 * 60 + 55; })) {
@@ -1908,6 +1916,7 @@ function planningBalayer(events) {
         return [[s, e]];
     }
     function chevauche(a, b) {
+        if (a.parallele && b.parallele && a.type === 'school' && b.type === 'school') return false;
         var pa = bornes(a);
         var pb = bornes(b);
         var i, j;

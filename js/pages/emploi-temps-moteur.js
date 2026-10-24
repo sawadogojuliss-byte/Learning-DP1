@@ -12,14 +12,15 @@
 function emploiScolaireTrous(cours, margeMin) {
     var marge = typeof margeMin === 'number' ? margeMin : 40;
     var triee = (cours || []).slice().filter(function (c) { return c && c.debut && c.fin; })
-        .sort(function (a, b) { return a.debut < b.debut ? -1 : 1; });
+        .sort(function (a, b) { return a.debut.localeCompare(b.debut); });
     var trous = [];
-    for (var i = 1; i < triee.length; i++) {
-        var debut = emploiH2M(triee[i - 1].fin);
-        var fin = emploiH2M(triee[i].debut);
-        if (fin - debut >= marge) {
-            trous.push({ debut: debut, fin: fin, avant: triee[i] });
-        }
+    var occupeJusqu = null;
+    for (var i = 0; i < triee.length; i++) {
+        var debut = emploiH2M(triee[i].debut);
+        var fin = emploiH2M(triee[i].fin);
+        if (occupeJusqu !== null && debut - occupeJusqu >= marge)
+            trous.push({ debut: occupeJusqu, fin: debut, avant: triee[i] });
+        occupeJusqu = Math.max(occupeJusqu == null ? 0 : occupeJusqu, fin);
     }
     return trous;
 }
