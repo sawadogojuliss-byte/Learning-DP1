@@ -48,7 +48,9 @@ try {
     assert.equal(await page.locator('#emploisDetail .emploi-atelier-jour').count(), 7);
     assert(await page.locator('#emploisDetail .emploi-atelier-calendrier-scroll').evaluate(el => el.scrollWidth > el.clientWidth),
         'le calendrier mobile doit pouvoir défiler horizontalement');
-    assert.equal(await page.locator('.emploi-atelier-retour-mobile').isVisible(), true);
+    assert.equal(await page.locator('#panelEmplois .admin-nav').isVisible(), true);
+    assert.equal(await page.locator('#panelEmplois .admin-nav-retour').isVisible(), true);
+    assert.equal(await page.locator('#panelEmplois .admin-nav-lien[aria-label="Espace admin"]').isVisible(), true);
     assert.deepEqual(errors, [], 'erreur JS sur la page : ' + errors.join(' | '));
     console.log('ok Atelier en navigateur : élèves, filtres, semaines reçues, versions, mobile, aucun envoi distant');
 } finally {
