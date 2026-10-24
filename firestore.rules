@@ -37,7 +37,7 @@ service cloud.firestore {
       allow read: if estAdmin();
       allow create: if messageValide()
         && request.resource.data.type in [
-             'question', 'feedback', 'emploi', 'profil', 'profilpart',
+             'question', 'feedback', 'profil', 'profilpart',
              'connexion', 'reponse'
            ]
         && (request.resource.data.type != 'reponse' || estAdmin());
@@ -56,16 +56,18 @@ service cloud.firestore {
       allow create: if messageValide() && request.resource.data.type == 'feedback';
       allow update, delete: if false;
     }
+    /* Pause des emplois : même un ancien onglet ne peut plus alimenter
+       cette collection. Les admins peuvent toujours consulter l'archive. */
     match /emplois_du_temps/{message} {
       allow read: if estAdmin();
-      allow create: if messageValide() && request.resource.data.type == 'emploi';
+      allow create: if false;
       allow update, delete: if false;
     }
     /* Les collections de transition restent privées si elles existent.
        Les nouveaux formulaires ne les utilisent plus. */
     match /emplois/{message} {
       allow read: if estAdmin();
-      allow create: if messageValide() && request.resource.data.type == 'emploi';
+      allow create: if false;
       allow update, delete: if false;
     }
     match /profils/{message} {

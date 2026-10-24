@@ -10,6 +10,8 @@
 
 var BOITE_COLLECTION = 'boite'; /* archive conservée, jamais utilisée pour les nouveaux formulaires */
 var BOITE_PUBLIE = 'publie';
+/* Pause temporaire : aucun nouveau document type emploi n'est envoyé. */
+var BOITE_EMPLOIS_SUSPENDUS = true;
 var BOITE_COLLECTIONS = {
     question: 'questions', feedback: 'feedbacks', emploi: 'emplois_du_temps',
     reponse: 'reponses', profil: 'boite', profilpart: 'boite',
@@ -277,7 +279,22 @@ function boiteEmploiDepuisDocument(item) {
     });
 }
 
+/* Une fiche sans vrai créneau était envoyée dès l'inscription et créait
+   les documents vides vus dans la console. Même après la fin de la pause,
+   elle ne doit plus pouvoir partir. */
+function boiteEmploiAvecCreneaux(record) {
+    return !!(record && Array.isArray(record.jours) && record.jours.some(function (jour) {
+        return jour && Array.isArray(jour.s) && jour.s.some(function (slot) {
+            return slot && String(slot.d || '').trim() && String(slot.t || '').trim();
+        });
+    }));
+}
+
 function boiteEcrireBoite(record) {
+    if (record && record.type === 'emploi') {
+        if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
+        if (!boiteEmploiAvecCreneaux(record)) return Promise.reject(new Error('emploi_vide'));
+    }
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
     if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre);
@@ -331,7 +348,14 @@ function boiteEcrireJson(cle, valeur) {
 
 function boiteLireFile() {
     var file = boiteLireJson(BOITE_FILE);
-    return Array.isArray(file) ? file : [];
+    if (!Array.isArray(file)) return [];
+    /* Supprimer les anciennes tentatives non envoyées : elles ne doivent
+       pas repeupler la collection après sa purge dans Firebase. */
+    if (BOITE_EMPLOIS_SUSPENDUS && file.some(function (item) { return item && item.type === 'emploi'; })) {
+        file = file.filter(function (item) { return item && item.type !== 'emploi'; });
+        boiteEcrireJson(BOITE_FILE, file);
+    }
+    return file;
 }
 
 function boiteGarderFile(record) {
@@ -599,6 +623,8 @@ function boiteReassemblerEmplois(items) {
 }
 
 function boiteEnvoyer(record) {
+    if (record && record.type === 'emploi' &&
+        (BOITE_EMPLOIS_SUSPENDUS || !boiteEmploiAvecCreneaux(record))) return Promise.resolve(false);
     var morceaux = boiteDecouperEmploi(record);
     morceaux.forEach(boiteGarderFile);
     var envoi = morceaux.reduce(function (chaine, morceau) {
@@ -1959,10 +1985,11 @@ function boiteInscrit() {
 }
 
 function boitePublierEmploi(force) {
+    if (BOITE_EMPLOIS_SUSPENDUS) return;
     if (!boiteNom()) return;
     if (!force && !boiteInscrit()) return;
     var record = boiteStabiliserComplet(boiteSnapshotEmploi());
-    if (!record) return;
+    if (!boiteEmploiAvecCreneaux(record)) return;
     var empreinte = JSON.stringify({
         nom: record.nom,
         classe: record.classe,
@@ -2116,6 +2143,7 @@ function boiteIdbProfils() {
 
 var boiteRejeuFait = false;
 function boiteRejouerPasses() {
+    if (BOITE_EMPLOIS_SUSPENDUS) return;
     if (boiteRejeuFait || typeof generateDayEvents !== 'function') return;
     boiteRejeuFait = true;
     var courant = boiteNormaliser(boiteNom());
@@ -2127,7 +2155,7 @@ function boiteRejouerPasses() {
             if (!nom || nom === courant) return;
             var appareil = boiteCleStable(item.cle + '|' + nom);
             var record = boiteEmploiDepuisProfil(data, appareil);
-            if (record) boiteEnvoyer(record).catch(function () {});
+            if (boiteEmploiAvecCreneaux(record)) boiteEnvoyer(record).catch(function () {});
         });
     }
     publier(boiteProfilsLocaux());
@@ -2229,9 +2257,10 @@ function boiteFicheIncomplete(fusion, record) {
 var boiteVerifEnCours = false;
 var boiteVerifCle = '';
 function boiteVerifierFiche() {
+    if (BOITE_EMPLOIS_SUSPENDUS) return;
     if (!boiteNom() || boiteVerifEnCours) return;
     var record = boiteFicheCourante();
-    if (!record) return;
+    if (!boiteEmploiAvecCreneaux(record)) return;
     var cle = boiteNormaliser(record.nom) + '|' + String(record.google || record.email || '') + '|' + String(record.classe || '') + '|' + String(record.flammes || 0) + '|' + boiteSignatureJours(record);
     if (cle === boiteVerifCle) return;
     /* Ce qui est déjà parti ne repart pas : la trace est gardée sur
