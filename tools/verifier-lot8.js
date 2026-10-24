@@ -158,7 +158,7 @@ const fusionAdmin = admin.boiteFusionner([ficheFirestore, voisin]);
 admin.boiteRendreEmplois(fusionAdmin);
 assert(!elementsAdmin.emploisListe.innerHTML.includes('E2E Preparation'), 'la carte E2E ne doit pas apparaître dans le HTML');
 assert(elementsAdmin.emploisListe.innerHTML.includes('E3E Preparation'), 'le compte voisin doit rester visible');
-assert.equal(elementsAdmin.emploisStatut.textContent, '1 personne', 'le compteur admin ne compte pas la fiche E2E');
+assert.equal(elementsAdmin.emploisStatut.textContent, '1 personne · 1 planning reçu', 'le compteur admin ne compte pas la fiche E2E');
 (async () => {
     const records = await admin.boiteLireCollectionHistorique('emplois_du_temps');
     assert.equal(records.length, 825, 'pagination au-delà des 1200 entrées');

@@ -636,7 +636,15 @@ function boiteNettoyerSession() {
             return item && item.type !== 'reponse' && item.type !== 'emploi';
         }));
     } catch (e) {}
-    ['questionsListe', 'retoursListe', 'emploisListe'].forEach(function (id) {
+    boiteEmploiSelection = '';
+    boiteEmploiVersion = '';
+    boiteEmploisAffiches = [];
+    boiteEmploisVersionsAffichees = [];
+    ['emploisTotal', 'emploisRecus', 'emploisSans', 'emploisStatut'].forEach(function (id) {
+        var compteur = document.getElementById(id);
+        if (compteur) compteur.textContent = '';
+    });
+    ['questionsListe', 'retoursListe', 'emploisListe', 'emploisDetail'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.innerHTML = '';
     });
@@ -1110,6 +1118,7 @@ function boiteFusionner(items) {
         profils: profils.slice(0, 80),
         connexions: connexions.slice(0, 8),
         emplois: listeEmplois,
+        emploisVersions: brutsEmplois,
         personnesMessages: personnesMessages,
         tutoriels: tutoriels.slice(0, 40),
         annonces: annonces.slice(0, 40)
@@ -1766,89 +1775,170 @@ function boiteRepondre(questionId, origine, forcer) {
     });
 }
 
+/* La liste est compacte ; les versions restent dans Firestore et seules
+   les copies confirmées entrent dans les détails de la page admin. */
+var boiteEmploiSelection = '';
+var boiteEmploiVersion = '';
+var boiteEmploiFiltre = 'tous';
+var boiteEmploisAffiches = [];
+var boiteEmploisVersionsAffichees = [];
+
+function boiteCleAfficheEmploi(item) {
+    if (item.firebaseUid) return 'uid:' + item.firebaseUid;
+    if (item.googleSub) return 'sub:' + item.googleSub;
+    if (item.google || item.email) return 'mail:' + boiteNormaliser(item.google || item.email);
+    if (item.appareil) return 'app:' + item.appareil + ':' + boiteNormaliser(item.nom);
+    return 'doc:' + String(item.id || '') + ':' + boiteNormaliser(item.nom);
+}
+
+function boiteEmploiRecu(item) {
+    return !!(item && Array.isArray(item.jours) && item.jours.length);
+}
+
+function boiteCleVersionEmploi(item) {
+    return String(item.id || '') + '|' + String(item.at || '') + '|' + boiteSignatureJours(item);
+}
+
+function boiteVersionsPourEmploi(item, fusion) {
+    var vues = {};
+    return ((fusion && fusion.emploisVersions) || []).filter(function (version) {
+        if (!boiteEmploiRecu(version) || boiteEmploiRetire(version) || !boiteMemePersonne(item, version)) return false;
+        var cle = boiteCleVersionEmploi(version);
+        if (vues[cle]) return false;
+        vues[cle] = true;
+        return true;
+    }).sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+}
+
+function boiteTypeCreneau(slot) {
+    var nom = boiteNormaliser(slot && slot.t || '');
+    if (/math|analyse|algebre|statistique/.test(nom)) return 'math';
+    if (/physique|chimie|biologie|science|informatique/.test(nom)) return 'science';
+    if (/francais|anglais|litterature|langue|histoire|philosophie/.test(nom)) return 'litterature';
+    return 'autre';
+}
+
+function boiteCalendrierAtelier(item) {
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    var jours = {};
+    (item.jours || []).forEach(function (jour) {
+        if (jour && noms.indexOf(jour.j) !== -1 && Array.isArray(jour.s)) jours[jour.j] = jour.s;
+    });
+    return '<div class="emploi-atelier-calendrier-scroll" role="region" aria-label="Calendrier de la semaine, défilement horizontal possible" tabindex="0">'
+        + '<div class="emploi-atelier-calendrier">' + noms.map(function (nom) {
+            var slots = jours[nom];
+            var contenu = !slots ? '<p class="emploi-atelier-jour-vide">Jour non transmis dans cette version.</p>'
+                : !slots.length ? '<p class="emploi-atelier-jour-vide">Aucun créneau reçu.</p>'
+                : slots.slice().sort(function (a, b) { return String(a && a.d || '').localeCompare(String(b && b.d || '')); }).map(function (slot) {
+                    if (!slot) return '';
+                    var heures = String(slot.d || '') + (slot.f ? ' – ' + slot.f : '');
+                    return '<div class="emploi-atelier-slot ' + boiteTypeCreneau(slot) + '">'
+                        + '<time>' + boiteEchap(heures) + '</time><strong>' + boiteEchap(slot.t || '') + '</strong></div>';
+                }).join('');
+            return '<section class="emploi-atelier-jour"><h5>' + nom + '</h5>' + contenu + '</section>';
+        }).join('') + '</div></div>';
+}
+
 function boiteRendreEmplois(fusion) {
     var liste = document.getElementById('emploisListe');
+    var detail = document.getElementById('emploisDetail');
     var statut = document.getElementById('emploisStatut');
     var filtre = document.getElementById('emploisFiltre');
     if (!liste) return;
     var mot = boiteNormaliser(filtre ? filtre.value : '');
     var personnes = boitePersonnes(fusion);
-    var doublons = {};
-    personnes.forEach(function (item) {
-        var g = boiteNormaliser(item.google || item.email || '');
-        if (g) doublons[g] = (doublons[g] || 0) + 1;
+    var nbRecus = personnes.filter(boiteEmploiRecu).length;
+    [['emploisTotal', personnes.length], ['emploisRecus', nbRecus], ['emploisSans', personnes.length - nbRecus]].forEach(function (paire) {
+        var compteur = document.getElementById(paire[0]);
+        if (compteur) compteur.textContent = String(paire[1]);
     });
-    function boiteJourAffiche(jour) {
-    var slots = (jour && jour.s ? jour.s : []).slice();
-    if (boiteNormaliser(jour && jour.j).indexOf('samedi') !== -1) {
-        slots = slots.filter(function (slot) {
-            return boiteNormaliser(slot && slot.t).indexOf('cours d economie') === -1;
-        });
-    }
-    var incomplet = boiteJourIncomplet(slots);
-    if (incomplet) {
-        [{ d: '12:30', f: '13:30', t: 'Déjeuner' }, { d: '13:30', f: '16:25', t: 'Cours' }].forEach(function (slot) {
-            if (!slots.some(function (s) { return s.d === slot.d; })) slots.push(Object.assign({ ajoute: true }, slot));
-        });
-    }
-    return { slots: boiteOrdonnerCreneaux(slots), incomplet: incomplet };
-}
+    var filtres = document.getElementById('emploisFiltres');
+    if (filtres && filtres.querySelectorAll) filtres.querySelectorAll('[data-emploi-filtre]').forEach(function (bouton) {
+        bouton.setAttribute('aria-pressed', bouton.getAttribute('data-emploi-filtre') === boiteEmploiFiltre ? 'true' : 'false');
+    });
     var rows = personnes.filter(function (item) {
         if (!item || boiteEmploiRetire(item)) return false;
-        if (!mot) return true;
-        return boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
+        if (boiteEmploiFiltre === 'recus' && !boiteEmploiRecu(item)) return false;
+        if (boiteEmploiFiltre === 'sans' && boiteEmploiRecu(item)) return false;
+        return !mot || boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
     });
+    boiteEmploisAffiches = rows;
+    if (rows.length && !rows.some(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })) {
+        boiteEmploiSelection = boiteCleAfficheEmploi(rows[0]);
+        boiteEmploiVersion = '';
+    }
     if (!rows.length) {
-        var vide = personnes.length ? 'Aucun nom ne correspond.'
-            : (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.'
-                : (fusion.partiel ? 'Les emplois du temps ne sont pas accessibles pour le moment. Réessaie.'
-                    : 'Aucune inscription reçue pour le moment. Chaque personne apparaît ici une seule fois, dès qu\'elle génère son planning ou envoie une question.'));
-        liste.innerHTML = '<p style="color:#6b7280;">' + vide + '</p>';
+        var vide = personnes.length ? 'Aucun élève ne correspond à ce filtre.'
+            : (fusion.reconnecter ? 'Reconnecte ton compte admin, puis actualise.'
+                : fusion.partiel ? 'Lecture incomplète : impossible de confirmer la liste des emplois pour le moment.'
+                    : 'Aucun emploi reçu pour le moment.');
+        liste.innerHTML = '<p class="emploi-atelier-aucun">' + vide + '</p>';
+        if (detail) detail.innerHTML = '<div class="emploi-atelier-attente"><strong>Aucune fiche à afficher</strong>' + vide + '</div>';
+        boiteEmploisVersionsAffichees = [];
     } else {
-        liste.innerHTML = rows.map(function (item) {
-            var incomplet = false;
-            var jours = (item.jours || []).map(function (jour) {
-                var affiche = boiteJourAffiche(jour);
-                if (affiche.incomplet) incomplet = true;
-                var slots = affiche.slots.map(function (slot) {
-                    var ajoute = !!(slot && slot.ajoute);
-                    return '<p style="font-size:0.84rem;color:' + (ajoute ? '#6b7280' : '#1f2937') + ';margin:0.15rem 0;">' + boiteEchap(slot.d || '') + '–' + boiteEchap(slot.f || '') + '  ' + boiteEchap(slot.t || '') + (ajoute ? ' · cours fixe' : '') + '</p>';
-                }).join('');
-                return '<div style="margin-top:0.55rem;"><p style="font-size:0.75rem;font-weight:800;color:#047857;text-transform:uppercase;">' + boiteEchap(jour.j || '') + '</p>' + slots + '</div>';
-            }).join('');
-            if (incomplet) jours += '<p style="font-size:0.78rem;color:#b45309;margin-top:0.55rem;">La fin de journée n\'avait pas été reçue. Elle s\'ajoute dès que cet appareil rouvre le site.</p>';
-            if (!jours) jours = '<p style="color:#6b7280;margin-top:0.45rem;">Le planning n\'est pas encore arrivé. Il s\'affiche ici dès que cette personne rouvre Study Plan IB.</p>';
-            var nomAffiche = item.nom || item.googleNom || 'Sans nom';
-            var google = item.google || item.email || '';
-            var googleLigne = google
-                ? 'Compte Google : ' + boiteEchap(google) + (item.googleNom ? ' · ' + boiteEchap(item.googleNom) : '')
-                : 'Compte Google : pas encore connecté';
-            var flammes = Number(item.flammes || 0);
-            var flammeTexte = flammes ? (flammes + ' jour' + (flammes > 1 ? 's' : '') + " d'affilée") : 'pas encore de série';
-            var meta = 'Classe : ' + boiteEchap(item.classe || 'non indiquée') + ' · Nom : ' + boiteEchap(nomAffiche) + ' · ' + googleLigne;
-            var matieres = (item.matieres || []).length
-                ? '<p style="font-size:0.8rem;color:#374151;margin-top:0.35rem;">Matières : ' + boiteEchap(item.matieres.join(', ')) + '</p>'
-                : '';
-            return '<details open style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.85rem 1rem;margin-bottom:0.7rem;">'
-                + '<summary style="cursor:pointer;font-weight:800;color:#111827;">' + boiteEchap(nomAffiche) + ' <span style="font-weight:600;color:#6b7280;">· ' + boiteEchap(item.classe || 'Classe non indiquée') + '</span> <span style="font-weight:800;color:#c2410c;">· 🔥 ' + boiteEchap(flammeTexte) + '</span></summary>'
-                + '<p style="font-size:0.78rem;color:#6b7280;margin-top:0.35rem;">' + meta + '</p>'
-                + '<p style="font-size:0.84rem;font-weight:800;color:#c2410c;margin-top:0.25rem;">🔥 ' + boiteEchap(flammeTexte) + '</p>'
-                + matieres
-                + jours
-                + '</details>';
+        liste.innerHTML = rows.map(function (item, index) {
+            var nom = item.nom || item.googleNom || 'Sans nom';
+            var initiales = nom.trim().split(/\s+/).slice(0, 2).map(function (partie) { return partie.charAt(0).toUpperCase(); }).join('');
+            var recu = boiteEmploiRecu(item);
+            return '<button type="button" class="emploi-atelier-personne" data-emploi-personne="' + index + '" aria-current="'
+                + (boiteCleAfficheEmploi(item) === boiteEmploiSelection ? 'true' : 'false') + '">'
+                + '<span class="emploi-atelier-avatar" aria-hidden="true">' + boiteEchap(initiales) + '</span>'
+                + '<span class="emploi-atelier-identite"><strong>' + boiteEchap(nom) + '</strong><small>' + boiteEchap(item.classe || 'Classe non indiquée') + '</small></span>'
+                + '<span class="emploi-atelier-badge ' + (recu ? 'recu' : 'absent') + '">' + (recu ? 'Reçu' : 'Absent') + '</span></button>';
         }).join('');
+        var choix = rows.filter(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })[0] || rows[0];
+        var versions = boiteVersionsPourEmploi(choix, fusion);
+        boiteEmploisVersionsAffichees = versions;
+        var selectionVersion = versions.filter(function (item) { return boiteCleVersionEmploi(item) === boiteEmploiVersion; })[0];
+        if (!selectionVersion) boiteEmploiVersion = '';
+        var semaine = selectionVersion || choix;
+        var aSemaine = boiteEmploiRecu(semaine);
+        var complet = aSemaine && boiteEstComplet(semaine);
+        var nomAffiche = boiteEchap(choix.nom || choix.googleNom || 'Sans nom');
+        var meta = boiteEchap(choix.classe || 'Classe non indiquée')
+            + (choix.matieres && choix.matieres.length ? ' · ' + choix.matieres.length + ' matière' + (choix.matieres.length > 1 ? 's' : '') : '');
+        var date = semaine.at ? boiteEchap(boiteDate(semaine.at)) : '';
+        var badge = !aSemaine ? 'Aucun planning reçu' : !complet ? 'Semaine partielle / reconstituée' : 'Semaine reçue';
+        var calendrier = !aSemaine
+            ? '<div class="emploi-atelier-attente"><strong>Aucun planning reçu</strong>Cette personne est connue par un contact, mais aucune semaine n’est consultable ici.</div>'
+            : boiteCalendrierAtelier(semaine);
+        var historiqueOuvert = !!(boiteEmploiVersion || (detail && detail.querySelector && detail.querySelector('.emploi-atelier-historique') && detail.querySelector('.emploi-atelier-historique').open));
+        var historique = versions.length
+            ? '<details class="emploi-atelier-encart emploi-atelier-historique"' + (historiqueOuvert ? ' open' : '') + '><summary>Versions reçues (' + versions.length + ')</summary>'
+                + '<button type="button" data-emploi-version="courante" aria-current="' + (!boiteEmploiVersion ? 'true' : 'false') + '">Semaine affichée · synthèse actuelle</button>'
+                + versions.map(function (version, index) {
+                    return '<button type="button" data-emploi-version="' + index + '" aria-current="'
+                        + (selectionVersion === version ? 'true' : 'false') + '">Version ' + (index + 1)
+                        + (version.at ? ' · ' + boiteEchap(boiteDate(version.at)) : '')
+                        + (boiteEstComplet(version) ? '' : ' · partielle') + '</button>';
+                }).join('') + '</details>'
+            : '<div class="emploi-atelier-encart"><strong>Versions reçues</strong>Aucune semaine n’a encore été reçue pour cette personne.</div>';
+        if (detail) detail.innerHTML = '<div class="emploi-atelier-fiche-entete"><div><p class="emploi-atelier-fiche-eyebrow">PLANNING PRIVÉ · VUE ADMIN</p>'
+            + '<h3>' + nomAffiche + '</h3><p class="emploi-atelier-meta">' + meta + '</p></div>'
+            + '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span></div>'
+            + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
+            + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
+            + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
+            + '<div class="emploi-atelier-pied"><div class="emploi-atelier-encart"><strong>Lecture fidèle</strong>Seuls les créneaux effectivement reçus sont présentés. Une lecture incomplète est signalée, jamais complétée par des cours supposés.</div>'
+            + historique + '</div>';
     }
     if (statut) {
         var n = personnes.length;
-        statut.textContent = (fusion.partiel ? 'Une partie des plannings n\'a pas pu être rechargée. ' : '') + n + ' personne' + (n > 1 ? 's' : '');
+        statut.textContent = (fusion.partiel ? 'Lecture incomplète : certaines fiches peuvent manquer. ' : '')
+            + n + ' personne' + (n > 1 ? 's' : '') + ' · ' + nbRecus + ' planning' + (nbRecus > 1 ? 's' : '') + ' reçu' + (nbRecus > 1 ? 's' : '');
+        if (statut.setAttribute) statut.setAttribute('data-partiel', fusion.partiel ? 'true' : 'false');
     }
     boiteEmploisSignature = boiteSignatureEmplois(fusion);
 }
 
 function boiteSignatureEmplois(fusion) {
-    return JSON.stringify(boitePersonnes(fusion).map(function (item) {
-        return [item.nom || '', item.classe || '', item.google || item.email || '', item.flammes || 0, item.jours || []];
-    }));
+    return JSON.stringify({
+        partiel: !!(fusion && fusion.partiel),
+        personnes: boitePersonnes(fusion).map(function (item) {
+            return [item.id || '', item.nom || '', item.classe || '', item.google || item.email || '', item.at || '', item.jours || []];
+        }),
+        versions: ((fusion && fusion.emploisVersions) || []).map(function (item) { return [item.id || '', item.at || '']; })
+    });
 }
 
 var boiteEmploisTimer = null;
@@ -1923,6 +2013,36 @@ function boiteBrancherAdmin() {
     if (filtre) filtre.oninput = function () {
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
     };
+    var filtresEmplois = document.getElementById('emploisFiltres');
+    if (filtresEmplois) filtresEmplois.addEventListener('click', function (e) {
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-filtre]') : null;
+        if (!bouton) return;
+        boiteEmploiFiltre = bouton.getAttribute('data-emploi-filtre');
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+    });
+    var listeEmplois = document.getElementById('emploisListe');
+    if (listeEmplois) listeEmplois.addEventListener('click', function (e) {
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-personne]') : null;
+        var numero = bouton && Number(bouton.getAttribute('data-emploi-personne'));
+        if (!bouton || !Number.isInteger(numero) || !boiteEmploisAffiches[numero]) return;
+        boiteEmploiSelection = boiteCleAfficheEmploi(boiteEmploisAffiches[numero]);
+        boiteEmploiVersion = '';
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+    });
+    var detailEmplois = document.getElementById('emploisDetail');
+    if (detailEmplois) detailEmplois.addEventListener('click', function (e) {
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-version]') : null;
+        if (!bouton) return;
+        var cle = bouton.getAttribute('data-emploi-version');
+        var numero = Number(cle);
+        if (cle !== 'courante' && (!Number.isInteger(numero) || !boiteEmploisVersionsAffichees[numero])) return;
+        boiteEmploiVersion = cle === 'courante' ? '' : boiteCleVersionEmploi(boiteEmploisVersionsAffichees[numero]);
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+        if (boiteEmploiVersion) {
+            var historique = detailEmplois.querySelector('.emploi-atelier-historique');
+            if (historique) historique.open = true;
+        }
+    });
     ['questionsListe', 'retoursListe'].forEach(function (id) {
         var liste = document.getElementById(id);
         if (!liste || liste.__boite) return;

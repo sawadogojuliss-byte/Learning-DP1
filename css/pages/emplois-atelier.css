@@ -1,0 +1,114 @@
+/* Page administrateur privée « Emplois du temps » — format Atelier.
+   Aucun style ne sort de #panelEmplois. */
+#panelEmplois.app-panel { background:#f6f7f1; color:#1c3028; }
+#panelEmplois * { box-sizing:border-box; }
+#panelEmplois .emploi-atelier { min-height:100%; display:grid; grid-template-columns:4.75rem minmax(0,1fr);font-family:Inter,system-ui,-apple-system,'Segoe UI',sans-serif; }
+#panelEmplois .emploi-atelier-rail { background:#164633;color:#d4ead4;display:flex;align-items:center;flex-direction:column;gap:1.1rem;padding:1.55rem .45rem; }
+#panelEmplois .emploi-atelier-marque { font:italic 1.85rem Georgia,serif;border:1px solid #8eb99d;border-radius:.85rem;width:2.8rem;height:2.8rem;display:grid;place-items:center;color:white;margin-bottom:1.4rem; }
+#panelEmplois .emploi-atelier-rail button,#panelEmplois .emploi-atelier-rail-actif { display:grid;place-items:center;width:2.7rem;height:2.7rem;border:0;border-radius:.75rem;font-size:1.3rem; }
+#panelEmplois .emploi-atelier-rail button { background:transparent;color:#c5e3cf;cursor:pointer; }
+#panelEmplois .emploi-atelier-rail button:hover,#panelEmplois .emploi-atelier-rail button:focus-visible { background:#317255; }
+#panelEmplois .emploi-atelier-rail-actif { background:#e9f5e9;color:#235d4a; }
+#panelEmplois .emploi-atelier-main { padding:clamp(1.2rem,3vw,3.2rem);width:100%;max-width:110rem;margin:0 auto;min-width:0; }
+#panelEmplois .emploi-atelier-retour-mobile { display:none; }
+#panelEmplois .emploi-atelier-entete { display:flex;justify-content:space-between;align-items:flex-end;gap:1rem; }
+#panelEmplois .emploi-atelier-chemin { font-size:.68rem;letter-spacing:.08em;font-weight:800;color:#7f9686;margin:0 0 1.25rem; }
+#panelEmplois .emploi-atelier-surtitre { font-size:.65rem;letter-spacing:.2em;font-weight:850;color:#638873;margin:0; }
+#panelEmplois .emploi-atelier-entete h2 { font:normal clamp(2.1rem,4.2vw,3.7rem)/1.05 Georgia,serif;letter-spacing:-.055em;margin:.35rem 0 .4rem; }
+#panelEmplois .emploi-atelier-entete h2 em { font-weight:normal;color:#5e9778; }
+#panelEmplois .emploi-atelier-sous-titre { font-size:.83rem;color:#738778;margin:0; }
+#panelEmplois .emploi-atelier-actualiser { border:1px solid #b8d7c0;background:#eaf5e9;color:#266b4b;border-radius:.85rem;white-space:nowrap;padding:.7rem 1rem;font-size:.8rem;font-weight:800;cursor:pointer; }
+#panelEmplois .emploi-atelier-actualiser:hover { background:#d9eddb; }
+#panelEmplois .emploi-atelier-statut { font-size:.78rem;color:#5f7565;min-height:1.3rem;margin:1.2rem 0 .6rem; }
+#panelEmplois .emploi-atelier-statut[data-partiel="true"] { color:#a45923;font-weight:700; }
+#panelEmplois .emploi-atelier-chiffres { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;margin-bottom:1.1rem; }
+#panelEmplois .emploi-atelier-chiffre { position:relative;overflow:hidden;background:white;border:1px solid #e1e9dd;border-radius:1.1rem;padding:1rem 1.25rem;min-height:5.9rem; }
+#panelEmplois .emploi-atelier-chiffre:after { content:'';position:absolute;width:5rem;height:5rem;border:1px solid #c5d9c6;border-radius:50%;right:-1rem;bottom:-2.7rem;box-shadow:0 0 0 1.1rem #dbe9db52;pointer-events:none; }
+#panelEmplois .emploi-atelier-chiffre:nth-child(2) { background:#e7f0e3;border-color:#e7f0e3; }
+#panelEmplois .emploi-atelier-chiffre:nth-child(3) { background:#f7eee3;border-color:#f7eee3; }
+#panelEmplois .emploi-atelier-chiffre strong { display:block;font:normal 2rem Georgia,serif;line-height:1.1;letter-spacing:-.05em; }
+#panelEmplois .emploi-atelier-chiffre span { display:block;font-size:.7rem;color:#698071;margin-top:.35rem; }
+#panelEmplois .emploi-atelier-espace { display:grid;grid-template-columns:minmax(15.5rem,19rem) minmax(0,1fr);gap:1rem;align-items:start; }
+#panelEmplois .emploi-atelier-repertoire,#panelEmplois .emploi-atelier-fiche { background:white;border:1px solid #e4ebe1;border-radius:1.25rem;box-shadow:0 16px 55px #3659400a;min-width:0; }
+#panelEmplois .emploi-atelier-repertoire { padding:1.1rem .85rem; }
+#panelEmplois .emploi-atelier-repertoire h3 { font:normal 1.5rem Georgia,serif;margin:.15rem .45rem .8rem;letter-spacing:-.03em; }
+#panelEmplois .emploi-atelier-label { display:block;margin:0 .45rem .3rem;color:#586e60;font-size:.72rem;font-weight:700; }
+#panelEmplois #emploisFiltre { width:100%;background:#fff;border:1px solid #dbe4da;border-radius:.85rem;padding:.75rem .85rem;color:#1c3028;font:inherit;font-size:.83rem;outline:none; }
+#panelEmplois #emploisFiltre:focus { border-color:#5b9e70;box-shadow:0 0 0 3px #5b9e7029; }
+#panelEmplois .emploi-atelier-filtres { display:flex;gap:.25rem;flex-wrap:wrap;margin:.7rem 0 .65rem; }
+#panelEmplois .emploi-atelier-filtres button { border:0;background:transparent;border-radius:99px;padding:.48rem .58rem;font-size:.69rem;font-weight:800;color:#647d6a;cursor:pointer; }
+#panelEmplois .emploi-atelier-filtres button[aria-pressed="true"] { background:#235d4a;color:white; }
+#panelEmplois .emploi-atelier-liste { max-height:60vh;min-height:4rem;overflow-y:auto; }
+#panelEmplois .emploi-atelier-personne { border:0;display:flex;align-items:center;gap:.62rem;width:100%;padding:.6rem .5rem;border-radius:.8rem;background:transparent;text-align:left;color:#1c3028;cursor:pointer; }
+#panelEmplois .emploi-atelier-personne:hover,#panelEmplois .emploi-atelier-personne[aria-current="true"] { background:#edf5e9; }
+#panelEmplois .emploi-atelier-avatar { flex:none;display:grid;place-items:center;width:2.25rem;height:2.25rem;border-radius:.7rem;background:#f2ebdb;color:#665c48;font-size:.73rem;font-weight:800; }
+#panelEmplois .emploi-atelier-personne[aria-current="true"] .emploi-atelier-avatar { background:#2b674e;color:#fff; }
+#panelEmplois .emploi-atelier-identite { min-width:0;flex:1; }
+#panelEmplois .emploi-atelier-identite strong,#panelEmplois .emploi-atelier-identite small { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+#panelEmplois .emploi-atelier-identite strong { font-size:.79rem; }
+#panelEmplois .emploi-atelier-identite small { font-size:.67rem;color:#87978a;margin-top:.15rem; }
+#panelEmplois .emploi-atelier-badge { font-size:.66rem;font-weight:800;border-radius:999px;padding:.38rem .52rem;white-space:nowrap; }
+#panelEmplois .emploi-atelier-badge.recu { color:#256444;background:#e1f3e8; }
+#panelEmplois .emploi-atelier-badge.absent { color:#986b32;background:#f9eee1; }
+#panelEmplois .emploi-atelier-note { margin:1rem .45rem .25rem;padding-top:.8rem;border-top:1px solid #ecf1e9;color:#829587;font-size:.68rem;line-height:1.5; }
+#panelEmplois .emploi-atelier-fiche { padding:clamp(1rem,2.2vw,2rem); }
+#panelEmplois .emploi-atelier-fiche-entete { display:flex;justify-content:space-between;align-items:flex-start;gap:.7rem; }
+#panelEmplois .emploi-atelier-fiche-eyebrow { text-transform:uppercase;color:#619477;font-size:.66rem;letter-spacing:.16em;font-weight:800;margin:0; }
+#panelEmplois .emploi-atelier-fiche h3 { font:normal clamp(1.8rem,3vw,2.5rem) Georgia,serif;letter-spacing:-.05em;margin:.3rem 0 .2rem; }
+#panelEmplois .emploi-atelier-meta { color:#7b8e7f;font-size:.75rem;line-height:1.55;margin:.15rem 0; }
+#panelEmplois .emploi-atelier-info { color:#436b4d;font-size:.73rem;margin:.85rem 0 0; }
+#panelEmplois .emploi-atelier-semaine-tete { display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin:1.65rem 0 .75rem; }
+#panelEmplois .emploi-atelier-semaine-tete h4 { font-size:.86rem;margin:0; }
+#panelEmplois .emploi-atelier-semaine-tete small { color:#738778;font-size:.69rem; }
+#panelEmplois .emploi-atelier-calendrier-scroll { overflow-x:auto;scrollbar-color:#bdd5c1 transparent; }
+#panelEmplois .emploi-atelier-calendrier { min-width:840px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.38rem;align-items:stretch; }
+#panelEmplois .emploi-atelier-jour { min-width:0;border:1px solid #e9eee7;background:#fafcf9;border-radius:.85rem;padding:.5rem .4rem .65rem;min-height:14rem; }
+#panelEmplois .emploi-atelier-jour:nth-child(odd) { background:#f6faf5; }
+#panelEmplois .emploi-atelier-jour h5 { text-transform:uppercase;letter-spacing:.09em;color:#30724f;font-size:.65rem;margin:.1rem .2rem .7rem; }
+#panelEmplois .emploi-atelier-slot { background:#e4ede2;color:#214b39;border-left:3px solid #3d8769;border-radius:.55rem;padding:.45rem .38rem;margin-bottom:.38rem;overflow-wrap:anywhere; }
+#panelEmplois .emploi-atelier-slot.science { background:#e5e9fa;color:#464779;border-color:#7772bc; }
+#panelEmplois .emploi-atelier-slot.litterature { background:#f9ede2;color:#775338;border-color:#cc8c56; }
+#panelEmplois .emploi-atelier-slot.autre { background:#e3ecf1;color:#33536a;border-color:#5e90a8; }
+#panelEmplois .emploi-atelier-slot time { display:block;font-size:.62rem;font-variant-numeric:tabular-nums;line-height:1.2; }
+#panelEmplois .emploi-atelier-slot strong { display:block;font-size:.67rem;line-height:1.25;margin-top:.2rem; }
+#panelEmplois .emploi-atelier-jour-vide { color:#849487;font-size:.67rem;line-height:1.4;margin:.35rem .2rem; }
+#panelEmplois .emploi-atelier-attente { background:#f7faf5;border:1px solid #e5eee2;border-radius:1rem;padding:3.2rem 1rem;text-align:center;color:#6a8070;font-size:.83rem; }
+#panelEmplois .emploi-atelier-attente strong { display:block;color:#2c5b43;font:normal 1.6rem Georgia,serif;margin-bottom:.35rem; }
+#panelEmplois .emploi-atelier-pied { display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:1.2rem; }
+#panelEmplois .emploi-atelier-encart { border:1px solid #e6ebe2;border-radius:.8rem;background:#fafbf8;padding:.88rem;color:#526d5b;font-size:.73rem;line-height:1.5;min-width:0; }
+#panelEmplois .emploi-atelier-encart strong { display:block;color:#315b41;margin-bottom:.25rem; }
+#panelEmplois .emploi-atelier-historique summary { cursor:pointer;color:#1d4d35;font-weight:800; }
+#panelEmplois .emploi-atelier-historique button { display:block;width:100%;border:1px solid #dce9da;background:white;color:#326249;text-align:left;border-radius:.6rem;padding:.5rem;margin-top:.4rem;cursor:pointer;font-size:.72rem; }
+#panelEmplois .emploi-atelier-historique button[aria-current="true"] { border-color:#2d8053;background:#eaf6e9; }
+#panelEmplois .emploi-atelier-historique button:hover { background:#eaf6e9; }
+#panelEmplois .emploi-atelier-aucun { color:#637869;font-size:.8rem;padding:1rem .45rem; }
+#panelEmplois button:focus-visible,#panelEmplois summary:focus-visible { outline:3px solid #c5844f;outline-offset:2px; }
+@media(max-width:1040px) {
+    #panelEmplois .emploi-atelier-espace { grid-template-columns:minmax(13.5rem,16rem) minmax(0,1fr); }
+    #panelEmplois .emploi-atelier-pied { grid-template-columns:1fr; }
+}
+@media(max-width:750px) {
+    #panelEmplois .emploi-atelier { display:block; }
+    #panelEmplois .emploi-atelier-rail { display:none; }
+    #panelEmplois .emploi-atelier-main { padding:1.15rem .8rem 2.5rem; }
+    #panelEmplois .emploi-atelier-chemin { margin-bottom:.75rem; }
+    #panelEmplois .emploi-atelier-entete { align-items:flex-start; }
+    #panelEmplois .emploi-atelier-retour-mobile { display:grid;place-items:center;flex:none;width:2.1rem;height:2.1rem;border:1px solid #a7d1ad;border-radius:.6rem;background:#eaf5e9;color:#216947;font-size:1.1rem;cursor:pointer; }
+    #panelEmplois .emploi-atelier-entete h2 { font-size:2rem; }
+    #panelEmplois .emploi-atelier-actualiser { padding:.6rem .7rem; }
+    #panelEmplois .emploi-atelier-espace { display:block; }
+    #panelEmplois .emploi-atelier-repertoire { margin-bottom:.8rem; }
+    #panelEmplois .emploi-atelier-liste { display:flex;gap:.4rem;overflow-x:auto;max-height:none;padding-bottom:.3rem; }
+    #panelEmplois .emploi-atelier-personne { flex:0 0 13.5rem; }
+    #panelEmplois .emploi-atelier-calendrier { min-width:790px; }
+    #panelEmplois .emploi-atelier-chiffres { gap:.35rem; }
+    #panelEmplois .emploi-atelier-chiffre { padding:.7rem;min-height:5rem; }
+    #panelEmplois .emploi-atelier-chiffre strong { font-size:1.55rem; }
+    #panelEmplois .emploi-atelier-chiffre span { font-size:.59rem; }
+    #panelEmplois .emploi-atelier-semaine-tete small { font-size:.62rem; }
+}
+@media(max-width:390px) {
+    #panelEmplois .emploi-atelier-entete h2 { font-size:1.65rem; }
+    #panelEmplois .emploi-atelier-sous-titre { font-size:.75rem; }
+    #panelEmplois .emploi-atelier-actualiser span { display:none; }
+}
