@@ -136,6 +136,39 @@ if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : '
 if (fin.sons.length < 3) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
 const total = fin.sons.reduce(function (s, x) { return s + (x.duree || 0); }, 0);
 if (total < 6) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
+/* Lot 13 : les réglages survivent, et couper la voix laisse le bip.
+   Aucun texte d'annonce ni nouveau son n'est programmé après ce choix. */
+const muetAvant = await page.evaluate(() => {
+    const active = document.getElementById('focusVoixActive');
+    const volume = document.getElementById('focusVoixVolume');
+    active.checked = false;
+    volume.value = '23';
+    chronoSauverReglagesVoix();
+    return { sons: window.__sonsProgrammes.length, bip: window.__oscillateurs };
+});
+await page.evaluate(() => chronoAnnoncerPause(5));
+await page.waitForTimeout(1400);
+const muet = await page.evaluate(() => ({
+    sons: window.__sonsProgrammes.length,
+    bip: window.__oscillateurs,
+    stocke: localStorage.getItem('studyPlanIB_voixActive'),
+    volume: localStorage.getItem('studyPlanIB_voixVolume'),
+    ambiance: JSON.parse(localStorage.getItem('studyPlanIB_focusAmbiance') || '[]')
+}));
+if (muet.sons !== muetAvant.sons || muet.bip <= muetAvant.bip || muet.stocke !== 'false' ||
+    muet.volume !== '0.23' || !muet.ambiance.includes('pluie'))
+    echec('voix coupée ou choix de son non respecté : ' + JSON.stringify(muet));
+await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
+await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
+const restaure = await page.evaluate(() => {
+    navigateTo('pomodoro');
+    return { voix: document.getElementById('focusVoixActive').checked,
+        volume: document.getElementById('focusVoixVolume').value,
+        son: focusAmbianceChoisie.includes('pluie'),
+        auto: focusSonActif('pluie') };
+});
+if (restaure.voix !== false || restaure.volume !== '23' || !restaure.son || restaure.auto)
+    echec('préférences de son perdues ou démarrage automatique : ' + JSON.stringify(restaure));
 if (erreurs.length) echec('erreurs JavaScript : ' + erreurs.join(' | '));
 
 console.log('ok fin de chronomètre en vrai navigateur : '
