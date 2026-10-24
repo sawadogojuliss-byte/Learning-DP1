@@ -57,7 +57,10 @@ function boiteNormaliser(s) {
         .toLowerCase()
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z\s]/g, ' ')
+        /* Les chiffres font partie des noms et des classes (E2E, DP2).
+           Les retirer fusionnait des élèves distincts et empêchait le
+           retrait ciblé de la fiche E2E Preparation · DP2. */
+        .replace(/[^a-z0-9\s]/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 }

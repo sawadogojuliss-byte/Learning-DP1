@@ -131,7 +131,8 @@ admin.firebase = { firestore() { return { collection() { return {
     get() { const tranche = docs.slice(this.offset || 0, (this.offset || 0) + this.n); return Promise.resolve({ docs: tranche, forEach(fn) { tranche.forEach(fn); } }); }
 }; } }; } };
 admin.boiteMessageDepuisFirestore = (nom, item) => item;
-admin.boiteNormaliser = (v) => String(v || '').toLowerCase();
+assert.equal(admin.boiteNormaliser('E2E Preparation'), 'e2e preparation', 'les chiffres du nom sont conservés');
+assert.equal(admin.boiteNormaliser('DP2'), 'dp2', 'les chiffres de la classe sont conservés');
 const ficheE2 = { type: 'emploi', id: 'e_essai', nom: 'E2E Preparation', classe: 'DP2',
     jours: [{ j: 'Lundi', s: [{ d: '08:00', f: '09:00', t: 'Maths' }] }] };
 assert(admin.boiteEmploiRetire(ficheE2), 'E2E Preparation · DP2 est retiré du site');
@@ -140,6 +141,24 @@ assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2E Preparation 2' }), 'autr
 assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2' }), 'autre compte E2 reste affiché');
 assert.equal(admin.boitePersonnes({ emplois: [ficheE2, { ...ficheE2, id: 'autre', nom: 'Autre élève' }] }).length,
     1, 'la vue administrateur ne présente plus cette fiche de test');
+assert.equal(admin.boiteFusionnerPersonnes([ficheE2, { ...ficheE2, id: 'e3', nom: 'E3E Preparation' }]).length,
+    1, 'E2E est retiré mais le compte E3E reste distinct');
+// Même parcours que le panneau admin, y compris la lecture d'un document
+// Firestore au format lisible et le rendu du HTML de la capture signalée.
+const elementsAdmin = {
+    emploisListe: { innerHTML: '' }, emploisStatut: { textContent: '' }, emploisFiltre: { value: '' }
+};
+admin.document = { getElementById(id) { return elementsAdmin[id] || null; } };
+const ficheFirestore = { type: 'emploi', id: 'e_e2', at: '2026-10-24T08:00:00Z',
+    '01_nom_utilisateur': 'E2E Preparation', '02_matieres': ['Mathématiques AA HL'],
+    '03_emploi_du_temps': { '01_Lundi': ['07h50 – 12h30  ·  Cours'] },
+    z_donnees_techniques: { classe: 'DP2', jours: ficheE2.jours } };
+const voisin = { ...ficheE2, id: 'e_e3', nom: 'E3E Preparation' };
+const fusionAdmin = admin.boiteFusionner([ficheFirestore, voisin]);
+admin.boiteRendreEmplois(fusionAdmin);
+assert(!elementsAdmin.emploisListe.innerHTML.includes('E2E Preparation'), 'la carte E2E ne doit pas apparaître dans le HTML');
+assert(elementsAdmin.emploisListe.innerHTML.includes('E3E Preparation'), 'le compte voisin doit rester visible');
+assert.equal(elementsAdmin.emploisStatut.textContent, '1 personne', 'le compteur admin ne compte pas la fiche E2E');
 (async () => {
     const records = await admin.boiteLireCollectionHistorique('emplois_du_temps');
     assert.equal(records.length, 825, 'pagination au-delà des 1200 entrées');
