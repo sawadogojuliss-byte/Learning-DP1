@@ -2,13 +2,14 @@
 """Vérifie la version 3, puis qu'une seule lettre part et arrive."""
 
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 
 SCRIPT = 'https://script.google.com/macros/s/AKfycbxhDi6E6ebNBrkAaKNIVXSeySUT6p1H7kG5X8l85FVArw8Yv5uRuOsWrdEFMYXzxxSDQA/exec'
-SECRET = 'spib-7c4e9a2b8d1f6c3e'
+SECRET = os.environ.get('STUDY_PLAN_MAIL_SECRET', '')
 SUJET = 'Réponse à ta question — Study Plan IB'
 MARQUE = 'LETTRE-V3-' + str(int(time.time()))
 
@@ -61,6 +62,8 @@ def detail(jeton, ident):
 
 
 def main():
+    if not SECRET:
+        raise SystemExit('STUDY_PLAN_MAIL_SECRET manquant ; aucun mail envoyé')
     status, raw = ouvrir(SCRIPT)
     corps = raw.decode('utf-8', 'replace')
     print('version', status, corps[:240])

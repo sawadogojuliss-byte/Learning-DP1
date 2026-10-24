@@ -64,17 +64,25 @@ ok(!config.sujet, 'le nom du canal public est encore dans data/boite-url.json');
 /* — Les règles Firestore font la serrure — */
 const regles = lire('firestore.rules');
 ok(/match \/boite\/\{message\} \{[\s\S]*?allow read: if estAdmin\(\);/.test(regles), 'la boîte privée est lisible par tous');
-ok(/match \/boite\/\{message\} \{[\s\S]*?allow create: if messageValide\(\);/.test(regles), 'l’écriture des messages n’est pas ouverte');
+ok(/match \/boite\/\{message\} \{[\s\S]*?allow create: if messageValide\(\)/.test(regles), 'l’écriture de transition est fermée');
 ok(/match \/boite\/\{message\} \{[\s\S]*?allow update, delete: if false;/.test(regles), 'un message peut être modifié ou effacé');
 ok(/match \/publie\/\{message\} \{[\s\S]*?allow read: if true;/.test(regles), 'les annonces et tutoriels ne sont plus publics');
 ok(/match \/config\/\{doc\} \{[\s\S]*?allow read: if estAdmin\(\);/.test(regles), 'la configuration privée est lisible par tous');
 ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compte non vérifié peut être admin');
 
-/* — Le site n’écrit que dans les deux collections prévues — */
+['questions', 'feedbacks', 'emplois', 'reponses', 'profils', 'connexions'].forEach(function (nom) {
+    ok(regles.includes('match /' + nom + '/{message} {'), 'collection absente : ' + nom);
+    const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
+    ok(bloc.split('}')[0].includes('allow read: if estAdmin();'), 'collection lisible par tous : ' + nom);
+});
+ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne peut pas lire');
+
+/* — Le site trie chaque message — */
 const boite = lire('js/pages/boite.js');
 ok(boite.indexOf("var BOITE_COLLECTION = 'boite';") !== -1, 'nom de la collection privée inattendu');
 ok(boite.indexOf("var BOITE_PUBLIE = 'publie';") !== -1, 'nom de la collection publique inattendu');
-ok(boite.indexOf('collection(publique ? BOITE_PUBLIE : BOITE_COLLECTION)') !== -1, 'les messages ne sont pas rangés par visibilité');
+ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont pas triés');
+ok(boite.indexOf('boiteNettoyerSession') !== -1, 'les copies admin ne sont pas nettoyées');
 ok(boite.indexOf('boiteSecretMail') !== -1, 'le secret d’envoi ne vient plus de la configuration privée');
 
 /* — Les flux qui publiaient les données ont disparu — */

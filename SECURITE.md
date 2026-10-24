@@ -1,109 +1,113 @@
-# Boîte privée — ce qui a changé et ce qu'il reste à faire une fois
+# Séparer les données Firestore — guide des responsables
 
-Ce document est pour les responsables du site, pas pour les élèves.
-Rien n'a été ajouté dans les pages pour prévenir les utilisateurs : le
-site a exactement la même apparence qu'avant.
+La base reste **`study-plan-ib`**. On sépare les données en **collections**
+(comme des dossiers) ; il ne faut pas créer un autre projet Firebase.
+Aucune explication de ce changement n'a été ajoutée aux pages des élèves.
 
-## Ce qui a changé
+## Ce que contient chaque collection
 
-| Avant | Après |
-|---|---|
-| Les questions, suggestions et emplois du temps partaient sur un canal **public** (ntfy.sh), lisible par quiconque connaissait son nom | Ils sont écrits dans la collection Firestore **`boite`**, que seuls les quatre comptes admins peuvent lire |
-| Le nom du canal était écrit dans `js/pages/boite.js` et dans `data/boite-url.json` | Il n'existe plus nulle part dans le site |
-| Le prénom tapé à l'accueil ouvrait les sections réservées | L'accès dépend du **compte Google réellement connecté**, vérifié par Firebase |
-| Les quatre adresses Gmail étaient écrites dans la page | Elles ne sont plus dans le site (seulement dans `firestore.rules`, qui n'est pas servi) |
-| Le secret d'envoi des mails (`spib-…`) était dans la page | Il est dans le document Firestore privé `config/mail` |
-| `data/comptes.json`, `data/emplois.json`, `data/rappels.json` contenaient les profils, les emplois du temps et les noms, téléchargeables par tous | Ces fichiers sont **vidés** et ne sont plus régénérés |
-| La progression d'un élève transitait par le canal public | Elle reste dans `comptes/{uid}`, lisible par ce seul compte |
-| La déconnexion Google laissait la session Firebase ouverte | La déconnexion ferme aussi Firebase |
+| Collection | Contenu | Lecture depuis le site |
+|---|---|---|
+| `questions` | Nouvelles questions posées dans Aide | Cinq comptes admins seulement |
+| `feedbacks` | Nouveaux avis et suggestions | Cinq comptes admins seulement |
+| `emplois` | Nouveaux emplois du temps | Cinq comptes admins seulement |
+| `reponses` | Traces des réponses envoyées | Cinq comptes admins seulement |
+| `profils`, `connexions` | Informations privées associées | Cinq comptes admins seulement |
+| `boite` | **Archives** reçues avant cette séparation ; anciens onglets encore ouverts peuvent aussi y écrire temporairement | Cinq comptes admins seulement |
+| `publie` | Annonces et tutoriels | Public volontairement |
+| `config/mail` | Secret du courrier, une fois renouvelé | Cinq comptes admins seulement |
+| `comptes/{uid}` | Progression personnelle de chaque élève | **Le propriétaire uniquement** ; même les admins ne lisent pas les progressions d'autrui |
 
-Les annonces et les tutoriels restent publics (c'est leur nature) : ils
-sont rangés dans la collection `publie`.
+Les cinq comptes admins pour la boîte sont les quatre comptes personnels déjà
+configurés et `ibstudyplan@gmail.com`. La lecture est décidée par les règles
+Firestore avec une connexion Google **vérifiée par Firebase**, pas par le
+prénom saisi sur le site. La console Firebase est différente : quiconque a un
+rôle dans le projet peut consulter les données depuis la console, car les
+règles de l'application ne limitent pas les administrateurs du projet.
 
-## À faire une fois — obligatoire
+## Ce que tu dois faire, dans cet ordre
 
-**Sans cette étape, la boîte ne fonctionne plus : Firebase refuse tout.**
-C'est voulu : mieux vaut une boîte fermée qu'une boîte ouverte.
+1. **Garder une copie des règles actuelles.** Ouvrir
+   <https://console.firebase.google.com/project/study-plan-ib/firestore/rules>,
+   sélectionner tout le texte présent et le copier dans une note privée.
+2. **Publier les nouvelles règles.** Dans le même éditeur « Règles », remplacer
+   **tout** le texte par le contenu complet du fichier [`firestore.rules`](firestore.rules)
+   de cette branche du dépôt, puis cliquer sur **Publier**. Ne rien coller à
+   la suite des anciennes règles. Ne créer aucune collection à la main.
+   Le code du site se met à jour automatiquement. Jusqu'à la publication
+   des règles, les nouveaux formulaires qui n'ont pas accès aux nouvelles
+   collections restent dans l'ancienne `boite` (repli temporaire).
+3. **Vérifier la séparation sans envoyer de mail de test.** Sur le site,
+   poser une question ordinaire depuis Aide ; attendre « Question envoyée. ».
+   Dans la console Firebase → Firestore Database → **Données**, une collection
+   `questions` doit apparaître après le premier nouvel envoi. Cliquer sur
+   `questions`, puis sur le document : le champ `type` doit valoir `question`.
+   Un avis envoyé depuis Feedback apparaît dans `feedbacks` (`type: feedback`).
+   Un emploi du temps apparaît dans `emplois`. Les anciennes entrées restent
+   dans `boite`, elles n'ont pas été effacées ni déplacées.
+4. **Vérifier le compte de l'équipe.** Sur un navigateur personnel, se
+   connecter au site avec le bouton Google **en choisissant exactement**
+   `ibstudyplan@gmail.com`, puis ouvrir le menu : « Questions des utilisateurs »,
+   « Retour des feedbacks » et « Emplois du temps » doivent être visibles.
+   Cliquer sur **Actualiser** dans la rubrique. Si ce n'est pas le cas, vérifier
+   que Google est activé dans Firebase Authentication et se reconnecter.
+   Vérifier avec un autre compte non admin : il ne doit pas pouvoir lire les
+   collections privées (Firestore répond `permission-denied`). Être propriétaire
+   du projet et voir les documents dans **la console Firebase** ne teste pas
+   les droits d'un élève sur le site.
 
-1. Ouvrir <https://console.firebase.google.com/project/study-plan-ib/firestore/rules>.
-2. Si la base Firestore n'existe pas encore : **Créer une base de données**,
-   mode production, région `europe-west` (par exemple).
-3. Remplacer tout le contenu de l'onglet « Règles » par le contenu du
-   fichier `firestore.rules` de ce dépôt.
-4. Cliquer sur **Publier**.
+**Publier des règles ne détruit ni ne déplace aucun document.** La règle de
+`comptes/{uid}` est conservée à l'identique. Si d'autres collections que celles
+listées ici sont utilisées par une autre application sur **la même base**,
+vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
+collection sans règle correspondante sera inaccessible depuis les applications.
 
-## À faire une fois — pour que les réponses par mail repartent
+## Anciennes entrées de `boite`
 
-Le secret d'envoi n'est plus dans la page. Il doit être recopié dans
-Firestore :
+Les données déjà présentes dans `boite` restent **mélangées dans cette archive**,
+lisibles par les cinq admins. Le site lit l'archive **et** les nouvelles
+collections, afin de ne perdre aucune question. Les nouveaux envois vont dans
+leurs collections dédiées une fois les règles publiées. Ne pas supprimer
+`boite` : certaines questions et certains emplois y sont encore. Une migration
+ancienne → nouvelles collections ne doit être faite qu'après sauvegarde,
+vérification des nombres et déduplication ; elle n'est **pas** automatique.
 
-1. Console Firebase → **Firestore Database** → **Démarrer une collection**.
-2. Identifiant de la collection : `config`.
-3. Identifiant du document : `mail`.
-4. Ajouter un champ `secret` (type *chaîne*), valeur : l'ancienne valeur
-   `spib-…` du script `tools/envoi-mail.gs` (variable `SECRET`).
-5. Enregistrer. Ne rien mettre d'autre dans ce document.
+## Courrier : étape séparée, à ne pas faire avec l'ancien secret
 
-Tant que ce document manque, répondre à une question affiche « L'envoi
-au nom de l'équipe Study Plan IB n'est pas encore activé. » — le message
-existait déjà.
+Le vieux secret du script Google a été publié dans l'historique Git : il est
+**compromis**, même si on l'enlève du code actuel. Ne **pas** le recopier dans
+`config/mail`. Le code source `tools/envoi-mail.gs` utilise désormais une
+propriété de script `MAIL_SECRET` et ne transmet plus les confirmations au
+vieux canal public ; **le déploiement Google déjà en ligne n'est pas modifié par
+un push Git**. Pour réactiver les réponses par mail, le responsable du script
+doit, séparément :
 
-## Comment vérifier, en cinq minutes
+1. Générer dans son gestionnaire de mots de passe un **nouveau** secret
+   aléatoire d'au moins 32 caractères. Ne pas le communiquer dans une issue,
+   dans le code Git ou dans cette conversation.
+2. Ouvrir le projet Apps Script qui exécute l'envoi : remplacer le code
+   déployé par `tools/envoi-mail.gs` ; dans **Paramètres du projet** →
+   **Propriétés du script**, ajouter `MAIL_SECRET` avec le nouveau secret.
+3. **Déployer → Gérer les déploiements** → modifier le déploiement existant
+   → sélectionner **Nouvelle version** → **Déployer**. Cela remplace l'ancienne
+   version sans changer l'URL. Révoquer aussi tout ancien déploiement du script
+   si plusieurs existent.
+4. Console Firebase → Firestore Database → **Données** → collection `config`,
+   document `mail`, champ `secret` (chaîne) : y enregistrer **ce même nouveau**
+   secret. Les règles ne permettent pas d'écrire ce document depuis le site ;
+   il doit être créé dans la console.
 
-1. **Un élève ne voit rien.** Se connecter avec un compte quelconque,
-   ouvrir `pages/boite.html` : les listes restent vides, même en
-   modifiant la page. Ouvrir la console du navigateur et essayer de lire
-   la collection `boite` : Firebase répond `permission-denied`.
-2. **Un admin voit tout.** Se connecter avec l'un des quatre comptes,
-   ouvrir la boîte : les messages apparaissent.
-3. **Une question arrive.** Depuis un autre navigateur (ou en navigation
-   privée), poser une question depuis la page Aide. Elle apparaît chez
-   l'admin après **Actualiser**, ou toute seule en moins de deux minutes
-   si la page est ouverte.
+Tant que la rotation et le déploiement ne sont pas faits, ne pas utiliser la
+fonction « Répondre » : elle ne doit pas s'appuyer sur l'ancien secret. La
+réception des questions et des feedbacks **ne dépend pas** de ce secret.
 
-Si un admin voit « Connecte-toi avec ton compte Google, puis clique sur
-Actualiser », c'est que sa session Firebase a expiré : il se reconnecte
-avec le bouton Google, et tout revient.
+## Confidentialité locale et limites
 
-**Les quatre admins doivent désormais se connecter avec leur compte
-Google.** Avant, taper son prénom suffisait : c'était le trou. Sans
-connexion, les entrées « Retours », « Questions » et « Emplois » ne
-s'affichent plus. Si l'un des quatre n'a jamais utilisé le bouton
-Google, il le fait une fois : sa progression et son nom sont déjà sur
-l'appareil, rien n'est perdu.
-
-Si la connexion Google n'ouvre toujours pas la boîte, vérifier dans la
-console Firebase → **Authentication** → **Sign-in method** que le
-fournisseur **Google** est activé (il l'est probablement déjà : c'est
-lui qui enregistre les progressions dans `comptes/{uid}`).
-
-## Ce qui n'est plus automatique
-
-- **L'avis par mail aux quatre admins** quand une question arrive. Il
-  partait du navigateur de l'élève avec le secret écrit dans la page :
-  n'importe qui pouvait donc envoyer des mails au nom du site. La boîte
-  prévient maintenant dans le site (popup « Nouveaux messages ») dès
-  qu'un admin l'ouvre. Si l'avis par mail est indispensable, il faut un
-  petit service côté serveur (fonction Cloud ou script Google planifié) —
-  à décider séparément.
-- **L'historique** des emplois du temps déjà reçus n'est pas repris : il
-  faudrait une importation. Les fiches des élèves qui reviennent sur le
-  site se réaffichent d'elles-mêmes, une fois par appareil.
-
-## Risques qui restent
-
-1. **L'ancien canal public est brûlé.** Les messages déjà publiés y sont
-   restés (ntfy les garde quelques heures). Ils ne sont pas rappelables.
-   Ne pas réutiliser ce nom de canal.
-2. **L'historique Git est public.** Les anciens `data/*.json` (profils,
-   emplois du temps, adresses) restent lisibles dans les commits passés
-   du dépôt. Les vider aujourd'hui ferme l'accès facile, pas l'accès à
-   l'historique. Si cela doit disparaître, il faut réécrire l'historique
-   et forcer le push — une opération à décider avec toi, pas à faire
-   dans la foulée.
-3. **Les vidéos de tutoriel** passent toujours par un hébergeur public
-   (fil distinct, contenu public par nature).
-4. **Un message peut toujours être écrit par n'importe qui** (c'est le
-   principe de la page Aide) : les règles limitent la forme et la taille,
-   pas le volume. Si le spam devient un problème, il faudra exiger un
-   compte Google pour écrire.
+Le nouveau site ne conserve plus de copies des messages admin déjà lus dans
+`localStorage` ; il retire les anciennes copies et vide la mémoire de la boîte
+ainsi que le secret au moment de la déconnexion. Les envois qui ont échoué
+restent temporairement en file locale pour pouvoir être renvoyés ; utiliser
+un appareil privé pour l'administration, et se déconnecter après usage.
+L'ancien canal public et les anciens fichiers personnels restent dans
+l'**historique public Git** : les règles Firestore ne peuvent pas les effacer.
+Effacer l'historique du dépôt demande une opération séparée et un accord exprès.

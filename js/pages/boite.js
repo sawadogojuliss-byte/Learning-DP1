@@ -8,9 +8,15 @@
    de mot de passe ni de nom de canal public.
    ============================================================ */
 
-var BOITE_COLLECTION = 'boite';
+var BOITE_COLLECTION = 'boite'; /* archives et repli temporaire avant publication des nouvelles règles */
 var BOITE_PUBLIE = 'publie';
-/* Identifiants Google opaques (sub) des quatre comptes admins.
+var BOITE_COLLECTIONS = {
+    question: 'questions', feedback: 'feedbacks', emploi: 'emplois',
+    reponse: 'reponses', profil: 'profils', profilpart: 'profils',
+    connexion: 'connexions', annonce: 'publie', tutoriel: 'publie'
+};
+var BOITE_PRIVEES = ['questions', 'feedbacks', 'emplois', 'reponses', 'profils', 'connexions'];
+/* Identifiants Google opaques (sub) des quatre comptes personnels.
    Ils servent uniquement à afficher les sections réservées ; la
    vraie serrure est dans firestore.rules. */
 var BOITE_ADMINS_SUB = [
@@ -37,6 +43,7 @@ var BOITE_COMPLET_VERSION = '20261008b';
 var boiteListesCache = null;
 var boiteEnvoiEnCours = false;
 var boiteFirebasePromesse = null;
+var boiteSessionGeneration = 0;
 var aideBranchee = false;
 var feedbackBranche = false;
 var boiteAdminBranche = false;
@@ -76,16 +83,19 @@ function boiteVerifierAdmin() {
     if (boiteAdminVerifie || boiteAdminTente) return Promise.resolve(boiteEstAdmin());
     if (!boiteSession()) return Promise.resolve(false);
     boiteAdminTente = true;
+    var generation = boiteSessionGeneration;
     return boiteFirebasePret().then(function (user) {
-        if (!user) return false;
+        if (!user) { boiteAdminTente = false; return false; }
         return firebase.firestore().collection(BOITE_COLLECTION).limit(1).get().then(function () {
+            if (generation !== boiteSessionGeneration) return false;
             boiteAdminVerifie = true;
             boiteMajMenu();
             return true;
         }, function () {
+            boiteAdminTente = false;
             return false;
         });
-    }).catch(function () { return false; });
+    }).catch(function () { boiteAdminTente = false; return false; });
 }
 
 function boiteEchap(s) {
@@ -218,33 +228,53 @@ function boiteAjouterBruts(items) {
     if (boiteBruts.length > 2500) boiteBruts = boiteBruts.slice(-2000);
 }
 
-/* Écrit un message. Les annonces et les tutoriels sont publics par
-   nature : ils vont dans « publie ». Tout le reste — questions,
-   suggestions, emplois du temps, profils, réponses — va dans « boite »,
-   que seuls les admins peuvent lire. */
+/* Chaque type a sa collection. Tant que les nouvelles règles ne sont pas
+   publiées, on conserve l'ancien chemin pour ne perdre aucun envoi.
+   Après publication, le site n'écrit plus dans « boite ». */
 function boiteEcrireBoite(record) {
     var propre = boiteSansVides(record);
-    if (!propre || !propre.type || propre.type === 'coffre') return Promise.reject(new Error('record'));
-    var publique = propre.type === 'annonce' || propre.type === 'tutoriel';
+    var collection = propre && BOITE_COLLECTIONS[propre.type];
+    if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function () {
-        return firebase.firestore().collection(publique ? BOITE_PUBLIE : BOITE_COLLECTION).add(propre);
+        return firebase.firestore().collection(collection).add(propre).catch(function (err) {
+            if (collection === BOITE_PUBLIE || !err || err.code !== 'permission-denied') throw err;
+            /* Anciennes règles encore actives : elles n'autorisent que boite.
+               Ne jamais replier une réponse admin : l'ancien chemin permet
+               à tout visiteur d'en fabriquer une. */
+            if (propre.type === 'reponse') throw err;
+            return firebase.firestore().collection(BOITE_COLLECTION).add(propre);
+        });
     }).then(function () { return true; });
 }
 
-/* Relit les messages. Un visiteur non admin ne reçoit que la partie
-   publique : la lecture de « boite » lui est refusée par les règles. */
+/* L'ancienne boîte reste lisible par les admins : les documents qui y
+   sont déjà ne disparaissent pas de l'interface. Les nouvelles collections
+   sont interrogées séparément, et seules les données publiques sont lues
+   par les visiteurs. La vraie autorisation est dans Firestore. */
 function boiteLireBoite() {
+    var generation = boiteSessionGeneration;
     return boiteFirebasePret().then(function () {
         var publique = boiteLireCollection(BOITE_PUBLIE, '', 200).catch(function () { return []; });
         if (!boiteEstAdmin()) return publique;
+        boiteErreurLecture = '';
         var depuis = boiteBruts.length ? boiteDernierAt : '';
-        var privee = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1200).catch(function (err) {
+        var legacy = boiteLireCollection(BOITE_COLLECTION, depuis, depuis ? 300 : 1200).catch(function (err) {
             boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
             return [];
         });
-        return Promise.all([privee, publique]).then(function (deux) {
-            boiteAjouterBruts(deux[0]);
-            return boiteBruts.concat(deux[1]);
+        var lectures = BOITE_PRIVEES.map(function (nom) {
+            return boiteLireCollection(nom, depuis, depuis ? 300 : 1200).catch(function (err) {
+                /* Anciennes règles : les collections n'existent pas encore.
+                   La boîte d'archives reste la référence jusqu'à publication. */
+                if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
+                return [];
+            });
+        });
+        return Promise.all([legacy, publique].concat(lectures)).then(function (listes) {
+            if (generation !== boiteSessionGeneration) return [];
+            listes.slice(2).forEach(function (items) { boiteAjouterBruts(items); });
+            boiteAjouterBruts(listes[0]);
+            return boiteBruts.concat(listes[1]);
         });
     });
 }
@@ -333,27 +363,35 @@ function boiteEnvoyerDistant(record) {
     });
 }
 
-function boiteLireVus() {
-    var vus = boiteLireJson(BOITE_VUS);
-    if (!vus || typeof vus !== 'object') return [];
-    return [].concat(vus.questions || [], vus.feedbacks || [], vus.emplois || [], vus.reponses || [], vus.profils || [], vus.connexions || [], vus.annonces || []);
+/* Les anciennes versions stockaient les questions et réponses admin dans
+   localStorage, visible par l'utilisateur suivant du même navigateur.
+   Firestore est maintenant la source : ne plus garder ces copies locales. */
+function boiteLireVus() { return []; }
+function boiteMemoriserVus() {
+    try { localStorage.removeItem(BOITE_VUS); } catch (e) {}
 }
+function boiteGarderVu() { boiteMemoriserVus(); }
 
-function boiteMemoriserVus(fusion) {
-    boiteEcrireJson(BOITE_VUS, {
-        questions: (fusion.questions || []).slice(0, 80),
-        feedbacks: (fusion.feedbacks || []).slice(0, 80),
-        emplois: (fusion.emplois || []).slice(0, 200),
-        reponses: (fusion.reponses || []).slice(0, 80),
-        profils: (fusion.profils || []).slice(0, 40),
-        connexions: (fusion.connexions || []).slice(0, 4),
-        annonces: (fusion.annonces || []).slice(0, 40)
+function boiteNettoyerSession() {
+    boiteSessionGeneration++;
+    boiteMemoriserVus();
+    boiteBruts = [];
+    boiteDernierAt = '';
+    boiteListesCache = null;
+    boiteSecretCache = '';
+    boiteErreurLecture = '';
+    boiteAdminVerifie = false;
+    boiteAdminTente = false;
+    /* Ne pas laisser sur l'appareil une réponse mail restée en attente. */
+    try {
+        boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) {
+            return item && item.type !== 'reponse';
+        }));
+    } catch (e) {}
+    ['questionsListe', 'retoursListe', 'emploisListe'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '';
     });
-}
-
-function boiteGarderVu(record) {
-    var fusion = boiteFusionner(boiteLireVus().concat([record]));
-    boiteMemoriserVus(fusion);
 }
 
 function boiteSlotsJour(jour) {
@@ -813,20 +851,22 @@ function boiteFusionner(items) {
    la partie privée pour les quatre admins seulement. Le fichier local
    ne sert plus qu'à garder les envois pas encore partis. */
 function boiteChargerListes(force) {
+    var generation = boiteSessionGeneration;
     if (boiteListesCache && !force) return Promise.resolve(boiteListesCache);
     return boiteLireBoite().then(function (items) {
         return { ok: !(boiteEstAdmin() && boiteErreurLecture), items: items };
     }, function () {
         return { ok: false, items: [] };
     }).then(function (source) {
-        var items = boiteLireFile().concat(boiteLireVus(), source.items || []);
+        if (generation !== boiteSessionGeneration) return boiteFusionner([]);
+        var items = (boiteEstAdmin() && source.ok ? boiteLireFile() : []).concat(source.items || []);
         var fusion = boiteFusionner(items);
         fusion.partiel = !source.ok;
         /* Un admin dont la session Firebase a expiré doit le savoir :
            sinon la boîte paraît vide sans raison. */
         fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
         boiteListesCache = fusion;
-        boiteMemoriserVus(fusion);
+        boiteMemoriserVus();
         return fusion;
     });
 }
@@ -1244,14 +1284,15 @@ function boiteUrlScript() {
 var boiteSecretCache = '';
 
 function boiteSecretMail() {
-    if (boiteSecretCache) return Promise.resolve(boiteSecretCache);
+    var generation = boiteSessionGeneration;
+    if (boiteSecretCache && boiteEstAdmin() && window.firebase && firebase.auth().currentUser) return Promise.resolve(boiteSecretCache);
     return boiteFirebasePret().then(function (user) {
         if (!user || !boiteEstAdmin()) throw new Error('script');
         return firebase.firestore().collection('config').doc('mail').get();
     }).then(function (snap) {
         var data = snap && snap.exists ? snap.data() : null;
         var secret = data && data.secret ? String(data.secret) : '';
-        if (!secret) throw new Error('script');
+        if (!secret || generation !== boiteSessionGeneration) throw new Error('script');
         boiteSecretCache = secret;
         return secret;
     }).catch(function () {
@@ -2326,6 +2367,9 @@ function boiteSignalerOuverture(force) {
 }
 
 if (typeof document !== 'undefined') {
+    boiteMemoriserVus();
+    /* Les anciennes réponses en attente ne doivent plus rester lisibles. */
+    try { boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.type !== 'reponse'; })); } catch (e) {}
     boiteMajMenu();
     /* Un envoi raté reste dans la file : on le retente tant que la page
        est ouverte, pas seulement à son ouverture. */

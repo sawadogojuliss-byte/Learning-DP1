@@ -2,10 +2,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /* Les quatre comptes admins. La liste des identifiants Google (uid)
-       et celle des adresses sont acceptées : si Firebase attribue un
-       uid différent de l'identifiant Google, l'adresse prend le relais.
-       Ce fichier n'est pas servi par le site. */
+    /* Les quatre comptes personnels et le compte de l'équipe. La décision
+       est prise par Firebase Authentication, jamais par le nom saisi sur
+       le site. L'adresse du compte d'équipe n'est pas dans la page. */
     function estAdmin() {
       return request.auth != null
         && request.auth.token.email_verified == true
@@ -19,49 +18,84 @@ service cloud.firestore {
               'sawadogojuliss@gmail.com',
               'faridsere86@gmail.com',
               'ashleytamini10@gmail.com',
-              'rayyanouedraogo87@gmail.com'
+              'rayyanouedraogo87@gmail.com',
+              'ibstudyplan@gmail.com'
             ]);
     }
 
-    /* Un message a la forme attendue : un type connu, une date, un
-       identifiant, et pas des milliers de champs. */
     function messageValide() {
       return request.resource.data.type is string
-        && request.resource.data.type in [
-             'question', 'feedback', 'emploi', 'reponse',
-             'profil', 'profilpart', 'connexion', 'annonce', 'tutoriel'
-           ]
         && request.resource.data.at is string
         && request.resource.data.id is string
         && request.resource.data.size() < 80;
     }
 
-    /* Messages privés : questions, suggestions, emplois du temps,
-       profils, réponses. Tout le monde peut écrire ; seuls les admins
-       peuvent lire. Personne ne peut modifier ni supprimer. */
+    /* Archives : les anciens documents restent visibles pour les cinq
+       admins. Les anciens onglets peuvent encore écrire le temps que tous
+       les navigateurs chargent la nouvelle version du site. */
     match /boite/{message} {
       allow read: if estAdmin();
-      allow create: if messageValide();
+      allow create: if messageValide()
+        && request.resource.data.type in [
+             'question', 'feedback', 'emploi', 'profil', 'profilpart',
+             'connexion', 'reponse'
+           ]
+        && (request.resource.data.type != 'reponse' || estAdmin());
       allow update, delete: if false;
     }
 
-    /* Contenu public par nature : annonces et tutoriels. Tout le monde
-       peut lire ; seuls les admins publient. */
+    /* Une collection par catégorie, avec la même protection serveur.
+       L'élève peut déposer ses données, jamais consulter celles d'autrui. */
+    match /questions/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide() && request.resource.data.type == 'question';
+      allow update, delete: if false;
+    }
+    match /feedbacks/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide() && request.resource.data.type == 'feedback';
+      allow update, delete: if false;
+    }
+    match /emplois/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide() && request.resource.data.type == 'emploi';
+      allow update, delete: if false;
+    }
+    match /profils/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide()
+        && request.resource.data.type in ['profil', 'profilpart'];
+      allow update, delete: if false;
+    }
+    match /connexions/{message} {
+      allow read: if estAdmin();
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type == 'connexion';
+      allow update, delete: if false;
+    }
+    match /reponses/{message} {
+      allow read: if estAdmin();
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type == 'reponse';
+      allow update, delete: if false;
+    }
+
+    /* Annonces et tutoriels : contenu public volontaire. */
     match /publie/{message} {
       allow read: if true;
-      allow create: if estAdmin() && messageValide();
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type in ['annonce', 'tutoriel'];
       allow update, delete: if false;
     }
 
-    /* Configuration privée (secret d'envoi des mails). Créée une fois
-       dans la console Firebase, lisible par les admins seulement. */
+    /* Secret mail : les cinq admins seulement ; écriture dans la console. */
     match /config/{doc} {
       allow read: if estAdmin();
       allow write: if false;
     }
 
-    /* Progression personnelle : chaque compte ne lit et n'écrit que la
-       sienne. */
+    /* Progression personnelle inchangée : un compte ne lit que la sienne.
+       Ni les autres élèves ni les admins ne lisent comptes/{uid} d'autrui. */
     match /comptes/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }

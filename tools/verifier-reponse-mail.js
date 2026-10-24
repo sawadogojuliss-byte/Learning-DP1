@@ -35,6 +35,7 @@ const aideChoix = { style: {} };
 
 let reponseScript = function (payload) { return { success: true, id: payload.nonce }; };
 let firestoreEchec = false;
+let nouvellesRegles = true;
 let utilisateur = null;
 const bdd = { boite: [], publie: [], config: { mail: { secret: 'spx-test-secret' } } };
 
@@ -42,11 +43,13 @@ function fausseCollection(nom) {
     return {
         add: function (data) {
             if (firestoreEchec) return Promise.reject(new Error('firestore'));
+            if (!nouvellesRegles && nom !== 'boite' && nom !== 'publie') return Promise.reject(Object.assign(new Error('anciennes règles'), { code: 'permission-denied' }));
             bdd[nom] = bdd[nom] || [];
             bdd[nom].push(data);
             return Promise.resolve({ id: nom + bdd[nom].length });
         },
         orderBy: function () { return this; },
+        where: function () { return this; },
         limit: function () { return this; },
         get: function () {
             var docs = (bdd[nom] || []).map(function (d) {
@@ -195,7 +198,8 @@ assert.deepStrictEqual(JSON.parse(fs.readFileSync('data/comptes.json', 'utf8')).
 /* — Les règles Firestore font la vraie serrure — */
 assert.ok(regles.indexOf('match /boite/') !== -1, 'la collection privée n’est pas protégée');
 assert.ok(/match \/boite\/\{message\} \{\s*allow read: if estAdmin\(\);/.test(regles), 'la lecture privée n’est pas réservée aux admins');
-assert.ok(/allow create: if messageValide\(\);/.test(regles), 'l’écriture doit rester ouverte');
+assert.ok(/allow create: if messageValide\(\)/.test(regles), 'l’écriture doit rester ouverte');
+assert.ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne peut pas lire');
 assert.ok(regles.indexOf('allow read: if true') !== -1, 'les annonces et tutoriels doivent rester publics');
 assert.ok(regles.indexOf("request.auth.token.email in [") !== -1, 'les admins ne sont pas reconnus par leur compte');
 
@@ -213,7 +217,7 @@ context.userName = '';
 /* — Une question part dans la base privée — */
 context.userName = 'Awa';
 delete store[context.BOITE_FILE];
-bdd.boite.length = 0;
+bdd.questions = [];
 aideTexte.value = 'Où est le mémoire de français ?';
 aideEmail.value = 'eleve@example.com';
 aideStatut.textContent = '';
@@ -221,10 +225,10 @@ context.boiteQuestion(null);
 
 attendre(200).then(function () {
     assert.strictEqual(aideStatut.textContent, 'Question envoyée.', 'statut reçu : ' + aideStatut.textContent);
-    assert.strictEqual(bdd.boite.length, 1, 'la question n’est pas partie dans la boîte privée');
-    assert.strictEqual(bdd.boite[0].type, 'question');
-    assert.strictEqual(bdd.boite[0].email, 'eleve@example.com');
-    assert.ok(String(bdd.boite[0].texte).indexOf('mémoire de français') !== -1, 'le texte manque');
+    assert.strictEqual(bdd.questions.length, 1, 'la question n’est pas partie dans la boîte privée');
+    assert.strictEqual(bdd.questions[0].type, 'question');
+    assert.strictEqual(bdd.questions[0].email, 'eleve@example.com');
+    assert.ok(String(bdd.questions[0].texte).indexOf('mémoire de français') !== -1, 'le texte manque');
     assert.strictEqual(aideTexte.value, '', 'la question n’a pas été effacée après l’envoi');
     assert.strictEqual(context.boiteEnvoiEnCours, false, 'le bouton reste bloqué après un envoi réussi');
     assert.ok(!appels.some(function (item) {
@@ -248,12 +252,12 @@ attendre(200).then(function () {
 
     /* — La base revient : la file se vide — */
     firestoreEchec = false;
-    bdd.boite.length = 0;
+    bdd.questions = [];
     return context.boiteReessayer().then(function () { return attendre(80); });
 }).then(function () {
     const file = JSON.parse(store[context.BOITE_FILE] || '[]');
     assert.ok(!file.some(function (item) { return String(item.texte).indexOf('base est muette') !== -1; }), 'la question gardée n’a pas été rejouée');
-    assert.strictEqual(bdd.boite.length, 1, 'la reprise n’a rien écrit');
+    assert.strictEqual(bdd.questions.length, 1, 'la reprise n’a rien écrit');
 
     /* — Le mail de réponse : secret lu dans la configuration privée — */
     utilisateur = { uid: '116965022060639990571', email: 'sawadogojuliss@gmail.com' };
@@ -282,7 +286,7 @@ attendre(200).then(function () {
         assert.strictEqual(payload.to, 'doriilboudo235@gmail.com');
         assert.strictEqual(payload.secret, 'spx-test-secret', 'le secret ne vient pas de la configuration privée');
         assert.ok(payload.subject.indexOf('Study Plan IB') !== -1, payload.subject);
-        assert.strictEqual(payload.salutation, 'Bonjour Kenzah,');
+        assert.ok(/^(Bonjour|Bonsoir) Kenzah,$/.test(payload.salutation), 'salutation inattendue : ' + payload.salutation);
         assert.ok(payload.text.indexOf(payload.salutation + '\n') === 0, 'le mail ne commence pas par la salutation');
         assert.ok(payload.text.indexOf('Ta question :') !== -1, 'la question d’origine manque');
         assert.ok(payload.text.indexOf('À bientôt,\nL\'équipe Study Plan IB') !== -1, 'la signature manque');
@@ -349,13 +353,44 @@ attendre(200).then(function () {
     assert.ok(neuf.lignes[1].indexOf('Kenzah ILBOUDO') !== -1, 'le nom du compte Google doit l’emporter : ' + neuf.lignes[1]);
 
     /* — Les annonces et tutoriels restent publics, le reste non — */
-    assert.ok(boite.indexOf("propre.type === 'annonce' || propre.type === 'tutoriel'") !== -1, 'la séparation public / privé manque');
-    assert.ok(boite.indexOf("collection(publique ? BOITE_PUBLIE : BOITE_COLLECTION)") !== -1, 'les messages ne vont pas dans la bonne collection');
+    assert.ok(boite.indexOf("annonce: 'publie', tutoriel: 'publie'") !== -1, 'la séparation public / privé manque');
+    assert.ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont pas triés');
 
-    /* — La page Aide reste sobre — */
-    assert.strictEqual(aide.indexOf('indésirable'), -1, 'la page Aide parle encore des indésirables');
-    assert.strictEqual(aide.indexOf('ibstudyplan@gmail.com'), -1, 'la page Aide montre encore l’adresse de l’équipe');
-    assert.ok(boite.indexOf("'Question envoyée.'") !== -1, 'le message de succès doit être sobre');
+    /* — Anciennes règles non publiées : l'envoi ne se perd pas. — */
+    nouvellesRegles = false;
+    return context.boiteEcrireBoite({ type: 'question', id: 'q-repli', at: new Date().toISOString(), texte: 'Avant les règles' }).then(function () {
+        assert.ok(bdd.boite.some(function (item) { return item.id === 'q-repli'; }), 'la transition doit garder l’envoi dans l’archive');
+        nouvellesRegles = true;
+        /* Le cinquième compte Google est reconnu par une vraie lecture
+           Firestore, pas par l'adresse tapée dans le navigateur. */
+        context.compteSession = { sub: 'entreprise-sub', email: 'ibstudyplan@gmail.com' };
+        utilisateur = { uid: 'firebase-entreprise', email: 'ibstudyplan@gmail.com' };
+        context.boiteAdminVerifie = false;
+        context.boiteAdminTente = false;
+        return context.boiteVerifierAdmin();
+    }).then(function (admin) {
+        assert.strictEqual(admin, true, 'le compte entreprise ne voit pas la boîte');
+        bdd.feedbacks = [{ type: 'feedback', id: 'f-new', at: '2026-10-24T06:00:00Z', texte: 'Feedback privé' }];
+        bdd.reponses = [{ type: 'reponse', id: 'r-new', at: '2026-10-24T06:01:00Z', texte: 'Réponse privée' }];
+        context.boiteBruts = [];
+        context.boiteDernierAt = '';
+        return context.boiteLireBoite();
+    }).then(function (items) {
+        assert.ok(items.some(function (item) { return item.id === 'q-repli'; }), 'ancienne question perdue');
+        assert.ok(items.some(function (item) { return item.id === 'f-new'; }), 'nouveau feedback absent');
+        assert.ok(items.some(function (item) { return item.id === 'r-new'; }), 'nouvelle réponse absente');
+        store[context.BOITE_VUS] = JSON.stringify({ questions: [{ texte: 'copie privée' }] });
+        context.boiteSecretCache = 'secret temporaire';
+        context.boiteNettoyerSession();
+        assert.strictEqual(store[context.BOITE_VUS], undefined, 'une copie privée reste sur l’appareil');
+        assert.strictEqual(context.boiteSecretCache, '', 'le secret mail reste après déconnexion');
+        assert.strictEqual(context.boiteBruts.length, 0, 'la boîte reste en mémoire après déconnexion');
+    }).then(function () {
+        /* — La page Aide reste sobre — */
+        assert.strictEqual(aide.indexOf('indésirable'), -1, 'la page Aide parle encore des indésirables');
+        assert.strictEqual(aide.indexOf('ibstudyplan@gmail.com'), -1, 'la page Aide montre encore l’adresse de l’équipe');
+        assert.ok(boite.indexOf("'Question envoyée.'") !== -1, 'le message de succès doit être sobre');
+    });
 })
     .then(function () {
         console.log('ok boîte privée (Firestore), admins par compte Google, mail de réponse, rattachement strict, popup aux bons noms');

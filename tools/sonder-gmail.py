@@ -2,15 +2,18 @@
 """Envoie une lettre d'essai vers un Gmail réel avec le script déjà déployé."""
 
 import json
+import os
 import urllib.request
 
 SCRIPT = 'https://script.google.com/macros/s/AKfycbz_rykUE5HgUg5fCh_p9FBwptfbSAMGfc3fw7jMR-u3JhcYYldkHG1iPqleF9XiHlgMfQ/exec'
-SECRET = 'spib-7c4e9a2b8d1f6c3e'
+SECRET = os.environ.get('STUDY_PLAN_MAIL_SECRET', '')
 SUJET = 'Réponse à ta question — Study Plan IB'
 DESTINATAIRE = 'sawadogojuliss@gmail.com'
 
 
 def main():
+    if not SECRET:
+        raise SystemExit('STUDY_PLAN_MAIL_SECRET manquant ; aucun mail envoyé')
     texte = "Bonjour,\n\nEssai de livraison. Si tu lis ceci, Gmail a accepté la lettre.\n\nÀ bientôt,\nL'équipe Study Plan IB"
     html = "<p>Bonjour,</p><p>Essai de livraison. Si tu lis ceci, Gmail a accepté la lettre.</p><p>À bientôt,<br><strong>L'équipe Study Plan IB</strong></p>"
     payload = json.dumps({

@@ -1661,6 +1661,7 @@ function compteDeconnecter() {
     try {
         if (window.firebase && firebase.apps && firebase.apps.length) firebase.auth().signOut();
     } catch (e) {}
+    if (typeof boiteNettoyerSession === 'function') boiteNettoyerSession();
     if (typeof boiteAdminVerifie !== 'undefined') {
         boiteAdminVerifie = false;
         boiteAdminTente = false;

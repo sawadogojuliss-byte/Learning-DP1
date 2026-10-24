@@ -5,9 +5,8 @@
  * Déployer > Gérer les déploiements > crayon > Nouvelle version > Déployer.
  * Ne crée pas un nouveau déploiement.
  */
-var SECRET = 'spib-7c4e9a2b8d1f6c3e';
+/* Secret privé : Propriétés du script > MAIL_SECRET, jamais dans Git. */
 var EXPEDITEUR = 'ibstudyplan@gmail.com';
-var FIL = 'ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b';
 
 function reponse(obj) {
   return ContentService
@@ -43,18 +42,6 @@ function lire(e) {
   }
   var brut = e && e.postData && e.postData.contents ? e.postData.contents : '';
   try { return JSON.parse(brut); } catch (err2) { return {}; }
-}
-
-function confirmer(nonce, to) {
-  try {
-    UrlFetchApp.fetch('https://ntfy.sh/' + FIL, {
-      method: 'post',
-      contentType: 'text/plain; charset=utf-8',
-      headers: { Title: 'mail-ok', Priority: 'min' },
-      payload: JSON.stringify({ type: 'mail-ok', nonce: nonce, to: to, at: new Date().toISOString() }),
-      muteHttpExceptions: true
-    });
-  } catch (err) {}
 }
 
 function echapper(s) {
@@ -99,7 +86,8 @@ function doGet() {
 
 function doPost(e) {
   var data = lire(e);
-  if (!data.secret || data.secret !== SECRET) return reponse({ success: false, error: 'secret' });
+  var secret = PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
+  if (!secret || !data.secret || data.secret !== secret) return reponse({ success: false, error: 'secret' });
   var nonce = String(data.nonce || '');
   if (!/^[a-z0-9]{16,40}$/.test(nonce)) return reponse({ success: false, error: 'nonce' });
   var to = String(data.to || '').trim();
@@ -127,7 +115,6 @@ function doPost(e) {
     var cache = CacheService.getScriptCache();
     var cle = 'm' + nonce;
     if (cache.get(cle)) {
-      confirmer(nonce, to);
       return reponse({ success: true, id: nonce });
     }
     cache.put(cle, '1', 21600);
@@ -141,7 +128,6 @@ function doPost(e) {
       cache.remove(cle);
       return reponse({ success: false, error: String(err2).slice(0, 180) });
     }
-    confirmer(nonce, to);
     return reponse({ success: true, id: nonce });
   } finally {
     verrou.releaseLock();
