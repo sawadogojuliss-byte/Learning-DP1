@@ -10,7 +10,9 @@ const clock = n => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 
 function scenario(base) {
     let saves = 0;
     let closed = 0;
+    const storage = new Map();
     const ctx = vm.createContext({
+        localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) || null },
         console, window: {}, customEvents: [], selectedActivities: [], selectedDay: 0,
         weekdayWakeup: '06:00', saturdayWakeup: '07:00', sundayWakeup: '08:00',
         bedtimeForDay: () => '22:00', COURS_FIN: 985,
@@ -78,4 +80,14 @@ assert.equal(different.eval('v3AppliquerChoixChevauchement(current, choix)', { c
     'le résultat simulé doit correspondre avant la sauvegarde');
 assert.equal(different.saves, 0);
 assert.equal(different.ctx.customEvents.length, 0);
-console.log('ok popup : durées inchangées, alternative, cours protégé, conflit multiple, refus de chevauchement, annulation, sauvegarde unique');
+const erreurSauvegarde = scenario([sport]);
+erreurSauvegarde.ctx.v3Save = () => {
+    erreurSauvegarde.ctx.localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(erreurSauvegarde.ctx.customEvents));
+    throw new Error('erreur après l’écriture locale');
+};
+assert.equal(erreurSauvegarde.eval('v3AppliquerChoixChevauchement(current, choix)', { current: erreurSauvegarde.current,
+    choix: { utilisateur: { start: '19:00', end: '19:30' } } }), false);
+assert.equal(erreurSauvegarde.ctx.customEvents.length, 0);
+assert.equal(erreurSauvegarde.ctx.localStorage.getItem('studyPlanIB_customEvents_juliss'), '[]',
+    'un échec tardif doit restaurer la copie locale');
+console.log('ok popup : durées inchangées, alternative, cours protégé, conflit multiple, refus de chevauchement, annulation et reprise après échec');

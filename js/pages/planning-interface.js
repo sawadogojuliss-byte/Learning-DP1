@@ -783,7 +783,10 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
         v3Save();
     } catch (e) {
         customEvents = depart;
-        v3DireChevauchement('Impossible de sauvegarder ces horaires. Rien n’a été changé. Réessaie.');
+        // Si l'écriture locale avait réussi avant qu'une étape suivante
+        // échoue, on remet aussi la copie locale de départ.
+        try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(depart)); } catch (ignore) {}
+        v3DireChevauchement('La sauvegarde a été interrompue. Vérifie tes horaires avant de réessayer.');
         return false;
     }
     v3FermerChoixChevauchement();
