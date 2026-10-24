@@ -86,6 +86,10 @@ try {
     console.error('ECHEC le site n’a pas fini de démarrer. Erreurs JS : ' + JSON.stringify(erreurs.slice(0, 6)));
     process.exit(1);
 }
+/* Le signal READY précède de 180 ms la disparition de l'écran de
+   démarrage : attendre l'interface visible avant de tester scroll/focus. */
+await page.waitForFunction(() => !document.body.classList.contains('booting'), null, { timeout: 10000 });
+
 /* Le démarrage seul ne garantit pas que le navigateur ait chargé la
    version de la boîte qui trie les quatre catégories. Aucun envoi réel. */
 const destinations = await page.evaluate(() => window.BOITE_COLLECTIONS || null);
@@ -212,15 +216,11 @@ const importExamens = await page.evaluate(() => {
     const original = devoirsLireStore();
     navigateTo('devoirs');
     devoirsBasculerOnglet('examens');
-    const actifAuDebut = document.getElementById('panelDevoirs').className;
     const zone = document.getElementById('devoirsConfirmation');
     document.getElementById('devoirsTexteColleExam').value = 'Physique — 31/02/2027, 08h00 à 10h00';
     devoirsLireDocument('examens');
     const proposition = zone.querySelector('[data-prop]');
     const date = zone.querySelector('.prop-date');
-    const focusApresLecture = document.activeElement && document.activeElement.className;
-    const panelApresLecture = document.getElementById('panelDevoirs').className;
-    const panelScrollLecture = document.getElementById('panelDevoirs').scrollTop;
     const rectApercu = zone.getBoundingClientRect();
     const apercuVisible = !!proposition && !!date && !date.value &&
         rectApercu.height > 0 && rectApercu.top < innerHeight && rectApercu.bottom > 0 &&
@@ -250,16 +250,12 @@ const importExamens = await page.evaluate(() => {
     const autreBrouillonGarde = document.getElementById('devoirsTexteColle').value === 'brouillon devoir';
     devoirsBasculerOnglet('devoirs');
     devoirsMontrerPropositions('', 'devoirs', true);
-    const focusAvantRefus = document.activeElement && document.activeElement.className;
-    const panelAvantRefus = document.getElementById('panelDevoirs').className;
     const ligneOcrVide = zone.querySelector('[data-prop]');
     const champsCompleter = !!ligneOcrVide && !!zone.querySelector('.prop-matiere') &&
         !!zone.querySelector('.prop-date') &&
         document.getElementById('devoirsOcrStatut').textContent.includes('Complète la ligne');
     devoirsConfirmerPropositions('devoirs');
-    const nombreApresRefus = devoirsLireStore().devoirs.length;
-    const champActifApresRefus = document.activeElement && document.activeElement.className;
-    const rienPlanifieSansMatiere = nombreApresRefus === original.devoirs.length &&
+    const rienPlanifieSansMatiere = devoirsLireStore().devoirs.length === original.devoirs.length &&
         document.activeElement === zone.querySelector('.prop-matiere');
     devoirsViderPropositions();
     devoirsEcrireStore(original);
@@ -268,18 +264,9 @@ const importExamens = await page.evaluate(() => {
     navigateTo('planning');
     return { apercuVisible, dateSignalee, refusDate, visibleApresChangement,
         ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde,
-        champsCompleter, rienPlanifieSansMatiere, diagnostic: {
-            rectApercu: { top: rectApercu.top, bottom: rectApercu.bottom, height: rectApercu.height },
-            date: date && date.value, zoneParent: zone.parentElement && zone.parentElement.id,
-            viewport: innerHeight, nombreApresRefus, nombreAvant: original.devoirs.length,
-            champActifApresRefus, focusAvantRefus, panelAvantRefus, actifAuDebut, focusApresLecture, panelApresLecture, panelScrollLecture,
-            panel: document.getElementById('panelDevoirs').className,
-            panelScroll: document.getElementById('panelDevoirs').scrollTop,
-            panelHauteur: document.getElementById('panelDevoirs').scrollHeight,
-            zoneVisible: getComputedStyle(zone).display
-        } };
+        champsCompleter, rienPlanifieSansMatiere };
 });
-if (!importExamens || Object.entries(importExamens).some(([cle, resultat]) => cle !== 'diagnostic' && !resultat)) {
+if (!importExamens || Object.values(importExamens).some(resultat => !resultat)) {
     echec('aperçu commun, date à préciser et confirmation des examens : ' + JSON.stringify(importExamens));
 }
 
