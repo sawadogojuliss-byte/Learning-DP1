@@ -40,7 +40,7 @@ try {
     const popup = page.locator('#chevauchementPopup');
     assert.equal(await popup.count(), 1);
     assert.doesNotMatch(await popup.innerText(), /Rien n’a été modifié|ÉTAPE 1 SUR 2|Ce créneau ne peut pas être déplacé automatiquement|Vérifier cet horaire/);
-    assert.equal(await popup.locator('[data-placer]').isDisabled(), true);
+    assert.equal(await popup.locator('[data-placer]').isEnabled(), true, 'l’horaire occupé donne accès aux choix, sans rien retirer');
     assert.match(await popup.innerText(), /Sport/);
     assert.equal(await popup.locator('[data-deplacer]').count(), 1);
     assert.equal(await popup.locator('.chev-dialogue').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(255, 255, 255)');
