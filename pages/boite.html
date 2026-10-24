@@ -2,6 +2,49 @@
      PAGES : sections réservées aux quatre comptes
      Script : js/pages/boite.js
      ============================================================ -->
+<div class="app-panel" id="panelAdmin">
+    <div class="admin-atelier">
+        <aside class="admin-atelier-rail" aria-label="Navigation de l’espace admin">
+            <span class="admin-atelier-marque" aria-hidden="true">S</span>
+            <button type="button" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <span class="admin-atelier-rail-actif" aria-hidden="true">🗂️</span>
+        </aside>
+        <main class="admin-atelier-main">
+            <header class="admin-atelier-entete">
+                <button type="button" class="admin-atelier-retour-mobile" onclick="navigateTo('planning')" aria-label="Retour au planning">←</button>
+                <div>
+                    <p class="admin-atelier-chemin">ADMINISTRATION / ESPACE ADMIN</p>
+                    <p class="admin-atelier-surtitre">LE BUREAU</p>
+                    <h2>Tout au <em>même endroit.</em></h2>
+                    <p class="admin-atelier-sous-titre">Accède aux quatre espaces de gestion Study Plan IB.</p>
+                </div>
+            </header>
+            <nav class="admin-atelier-cartes" aria-label="Sections de l’espace admin">
+                <button type="button" class="admin-atelier-carte" onclick="navigateTo('annonce')">
+                    <span class="admin-atelier-icone" aria-hidden="true">📣</span>
+                    <span class="admin-atelier-contenu"><strong>Annonce</strong><small>Rédiger et suivre les annonces</small></span>
+                    <span id="adminAnnonceBadgePage" class="admin-atelier-badge" hidden>0</span>
+                    <span class="admin-atelier-fleche" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" class="admin-atelier-carte" onclick="navigateTo('retours')">
+                    <span class="admin-atelier-icone" aria-hidden="true">📬</span>
+                    <span class="admin-atelier-contenu"><strong>Retour des feedbacks</strong><small>Messages et e-mails</small></span>
+                    <span class="admin-atelier-fleche" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" class="admin-atelier-carte" onclick="navigateTo('questions')">
+                    <span class="admin-atelier-icone" aria-hidden="true">❓</span>
+                    <span class="admin-atelier-contenu"><strong>Questions des utilisateurs</strong><small>En attente et répondues</small></span>
+                    <span class="admin-atelier-fleche" aria-hidden="true">↗</span>
+                </button>
+                <button type="button" class="admin-atelier-carte" onclick="navigateTo('emplois')">
+                    <span class="admin-atelier-icone" aria-hidden="true">📅</span>
+                    <span class="admin-atelier-contenu"><strong>Emplois du temps</strong><small>Le planning de chaque personne</small></span>
+                    <span class="admin-atelier-fleche" aria-hidden="true">↗</span>
+                </button>
+            </nav>
+        </main>
+    </div>
+</div>
 <div class="app-panel" id="panelRetours">
     <div class="retours-fond"></div>
     <div class="retours-voile"></div>

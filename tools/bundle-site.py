@@ -14,6 +14,8 @@ CSS = [
     "style_v3.css",
     "css/pages/planning-panels.css",
     "css/pages/retours.css",
+    "css/pages/emplois-atelier.css",
+    "css/pages/admin-atelier.css",
     "css/compte.css",
 ]
 

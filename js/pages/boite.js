@@ -537,9 +537,15 @@ function boiteMajMenu() {
     try { boiteVerifierAdmin(); } catch (e) {}
     var admin = boiteEstAdmin();
     if (admin && typeof boiteSignalerOuverture === 'function') boiteSignalerOuverture();
+    /* Une seule entrée pour les admins ; les trois pages privées gardent
+       leur fonctionnement. La lecture des annonces reste accessible aux élèves. */
+    var espace = document.getElementById('menuEspaceAdmin');
+    if (espace) espace.style.display = admin ? 'flex' : 'none';
+    var annonce = document.getElementById('menuAnnonce');
+    if (annonce) annonce.style.display = admin ? 'none' : 'flex';
     ['menuRetours', 'menuQuestions', 'menuEmplois'].forEach(function (id) {
         var el = document.getElementById(id);
-        if (el) el.style.display = admin ? 'flex' : 'none';
+        if (el) el.style.display = 'none';
     });
     if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
     if (typeof focusAfficherEntree === 'function') focusAfficherEntree();

@@ -72,6 +72,11 @@ function navigateTo(page) {
         var feedback = document.getElementById('panelFeedback');
         if (typeof initFeedback === 'function') initFeedback();
         if (feedback) feedback.classList.add('active');
+    } else if (page === 'admin') {
+        /* Point d'entrée privé : les quatre pages existantes restent inchangées. */
+        if (typeof boiteEstAdmin !== 'function' || !boiteEstAdmin()) return;
+        var espaceAdmin = document.getElementById('panelAdmin');
+        if (espaceAdmin) espaceAdmin.classList.add('active');
     } else if (page === 'annonce') {
         var annonce = document.getElementById('panelAnnonce');
         if (typeof initAnnonce === 'function') initAnnonce();

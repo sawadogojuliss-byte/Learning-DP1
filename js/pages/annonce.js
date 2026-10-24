@@ -221,13 +221,16 @@ function annoncePoserBadge(badge, nombre) {
 
 function annonceMajMenu() {
     var bouton = document.getElementById('menuAnnonce');
+    var admin = typeof boiteEstAdmin === 'function' && boiteEstAdmin();
     if (bouton) {
-        bouton.style.display = 'flex';
+        bouton.style.display = admin ? 'none' : 'flex';
         bouton.style.marginTop = '0';
     }
     var nombre = annonceCompteBadge(annonceListe, annonceEstAdmin());
-    if (nombre > 0 && bouton) bouton.style.marginTop = '0.85rem';
+    if (nombre > 0 && bouton && !admin) bouton.style.marginTop = '0.85rem';
     annoncePoserBadge(document.getElementById('annonceBadge'), nombre);
+    annoncePoserBadge(document.getElementById('adminAnnonceBadge'), nombre);
+    annoncePoserBadge(document.getElementById('adminAnnonceBadgePage'), nombre);
     annoncePoserBadge(document.getElementById('annonceBadgePage'), nombre);
 }
 

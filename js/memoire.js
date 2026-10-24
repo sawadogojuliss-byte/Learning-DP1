@@ -33,6 +33,7 @@ var MEMOIRE_PAGES = {
     panelRetours: 'retours',
     panelQuestions: 'questions',
     panelEmplois: 'emplois',
+    panelAdmin: 'admin',
     contextModal: 'prenom',
     objectivesModal: 'objectif',
     sleepModal: 'sommeil',
@@ -464,7 +465,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois') {
+    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin') {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&
@@ -601,6 +602,7 @@ function memoirePagePrecedente(etape) {
         aide: 'planning',
         feedback: 'planning',
         annonce: 'planning',
+        admin: 'planning',
         retours: 'planning',
         questions: 'planning',
         emplois: 'planning'

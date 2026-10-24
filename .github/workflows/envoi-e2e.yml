@@ -16,6 +16,7 @@ on:
       - 'audio/voix/**'
       - 'tools/tester-preparation.mjs'
       - 'tools/tester-atelier.mjs'
+      - 'tools/tester-espace-admin.mjs'
       - 'tools/tester-chevauchement.mjs'
       - 'tools/tester-voix.mjs'
       - '.github/workflows/envoi-e2e.yml'
@@ -53,6 +54,11 @@ jobs:
           npm install --no-audit --no-fund playwright@1.49.1
           npx playwright install --with-deps chromium
 
+      - name: Vérifier le regroupement de l’espace admin sans compte réel
+        run: |
+          set -o pipefail
+          node tools/tester-espace-admin.mjs 2>&1 | tee /tmp/sortie-espace-admin.txt
+
       - name: Vérifier la popup de chevauchement sans données réelles
         run: |
           set -o pipefail
@@ -86,6 +92,7 @@ jobs:
           mkdir -p /tmp/journal
           cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
           cp /tmp/sortie-atelier.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-espace-admin.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-chevauchement.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-voix.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-hors-ligne.txt /tmp/journal/ 2>/dev/null || true
