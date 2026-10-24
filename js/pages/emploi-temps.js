@@ -507,7 +507,7 @@ function emploiSupprimer(jour, id) {
                 var place = trous.filter(function (t) { return t.fin - t.debut >= bloc.duree + 15; })[0];
                 if (!place) return;
                 var debut = place.debut + 5;
-                var identifiant = 'emploi-deplace-' + id + '-' + Date.now() + '-' + deplaces.length;
+                var identifiant = 'emploi-rev-deplace-' + id + '-' + Date.now() + '-' + deplaces.length;
                 customEvents.push({ id: identifiant, day: jour, title: bloc.titre,
                     startTime: emploiM2H(debut), endTime: emploiM2H(debut + bloc.duree),
                     type: 'study', icon: bloc.icone, pinned: true, source: 'emploi-deplace', timestamp: Date.now() });
