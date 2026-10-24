@@ -356,10 +356,15 @@ attendre(200).then(function () {
     assert.ok(boite.indexOf("annonce: 'publie', tutoriel: 'publie'") !== -1, 'la séparation public / privé manque');
     assert.ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont pas triés');
 
-    /* — Anciennes règles non publiées : l'envoi ne se perd pas. — */
+    /* Refus Firebase : surtout PAS de succès trompeur ni de repli dans
+       boite. La file conserve le message si le formulaire a été utilisé. */
     nouvellesRegles = false;
-    return context.boiteEcrireBoite({ type: 'question', id: 'q-repli', at: new Date().toISOString(), texte: 'Avant les règles' }).then(function () {
-        assert.ok(bdd.boite.some(function (item) { return item.id === 'q-repli'; }), 'la transition doit garder l’envoi dans l’archive');
+    var archivesAvant = bdd.boite.length;
+    return context.boiteEcrireBoite({ type: 'question', id: 'q-refuse', at: new Date().toISOString(), texte: 'Accès refusé' }).then(function () {
+        throw new Error('un refus Firestore a été signalé comme succès');
+    }, function (err) {
+        assert.strictEqual(err.code, 'permission-denied', 'le vrai refus a disparu');
+        assert.strictEqual(bdd.boite.length, archivesAvant, 'repli silencieux dans boite');
         nouvellesRegles = true;
         /* Le cinquième compte Google est reconnu par une vraie lecture
            Firestore, pas par l'adresse tapée dans le navigateur. */
@@ -370,15 +375,21 @@ attendre(200).then(function () {
         return context.boiteVerifierAdmin();
     }).then(function (admin) {
         assert.strictEqual(admin, true, 'le compte entreprise ne voit pas la boîte');
+        bdd.boite = [{ type: 'question', id: 'q-archive', at: '2026-10-19T06:00:00Z', texte: 'Ancienne question' }];
         bdd.feedbacks = [{ type: 'feedback', id: 'f-new', at: '2026-10-24T06:00:00Z', texte: 'Feedback privé' }];
         bdd.reponses = [{ type: 'reponse', id: 'r-new', at: '2026-10-24T06:01:00Z', texte: 'Réponse privée' }];
+        bdd.emplois_du_temps = [{ type: 'emploi', id: 'e-new', at: '2026-10-24T06:02:00Z' }];
         context.boiteBruts = [];
         context.boiteDernierAt = '';
         return context.boiteLireBoite();
     }).then(function (items) {
-        assert.ok(items.some(function (item) { return item.id === 'q-repli'; }), 'ancienne question perdue');
+        assert.ok(items.some(function (item) { return item.id === 'q-archive'; }), 'ancienne question perdue');
         assert.ok(items.some(function (item) { return item.id === 'f-new'; }), 'nouveau feedback absent');
         assert.ok(items.some(function (item) { return item.id === 'r-new'; }), 'nouvelle réponse absente');
+        assert.ok(items.some(function (item) { return item.id === 'e-new'; }), 'nouvel emploi du temps absent');
+        return context.boiteEcrireBoite({ type: 'emploi', id: 'e-envoye', at: new Date().toISOString() });
+    }).then(function () {
+        assert.ok(bdd.emplois_du_temps.some(function (item) { return item.id === 'e-envoye'; }), 'écriture emploi du temps dans la mauvaise collection');
         store[context.BOITE_VUS] = JSON.stringify({ questions: [{ texte: 'copie privée' }] });
         context.boiteSecretCache = 'secret temporaire';
         context.boiteNettoyerSession();

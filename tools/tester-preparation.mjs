@@ -86,6 +86,19 @@ try {
     console.error('ECHEC le site n’a pas fini de démarrer. Erreurs JS : ' + JSON.stringify(erreurs.slice(0, 6)));
     process.exit(1);
 }
+/* Le démarrage seul ne garantit pas que le navigateur ait chargé la
+   version de la boîte qui trie les quatre catégories. Aucun envoi réel. */
+const destinations = await page.evaluate(() => window.BOITE_COLLECTIONS || null);
+for (const [type, collection] of Object.entries({
+    question: 'questions', feedback: 'feedbacks',
+    emploi: 'emplois_du_temps', reponse: 'reponses'
+})) {
+    if (!destinations || destinations[type] !== collection) {
+        echec('collection du site déployé incorrecte pour ' + type + ' : '
+            + JSON.stringify(destinations));
+    }
+}
+
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;

@@ -10,9 +10,9 @@ Aucune explication de ce changement n'a été ajoutée aux pages des élèves.
 |---|---|---|
 | `questions` | Nouvelles questions posées dans Aide | Cinq comptes admins seulement |
 | `feedbacks` | Nouveaux avis et suggestions | Cinq comptes admins seulement |
-| `emplois` | Nouveaux emplois du temps | Cinq comptes admins seulement |
+| `emplois_du_temps` | Nouveaux emplois du temps | Cinq comptes admins seulement |
 | `reponses` | Traces des réponses envoyées | Cinq comptes admins seulement |
-| `profils`, `connexions` | Informations privées associées | Cinq comptes admins seulement |
+| `emplois`, `profils`, `connexions` | Archives de la version précédente, seulement si ces collections ont reçu des données | Cinq comptes admins seulement |
 | `boite` | **Archives** reçues avant cette séparation ; anciens onglets encore ouverts peuvent aussi y écrire temporairement | Cinq comptes admins seulement |
 | `publie` | Annonces et tutoriels | Public volontairement |
 | `config/mail` | Secret du courrier, une fois renouvelé | Cinq comptes admins seulement |
@@ -34,16 +34,16 @@ règles de l'application ne limitent pas les administrateurs du projet.
    **tout** le texte par le contenu complet du fichier [`firestore.rules`](firestore.rules)
    de cette branche du dépôt, puis cliquer sur **Publier**. Ne rien coller à
    la suite des anciennes règles. Ne créer aucune collection à la main.
-   Le code du site se met à jour automatiquement. Jusqu'à la publication
-   des règles, les nouveaux formulaires qui n'ont pas accès aux nouvelles
-   collections restent dans l'ancienne `boite` (repli temporaire).
+   Le code du site se met à jour automatiquement. Tant que les règles
+   ne donnent pas accès aux nouvelles collections, le formulaire indique
+   un échec ; il ne confirme plus un envoi dirigé vers l'archive par erreur.
 3. **Vérifier la séparation sans envoyer de mail de test.** Sur le site,
    poser une question ordinaire depuis Aide ; attendre « Question envoyée. ».
    Dans la console Firebase → Firestore Database → **Données**, une collection
    `questions` doit apparaître après le premier nouvel envoi. Cliquer sur
    `questions`, puis sur le document : le champ `type` doit valoir `question`.
    Un avis envoyé depuis Feedback apparaît dans `feedbacks` (`type: feedback`).
-   Un emploi du temps apparaît dans `emplois`. Les anciennes entrées restent
+   Un emploi du temps apparaît dans `emplois_du_temps`. Les anciennes entrées restent
    dans `boite`, elles n'ont pas été effacées ni déplacées.
 4. **Vérifier le compte de l'équipe.** Sur un navigateur personnel, se
    connecter au site avec le bouton Google **en choisissant exactement**
@@ -62,12 +62,14 @@ listées ici sont utilisées par une autre application sur **la même base**,
 vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
 collection sans règle correspondante sera inaccessible depuis les applications.
 
-## Anciennes entrées de `boite`
+## Anciennes entrées de `boite` (ne pas effacer)
 
 Les données déjà présentes dans `boite` restent **mélangées dans cette archive**,
 lisibles par les cinq admins. Le site lit l'archive **et** les nouvelles
-collections, afin de ne perdre aucune question. Les nouveaux envois vont dans
-leurs collections dédiées une fois les règles publiées. Ne pas supprimer
+collections, afin de ne perdre aucune question. Le code rectifié n'utilise
+jamais `boite` comme repli pour les nouvelles questions, feedbacks ou emplois :
+si les règles refusent l'écriture, le formulaire signale l'échec et garde
+l'envoi sur l'appareil jusqu'à ce que les règles soient corrigées. Ne pas supprimer
 `boite` : certaines questions et certains emplois y sont encore. Une migration
 ancienne → nouvelles collections ne doit être faite qu'après sauvegarde,
 vérification des nombres et déduplication ; elle n'est **pas** automatique.

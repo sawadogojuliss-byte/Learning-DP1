@@ -70,7 +70,7 @@ ok(/match \/publie\/\{message\} \{[\s\S]*?allow read: if true;/.test(regles), 'l
 ok(/match \/config\/\{doc\} \{[\s\S]*?allow read: if estAdmin\(\);/.test(regles), 'la configuration privée est lisible par tous');
 ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compte non vérifié peut être admin');
 
-['questions', 'feedbacks', 'emplois', 'reponses', 'profils', 'connexions'].forEach(function (nom) {
+['questions', 'feedbacks', 'emplois_du_temps', 'reponses', 'emplois', 'profils', 'connexions'].forEach(function (nom) {
     ok(regles.includes('match /' + nom + '/{message} {'), 'collection absente : ' + nom);
     const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
     ok(bloc.split('}')[0].includes('allow read: if estAdmin();'), 'collection lisible par tous : ' + nom);
@@ -82,6 +82,8 @@ const boite = lire('js/pages/boite.js');
 ok(boite.indexOf("var BOITE_COLLECTION = 'boite';") !== -1, 'nom de la collection privée inattendu');
 ok(boite.indexOf("var BOITE_PUBLIE = 'publie';") !== -1, 'nom de la collection publique inattendu');
 ok(boite.indexOf('BOITE_COLLECTIONS[propre.type]') !== -1, 'les messages ne sont pas triés');
+ok(boite.includes("emploi: 'emplois_du_temps'"), 'l’emploi du temps part ailleurs');
+ok(!boite.includes('collection(BOITE_COLLECTION).add(propre)'), 'un envoi refusé retombe silencieusement dans l’archive');
 ok(boite.indexOf('boiteNettoyerSession') !== -1, 'les copies admin ne sont pas nettoyées');
 ok(boite.indexOf('boiteSecretMail') !== -1, 'le secret d’envoi ne vient plus de la configuration privée');
 

@@ -56,6 +56,13 @@ service cloud.firestore {
       allow create: if messageValide() && request.resource.data.type == 'feedback';
       allow update, delete: if false;
     }
+    match /emplois_du_temps/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide() && request.resource.data.type == 'emploi';
+      allow update, delete: if false;
+    }
+    /* Les collections de transition restent privées si elles existent.
+       Les nouveaux formulaires ne les utilisent plus. */
     match /emplois/{message} {
       allow read: if estAdmin();
       allow create: if messageValide() && request.resource.data.type == 'emploi';

@@ -8,14 +8,16 @@
    de mot de passe ni de nom de canal public.
    ============================================================ */
 
-var BOITE_COLLECTION = 'boite'; /* archives et repli temporaire avant publication des nouvelles règles */
+var BOITE_COLLECTION = 'boite'; /* archive conservée, jamais utilisée pour les nouveaux formulaires */
 var BOITE_PUBLIE = 'publie';
 var BOITE_COLLECTIONS = {
-    question: 'questions', feedback: 'feedbacks', emploi: 'emplois',
-    reponse: 'reponses', profil: 'profils', profilpart: 'profils',
-    connexion: 'connexions', annonce: 'publie', tutoriel: 'publie'
+    question: 'questions', feedback: 'feedbacks', emploi: 'emplois_du_temps',
+    reponse: 'reponses', profil: 'boite', profilpart: 'boite',
+    connexion: 'boite', annonce: 'publie', tutoriel: 'publie'
 };
-var BOITE_PRIVEES = ['questions', 'feedbacks', 'emplois', 'reponses', 'profils', 'connexions'];
+/* Les trois derniers noms ne sont lus que pour ne pas perdre les données
+   créées pendant la version précédente ; les nouveaux envois n'y vont pas. */
+var BOITE_PRIVEES = ['questions', 'feedbacks', 'emplois_du_temps', 'reponses', 'emplois', 'profils', 'connexions'];
 /* Identifiants Google opaques (sub) des quatre comptes personnels.
    Ils servent uniquement à afficher les sections réservées ; la
    vraie serrure est dans firestore.rules. */
@@ -228,29 +230,23 @@ function boiteAjouterBruts(items) {
     if (boiteBruts.length > 6000) boiteBruts = boiteBruts.slice(-5000);
 }
 
-/* Chaque type a sa collection. Tant que les nouvelles règles ne sont pas
-   publiées, on conserve l'ancien chemin pour ne perdre aucun envoi.
-   Après publication, le site n'écrit plus dans « boite ». */
+/* Questions, feedbacks, emplois du temps et réponses ont chacun leur
+   collection. Si les règles refusent une écriture, on la signale à
+   l'appelant et la file locale la conserve pour réessayer : ne jamais
+   afficher « envoyé » après un repli silencieux dans l'archive. */
 function boiteEcrireBoite(record) {
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
     if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function () {
-        return firebase.firestore().collection(collection).add(propre).catch(function (err) {
-            if (collection === BOITE_PUBLIE || !err || err.code !== 'permission-denied') throw err;
-            /* Anciennes règles encore actives : elles n'autorisent que boite.
-               Ne jamais replier une réponse admin : l'ancien chemin permet
-               à tout visiteur d'en fabriquer une. */
-            if (propre.type === 'reponse') throw err;
-            return firebase.firestore().collection(BOITE_COLLECTION).add(propre);
-        });
+        return firebase.firestore().collection(collection).add(propre);
     }).then(function () { return true; });
 }
 
 /* L'ancienne boîte reste lisible par les admins : les documents qui y
-   sont déjà ne disparaissent pas de l'interface. Les nouvelles collections
-   sont interrogées séparément, et seules les données publiques sont lues
-   par les visiteurs. La vraie autorisation est dans Firestore. */
+   sont déjà ne disparaissent pas de l'interface. Les quatre nouvelles
+   collections et les éventuelles collections de transition sont lues
+   séparément ; la vraie autorisation est dans Firestore. */
 function boiteLireBoite() {
     var generation = boiteSessionGeneration;
     return boiteFirebasePret().then(function () {
@@ -263,9 +259,9 @@ function boiteLireBoite() {
             return [];
         });
         var lectures = BOITE_PRIVEES.map(function (nom) {
-            return boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois' ? 1200 : 400)).catch(function (err) {
-                /* Anciennes règles : les collections n'existent pas encore.
-                   La boîte d'archives reste la référence jusqu'à publication. */
+            return boiteLireCollection(nom, depuis, depuis ? 300 : (nom === 'emplois_du_temps' ? 1200 : 400)).catch(function (err) {
+                /* Avant la publication des règles, la lecture des nouvelles
+                   collections est refusée ; ne rien divulguer au visiteur. */
                 if (err && err.code !== 'permission-denied') boiteErreurLecture = err.code || err.message || 'refus';
                 return [];
             });
