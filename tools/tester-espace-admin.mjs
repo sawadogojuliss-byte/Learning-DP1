@@ -11,7 +11,10 @@ try {
     page.on('pageerror', error => errors.push(String(error)));
     await page.goto(SITE, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY === true, null, { timeout: 60000 });
+    await page.waitForFunction(() => !document.body.classList.contains('booting'), null, { timeout: 10000 });
     await page.evaluate(() => {
+        // Le menu est dans le planning, normalement ouvert après l'inscription.
+        document.getElementById('planningModal').classList.add('active');
         window.boiteVerifierAdmin = () => Promise.resolve(false);
         window.boiteSignalerOuverture = () => {};
         window.boiteEstAdmin = () => false;
