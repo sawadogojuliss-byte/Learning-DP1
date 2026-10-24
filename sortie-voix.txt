@@ -1,0 +1,1 @@
+ok fin de chronomètre en vrai navigateur : 3 sons (6.8 s), bip 2, musique arrêtée, pause short proposée

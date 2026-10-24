@@ -1,0 +1,1 @@
+Démarrage réseau : { requetes: 81, octets: 899277 } après mise en cache : { requetes: 32, octets: 60402 } hors ligne : { cartes: 17, panneaux: true }
