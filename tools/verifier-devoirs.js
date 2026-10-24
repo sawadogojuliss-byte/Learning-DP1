@@ -290,6 +290,33 @@ const demain = new Date(aujourdhui.getTime() + 86400000);
 context.devoirsEcrireStore({ bac: true, devoirs: [{ id: 'd1', matiere: 'Physique', date: cleJour(demain), debut: '08:00', fin: '13:00' }], examens: [] });
 
 const idxJour = (aujourdhui.getDay() + 6) % 7;
+/* Lot 2.1 : un mercredi, les jours déjà écoulés ne reçoivent plus
+   de nouvelles séances, même avec un devoir ou examen encore à venir. */
+const lundiPasse = context.devoirsAdapterJour(jourSimple.slice(), 0);
+const mardiPasse = context.devoirsAdapterJour(jourSimple.slice(), 1);
+ok(!lundiPasse.some(function (ev) { return ev.devoirsBloc; }), 'une révision a été ajoutée au lundi passé');
+ok(!mardiPasse.some(function (ev) { return ev.devoirsBloc; }), 'une révision a été ajoutée au mardi passé');
+ok(lundiPasse.some(function (ev) { return ev.id === 'school1'; }) &&
+   lundiPasse.some(function (ev) { return ev.id === 'lunch'; }),
+   'le passé ne doit pas supprimer cours ou repas');
+
+const prochainDevoirTest = context.devoirsLireStore();
+context.devoirsEcrireStore({ bac: false, devoirs: [], examens: [
+    { id: 'x-futur', matiere: 'Physique', date: cleJour(demain), debut: '08:00', fin: '10:00' }
+] });
+const mardiAvantExamen = context.devoirsAdapterJour(jourSimple.slice(), 1);
+ok(!mardiAvantExamen.some(function (ev) { return ev.devoirsBloc; }),
+    'un examen futur provoque une révision sur le mardi passé');
+context.devoirsEcrireStore({ bac: false, devoirs: [
+    { id: 'd-passe', matiere: 'Histoire', date: '2026-10-12', debut: '08:00', fin: '10:00' }
+], examens: [{ id: 'x-futur', matiere: 'Physique', date: cleJour(demain), debut: '08:00', fin: '10:00' }] });
+const lundiComposition = context.devoirsAdapterJour(jourSimple.slice(), 0);
+ok(lundiComposition.some(function (ev) { return ev.id === 'devoir-d-passe' && ev.kind === 'fixed'; }),
+    'la composition déjà passée a disparu de son jour');
+ok(!lundiComposition.some(function (ev) { return ev.devoirsBloc && ev.type === 'study'; }),
+    'une révision a été ajoutée à côté de la composition déjà passée');
+context.devoirsEcrireStore(prochainDevoirTest);
+
 const apresDevoir = context.devoirsAdapterJour(jourSimple.slice(), idxJour);
 const revisionsDemain = apresDevoir.filter(function (ev) { return ev.devoirsBloc && String(ev.title).indexOf('Révision · Physique') !== -1; });
 ok(revisionsDemain.length >= 1, 'aucune révision posée la veille du devoir');
@@ -730,6 +757,29 @@ const jourAvecTout = jourSimple.concat([
     { id: 'ia-page-x', title: 'Évaluation interne', startTime: '17:00', endTime: '17:40', type: 'ia' },
     { id: 'activity-Foot', title: 'Foot', startTime: '18:00', endTime: '19:00', type: 'activity' }
 ]);
+/* Lot 2.2 : les blocs générés dans les trous d'un emploi du temps
+   chargé doivent disparaître pendant la semaine de révision. Les
+   événements ajoutés manuellement et les créneaux protégés restent. */
+const emploiCharge = jourAvecTout.concat([
+    { id: 'emploi-rev-850', title: 'Révisions Chimie', startTime: '15:30', endTime: '16:00', type: 'study' },
+    { id: 'emploi-exo-880', title: 'Exercices Chimie', startTime: '16:00', endTime: '16:30', type: 'study' },
+    { id: 'revgap-900', title: 'Révisions Chimie', startTime: '16:30', endTime: '17:00', type: 'study' },
+    { id: 'manuel-revision', title: 'Révision personnelle', startTime: '18:00', endTime: '18:30', type: 'study' },
+    { id: 'emploi-rev-cours', title: 'Cours programmé', startTime: '07:15', endTime: '07:45', type: 'school' },
+    { id: 'trajet-test', title: 'Trajet', startTime: '06:40', endTime: '07:10', type: 'transport' },
+    { id: 'sommeil-test', title: 'Sommeil', startTime: '22:00', endTime: '23:00', type: 'sleep' },
+    { id: 'telephone-test', title: 'Téléphone', startTime: '20:00', endTime: '20:30', type: 'phone' }
+]);
+const semaineChargee = context.devoirsAdapterJour(emploiCharge, idxJour);
+['emploi-rev-850', 'emploi-exo-880', 'revgap-900'].forEach(function (id) {
+    ok(!semaineChargee.some(function (ev) { return ev.id === id; }),
+        'un ancien bloc d’étude généré reste pendant les examens : ' + id);
+});
+['manuel-revision', 'emploi-rev-cours', 'trajet-test', 'sommeil-test', 'telephone-test', 'school1', 'lunch'].forEach(function (id) {
+    ok(semaineChargee.some(function (ev) { return ev.id === id; }),
+        'un événement personnel ou protégé a disparu : ' + id);
+});
+
 const apresRevision = context.devoirsAdapterJour(jourAvecTout.slice(), idxJour);
 ok(!apresRevision.some(function (ev) { return ev.type === 'memoir' || ev.type === 'ia' || ev.type === 'activity'; }), 'la semaine de révisions doit retirer mémoire, éval interne et CAS');
 ok(!apresRevision.some(function (ev) { return ev.id === 'study1'; }), 'les blocs d\'étude habituels doivent laisser la place aux révisions ciblées');

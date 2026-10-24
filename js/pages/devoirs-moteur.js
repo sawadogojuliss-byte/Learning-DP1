@@ -85,6 +85,12 @@ function devoirsBlocARetirer(ev) {
     if (type === 'activity') return true;
     if (type === 'ia' || type === 'memoir') return true;
     if (id === 'study1' || id === 'study2' || id === 'exercises') return true;
+    /* Travail généré dans les trous de l'emploi du temps scolaire :
+       ne pas laisser une ancienne matière hors sujet pendant les examens.
+       On ne retire pas tout type=study : l'élève peut avoir posé lui-même
+       un événement de ce type. */
+    if (type === 'study' && (id.indexOf('emploi-rev-') === 0 ||
+        id.indexOf('emploi-exo-') === 0 || id.indexOf('revgap-') === 0)) return true;
     if (id.indexOf('study-page') === 0 || id.indexOf('ia-page') === 0 || id.indexOf('memoir-page') === 0) return true;
     return false;
 }
@@ -561,6 +567,14 @@ function devoirsAdapterJour(events, dayIndex) {
                 });
             });
         }
+    }
+
+    /* Le planning est recalculé pour toute la semaine, même lundi et mardi
+       lorsqu'on est mercredi. Les compositions datées restent visibles
+       ci-dessus, mais on n'ajoute jamais de révisions dans un jour passé. */
+    var aujourdHui = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+    if (date.getTime() < aujourdHui.getTime()) {
+        return jour.sort(function (a, b) { return devoirsH2M(a.startTime) - devoirsH2M(b.startTime); });
     }
 
     if (avenir.length) {

@@ -94,7 +94,7 @@ var aide = planning.indexOf('id="menuAide"');
 ok(aide !== -1 && aide < feedback && feedback < annonce, 'Annonce est juste sous Feedback');
 ok(planning.indexOf('background:#ef4444') !== -1 && planning.indexOf('color:#111827') !== -1, 'cercle rouge, nombre noir');
 ok(fs.readFileSync('js/registre.js', 'utf8').indexOf('pages/annonce.html') !== -1, 'page enregistrée');
-ok(fs.readFileSync('js/boot.js', 'utf8').indexOf("20261024h") !== -1, 'cache rafraîchi');
+ok(fs.readFileSync('js/boot.js', 'utf8').indexOf("20261024i") !== -1, 'cache rafraîchi');
 ok(fs.readFileSync('js/pages/boite.js', 'utf8').indexOf("annonce: 'publie', tutoriel: 'publie'") !== -1, 'les annonces vont dans la collection publique');
 ok(fs.readFileSync('firestore.rules', 'utf8').indexOf('match /publie/') !== -1, 'les annonces sont publiques, le reste privé');
 ok(fs.readFileSync('js/pages/annonce.js', 'utf8').indexOf('boiteSecretMail') !== -1, 'le secret de mail ne vient plus de la page');

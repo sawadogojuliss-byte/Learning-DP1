@@ -144,6 +144,34 @@ if (!messageCompact || messageCompact.champs.join('|') !==
     echec('fiche feedback déployée incorrecte : ' + JSON.stringify(messageCompact));
 }
 
+/* Lot 2, deux premiers points : vrai moteur dans le navigateur,
+   sans notification, courrier ni écriture distante. */
+const revisionsLot2 = await page.evaluate(() => {
+    if (typeof devoirsAdapterJour !== 'function' || typeof indexJourCourant !== 'function') return null;
+    const aujourdhui = indexJourCourant();
+    const jour = [
+        { id: 'emploi-rev-e2e', title: 'Révisions Histoire', startTime: '08:00', endTime: '08:45', type: 'study' },
+        { id: 'emploi-exo-e2e', title: 'Exercices Histoire', startTime: '09:00', endTime: '09:45', type: 'study' },
+        { id: 'revgap-e2e', title: 'Révisions Histoire', startTime: '10:00', endTime: '10:45', type: 'study' },
+        { id: 'cours-e2e', title: 'Cours', startTime: '11:00', endTime: '12:00', type: 'school' },
+        { id: 'repas-e2e', title: 'Repas', startTime: '12:00', endTime: '13:00', type: 'meal' },
+        { id: 'personnel-e2e', title: 'Révision personnelle', startTime: '15:00', endTime: '16:00', type: 'study' }
+    ];
+    const actuel = devoirsAdapterJour(jour, aujourdhui);
+    const passe = aujourdhui > 0 ? devoirsAdapterJour(jour, aujourdhui - 1) : null;
+    return {
+        habituelsRetires: ['emploi-rev-e2e', 'emploi-exo-e2e', 'revgap-e2e']
+            .every(id => !actuel.some(ev => ev.id === id)),
+        protegesConserves: ['cours-e2e', 'repas-e2e', 'personnel-e2e']
+            .every(id => actuel.some(ev => ev.id === id)),
+        aucunAjoutPasse: passe === null || !passe.some(ev => ev.devoirsBloc)
+    };
+});
+if (!revisionsLot2 || !revisionsLot2.habituelsRetires || !revisionsLot2.protegesConserves ||
+    !revisionsLot2.aucunAjoutPasse) {
+    echec('révisions du lot 2 dans le navigateur : ' + JSON.stringify(revisionsLot2));
+}
+
 await page.waitForFunction(() => {
     const zone = document.querySelector('#eventsContainer');
     return zone && zone.textContent.trim().length > 30;
