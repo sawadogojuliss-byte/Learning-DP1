@@ -131,11 +131,16 @@ const messageCompact = await page.evaluate(() => {
         '04_feedback': 'Avis local', z_email_reponse: 'eleve@example.com' };
     const doc = boiteMessagePourFirestore(brut);
     const relu = boiteMessageDepuisFirestore('feedbacks', doc, 'id-firebase');
-    return { champs: Object.keys(doc).sort(), email: relu.email, texte: relu.texte };
+    const ancienEnAttente = boiteMessagePourFirestore({ type: 'feedback',
+        id: 'f-attente', at: '2026-10-24T02:34:00.000Z', nom: 'Élève',
+        texte: 'Avis conservé', email: 'contact@example.com' });
+    return { champs: Object.keys(doc).sort(), email: relu.email, texte: relu.texte,
+        heureReprise: ancienEnAttente['01_heure_envoi'] };
 });
 if (!messageCompact || messageCompact.champs.join('|') !==
     '01_heure_envoi|02_nom_utilisateur|04_feedback|z_donnees_techniques' ||
-    messageCompact.email !== 'eleve@example.com' || messageCompact.texte !== 'Avis local') {
+    messageCompact.email !== 'eleve@example.com' || messageCompact.texte !== 'Avis local' ||
+    !messageCompact.heureReprise.includes('Ouagadougou')) {
     echec('fiche feedback déployée incorrecte : ' + JSON.stringify(messageCompact));
 }
 

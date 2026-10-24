@@ -77,6 +77,14 @@ ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compt
 });
 ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne peut pas lire');
 ok(regles.includes("ficheValide('question', '04_question')") && regles.includes("ficheValide('feedback', '04_feedback')"), 'le nouveau format des messages est refusé');
+['questions', 'feedbacks'].forEach(function (nom) {
+    const creation = regles.split('match /' + nom + '/{message} {')[1].split('allow update')[0];
+    ok(creation.includes('allow create: if ficheValide(') && !creation.includes('messageValide()'),
+        'un ancien onglet peut encore envoyer un ' + nom + ' à plat');
+});
+const archiveCreation = regles.split('match /boite/{message} {')[1].split('allow update')[0];
+ok(!archiveCreation.includes("'question'") && !archiveCreation.includes("'feedback'"),
+    'un ancien onglet peut encore archiver des questions/feedbacks à plat');
 ['emplois_du_temps', 'emplois'].forEach(function (nom) {
     const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
     ok(bloc.split('}')[0].includes('allow create: if false;'), 'la pause des emplois est levée pour ' + nom);

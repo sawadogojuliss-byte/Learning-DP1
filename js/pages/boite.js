@@ -300,6 +300,19 @@ function boiteEmploiAvecCreneaux(record) {
 function boiteMessagePourFirestore(record) {
     if (!record || (record.type !== 'question' && record.type !== 'feedback')) return record;
     var cleTexte = record.type === 'question' ? '04_question' : '04_feedback';
+    /* Une ancienne file locale peut être rejouée après le refus d'une
+       écriture à plat : garder l'heure originale dans la fiche lisible. */
+    var heure = record['01_heure_envoi'];
+    if (!heure && record.at) {
+        var date = new Date(record.at);
+        if (!isNaN(date.getTime())) {
+            heure = date.toLocaleString('fr-FR', {
+                timeZone: 'Africa/Ouagadougou',
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) + ' (Ouagadougou)';
+        }
+    }
     var technique = {
         type: record.type, id: record.id, at: record.at,
         email_reponse: String(record.z_email_reponse || record.email || ''),
@@ -307,7 +320,7 @@ function boiteMessagePourFirestore(record) {
         google_nom: String(record.z_google_nom || '')
     };
     var fiche = {
-        '01_heure_envoi': String(record['01_heure_envoi'] || ''),
+        '01_heure_envoi': String(heure || ''),
         '02_nom_utilisateur': String(record['02_nom_utilisateur'] || record.nom || 'Sans nom'),
         z_donnees_techniques: technique
     };

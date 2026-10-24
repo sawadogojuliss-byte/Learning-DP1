@@ -216,6 +216,14 @@ assert.ok(regles.includes("'ibstudyplan@gmail.com'"), 'le compte entreprise ne p
 assert.ok(regles.indexOf('allow read: if true') !== -1, 'les annonces et tutoriels doivent rester publics');
 assert.ok(regles.indexOf("request.auth.token.email in [") !== -1, 'les admins ne sont pas reconnus par leur compte');
 assert.ok(regles.includes("ficheValide('question', '04_question')") && regles.includes("ficheValide('feedback', '04_feedback')"), 'le format compact est refusé');
+['questions', 'feedbacks'].forEach(function (nom) {
+    const create = regles.split('match /' + nom + '/{message} {')[1].split('allow update')[0];
+    assert.ok(create.includes('allow create: if ficheValide(') && !create.includes('messageValide()'),
+        'un ancien onglet peut encore écrire à plat dans ' + nom);
+});
+const archiveCreation = regles.split('match /boite/{message} {')[1].split('allow update')[0];
+assert.ok(!archiveCreation.includes("'question'") && !archiveCreation.includes("'feedback'"),
+    'un ancien onglet peut encore écrire un message à plat dans boite');
 
 /* — Les identifiants admins, et eux seuls — */
 context.compteSession = { sub: '116965022060639990571', email: 'x@y.z' };
@@ -277,6 +285,14 @@ attendre(200).then(function () {
     assert.strictEqual(avis['04_feedback'], 'Suggestion locale');
     assert.strictEqual(avis.z_donnees_techniques.email_reponse, 'retour@example.com');
     assert.strictEqual(avis.z_donnees_techniques.type, 'feedback');
+    const ancienEnAttente = context.boiteMessagePourFirestore({
+        type: 'feedback', id: 'f-attente', at: '2026-10-24T02:34:00.000Z',
+        nom: 'Awa', texte: 'Avis conservé', email: 'contact@example.com'
+    });
+    assert.ok(ancienEnAttente['01_heure_envoi'].includes('Ouagadougou'),
+        'une file locale ancienne perd son heure à la reprise');
+    assert.strictEqual(ancienEnAttente['04_feedback'], 'Avis conservé');
+    assert.strictEqual(ancienEnAttente.z_donnees_techniques.email_reponse, 'contact@example.com');
 
     /* — La base refuse : la question est gardée, l'échec annoncé — */
     firestoreEchec = true;

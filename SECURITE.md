@@ -41,8 +41,10 @@ règles de l'application ne limitent pas les administrateurs du projet.
    poser une question ordinaire depuis Aide ; attendre « Question envoyée. ».
    Dans la console Firebase → Firestore Database → **Données**, une collection
    `questions` doit apparaître après le premier nouvel envoi. Cliquer sur
-   `questions`, puis sur le document : le champ `type` doit valoir `question`.
-   Un avis envoyé depuis Feedback apparaît dans `feedbacks` (`type: feedback`).
+   `questions`, puis sur le document : voir `01_heure_envoi`,
+   `02_nom_utilisateur`, `04_question` et `z_donnees_techniques`.
+   Un avis reçu depuis Feedback apparaît dans `feedbacks` avec `04_feedback`
+   à la place de `04_question`. `type` se trouve dans le groupe technique.
    Les emplois du temps ne sont plus envoyés pendant la pause. Les anciennes
    entrées restent dans `boite`, elles n'ont pas été effacées ni déplacées.
 4. **Vérifier le compte de l'équipe.** Sur un navigateur personnel, se
@@ -108,12 +110,18 @@ réponse, les utilisateurs sans Gmail connecté ne pourraient plus recevoir
 leurs réponses. La console Firebase peut ouvrir automatiquement ce groupe ;
 son état visuel n'est pas contrôlable par le site.
 
-Publier les nouvelles [`firestore.rules`](firestore.rules) **avant** de vérifier
-un nouvel envoi : les anciennes règles refuseraient ces fiches sans `at`,
-`id` et `type` au premier niveau. Le site signale alors l'échec et garde le
-message sur l'appareil pour réessayer. Les documents déjà reçus conservent
+Publier les dernières [`firestore.rules`](firestore.rules) **avant** de vérifier
+un nouvel envoi : une version trop ancienne refuse le nouveau format, et une
+version intermédiaire laisse encore passer les anciens documents à plat.
+Si un ancien onglet reçoit un refus, le site garde le message sur l'appareil
+pour réessayer après actualisation. Les documents déjà reçus conservent
 leur ancien format : le site lit **les deux versions**, mais les règles ne
-réécrivent pas l'historique dans Firebase.
+réécrivent pas l'historique dans Firebase. Les anciennes règles acceptaient
+encore des écritures à plat depuis un ancien onglet : la version actuelle les
+**refuse** pour `questions`, `feedbacks` et pour ces messages dans `boite`.
+Si l'envoi échoue dans un vieil onglet, actualiser la page : la file locale
+est reprise avec les champs lisibles et l'heure d'origine. Les documents
+à plat déjà créés restent à migrer séparément si l'on veut aussi les changer.
 
 Les nouveaux messages ne recopient pas le planning dans la question ou le
 feedback. L'envoi séparé dans `emplois_du_temps` reste suspendu.
@@ -139,7 +147,8 @@ ou mise en page personnalisée à ces documents ; un rendu plus visuel doit
 ## Anciennes entrées de `boite` (ne pas effacer)
 
 Les données déjà présentes dans `boite` restent **mélangées dans cette archive**,
-lisibles par les cinq admins. Le site lit l'archive **et** les nouvelles
+lisibles par les cinq admins. Aucun ancien onglet ne peut plus y déposer une
+nouvelle question ou un nouveau feedback à plat. Le site lit l'archive **et** les nouvelles
 collections, afin de ne perdre aucune question. Le code rectifié n'utilise
 jamais `boite` comme repli pour les nouvelles questions, feedbacks ou emplois :
 si les règles refusent l'écriture, le formulaire signale l'échec et garde

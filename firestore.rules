@@ -30,9 +30,9 @@ service cloud.firestore {
         && request.resource.data.size() < 80;
     }
 
-    /* Nouveau format des questions/feedbacks : quatre champs lisibles
-       et un unique groupe technique privé. Les archives au format plat
-       restent compatibles, sans ouvrir la lecture à d'autres comptes. */
+    /* Nouveau format des questions/feedbacks : champs lisibles et
+       groupe technique privé. Les archives à plat restent lisibles,
+       mais plus aucun nouveau document à plat n'est accepté. */
     function ficheValide(type, champTexte) {
       return request.resource.data.keys().hasAll([
                '01_heure_envoi', '02_nom_utilisateur', champTexte,
@@ -60,14 +60,13 @@ service cloud.firestore {
     }
 
     /* Archives : les anciens documents restent visibles pour les cinq
-       admins. Les anciens onglets peuvent encore écrire le temps que tous
-       les navigateurs chargent la nouvelle version du site. */
+       admins. Aucun ancien onglet ne peut plus y écrire de question ou
+       feedback à plat : après actualisation, le site reprend son envoi. */
     match /boite/{message} {
       allow read: if estAdmin();
       allow create: if messageValide()
         && request.resource.data.type in [
-             'question', 'feedback', 'profil', 'profilpart',
-             'connexion', 'reponse'
+             'profil', 'profilpart', 'connexion', 'reponse'
            ]
         && (request.resource.data.type != 'reponse' || estAdmin());
       allow update, delete: if false;
@@ -77,18 +76,12 @@ service cloud.firestore {
        L'élève peut déposer ses données, jamais consulter celles d'autrui. */
     match /questions/{message} {
       allow read: if estAdmin();
-      allow create: if (request.resource.data.keys().hasAll(['type', 'id', 'at'])
-                        && messageValide()
-                        && request.resource.data.type == 'question')
-                    || ficheValide('question', '04_question');
+      allow create: if ficheValide('question', '04_question');
       allow update, delete: if false;
     }
     match /feedbacks/{message} {
       allow read: if estAdmin();
-      allow create: if (request.resource.data.keys().hasAll(['type', 'id', 'at'])
-                        && messageValide()
-                        && request.resource.data.type == 'feedback')
-                    || ficheValide('feedback', '04_feedback');
+      allow create: if ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
     /* Pause des emplois : même un ancien onglet ne peut plus alimenter
