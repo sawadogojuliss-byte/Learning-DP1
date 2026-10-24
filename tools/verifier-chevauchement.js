@@ -58,6 +58,15 @@ assert.deepEqual(JSON.parse(JSON.stringify(deplacement)), {
     utilisateur: { start: '18:30', end: '19:00' }, conflitId: 'sport', autre: { start: '19:00', end: '20:00' }
 });
 assert.equal(s.saves, 0, 'la proposition ne doit pas enregistrer');
+const journee = s.eval('v3PropositionsCreneau(current)', { current: s.current });
+assert.ok(journee.length > 4 && journee.some(p => p.start < '12:00') && journee.some(p => p.start >= '19:00'),
+    'les propositions couvrent le matin et le soir, pas seulement quatre créneaux');
+assert.ok(journee.some(p => p.start === '18:00' && p.conflits.some(ev => ev.id === 'sport')),
+    'un créneau occupé est proposé avec le nom de son activité');
+assert.ok(journee.some(p => p.start === '19:00' && p.conflits.length === 0),
+    'les horaires libres restent proposés');
+assert.ok(journee.every(p => minutes(p.end) - minutes(p.start) === 30), 'la durée est préservée');
+assert.equal(s.saves, 0, 'la recherche de toute la journée ne doit rien écrire');
 assert.equal(s.eval('v3AppliquerChoixChevauchement(current, deplacement)', { deplacement }), true);
 assert.equal(s.saves, 1, 'les deux changements sont sauvegardés une fois');
 assert.equal(s.closed, 1);

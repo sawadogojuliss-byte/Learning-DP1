@@ -71,7 +71,9 @@ ok(popup.indexOf('majFin()') !== -1 && popup.indexOf('chevauchementVerdict') !==
     'le verdict doit suivre directement la saisie de l’heure');
 ok(popup.indexOf('chevConfirmEssentiels') !== -1, 'les créneaux essentiels exigent une seconde confirmation');
 ok(popup.indexOf('Ce qui est déjà prévu') !== -1, 'la popup doit lister ce qui occupe le créneau');
-ok(popup.indexOf('Choisir un autre horaire') !== -1, 'la popup doit proposer un autre horaire');
+ok(popup.indexOf('Choisir un autre créneau') !== -1, 'la popup doit proposer les créneaux de la journée');
+ok(popup.indexOf('Activités concernées') !== -1 && popup.indexOf('data-filtre-horaire') !== -1,
+    'les horaires occupés doivent informer des activités concernées');
 ok(popup.indexOf('Garder mon horaire et déplacer') !== -1, 'le déplacement doit expliquer son effet');
 ok(popup.indexOf('Confirmer ces horaires') !== -1 && popup.indexOf('Retour aux choix') !== -1,
     'la popup doit montrer la vérification avant confirmation');

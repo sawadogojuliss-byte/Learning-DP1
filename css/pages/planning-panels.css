@@ -1391,8 +1391,20 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup .chev-confirm-essentiels button + button { margin-top:.45rem; }
 #chevauchementPopup button:focus-visible, #chevauchementPopup input:focus-visible, #chevauchementPopup select:focus-visible { outline:3px solid #0d9488; outline-offset:2px; }
 #chevauchementPopup .chev-note { margin:.7rem 0 0; color:#6b7280; font-size:.77rem; line-height:1.45; }
-#chevauchementPopup .chev-propositions { display:flex; flex-wrap:wrap; gap:.45rem; color:#6b7280; font-size:.8rem; }
-#chevauchementPopup .chev-proposition { padding:.55rem .7rem; border:1px solid #a7f3d0; border-radius:.7rem; background:#f0fdf4; color:#065f46; font:inherit; font-size:.8rem; font-weight:750; cursor:pointer; }
+#chevauchementPopup .chev-filtres { display:flex;flex-wrap:wrap;gap:.4rem;margin:.75rem 0 .6rem; }
+#chevauchementPopup .chev-filtres button { border:1px solid #cfe4d5;border-radius:999px;background:white;color:#476555;padding:.45rem .8rem;font:inherit;font-size:.75rem;font-weight:750;cursor:pointer; }
+#chevauchementPopup .chev-filtres button[aria-pressed="true"] { background:#166047;border-color:#166047;color:white; }
+#chevauchementPopup .chev-propositions { display:grid;gap:.5rem;max-height:min(43vh,22rem);overflow-y:auto;overscroll-behavior:contain;padding:.1rem .2rem .5rem 0;color:#6b7280;font-size:.8rem; }
+#chevauchementPopup .chev-periode { margin:.55rem 0 0;padding:.35rem .1rem .1rem;color:#64786b;font-size:.69rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+#chevauchementPopup .chev-proposition { width:100%;display:block;text-align:left;padding:.7rem .8rem;border:1px solid #cfe4d5;border-radius:.8rem;background:#f7fcf8;color:#184d36;font:inherit;font-size:.82rem;cursor:pointer; }
+#chevauchementPopup .chev-proposition:hover { border-color:#399365;background:#ecfdf5; }
+#chevauchementPopup .chev-proposition-occupee { border-color:#f3d29e;background:#fffbf4;color:#78501f; }
+#chevauchementPopup .chev-proposition-occupee:hover { border-color:#db9c46;background:#fff5e7; }
+#chevauchementPopup .chev-proposition-tete { display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap; }
+#chevauchementPopup .chev-proposition-tete strong { font-size:.86rem;font-variant-numeric:tabular-nums; }
+#chevauchementPopup .chev-proposition-tete small { font-size:.7rem;font-weight:800; }
+#chevauchementPopup .chev-proposition-effet { display:block;margin-top:.25rem;font-size:.75rem;line-height:1.4;color:#566d5c; }
+#chevauchementPopup .chev-proposition-occupee .chev-proposition-effet { color:#845c2c; }
 #chevauchementPopup .chev-libelle { display:block; margin:.9rem 0 .3rem; font-size:.8rem; font-weight:700; }
 #chevauchementPopup .chev-manuel { display:flex; align-items:center; justify-content:space-between; gap:.7rem; margin-bottom:.6rem; font-size:.83rem; }
 #chevauchementPopup .chev-manuel input { min-width:0; width:9rem; padding:.58rem; border:1.5px solid #9ca3af; border-radius:.7rem; font:inherit; color:#111827; background:white; }
