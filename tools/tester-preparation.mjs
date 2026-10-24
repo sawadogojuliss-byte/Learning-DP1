@@ -251,7 +251,9 @@ const importExamens = await page.evaluate(() => {
         !!zone.querySelector('.prop-date') &&
         document.getElementById('devoirsOcrStatut').textContent.includes('Complète la ligne');
     devoirsConfirmerPropositions('devoirs');
-    const rienPlanifieSansMatiere = devoirsLireStore().devoirs.length === original.devoirs.length &&
+    const nombreApresRefus = devoirsLireStore().devoirs.length;
+    const champActifApresRefus = document.activeElement && document.activeElement.className;
+    const rienPlanifieSansMatiere = nombreApresRefus === original.devoirs.length &&
         document.activeElement === zone.querySelector('.prop-matiere');
     devoirsViderPropositions();
     devoirsEcrireStore(original);
@@ -260,9 +262,14 @@ const importExamens = await page.evaluate(() => {
     navigateTo('planning');
     return { apercuVisible, dateSignalee, refusDate, visibleApresChangement,
         ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde,
-        champsCompleter, rienPlanifieSansMatiere };
+        champsCompleter, rienPlanifieSansMatiere, diagnostic: {
+            rectApercu: { top: rectApercu.top, bottom: rectApercu.bottom, height: rectApercu.height },
+            date: date && date.value, zoneParent: zone.parentElement && zone.parentElement.id,
+            viewport: innerHeight, nombreApresRefus, nombreAvant: original.devoirs.length,
+            champActifApresRefus
+        } };
 });
-if (!importExamens || Object.values(importExamens).some(resultat => !resultat)) {
+if (!importExamens || Object.entries(importExamens).some(([cle, resultat]) => cle !== 'diagnostic' && !resultat)) {
     echec('aperçu commun, date à préciser et confirmation des examens : ' + JSON.stringify(importExamens));
 }
 
