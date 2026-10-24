@@ -26,8 +26,8 @@ try {
         const key = (await caches.keys()).find(k => k.startsWith('study-plan-coquille-'));
         if (!key) return false;
         const c = await caches.open(key);
-        return !!(await c.match(new URL('pages/planning.html?v=20261024q', location.href))) &&
-            !!(await c.match(new URL('js/pages/planning-moteur.js?v=20261024q', location.href)));
+        return !!(await c.match(new URL('pages/planning.html?v=20261024r', location.href))) &&
+            !!(await c.match(new URL('js/pages/planning-moteur.js?v=20261024r', location.href)));
     }, null, { timeout: 90000 });
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
@@ -39,14 +39,13 @@ try {
     await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
     const result = await page.evaluate(() => {
-        navigateTo('planning');
-        renderPlanning();
+        generatePlanning();
         return { cartes: document.querySelectorAll('#eventsContainer [data-v3-idx]').length,
             panneaux: document.getElementById('panelPlanning')?.classList.contains('active') ||
                 document.getElementById('planningModal')?.classList.contains('active') };
     });
-    if (!result.cartes || !result.panneaux) throw new Error('Planning hors ligne indisponible : ' + JSON.stringify(result));
     console.log('Démarrage réseau :', initial, 'après mise en cache :', chaud, 'hors ligne :', result);
+    if (!result.cartes || !result.panneaux) throw new Error('Planning hors ligne indisponible : ' + JSON.stringify(result));
 } finally {
     await browser.close();
 }
