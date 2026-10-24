@@ -53,7 +53,7 @@ function chronoFinAnnonce(generation) {
     }
 }
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261023a';
+var CHRONO_VOIX_VERSION = '20261024b';
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────
@@ -307,7 +307,9 @@ function chronoVoixArreter() {
     } catch (e) {}
 }
 
-/* Premier chemin : les morceaux décodés, joués à la suite sans trou. */
+/* Premier chemin : les morceaux décodés, joués à la suite. Les WAV
+   gardent 90 ms de marge autour des phonèmes : pas de longue attente
+   après « vous avez droit à », ni de mot coupé au début du nombre. */
 function chronoVoixJouerTampons(noms, suite) {
     var ctx = chronoVoixContexte();
     if (!ctx) { if (suite) suite(false); return; }

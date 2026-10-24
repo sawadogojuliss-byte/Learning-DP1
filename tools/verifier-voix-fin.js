@@ -36,6 +36,27 @@ morceaux.forEach(function (nom) {
     ok(fs.existsSync(f), 'morceau de voix manquant : ' + nom + '.wav');
     if (fs.existsSync(f)) ok(fs.statSync(f).size > 2000, 'morceau de voix tronqué : ' + nom + '.wav');
 });
+/* Le numéro arrive vite après « vous avez droit à ». Mesure les vraies
+   marges des WAV, pas seulement la valeur du délai dans le code. */
+function margeSilencieuse(nom, fin) {
+    const pcm = fs.readFileSync(path.join(racine, 'audio', 'voix', nom + '.wav'));
+    const taux = pcm.readUInt32LE(24);
+    ok(pcm.toString('ascii', 0, 4) === 'RIFF' && pcm.readUInt16LE(22) === 1 &&
+        pcm.readUInt16LE(34) === 16 && taux === 24000,
+        nom + '.wav doit rester en WAV mono PCM 16 bits à 24 kHz');
+    const premier = 44, dernier = pcm.length - 2;
+    const pas = fin ? -2 : 2;
+    for (let i = fin ? dernier : premier; fin ? i >= premier : i <= dernier; i += pas) {
+        if (Math.abs(pcm.readInt16LE(i)) > 400)
+            return (fin ? dernier - i : i - premier) / (2 * taux);
+    }
+    return Infinity;
+}
+const attenteNombre = margeSilencieuse('seance-fin', true) + 0.07 +
+    Math.max.apply(null, Array.from({ length: 30 }, function (_, n) {
+        return margeSilencieuse('n-' + (n < 20 ? n + 1 : n === 29 ? 30 : 20), false);
+    }));
+ok(attenteNombre < 0.32, 'pause trop longue entre « vous avez droit à » et le nombre : ' + attenteNombre.toFixed(2) + ' s');
 /* Le son doit passer par l'AudioContext (autorisé dès le geste de départ),
    pas par un lecteur créé à la fin : sinon un téléphone refuse de parler. */
 ok(moduleSrc.indexOf('decodeAudioData') !== -1, 'les morceaux doivent être décodés pour l\'AudioContext');
