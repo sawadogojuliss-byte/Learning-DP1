@@ -547,6 +547,9 @@ function boiteMajMenu() {
         var el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
+    // L'accès au rail privé d'Annonce suit aussi les vérifications tardives
+    // du compte, sans exposer les autres sections aux lecteurs publics.
+    if (typeof annonceMajMenu === 'function') annonceMajMenu();
     if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
     if (typeof focusAfficherEntree === 'function') focusAfficherEntree();
     var champ = document.getElementById('menuNom');

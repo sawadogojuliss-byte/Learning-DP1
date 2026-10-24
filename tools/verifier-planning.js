@@ -79,17 +79,18 @@ ok(popup.indexOf('data-annuler') !== -1, 'il faut pouvoir annuler sans enregistr
 ok(popup.indexOf('Prendre son créneau') === -1 && popup.indexOf('se décale juste après') === -1,
     'les anciennes promesses trompeuses doivent disparaître');
 
-/* ── Page retour des feedbacks, habillage Pomodoro ───────────────────── */
+/* ── Retour des feedbacks : habillage Atelier, actions préservées ────── */
 var html = lire('pages/boite.html');
 var cssRetours = lire('css/pages/retours.css');
-ok(html.indexOf('class="retours-boite"') !== -1, 'la page des retours doit avoir sa carte');
+var cssAdmin = lire('css/pages/admin-atelier.css');
+ok(html.indexOf('id="panelRetours"') !== -1 && html.indexOf('class="admin-page-carte"') !== -1,
+    'la page des retours doit conserver sa carte Atelier');
 ok(html.indexOf('Retour des feedbacks') !== -1 && html.indexOf('id="retoursListe"') !== -1, 'la liste des retours manque');
 ok(html.indexOf('id="retoursRafraichir"') !== -1, 'le bouton Actualiser manque');
-ok(cssRetours.indexOf('#panelRetours.app-panel') !== -1 && cssRetours.indexOf('images/pomodoro/lumiere.webp') !== -1,
-    'le fond doit reprendre celui de Pomodoro');
-ok(cssRetours.indexOf('font-family: Inter') !== -1, 'la typographie doit être celle du site');
-ok(cssRetours.indexOf('#retoursListe article') !== -1, 'les cartes reçues doivent être rhabillées');
-ok(cssRetours.indexOf('border-radius: 1.25rem !important') !== -1, 'les cartes doivent être arrondies');
+ok(cssAdmin.indexOf('Georgia,serif') !== -1 && cssAdmin.indexOf('#164633') !== -1,
+    'le retour des feedbacks doit reprendre le rail et l’écriture Atelier');
+ok(cssRetours.indexOf('#panelRetours .admin-page-liste article') !== -1,
+    'les cartes reçues doivent conserver leur aspect Atelier');
 ok(lire('index.html').indexOf('css/pages/retours.css') !== -1, 'la feuille des retours doit être chargée');
 ok(lire('tools/bundle-site.py').indexOf('css/pages/retours.css') !== -1, 'la feuille doit entrer dans le bundle');
 

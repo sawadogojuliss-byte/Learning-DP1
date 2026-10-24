@@ -222,6 +222,8 @@ function annoncePoserBadge(badge, nombre) {
 function annonceMajMenu() {
     var bouton = document.getElementById('menuAnnonce');
     var admin = typeof boiteEstAdmin === 'function' && boiteEstAdmin();
+    var panneau = document.getElementById('panelAnnonce');
+    if (panneau && panneau.classList) panneau.classList.toggle('annonce-public', !admin);
     if (bouton) {
         bouton.style.display = admin ? 'none' : 'flex';
         bouton.style.marginTop = '0';

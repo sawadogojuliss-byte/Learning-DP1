@@ -24,6 +24,12 @@ try {
     const affichage = id => page.locator('#' + id).evaluate(el => getComputedStyle(el).display);
     assert.equal(await affichage('menuAnnonce'), 'flex', 'les élèves gardent la lecture des annonces');
     assert.equal(await affichage('menuEspaceAdmin'), 'none');
+    await page.evaluate(() => { navigateTo('annonce'); annonceMajMenu(); });
+    assert.equal(await page.locator('#panelAnnonce').isVisible(), true);
+    assert.equal(await page.locator('#panelAnnonce .admin-nav-lien[aria-label="Annonce"]').isVisible(), true);
+    assert.equal(await page.locator('#panelAnnonce .admin-nav-lien[aria-label="Espace admin"]').isVisible(), false,
+        'le lecteur public ne voit pas les raccourcis privés');
+    assert.equal(await page.locator('#annonceComposer').isVisible(), false);
     await page.evaluate(() => navigateTo('admin'));
     assert.equal(await page.locator('#panelAdmin').isVisible(), false, 'la page ne doit pas s’ouvrir pour un élève');
     await page.evaluate(() => {
@@ -43,21 +49,34 @@ try {
     }
     await page.locator('#menuEspaceAdmin').click();
     assert.equal(await page.locator('#panelAdmin').isVisible(), true);
-    assert.equal(await page.locator('#panelAdmin nav button').count(), 4);
+    assert.equal(await page.locator('#panelAdmin .admin-atelier-cartes > button').count(), 4);
     assert.equal(await page.locator('#panelAdmin .admin-atelier-rail').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(22, 70, 51)');
     const destinations = [
         ['annonce','panelAnnonce'], ['retours','panelRetours'],
         ['questions','panelQuestions'], ['emplois','panelEmplois']
     ];
     for (const [name,id] of destinations) {
-        await page.locator('#panelAdmin nav button[onclick="navigateTo(\'' + name + '\')"]').click();
+        await page.locator('#panelAdmin .admin-atelier-cartes button[onclick="navigateTo(\'' + name + '\')"]').click();
         assert.equal(await page.locator('#' + id).isVisible(), true, 'lien ' + name);
+        if (name === 'annonce') await page.evaluate(() => annonceMajMenu());
+        const nav = page.locator('#' + id + ' .admin-nav');
+        assert.equal(await nav.locator('.admin-nav-lien[aria-current="page"]').getAttribute('aria-label'),
+            { annonce:'Annonce', retours:'Retour des feedbacks', questions:'Questions des utilisateurs', emplois:'Emplois du temps' }[name]);
+        assert.equal(await nav.locator('.admin-nav-lien[aria-label="Espace admin"]').isVisible(), true,
+            'le dossier reste visible dans ' + name);
+        assert.equal(await nav.locator('.admin-nav-lien').count(), 5);
         await page.evaluate(() => navigateTo('admin'));
     }
     await page.setViewportSize({ width: 390, height: 844 });
-    assert.equal(await page.locator('#panelAdmin .admin-atelier-rail').isVisible(), false);
-    assert.equal(await page.locator('#panelAdmin .admin-atelier-retour-mobile').isVisible(), true);
-    assert.equal(await page.locator('#panelAdmin nav button').count(), 4);
+    assert.equal(await page.locator('#panelAdmin .admin-atelier-rail').isVisible(), true);
+    assert.equal(await page.locator('#panelAdmin .admin-atelier-cartes > button').count(), 4);
+    await page.locator('#panelAdmin .admin-nav-lien[aria-label="Questions des utilisateurs"]').click();
+    assert.equal(await page.locator('#panelQuestions').isVisible(), true);
+    assert.equal(await page.locator('#panelQuestions .admin-nav').isVisible(), true);
+    assert.equal(await page.locator('#panelQuestions .admin-page-entete h2').evaluate(el => getComputedStyle(el).fontFamily),
+        'Georgia, serif');
+    await page.locator('#panelQuestions .admin-nav-lien[aria-label="Espace admin"]').click();
+    assert.equal(await page.locator('#panelAdmin').isVisible(), true);
     await page.evaluate(() => {
         window.boiteEstAdmin = () => false;
         boiteMajMenu(); annonceMajMenu();

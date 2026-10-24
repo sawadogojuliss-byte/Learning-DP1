@@ -4,33 +4,52 @@
      Lecture et boîte mail pour tout le monde.
      Script : js/pages/annonce.js
      ============================================================ -->
-<div class="app-panel" id="panelAnnonce">
-    <div style="max-width:480px;margin:0 auto;padding:0 1rem 4rem;">
-        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
-                <div style="position:relative;padding-top:0.15rem;">
-                    <span id="annonceBadgePage" hidden style="position:absolute;top:-0.85rem;left:0;min-width:1.25rem;height:1.25rem;padding:0 0.28rem;border-radius:999px;background:#ef4444;color:#000;font-size:0.68rem;font-weight:800;display:none;align-items:center;justify-content:center;line-height:1;box-shadow:0 0 0 2px #fff;">0</span>
-                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Annonce</h2>
-                    <p style="font-size:0.75rem;color:#6b7280;">Les messages publiés arrivent dans la boîte mail</p>
+<div class="app-panel annonce-public" id="panelAnnonce">
+    <div class="admin-page">
+        <aside class="admin-nav" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce" aria-current="page">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+            </nav>
+        </aside>
+        <main class="admin-page-main">
+            <header class="admin-page-entete">
+                <div>
+                    <p class="admin-page-chemin"><span class="admin-page-chemin-admin">ADMINISTRATION / ANNONCE</span><span class="admin-page-chemin-public">STUDY PLAN IB / ANNONCES</span></p>
+                    <p class="admin-page-surtitre">LE JOURNAL</p>
+                    <h2>Des nouvelles, <em>au bon moment.</em></h2>
+                    <p class="admin-page-sous-titre">Les messages publiés arrivent dans la boîte mail.</p>
                 </div>
+                <span id="annonceBadgePage" class="admin-page-badge" hidden>0</span>
+            </header>
+            <div class="admin-page-annonce">
+                <section id="annonceComposer" class="admin-page-carte" style="display:none;">
+                    <p class="admin-page-surtitre">RÉDIGER</p>
+                    <h3>Nouvelle annonce</h3>
+                    <p style="font-size:0.78rem;color:#6b7280;line-height:1.45;margin:0 0 0.85rem;">Seul un compte administrateur peut écrire. Les trois autres doivent accepter avant que l'annonce puisse être publiée. Elle part alors dans la boîte mail de chaque personne inscrite.</p>
+                    <label for="annonceTitre">Titre</label>
+                    <input id="annonceTitre" type="text" maxlength="80" placeholder="Titre de l'annonce">
+                    <label for="annonceTexte">Message</label>
+                    <textarea id="annonceTexte" maxlength="1500" rows="6" placeholder="Écris l'annonce…"></textarea>
+                    <label for="annonceProgramme">Programmer l'envoi (facultatif)</label>
+                    <input id="annonceProgramme" type="datetime-local">
+                    <p class="admin-page-note">Sans date, l'envoi part dès la publication. Avec une date, il attend cette heure, et seulement après les trois accords. Il part alors dès qu'un navigateur ouvre le site.</p>
+                    <button type="button" id="annonceEnvoi" class="admin-page-actualiser admin-page-primaire">Soumettre aux autres comptes</button>
+                    <div id="annonceAnalyse"></div>
+                    <p id="annonceStatut" class="admin-page-statut" role="status" aria-live="polite"></p>
+                </section>
+                <section class="admin-page-carte admin-page-annonces" aria-label="Annonces">
+                    <p class="admin-page-surtitre">HISTORIQUE</p>
+                    <h3>Annonces</h3>
+                    <div id="annonceListe" class="admin-page-liste"></div>
+                </section>
             </div>
-        </div>
-
-        <div id="annonceComposer" style="display:none;background:white;border:1.5px solid #f3f4f6;border-radius:1.15rem;padding:1rem;margin-bottom:1.15rem;">
-            <p style="font-size:0.78rem;color:#6b7280;line-height:1.45;margin:0 0 0.85rem;">Seul un compte administrateur peut écrire. Les trois autres doivent accepter avant que l'annonce puisse être publiée. Elle part alors dans la boîte mail de chaque personne inscrite.</p>
-            <label for="annonceTitre" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Titre</label>
-            <input id="annonceTitre" type="text" maxlength="80" placeholder="Titre de l'annonce" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem 1rem;font:inherit;font-size:0.95rem;outline:none;margin-bottom:0.85rem;">
-            <label for="annonceTexte" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Message</label>
-            <textarea id="annonceTexte" maxlength="1500" rows="6" placeholder="Écris l'annonce…" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.85rem 1rem;font:inherit;font-size:0.95rem;resize:vertical;outline:none;"></textarea>
-            <label for="annonceProgramme" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin:0.85rem 0 0.4rem;">Programmer l'envoi (facultatif)</label>
-            <input id="annonceProgramme" type="datetime-local" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem 1rem;font:inherit;font-size:0.95rem;outline:none;">
-            <p style="font-size:0.72rem;color:#9ca3af;margin:0.35rem 0 0;">Sans date, l'envoi part dès la publication. Avec une date, il attend cette heure, et seulement après les trois accords. Il part alors dès qu'un navigateur ouvre le site.</p>
-            <button type="button" id="annonceEnvoi" style="width:100%;margin-top:0.85rem;padding:0.9rem 1rem;border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;font-size:0.95rem;cursor:pointer;">Soumettre aux autres comptes</button>
-            <div id="annonceAnalyse"></div>
-            <p id="annonceStatut" style="min-height:1.25rem;margin-top:0.75rem;font-size:0.85rem;font-weight:650;color:#047857;"></p>
-        </div>
-
-        <div id="annonceListe"></div>
+        </main>
     </div>
 </div>

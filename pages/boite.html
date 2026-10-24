@@ -4,10 +4,17 @@
      ============================================================ -->
 <div class="app-panel" id="panelAdmin">
     <div class="admin-atelier">
-        <aside class="admin-atelier-rail" aria-label="Navigation de l’espace admin">
-            <span class="admin-atelier-marque" aria-hidden="true">S</span>
-            <button type="button" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
-            <span class="admin-atelier-rail-actif" aria-hidden="true">🗂️</span>
+        <aside class="admin-nav admin-atelier-rail" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin" aria-current="page">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+            </nav>
         </aside>
         <main class="admin-atelier-main">
             <header class="admin-atelier-entete">
@@ -46,50 +53,83 @@
     </div>
 </div>
 <div class="app-panel" id="panelRetours">
-    <div class="retours-fond"></div>
-    <div class="retours-voile"></div>
-    <div class="retours-page">
-        <div class="retours-boite">
-            <header class="retours-tete">
-                <button type="button" class="retours-retour" onclick="navigateTo('planning')" aria-label="Retour à l'emploi du temps">←</button>
-                <div class="retours-titres">
-                    <p class="retours-marque">Study Plan IB</p>
-                    <h2 class="retours-titre">Retour des feedbacks</h2>
-                    <p class="retours-sous">Questions, suggestions et e-mails reçus</p>
+    <div class="admin-page">
+        <aside class="admin-nav" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks" aria-current="page">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+            </nav>
+        </aside>
+        <main class="admin-page-main">
+            <header class="admin-page-entete">
+                <div>
+                    <p class="admin-page-chemin">ADMINISTRATION / RETOUR DES FEEDBACKS</p>
+                    <p class="admin-page-surtitre">LES MESSAGES</p>
+                    <h2>Vos retours, <em>en lumière.</em></h2>
+                    <p class="admin-page-sous-titre">Questions, suggestions et e-mails reçus.</p>
                 </div>
-                <button type="button" id="retoursRafraichir" class="retours-pill">Actualiser</button>
+                <button type="button" id="retoursRafraichir" class="admin-page-actualiser">↻ Actualiser</button>
             </header>
-            <p class="retours-rail">
-                <span id="retoursPartageTexte" class="retours-note">Les réponses partent au nom de l'équipe Study Plan IB.</span>
-                <span id="retoursStatut" class="retours-statut"></span>
-            </p>
-            <div id="retoursListe" class="retours-liste"></div>
-        </div>
+            <section class="admin-page-carte" aria-label="Messages reçus">
+                <div class="admin-page-carte-entete"><div>
+                    <p class="admin-page-surtitre">CORRESPONDANCE</p>
+                    <h3>Retour des feedbacks</h3>
+                </div><span id="retoursStatut" class="admin-page-statut" role="status" aria-live="polite"></span></div>
+                <p id="retoursPartageTexte" class="admin-page-note">Les réponses partent au nom de l'équipe Study Plan IB.</p>
+                <div id="retoursListe" class="admin-page-liste"></div>
+            </section>
+        </main>
     </div>
 </div>
 <div class="app-panel" id="panelQuestions">
-    <div style="max-width:640px;margin:0 auto;padding:0 1rem 4rem;">
-        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">←</button>
-                <div style="flex:1;">
-                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Questions des utilisateurs</h2>
-                    <p style="font-size:0.75rem;color:#6b7280;">En attente et répondues</p>
+    <div class="admin-page">
+        <aside class="admin-nav" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs" aria-current="page">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+            </nav>
+        </aside>
+        <main class="admin-page-main">
+            <header class="admin-page-entete">
+                <div>
+                    <p class="admin-page-chemin">ADMINISTRATION / QUESTIONS DES UTILISATEURS</p>
+                    <p class="admin-page-surtitre">LE SUIVI</p>
+                    <h2>Chaque question, <em>une réponse.</em></h2>
+                    <p class="admin-page-sous-titre">Les questions en attente et les réponses déjà envoyées.</p>
                 </div>
-                <button type="button" id="questionsRafraichir" style="border:1.5px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:700;border-radius:0.7rem;padding:0.45rem 0.7rem;cursor:pointer;">Actualiser</button>
-            </div>
-        </div>
-        <p id="questionsStatut" style="font-size:0.85rem;color:#6b7280;margin-bottom:0.75rem;"></p>
-        <div id="questionsListe"></div>
+                <button type="button" id="questionsRafraichir" class="admin-page-actualiser">↻ Actualiser</button>
+            </header>
+            <p id="questionsStatut" class="admin-page-statut" role="status" aria-live="polite"></p>
+            <section id="questionsListe" class="admin-page-liste" aria-label="Questions reçues"></section>
+        </main>
     </div>
 </div>
 
 <div class="app-panel" id="panelEmplois">
     <div class="emploi-atelier">
-        <aside class="emploi-atelier-rail" aria-label="Navigation des emplois du temps">
-            <span class="emploi-atelier-marque" aria-hidden="true">S</span>
-            <button type="button" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
-            <span class="emploi-atelier-rail-actif" aria-hidden="true">▦</span>
+        <aside class="admin-nav emploi-atelier-rail" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning">←</button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps" aria-current="page">📅</button>
+            </nav>
         </aside>
         <div class="emploi-atelier-main">
             <header class="emploi-atelier-entete">
