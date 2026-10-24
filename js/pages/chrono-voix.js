@@ -53,7 +53,7 @@ function chronoFinAnnonce(generation) {
     }
 }
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261024c';
+var CHRONO_VOIX_VERSION = '20261024d';
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────

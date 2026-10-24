@@ -62,6 +62,10 @@ const attenteNombre = margeSilencieuse('seance-fin', true) + 0.07 +
         return margeSilencieuse('n-' + (n + 1), false);
     }));
 ok(attenteNombre < 0.32, 'pause trop longue entre « vous avez droit à » et le nombre : ' + attenteNombre.toFixed(2) + ' s');
+/* « Sept. » était interprété comme l'abréviation « septembre » par la
+   synthèse ; la prise du seul son /sɛt/ est nettement plus courte. */
+const sept = fs.readFileSync(path.join(racine, 'audio', 'voix', 'n-7.wav'));
+ok(sept.length / (2 * 24000) < 0.8, '7 ressemble encore à « septembre » au lieu de « sept »');
 /* Le son doit passer par l'AudioContext (autorisé dès le geste de départ),
    pas par un lecteur créé à la fin : sinon un téléphone refuse de parler. */
 ok(moduleSrc.indexOf('decodeAudioData') !== -1, 'les morceaux doivent être décodés pour l\'AudioContext');

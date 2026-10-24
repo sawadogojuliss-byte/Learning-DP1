@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Découper les prises sélectionnées en nombres entiers et préparer deux écoutes.
+"""Assembler les écoutes à partir des nombres publiés.
 
-Source : apercu/correction-voix/*.wav (fichiers de travail non publiés).
-Sortie : audio/voix/n-*.wav et les écoutes audio/nombres-*.wav.
-Les nouvelles prises gardent une marge de silence de 90 ms autour des sons.
+Sans argument : régénérer les deux écoutes depuis audio/voix/n-*.wav.
+Avec --decouper : découper aussi les prises sources dans
+apercu/correction-voix/*.wav (fichiers de travail non publiés).
+Les prises conservent une marge de silence de 90 ms autour des sons.
+Note : le chiffre sept est enregistré par l'homophone « cette », pour
+éviter que la synthèse interprète « sept » comme « septembre ».
 """
 from array import array
 from pathlib import Path
 import math
+import sys
 import wave
 
 RACINE = Path(__file__).resolve().parents[1]
@@ -80,11 +84,15 @@ def ecoute(nombres, destination):
 
 
 if __name__ == '__main__':
-    for n in (2, 6, 7, 16, 21, 30):
-        ecrire(VOIX / f'n-{n}.wav', resserrer(lire(SOURCE / f'n-{n}.wav')))
-    for gauche, droite in ((22, 23), (24, 25), (26, 27), (28, 29)):
-        un, deux = separer(SOURCE / f'n-{gauche}-{droite}.wav')
-        ecrire(VOIX / f'n-{gauche}.wav', un)
-        ecrire(VOIX / f'n-{droite}.wav', deux)
+    if sys.argv[1:] not in ([], ['--decouper']):
+        raise SystemExit('Usage : python3 tools/preparer-nombres-corriges.py [--decouper]')
+    if sys.argv[1:] == ['--decouper']:
+        for n in (2, 6, 7, 16, 21, 30):
+            prise = 'n-7-phoneme-cette.wav' if n == 7 else f'n-{n}.wav'
+            ecrire(VOIX / f'n-{n}.wav', resserrer(lire(SOURCE / prise)))
+        for gauche, droite in ((22, 23), (24, 25), (26, 27), (28, 29)):
+            un, deux = separer(SOURCE / f'n-{gauche}-{droite}.wav')
+            ecrire(VOIX / f'n-{gauche}.wav', un)
+            ecrire(VOIX / f'n-{droite}.wav', deux)
     ecoute(CORRIGES, 'nombres-corriges.wav')
     ecoute(range(1, 31), 'nombres-1-a-30.wav')
