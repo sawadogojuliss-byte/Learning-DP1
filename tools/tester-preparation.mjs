@@ -212,20 +212,38 @@ if (!fenetreExamen || Object.values(fenetreExamen).some(resultat => !resultat)) 
 
 /* Lots 1 et 2.3/2.4 : import et aperçu réellement visibles dans
    les deux onglets. Le test ne touche qu'au stockage de CE navigateur. */
-const importExamens = await page.evaluate(() => {
-    const original = devoirsLireStore();
+await page.evaluate(() => {
     navigateTo('devoirs');
     devoirsBasculerOnglet('examens');
-    const zone = document.getElementById('devoirsConfirmation');
     document.getElementById('devoirsTexteColleExam').value = 'Physique — 31/02/2027, 08h00 à 10h00';
     devoirsLireDocument('examens');
-    const proposition = zone.querySelector('[data-prop]');
+});
+/* L'aperçu doit atteindre réellement le viewport après la frame de
+   rendu : mesurer dans le même appel que scrollIntoView est prématuré. */
+let apercuVisible = false;
+try {
+    await page.waitForFunction(() => {
+        const zone = document.getElementById('devoirsConfirmation');
+        const rect = zone.getBoundingClientRect();
+        return !!zone.querySelector('[data-prop]') && !!zone.querySelector('.prop-date') &&
+            !zone.querySelector('.prop-date').value && rect.height > 0 &&
+            rect.top < innerHeight && rect.bottom > 0 &&
+            !document.getElementById('onglet-devoirs').contains(zone) &&
+            !document.getElementById('onglet-examens').contains(zone);
+    }, null, { timeout: 5000 });
+    apercuVisible = true;
+} catch (e) {
+    console.error('aperçu après rendu : ' + JSON.stringify(await page.evaluate(() => {
+        const panel = document.getElementById('panelDevoirs');
+        const rect = document.getElementById('devoirsConfirmation').getBoundingClientRect();
+        return { panel: panel.className, scrollTop: panel.scrollTop,
+            top: rect.top, bottom: rect.bottom, height: rect.height, viewport: innerHeight };
+    })));
+}
+const importExamens = await page.evaluate((apercuVisible) => {
+    const original = devoirsLireStore();
+    const zone = document.getElementById('devoirsConfirmation');
     const date = zone.querySelector('.prop-date');
-    const rectApercu = zone.getBoundingClientRect();
-    const apercuVisible = !!proposition && !!date && !date.value &&
-        rectApercu.height > 0 && rectApercu.top < innerHeight && rectApercu.bottom > 0 &&
-        !document.getElementById('onglet-devoirs').contains(zone) &&
-        !document.getElementById('onglet-examens').contains(zone);
     const dateSignalee = document.getElementById('exaOcrStatut').textContent.includes('Date à préciser');
     const aucunAjout = devoirsLireStore().examens.length;
     devoirsConfirmerPropositions('examens');
@@ -265,7 +283,7 @@ const importExamens = await page.evaluate(() => {
     return { apercuVisible, dateSignalee, refusDate, visibleApresChangement,
         ajouteDansExamens, bilanBonOnglet, autreBrouillonGarde,
         champsCompleter, rienPlanifieSansMatiere };
-});
+}, apercuVisible);
 if (!importExamens || Object.values(importExamens).some(resultat => !resultat)) {
     echec('aperçu commun, date à préciser et confirmation des examens : ' + JSON.stringify(importExamens));
 }
