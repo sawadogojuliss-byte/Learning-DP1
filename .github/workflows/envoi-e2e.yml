@@ -21,6 +21,7 @@ on:
       - 'tools/tester-horaires.mjs'
       - 'tools/tester-voix.mjs'
       - 'tools/tester-accessibilite.cjs'
+      - 'tools/tester-upload-emploi.cjs'
       - 'tools/tester-semaines.mjs'
       - '.github/workflows/envoi-e2e.yml'
   workflow_dispatch:
@@ -82,6 +83,11 @@ jobs:
           set -o pipefail
           node tools/tester-accessibilite.cjs 2>&1 | tee /tmp/sortie-accessibilite.txt
 
+      - name: Vérifier l’upload de PDF, photo et scan sans enregistrement réel
+        run: |
+          set -o pipefail
+          node tools/tester-upload-emploi.cjs 2>&1 | tee /tmp/sortie-upload-emploi.txt
+
       - name: Vérifier la présentation Atelier sans envoi réel
         run: |
           set -o pipefail
@@ -110,6 +116,7 @@ jobs:
           mkdir -p /tmp/journal
           cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
           cp /tmp/sortie-accessibilite.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-upload-emploi.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-semaines.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-atelier.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-espace-admin.txt /tmp/journal/ 2>/dev/null || true

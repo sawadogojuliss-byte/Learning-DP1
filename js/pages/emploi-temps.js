@@ -230,7 +230,12 @@ function emploiParseItems(items) {
             for (var k = i - 1; k >= 0 && morceaux.length < 2; k--) {
                 var auDessus = colonne[k];
                 if (auDessus.y < yRef) break; /* en dessous : autre chose */
-                if (auDessus.y - yRef > 18) break; /* trop loin : un autre bloc (événement) */
+                /* Le premier nom peut être espacé de son horaire (PDF ou
+                   photo) ; la 2e ligne du nom doit rester beaucoup plus
+                   proche, sinon on avale l'événement du bloc précédent. */
+                var ecartMax = morceaux.length ? (it.ocrPos ? Math.max(18, it.hauteur * 1.5) : 18)
+                    : (it.ocrPos ? Math.max(45, it.hauteur * 2.2) : 45);
+                if (auDessus.y - yRef > ecartMax) break;
                 if (emploiContientPlage(auDessus.str)) break;
                 morceaux.unshift(String(auDessus.str).trim());
                 yRef = auDessus.y;
@@ -290,6 +295,76 @@ function emploiParseTexte(texte) {
     return { jours: jours, colonnes: 0 };
 }
 
+/* L'OCR d'une photo lit souvent la grille ligne par ligne :
+   « Lundi Mardi », puis « Maths Chimie », puis deux horaires sur la même
+   ligne. Garder les positions des mots permet de reconstituer chaque
+   colonne ; le texte brut reste disponible si la grille est absente. */
+function emploiOcrItems(data) {
+    var items = [];
+    var mots = (data && Array.isArray(data.words) ? data.words : []).filter(function (mot) {
+        return mot && mot.text && mot.text.trim() && mot.bbox &&
+            isFinite(mot.bbox.x0) && isFinite(mot.bbox.y0) && isFinite(mot.bbox.y1);
+    }).sort(function (a, b) { return a.bbox.y0 - b.bbox.y0; });
+    /* Une même plage horaire peut être répartie entre deux lignes OCR
+       (08:00 sur une ligne, « - 09:00 » juste en dessous). On regroupe
+       par hauteur de caractères avant de séparer les colonnes. */
+    var lignes = [];
+    mots.forEach(function (mot) {
+        var hauteur = Math.max(1, mot.bbox.y1 - mot.bbox.y0);
+        var ligne = lignes.find(function (l) {
+            return Math.abs(mot.bbox.y0 - l.y) <= Math.max(12, Math.min(75, Math.max(hauteur, l.hauteur) * 0.7));
+        });
+        if (!ligne) { ligne = { y: mot.bbox.y0, hauteur: hauteur, mots: [] }; lignes.push(ligne); }
+        ligne.mots.push(mot);
+    });
+    lignes.forEach(function (ligne) {
+        var mots = ligne.mots.sort(function (a, b) { return a.bbox.x0 - b.bbox.x0; });
+        var groupe = [];
+        function ajouter() {
+            if (!groupe.length) return;
+            var premier = groupe[0];
+            var hauteur = Math.max.apply(null, groupe.map(function (m) { return m.bbox.y1 - m.bbox.y0; }));
+            items.push({ str: groupe.map(function (m) { return m.text; }).join(' '),
+                x: premier.bbox.x0, y: -premier.bbox.y0,
+                ocrPos: true, hauteur: Math.max(15, hauteur) });
+            groupe = [];
+        }
+        mots.forEach(function (mot) {
+            var precedent = groupe[groupe.length - 1];
+            var hauteur = mot.bbox.y1 - mot.bbox.y0;
+            var hauteurPrecedente = precedent ? precedent.bbox.y1 - precedent.bbox.y0 : 0;
+            var seuil = Math.max(20, Math.min(70, Math.max(hauteur, hauteurPrecedente) * 0.9));
+            if (precedent && mot.bbox.x0 - precedent.bbox.x1 > seuil) ajouter();
+            groupe.push(mot);
+        });
+        ajouter();
+    });
+    return items;
+}
+
+function emploiAnalyserLecture(items) {
+    var jours = [[], [], [], [], [], [], []];
+    var pages = {};
+    (items || []).forEach(function (it) {
+        var num = Number(it.page) || 1;
+        (pages[num] || (pages[num] = [])).push(it);
+    });
+    Object.keys(pages).forEach(function (numero) {
+        var page = pages[numero];
+        var lisibles = page.filter(function (it) { return !it.ocr; });
+        var ocr = page.filter(function (it) { return it.ocr; });
+        var position = lisibles.length ? emploiParseItems(lisibles) :
+            emploiParseItems(ocr.filter(function (it) { return it.ocrPos; }));
+        var reconnus = position.jours.some(function (liste) { return liste.length; });
+        var texte = reconnus ? null : emploiParseTexte((lisibles.length ? lisibles : ocr.filter(function (it) { return !it.ocrPos; }))
+            .map(function (it) { return it.str; }).join('\n'));
+        (reconnus ? position : texte).jours.forEach(function (liste, idx) {
+            jours[idx] = jours[idx].concat(liste);
+        });
+    });
+    return { jours: jours };
+}
+
 /* ── Le document devient des propositions ─────────────────────────── */
 
 function emploiDire(texte, erreur) {
@@ -330,11 +405,14 @@ function emploiPdfItems(fichier, dire, actif) {
             return doc.getPage(n).then(function (page) {
                 return page.getTextContent().then(function (tc) {
                     var brut = (tc.items || []).map(function (it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('');
-                    var assezDeTexte = brut.trim().length >= 60;
+                    /* Un emploi d'une ou deux matières tient parfois en
+                       moins de 60 caractères : c'est tout de même un PDF
+                       texte, pas une page à passer à l'OCR. */
+                    var assezDeTexte = brut.trim().length >= 15 && /\d{1,2}\s*[:h.]\s*\d{2}/.test(brut);
                     if (assezDeTexte) {
                         (tc.items || []).forEach(function (it) {
                             if (!it.str || !it.str.trim() || !it.transform) return;
-                            items.push({ str: it.str, x: it.transform[4], y: it.transform[5] });
+                            items.push({ str: it.str, x: it.transform[4], y: it.transform[5], page: n });
                         });
                         return pageSuivante(n + 1);
                     }
@@ -353,9 +431,12 @@ function emploiPdfItems(fichier, dire, actif) {
                             }));
                         });
                     }).then(function (res) {
+                        emploiOcrItems(res && res.data).forEach(function (it) {
+                            items.push(Object.assign({ ocr: true, page: n }, it));
+                        });
                         var lignes = String((res && res.data && res.data.text) || '').split(/[\n\r]+/);
                         lignes.forEach(function (l) {
-                            if (l && l.trim()) items.push({ str: l, x: 0, y: 0, ocr: true });
+                            if (l && l.trim()) items.push({ str: l, x: 0, y: 0, ocr: true, page: n });
                         });
                         return pageSuivante(n + 1);
                     });
@@ -386,22 +467,20 @@ function emploiLireDocument() {
     emploiDire('Lecture du document…', false);
     var promesse;
     if (typeof devoirsEstPdf === 'function' && devoirsEstPdf(fichier)) {
-        promesse = emploiPdfItems(fichier, function (m) { if (actif()) emploiDire(m, false); }, actif).then(function (items) {
-            var avecPos = items.filter(function (it) { return !it.ocr; });
-            var colonnes = avecPos.length >= 6 ? emploiParseItems(avecPos) : null;
-            var lu = emploiParseTexte(items.filter(function (it) { return it.ocr; }).map(function (it) { return it.str; }).join('\n'));
-            if (colonnes && colonnes.colonnes) {
-                colonnes.jours.forEach(function (liste, i) { lu.jours[i] = liste.concat(lu.jours[i]); });
-            }
-            return lu;
-        });
+        promesse = emploiPdfItems(fichier, function (m) { if (actif()) emploiDire(m, false); }, actif)
+            .then(emploiAnalyserLecture);
     } else {
         promesse = devoirsChargerTesseract().then(function () {
             if (!actif()) return '';
             return window.Tesseract.recognize(fichier, 'fra', Object.assign({}, devoirsOcrOptions(), {
                 logger: function (info) { emploiProgression(info, 1, 1, actif); }
-            })).then(function (res) { return (res && res.data && res.data.text) || ''; });
-        }).then(emploiParseTexte);
+            })).then(function (res) {
+                var items = emploiOcrItems(res && res.data);
+                var colonnes = emploiParseItems(items);
+                return colonnes.jours.some(function (liste) { return liste.length; })
+                    ? colonnes : emploiParseTexte((res && res.data && res.data.text) || '');
+            });
+        });
     }
     promesse.then(function (res) {
         if (!actif()) return;
