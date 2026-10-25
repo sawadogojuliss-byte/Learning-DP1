@@ -36,13 +36,20 @@ const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Le
         });
         await page.waitForFunction(() => document.getElementById('contextModal').contains(document.activeElement), null, { timeout: 1500 });
         assert.equal(await page.evaluate(() => document.getElementById('contextModal').contains(document.activeElement)), true, 'focus dans le dialogue');
+        const avantTab = await page.evaluate(() => ({
+            element: document.activeElement?.id || document.activeElement?.tagName,
+            role: document.getElementById('contextModal').getAttribute('role'),
+            visibilite: getComputedStyle(document.getElementById('contextModal')).visibility,
+            taille: document.getElementById('contextModal').getClientRects().length,
+            parent: getComputedStyle(document.getElementById('app-pages')).visibility
+        }));
         await page.keyboard.press('Shift+Tab');
         const apresTab = await page.evaluate(() => ({
             dedans: document.getElementById('contextModal').contains(document.activeElement),
             element: document.activeElement?.id || document.activeElement?.tagName,
             fenetres: Array.from(document.querySelectorAll('.context-modal.active,.app-panel.active')).map(el => el.id)
         }));
-        assert.equal(apresTab.dedans, true, 'focus retenu dans le dialogue : ' + JSON.stringify(apresTab));
+        assert.equal(apresTab.dedans, true, 'focus retenu dans le dialogue : ' + JSON.stringify({ avantTab, apresTab }));
         await page.keyboard.press('Escape');
         await page.waitForTimeout(80);
         assert.equal(await page.evaluate(() => document.getElementById('contextModal').classList.contains('active')), false, 'Échap ferme le dialogue');
