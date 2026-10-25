@@ -216,7 +216,8 @@ function initSoutien() {
 }
 
 function updateStreak() {
-    var n = typeof compterJourConnecte === 'function' ? compterJourConnecte() : 1;
+    if (typeof compterJourConnecte === 'function') compterJourConnecte();
+    var n = typeof boiteFlammes === 'function' ? boiteFlammes() : 1;
     var el = document.getElementById('streakCount');
     if (el) el.textContent = n + ' jour' + (n > 1 ? 's' : '');
 }

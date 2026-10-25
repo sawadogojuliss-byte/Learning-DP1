@@ -449,11 +449,12 @@ function compterJourConnecte() {
         n = 1;
     }
     var el = document.getElementById('joursCompte');
-    if (el) el.textContent = String(n);
+    var serie = typeof boiteFlammes === 'function' ? boiteFlammes() : n;
+    if (el) el.textContent = String(serie);
     var flamme = document.getElementById('joursFlamme');
     if (flamme) flamme.style.display = 'inline-flex';
     var soutien = document.getElementById('streakCount');
-    if (soutien) soutien.textContent = n + ' jour' + (n > 1 ? 's' : '');
+    if (soutien) soutien.textContent = serie + ' jour' + (serie > 1 ? 's' : '');
     return n;
 }
 

@@ -10,7 +10,7 @@ Aucune explication de ce changement n'a été ajoutée aux pages des élèves.
 |---|---|---|
 | `questions` | Nouvelles questions posées dans Aide | Cinq comptes admins seulement |
 | `feedbacks` | Nouveaux avis et suggestions | Cinq comptes admins seulement |
-| `emplois_du_temps` | Anciens emplois du temps, en attente de purge ; **nouveaux envois suspendus** | Cinq comptes admins seulement |
+| `emplois_du_temps` | Semaines privées reçues et versions immuables ; conservation des archives | Cinq comptes admins seulement |
 | `reponses` | Traces des réponses envoyées | Cinq comptes admins seulement |
 | `emplois`, `profils`, `connexions` | Archives de la version précédente, seulement si ces collections ont reçu des données | Cinq comptes admins seulement |
 | `boite` | **Archives** reçues avant cette séparation ; anciens onglets encore ouverts peuvent aussi y écrire temporairement | Cinq comptes admins seulement |
@@ -45,8 +45,9 @@ règles de l'application ne limitent pas les administrateurs du projet.
    `02_nom_utilisateur`, `04_question` et `z_donnees_techniques`.
    Un avis reçu depuis Feedback apparaît dans `feedbacks` avec `04_feedback`
    à la place de `04_question`. `type` se trouve dans le groupe technique.
-   Les emplois du temps ne sont plus envoyés pendant la pause. Les anciennes
-   entrées restent dans `boite`, elles n'ont pas été effacées ni déplacées.
+   Les emplois du temps complets sont envoyés séparément dans `emplois_du_temps`
+   si les règles actives autorisent leur création. Les anciennes entrées dans
+   `boite` ne sont ni effacées ni déplacées.
 4. **Vérifier le compte de l'équipe.** Sur un navigateur personnel, se
    connecter au site avec le bouton Google **en choisissant exactement**
    `ibstudyplan@gmail.com`, puis ouvrir le menu : « Questions des utilisateurs »,
@@ -64,35 +65,27 @@ listées ici sont utilisées par une autre application sur **la même base**,
 vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
 collection sans règle correspondante sera inaccessible depuis les applications.
 
-## Pause et purge des emplois du temps — à faire dans cet ordre
+## Conserver les emplois du temps et leurs versions
 
-Le site n'envoie plus de **nouveaux documents `emploi`** et efface les
-anciennes tentatives d'envoi `emploi` gardées localement. Les plannings
-personnels restent sur l'appareil et dans la progression de leur propriétaire
-(`comptes/{uid}`) : la pause ne désactive pas le planning des élèves.
-La création de fiches **sans aucun créneau** est également bloquée dans le
-code, pour éviter qu'elles reviennent après la reprise.
+**Ne supprimer ni `emplois_du_temps`, ni `emplois`, ni `boite`.** La demande
+actuelle est de conserver durablement la dernière semaine reçue et toutes ses
+versions antérieures. Le site n'envoie pas une nouvelle version au seul passage
+du temps ou au changement de flamme ; il n'en envoie qu'après un changement
+des données du planning par l'élève. Les documents confirmés ne sont jamais
+modifiés ni supprimés par le site (`allow update, delete: if false`). Une
+sauvegarde régulière de la base reste nécessaire pour se prémunir contre une
+suppression manuelle, un incident du service ou une erreur d'administration.
 
-1. Publier d'abord la version actuelle de [`firestore.rules`](firestore.rules)
-   dans l'onglet **Règles** de Firebase : les écritures d'emploi y sont
-   interdites dans `emplois_du_temps`, l'ancienne `emplois` et l'archive
-   `boite`. Cela bloque même un onglet resté sur l'ancienne version du site.
-2. Firestore Database → **Données** → sélectionner précisément la collection
-   `emplois_du_temps` → menu **⋮** à droite du nom de cette collection →
-   **Supprimer la collection**. Recopier `emplois_du_temps` pour confirmer.
-   La suppression est définitive. **Ne pas supprimer `comptes` ni `boite`.**
-3. Actualiser **Données**. La collection `emplois_du_temps` disparaît ; les
-   messages dans `questions` et `feedbacks` restent présents.
-
-La collection `boite` est nécessaire **pour l'instant** : elle contient aussi
-d'anciennes questions, suggestions et réponses. La supprimer entièrement
-ferait perdre ces messages. Elle peut contenir elle-même d'anciens documents
-`type: emploi`, et une ancienne collection `emplois` peut aussi exister.
-La vérification d'accès admin du site lit encore `boite` : ne pas la
-supprimer avant d'avoir déplacé les archives **et** adapté cette vérification.
-Supprimer `emplois_du_temps` ne supprime **pas** ces archives : ne pas effacer
-`boite` à l'aveugle. Une purge des seules anciennes fiches `emploi` demande
-un inventaire et une sauvegarde des autres types avant d'agir.
+La publication du site GitHub Pages **ne publie pas les règles Firestore**.
+Vérifier, dans le projet réel, que les règles actives correspondent au fichier
+[`firestore.rules`](firestore.rules), après avoir sauvegardé les règles
+existantes. Une réception échouée reste en attente dans le navigateur de
+l'élève ; il faudra qu'il revienne avec ce même navigateur. Aucune collection
+ne doit être purgée avant un inventaire, une sauvegarde et une migration
+vérifiée. L'ancienne collection `boite` sert également aux questions et à la
+vérification des comptes admins : ne pas la supprimer. Voir
+[`docs/reception-emplois.md`](docs/reception-emplois.md) pour le contrôle de
+mise en service sans fiches de test ni courrier aux utilisateurs.
 
 ## Présentation des questions et feedbacks dans Firebase
 
@@ -124,13 +117,12 @@ est reprise avec les champs lisibles et l'heure d'origine. Les documents
 à plat déjà créés restent à migrer séparément si l'on veut aussi les changer.
 
 Les nouveaux messages ne recopient pas le planning dans la question ou le
-feedback. L'envoi séparé dans `emplois_du_temps` reste suspendu.
+feedback. L'envoi séparé dans `emplois_du_temps` nécessite les règles de réception actives.
 
 ## Présentation des emplois du temps dans Firebase
 
-Quand la réception des emplois du temps sera réactivée, les **nouveaux envois**
-dans `emplois_du_temps` montreront en
-premier `01_nom_utilisateur`, puis `02_matieres` et enfin
+Une fois les règles actives, les **nouveaux envois** dans
+`emplois_du_temps` montreront en premier `01_nom_utilisateur`, puis `02_matieres` et enfin
 `03_emploi_du_temps`. Ce dernier champ déroule les jours de la semaine dans
 l'ordre (`01_Lundi`, `02_Mardi`, etc.), avec une ligne par créneau, par exemple
 `08h00 – 09h30  ·  Mathématiques`. Un planning hebdomadaire tient dans **un
@@ -151,8 +143,9 @@ lisibles par les cinq admins. Aucun ancien onglet ne peut plus y déposer une
 nouvelle question ou un nouveau feedback à plat. Le site lit l'archive **et** les nouvelles
 collections, afin de ne perdre aucune question. Le code rectifié n'utilise
 jamais `boite` comme repli pour les nouvelles questions, feedbacks ou emplois :
-si les règles refusent l'écriture, le formulaire signale l'échec et garde
-l'envoi sur l'appareil jusqu'à ce que les règles soient corrigées. Ne pas supprimer
+si les règles refusent l'écriture, les formulaires de questions et avis
+signalent l'échec. Un emploi du temps reste en attente sur le navigateur
+de l'élève jusqu'à ce que les règles soient corrigées. Ne pas supprimer
 `boite` : certaines questions et certains emplois y sont encore. Une migration
 ancienne → nouvelles collections ne doit être faite qu'après sauvegarde,
 vérification des nombres et déduplication ; elle n'est **pas** automatique.

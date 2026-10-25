@@ -320,11 +320,23 @@ function boiteEmploiAvecCreneaux(record) {
     }));
 }
 
+function boiteLireAckEmploi(record) {
+    var cle = boiteCleFileEmploi(record);
+    var ack = boiteLireJson(BOITE_EMPLOI_HASH + ':' + encodeURIComponent(cle));
+    if (ack && ack.cle === cle) return ack;
+    ack = boiteLireJson(BOITE_EMPLOI_HASH); /* version ancienne, non partitionnée */
+    return ack && ack.cle === cle ? ack : null;
+}
+
+function boiteEcrireAckEmploi(record, ack) {
+    boiteEcrireJson(BOITE_EMPLOI_HASH + ':' + encodeURIComponent(ack.cle), ack);
+    boiteEcrireJson(BOITE_EMPLOI_HASH, ack); /* compatibilité avec les anciens onglets */
+}
+
 function boiteEmploiVideAutorise(record) {
     /* Une semaine entièrement vidée est une édition, pas une inscription
        vide : elle ne part que si cette personne a déjà une copie reçue. */
-    var ack = boiteLireJson(BOITE_EMPLOI_HASH);
-    return !!(record && ack && ack.cle && ack.cle === boiteCleFileEmploi(record));
+    return !!(record && boiteLireAckEmploi(record));
 }
 
 /* À l'écriture, seules les informations de lecture restent à plat.
@@ -420,6 +432,7 @@ function boiteLireBoite() {
         var publique = boiteLireCollection(BOITE_PUBLIE, '', 200).catch(function () { return []; });
         if (!boiteEstAdmin()) return publique;
         boiteErreurLecture = '';
+        boiteErreurEmplois = '';
         function depuisPour(nom, champ) { return boiteDernierParCollection[nom + '|' + (champ || 'at')] || ''; }
         function retenirDate(nom, champ, items, complet) {
             if (generation !== boiteSessionGeneration) return items;
@@ -454,6 +467,7 @@ function boiteLireBoite() {
                     /* Avant la publication des règles, la lecture des nouvelles
                        collections est refusée ; ne rien divulguer au visiteur. */
                     boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
+                    if (nom === 'emplois_du_temps') boiteErreurEmplois = boiteErreurLecture;
                     return [];
                 }));
             });
@@ -469,6 +483,7 @@ function boiteLireBoite() {
 }
 
 var boiteErreurLecture = '';
+var boiteErreurEmplois = '';
 
 function boiteLireJson(cle) {
     try { return JSON.parse(localStorage.getItem(cle) || 'null'); } catch (e) { return null; }
@@ -593,6 +608,17 @@ function boiteJoursCompacts(jours, maxSlots) {
 }
 
 var boiteEmploisEnCours = {};
+function boiteAcquitterEmploi(record) {
+    var cle = boiteCleFileEmploi(record);
+    var metaCle = BOITE_EMPLOI_HASH + ':attente:' + encodeURIComponent(cle);
+    var meta = boiteLireJson(metaCle);
+    /* Un réessai hors ligne peut se terminer dans un nouvel onglet, après
+       rechargement : l'ACK appartient à la version réellement confirmée. */
+    if (!meta || meta.at !== record.at) return;
+    boiteEcrireAckEmploi(record, { hash: meta.hash, faits: meta.faits, cle: cle, at: Date.now() });
+    try { localStorage.removeItem(metaCle); } catch (e) {}
+}
+
 function boiteEnvoyerDistant(record) {
     /* Sérialiser les versions d'un même élève ; une ancienne réponse du
        serveur ne peut pas acquitter une version plus récente. */
@@ -604,6 +630,7 @@ function boiteEnvoyerDistant(record) {
             if (!courant || JSON.stringify(courant) !== JSON.stringify(record)) return false;
             return boiteEcrireBoite(record).then(function () {
                 boiteRetirerFile(record);
+                boiteAcquitterEmploi(record);
                 return true;
             });
         });
@@ -642,6 +669,7 @@ function boiteNettoyerSession() {
     boiteListesCache = null;
     boiteSecretCache = '';
     boiteErreurLecture = '';
+    boiteErreurEmplois = '';
     boiteAdminVerifie = false;
     boiteAdminTente = false;
     /* Ne pas laisser sur l'appareil une réponse mail restée en attente. */
@@ -936,12 +964,15 @@ function boiteJoindrePersonne(a, b) {
     var recent = String(b.at || '') >= String(a.at || '') ? b : a;
     var ancien = recent === b ? a : b;
     var nom = boiteChoisirNom(recent, ancien);
-    var complet = boiteEstComplet(recent);
+    /* Un contact récent ou un vieux morceau partiel ne remplace pas la
+       dernière semaine complète effectivement reçue. */
+    var semaine = boiteEstComplet(recent) ? recent : (boiteEstComplet(ancien) ? ancien : null);
+    var complet = !!semaine;
     return {
         type: 'emploi',
         id: recent.id || ancien.id || '',
         appareil: recent.appareil || ancien.appareil || '',
-        at: recent.at || ancien.at || '',
+        at: semaine ? semaine.at : (recent.at || ancien.at || ''),
         nom: nom,
         classe: recent.classe || ancien.classe || '',
         email: recent.email || ancien.email || recent.google || ancien.google || '',
@@ -950,8 +981,8 @@ function boiteJoindrePersonne(a, b) {
         googleSub: recent.googleSub || ancien.googleSub || '',
         firebaseUid: recent.firebaseUid || ancien.firebaseUid || '',
         flammes: recent.flammes != null ? Number(recent.flammes || 0) : Number(ancien.flammes || 0),
-        matieres: (recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || []),
-        jours: boiteJoindreJours(ancien.jours, recent.jours, complet),
+        matieres: semaine ? (semaine.matieres || []) : ((recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || [])),
+        jours: semaine ? boiteJoursOrdonnes(semaine.jours) : boiteJoindreJours(ancien.jours, recent.jours, false),
         complet: complet ? 1 : 0
     };
 }
@@ -1155,6 +1186,7 @@ function boiteChargerListes(force) {
         var items = (boiteEstAdmin() && source.ok ? boiteLireFile().filter(function (item) { return item.type !== 'emploi'; }) : []).concat(source.items || []);
         var fusion = boiteFusionner(items);
         fusion.partiel = !source.ok;
+        fusion.erreurEmplois = boiteEstAdmin() && boiteErreurEmplois || '';
         /* Un admin dont la session Firebase a expiré doit le savoir :
            sinon la boîte paraît vide sans raison. */
         fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
@@ -1938,7 +1970,8 @@ function boiteRendreEmplois(fusion) {
     }
     if (statut) {
         var n = personnes.length;
-        statut.textContent = (fusion.partiel ? 'Lecture incomplète : certaines fiches peuvent manquer. ' : '')
+        statut.textContent = (fusion.erreurEmplois ? 'Lecture des emplois du temps refusée ou indisponible : vérifier la connexion admin et les règles Firestore actives. ' :
+            fusion.partiel ? 'Lecture incomplète : certaines fiches peuvent manquer. ' : '')
             + n + ' personne' + (n > 1 ? 's' : '') + ' · ' + nbRecus + ' planning' + (nbRecus > 1 ? 's' : '') + ' reçu' + (nbRecus > 1 ? 's' : '');
         if (statut.setAttribute) statut.setAttribute('data-partiel', fusion.partiel ? 'true' : 'false');
     }
@@ -1948,6 +1981,7 @@ function boiteRendreEmplois(fusion) {
 function boiteSignatureEmplois(fusion) {
     return JSON.stringify({
         partiel: !!(fusion && fusion.partiel),
+        erreurEmplois: fusion && fusion.erreurEmplois || '',
         personnes: boitePersonnes(fusion).map(function (item) {
             return [item.id || '', item.nom || '', item.classe || '', item.google || item.email || '', item.at || '', item.jours || []];
         }),
@@ -2345,30 +2379,93 @@ function boiteInscrit() {
     return !!(planning && planning.classList.contains('active') && boiteNom());
 }
 
+/* Seules les données du planning choisies par l'élève déclenchent une
+   nouvelle version. La date, la flamme, le jour consulté et le planning
+   recalculé automatiquement ne sont pas des modifications de l'élève. */
+function boiteFaitsEmploi() {
+    if (typeof memoireLireEtat !== 'function') return '';
+    var data;
+    try { data = memoireLireEtat(); } catch (e) { return ''; }
+    if (!data) return '';
+    var champs = [
+        'userName', 'ibYear', 'subjects', 'optionalSubjects', 'targetScore',
+        'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup', 'weekdaySleepHours',
+        'saturdaySleepHours', 'sundaySleepHours', 'transportMode', 'carDeparture',
+        'carToSchool', 'carFromSchool', 'motoDeparture', 'motoReturn',
+        'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates',
+        'holidayDroppedDates', 'sameFreeTime', 'freeTimeMinutes', 'freeTimeByDay',
+        'prepMatinMinutes', 'prepMatinDebut', 'prepMatinFin', 'prepSoirMinutes',
+        'prepSoirDebut', 'prepSoirFin', 'petitDejHeure', 'petitDejMinutes',
+        'dinerHeure', 'dinerMinutes', 'habitudesDefinies', 'phoneDays',
+        'samePhoneDuration', 'phoneDuration', 'phoneDayDurations', 'customEvents',
+        'emploiScolaire', 'devoirsStore', 'exercices',
+        'memoirLevel', 'iaLevel', 'iaLevels', 'memoirPlan', 'iaPlans'
+    ];
+    var faits = {};
+    champs.forEach(function (champ) { faits[champ] = data[champ]; });
+    if (faits.emploiScolaire) faits.emploiScolaire = { jours: faits.emploiScolaire.jours };
+    if (faits.devoirsStore) {
+        faits.devoirsStore = Object.assign({}, faits.devoirsStore);
+        delete faits.devoirsStore.bacDemande; /* version du dialogue, pas une réponse */
+    }
+    /* Le report automatique à la semaine suivante ne vaut pas édition. */
+    faits.customEvents = (data.customEvents || []).map(function (event) {
+        if (!event) return event;
+        var copie = Object.assign({}, event);
+        delete copie.reporte;
+        delete copie.depuisSemaine;
+        return copie;
+    });
+    return JSON.stringify(faits);
+}
+
+var boitePublicationsEnCours = {};
 function boitePublierEmploi(force) {
     if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return;
     if (!boiteNom()) return;
     if (!force && !boiteInscrit()) return;
     var record = boiteStabiliserComplet(boiteSnapshotEmploi());
     if ((!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) || !boiteEstComplet(record) || boiteEmploiRetire(record)) return;
+    var faits = boiteFaitsEmploi();
     var empreinte = JSON.stringify({
         nom: record.nom,
         classe: record.classe,
         jours: record.jours,
         matieres: record.matieres,
         google: record.google,
-        googleSub: record.googleSub,
-        flammes: record.flammes
+        googleSub: record.googleSub
     });
-    var deja = boiteLireJson(BOITE_EMPLOI_HASH);
-    var dejaComplet = '';
-    try { dejaComplet = localStorage.getItem(BOITE_COMPLET) || ''; } catch (e) {}
-    if (dejaComplet === BOITE_COMPLET_VERSION && deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return;
+    var cle = boiteCleFileEmploi(record);
+    var deja = boiteLireAckEmploi(record);
+    /* Ancienne empreinte : ignorer seulement les champs de connexion.
+       Une même semaine déjà reçue n'a pas besoin d'une nouvelle version. */
+    var ancienne = null;
+    try { ancienne = deja && JSON.parse(deja.hash); } catch (e) {}
+    if (deja && deja.cle === cle &&
+        ((faits && deja.faits === faits) ||
+         (!deja.faits && ancienne && JSON.stringify({
+             nom: ancienne.nom, classe: ancienne.classe, jours: ancienne.jours,
+             matieres: ancienne.matieres, google: ancienne.google,
+             googleSub: ancienne.googleSub
+         }) === empreinte))) {
+        if (faits && !deja.faits) boiteEcrireAckEmploi(record, { hash: empreinte, faits: faits, cle: cle, at: deja.at });
+        return;
+    }
+    var signature = faits || empreinte;
+    if (boitePublicationsEnCours[cle] === signature) return;
+    boitePublicationsEnCours[cle] = signature;
+    /* Garder la signature à côté de la file jusqu'à l'ACK du serveur. Un
+       réessai ultérieur ne doit pas créer une autre version au prochain clic. */
+    boiteEcrireJson(BOITE_EMPLOI_HASH + ':attente:' + encodeURIComponent(cle), {
+        at: record.at, faits: faits, hash: empreinte
+    });
     boiteEnvoyer(record).then(function (ok) {
-        if (!ok) return;
-        boiteEcrireJson(BOITE_EMPLOI_HASH, { hash: empreinte, cle: boiteCleFileEmploi(record), at: Date.now() });
-        try { localStorage.setItem(BOITE_COMPLET, BOITE_COMPLET_VERSION); } catch (e) {}
-    }).catch(function () {});
+        if (ok) {
+            try { localStorage.setItem(BOITE_COMPLET, BOITE_COMPLET_VERSION); } catch (e) {}
+        }
+    }).catch(function () {}).then(function () {
+        if (boitePublicationsEnCours[cle] === signature) delete boitePublicationsEnCours[cle];
+    });
 }
 
 var boiteEmploiTimer = null;
@@ -2539,7 +2636,6 @@ function boiteJourAvant(cle) {
 
 function boiteFlammes() {
     var aujourd = boiteJourCle(new Date());
-    var hier = boiteJourAvant(aujourd);
     var n = 1;
     try {
         n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
@@ -2550,11 +2646,20 @@ function boiteFlammes() {
             var parsed = ancien ? new Date(ancien) : null;
             if (parsed && !isNaN(parsed.getTime())) dernier = boiteJourCle(parsed);
         }
-        if (dernier === aujourd) {
-            if (!n) n = 1;
-        } else if (dernier === hier) {
+        var parts = dernier.split('-');
+        var debut = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) : null;
+        var fin = new Date();
+        fin.setHours(0, 0, 0, 0);
+        var jours = debut && !isNaN(debut.getTime()) ? Math.round((fin - debut) / 86400000) : null;
+        if (jours === 0) {
+            /* Après une interruption, le retour reste à zéro ce jour-là. */
+            if (!localStorage.getItem('studyPlanIB_flammeJour') && !n) n = 1;
+        } else if (jours != null && jours > 0 && jours <= 3) {
+            /* Au plus deux journées manquées : la série continue. */
             n = (n || 0) + 1;
-        } else {
+        } else if (jours != null && jours > 3) {
+            n = 0;
+        } else if (jours == null) {
             n = 1;
         }
         localStorage.setItem('studyPlanIB_flamme', String(n));
@@ -2781,6 +2886,9 @@ if (typeof document !== 'undefined') {
     /* Les anciennes réponses en attente ne doivent plus rester lisibles. */
     try { boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.type !== 'reponse' && item.type !== 'emploi'; })); } catch (e) {}
     boiteMajMenu();
+    /* Les scripts du planning se chargent avant celui de la boîte : rafraîchir
+       les trois compteurs avec la vraie série, distincte des jours cumulés. */
+    if (typeof compterJourConnecte === 'function') compterJourConnecte();
     /* Un envoi raté reste dans la file : on le retente tant que la page
        est ouverte, pas seulement à son ouverture. */
     setInterval(function () {

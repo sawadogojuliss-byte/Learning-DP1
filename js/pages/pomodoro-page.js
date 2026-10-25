@@ -791,8 +791,7 @@ function focusPeindreFlamme() {
     if (!el) return;
     var n = 0;
     try { n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0; } catch (e) {}
-    var compte = document.getElementById('joursCompte');
-    if (compte && compte.textContent) n = parseInt(compte.textContent, 10) || n;
+    if (typeof boiteFlammes === 'function') n = boiteFlammes();
     el.textContent = String(n);
 }
 
