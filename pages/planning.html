@@ -151,8 +151,20 @@
         <!-- Day Navigation -->
         <div style="position: sticky; top: 4rem; z-index: 10; background: rgba(255,255,255,0.95); backdrop-filter: blur(8px); border-bottom: 1px solid #f3f4f6; padding: 0.75rem 1rem;">
             <div style="max-width: 56rem; margin: 0 auto;">
-                <div id="dayNavigation" style="display: flex; justify-content: space-between; gap: 0.25rem; overflow-x: auto; padding-bottom: 0.5rem;">
+                <div class="planning-semaine" aria-label="Navigation par semaine">
+                    <div class="planning-semaine-entete">
+                        <div class="planning-semaine-titre"><span id="planningSemaineType">Semaine actuelle</span><strong id="planningSemaineDates"></strong></div>
+                        <div class="planning-semaine-actions">
+                            <button type="button" onclick="planningChangerSemaine(-1)" aria-label="Semaine précédente" title="Semaine précédente">‹</button>
+                            <button type="button" onclick="planningChangerSemaine(1)" aria-label="Semaine suivante" title="Semaine suivante">›</button>
+                            <button type="button" id="planningAujourdhui" onclick="planningRevenirAujourdhui()" hidden>Aujourd’hui</button>
+                        </div>
+                    </div>
+                    <div class="planning-semaine-sousbar"><span id="planningJourDate"></span><button type="button" id="planningMinuteurEntete" onclick="navigateTo('pomodoro')" hidden aria-label="Ouvrir le minuteur en cours"></button></div>
+                    <p id="planningSemaineLecture" class="planning-semaine-lecture" hidden>Consultation seulement : les modifications de ton planning sont hebdomadaires. Reviens à cette semaine pour les modifier.</p>
                 </div>
+                <nav id="dayNavigation" aria-label="Jours de la semaine" class="planning-jours">
+                </nav>
             </div>
         </div>
 

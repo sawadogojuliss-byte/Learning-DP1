@@ -70,20 +70,27 @@ function holidayToutEffacer() {
     holidayDroppedDates = {};
 }
 
-/* L'interface du moteur de planning : le jour affiché appartient
-   toujours à la semaine qui contient aujourd'hui. */
-function isHoliday(dayIndex) {
-    return holidayEstFerie(holidayCleDate(holidayDateDuJour(dayIndex, 0)));
+/* Le moteur lit une date explicite seulement pendant le rendu d'une
+   semaine voisine. L'écran Jours fériés et la Séance restent ancrés au jour réel. */
+function holidayDatePlanning(dayIndex, date) {
+    var vue = date || window.__planningDateApercue;
+    if (vue instanceof Date && !isNaN(vue.getTime()) &&
+        (vue.getDay() + 6) % 7 === Number(dayIndex)) return vue;
+    return holidayDateDuJour(dayIndex, 0);
 }
 
-function holidayMode(dayIndex) {
-    const cle = holidayCleDate(holidayDateDuJour(dayIndex, 0));
+function isHoliday(dayIndex, date) {
+    return holidayEstFerie(holidayCleDate(holidayDatePlanning(dayIndex, date)));
+}
+
+function holidayMode(dayIndex, date) {
+    const cle = holidayCleDate(holidayDatePlanning(dayIndex, date));
     if (!holidayEstFerie(cle)) return null;
     return holidayDates[cle] || null;
 }
 
-function holidayDroppedIds(dayIndex) {
-    const cle = holidayCleDate(holidayDateDuJour(dayIndex, 0));
+function holidayDroppedIds(dayIndex, date) {
+    const cle = holidayCleDate(holidayDatePlanning(dayIndex, date));
     const list = holidayDroppedDates[cle] || [];
     return Array.isArray(list) ? list : [];
 }

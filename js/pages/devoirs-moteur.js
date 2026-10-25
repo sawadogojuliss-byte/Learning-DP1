@@ -533,11 +533,13 @@ function devoirsTrouverHeureLibre(jour) {
     return null;
 }
 
-function devoirsAdapterJour(events, dayIndex) {
+function devoirsAdapterJour(events, dayIndex, dateApercue) {
     if (!Array.isArray(events)) return events;
     var store = typeof devoirsLireStore === 'function' ? devoirsLireStore() : { devoirs: [], examens: [] };
     var maintenant = new Date();
-    var date = devoirsDateDuJour(dayIndex);
+    var date = dateApercue instanceof Date && !isNaN(dateApercue.getTime()) &&
+        (dateApercue.getDay() + 6) % 7 === Number(dayIndex)
+        ? dateApercue : devoirsDateDuJour(dayIndex);
     var cle = date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
 
     /* Samedi : le cours d'économie n'existe plus, pour tous les élèves

@@ -1144,11 +1144,22 @@ function v3Repas(jour) {
     return typeof v3IconesRepas === 'function' ? v3IconesRepas(jour) : jour;
 }
 
-function generateDayEvents(dayIndex) {
+function generateDayEvents(dayIndex, dateApercue) {
     var jour = Number(dayIndex);
     if (!isFinite(jour) || jour < 0) jour = 0;
     var evts;
-    if (emploiGelSuspendu || window.__emploiCalculBrut) {
+    /* Le gel est celui de la semaine réelle : une autre semaine se calcule
+       à partir du modèle hebdomadaire sans reconstruire ni sauvegarder ce gel.
+       Le contexte est strictement temporaire, jamais exposé à Séance. */
+    if (dateApercue instanceof Date && !isNaN(dateApercue.getTime()) &&
+        (dateApercue.getDay() + 6) % 7 === jour) {
+        var precedente = window.__planningDateApercue;
+        window.__planningDateApercue = dateApercue;
+        try {
+            evts = v3Repas(planningGarantirJour(genererJourBrut(jour)));
+            if (typeof devoirsAdapterJour === 'function') evts = devoirsAdapterJour(evts, jour, dateApercue);
+        } finally { window.__planningDateApercue = precedente; }
+    } else if (emploiGelSuspendu || window.__emploiCalculBrut) {
         evts = v3Repas(planningGarantirJour(genererJourBrut(jour)));
     } else {
         if (typeof verrouillerSujetsChoisis === 'function') {
@@ -1873,9 +1884,9 @@ function planningSujetsDesDevoirs() {
     if (typeof devoirsLireStore !== 'function') return liste;
     var store;
     try { store = devoirsLireStore(); } catch (e) { return liste; }
-    var maintenant = new Date();
+    var maintenant = window.__planningDateApercue || new Date();
     var debut = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate()).getTime();
-    var fin = debut + 7 * 86400000;
+    var fin = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate() + 7).getTime();
     var proches = (store.devoirs || []).filter(function (d) {
         if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(String(d.date || ''))) return false;
         var t = new Date(String(d.date) + 'T00:00:00').getTime();

@@ -765,6 +765,7 @@ function focusPeindre() {
     focusPeindreFonds();
     focusTitre();
     focusPipMaj();
+    if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
 }
 
 function focusPeindreFonds() {

@@ -21,6 +21,7 @@ on:
       - 'tools/tester-horaires.mjs'
       - 'tools/tester-voix.mjs'
       - 'tools/tester-accessibilite.cjs'
+      - 'tools/tester-semaines.mjs'
       - '.github/workflows/envoi-e2e.yml'
   workflow_dispatch:
 
@@ -86,6 +87,11 @@ jobs:
           set -o pipefail
           node tools/tester-atelier.mjs 2>&1 | tee /tmp/sortie-atelier.txt
 
+      - name: Vérifier les semaines du planning sans profil ni mail réels
+        run: |
+          set -o pipefail
+          node tools/tester-semaines.mjs 2>&1 | tee /tmp/sortie-semaines.txt
+
       - name: Vérifier en vrai navigateur la fin de chronomètre (musique, bip, voix)
         run: |
           set -o pipefail
@@ -104,6 +110,7 @@ jobs:
           mkdir -p /tmp/journal
           cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
           cp /tmp/sortie-accessibilite.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-semaines.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-atelier.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-espace-admin.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-chevauchement.txt /tmp/journal/ 2>/dev/null || true

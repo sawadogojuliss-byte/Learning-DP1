@@ -39,6 +39,9 @@ function generatePlanning() {
 
 // Page 8: Planning Principal
 let selectedDay = 0;
+/* La navigation reste locale à la page Planning : Séance et Pomodoro
+   utilisent toujours aujourd'hui et jamais la semaine consultée. */
+let planningDecalageSemaine = 0;
 let customEvents = [];
 let showAddModal = false;
 let showEditModal = false;
@@ -61,13 +64,16 @@ function indexJourCourant(date) {
     return jour === 0 ? 6 : jour - 1;
 }
 
-function getWeekDates(aujourd) {
+function getWeekDates(aujourd, decalageSemaine) {
     const today = aujourd || new Date();
     const lundi = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    lundi.setDate(lundi.getDate() - indexJourCourant(today));
+    lundi.setDate(lundi.getDate() - indexJourCourant(today) + 7 * (Number(decalageSemaine) || 0));
     return Array.from({ length: 7 }, function (_, i) {
+        /* Constructeur calendrier : conserve le bon jour autour des
+           changements de mois, d'année et d'heure d'été. */
         const date = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
         return {
+            date: date,
             dayName: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][i],
             dayNumber: date.getDate(),
             isToday: date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate()
@@ -75,12 +81,29 @@ function getWeekDates(aujourd) {
     });
 }
 
+function planningChangerSemaine(pas) {
+    var suivant = Math.max(-52, Math.min(52, planningDecalageSemaine + Number(pas || 0)));
+    if (suivant === planningDecalageSemaine) return;
+    planningDecalageSemaine = suivant;
+    /* Même jour de semaine lors du passage ; Aujourd'hui revient au
+       jour réel. Aucun enregistrement ni modification du profil. */
+    renderPlanning();
+}
+
+function planningRevenirAujourdhui() {
+    planningDecalageSemaine = 0;
+    selectedDay = indexJourCourant();
+    window.__jourCourantPose = true;
+    window.__jourCourantCle = cleJourLocal();
+    renderPlanning();
+}
+
 function poserJourCourant() {
     var cle = cleJourLocal();
     if (window.__jourCourantPose && window.__jourCourantCle === cle) return;
     window.__jourCourantPose = true;
     window.__jourCourantCle = cle;
-    selectedDay = indexJourCourant();
+    if (planningDecalageSemaine === 0) selectedDay = indexJourCourant();
 }
 
 function suivreSemaineCalendrier() {
@@ -428,7 +451,7 @@ function buildNextActivityHTML(nextActivity) {
     return '<div style="max-width: 56rem; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 1rem;">'
         + '<div style="display: flex; align-items: center; gap: 0.75rem;">'
         + '<div style="width: 2.5rem; height: 2.5rem; background: rgba(255,255,255,0.2); border-radius: 0.75rem; display: flex; align-items: center; justify-content: center;"><span style="font-size: 1.25rem;">' + iconeHtml(nextActivity.icon, '1.35rem') + '</span></div>'
-        + '<div><p style="font-weight: 600; font-size: 0.95rem;">⏰ Prochaine : ' + nextActivity.title + '</p>'
+        + '<div><p style="font-weight: 600; font-size: 0.95rem;">⏰ Prochaine aujourd’hui : ' + nextActivity.title + '</p>'
         + '<p style="font-size: 0.8rem; color: rgba(255,255,255,0.85);">' + nextActivity.startTime + ' → ' + nextActivity.endTime + '</p></div></div>'
         + '<div style="background: rgba(255,255,255,0.2); border-radius: 0.5rem; padding: 0.375rem 0.75rem;"><p style="font-weight: 700; font-size: 0.9rem;">' + nextActivity.countdown + '</p></div>'
         + '</div>';
@@ -504,6 +527,7 @@ function renderPlanning() {
 }
 
 function openAddModal() {
+    if (planningDecalageSemaine !== 0) return;
     const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     document.getElementById('addModalDayLabel').textContent = dayNames[selectedDay];
     resetAddWorkflow();

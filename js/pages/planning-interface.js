@@ -19,6 +19,7 @@ function v3IconeActivitesSemaine() {
     var maintenant = new Date();
     var lundi = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
     lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+    lundi.setDate(lundi.getDate() + 7 * planningDecalageSemaine);
     /* Semaine de référence : celle du 12 octobre 2026, pour que cette semaine
        affiche le coureur, puis la fléchette, puis le trophée. */
     var reference = new Date(2026, 9, 12);
@@ -32,17 +33,55 @@ function v3PeindreIconeActivites() {
     if (el) el.textContent = v3IconeActivitesSemaine();
 }
 
+function planningMinuteurEntete() {
+    var bouton = document.getElementById('planningMinuteurEntete');
+    if (!bouton) return;
+    var actif = typeof focusEtat !== 'undefined' && focusEtat.running;
+    bouton.hidden = !actif;
+    if (actif) bouton.textContent = '● ' + (typeof focusTexte === 'function' ? focusTexte(Math.max(0, Math.round((focusEtat.fin - Date.now()) / 1000))) : '') + ' · Minuteur';
+}
+
+function planningEnteteSemaine(weekDates) {
+    var premier = weekDates[0].date, dernier = weekDates[6].date, affiche = weekDates[selectedDay].date;
+    var court = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+    var titre = document.getElementById('planningSemaineType');
+    var etendue = document.getElementById('planningSemaineDates');
+    var jour = document.getElementById('planningJourDate');
+    var retour = document.getElementById('planningAujourdhui');
+    var lecture = document.getElementById('planningSemaineLecture');
+    if (titre) titre.textContent = planningDecalageSemaine === 0 ? 'Semaine actuelle' :
+        planningDecalageSemaine === 1 ? 'Semaine suivante' : planningDecalageSemaine === -1 ? 'Semaine précédente' : 'Autre semaine';
+    if (etendue) etendue.textContent = court.format(premier) + ' – ' + court.format(dernier) + ' ' + dernier.getFullYear();
+    if (jour) {
+        var complet = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(affiche);
+        jour.textContent = complet.charAt(0).toUpperCase() + complet.slice(1);
+    }
+    if (retour) retour.hidden = planningDecalageSemaine === 0;
+    var precedant = document.querySelector('#planningModal .planning-semaine-actions [aria-label="Semaine précédente"]');
+    var suivant = document.querySelector('#planningModal .planning-semaine-actions [aria-label="Semaine suivante"]');
+    if (precedant) precedant.disabled = planningDecalageSemaine <= -52;
+    if (suivant) suivant.disabled = planningDecalageSemaine >= 52;
+    if (lecture) {
+        lecture.hidden = planningDecalageSemaine === 0;
+        lecture.textContent = planningDecalageSemaine < 0
+            ? 'Aperçu indicatif : les semaines passées ne sont pas archivées. Modifie ton planning depuis la semaine actuelle.'
+            : 'Consultation seulement : tes modifications sont hebdomadaires. Reviens à cette semaine pour les modifier.';
+    }
+    planningMinuteurEntete();
+}
+
 function renderPlanning() {
     var ancienChevauchement = document.getElementById('chevauchementJour');
     if (ancienChevauchement && ancienChevauchement.parentNode) ancienChevauchement.parentNode.removeChild(ancienChevauchement);
     if (typeof poserJourCourant === 'function') poserJourCourant();
-    const weekDates = getWeekDates();
+    const weekDates = getWeekDates(new Date(), planningDecalageSemaine);
+    const dateAffichee = weekDates[selectedDay].date;
+    planningEnteteSemaine(weekDates);
 
     let dayNavHtml = '';
     weekDates.forEach(function (day, index) {
         const isSelected = selectedDay === index;
-        const bgClass = isSelected ? 'background: #10b981; color: white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); transform: scale(1.05);' : (day.isToday ? 'background: #d1fae5; color: #047857;' : 'background: #f3f4f6; color: #4b5563;');
-        dayNavHtml += '<button onclick="selectDay(' + index + ')" style="display: flex; flex-direction: column; align-items: center; padding: 0.5rem 0.75rem; border-radius: 0.75rem; min-width: 3.5rem; border: none; cursor: pointer; transition: all 0.3s; ' + bgClass + '"><span style="font-size: 0.75rem; font-weight: 500;">' + day.dayName + '</span><span style="font-size: 1.125rem; font-weight: 700;">' + day.dayNumber + '</span></button>';
+        dayNavHtml += '<button type="button" class="planning-jour' + (isSelected ? ' selectionne' : '') + (day.isToday ? ' actuel' : '') + '" onclick="selectDay(' + index + ')" aria-label="' + new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(day.date) + '" aria-pressed="' + isSelected + '"' + (day.isToday ? ' aria-current="date"' : '') + '><span>' + day.dayName + '</span><strong>' + day.dayNumber + '</strong></button>';
     });
     document.getElementById('dayNavigation').innerHTML = dayNavHtml;
 
@@ -54,10 +93,11 @@ function renderPlanning() {
         document.getElementById('nextActivityBanner').style.display = 'none';
     }
 
-    const events = generateDayEvents(selectedDay);
+    const events = planningDecalageSemaine === 0
+        ? generateDayEvents(selectedDay) : generateDayEvents(selectedDay, dateAffichee);
     v3LastRendered = events;
     const addBtn = document.getElementById('addPlanningBtn');
-    if (typeof holidayMode === 'function' && holidayMode(selectedDay) === 'free') {
+    if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'free') {
         if (addBtn) addBtn.style.display = 'none';
         document.getElementById('eventsContainer').innerHTML = v3LibreVertical();
         document.getElementById('statScore').textContent = targetScore;
@@ -68,12 +108,12 @@ function renderPlanning() {
         if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
         return;
     }
-    if (addBtn) addBtn.style.display = 'flex';
-    v3SignalerChevauchementJour(events, selectedDay);
+    if (addBtn) addBtn.style.display = planningDecalageSemaine === 0 ? 'flex' : 'none';
+    if (planningDecalageSemaine === 0) v3SignalerChevauchementJour(events, selectedDay);
     let eventsHtml = '';
-    if (typeof holidayMode === 'function' && holidayMode(selectedDay) === 'keep') {
+    if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'keep') {
         eventsHtml += '<div style="margin-bottom: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.85rem; font-weight: 600;">🎉 Jour férié — emploi du temps conservé</div>';
-    } else if (typeof holidayMode === 'function' && holidayMode(selectedDay) === 'light') {
+    } else if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'light') {
         eventsHtml += '<div style="margin-bottom: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.85rem; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: 0.85rem; font-weight: 600;">🎉 Jour férié — activités désélectionnées retirées</div>';
     }
     const borderColorMap = { indigo: '#818cf8', blue: '#60a5fa', orange: '#fb923c', red: '#ef4444', amber: '#f59e0b', purple: '#a78bfa', cyan: '#22d3ee', gray: '#9ca3af', pink: '#f472b6', green: '#4ade80', yellow: '#facc15', teal: '#2dd4bf', rose: '#fb7185', violet: '#4d63a1' };
@@ -112,7 +152,8 @@ function renderPlanning() {
         const avecAvant = memeEpreuve(events[idx - 1], event);
         const avecApres = memeEpreuve(event, events[idx + 1]);
         if (!avecAvant && avecApres) eventsHtml += '<div class="devoirs-paralleles">';
-        eventsHtml += '<div data-v3-idx="' + idx + '" data-v3-type="' + v3Escape(event.type) + '" onclick="' + (event.editable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (event.editable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (event.editable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
+        const modifiable = planningDecalageSemaine === 0 && event.editable;
+        eventsHtml += '<div data-v3-idx="' + idx + '" data-v3-type="' + v3Escape(event.type) + '" onclick="' + (modifiable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (modifiable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (modifiable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
                 '<h3 style="font-weight:700;color:#111827;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + v3Escape(event.title) + '</h3>' +
@@ -123,14 +164,14 @@ function renderPlanning() {
                 '<p style="font-size:0.7rem;color:#56665e;">→ ' + event.endTime + '</p>' +
                 (durLabel ? '<p style="font-size:0.68rem;color:' + bColor + ';font-weight:600;margin-top:0.1rem;">' + durLabel + '</p>' : '') +
             '</div>' +
-            '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;text-align:center;color:#d1d5db;' + (event.editable ? '' : 'visibility:hidden;') + '"><span style="font-size:0.8rem;">✏️</span></div>' +
+            '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;text-align:center;color:#d1d5db;' + (modifiable ? '' : 'visibility:hidden;') + '"><span style="font-size:0.8rem;">✏️</span></div>' +
         '</div>' + (avecAvant || avecApres ? '' : chainLine);
         if (avecAvant && !avecApres) eventsHtml += '</div>' + chainLine;
     });
 
     // Lien discret pour revenir au planning automatique du jour (si modifié)
     const dayHasChanges = customEvents.some(e => e && e.day === selectedDay);
-    if (dayHasChanges) {
+    if (dayHasChanges && planningDecalageSemaine === 0) {
         eventsHtml += '<div style="text-align:right;margin-top:0.25rem;"><button onclick="v3ResetDay()" style="background:none;border:none;color:#56665e;font-size:0.75rem;cursor:pointer;text-decoration:underline;">↺ Réinitialiser ' + V3_DAY_NAMES[selectedDay] + ' (planning automatique)</button></div>';
     }
     document.getElementById('eventsContainer').innerHTML = eventsHtml;
@@ -153,11 +194,12 @@ function v3LibreVertical() {
 
 function v3OpenEditByIndex(idx) {
     const ev = v3LastRendered[idx];
-    if (!ev || !ev.editable) return;
+    if (planningDecalageSemaine !== 0 || !ev || !ev.editable) return;
     openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
 }
 
 function v3ResetDay() {
+    if (planningDecalageSemaine !== 0) return;
     const day = selectedDay;
     confirmerAction({
         titre: 'Réinitialiser le planning de ' + V3_DAY_NAMES[day] + ' ?',
@@ -178,6 +220,7 @@ function v3ResetDay() {
 //  3. MODIFICATION D'UN CRÉNEAU (surcharge openEditModal / save / delete)
 // ═══════════════════════════════════════════════════════════════════
 function openEditModal(id, title, startTime, endTime, type, icon, evt) {
+    if (planningDecalageSemaine !== 0) return;
     const record = customEvents.find(e => e && e.id === id && !e.replacesId) || null;
     editingEvent = {
         id, title, startTime, endTime, type,
@@ -1345,7 +1388,7 @@ function v3EvenementAffiche(idx) {
 }
 
 function v3CarteDeplacable(carte) {
-    if (!carte) return false;
+    if (planningDecalageSemaine !== 0 || !carte) return false;
     var idx = parseInt(carte.getAttribute('data-v3-idx'), 10);
     var ev = v3EvenementAffiche(idx);
     return !!(ev && ev.editable);
@@ -1465,6 +1508,7 @@ function v3TerminerDeplacement() {
 // L'activité garde exactement la même durée : elle prend l'heure de début
 // de l'activité visée, et l'heure de fin suit.
 function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
+    if (planningDecalageSemaine !== 0) return false;
     var voulu = v3EvenementAffiche(sourceIdx);
     var cible = v3EvenementAffiche(cibleIdx);
     if (!voulu || !cible || !voulu.editable) return false;
