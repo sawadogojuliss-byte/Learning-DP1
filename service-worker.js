@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261025a';
+const VERSION = '20261025b';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -15,6 +15,8 @@ const FICHIERS = [
     "css/pages/emplois-atelier.css",
     "css/pages/admin-atelier.css",
     "css/compte.css",
+    "css/accessibilite.css",
+    "js/accessibilite.js",
     "images/logo.png",
     "app.webmanifest",
     "pages/onboarding-prenom.html",

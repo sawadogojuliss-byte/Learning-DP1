@@ -33,7 +33,7 @@
 #panelEmplois .emploi-atelier-repertoire { padding:1.1rem .85rem; }
 #panelEmplois .emploi-atelier-repertoire h3 { font:normal 1.5rem Georgia,serif;margin:.15rem .45rem .8rem;letter-spacing:-.03em; }
 #panelEmplois .emploi-atelier-label { display:block;margin:0 .45rem .3rem;color:#586e60;font-size:.72rem;font-weight:700; }
-#panelEmplois #emploisFiltre { width:100%;background:#fff;border:1px solid #dbe4da;border-radius:.85rem;padding:.75rem .85rem;color:#1c3028;font:inherit;font-size:.83rem;outline:none; }
+#panelEmplois #emploisFiltre { width:100%;background:#fff;border:1px solid #dbe4da;border-radius:.85rem;padding:.75rem .85rem;color:#1c3028;font:inherit;font-size:.83rem; }
 #panelEmplois #emploisFiltre:focus { border-color:#5b9e70;box-shadow:0 0 0 3px #5b9e7029; }
 #panelEmplois .emploi-atelier-filtres { display:flex;gap:.25rem;flex-wrap:wrap;margin:.7rem 0 .65rem; }
 #panelEmplois .emploi-atelier-filtres button { border:0;background:transparent;border-radius:99px;padding:.48rem .58rem;font-size:.69rem;font-weight:800;color:#647d6a;cursor:pointer; }

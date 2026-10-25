@@ -4,7 +4,7 @@
    le site lit ses vrais cours, le planning remplace les créneaux
    « Cours » par les matières réelles, et les heures creuses reçoivent
    du travail (révisions, exercices, mémoire, IA).
-   Le document sert de modèle hebdomadaire, remplaçable à tout moment.
+   Les cours forment le modèle hebdomadaire ; l'import ajoute par défaut.
    Vue : pages/emploi-temps.html — moteur : js/pages/emploi-temps-moteur.js
    ============================================================ */
 
@@ -13,6 +13,8 @@ var emploiCacheBrut = null;
 var emploiCacheStore = null;
 var emploiPropositions = [];
 var emploiOcrEnCours = false;
+var emploiLectureNumero = 0;
+var emploiImportBrut = null;
 
 /* ── Le store ─────────────────────────────────────────────────────── */
 
@@ -27,6 +29,7 @@ function emploiScolaireNormaliser(d) {
                 matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin,
                 src: c.src === 'doc' || c.src === 'manuel' ? c.src : '' };
             if (c.parallele) cours.parallele = true;
+            if (c.importId && /^doc:[a-z0-9-]{1,60}$/i.test(String(c.importId))) cours.importId = String(c.importId);
             return cours;
         }).filter(function (c) {
             var cle = c.debut + '|' + c.fin + '|' + c.nom.toLowerCase().replace(/\s+/g, ' ').trim();
@@ -57,10 +60,14 @@ function emploiScolaireLire() {
 }
 
 function emploiScolaireEcrire(data) {
-    try { localStorage.setItem(EMPLOI_CLE, JSON.stringify(emploiScolaireNormaliser(data)));
+    try {
+        localStorage.setItem(EMPLOI_CLE, JSON.stringify(emploiScolaireNormaliser(data)));
         emploiCacheBrut = null; emploiCacheStore = null;
+    } catch (e) { console.error('Enregistrement de l’emploi scolaire impossible', e); return false; }
+    try {
         if (!window.compteRestaurationEnCours && typeof boiteApresMemoire === 'function') boiteApresMemoire();
-    } catch (e) {}
+    } catch (e) { console.error('Synchronisation de l’emploi scolaire impossible', e); }
+    return true;
 }
 
 function emploiScolaireVider() {
@@ -243,25 +250,40 @@ function emploiParseTexte(texte) {
     var lignes = String(texte || '').split(/[\n\r]+/);
     var jours = [[], [], [], [], [], [], []];
     var jourCourant = 0;
+    var entetesPresents = false;
     var buf = [];
     var dernierePlage = null;
     lignes.forEach(function (ligne) {
         var t = String(ligne || '').trim();
         if (!t) return;
-        var idx = emploiMotJour(t.split(/[^A-Za-zÀ-ÿ]+/).filter(Boolean)[0] || '');
-        if (idx >= 0 && !emploiContientPlage(t)) { /* ligne d'en-tête de jour */ }
+        var mot = (t.match(/^[A-Za-zÀ-ÿ]+/) || [])[0] || '';
+        var idx = emploiMotJour(mot);
+        /* Un en-tête (Lundi, lun., Mardi 14…) n'est jamais une matière.
+           Le retour à une heure plus tôt ne change plus de jour si le
+           document donne explicitement ses en-têtes. */
+        if (idx >= 0 && !emploiContientPlage(t) &&
+            /^[A-Za-zÀ-ÿ]+\.?\s*(?:\d{1,2}(?:\s+[A-Za-zÀ-ÿ]+)?|[,.:–-])?\s*$/.test(t)) {
+            jourCourant = idx;
+            entetesPresents = true;
+            dernierePlage = null;
+            buf = [];
+            return;
+        }
         if (emploiContientPlage(t)) {
             var plage = emploiLirePlage(t);
-            var nom = buf.length ? buf.join(' ').replace(/\s+/g, ' ').trim() : t.replace(/^p\d+\s*[·:\-–]\s*/i, '').trim();
+            var nom = buf.length ? buf.join(' ').replace(/\s+/g, ' ').trim() :
+                t.replace(/^p\d+\s*[·:\-–]\s*/i, '').replace(/\d{1,2}\s*[:h.]\s*\d{2}.*$/, '').trim();
             buf = [];
             if (plage && nom) {
-                if (dernierePlage && plage.debut < dernierePlage.debut && jours[jourCourant].length >= 1) {
-                    jourCourant = Math.min(4, jourCourant + 1); /* l'heure redescend : jour suivant */
+                if (!entetesPresents && dernierePlage && plage.debut < dernierePlage.debut && jours[jourCourant].length) {
+                    jourCourant = Math.min(6, jourCourant + 1);
                 }
                 jours[jourCourant].push({ nom: nom, plage: plage });
                 dernierePlage = plage;
             }
-        } else if (!/^p\d+$/i.test(t)) {
+        } else if (!/^p\d+$/i.test(t) && (emploiMatiereDe(t) ||
+            /^(?:dp\s*\d\s*[-–:]?\s*)?(?:th[eé]orie de la connaissance|theory of knowledge|tok)\b/i.test(t))) {
+            /* Un événement ou un pied de page sans matière connue est ignoré. */
             buf.push(t);
         }
     });
@@ -277,15 +299,32 @@ function emploiDire(texte, erreur) {
     el.style.color = erreur ? '#b45309' : '#047857';
 }
 
-function emploiPdfItems(fichier, dire) {
+function emploiAnnulerLecture() {
+    if (!emploiOcrEnCours) return;
+    emploiLectureNumero++;
+    emploiOcrEnCours = false;
+    var bouton = document.getElementById('emploiAnnulerLecture');
+    if (bouton) bouton.hidden = true;
+    emploiDire('Lecture annulée. Aucun cours n’a été enregistré.', false);
+}
+
+function emploiProgression(info, page, total, actif) {
+    if (!actif() || !info || typeof info.progress !== 'number') return;
+    var pct = Math.round(Math.max(0, Math.min(1, info.progress)) * 100);
+    emploiDire((page ? 'Page ' + page + ' sur ' + total + ' — ' : '') + 'Lecture de la photo : ' + pct + ' %', false);
+}
+
+function emploiPdfItems(fichier, dire, actif) {
     return devoirsChargerPdfJs().then(function () {
         return fichier.arrayBuffer();
     }).then(function (tampon) {
         return window.pdfjsLib.getDocument({ data: tampon }).promise;
     }).then(function (doc) {
         var pages = Math.min(doc.numPages, 3);
+        if (doc.numPages > 3 && dire) dire('Ce PDF contient ' + doc.numPages + ' pages : seules les 3 premières seront lues.');
         var items = [];
         function pageSuivante(n) {
+            if (!actif()) return items;
             if (n > pages) return items;
             if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
             return doc.getPage(n).then(function (page) {
@@ -309,9 +348,9 @@ function emploiPdfItems(fichier, dire) {
                     canvas.height = Math.floor(viewport.height);
                     return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function () {
                         return devoirsChargerTesseract().then(function () {
-                            return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', {
-                                workerPath: 'lib/ocr/worker.min.js', corePath: 'lib/ocr', langPath: 'lib/ocr/langs', workerBlobURL: false
-                            });
+                            return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', Object.assign({}, devoirsOcrOptions(), {
+                                logger: function (info) { emploiProgression(info, n, pages, actif); }
+                            }));
                         });
                     }).then(function (res) {
                         var lignes = String((res && res.data && res.data.text) || '').split(/[\n\r]+/);
@@ -335,25 +374,44 @@ function emploiLireDocument() {
         return;
     }
     if (emploiOcrEnCours) return;
+    var numero = ++emploiLectureNumero;
+    var actif = function () { return numero === emploiLectureNumero; };
     emploiOcrEnCours = true;
+    emploiImportBrut = localStorage.getItem(EMPLOI_CLE);
+    emploiPropositions = [];
+    var zone = document.getElementById('emploiConfirmation');
+    if (zone) zone.innerHTML = '';
+    var annuler = document.getElementById('emploiAnnulerLecture');
+    if (annuler) annuler.hidden = false;
     emploiDire('Lecture du document…', false);
     var promesse;
     if (typeof devoirsEstPdf === 'function' && devoirsEstPdf(fichier)) {
-        promesse = emploiPdfItems(fichier, function (m) { emploiDire(m, false); }).then(function (items) {
+        promesse = emploiPdfItems(fichier, function (m) { if (actif()) emploiDire(m, false); }, actif).then(function (items) {
             var avecPos = items.filter(function (it) { return !it.ocr; });
-            if (avecPos.length >= 6) return emploiParseItems(avecPos);
-            return emploiParseTexte(items.filter(function (it) { return it.ocr; }).map(function (it) { return it.str; }).join('\n'));
+            var colonnes = avecPos.length >= 6 ? emploiParseItems(avecPos) : null;
+            var lu = emploiParseTexte(items.filter(function (it) { return it.ocr; }).map(function (it) { return it.str; }).join('\n'));
+            if (colonnes && colonnes.colonnes) {
+                colonnes.jours.forEach(function (liste, i) { lu.jours[i] = liste.concat(lu.jours[i]); });
+            }
+            return lu;
         });
     } else {
-        promesse = devoirsOcrImage(fichier, function (m) { emploiDire(m, false); }).then(function (texte) {
-            return emploiParseTexte(texte);
-        });
+        promesse = devoirsChargerTesseract().then(function () {
+            if (!actif()) return '';
+            return window.Tesseract.recognize(fichier, 'fra', Object.assign({}, devoirsOcrOptions(), {
+                logger: function (info) { emploiProgression(info, 1, 1, actif); }
+            })).then(function (res) { return (res && res.data && res.data.text) || ''; });
+        }).then(emploiParseTexte);
     }
     promesse.then(function (res) {
+        if (!actif()) return;
         emploiOcrEnCours = false;
+        if (annuler) annuler.hidden = true;
         emploiMontrerPropositions(res);
     }).catch(function (e) {
+        if (!actif()) return;
         emploiOcrEnCours = false;
+        if (annuler) annuler.hidden = true;
         emploiDire((e && e.message) || 'La lecture a échoué. Ajoute les cours à la main ci-dessous.', true);
     });
 }
@@ -369,30 +427,49 @@ function emploiMontrerPropositions(res) {
     if (!zone) return;
     if (!propositions.length) {
         zone.innerHTML = '<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:0.9rem 1rem;font-size:0.85rem;color:#92400e;">Aucun cours reconnu dans ce document. Vérifie la photo (lumière, netteté) ou ajoute les cours à la main ci-dessous.</div>';
+        emploiDire('Aucun cours reconnu. Vérifie la photo ou ajoute les cours à la main.', true);
         return;
     }
+    if (emploiImportBrut === null) emploiImportBrut = localStorage.getItem(EMPLOI_CLE);
     emploiPropositions = propositions.map(function (p, i) { p.cle = 'ep' + i; return p; });
     var lignes = emploiPropositions.map(function (p) {
-        return '<div data-eprop="' + p.cle + '" style="display:flex;gap:0.45rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.55rem;">' +
-            '<select class="ep-jour" style="flex:1 1 5.5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
+        return '<div data-eprop="' + p.cle + '" class="ep-ligne" style="display:flex;gap:0.45rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.55rem;">' +
+            '<select class="ep-jour" aria-label="Jour du cours ' + emploiEchap(p.nom) + '" style="flex:1 1 5.5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
             ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].map(function (j, ji) {
                 return '<option value="' + ji + '"' + (ji === p.jour ? ' selected' : '') + '>' + j + '</option>';
             }).join('') + '</select>' +
-            '<input class="ep-nom" value="' + emploiEchap(p.nom) + '" placeholder="Cours" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
-            '<input class="ep-debut" type="time" value="' + p.debut + '" style="flex:1 1 5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
-            '<span style="color:#9ca3af;">→</span>' +
-            '<input class="ep-fin" type="time" value="' + p.fin + '" style="flex:1 1 5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
-            '<button type="button" onclick="emploiRetirerProposition(\'' + p.cle + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.95rem;">✕</button>' +
+            '<input class="ep-nom" aria-label="Nom du cours" value="' + emploiEchap(p.nom) + '" placeholder="Cours" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
+            '<input class="ep-debut" aria-label="Début du cours" type="time" value="' + p.debut + '" style="flex:1 1 5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
+            '<span style="color:#56665e;">→</span>' +
+            '<input class="ep-fin" aria-label="Fin du cours" type="time" value="' + p.fin + '" style="flex:1 1 5rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.4rem;font:inherit;font-size:0.8rem;">' +
+            '<button type="button" aria-label="Retirer la proposition ' + emploiEchap(p.nom) + '" onclick="emploiRetirerProposition(\'' + p.cle + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:0.95rem;">✕</button>' +
             '</div>';
+    }).join('');
+    var anciens = emploiScolaireLire().jours.flatMap(function (liste, jour) {
+        return liste.filter(function (c) { return c.src === 'doc'; }).map(function (c) {
+            return '<label style="display:block;padding:0.4rem 0;cursor:pointer;"><input type="checkbox" class="ep-remplacer" value="' + emploiEchap(c.id) + '"> ' +
+                ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'][jour] + ' ' + c.debut + '–' + c.fin + ' · ' + emploiEchap(c.nom) + '</label>';
+        });
     }).join('');
     zone.innerHTML =
         '<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;">' +
         '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' + emploiPropositions.length + ' cours détecté' + (emploiPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne (jour, nom, heures) avant d\u2019enregistrer :</p>' +
+        '<p id="emploiConflitsImport" role="status" style="margin:0.4rem 0;font-weight:800;color:#9a3412;"></p>' +
         '<div style="display:flex;flex-direction:column;gap:0.45rem;">' + lignes + '</div>' +
+        (anciens ? '<details style="margin-top:0.8rem;padding:0.7rem;background:#fff;border-radius:0.7rem;"><summary>Remplacer certains cours déjà importés (facultatif)</summary><p style="font-size:0.78rem;">Aucun ancien cours ne sera retiré sans case cochée. Les cours ajoutés à la main restent inchangés.</p>' + anciens + '</details>' : '') +
+        '<label id="emploiConflitsAccordLabel" hidden style="display:block;margin-top:0.7rem;font-size:0.83rem;"><input type="checkbox" id="emploiConflitsAccord"> J’ai vérifié les horaires qui se chevauchent et je veux conserver ces cours en parallèle.</label>' +
+        '<p id="emploiErreurImport" role="status" style="color:#9a3412;font-size:0.83rem;"></p>' +
         '<div style="display:flex;gap:0.6rem;margin-top:0.7rem;">' +
         '<button type="button" onclick="emploiViderPropositions()" style="flex:1;padding:0.65rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;background:white;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Tout effacer</button>' +
         '<button type="button" onclick="emploiConfirmerPropositions()" style="flex:2;padding:0.65rem;border:none;border-radius:0.75rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">Enregistrer mes cours</button>' +
         '</div></div>';
+    if (zone.addEventListener && !zone.emploiEcoute) {
+        zone.addEventListener('input', emploiChangementPropositions);
+        zone.addEventListener('change', emploiChangementPropositions);
+        zone.emploiEcoute = true;
+    }
+    emploiActualiserConflits();
+    if (typeof window.annoncer === 'function') window.annoncer(emploiPropositions.length + ' cours détectés. Vérifie les jours et les heures avant d’enregistrer.');
     emploiDire('', false);
 }
 
@@ -400,15 +477,76 @@ function emploiEchap(s) {
     return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function emploiLirePropositionsCorrigees() {
+    return emploiPropositions.map(function (p) {
+        var el = document.querySelector('[data-eprop="' + p.cle + '"]');
+        return { cle: p.cle, jour: el ? Number(el.querySelector('.ep-jour').value) : p.jour,
+            nom: el ? el.querySelector('.ep-nom').value.trim() : p.nom,
+            debut: el ? el.querySelector('.ep-debut').value : p.debut,
+            fin: el ? el.querySelector('.ep-fin').value : p.fin };
+    });
+}
+
+function emploiConflitsPropositions(propositions, anciens) {
+    var remplaces = Array.from(document.querySelectorAll('.ep-remplacer:checked')).map(function (el) { return el.value; });
+    var anciensParJour = (anciens || emploiScolaireLire()).jours.map(function (liste) {
+        return liste.filter(function (c) { return remplaces.indexOf(c.id) === -1; });
+    });
+    var enConflit = {}, total = 0;
+    propositions.forEach(function (p, i) {
+        if (!(p.jour >= 0 && p.jour <= 6) || !p.debut || !p.fin || p.fin <= p.debut) return;
+        anciensParJour[p.jour].forEach(function (c) {
+            if (p.debut < c.fin && p.fin > c.debut &&
+                !(p.debut === c.debut && p.fin === c.fin && p.nom.toLowerCase() === c.nom.toLowerCase())) {
+                enConflit[p.cle] = true; total++;
+            }
+        });
+        propositions.slice(0, i).forEach(function (autre) {
+            if (autre.jour === p.jour && p.debut < autre.fin && p.fin > autre.debut &&
+                !(p.debut === autre.debut && p.fin === autre.fin && p.nom.toLowerCase() === autre.nom.toLowerCase())) {
+                enConflit[p.cle] = true; enConflit[autre.cle] = true; total++;
+            }
+        });
+    });
+    return { total: total, lignes: enConflit };
+}
+
+function emploiChangementPropositions(event) {
+    if (!event.target || event.target.id !== 'emploiConflitsAccord') {
+        var accord = document.getElementById('emploiConflitsAccord');
+        if (accord) accord.checked = false;
+    }
+    emploiActualiserConflits();
+}
+
+function emploiActualiserConflits() {
+    var zone = document.getElementById('emploiConfirmation');
+    if (!zone || !emploiPropositions.length) return;
+    var resultat = emploiConflitsPropositions(emploiLirePropositionsCorrigees());
+    emploiPropositions.forEach(function (p) {
+        var el = document.querySelector('[data-eprop="' + p.cle + '"]');
+        if (!el) return;
+        el.style.background = resultat.lignes[p.cle] ? '#fff7ed' : '#f9fafb';
+        el.style.borderColor = resultat.lignes[p.cle] ? '#ea580c' : '#e5e7eb';
+    });
+    var message = document.getElementById('emploiConflitsImport');
+    if (message) message.textContent = resultat.total ? resultat.total + ' conflit' + (resultat.total > 1 ? 's' : '') + ' horaire' + (resultat.total > 1 ? 's' : '') + ' — les vérifier avant d’enregistrer.' : 'Aucun conflit horaire détecté.';
+    var label = document.getElementById('emploiConflitsAccordLabel');
+    if (label) label.hidden = !resultat.total;
+    return resultat;
+}
+
 function emploiRetirerProposition(cle) {
     emploiPropositions = emploiPropositions.filter(function (p) { return p.cle !== cle; });
     var el = document.querySelector('[data-eprop="' + cle + '"]');
     if (el) el.remove();
     if (!emploiPropositions.length) emploiViderPropositions();
+    else emploiChangementPropositions({});
 }
 
 function emploiViderPropositions() {
     emploiPropositions = [];
+    emploiImportBrut = null;
     var zone = document.getElementById('emploiConfirmation');
     if (zone) zone.innerHTML = '';
     var f = document.getElementById('emploiFichier');
@@ -416,43 +554,65 @@ function emploiViderPropositions() {
 }
 
 function emploiConfirmerPropositions() {
-    var store = emploiScolaireLire();
-    /* Le nouveau document remplace le modèle du précédent document :
-       les cours venus d'une ancienne analyse disparaissent (avant, ils
-       s'ajoutaient aux anciens et tout semblait doublé), ceux ajoutés
-       à la main restent. */
-    store.jours = store.jours.map(function (j) {
-        return j.filter(function (c) { return c.src !== 'doc'; });
+    var erreur = document.getElementById('emploiErreurImport');
+    function refuser(message) { if (erreur) erreur.textContent = message; emploiDire(message, true); }
+    if (!emploiPropositions.length) return refuser('Aucun cours à enregistrer.');
+    if (localStorage.getItem(EMPLOI_CLE) !== emploiImportBrut) {
+        return refuser('Ton emploi du temps a changé pendant la lecture. Relis le document avant de confirmer. Rien n’a été effacé.');
+    }
+    var propositions = emploiLirePropositionsCorrigees();
+    var vues = {}, invalides = false;
+    propositions = propositions.filter(function (p) {
+        if (!Number.isInteger(p.jour) || p.jour < 0 || p.jour > 6 || !p.nom ||
+            !/^\d{2}:\d{2}$/.test(p.debut) || !/^\d{2}:\d{2}$/.test(p.fin) || p.fin <= p.debut) {
+            invalides = true; return false;
+        }
+        var cle = [p.jour, p.debut, p.fin, p.nom.toLowerCase().replace(/\s+/g, ' ').trim()].join('|');
+        if (vues[cle]) return false;
+        vues[cle] = true;
+        return true;
     });
+    if (invalides) return refuser('Corrige les lignes incomplètes ou les horaires invalides avant d’enregistrer. Rien n’a changé.');
+    if (!propositions.length) return refuser('Aucun cours valide à enregistrer. Rien n’a changé.');
+    var store = emploiScolaireLire();
+    var conflits = emploiConflitsPropositions(propositions, store);
+    var accord = document.getElementById('emploiConflitsAccord');
+    if (conflits.total && (!accord || !accord.checked)) {
+        return refuser(conflits.total + ' conflit(s) horaire(s) : vérifie les lignes orange et confirme explicitement si ces cours sont parallèles. Rien n’a changé.');
+    }
+    /* Ancien import sans empreinte : aucun retrait automatique. Seules les
+       cases cochées par l'élève peuvent retirer des cours src=doc. */
+    var ids = Array.from(document.querySelectorAll('.ep-remplacer:checked')).map(function (el) { return el.value; });
+    var retires = 0;
+    store.jours = store.jours.map(function (liste) { return liste.filter(function (c) {
+        if (c.src === 'doc' && ids.indexOf(c.id) !== -1) { retires++; return false; }
+        return true;
+    }); });
+    if (conflits.total) propositions.forEach(function (p) {
+        store.jours[p.jour].forEach(function (c) {
+            if (p.debut < c.fin && p.fin > c.debut &&
+                !(p.debut === c.debut && p.fin === c.fin && p.nom.toLowerCase() === c.nom.toLowerCase())) c.parallele = true;
+        });
+    });
+    var importId = 'doc:' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
     var ajoutes = 0;
-    var refuse = '';
-    var vues = {};
-    emploiPropositions.forEach(function (p) {
-        var el = document.querySelector('[data-eprop="' + p.cle + '"]');
-        var jour = p.jour, nom = p.nom, debut = p.debut, fin = p.fin;
-        if (el) {
-            jour = parseInt((el.querySelector('.ep-jour') || {}).value, 10);
-            nom = (el.querySelector('.ep-nom') || {}).value || nom;
-            debut = (el.querySelector('.ep-debut') || {}).value || debut;
-            fin = (el.querySelector('.ep-fin') || {}).value || fin;
-        }
-        if (!(jour >= 0 && jour <= 6) || !nom || !/^\d{2}:\d{2}$/.test(debut) || !/^\d{2}:\d{2}$/.test(fin) || fin <= debut) {
-            refuse = 'Certaines lignes incomplètes n\u2019ont pas été enregistrées.';
-            return;
-        }
-        var cle = jour + '|' + debut + '|' + fin + '|' + String(nom).toLowerCase().replace(/\s+/g, ' ').trim();
-        if (vues[cle]) return; /* la même ligne deux fois dans le document */
-        vues[cle] = 1;
-        store.jours[jour].push({ id: emploiId(), nom: nom.slice(0, 80), matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: 'doc' });
+    propositions.forEach(function (p) {
+        if (store.jours[p.jour].some(function (c) {
+            return c.debut === p.debut && c.fin === p.fin &&
+                c.nom.toLowerCase().replace(/\s+/g, ' ').trim() === p.nom.toLowerCase().replace(/\s+/g, ' ').trim();
+        })) return; /* une ligne déjà enregistrée reste intacte */
+        store.jours[p.jour].push({ id: emploiId(), nom: p.nom.slice(0, 80), matiere: emploiMatiereDe(p.nom),
+            debut: p.debut, fin: p.fin, src: 'doc', importId: importId, parallele: !!conflits.lignes[p.cle] });
         ajoutes++;
     });
-    store.jours = store.jours.map(function (j) { return j.sort(function (a, b) { return a.debut < b.debut ? -1 : 1; }); });
+    if (!ajoutes && !retires) return refuser('Ces cours sont déjà enregistrés. Rien n’a changé.');
+    store.jours.forEach(function (liste) { liste.sort(function (a, b) { return a.debut.localeCompare(b.debut); }); });
     store.at = new Date().toISOString();
-    emploiScolaireEcrire(store);
+    if (!emploiScolaireEcrire(store)) return refuser('Enregistrement impossible sur cet appareil. Les anciens cours sont conservés.');
     emploiViderPropositions();
     emploiRendre();
-    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
-    emploiDire(ajoutes + ' cours enregistré' + (ajoutes > 1 ? 's' : '') + '.' + (refuse ? ' ' + refuse : ''), false);
+    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) { console.error('Planning après import', e); } }
+    emploiDire(ajoutes + ' cours ajouté' + (ajoutes > 1 ? 's' : '') + (retires ? ', ' + retires + ' ancien(s) cours remplacé(s) après ton choix' : '') + '.', false);
 }
 
 /* ── Ajout manuel, liste, effacement ──────────────────────────────── */
@@ -553,7 +713,8 @@ function emploiAjouterManuel() {
     }
     if (ancien) store.jours[ancienJour] = store.jours[ancienJour].filter(function (c) { return c.id !== emploiEditionId; });
     store.jours[jour].push({ id: ancien ? ancien.id : emploiId(), nom: nom.slice(0, 80),
-        matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: ancien ? ancien.src : 'manuel', parallele: parallele });
+        matiere: emploiMatiereDe(nom), debut: debut, fin: fin, src: ancien ? ancien.src : 'manuel',
+        importId: ancien ? ancien.importId : undefined, parallele: parallele });
     store.jours[jour].sort(function (a, b) { return a.debut.localeCompare(b.debut); });
     store.at = new Date().toISOString();
     emploiScolaireEcrire(store);
@@ -655,7 +816,7 @@ function emploiRendre() {
         ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">' +
             '<p style="margin:0;font-size:0.82rem;font-weight:700;color:#065f46;">' + total + ' cours enregistré' + (total > 1 ? 's' : '') + ' — modèle appliqué chaque semaine</p>' +
             '<button type="button" onclick="emploiToutEffacer()" style="border:1px solid #fca5a5;background:#fff;color:#b91c1c;border-radius:0.5rem;padding:0.4rem;font:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Tout effacer</button></div>' + html
-        : '<p style="margin:0;font-size:0.82rem;color:#9ca3af;">Aucun cours pour l\u2019instant : sans emploi du temps, le planning garde des créneaux « Cours » génériques.</p>';
+        : '<p style="margin:0;font-size:0.82rem;color:#56665e;">Aucun cours pour l\u2019instant : sans emploi du temps, le planning garde des créneaux « Cours » génériques.</p>';
 }
 
 function emploiExporterAvantEffacement() {

@@ -214,7 +214,7 @@ function renderExoList() {
     exoMajBadge();
 
     if (exercices.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><div style="font-size:3rem;margin-bottom:1rem;">📝</div><p style="font-weight:600;">Aucun exercice pour l\'instant</p><p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l\'onglet ➕</p></div>';
+        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#56665e;"><div style="font-size:3rem;margin-bottom:1rem;">📝</div><p style="font-weight:600;">Aucun exercice pour l\'instant</p><p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l\'onglet ➕</p></div>';
         return;
     }
 
@@ -295,7 +295,7 @@ function renderPlanifier() {
     const container = document.getElementById('planifierContent');
     if (!container) return;
     if (exercices.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#9ca3af;"><div style="font-size:3rem;margin-bottom:1rem;">📅</div><p style="font-weight:600;">Ajoute d\'abord des exercices</p><p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l\'onglet ➕ pour commencer</p></div>';
+        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#56665e;"><div style="font-size:3rem;margin-bottom:1rem;">📅</div><p style="font-weight:600;">Ajoute d\'abord des exercices</p><p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l\'onglet ➕ pour commencer</p></div>';
         return;
     }
 

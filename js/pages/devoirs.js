@@ -800,7 +800,7 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
         var passe = p.date && devoirsEstPasse(p.date, p.fin);
         var doublon = p.matiere && p.date && devoirsChercherDoublon(devoirsLireStore(), genre, p);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
-            (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#9ca3af;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
+            (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#56665e;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
             (doublon ? '<span style="font-size:0.72rem;font-weight:800;color:#065f46;">Mettre à jour le créneau existant</span>' : '') +
             (!p.date ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Date à préciser</span>' : '') +
             (!p.matiere ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Matière à préciser</span>' : '') +
@@ -808,7 +808,7 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
             '<input class="prop-matiere" aria-label="Matière du créneau" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-date" type="date" aria-label="Date à préciser ou à vérifier" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-debut" aria-label="Heure de début" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
-            '<span style="color:#9ca3af;">→</span>' +
+            '<span style="color:#56665e;">→</span>' +
             '<input class="prop-fin" aria-label="Heure de fin" type="time" value="' + devoirsEchap(p.fin) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<button type="button" onclick="devoirsRetirerProposition(\'' + p.cle + '\')" style="border:none;background:none;color:#dc2626;cursor:pointer;font-size:1rem;">✕</button>' +
             '</div>';
@@ -1317,7 +1317,7 @@ function devoirsEditerSeances(id) {
         champsHeures =
             '<div style="display:flex;gap:0.5rem;align-items:center;margin:0 0 0.8rem;">' +
             '<input id="seancesEditDebut" type="time" value="' + devoirsEchap(d.debut) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
-            '<span style="color:#9ca3af;">→</span>' +
+            '<span style="color:#56665e;">→</span>' +
             '<input id="seancesEditFin" type="time" value="' + devoirsEchap(d.fin) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
             '</div>';
     }

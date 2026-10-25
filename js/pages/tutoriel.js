@@ -234,7 +234,7 @@ function tutorielRendre() {
     if (vide) vide.textContent = '';
     liste.innerHTML = publies.map(function (item) {
         var retirer = admin
-            ? '<button type="button" data-tutoriel-retirer="' + tutorielEchap(item.id) + '" style="margin-top:0.7rem;background:none;border:none;color:#9ca3af;font-size:0.75rem;cursor:pointer;text-decoration:underline;">Retirer</button>'
+            ? '<button type="button" data-tutoriel-retirer="' + tutorielEchap(item.id) + '" style="margin-top:0.7rem;background:none;border:none;color:#56665e;font-size:0.75rem;cursor:pointer;text-decoration:underline;">Retirer</button>'
             : '';
         return '<article style="background:white;border:1.5px solid #e5e7eb;border-radius:1.05rem;padding:0.85rem;margin-bottom:0.85rem;">'
             + '<h3 style="font-size:1rem;font-weight:800;color:#111827;margin-bottom:0.65rem;">' + tutorielEchap(item.titre) + '</h3>'

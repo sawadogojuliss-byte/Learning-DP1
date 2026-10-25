@@ -10,7 +10,7 @@
             <div style="max-width: 56rem; margin: 0 auto; padding: 0.75rem 1rem;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <img src="images/logo.png?v=20261005i" alt="" style="width:2.5rem;height:2.5rem;border-radius:0.75rem;object-fit:cover;display:block;">
+                        <img src="images/logo.png?v=20261005i" alt="" width="40" height="40" style="width:2.5rem;height:2.5rem;border-radius:0.75rem;object-fit:cover;display:block;">
                         <div>
                             <span style="font-size: 1.125rem; font-weight: 700; background: linear-gradient(to right, #059669, #0d9488); -webkit-background-clip: text; background-clip: text; color: transparent;">Study Plan IB</span>
                             <div style="display:flex;align-items:center;gap:0.45rem;flex-wrap:wrap;">
@@ -37,7 +37,7 @@
             <div style="background:linear-gradient(135deg,#059669,#10b981);padding:1.5rem 1.25rem 1.25rem;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
                     <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <img src="images/logo.png?v=20261005i" alt="" style="width:2.5rem;height:2.5rem;border-radius:0.75rem;object-fit:cover;display:block;background:white;">
+                        <img src="images/logo.png?v=20261005i" alt="" width="40" height="40" style="width:2.5rem;height:2.5rem;border-radius:0.75rem;object-fit:cover;display:block;background:white;">
                         <div><p style="font-weight:800;color:white;font-size:1rem;">Study Plan IB</p><p id="menuClasseLabel" style="font-size:0.75rem;color:rgba(255,255,255,0.8);">Enko Ouaga</p></div>
                     </div>
                     <button onclick="closeSideMenu()" style="width:2rem;height:2rem;background:rgba(255,255,255,0.2);border:none;border-radius:50%;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">✕</button>
@@ -47,7 +47,7 @@
             </div>
             <!-- Menu Items -->
             <div style="flex:1;overflow-y:auto;padding:1rem 0.75rem;">
-                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.5rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Navigation</p>
+                <p style="font-size:0.7rem;font-weight:700;color:#56665e;text-transform:uppercase;letter-spacing:0.08em;padding:0.5rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Navigation</p>
                 <button onclick="navigateTo('planning');closeSideMenu();" class="menu-item-btn" style="width:100%;display:flex;align-items:center;gap:0.875rem;padding:0.875rem 0.75rem;border-radius:0.875rem;border:none;background:linear-gradient(135deg,#ecfdf5,#f0fdf4);cursor:pointer;margin-bottom:0.5rem;text-align:left;transition:all 0.2s;">
                     <span style="font-size:1.375rem;">📅</span>
                     <div><p style="font-weight:700;color:#064e3b;font-size:0.9rem;">Mon Planning</p><p style="font-size:0.75rem;color:#6b7280;">Emploi du temps hebdomadaire</p></div>
@@ -127,7 +127,7 @@
                     <div><p style="font-weight:700;color:#111827;font-size:0.9rem;">Emplois du temps</p><p style="font-size:0.75rem;color:#6b7280;">Le planning de chaque personne</p></div>
                 </button>
 
-                <p style="font-size:0.7rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>
+                <p style="font-size:0.7rem;font-weight:700;color:#56665e;text-transform:uppercase;letter-spacing:0.08em;padding:0.75rem 0.5rem 0.5rem;margin-bottom:0.25rem;">Mon profil</p>
                 <div style="background:#f9fafb;border-radius:0.875rem;padding:0.875rem;border:1.5px solid #f3f4f6;">
                     <div id="menuStatsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;"></div>
                 </div>
@@ -316,7 +316,7 @@
                 <!-- Titre -->
                 <div style="margin-bottom:0.7rem;">
                     <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.3rem;">Nom de l'activité</label>
-                    <input type="text" id="editEventTitle" style="width:100%;padding:0.6rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    <input type="text" id="editEventTitle" style="width:100%;padding:0.6rem 0.75rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;transition:border 0.2s;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                 </div>
                 <!-- Contrôle durée -->
                 <div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.7rem;margin-bottom:0.7rem;">
@@ -334,11 +334,11 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
                     <div>
                         <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Début</label>
-                        <input type="time" id="editEventStart" onchange="syncEditEndFromStart()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                        <input type="time" id="editEventStart" onchange="syncEditEndFromStart()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                     </div>
                     <div>
                         <label style="font-size:0.8rem;font-weight:600;color:#4b5563;display:block;margin-bottom:0.375rem;">Fin</label>
-                        <input type="time" id="editEventEnd" onchange="syncEditDurationFromTimes()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                        <input type="time" id="editEventEnd" onchange="syncEditDurationFromTimes()" style="width:100%;padding:0.625rem;border:2px solid #e5e7eb;border-radius:0.75rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                     </div>
                 </div>
                 <p id="editPinHint" style="display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.75rem;padding:0.625rem 0.75rem;margin-bottom:0.75rem;font-size:0.78rem;color:#1e40af;"></p>

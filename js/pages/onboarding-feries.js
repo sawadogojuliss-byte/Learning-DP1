@@ -172,7 +172,7 @@ function renderHolidays() {
                 : 'width:4.6rem;height:2.75rem;border-radius:1.375rem;border:none;cursor:pointer;font-weight:700;font-size:0.78rem;background:' + (on ? '#10b981' : '#f3f4f6') + ';color:' + (on ? 'white' : '#4b5563') + ';';
             return '<button type="button"' + (passe ? ' disabled' : ' onclick="holidayBasculerDate(\'' + cle + '\')"') + ' style="' + style + '" title="' + holidayEscape(holidayFormaterDate(cle)) + '">' + nom + ' ' + date.getDate() + '/' + ('0' + (date.getMonth() + 1)).slice(-2) + '</button>';
         }).join('');
-        return '<p style="font-size:0.78rem;font-weight:700;color:#9ca3af;margin:0.75rem 0 0.45rem;text-align:center;">' + titre + '</p><div style="display:flex;justify-content:center;gap:0.45rem;flex-wrap:wrap;">' + pastilles + '</div>';
+        return '<p style="font-size:0.78rem;font-weight:700;color:#56665e;margin:0.75rem 0 0.45rem;text-align:center;">' + titre + '</p><div style="display:flex;justify-content:center;gap:0.45rem;flex-wrap:wrap;">' + pastilles + '</div>';
     }).join('');
 
     const feries = Object.keys(holidayDates).sort();

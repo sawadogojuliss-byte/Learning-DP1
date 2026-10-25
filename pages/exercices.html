@@ -48,10 +48,10 @@
 
                     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
                         <div style="flex:1;height:1px;background:#e5e7eb;"></div>
-                        <span style="font-size:0.75rem;color:#9ca3af;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
+                        <span style="font-size:0.75rem;color:#56665e;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
                         <div style="flex:1;height:1px;background:#e5e7eb;"></div>
                     </div>
-                    <textarea id="exoTextInput" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu')" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;outline:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                    <textarea id="exoTextInput" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu')" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
                     <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
                 </div>
 
@@ -73,7 +73,7 @@
                 <!-- Deadline -->
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📆 Date limite (deadline)</label>
-                    <input type="date" id="exoDeadline" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date')" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;outline:none;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    <input type="date" id="exoDeadline" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date')" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                     <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
                 </div>
 
@@ -90,7 +90,7 @@
                     <button type="button" data-exo-filtre="faits" aria-pressed="false" onclick="filtrerExos('faits')" style="background:white;border:1px solid #e5e7eb;color:#374151;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">Faits</button>
                 </div>
                 <div id="exoListContainer">
-                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                    <div style="text-align:center;padding:3rem 1rem;color:#56665e;">
                         <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
                         <p style="font-weight:600;">Aucun exercice pour l'instant</p>
                         <p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l'onglet ➕</p>
@@ -101,7 +101,7 @@
             <!-- Tab: Planifier -->
             <div id="tabContentPlanifier" style="display:none;">
                 <div id="planifierContent">
-                    <div style="text-align:center;padding:3rem 1rem;color:#9ca3af;">
+                    <div style="text-align:center;padding:3rem 1rem;color:#56665e;">
                         <div style="font-size:3rem;margin-bottom:1rem;">📅</div>
                         <p style="font-weight:600;">Ajoute d'abord des exercices</p>
                         <p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l'onglet ➕ pour commencer</p>

@@ -547,7 +547,7 @@
     font-size: clamp(1.15rem, 1.7vw, 1.65rem);
     font-weight: 700;
     text-align: center;
-    outline: none;
+
 }
 .focus-question::placeholder { color: #fff; opacity: 1; }
 .focus-modes {
@@ -1187,7 +1187,7 @@
     font: inherit;
     font-size: 0.9rem;
 }
-.focus-sous-form input:focus { outline: none; border-color: #10b981; }
+.focus-sous-form input:focus {  border-color: #10b981; }
 .focus-check {
     width: 1.35rem;
     height: 1.35rem;

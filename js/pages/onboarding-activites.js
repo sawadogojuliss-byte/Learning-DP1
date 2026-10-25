@@ -434,11 +434,11 @@ function renderActivities() {
             } else {
                 const sortedDays = [...act.days].sort((a,b) => a-b);
                 if (sortedDays.length === 0) {
-                    timesHtml = '<p style="color: #9ca3af; font-style: italic; font-size: 0.875rem;">Sélectionne d\'abord les jours de pratique</p>';
+                    timesHtml = '<p style="color:#56665e; font-style: italic; font-size: 0.875rem;">Sélectionne d\'abord les jours de pratique</p>';
                 } else {
                     timesHtml = '<div style="display: flex; flex-direction: column; gap: 0.75rem;">' + sortedDays.map(d => {
                         const dt = act.dayTimes[d] || { start: '17:00', end: '19:00' };
-                        return '<div style="display: flex; align-items: center; gap: 0.75rem; background: #f9fafb; padding: 0.75rem; border-radius: 0.75rem;"><span style="width: 3rem; font-weight: 600; color: #047857; font-size: 0.875rem;">' + dayNames[d] + '</span><input type="time" value="' + dt.start + '" onchange="updateActivityDayTime(\'' + act.name + '\', ' + d + ', \'start\', this.value)" style="padding: 0.375rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.875rem;"><span style="color: #9ca3af;">→</span><input type="time" value="' + dt.end + '" onchange="updateActivityDayTime(\'' + act.name + '\', ' + d + ', \'end\', this.value)" style="padding: 0.375rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.875rem;"></div>';
+                        return '<div style="display: flex; align-items: center; gap: 0.75rem; background: #f9fafb; padding: 0.75rem; border-radius: 0.75rem;"><span style="width: 3rem; font-weight: 600; color: #047857; font-size: 0.875rem;">' + dayNames[d] + '</span><input type="time" value="' + dt.start + '" onchange="updateActivityDayTime(\'' + act.name + '\', ' + d + ', \'start\', this.value)" style="padding: 0.375rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.875rem;"><span style="color:#56665e;">→</span><input type="time" value="' + dt.end + '" onchange="updateActivityDayTime(\'' + act.name + '\', ' + d + ', \'end\', this.value)" style="padding: 0.375rem; border: 2px solid #e5e7eb; border-radius: 0.5rem; font-size: 0.875rem;"></div>';
                     }).join('') + '</div>';
                 }
             }

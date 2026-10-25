@@ -69,6 +69,7 @@ const context = {
         getElementById: function () { return null; },
         createElement: function () { return { style: {}, setAttribute: function () {}, appendChild: function () {} }; },
         querySelector: function () { return null; },
+        querySelectorAll: function () { return []; },
         body: { appendChild: function () {} },
         addEventListener: function () {}
     },
@@ -116,12 +117,13 @@ ok(context.emploiScolaireActif() === true, 'emploiScolaireActif');
 context.emploiScolaireVider();
 ok(context.emploiScolaireActif() === false, 'vider le store emploi du temps');
 
-/* une nouvelle analyse remplace celle d'avant : plus de cours doublés,
-   et un store déjà doublé se répare tout seul à la lecture */
+/* Une nouvelle analyse ajoute sans effacer les anciens imports : une ligne
+   identique est ignorée, et un store déjà doublé est normalisé à la lecture. */
 context.emploiPropositions = [
     { cle: 'ep0', jour: 0, nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
     { cle: 'ep1', jour: 0, nom: 'Physique', matiere: 'Physique', debut: '09:40', fin: '11:10' }
 ];
+context.emploiImportBrut = context.localStorage.getItem(context.EMPLOI_CLE);
 context.emploiConfirmerPropositions();
 ok(context.emploiScolaireJour(0).length === 2, 'première confirmation : 2 cours, trouvé ' + context.emploiScolaireJour(0).length);
 var stManuel = context.emploiScolaireLire();
@@ -131,9 +133,10 @@ context.emploiPropositions = [
     { cle: 'ep0', jour: 0, nom: 'Maths AA', matiere: 'Maths AA', debut: '08:00', fin: '09:30' },
     { cle: 'ep1', jour: 0, nom: 'Physique', matiere: 'Physique', debut: '09:40', fin: '11:10' }
 ];
+context.emploiImportBrut = context.localStorage.getItem(context.EMPLOI_CLE);
 context.emploiConfirmerPropositions();
 var apresReanalyse = context.emploiScolaireJour(0);
-ok(apresReanalyse.length === 3, 'la nouvelle analyse remplace l\u2019ancienne et garde le cours manuel : ' + apresReanalyse.length + ' cours');
+ok(apresReanalyse.length === 3, 'la nouvelle analyse ne duplique pas les cours et garde le cours manuel : ' + apresReanalyse.length + ' cours');
 ok(apresReanalyse.filter(function (c) { return c.nom === 'Maths AA'; }).length === 1, 'reconfirmer le même document ne doit pas doubler les cours');
 ok(apresReanalyse.some(function (c) { return c.nom === 'Sport'; }), 'le cours ajouté à la main reste');
 context.emploiScolaireEcrire({ at: 'x', jours: [[

@@ -489,7 +489,7 @@ function renderPlanning() {
             '</div>'+
             '<div style="text-align:right;flex-shrink:0;">'+
                 '<p style="font-size:0.85rem;font-weight:700;color:#374151;">'+event.startTime+'</p>'+
-                '<p style="font-size:0.7rem;color:#9ca3af;">→ '+event.endTime+'</p>'+
+                '<p style="font-size:0.7rem;color:#56665e;">→ '+event.endTime+'</p>'+
                 (durLabel ? '<p style="font-size:0.68rem;color:'+bColor+';font-weight:600;margin-top:0.1rem;">'+durLabel+'</p>' : '')+
             '</div>'+
             (event.editable ? '<div style="color:#d1d5db;flex-shrink:0;margin-left:0.25rem;"><span style="font-size:0.8rem;">✏️</span></div>' : '')+

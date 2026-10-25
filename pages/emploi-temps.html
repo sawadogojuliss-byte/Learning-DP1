@@ -18,7 +18,7 @@
                 Dépose le document de ton emploi du temps (PDF ou photo) : le site lit tes cours,
                 remplace les créneaux « Cours » par tes vraies matières, et occupe tes heures
                 creuses (révisions, exercices, mémoire, évaluations internes).
-                Ce modèle s'applique chaque semaine, jusqu'à ce que tu le remplaces.
+                Tes cours s'appliquent chaque semaine. Un nouveau document s'ajoute aux cours déjà enregistrés ; tu peux choisir ceux à remplacer avant d'enregistrer.
             </p>
 
             <div style="margin-top:0.8rem;">
@@ -29,10 +29,12 @@
                 </div>
                 <input type="file" id="emploiFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="emploiLireDocument()">
                 <button type="button" onclick="emploiLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
+                <button type="button" id="emploiAnnulerLecture" hidden onclick="emploiAnnulerLecture()" style="margin-top:0.5rem;border:1.5px solid #a7f3d0;background:#fff;color:#065f46;border-radius:0.7rem;padding:0.5rem 0.8rem;font:inherit;font-size:0.83rem;cursor:pointer;">Annuler la lecture</button>
+                <p style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;">PDF : les trois premières pages au maximum seront lues. Annuler ignore le résultat de la lecture en cours.</p>
                 <p id="emploiOcrStatut" role="status" aria-live="polite" style="margin:0.4rem 0 0;font-size:0.78rem;min-height:1.1rem;"></p>
             </div>
 
-            <div id="emploiConfirmation" aria-live="polite" style="margin-top:0.8rem;"></div>
+            <div id="emploiConfirmation" style="margin-top:0.8rem;"></div>
 
             <div style="margin-top:1rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.875rem;padding:0.8rem;">
                 <p style="margin:0 0 0.5rem;font-size:0.82rem;font-weight:700;color:#374151;">Ajouter un cours à la main</p>

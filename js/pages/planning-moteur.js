@@ -221,6 +221,7 @@ function v3Toast(msg, kind, opts) {
         toast.appendChild(btn);
     }
     document.body.appendChild(toast);
+    if (typeof window.annoncer === 'function') window.annoncer(msg, kind === 'error');
     setTimeout(() => toast.remove(), opts.duration || (opts.undo ? 6000 : 3200));
 }
 

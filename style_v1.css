@@ -877,7 +877,7 @@
         }
 
         .footer-desc {
-            color: #9ca3af;
+            color:#56665e;
             margin-bottom: 1rem;
         }
 
@@ -970,7 +970,7 @@
 
         .progress-step-inactive {
             background: #e5e7eb;
-            color: #9ca3af;
+            color:#56665e;
         }
 
         .progress-line {
@@ -1017,7 +1017,7 @@
             padding: 1rem 1.5rem;
             border: 2px solid #e5e7eb;
             border-radius: 0.75rem;
-            outline: none;
+
             transition: all 0.3s ease;
         }
 
