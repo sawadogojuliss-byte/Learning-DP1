@@ -17,6 +17,8 @@
     var derniereSource = new WeakMap();
     var ouvert = new WeakMap();
     var retourFocus = new WeakMap();
+    var ordreOuverture = new WeakMap();
+    var prochainOrdre = 0;
     var actif = null;
     var champs = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
     function visible(el) { return !!(el && el.isConnected && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
@@ -139,8 +141,13 @@
             trouve = trouve.filter(function (el) { return !el.classList.contains('context-modal'); });
         }
         if (!trouve.length) return null;
-        /* Si un dialogue est dans un autre, le plus intérieur passe devant. */
-        return trouve.filter(function (el) { return !trouve.some(function (autre) { return autre !== el && el.contains(autre); }); }).pop();
+        /* Un dialogue intérieur passe devant son parent ; entre deux
+           fenêtres indépendantes, la dernière ouverte reçoit le clavier. */
+        var enAvant = trouve.filter(function (el) {
+            return !trouve.some(function (autre) { return autre !== el && el.contains(autre); });
+        });
+        enAvant.sort(function (a, b) { return (ordreOuverture.get(a) || 0) - (ordreOuverture.get(b) || 0); });
+        return enAvant[enAvant.length - 1];
     }
     function synchroniserFocus() {
         var suivant = modaleActive();
@@ -203,7 +210,15 @@
     var observer = new MutationObserver(function (mutations) {
         var changer = false;
         mutations.forEach(function (m) {
-            if (m.type === 'attributes') { if (m.attributeName === 'class' || m.attributeName === 'style' || m.attributeName === 'hidden') changer = true; return; }
+            if (m.type === 'attributes') {
+                if (m.attributeName === 'class' || m.attributeName === 'style' || m.attributeName === 'hidden') {
+                    changer = true;
+                    if (m.target.matches('.context-modal,#compteModal,#addEventModal,#editEventModal,[role="dialog"]') && dialogVisible(m.target)) {
+                        ordreOuverture.set(m.target, ++prochainOrdre);
+                    }
+                }
+                return;
+            }
             m.addedNodes.forEach(function (noeud) { if (noeud.nodeType === 1) { traiter(noeud); lireSource(noeud); changer = true; } });
             if (m.target !== region && !region.contains(m.target)) lireSource(m.target);
         });

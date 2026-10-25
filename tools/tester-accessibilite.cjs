@@ -30,14 +30,19 @@ const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Le
         assert.equal(base.images, 0, 'images avec dimensions');
         assert.equal(base.largeur, base.accueil, 'pas de débordement sur l’accueil à 320 px');
         await page.evaluate(() => {
-            document.querySelectorAll('.app-panel.active').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.app-panel.active,.context-modal.active').forEach(el => el.classList.remove('active'));
             const bouton = document.createElement('button'); bouton.id = 'declencheur-accessibilite'; bouton.textContent = 'Ouvrir';
             document.body.appendChild(bouton); bouton.focus(); openContextModal();
         });
         await page.waitForFunction(() => document.getElementById('contextModal').contains(document.activeElement), null, { timeout: 1500 });
         assert.equal(await page.evaluate(() => document.getElementById('contextModal').contains(document.activeElement)), true, 'focus dans le dialogue');
         await page.keyboard.press('Shift+Tab');
-        assert.equal(await page.evaluate(() => document.getElementById('contextModal').contains(document.activeElement)), true, 'focus retenu dans le dialogue');
+        const apresTab = await page.evaluate(() => ({
+            dedans: document.getElementById('contextModal').contains(document.activeElement),
+            element: document.activeElement?.id || document.activeElement?.tagName,
+            fenetres: Array.from(document.querySelectorAll('.context-modal.active,.app-panel.active')).map(el => el.id)
+        }));
+        assert.equal(apresTab.dedans, true, 'focus retenu dans le dialogue : ' + JSON.stringify(apresTab));
         await page.keyboard.press('Escape');
         await page.waitForTimeout(80);
         assert.equal(await page.evaluate(() => document.getElementById('contextModal').classList.contains('active')), false, 'Échap ferme le dialogue');
