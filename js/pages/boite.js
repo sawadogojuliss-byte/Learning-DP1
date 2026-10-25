@@ -418,8 +418,25 @@ function boiteEcrireBoite(record) {
                 tech.googleSub = ''; tech.google = ''; tech.email = ''; tech.googleNom = '';
             }
         }
-        return firebase.firestore().collection(collection).add(propre);
-    }).then(function () { return true; });
+        if (collection === 'emplois_du_temps') {
+            var db = firebase.firestore();
+            var documentEmploi = db.collection(collection).doc();
+            var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
+            var lot = db.batch();
+            lot.set(documentEmploi, propre);
+            lot.set(reception, { recu: true });
+            /* Les règles du site et celles de Firestore sont publiées
+               séparément. Sur les anciennes règles qui acceptaient déjà
+               l'emploi mais pas l'accusé, conserver la réception privée
+               existante sans prétendre disposer d'un reçu vérifiable.
+               Une erreur réseau ou tout autre refus reste en file locale. */
+            return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
+                if (!err || err.code !== 'permission-denied') throw err;
+                return db.collection(collection).add(propre).then(function () { return ''; });
+            });
+        }
+        return firebase.firestore().collection(collection).add(propre).then(function () { return true; });
+    });
 }
 
 /* L'ancienne boîte reste lisible par les admins : les documents qui y
@@ -608,14 +625,15 @@ function boiteJoursCompacts(jours, maxSlots) {
 }
 
 var boiteEmploisEnCours = {};
-function boiteAcquitterEmploi(record) {
+function boiteAcquitterEmploi(record, receptionId) {
     var cle = boiteCleFileEmploi(record);
     var metaCle = BOITE_EMPLOI_HASH + ':attente:' + encodeURIComponent(cle);
     var meta = boiteLireJson(metaCle);
     /* Un réessai hors ligne peut se terminer dans un nouvel onglet, après
        rechargement : l'ACK appartient à la version réellement confirmée. */
     if (!meta || meta.at !== record.at) return;
-    boiteEcrireAckEmploi(record, { hash: meta.hash, faits: meta.faits, cle: cle, at: Date.now() });
+    boiteEcrireAckEmploi(record, { hash: meta.hash, faits: meta.faits, cle: cle,
+        at: Date.now(), receptionId: receptionId || '' });
     try { localStorage.removeItem(metaCle); } catch (e) {}
 }
 
@@ -628,9 +646,9 @@ function boiteEnvoyerDistant(record) {
         var envoi = precedent.catch(function () {}).then(function () {
             var courant = boiteLireEmploisEnAttente()[cle];
             if (!courant || JSON.stringify(courant) !== JSON.stringify(record)) return false;
-            return boiteEcrireBoite(record).then(function () {
+            return boiteEcrireBoite(record).then(function (receptionId) {
                 boiteRetirerFile(record);
-                boiteAcquitterEmploi(record);
+                boiteAcquitterEmploi(record, receptionId);
                 return true;
             });
         });
@@ -670,6 +688,8 @@ function boiteNettoyerSession() {
     boiteSecretCache = '';
     boiteErreurLecture = '';
     boiteErreurEmplois = '';
+    boiteReceptionPresente = {};
+    boiteControleReceptionEnCours = {};
     boiteAdminVerifie = false;
     boiteAdminTente = false;
     /* Ne pas laisser sur l'appareil une réponse mail restée en attente. */
@@ -2419,8 +2439,92 @@ function boiteFaitsEmploi() {
     return JSON.stringify(faits);
 }
 
+/* La page Emploi du temps vérifie la réception dans Firestore, pas dans
+   localStorage ni à partir du contenu visible sur une autre page. Une
+   absence vérifiée relance l'envoi sans toucher aux anciennes versions. */
+var boiteControleReceptionEnCours = {};
+var boiteReceptionPresente = {};
+function boiteVerifierReceptionEmploi() {
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return Promise.resolve('ignore');
+    if (!window.__profilComplet && !(typeof emploiScolaireActif === 'function' && emploiScolaireActif())) return Promise.resolve('incomplet');
+    var record = boiteStabiliserComplet(boiteSnapshotEmploi());
+    if (!boiteEstComplet(record) || boiteEmploiRetire(record) ||
+        (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record))) return Promise.resolve('incomplet');
+    var cle = boiteCleFileEmploi(record);
+    var faitsAuControle = boiteFaitsEmploi();
+    if (boiteControleReceptionEnCours[cle]) return boiteControleReceptionEnCours[cle];
+    var generation = boiteSessionGeneration;
+    var sub = window.compteSession && window.compteSession.sub || '';
+    function encoreCourant() {
+        return generation === boiteSessionGeneration &&
+            (window.compteSession && window.compteSession.sub || '') === sub;
+    }
+    var travail = boiteFirebasePret().then(function (user) {
+        var google = user && (user.providerData || []).filter(function (p) {
+            return p && p.providerId === 'google.com';
+        })[0];
+        if (!encoreCourant() || (google && record.googleSub !== google.uid) ||
+            (record.googleSub && (!google || google.uid !== record.googleSub))) return 'session';
+        var file = boiteLireEmploisEnAttente();
+        if (file[cle]) {
+            return boiteReessayer().then(function () {
+                return boiteLireEmploisEnAttente()[cle] ? 'attente' : verifier();
+            });
+        }
+        return verifier();
+        function verifier() {
+            if (!encoreCourant()) return 'session';
+            var ack = boiteLireAckEmploi(record);
+            var db = firebase.firestore();
+            function presente(type) {
+                if (!encoreCourant()) return 'session';
+                /* Le reçu prouve la version envoyée. Si l'élève a depuis
+                   enregistré de nouveaux faits, envoyer cette édition au
+                   lieu de confondre l'ancien reçu avec sa semaine actuelle. */
+                if (ack && ack.receptionId && ack.faits && faitsAuControle &&
+                    ack.faits !== faitsAuControle) {
+                    boitePublierEmploi(true, true);
+                    return 'edition';
+                }
+                boiteReceptionPresente[cle] = faitsAuControle;
+                return type;
+            }
+            function absente() {
+                if (!encoreCourant()) return 'session';
+                boitePublierEmploi(true, true); /* absence confirmée sur le serveur */
+                return 'renvoi';
+            }
+            if (ack && ack.receptionId) {
+                return db.collection('receptions_emplois').doc(ack.receptionId)
+                    .get({ source: 'server' }).then(function (doc) {
+                        return doc.exists ? presente('recu') : absente();
+                    });
+            }
+            if (user) {
+                /* Un ancien document sans accusé reste présent : ne pas le
+                   dupliquer. Le filtre UID est imposé par les règles serveur. */
+                return db.collection('emplois_du_temps')
+                    .where('z_donnees_techniques.firebaseUid', '==', user.uid)
+                    .limit(1).get({ source: 'server' }).then(function (snap) {
+                        return snap.empty || !(snap.docs || []).length ? absente() : presente('recu_ancien');
+                    });
+            }
+            /* Sans compte et sans ID de réception historique, personne ne
+               peut prouver l'absence d'un ancien document privé. Le garder
+               intact ; un nouvel élève sans ACK peut envoyer sa semaine. */
+            if (ack) return 'ancien_indeterminable';
+            return absente();
+        }
+    }).catch(function () { return 'indisponible'; });
+    boiteControleReceptionEnCours[cle] = travail;
+    travail.then(function () {
+        if (boiteControleReceptionEnCours[cle] === travail) delete boiteControleReceptionEnCours[cle];
+    });
+    return travail;
+}
+
 var boitePublicationsEnCours = {};
-function boitePublierEmploi(force) {
+function boitePublierEmploi(force, manqueConfirme) {
     if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return;
     if (!boiteNom()) return;
     if (!force && !boiteInscrit()) return;
@@ -2436,19 +2540,22 @@ function boitePublierEmploi(force) {
         googleSub: record.googleSub
     });
     var cle = boiteCleFileEmploi(record);
+    if (!manqueConfirme && (boiteControleReceptionEnCours[cle] ||
+        (faits && boiteReceptionPresente[cle] === faits))) return;
     var deja = boiteLireAckEmploi(record);
     /* Ancienne empreinte : ignorer seulement les champs de connexion.
        Une même semaine déjà reçue n'a pas besoin d'une nouvelle version. */
     var ancienne = null;
     try { ancienne = deja && JSON.parse(deja.hash); } catch (e) {}
-    if (deja && deja.cle === cle &&
+    if (!manqueConfirme && deja && deja.cle === cle &&
         ((faits && deja.faits === faits) ||
          (!deja.faits && ancienne && JSON.stringify({
              nom: ancienne.nom, classe: ancienne.classe, jours: ancienne.jours,
              matieres: ancienne.matieres, google: ancienne.google,
              googleSub: ancienne.googleSub
          }) === empreinte))) {
-        if (faits && !deja.faits) boiteEcrireAckEmploi(record, { hash: empreinte, faits: faits, cle: cle, at: deja.at });
+        if (faits && !deja.faits) boiteEcrireAckEmploi(record, { hash: empreinte, faits: faits,
+            cle: cle, at: deja.at, receptionId: deja.receptionId || '' });
         return;
     }
     var signature = faits || empreinte;

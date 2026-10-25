@@ -986,6 +986,7 @@ function showEmploiPage() {
     if (modal) modal.classList.add('active');
     emploiRendre();
     if (typeof memoireMarquerEtape === 'function') { try { memoireMarquerEtape('emploi'); } catch (e) {} }
+    if (typeof boiteVerifierReceptionEmploi === 'function') boiteVerifierReceptionEmploi();
 }
 
 function goBackFromEmploi() {

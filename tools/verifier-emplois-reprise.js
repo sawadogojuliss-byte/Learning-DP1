@@ -6,12 +6,14 @@ const vm = require('node:vm');
 const source = fs.readFileSync('js/pages/boite.js', 'utf8');
 assert.match(fs.readFileSync('js/pages/emploi-temps.js', 'utf8'), /function emploiScolaireEcrire[\s\S]*?boiteApresMemoire/, 'édition des cours non publiée');
 assert.match(fs.readFileSync('js/pages/planning-moteur.js', 'utf8'), /function v3Save[\s\S]*?boiteApresMemoire/, 'édition du planning non publiée');
+assert.match(fs.readFileSync('js/pages/emploi-temps.js', 'utf8'), /function showEmploiPage\([\s\S]*?boiteVerifierReceptionEmploi\(\)/, 'la page ne vérifie pas sa réception backend');
 const donnees = {};
 const documents = [];
 let bloque = false;
 let utilisateur = null;
 let gardeEnCours = null;
 let lectureEmploisRefusee = false;
+let reglesReceptionActives = true;
 let heure = Date.parse('2026-10-24T09:00:00.000Z');
 class Horloge extends Date { constructor(...args) { super(...(args.length ? args : [heure])); } static now() { return heure; } }
 const storage = {
@@ -27,36 +29,71 @@ function fiche(nom, appareil, at, titre) {
     return { type: 'emploi', id: 'e_' + appareil, appareil, at, nom, classe: 'DP1',
         jours: semaine(titre), schema: 2, complet: 1, google: '', googleSub: '', email: '', matieres: ['Mathématiques'] };
 }
+const receptions = new Map();
+let docNumero = 0;
 const collections = { emplois_du_temps: documents };
 const firebase = {
     auth() { return { currentUser: utilisateur, onAuthStateChanged(fn) { fn(utilisateur); } }; },
-    firestore() { return { collection(nom) {
-        const liste = collections[nom] || (collections[nom] = []);
-        let champ = 'at', depuis = '', limite = 400, direction = 'desc', apres = null;
-        return {
-            add(doc) {
-                if (bloque) return Promise.reject(new Error('permission-denied'));
-                if (gardeEnCours) return gardeEnCours().then(() => { liste.push(JSON.parse(JSON.stringify(doc))); });
-                liste.push(JSON.parse(JSON.stringify(doc)));
-                return Promise.resolve({ id: 'doc' + liste.length });
-            },
-            where(key, op, value) { champ = key; depuis = value; return this; },
-            orderBy(key, ordre) { champ = key; direction = ordre; return this; },
-            limit(n) { limite = n; return this; },
-            startAfter(doc) { apres = doc; return this; },
-            get() {
-                if (nom === 'emplois_du_temps' && lectureEmploisRefusee) return Promise.reject({ code: 'permission-denied' });
-                function date(doc) { return champ === 'at' ? doc.at : doc.z_donnees_techniques && doc.z_donnees_techniques.at; }
-                let docs = liste.map((data, i) => ({ id: nom + i, data() { return data; } }))
-                    .filter((doc) => date(doc.data()) && (!depuis || date(doc.data()) > depuis))
-                    .sort((a, b) => direction === 'asc'
-                        ? date(a.data()).localeCompare(date(b.data())) : date(b.data()).localeCompare(date(a.data())));
-                if (apres) docs = docs.slice(docs.findIndex((doc) => doc.id === apres.id) + 1);
-                docs = docs.slice(0, limite);
-                return Promise.resolve({ docs, forEach(fn) { docs.forEach(fn); } });
-            }
-        };
-    } }; }
+    firestore() { return {
+        batch() {
+            const ecritures = [];
+            return { set(ref, data) { ecritures.push({ ref, data }); },
+                commit() {
+                    if (bloque) return Promise.reject(new Error('permission-denied'));
+                    if (!reglesReceptionActives) return Promise.reject({ code: 'permission-denied' });
+                    const terminer = () => {
+                        for (const { ref, data } of ecritures) {
+                            if (ref.nom === 'receptions_emplois') receptions.set(ref.id, JSON.parse(JSON.stringify(data)));
+                            else (collections[ref.nom] || (collections[ref.nom] = [])).push(JSON.parse(JSON.stringify(data)));
+                        }
+                    };
+                    if (gardeEnCours) return gardeEnCours().then(terminer);
+                    terminer();
+                    return Promise.resolve();
+                } };
+        },
+        collection(nom) {
+            const liste = collections[nom] || (collections[nom] = []);
+            let champ = 'at', depuis = '', limite = 400, direction = 'desc', apres = null;
+            return {
+                doc(id) {
+                    const ref = { nom, id: id || 'aleatoire' + (++docNumero) };
+                    ref.get = () => {
+                        if (bloque || (nom === 'receptions_emplois' && lectureEmploisRefusee)) return Promise.reject({ code: 'permission-denied' });
+                        return Promise.resolve({ exists: receptions.has(ref.id), data: () => receptions.get(ref.id) });
+                    };
+                    return ref;
+                },
+                add(doc) {
+                    if (bloque) return Promise.reject(new Error('permission-denied'));
+                    if (gardeEnCours) return gardeEnCours().then(() => { liste.push(JSON.parse(JSON.stringify(doc))); });
+                    liste.push(JSON.parse(JSON.stringify(doc)));
+                    return Promise.resolve({ id: 'doc' + liste.length });
+                },
+                where(key, op, value) { champ = key; depuis = value; return this; },
+                orderBy(key, ordre) { champ = key; direction = ordre; return this; },
+                limit(n) { limite = n; return this; },
+                startAfter(doc) { apres = doc; return this; },
+                get() {
+                    if (nom === 'emplois_du_temps' && lectureEmploisRefusee) return Promise.reject({ code: 'permission-denied' });
+                    if (nom === 'emplois_du_temps' && champ === 'z_donnees_techniques.firebaseUid' &&
+                        (!utilisateur || utilisateur.uid !== depuis || limite !== 1)) return Promise.reject({ code: 'permission-denied' });
+                    function date(doc) {
+                        if (champ === 'z_donnees_techniques.firebaseUid') return doc.z_donnees_techniques && doc.z_donnees_techniques.firebaseUid;
+                        return champ === 'at' ? doc.at : doc.z_donnees_techniques && doc.z_donnees_techniques.at;
+                    }
+                    let docs = liste.map((data, i) => ({ id: nom + i, data() { return data; } }))
+                        .filter((doc) => date(doc.data()) && (!depuis || (champ === 'z_donnees_techniques.firebaseUid'
+                            ? date(doc.data()) === depuis : date(doc.data()) > depuis)))
+                        .sort((a, b) => direction === 'asc'
+                            ? date(a.data()).localeCompare(date(b.data())) : date(b.data()).localeCompare(date(a.data())));
+                    if (apres) docs = docs.slice(docs.findIndex((doc) => doc.id === apres.id) + 1);
+                    docs = docs.slice(0, limite);
+                    return Promise.resolve({ docs, empty: docs.length === 0, forEach(fn) { docs.forEach(fn); } });
+                }
+            };
+        }
+    }; }
 };
 const context = { console, Promise, Date: Horloge, JSON, Math, Object, Array, String, Number,
     setTimeout, clearTimeout, setInterval() { return 0; }, localStorage: storage, firebase,
@@ -90,6 +127,7 @@ vm.runInContext(source, context);
     bloque = true;
     await assert.rejects(context.boiteEnvoyer(a));
     assert.equal(documents.length, 0);
+    assert.equal(receptions.size, 0, 'un reçu a été créé malgré le refus du document privé');
     assert.equal(Object.keys(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])).length, 1);
     bloque = false;
     await context.boiteReessayer();
@@ -207,6 +245,67 @@ vm.runInContext(source, context);
     context.boiteEcrireAckEmploi(ficheB, { cle: 'app:autre|fatou', hash: 'B' });
     assert.equal(context.boiteLireAckEmploi(context.boiteSnapshotEmploi()).hash, ackA.hash);
 
+    // Contrôle sur la page : le reçu serveur, et non l'ACK du navigateur,
+    // décide si une semaine déjà envoyée doit être renvoyée.
+    const ackRecu = context.boiteLireAckEmploi(context.boiteSnapshotEmploi());
+    assert.ok(ackRecu.receptionId && receptions.has(ackRecu.receptionId));
+    const avantControle = documents.length;
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'recu');
+    assert.equal(documents.length, avantControle, 'la vérification du reçu crée un doublon');
+    receptions.delete(ackRecu.receptionId);
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'renvoi');
+    await new Promise((res) => setTimeout(res, 10));
+    assert.equal(documents.length, avantControle + 1, 'la réception manquante ne relance pas l’envoi');
+    assert.ok(receptions.has(context.boiteLireAckEmploi(context.boiteSnapshotEmploi()).receptionId));
+    choix = 'Philosophie';
+    rendu = 'Cours édité en page Emploi';
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'edition');
+    await new Promise((res) => setTimeout(res, 10));
+    assert.equal(documents.length, avantControle + 2, 'le reçu précédent masque une nouvelle édition');
+    assert.equal(context.boiteFusionner(documents).emplois[0].jours[0].s[0].t,
+        'Cours édité en page Emploi');
+    lectureEmploisRefusee = true;
+    const avantRefus = documents.length;
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'indisponible');
+    assert.equal(documents.length, avantRefus, 'un refus du backend est pris pour une absence');
+    lectureEmploisRefusee = false;
+    context.boiteEcrireAckEmploi(context.boiteSnapshotEmploi(), { cle: 'app:a|camille', hash: 'ancien' });
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'ancien_indeterminable');
+    assert.equal(documents.length, avantRefus, 'une archive anonyme non vérifiable est dupliquée');
+
+    // Identité Google : lire seulement les fiches de son propre UID ; ne
+    // jamais confondre un homonyme ou une ancienne fiche anonyme avec elle.
+    const archivePropre = context.boiteEmploiPourFirestore(fiche('Camille', 'b', new Date(heure).toISOString(), 'Ancien cours authentifié'));
+    archivePropre.z_donnees_techniques.firebaseUid = 'uid-prouve';
+    documents.push(archivePropre);
+    utilisateur = { uid: 'uid-prouve', email: 'compte@example.org',
+        providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
+    context.compteSession = { sub: 'sub-prouve', email: 'compte@example.org' };
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'recu_ancien');
+    assert.equal(documents.length, avantRefus + 1, 'une archive prouvée est republiée');
+    context.boitePublierEmploi(true);
+    await new Promise((res) => setTimeout(res, 10));
+    assert.equal(documents.length, avantRefus + 1, 'une lecture prouvée est écrasée sans édition');
+    choix = 'Biologie';
+    rendu = 'Cours modifié par Camille';
+    context.boitePublierEmploi(true);
+    await new Promise((res) => setTimeout(res, 10));
+    assert.equal(documents.length, avantRefus + 2, 'une modification explicite ne crée pas de version');
+    utilisateur = { uid: 'uid-autre', email: 'autre@example.org',
+        providerData: [{ providerId: 'google.com', uid: 'sub-autre' }] };
+    context.compteSession = { sub: 'sub-autre', email: 'autre@example.org' };
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'renvoi');
+    await new Promise((res) => setTimeout(res, 10));
+    assert.equal(documents.at(-1).z_donnees_techniques.firebaseUid, 'uid-autre');
+    assert.ok(receptions.has(context.boiteLireAckEmploi(context.boiteSnapshotEmploi()).receptionId));
+    const dernierCompte = documents.length;
+    context.compteSession = { sub: 'sub-fausse-session' };
+    assert.equal(await context.boiteVerifierReceptionEmploi(), 'session',
+        'une session locale différente du compte Firebase récupère le planning d’autrui');
+    assert.equal(documents.length, dernierCompte);
+    utilisateur = null;
+    context.compteSession = null;
+
     // Deux jours manqués sont tolérés ; trois journées manquées ramènent
     // la flamme à zéro, y compris pour les vues Planning, Soutien et Focus.
     heure = Date.parse('2026-10-26T12:00:00.000Z');
@@ -246,6 +345,16 @@ vm.runInContext(source, context);
     assert.match(fs.readFileSync('js/pages/soutien.js', 'utf8'),
         /function updateStreak\([\s\S]*?var n = typeof boiteFlammes/);
 
+    // Compatibilité pendant le déploiement séparé des règles : ancien
+    // create privé autorisé mais nouvel accusé refusé. Ne pas créer de faux
+    // reçu ; ne pas bloquer les semaines qui pouvaient déjà être reçues.
+    reglesReceptionActives = false;
+    const anciensDocs = documents.length;
+    const anciensRecus = receptions.size;
+    assert.equal(await context.boiteEnvoyer(fiche('Salomé', 'ancien', new Date(heure).toISOString(), 'Histoire')), true);
+    assert.equal(documents.length, anciensDocs + 1);
+    assert.equal(receptions.size, anciensRecus, 'un accusé a été inventé malgré les anciennes règles');
+    reglesReceptionActives = true;
     context.__STUDYPLAN_E2E = true;
     assert.equal(await context.boiteEnvoyer(b), false, 'le navigateur E2E écrit en production');
     console.log('ok emplois privés : identité, semaine, file, ACK, lecture tardive et tests sans envoi');

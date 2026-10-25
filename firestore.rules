@@ -84,11 +84,10 @@ service cloud.firestore {
       allow create: if ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
-    /* Les nouvelles semaines arrivent en documents immuables : une
-       modification crée une version, sans effacer la précédente. La lecture
-       reste strictement réservée aux admins. Un compte authentifié doit
-       prouver son UID Firebase ; un visiteur ne peut pas se faire passer
-       pour un compte Google. Les anciens formats restent lisibles. */
+    /* Les nouvelles semaines sont immuables. Les admins lisent toutes les
+       versions ; un compte connecté ne peut vérifier QUE ses propres
+       documents via une requête filtrée par son UID. Jamais de lecture
+       d'emplois d'un autre élève, ni de liste publique. */
     function emploiValide() {
       return request.resource.data.keys().hasAll([
                'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
@@ -130,8 +129,30 @@ service cloud.firestore {
                && request.resource.data.z_donnees_techniques.email == ''));
     }
     match /emplois_du_temps/{message} {
-      allow read: if estAdmin();
+      allow get: if estAdmin() || (request.auth != null
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
+      allow list: if estAdmin() || (request.auth != null
+        && request.query.limit <= 1
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
       allow create: if emploiValide();
+      allow update, delete: if false;
+    }
+    /* Accusé sans nom, UID ni créneaux. Son ID aléatoire est le même que
+       celui du document privé ; seule une écriture atomique des DEUX
+       documents peut créer un accusé. Un visiteur peut connaître la
+       réception avec son ID, jamais parcourir la collection ni lire la
+       semaine privée. Les archives anciennes ne sont pas modifiées. */
+    match /receptions_emplois/{message} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasOnly(['recu'])
+        && request.resource.data.keys().hasAll(['recu'])
+        && request.resource.data.recu == true
+        && !exists(/databases/$(database)/documents/emplois_du_temps/$(message))
+        && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(message))
+        && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.type == 'emploi'
+        && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.z_donnees_techniques.firebaseUid
+          == (request.auth != null ? request.auth.uid : '');
       allow update, delete: if false;
     }
     /* Les collections de transition restent privées si elles existent.

@@ -70,7 +70,7 @@ ok(/match \/publie\/\{message\} \{[\s\S]*?allow read: if true;/.test(regles), 'l
 ok(/match \/config\/\{doc\} \{[\s\S]*?allow read: if estAdmin\(\);/.test(regles), 'la configuration privée est lisible par tous');
 ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compte non vérifié peut être admin');
 
-['questions', 'feedbacks', 'emplois_du_temps', 'reponses', 'emplois', 'profils', 'connexions'].forEach(function (nom) {
+['questions', 'feedbacks', 'reponses', 'emplois', 'profils', 'connexions'].forEach(function (nom) {
     ok(regles.includes('match /' + nom + '/{message} {'), 'collection absente : ' + nom);
     const bloc = regles.split('match /' + nom + '/{message} {')[1] || '';
     ok(bloc.split('}')[0].includes('allow read: if estAdmin();'), 'collection lisible par tous : ' + nom);
@@ -86,10 +86,19 @@ const archiveCreation = regles.split('match /boite/{message} {')[1].split('allow
 ok(!archiveCreation.includes("'question'") && !archiveCreation.includes("'feedback'"),
     'un ancien onglet peut encore archiver des questions/feedbacks à plat');
 const emploiCreation = regles.split('match /emplois_du_temps/{message} {')[1] || '';
-ok(emploiCreation.includes('allow read: if estAdmin();') && emploiCreation.includes('allow create: if emploiValide();'),
+ok(emploiCreation.includes('allow get: if estAdmin() || (request.auth != null') &&
+    emploiCreation.includes('allow list: if estAdmin() || (request.auth != null') &&
+    emploiCreation.includes('request.query.limit <= 1') &&
+    emploiCreation.includes('resource.data.z_donnees_techniques.firebaseUid == request.auth.uid') &&
+    emploiCreation.includes('allow create: if emploiValide();'),
     'les emplois valides ne sont pas reçus uniquement par les admins');
 ok(regles.includes('request.resource.data.z_donnees_techniques.firebaseUid == request.auth.uid') &&
     regles.includes('request.resource.data.z_donnees_techniques.jours.size() == 7'), 'identité ou semaine non vérifiée');
+const reception = regles.split('match /receptions_emplois/{message} {')[1] || '';
+ok(reception.includes('allow get: if true;') && reception.includes('allow list: if false;') &&
+    reception.includes('!exists(') && reception.includes('existsAfter(') &&
+    reception.includes('getAfter(') && reception.includes('allow update, delete: if false;'),
+    'les accusés dévoilent des plannings ou peuvent être forgés sans écriture atomique');
 ok((regles.split('match /emplois/{message} {')[1] || '').includes('allow create: if false;'), 'écriture dans l’ancienne collection rétablie');
 ok(!regles.split('match /boite/{message} {')[1].split('allow update')[0].includes("'emploi'"), 'l’archive peut recevoir de nouveaux emplois');
 

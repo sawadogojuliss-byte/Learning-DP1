@@ -41,6 +41,7 @@ let reponseScript = function (payload) { return { success: true, id: payload.non
 let firestoreEchec = false;
 let nouvellesRegles = true;
 let utilisateur = null;
+let autoDoc = 0;
 const bdd = { boite: [], publie: [], config: { mail: { secret: 'spx-test-secret' } } };
 
 function fausseCollection(nom) {
@@ -68,6 +69,7 @@ function fausseCollection(nom) {
         },
         doc: function (id) {
             return {
+                id: id || 'fake-recu-' + (++autoDoc), nom: nom,
                 get: function () {
                     var v = (bdd[nom] || {})[id];
                     return Promise.resolve({ exists: !!v, data: function () { return v; } });
@@ -85,7 +87,23 @@ const fauxFirebase = {
             onAuthStateChanged: function (cb) { setTimeout(function () { cb(utilisateur); }, 0); }
         };
     },
-    firestore: function () { return { collection: fausseCollection }; }
+    firestore: function () { return { collection: fausseCollection, batch: function () {
+        var operations = [];
+        return { set: function (ref, data) { operations.push({ ref: ref, data: data }); },
+            commit: function () {
+                if (firestoreEchec || !nouvellesRegles) return Promise.reject(new Error('firestore'));
+                operations.forEach(function (op) {
+                    if (op.ref.nom === 'receptions_emplois') {
+                        bdd.receptions_emplois = bdd.receptions_emplois || {};
+                        bdd.receptions_emplois[op.ref.id] = op.data;
+                    } else {
+                        bdd[op.ref.nom] = bdd[op.ref.nom] || [];
+                        bdd[op.ref.nom].push(op.data);
+                    }
+                });
+                return Promise.resolve();
+            } };
+    } }; }
 };
 
 const context = {

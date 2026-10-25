@@ -10,7 +10,8 @@ Aucune explication de ce changement n'a été ajoutée aux pages des élèves.
 |---|---|---|
 | `questions` | Nouvelles questions posées dans Aide | Cinq comptes admins seulement |
 | `feedbacks` | Nouveaux avis et suggestions | Cinq comptes admins seulement |
-| `emplois_du_temps` | Semaines privées reçues et versions immuables ; conservation des archives | Cinq comptes admins seulement |
+| `emplois_du_temps` | Semaines privées reçues et versions immuables ; conservation des archives | Cinq admins ; un élève connecté ne peut rechercher que ses propres semaines |
+| `receptions_emplois` | Accusés de réception sans nom ni créneaux | Lecture individuelle par ID aléatoire ; liste interdite |
 | `reponses` | Traces des réponses envoyées | Cinq comptes admins seulement |
 | `emplois`, `profils`, `connexions` | Archives de la version précédente, seulement si ces collections ont reçu des données | Cinq comptes admins seulement |
 | `boite` | **Archives** reçues avant cette séparation ; anciens onglets encore ouverts peuvent aussi y écrire temporairement | Cinq comptes admins seulement |
@@ -35,8 +36,10 @@ règles de l'application ne limitent pas les administrateurs du projet.
    de cette branche du dépôt, puis cliquer sur **Publier**. Ne rien coller à
    la suite des anciennes règles. Ne créer aucune collection à la main.
    Le code du site se met à jour automatiquement. Tant que les règles
-   ne donnent pas accès aux nouvelles collections, le formulaire indique
-   un échec ; il ne confirme plus un envoi dirigé vers l'archive par erreur.
+   ne donnent pas accès aux nouvelles collections et à l'écriture atomique
+   de `receptions_emplois`, un ancien envoi privé encore autorisé peut
+   réussir sans accusé vérifiable ; sinon l'emploi reste en file locale.
+   Aucun faux accusé n'est créé. Ne pas tester avec un profil fictif réel.
 3. **Vérifier la séparation sans envoyer de mail de test.** Sur le site,
    poser une question ordinaire depuis Aide ; attendre « Question envoyée. ».
    Dans la console Firebase → Firestore Database → **Données**, une collection
@@ -83,7 +86,12 @@ existantes. Une réception échouée reste en attente dans le navigateur de
 l'élève ; il faudra qu'il revienne avec ce même navigateur. Aucune collection
 ne doit être purgée avant un inventaire, une sauvegarde et une migration
 vérifiée. L'ancienne collection `boite` sert également aux questions et à la
-vérification des comptes admins : ne pas la supprimer. Voir
+vérification des comptes admins : ne pas la supprimer. Sur la page Emploi
+du temps, une vérification serveur silencieuse contrôle l'accusé de la
+semaine reçue et relance l'envoi si cette réception manque. Pour les
+comptes connectés, une recherche limitée par UID prend aussi en charge
+les anciens documents ; une archive anonyme sans identifiant d'accusé
+reste indéterminable et n'est pas dupliquée par supposition. Voir
 [`docs/reception-emplois.md`](docs/reception-emplois.md) pour le contrôle de
 mise en service sans fiches de test ni courrier aux utilisateurs.
 
