@@ -101,6 +101,16 @@ function planningChoixUtilisateur(ev) {
     return false;
 }
 
+/* Les faits du profil et les heures saisies ne sont jamais des variables
+   d'ajustement. Si deux faits se contredisent, montrer le conflit plutôt que
+   déplacer un trajet ou une activité sans l'accord de l'élève. */
+function planningInamovible(ev) {
+    return !!(ev && (ev.id === 'wakeup' || ev.id === 'sleep' ||
+        ev.type === 'school' || ev.type === 'transport' ||
+        ev.kind === 'fixed' || ev.habitudeFixe || ev.conflitHoraire ||
+        planningChoixUtilisateur(ev)));
+}
+
 function planningEcrireHeure(ev, debut, heure) {
     if (!ev) return;
     if (debut) {
@@ -324,8 +334,10 @@ function verrouillerTrajets(events, dayIndex) {
     if (aller) {
         var debutA = typeof debutTrajetAller === 'function' ? debutTrajetAller(trajet.depart, durA, finEcole) : Math.max(0, finEcole - durA);
         if (debutA + durA > finEcole) debutA = Math.max(0, finEcole - durA);
-        aller.startTime = v3M2T(debutA);
-        aller.endTime = v3M2T(debutA + durA);
+        if (!aller.ovPinned) {
+            aller.startTime = v3M2T(debutA);
+            aller.endTime = v3M2T(debutA + durA);
+        }
         aller.title = 'Trajet école';
         aller.type = 'transport';
         aller.kind = 'pinned';
@@ -341,8 +353,10 @@ function verrouillerTrajets(events, dayIndex) {
             if (sejourDebut <= finCours + 20 && sejourFin > debutR) debutR = sejourFin;
         });
         if (debutR < finCours) debutR = finCours;
-        retour.startTime = v3M2T(debutR % 1440);
-        retour.endTime = v3M2T((debutR + durR) % 1440);
+        if (!retour.ovPinned) {
+            retour.startTime = v3M2T(debutR % 1440);
+            retour.endTime = v3M2T((debutR + durR) % 1440);
+        }
         retour.title = 'Trajet maison';
         retour.type = 'transport';
         retour.kind = 'pinned';
@@ -437,7 +451,9 @@ function annoterPlages(events, dayIndex, wakeupTime, bedtime) {
         var dur = planningDuree(ev);
         ev.minimum = 15;
         if (ev.id === 'breakfast') {
-            ev.plages = [[wake, matinFin], [apres, Math.min(bed, apres + 3 * 60)]];
+            /* Un petit-déjeuner sans heure saisie reste un repas du matin.
+               Jamais de solution de secours après les cours. */
+            ev.plages = [[wake, Math.min(matinFin, 12 * 60)]];
             ev.preferMin = wake + 10;
         } else if (ev.id === 'prep' || ev.id === 'commute1') {
             ev.plages = [[wake, matinFin]];
@@ -502,32 +518,12 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
         copy._debut = start;
         copy._fin = start + dur;
         copy._dur = dur;
-        if (copy.id === 'wakeup' || copy.kind === 'fixed' || copy.type === 'school') {
-            copy.kind = 'fixed';
-            fixed.push(copy);
-        } else movable.push(copy);
+        if (planningInamovible(copy)) fixed.push(copy);
+        else movable.push(copy);
     });
-    var placed = [];
-    var choisis = [];
-    movable = movable.filter(function (ev) {
-        if (!planningChoixUtilisateur(ev)) return true;
-        choisis.push(ev);
-        return false;
-    });
-    choisis.forEach(function (ev) {
-        ev.startTime = v3M2T(ev._debut % 1440);
-        ev.endTime = v3M2T(ev._fin % 1440);
-        placed.push(ev);
-    });
-    fixed.sort(function (a, b) { return a._debut - b._debut || a._index - b._index; });
-    fixed.forEach(function (ev) {
-        if (!planningOccupe(placed, ev._debut, ev._fin)) { placed.push(ev); return; }
-        var room = planningLibres(placed, ev._debut, ev._fin);
-        if (!room.length) return;
-        ev._debut = room[0].start;
-        ev._fin = room[0].end;
-        placed.push(ev);
-    });
+    /* Ne pas tronquer/effacer un cours, un trajet ou un horaire choisi même
+       s'il existe un conflit : seul l'élève peut trancher. */
+    var placed = fixed.sort(function (a, b) { return a._debut - b._debut || a._index - b._index; });
     function poserMobile(ev) {
         var ideal = ev._dur;
         var prefer = ev.preferMin != null ? ev.preferMin : ev._debut;
@@ -566,7 +562,18 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
                 if (gap.end - gap.start >= minimum && (!best || gap.end - gap.start > best.end - best.start)) best = gap;
             });
         });
-        if (!best) return false;
+        if (!best) {
+            if (ev.id !== 'breakfast' && ev.id !== 'dinner' && ev.id !== 'prep' && ev.id !== 'prepSoir') return false;
+            /* Pas de place autorisée : garder le repas/la préparation près de
+               son heure prévue et exposer le conflit, pas l'expédier le soir
+               ou le faire disparaître. Les autres faits ne bougent pas. */
+            var plage = windows[0] || [wake, bed];
+            ev._debut = Math.max(wake, ev.preferMin != null ? ev.preferMin : plage[0]);
+            if (plage[1] > plage[0]) ev._debut = Math.min(ev._debut, Math.max(plage[0], plage[1] - ideal));
+            ev._fin = ev._debut + ideal;
+            ev.conflitHoraire = true;
+            return true;
+        }
         ev._debut = best.start;
         ev._fin = best.end;
         ev.shifted = true;
@@ -607,7 +614,7 @@ function planningSansChevauchement(events, wakeupTime, bedtime) {
     var clean = [];
     placed.sort(function (a, b) { return a._debut - b._debut || a._index - b._index; });
     placed.forEach(function (ev) {
-        if (planningChoixUtilisateur(ev) || !planningOccupe(clean, ev._debut, ev._fin)) clean.push(ev);
+        if (planningInamovible(ev) || !planningOccupe(clean, ev._debut, ev._fin)) clean.push(ev);
     });
     return clean.map(function (ev) {
         delete ev._debut;
@@ -731,13 +738,63 @@ function emploiEstFige() {
     return !!(emploiFige && emploiFige.sig && emploiFige.sig === emploiFaitsSignature() && Array.isArray(emploiFige.jours) && emploiFige.jours.length === 7);
 }
 
+/* Réparer uniquement les anciens jours où un fait a été déplacé ; ne pas
+   recalculer le reste du planning figé à chaque mise à jour du site. */
+function emploiJourAReparer(jour, events) {
+    if (!Array.isArray(events)) return false;
+    if (typeof holidayMode === 'function' && holidayMode(jour) === 'free') return false;
+    var cours = events.filter(function (ev) { return ev && ev.type === 'school' && ev.startTime; });
+    var premierCours = cours.length ? Math.min.apply(null, cours.map(function (ev) { return planningMinutes(ev.startTime); })) :
+        (typeof COURS_DEBUT === 'number' ? COURS_DEBUT : 7 * 60 + 50);
+    if (events.some(function (ev) {
+        if (!ev || !ev.startTime) return false;
+        if (ev.habitudeFixe && (ev.id === 'breakfast' || ev.id === 'dinner')) {
+            var consigne = typeof habitudesRepas === 'function' ? habitudesRepas(ev.id) : null;
+            if (consigne && consigne.mode === 'fixe') {
+                var correction = typeof v3FindOverride === 'function' ? v3FindOverride(ev.id, jour) : null;
+                var heureAttendue = correction && correction.pinned ? correction.startTime : consigne.heure;
+                if (ev.startTime !== heureAttendue) return true;
+            }
+        }
+        var ov = typeof v3FindOverride === 'function' ? v3FindOverride(ev.id, jour) : null;
+        if (ov && ov.pinned || ev.ovPinned || ev.habitudeFixe) return false;
+        var heure = planningMinutes(ev.startTime);
+        return (ev.id === 'breakfast' || ev.id === 'prep') && heure >= 12 * 60 ||
+            ev.id === 'commute1' && (heure >= premierCours || planningMinutes(ev.endTime) > premierCours) ||
+            ev.id === 'commute2' && heure < (typeof COURS_FIN === 'number' ? COURS_FIN : 16 * 60 + 25);
+    })) return true;
+    var absents = (typeof customEvents !== 'undefined' ? customEvents : []).some(function (choix) {
+        if (!choix || choix.day !== jour || choix.deleted || choix.replacesId || choix.remplacementConflit ||
+            (typeof planningExerciceFait === 'function' && planningExerciceFait(choix.exoId))) return false;
+        if (typeof holidayMode === 'function' && holidayMode(jour) === 'light' &&
+            typeof holidayDroppedIds === 'function' && holidayDroppedIds(jour).indexOf(choix.id) !== -1) return false;
+        var present = events.find(function (ev) { return ev && ev.id === choix.id; });
+        return !present || present.startTime !== choix.startTime || present.endTime !== choix.endTime;
+    });
+    if (absents) return true;
+    return (typeof selectedActivities !== 'undefined' ? selectedActivities : []).some(function (act) {
+        if (!act || !act.days || act.days.indexOf(jour) === -1) return false;
+        var id = 'activity-' + act.name;
+        if (typeof holidayMode === 'function' && holidayMode(jour) === 'light' &&
+            typeof holidayDroppedIds === 'function' && holidayDroppedIds(jour).indexOf(id) !== -1) return false;
+        var ov = typeof v3FindOverride === 'function' ? v3FindOverride(id, jour) : null;
+        if (ov && (ov.deleted || ov.remplacementConflit)) return false;
+        var slot = act.sameTime ? { start: act.startTime, end: act.endTime } :
+            (act.dayTimes && (act.dayTimes[jour] || act.dayTimes[String(jour)]));
+        if (!slot || !slot.start || !slot.end) return false;
+        var present = events.find(function (ev) { return ev && ev.id === id; });
+        return !present || present.startTime !== (ov && ov.pinned ? ov.startTime : slot.start) ||
+            present.endTime !== (ov && ov.pinned ? ov.endTime : slot.end);
+    });
+}
+
 function emploiReconstruire(dayIndex) {
     emploiGelSuspendu++;
     try {
         var sig = emploiFaitsSignature();
         var ancien = emploiFige && emploiFige.sig === sig && Array.isArray(emploiFige.jours)
             && emploiFige.jours.length === 7 ? emploiFige : null;
-        if (ancien && Array.isArray(ancien.jours[dayIndex])) return emploiCloner(ancien.jours[dayIndex]);
+        if (ancien && Array.isArray(ancien.jours[dayIndex]) && !emploiJourAReparer(dayIndex, ancien.jours[dayIndex])) return emploiCloner(ancien.jours[dayIndex]);
         /* Un jour absent du cache ne nécessite pas de recalculer les six autres. */
         var jour = genererJourBrut(dayIndex) || [];
         if (!emploiNePasSauver) {
@@ -920,7 +977,7 @@ function planningGarantirJour(events) {
         }
         var finAller = minuteRelative(trajet, true);
         var debutAller = minuteRelative(trajet, false);
-        if (finAller == null || finAller > debutCours || debutAller == null || debutAller >= debutCours) {
+        if (!trajet.ovPinned && (finAller == null || finAller > debutCours || debutAller == null || debutAller >= debutCours)) {
             var dureeAller = dureeGardee(trajet, 30, 5, 90);
             var nouveauAller = debutCours - dureeAller;
             if (nouveauAller < minuteReveil) nouveauAller = minuteReveil;
@@ -939,7 +996,7 @@ function planningGarantirJour(events) {
             milieu.push(retour);
         }
         var dureeRetour = dureeGardee(retour, 40, 5, 120);
-        planningPoserHoraire(retour, planningHorlogeSimple(ancreFin), planningHorlogeSimple(ancreFin + dureeRetour));
+        if (!retour.ovPinned) planningPoserHoraire(retour, planningHorlogeSimple(ancreFin), planningHorlogeSimple(ancreFin + dureeRetour));
     }
     if (trajet) {
         var debutTrajet = planningLireMinute(trajet, false);
@@ -954,10 +1011,12 @@ function planningGarantirJour(events) {
         if (duree <= 0) duree += 1440;
         var habitudePrep = !!(prep.habitudeFixe || (typeof habitudesActives === 'function' && habitudesActives()));
         var consignePrep = habitudePrep && typeof habitudesDureeMatin === 'function' ? habitudesDureeMatin() : null;
-        if (consignePrep && consignePrep.heure && consignePrep.fin && !prep.ovPinned) {
+        if (prep.ovPinned) {
+            /* Modification explicite du créneau : ne pas le recaler au trajet. */
+        } else if (consignePrep && consignePrep.heure && consignePrep.fin) {
             planningPoserHoraire(prep, consignePrep.heure, consignePrep.fin);
         } else {
-            if (consignePrep && consignePrep.mode === 'fixe' && !prep.ovPinned) duree = consignePrep.duree;
+            if (consignePrep && consignePrep.mode === 'fixe') duree = consignePrep.duree;
             else if (!habitudePrep && (duree < 10 || duree > 40)) duree = 30;
             var nouveauDebut = debutTrajet - duree;
             if (!habitudePrep) {
@@ -1094,7 +1153,7 @@ function generateDayEvents(dayIndex) {
         if (typeof verrouillerSujetsChoisis === 'function') {
             try { verrouillerSujetsChoisis(); } catch (e) {}
         }
-        if (emploiEstFige() && emploiFige.jours[jour]) evts = v3Repas(planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour]))));
+        if (emploiEstFige() && emploiFige.jours[jour] && !emploiJourAReparer(jour, emploiFige.jours[jour])) evts = v3Repas(planningGarantirJour(planningCorrigerCours(emploiCloner(emploiFige.jours[jour]))));
         else evts = v3Repas(planningGarantirJour(emploiReconstruire(jour)));
         /* Devoirs et examens : les blocs datés (compositions, épreuves,
            révisions ciblées) s'ajoutent au jour affiché. */
@@ -1616,7 +1675,8 @@ function planningCondenserConsecutifs(events, dayIndex) {
         var a = list[i];
         var b = list[i + 1];
         var cle = planningCleActivite(a);
-        if (!cle || cle !== planningCleActivite(b) || planningEstProtege(a) || planningEstProtege(b)) {
+        if (!cle || cle !== planningCleActivite(b) || planningEstProtege(a) || planningEstProtege(b) ||
+            planningInamovible(a) || planningInamovible(b)) {
             i++;
             continue;
         }
@@ -1902,9 +1962,27 @@ function planningCompleterPages(events, dayIndex, wakeupTime, bedtime) {
     var bed = planningMinutes(bedtime);
     if (bed <= wake) bed += 1440;
     planningManquesDuJour(list, dayIndex).forEach(function (bloc) {
+        if (typeof holidayMode === 'function' && holidayMode(dayIndex) === 'light' &&
+            typeof holidayDroppedIds === 'function' && holidayDroppedIds(dayIndex).indexOf(bloc.id) !== -1) return;
+        if (bloc.type === 'activity') {
+            /* Une activité choisie ne se recrée pas dans un trou arbitraire
+               si un ancien planning l'a perdue à cause d'un chevauchement. */
+            var choix = (typeof selectedActivities !== 'undefined' ? selectedActivities : []).find(function (a) {
+                return a && 'activity-' + a.name === bloc.id && a.days && a.days.indexOf(dayIndex) !== -1;
+            });
+            var horaire = choix && (choix.sameTime ? { start: choix.startTime, end: choix.endTime } :
+                (choix.dayTimes && (choix.dayTimes[dayIndex] || choix.dayTimes[String(dayIndex)])));
+            if (horaire && horaire.start && horaire.end) list.push({
+                id: bloc.id, title: bloc.title, subtitle: bloc.subtitle,
+                startTime: horaire.start, endTime: horaire.end, type: 'activity',
+                icon: bloc.icon, editable: true, kind: 'pinned'
+            });
+            return;
+        }
         var donor = null;
         list.forEach(function (ev) {
-            if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school' || ev.type === 'activity' || ev.habitudeFixe) return;
+            if (!ev || planningInamovible(ev) || ev.type === 'meal' || ev.type === 'prep' ||
+                ev.type === 'prep-soir' || ev.type === 'transport') return;
             var dur = planningMinutes(ev.endTime) - planningMinutes(ev.startTime);
             if (dur < bloc.duree + 15) return;
             if (!donor || dur > (planningMinutes(donor.endTime) - planningMinutes(donor.startTime))) donor = ev;
@@ -1948,9 +2026,7 @@ function planningBalayer(events) {
         return false;
     }
     function rang(ev) {
-        if (!ev || ev.id === 'wakeup' || ev.id === 'sleep' || ev.kind === 'fixed' || ev.type === 'school') return 0;
-        if (planningChoixUtilisateur(ev)) return 0;
-        if (ev.type === 'activity') return 1;
+        if (!ev || planningInamovible(ev)) return 0;
         if (ev.type === 'transport' || ev.type === 'prep') return 2;
         if (ev.type === 'meal') return 3;
         return 4;
@@ -1962,16 +2038,21 @@ function planningBalayer(events) {
         while (tours++ < 12 && gardes.some(function (autre) { return chevauche(ev, autre); })) {
             var autre = null;
             gardes.forEach(function (candidat) { if (!autre && chevauche(ev, candidat)) autre = candidat; });
-            if (!autre || rang(ev) === 0 || planningChoixUtilisateur(ev)) break;
+            if (!autre || planningInamovible(ev)) break;
             var finAutre = planningMinutes(autre.endTime);
             if (finAutre <= planningMinutes(autre.startTime)) finAutre += 1440;
             var dur = Math.max(10, planningDuree(ev));
             var debut = finAutre % 1440;
+            if ((ev.id === 'breakfast' || ev.id === 'prep') && debut + dur > 12 * 60 ||
+                (ev.id === 'dinner' || ev.id === 'prepSoir') && finAutre >= 1440) {
+                ev.conflitHoraire = true;
+                break;
+            }
             ev.startTime = v3M2T(debut);
             ev.endTime = v3M2T((debut + dur) % 1440);
             ev.shifted = true;
         }
-        if (planningChoixUtilisateur(ev) || !gardes.some(function (autre) { return chevauche(ev, autre); })) gardes.push(ev);
+        if (planningInamovible(ev) || !gardes.some(function (autre) { return chevauche(ev, autre); })) gardes.push(ev);
     });
     gardes.sort(function (a, b) {
         if (a.id === 'wakeup') return -1;
@@ -2156,26 +2237,8 @@ function v3Schedule(dayEvents, wakeupEvt) {
     const blocks = dayEvents.filter(e => e.kind === 'fixed' || e.kind === 'pinned').map(e => ({ ...e }));
     blocks.sort((a, b) => t(a.startTime) - t(b.startTime) || rank(a) - rank(b));
 
-    // Sécurité : un créneau fixé qui chevauche un autre bloc est repoussé juste après
-    let guard = 0, changed = true;
-    while (changed && guard++ < 60) {
-        changed = false;
-        blocks.sort((a, b) => t(a.startTime) - t(b.startTime) || rank(a) - rank(b));
-        for (let i = 1; i < blocks.length; i++) {
-            const prev = blocks[i - 1], cur = blocks[i];
-            if (t(cur.startTime) >= t(prev.endTime)) continue;
-            if (cur.habitudeFixe || prev.habitudeFixe) continue;
-            const mover = cur.kind === 'pinned' ? cur : (prev.kind === 'pinned' ? prev : null);
-            if (!mover) continue;
-            const other = mover === cur ? prev : cur;
-            const d = Math.max(1, t(mover.endTime) - t(mover.startTime));
-            mover.startTime = other.endTime;
-            mover.endTime = addMinutes(other.endTime, d);
-            mover.shifted = true;
-            changed = true;
-            break;
-        }
-    }
+    // Deux blocs fixés incompatibles restent à leurs horaires : le planning
+    // montrera le conflit, sans repousser une activité ou un trajet en secret.
 
     const pending = dayEvents.filter(e => e.kind !== 'fixed' && e.kind !== 'pinned')
         .sort((a, b) => t(a.startTime) - t(b.startTime));

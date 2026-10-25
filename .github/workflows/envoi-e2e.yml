@@ -18,6 +18,7 @@ on:
       - 'tools/tester-atelier.mjs'
       - 'tools/tester-espace-admin.mjs'
       - 'tools/tester-chevauchement.mjs'
+      - 'tools/tester-horaires.mjs'
       - 'tools/tester-voix.mjs'
       - '.github/workflows/envoi-e2e.yml'
   workflow_dispatch:
@@ -64,6 +65,11 @@ jobs:
           set -o pipefail
           node tools/tester-chevauchement.mjs 2>&1 | tee /tmp/sortie-chevauchement.txt
 
+      - name: Vérifier les horaires du planning sans données réelles
+        run: |
+          set -o pipefail
+          node tools/tester-horaires.mjs 2>&1 | tee /tmp/sortie-horaires.txt
+
       - name: Vérifier en vrai navigateur la préparation des devoirs, examens et emploi du temps
         run: |
           set -o pipefail
@@ -94,6 +100,7 @@ jobs:
           cp /tmp/sortie-atelier.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-espace-admin.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-chevauchement.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-horaires.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-voix.txt /tmp/journal/ 2>/dev/null || true
           cp /tmp/sortie-hors-ligne.txt /tmp/journal/ 2>/dev/null || true
           cd /tmp/journal

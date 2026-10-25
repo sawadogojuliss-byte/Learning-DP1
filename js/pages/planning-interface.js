@@ -890,7 +890,31 @@ function v3SignalerChevauchementJour(events, day) {
             }
         }
     }
+    if (!conflit) {
+        /* Un conflit entre des faits (repas, trajet, activité choisie...) ne
+           doit pas être dissimulé par un déplacement automatique. */
+        var faits = (events || []).filter(function (ev) { return ev && ev.id !== 'sleep' && ev.id !== 'wakeup'; });
+        for (i = 0; i < faits.length && !conflit; i++) for (j = i + 1; j < faits.length; j++) {
+            if (faits[i].parallele && faits[j].parallele && faits[i].type === 'school' && faits[j].type === 'school') continue;
+            if (!(faits[i].conflitHoraire || faits[j].conflitHoraire ||
+                (typeof planningInamovible === 'function' && planningInamovible(faits[i]) && planningInamovible(faits[j])))) continue;
+            if (v3IntervallesSeCroisent(faits[i].startTime, faits[i].endTime, faits[j].startTime, faits[j].endTime)) {
+                conflit = { voulu: faits[i], autre: faits[j], faits: true };
+                break;
+            }
+        }
+    }
     if (!conflit) return;
+    if (conflit.faits) {
+        var alerte = document.createElement('div');
+        alerte.id = 'chevauchementJour';
+        alerte.setAttribute('role', 'alert');
+        alerte.style.cssText = 'width:100%;margin:0 0 0.75rem;padding:0.8rem 0.9rem;border:1.5px solid #fdba74;border-radius:0.9rem;background:#fff7ed;color:#9a3412;font-weight:700;';
+        alerte.textContent = '« ' + conflit.voulu.title + ' » et « ' + conflit.autre.title + ' » se chevauchent. Leurs horaires n’ont pas été changés en secret. Vérifie les créneaux ou Tes habitudes.';
+        var zone = document.getElementById('eventsContainer');
+        if (zone && zone.parentNode) zone.parentNode.insertBefore(alerte, zone);
+        return;
+    }
     var barre = document.createElement('button');
     barre.type = 'button';
     barre.id = 'chevauchementJour';
