@@ -1,26 +1,26 @@
-/* Planning par semaine — palette Atelier, limitée au seul écran Planning. */
-#planningModal .planning-semaine { padding: .2rem 0 .75rem; color: #1c3028; }
+/* Navigation Planning : même police Inter et mêmes verts émeraude que la page. */
+#planningModal .planning-semaine { padding: .2rem 0 .75rem; color: #111827; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
 #planningModal .planning-semaine-entete { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
 #planningModal .planning-semaine-titre { min-width: 0; }
-#planningModal .planning-semaine-titre span { display: block; font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 800; color: #235d4a; }
-#planningModal .planning-semaine-titre strong { display: block; font: normal clamp(1.15rem, 3vw, 1.65rem)/1.2 Georgia, serif; letter-spacing: -.025em; margin-top: .2rem; }
+#planningModal .planning-semaine-titre span { display: block; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; font-weight: 800; color: #047857; }
+#planningModal .planning-semaine-titre strong { display: block; font-size: clamp(1.15rem, 3vw, 1.65rem); font-weight: 700; line-height: 1.25; letter-spacing: -.025em; margin-top: .2rem; }
 #planningModal .planning-semaine-actions { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
-#planningModal .planning-semaine-actions button { height: 2.5rem; min-width: 2.5rem; border: 1px solid #cfddcf; border-radius: .7rem; background: #fff; color: #164633; font: 700 1.45rem/1 system-ui, sans-serif; cursor: pointer; }
-#planningModal .planning-semaine-actions button:hover:not(:disabled) { background: #eaf3e9; }
+#planningModal .planning-semaine-actions button { height: 2.5rem; min-width: 2.5rem; border: 1px solid #a7f3d0; border-radius: .7rem; background: #fff; color: #047857; font: 700 1.45rem/1 Inter, system-ui, sans-serif; cursor: pointer; }
+#planningModal .planning-semaine-actions button:hover:not(:disabled) { background: #ecfdf5; }
 #planningModal .planning-semaine-actions button:disabled { opacity: .45; cursor: not-allowed; }
-#planningModal .planning-semaine-actions #planningAujourdhui { font: 750 .75rem/1.2 system-ui, sans-serif; padding: 0 .7rem; white-space: nowrap; }
+#planningModal .planning-semaine-actions #planningAujourdhui { font: 750 .75rem/1.2 Inter, system-ui, sans-serif; padding: 0 .7rem; white-space: nowrap; }
 #planningModal .planning-semaine-actions button[hidden], #planningModal .planning-semaine-sousbar button[hidden] { display: none; }
-#planningModal .planning-semaine-sousbar { display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 1.8rem; margin: .35rem 0 .1rem; font-size: .76rem; color: #526b5a; font-weight: 650; }
-#planningModal #planningMinuteurEntete { border: 1px solid #b8d0bd; background: #eaf3e9; color: #164633; padding: .4rem .55rem; border-radius: .55rem; font: 750 .72rem system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+#planningModal .planning-semaine-sousbar { display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 1.8rem; margin: .35rem 0 .1rem; font-size: .76rem; color: #4b5563; font-weight: 650; }
+#planningModal #planningMinuteurEntete { border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; padding: .4rem .55rem; border-radius: .55rem; font: 750 .72rem Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
 #planningModal .planning-jours { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: .35rem; }
-#planningModal .planning-jour { min-width: 0; min-height: 3.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; background: #fff; border: 1px solid #d8e2d4; border-radius: .75rem; color: #1c3028; cursor: pointer; font-family: inherit; }
-#planningModal .planning-jour span { font-size: .72rem; color: #586e5b; }
+#planningModal .planning-jour { min-width: 0; min-height: 3.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; background: #fff; border: 1px solid #d1fae5; border-radius: .75rem; color: #111827; cursor: pointer; font-family: Inter, system-ui, sans-serif; }
+#planningModal .planning-jour span { font-size: .72rem; color: #4b5563; }
 #planningModal .planning-jour strong { font-size: 1.08rem; line-height: 1.1; }
-#planningModal .planning-jour.actuel:not(.selectionne) { border-color: #91b99b; background: #eaf3e9; }
-#planningModal .planning-jour.selectionne { border-color: #164633; background: #164633; color: #fff; box-shadow: 0 5px 12px #16463333; }
-#planningModal .planning-jour.selectionne span { color: #d5e8d5; }
-#planningModal .planning-jour:hover:not(.selectionne) { background: #f0f6ec; }
-#planningModal .planning-jour:focus-visible, #planningModal .planning-semaine button:focus-visible { outline: 3px solid #b1764e; outline-offset: 2px; }
+#planningModal .planning-jour.actuel:not(.selectionne) { border-color: #6ee7b7; background: #ecfdf5; }
+#planningModal .planning-jour.selectionne { border-color: #047857; background: #047857; color: #fff; box-shadow: 0 5px 12px #04785733; }
+#planningModal .planning-jour.selectionne span { color: #fff; }
+#planningModal .planning-jour:hover:not(.selectionne) { background: #ecfdf5; }
+#planningModal .planning-jour:focus-visible, #planningModal .planning-semaine button:focus-visible { outline: 3px solid #059669; outline-offset: 2px; }
 @media(max-width: 420px) {
     #planningModal .planning-semaine-entete { flex-wrap: wrap; }
     #planningModal .planning-semaine-actions { margin-left: auto; }

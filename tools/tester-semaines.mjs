@@ -53,7 +53,10 @@ try {
     assert.equal(await page.locator('#planningAujourdhui').isVisible(), true);
     assert.equal(await page.locator('#addPlanningBtn').isVisible(), true, 'la prochaine semaine est modifiable');
     assert.equal(await page.locator('#planningSemaineLecture').count(), 0, 'plus de texte Consultation seulement');
-    assert.equal(await page.locator('#planningSemaineType').evaluate(el => getComputedStyle(el).color), 'rgb(35, 93, 74)', 'le seul libellé de semaine adopte le vert Atelier');
+    assert.equal(await page.locator('#planningSemaineType').evaluate(el => getComputedStyle(el).color), 'rgb(4, 120, 87)', 'le libellé reprend le vert émeraude du Planning');
+    assert.match(await page.locator('#planningSemaineDates').evaluate(el => getComputedStyle(el).fontFamily), /Inter/i, 'les dates utilisent la police de la page, pas Georgia');
+    assert.equal(await page.locator('#planningModal .planning-jour.selectionne').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(4, 120, 87)', 'le jour sélectionné reprend le vert émeraude');
+    assert.equal(await page.locator('#joursFlamme').evaluate(el => getComputedStyle(el).backgroundColor), 'rgb(236, 253, 245)', 'le badge décoratif n’est plus orange');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= 320), true, 'aucun débordement à 320 px');
     const memeJour = await page.evaluate(() => ({ jour: selectedDay, cache: JSON.stringify(emploiFige),
         signature: focusSignatureSeances(), rappel: getNextActivity()?.startTime || null,
