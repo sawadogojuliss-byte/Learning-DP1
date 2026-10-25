@@ -15,6 +15,25 @@
 var v3LastRendered = [];
 var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];
 
+function v3PorteeEvenement(e, day) {
+    var date = planningDateEdition(day);
+    return !!(e && e.day === day && (date ? e.date === date : !e.date));
+}
+function v3RecordDate(record, day) {
+    var date = planningDateEdition(day);
+    if (date) {
+        record.date = date;
+        var dernier = customEvents.reduce(function (max, e) {
+            return e && e.date === date && e.day === day ? Math.max(max, Number(e.timestamp) || 0) : max;
+        }, 0);
+        record.timestamp = Math.max(Number(record.timestamp) || 0, dernier + 1);
+    }
+    return record;
+}
+function v3EvenementsJour(day) {
+    return planningDecalageSemaine === 0 ? generateDayEvents(day) : generateDayEvents(day, planningDateSelectionnee(day));
+}
+
 function v3IconeActivitesSemaine() {
     var maintenant = new Date();
     var lundi = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
@@ -48,7 +67,6 @@ function planningEnteteSemaine(weekDates) {
     var etendue = document.getElementById('planningSemaineDates');
     var jour = document.getElementById('planningJourDate');
     var retour = document.getElementById('planningAujourdhui');
-    var lecture = document.getElementById('planningSemaineLecture');
     if (titre) titre.textContent = planningDecalageSemaine === 0 ? 'Semaine actuelle' :
         planningDecalageSemaine === 1 ? 'Semaine suivante' : planningDecalageSemaine === -1 ? 'Semaine précédente' : 'Autre semaine';
     if (etendue) etendue.textContent = court.format(premier) + ' – ' + court.format(dernier) + ' ' + dernier.getFullYear();
@@ -61,12 +79,6 @@ function planningEnteteSemaine(weekDates) {
     var suivant = document.querySelector('#planningModal .planning-semaine-actions [aria-label="Semaine suivante"]');
     if (precedant) precedant.disabled = planningDecalageSemaine <= -52;
     if (suivant) suivant.disabled = planningDecalageSemaine >= 52;
-    if (lecture) {
-        lecture.hidden = planningDecalageSemaine === 0;
-        lecture.textContent = planningDecalageSemaine < 0
-            ? 'Aperçu indicatif : les semaines passées ne sont pas archivées. Modifie ton planning depuis la semaine actuelle.'
-            : 'Consultation seulement : tes modifications sont hebdomadaires. Reviens à cette semaine pour les modifier.';
-    }
     planningMinuteurEntete();
 }
 
@@ -97,8 +109,9 @@ function renderPlanning() {
         ? generateDayEvents(selectedDay) : generateDayEvents(selectedDay, dateAffichee);
     v3LastRendered = events;
     const addBtn = document.getElementById('addPlanningBtn');
-    if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'free') {
-        if (addBtn) addBtn.style.display = 'none';
+    if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'free' &&
+        !customEvents.some(e => e && e.date === planningCleDate(dateAffichee) && e.day === selectedDay && !e.deleted && !e.resetDate)) {
+        if (addBtn) addBtn.style.display = planningJourModifiable(selectedDay) ? 'flex' : 'none';
         document.getElementById('eventsContainer').innerHTML = v3LibreVertical();
         document.getElementById('statScore').textContent = targetScore;
         document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
@@ -108,8 +121,8 @@ function renderPlanning() {
         if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
         return;
     }
-    if (addBtn) addBtn.style.display = planningDecalageSemaine === 0 ? 'flex' : 'none';
-    if (planningDecalageSemaine === 0) v3SignalerChevauchementJour(events, selectedDay);
+    if (addBtn) addBtn.style.display = planningJourModifiable(selectedDay) ? 'flex' : 'none';
+    if (planningJourModifiable(selectedDay)) v3SignalerChevauchementJour(events, selectedDay);
     let eventsHtml = '';
     if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'keep') {
         eventsHtml += '<div style="margin-bottom: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.85rem; font-weight: 600;">🎉 Jour férié — emploi du temps conservé</div>';
@@ -152,7 +165,7 @@ function renderPlanning() {
         const avecAvant = memeEpreuve(events[idx - 1], event);
         const avecApres = memeEpreuve(event, events[idx + 1]);
         if (!avecAvant && avecApres) eventsHtml += '<div class="devoirs-paralleles">';
-        const modifiable = planningDecalageSemaine === 0 && event.editable;
+        const modifiable = planningJourModifiable(selectedDay) && event.editable;
         eventsHtml += '<div data-v3-idx="' + idx + '" data-v3-type="' + v3Escape(event.type) + '" onclick="' + (modifiable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (modifiable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (modifiable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
@@ -170,9 +183,10 @@ function renderPlanning() {
     });
 
     // Lien discret pour revenir au planning automatique du jour (si modifié)
-    const dayHasChanges = customEvents.some(e => e && e.day === selectedDay);
-    if (dayHasChanges && planningDecalageSemaine === 0) {
-        eventsHtml += '<div style="text-align:right;margin-top:0.25rem;"><button onclick="v3ResetDay()" style="background:none;border:none;color:#56665e;font-size:0.75rem;cursor:pointer;text-decoration:underline;">↺ Réinitialiser ' + V3_DAY_NAMES[selectedDay] + ' (planning automatique)</button></div>';
+    const dateEdition = planningDateEdition(selectedDay);
+    const dayHasChanges = customEvents.some(e => e && !e.resetDate && e.day === selectedDay && (dateEdition ? e.date === dateEdition : !e.date));
+    if (dayHasChanges && planningJourModifiable(selectedDay)) {
+        eventsHtml += '<div style="text-align:right;margin-top:0.25rem;"><button onclick="v3ResetDay()" style="background:none;border:none;color:#56665e;font-size:0.75rem;cursor:pointer;text-decoration:underline;">↺ Réinitialiser ' + (dateEdition ? 'le ' + dateEdition : V3_DAY_NAMES[selectedDay]) + ' (planning automatique)</button></div>';
     }
     document.getElementById('eventsContainer').innerHTML = eventsHtml;
 
@@ -194,20 +208,31 @@ function v3LibreVertical() {
 
 function v3OpenEditByIndex(idx) {
     const ev = v3LastRendered[idx];
-    if (planningDecalageSemaine !== 0 || !ev || !ev.editable) return;
+    if (!planningJourModifiable(selectedDay) || !ev || !ev.editable) return;
     openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
 }
 
 function v3ResetDay() {
-    if (planningDecalageSemaine !== 0) return;
+    if (!planningJourModifiable(selectedDay)) return;
     const day = selectedDay;
+    const dateEdition = planningDateEdition(day);
     confirmerAction({
-        titre: 'Réinitialiser le planning de ' + V3_DAY_NAMES[day] + ' ?',
+        titre: 'Réinitialiser le planning de ' + (dateEdition || V3_DAY_NAMES[day]) + ' ?',
         detail: 'Tes modifications de ce jour seront retirées. Tu pourras ensuite annuler pendant quelques secondes.',
         action: 'Réinitialiser ce jour',
         confirmer: function () {
             const snapshot = customEvents.slice();
-            customEvents = customEvents.filter(e => !(e && e.day === day));
+            customEvents = customEvents.filter(e => !(e && e.day === day && (dateEdition ? e.date === dateEdition : !e.date)));
+            if (dateEdition) {
+                // Une ancienne copie de compte ne doit pas ressusciter les
+                // exceptions réinitialisées lors de la prochaine fusion.
+                var dernier = snapshot.reduce(function (max, e) {
+                    return e && e.date === dateEdition && e.day === day ? Math.max(max, Number(e.timestamp) || 0) : max;
+                }, 0);
+                var temps = Math.max(Date.now(), dernier + 1);
+                customEvents.push({ id: generateEventId('date-reset', dateEdition + '-' + temps, day),
+                    day: day, date: dateEdition, resetDate: true, timestamp: temps });
+            }
             v3Save();
             v3SyncExoLabels();
             renderPlanning();
@@ -220,8 +245,9 @@ function v3ResetDay() {
 //  3. MODIFICATION D'UN CRÉNEAU (surcharge openEditModal / save / delete)
 // ═══════════════════════════════════════════════════════════════════
 function openEditModal(id, title, startTime, endTime, type, icon, evt) {
-    if (planningDecalageSemaine !== 0) return;
-    const record = customEvents.find(e => e && e.id === id && !e.replacesId) || null;
+    if (!planningJourModifiable(selectedDay)) return;
+    const dateEdition = planningDateEdition(selectedDay);
+    const record = customEvents.find(e => e && e.id === id && !e.replacesId && (dateEdition ? e.date === dateEdition : !e.date)) || null;
     editingEvent = {
         id, title, startTime, endTime, type,
         icon: icon || (evt && evt.icon) || (record && record.icon) || '📌',
@@ -234,6 +260,12 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
     editCurrentDuration = timeToMinutes(endTime) - timeToMinutes(startTime);
     if (editCurrentDuration <= 0) editCurrentDuration = 30;
     updateEditDurationDisplay();
+    var info = document.getElementById('editCascadeInfo');
+    var bouton = document.getElementById('editSaveButton');
+    if (info) info.innerHTML = dateEdition
+        ? '📅 <strong>Pour cette date seulement :</strong> les autres créneaux gardent leurs horaires. Aucune autre semaine ne sera modifiée.'
+        : '🔗 <strong>Réajustement automatique :</strong> les activités suivantes seront décalées en conséquence.';
+    if (bouton) bouton.textContent = dateEdition ? '✅ Enregistrer pour cette date' : '✅ Enregistrer & réajuster';
     document.getElementById('editTimeError').style.display = 'none';
     v3UpdateEditPinHint();
     document.getElementById('editEventModal').style.display = 'flex';
@@ -269,6 +301,7 @@ function saveEditedEventCascade() {
     errEl.style.display = 'none';
 
     const day = selectedDay;
+    if (!planningJourModifiable(day)) return;
     if (!window.__ignorerChevauchementActivite) {
         var voisines = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);
         if (voisines.length) {
@@ -289,9 +322,9 @@ function saveEditedEventCascade() {
         }
     }
     const startChanged = newStart !== editingEvent.startTime;
-    const customIdx = customEvents.findIndex(e => e && e.id === editingEvent.id && !e.replacesId);
+    const customIdx = customEvents.findIndex(e => e && e.id === editingEvent.id && !e.replacesId && v3PorteeEvenement(e, day));
     const isCustom = customIdx !== -1;
-    const existingOv = isCustom ? null : v3FindOverride(editingEvent.id, day);
+    const existingOv = isCustom ? null : customEvents.find(e => v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id);
     const willBePinned = isCustom || !!(existingOv && existingOv.pinned && !existingOv.deleted) || startChanged;
 
     // Un créneau à heure fixée ne doit pas chevaucher les cours / trajets / autres créneaux fixés
@@ -306,27 +339,27 @@ function saveEditedEventCascade() {
     let recordId;
 
     if (isCustom) {
-        customEvents[customIdx] = { ...customEvents[customIdx], title: newTitle, startTime: newStart, endTime: newEnd, timestamp: Date.now(), resteEcole: false };
+        customEvents[customIdx] = v3RecordDate({ ...customEvents[customIdx], title: newTitle, startTime: newStart, endTime: newEnd, timestamp: Date.now(), resteEcole: false }, day);
         recordId = customEvents[customIdx].id;
     } else {
         // Une seule modification par créneau généré et par jour (la 2e modification remplace la 1re)
-        customEvents = customEvents.filter(e => !(e && e.replacesId === editingEvent.id && e.day === day));
-        const rec = {
+        customEvents = customEvents.filter(e => !(v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id));
+        const rec = v3RecordDate({
             id: generateEventId(editingEvent.type, newTitle, day),
             day, title: newTitle, startTime: newStart, endTime: newEnd,
             type: editingEvent.type, icon: editingEvent.icon || '📌',
             source: 'custom', replacesId: editingEvent.id, pinned: willBePinned, timestamp: Date.now(),
             resteEcole: false
-        };
+        }, day);
         customEvents.push(rec);
         recordId = rec.id;
     }
 
     // Réajustement : les créneaux fixés qui suivent sont décalés de la variation de durée
-    if (delta !== 0 && !window.__ignorerDecalagePlanning) {
+    if (delta !== 0 && !planningDateEdition(day) && !window.__ignorerDecalagePlanning) {
         const editStartMins = timeToMinutes(newStart);
         customEvents = customEvents.map(ev => {
-            if (!ev || ev.day !== day || ev.id === recordId || !v3IsPinnedRecord(ev)) return ev;
+            if (!v3PorteeEvenement(ev, day) || ev.id === recordId || !v3IsPinnedRecord(ev)) return ev;
             const evStart = timeToMinutes(ev.startTime);
             if (evStart <= editStartMins) return ev;
             const evDur = timeToMinutes(ev.endTime) - evStart;
@@ -338,7 +371,9 @@ function saveEditedEventCascade() {
     closeEditModal();
     renderPlanning();
 
-    if (delta !== 0) {
+    if (planningDateEdition(day)) {
+        v3Toast('✅ Modification enregistrée pour le ' + planningDateEdition(day), 'success');
+    } else if (delta !== 0) {
         v3Toast('🔗 Planning synchronisé — ' + (delta > 0 ? '+' : '') + delta + ' min sur les activités suivantes', 'success');
     } else {
         v3Toast('✅ Modification enregistrée', 'success');
@@ -350,19 +385,29 @@ function saveEditedEvent() { saveEditedEventCascade(); }
 function deleteEditedEvent() {
     if (!editingEvent) return;
     const day = selectedDay;
+    if (!planningJourModifiable(day)) return;
+    const dateEdition = planningDateEdition(day);
     const snapshot = customEvents.slice();
     const title = editingEvent.title;
-    const isCustom = customEvents.some(e => e && e.id === editingEvent.id && !e.replacesId);
+    const isCustom = customEvents.some(e => e.id === editingEvent.id && !e.replacesId && v3PorteeEvenement(e, day));
     if (isCustom) {
-        customEvents = customEvents.filter(e => !(e && e.id === editingEvent.id));
+        customEvents = customEvents.filter(e => !(e.id === editingEvent.id && v3PorteeEvenement(e, day)));
+        if (dateEdition) {
+            var marqueur = v3RecordDate({
+                id: generateEventId('date-delete', title, day), day: day, title: title,
+                replacesId: editingEvent.id, deleted: true, timestamp: Date.now()
+            }, day);
+            marqueur.date = dateEdition;
+            customEvents.push(marqueur);
+        }
     } else {
-        // Créneau généré : on mémorise sa suppression pour ce jour
-        customEvents = customEvents.filter(e => !(e && e.replacesId === editingEvent.id && e.day === day));
-        customEvents.push({
+        // Seul le jour daté est masqué ; l'habitude hebdomadaire reste.
+        customEvents = customEvents.filter(e => !(v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id));
+        customEvents.push(v3RecordDate({
             id: generateEventId(editingEvent.type, title, day), day, title,
             startTime: editingEvent.startTime, endTime: editingEvent.endTime, type: editingEvent.type,
             icon: editingEvent.icon || '📌', source: 'custom', replacesId: editingEvent.id, deleted: true, timestamp: Date.now()
-        });
+        }, day));
     }
     v3Save();
     v3SyncExoLabels();
@@ -381,7 +426,7 @@ let v3DupAck = null; // clé du doublon déjà signalé (2e clic = ajout confirm
 function v3FindDuplicate(dayIndex, title, mode) {
     const wanted = mode === 'study' ? v3StudyKey(title) : v3Normalize(title);
     if (!wanted) return null;
-    return generateDayEvents(dayIndex).find(ev => {
+    return v3EvenementsJour(dayIndex).find(ev => {
         if (ev.id === 'wakeup' || ev.id === 'sleep') return false;
         if (mode === 'study') return v3IsStudyType(ev.type) && v3StudyKey(ev.title) === wanted;
         return v3Normalize(ev.title) === wanted;
@@ -418,11 +463,11 @@ function confirmAddStudy() {
     v3DupAck = null;
     if (warnEl) warnEl.style.display = 'none';
 
-    customEvents.push({
+    customEvents.push(v3RecordDate({
         id: generateEventId('study', title, selectedDay),
         day: selectedDay, title, startTime, endTime, type: 'study', icon,
         subjectGrade: newEventSelectedSubject.grade, source: 'custom', timestamp: Date.now()
-    });
+    }, selectedDay));
     v3Save();
     closeAddModal();
     renderPlanning();
@@ -546,10 +591,10 @@ function confirmAddActivity() {
     v3DupAck = null;
     if (warnEl) warnEl.style.display = 'none';
 
-    customEvents.push({
+    customEvents.push(v3RecordDate({
         id: generateEventId('activity', name, selectedDay),
         day: selectedDay, title: name, startTime, endTime, type: 'activity', icon, source: 'custom', timestamp: Date.now()
-    });
+    }, selectedDay));
     v3Save();
     closeAddModal();
     renderPlanning();
@@ -607,7 +652,10 @@ function v3ActivitesChevauchees(day, start, end, excludeIds) {
         vus[ev.id] = true;
         out.push(ev);
     }
-    try { (generateDayEvents(day) || []).forEach(ajouter); } catch (e) {}
+    try { (v3EvenementsJour(day) || []).forEach(ajouter); } catch (e) {}
+    // Les sources hebdomadaires ne doivent pas ressusciter une activité
+    // supprimée ou déplacée pour cette date précise.
+    if (planningDateEdition(day)) return out;
     (typeof customEvents !== 'undefined' ? customEvents : []).forEach(function (ev) {
         if (!ev || ev.day !== day || ev.deleted) return;
         if (ev.replacesId) {
@@ -661,7 +709,7 @@ function v3ConflitsCreneau(day, start, end, excludeIds) {
         vus.add(ev.id);
         out.push(ev);
     }
-    (generateDayEvents(day) || []).forEach(ajouter);
+    (v3EvenementsJour(day) || []).forEach(ajouter);
     v3ActivitesChevauchees(day, start, end, excludeIds).forEach(ajouter);
     return out.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
 }
@@ -721,7 +769,7 @@ function v3VerifierChoixChevauchement(ctx, choix) {
         if (ctx.conflits.length !== 1) return { valid: false, error: 'Plusieurs créneaux se chevauchent. Choisis un autre horaire.' };
         var autre = ctx.conflits[0];
         var present = v3ActivitesChevauchees(ctx.day, autre.startTime, autre.endTime, ctx.excludeIds).find(function (ev) { return ev.id === autre.id; }) ||
-            (generateDayEvents(ctx.day) || []).find(function (ev) { return ev.id === autre.id; });
+            (v3EvenementsJour(ctx.day) || []).find(function (ev) { return ev.id === autre.id; });
         if (!v3PeutDeplacerChevauchement(autre) || !present || present.startTime !== autre.startTime || present.endTime !== autre.endTime) {
             return { valid: false, error: 'Cette activité a changé. Ferme la fenêtre et réessaie.' };
         }
@@ -752,7 +800,7 @@ function v3PropositionsCreneau(ctx) {
     // activités pour ne pas rater un espace libre qui commence à 18 h 15.
     for (cursor = Math.ceil(bas / 30) * 30; cursor + duree <= haut; cursor += 30) debuts.add(cursor);
     debuts.add(bas);
-    (generateDayEvents(ctx.day) || []).forEach(function (ev) {
+    (v3EvenementsJour(ctx.day) || []).forEach(function (ev) {
         if (!ev || !ev.startTime || !ev.endTime) return;
         debuts.add(timeToMinutes(ev.startTime));
         debuts.add(timeToMinutes(ev.endTime));
@@ -793,22 +841,22 @@ function v3DestinationDeplacement(ctx, conflit) {
 
 function v3DeplacerEvenement(ev, day, start, end) {
     if (!ev) return;
-    var direct = customEvents.findIndex(function (item) { return item && item.id === ev.id && !item.replacesId; });
+    var direct = customEvents.findIndex(function (item) { return item && item.id === ev.id && !item.replacesId && v3PorteeEvenement(item, day); });
     if (direct !== -1) {
-        customEvents[direct] = Object.assign({}, customEvents[direct], {
+        customEvents[direct] = v3RecordDate(Object.assign({}, customEvents[direct], {
             startTime: start, endTime: end, pinned: true, timestamp: Date.now()
-        });
+        }), day);
         return;
     }
     customEvents = customEvents.filter(function (item) {
-        return !(item && item.replacesId === ev.id && item.day === day);
+        return !(v3PorteeEvenement(item, day) && item.replacesId === ev.id);
     });
-    customEvents.push({
+    customEvents.push(v3RecordDate({
         id: generateEventId(ev.type || 'activity', ev.title || 'activite', day),
         day: day, title: ev.title, startTime: start, endTime: end,
         type: ev.type || 'activity', icon: ev.icon || '📌', source: 'custom',
         replacesId: ev.id, pinned: true, timestamp: Date.now()
-    });
+    }, day));
 }
 
 function v3FermerChoixChevauchement() {
@@ -826,13 +874,16 @@ function v3DireChevauchement(message) {
 }
 
 function v3AppliquerChoixChevauchement(ctx, choix) {
+    if (!planningJourModifiable(ctx.day) || (ctx.date || '') !== planningDateEdition(ctx.day)) {
+        v3DireChevauchement('La date a changé. Ferme la fenêtre et réessaie.'); return false;
+    }
     var valid = v3VerifierChoixChevauchement(ctx, choix);
     if (!valid.valid) { v3DireChevauchement(valid.error); return false; }
     var depart = customEvents.slice();
     var idAffiche = '';
     // Le remplacement ne peut pas faire disparaître ou déplacer en secret un
     // autre bloc lorsque le moteur reconstruit la journée.
-    var avant = (choix.supprimerIds || []).length ? generateDayEvents(ctx.day) : [];
+    var avant = (choix.supprimerIds || []).length ? v3EvenementsJour(ctx.day) : [];
     // Capturer la sélection avant tout recalcul : retirer le premier bloc
     // peut réordonner les blocs générés qui suivent dans la journée.
     var selection = v3ConflitsCreneau(ctx.day, choix.utilisateur.start, choix.utilisateur.end, ctx.excludeIds);
@@ -841,42 +892,42 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
             var ev = selection.find(function (item) { return item.id === id; });
             if (!ev) throw new Error('Le créneau à retirer a changé');
             customEvents = customEvents.filter(function (item) {
-                return !(item && item.day === ctx.day && (item.id === id || item.replacesId === id));
+                return !(v3PorteeEvenement(item, ctx.day) && (item.id === id || item.replacesId === id));
             });
-            customEvents.push({ id: generateEventId(ev.type || 'activity', ev.title, ctx.day), day: ctx.day,
+            customEvents.push(v3RecordDate({ id: generateEventId(ev.type || 'activity', ev.title, ctx.day), day: ctx.day,
                 title: ev.title, startTime: ev.startTime, endTime: ev.endTime, type: ev.type,
-                replacesId: id, source: 'custom', deleted: true, remplacementConflit: true, timestamp: Date.now() });
+                replacesId: id, source: 'custom', deleted: true, remplacementConflit: true, timestamp: Date.now() }, ctx.day));
         });
         if (choix.conflitId) v3DeplacerEvenement(ctx.conflits[0], ctx.day, choix.autre.start, choix.autre.end);
         if (ctx.mode === 'edition') {
             var id = editingEvent.id;
-            var direct = customEvents.findIndex(function (ev) { return ev && ev.id === id && !ev.replacesId; });
+            var direct = customEvents.findIndex(function (ev) { return ev && ev.id === id && !ev.replacesId && v3PorteeEvenement(ev, ctx.day); });
             if (direct !== -1) {
-                customEvents[direct] = Object.assign({}, customEvents[direct], {
+                customEvents[direct] = v3RecordDate(Object.assign({}, customEvents[direct], {
                     title: ctx.title, startTime: choix.utilisateur.start, endTime: choix.utilisateur.end,
                     pinned: true, resteEcole: false, remplacementConflit: !!(choix.supprimerIds && choix.supprimerIds.length), timestamp: Date.now()
-                });
+                }), ctx.day);
             } else {
-                customEvents = customEvents.filter(function (ev) { return !(ev && ev.replacesId === id && ev.day === ctx.day); });
-                customEvents.push({
+                customEvents = customEvents.filter(function (ev) { return !(v3PorteeEvenement(ev, ctx.day) && ev.replacesId === id); });
+                customEvents.push(v3RecordDate({
                     id: generateEventId(ctx.type, ctx.title, ctx.day), day: ctx.day, title: ctx.title,
                     startTime: choix.utilisateur.start, endTime: choix.utilisateur.end,
                     type: ctx.type, icon: ctx.icon || '📌', source: 'custom',
                     replacesId: id, pinned: true, resteEcole: false, remplacementConflit: !!(choix.supprimerIds && choix.supprimerIds.length), timestamp: Date.now()
-                });
+                }, ctx.day));
             }
             idAffiche = id;
         } else {
             idAffiche = generateEventId('activity', ctx.title, ctx.day);
-            customEvents.push({ id: idAffiche, day: ctx.day, title: ctx.title,
+            customEvents.push(v3RecordDate({ id: idAffiche, day: ctx.day, title: ctx.title,
                 startTime: choix.utilisateur.start, endTime: choix.utilisateur.end,
-                type: 'activity', icon: ctx.icon || '✨', source: 'custom', pinned: true, remplacementConflit: !!(choix.supprimerIds && choix.supprimerIds.length), timestamp: Date.now() });
+                type: 'activity', icon: ctx.icon || '✨', source: 'custom', pinned: true, remplacementConflit: !!(choix.supprimerIds && choix.supprimerIds.length), timestamp: Date.now() }, ctx.day));
         }
         // Tester le résultat réel du moteur avant de sauvegarder. L'emploi gelé
         // n'est pas modifié si une proposition échoue.
         if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
         var apres;
-        try { apres = generateDayEvents(ctx.day); }
+        try { apres = v3EvenementsJour(ctx.day); }
         finally { if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver--; }
         function horaireAttendu(id, plage) {
             var ev = (apres || []).find(function (item) { return item.id === id; });
@@ -989,6 +1040,7 @@ function v3OuvrirChoixChevauchement(ctx) {
     v3FermerChoixChevauchement();
     ctx.conflits = ctx.conflits || [];
     ctx.excludeIds = ctx.excludeIds || [];
+    ctx.date = planningDateEdition(ctx.day);
     window.__chevauchementCtx = ctx;
     window.__chevauchementRetourFocus = document.activeElement;
     var jour = V3_DAY_NAMES[ctx.day] || 'ce jour';
@@ -1388,7 +1440,7 @@ function v3EvenementAffiche(idx) {
 }
 
 function v3CarteDeplacable(carte) {
-    if (planningDecalageSemaine !== 0 || !carte) return false;
+    if (!planningJourModifiable(selectedDay) || !carte) return false;
     var idx = parseInt(carte.getAttribute('data-v3-idx'), 10);
     var ev = v3EvenementAffiche(idx);
     return !!(ev && ev.editable);
@@ -1508,7 +1560,7 @@ function v3TerminerDeplacement() {
 // L'activité garde exactement la même durée : elle prend l'heure de début
 // de l'activité visée, et l'heure de fin suit.
 function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
-    if (planningDecalageSemaine !== 0) return false;
+    if (!planningJourModifiable(selectedDay)) return false;
     var voulu = v3EvenementAffiche(sourceIdx);
     var cible = v3EvenementAffiche(cibleIdx);
     if (!voulu || !cible || !voulu.editable) return false;
@@ -1519,13 +1571,23 @@ function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
     var finMins = timeToMinutes(debut) + duree;
     if (finMins >= 1440) return false;
     var fin = addMinutes('00:00', finMins);
+    var conflits = v3ConflitsCreneau(selectedDay, debut, fin, [voulu.id]);
+    if (conflits.length) {
+        editingEvent = { id: voulu.id, title: voulu.title, startTime: voulu.startTime,
+            endTime: voulu.endTime, type: voulu.type, icon: voulu.icon, kind: voulu.kind };
+        v3OuvrirChoixChevauchement({ mode: 'edition', day: selectedDay,
+            title: voulu.title, icon: voulu.icon, type: voulu.type,
+            start: debut, end: fin, origineStart: voulu.startTime, origineEnd: voulu.endTime,
+            excludeIds: [voulu.id], conflits: conflits });
+        return true;
+    }
     var validation = validateNewEventTime(debut, fin, selectedDay);
     if (!validation || !validation.valid) return false;
     if (typeof v3DeplacerEvenement !== 'function') return false;
     v3DeplacerEvenement(voulu, selectedDay, debut, fin);
     if (voulu.exoId && typeof customEvents !== 'undefined') {
         customEvents.forEach(function (item) {
-            if (item && item.replacesId === voulu.id && item.day === selectedDay && !item.exoId) item.exoId = voulu.exoId;
+            if (v3PorteeEvenement(item, selectedDay) && item.replacesId === voulu.id && !item.exoId) item.exoId = voulu.exoId;
         });
     }
     try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents)); } catch (e) {}

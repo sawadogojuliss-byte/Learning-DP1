@@ -4,7 +4,8 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const file = fs.readFileSync(path.join(__dirname, '../js/pages/planning-interface.js'), 'utf8');
-const source = file.slice(file.indexOf('function v3EstActivite('), file.indexOf('function v3SignalerChevauchementJour('));
+const source = file.slice(file.indexOf('function v3PorteeEvenement('), file.indexOf('function v3IconeActivitesSemaine(')) +
+    file.slice(file.indexOf('function v3EstActivite('), file.indexOf('function v3SignalerChevauchementJour('));
 const moteur = fs.readFileSync(path.join(__dirname, '../js/pages/planning-moteur.js'), 'utf8');
 const moteurSource = moteur.slice(moteur.indexOf('function generateDayEvents('), moteur.indexOf('function planningDepuisProgression('));
 const minutes = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
@@ -16,6 +17,7 @@ function scenario(base, utiliserMoteur = false) {
     const ctx = vm.createContext({
         localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) || null },
         console, window: {}, customEvents: [], selectedActivities: [], selectedDay: 0,
+        planningDecalageSemaine: 0, planningDateEdition: () => '', planningJourModifiable: () => true,
         weekdayWakeup: '06:00', saturdayWakeup: '07:00', sundayWakeup: '08:00',
         bedtimeForDay: () => '22:00', COURS_FIN: 985,
         timeToMinutes: minutes, v3M2T: clock, validateNewEventTime: (start, end) => ({ valid: minutes(end) > minutes(start) }),

@@ -70,7 +70,7 @@ function reporterModificationsSemaine() {
     var ajoute = 0;
     if (archive && archive.semaine && archive.semaine !== cle && Array.isArray(archive.events)) {
         var vus = {};
-        customEvents.forEach(function (ev) { vus[cleModification(ev)] = true; });
+        customEvents.forEach(function (ev) { if (ev && !ev.date) vus[cleModification(ev)] = true; });
         archive.events.forEach(function (ev) {
             if (!ev || ev.id === 'boite-garde') return;
             var copie = Object.assign({}, ev);
@@ -82,7 +82,7 @@ function reporterModificationsSemaine() {
             ajoute++;
         });
     }
-    var actuels = (customEvents || []).filter(function (ev) { return ev && ev.id !== 'boite-garde'; });
+    var actuels = (customEvents || []).filter(function (ev) { return ev && !ev.date && ev.id !== 'boite-garde'; });
     if (!actuels.length && archive && archive.events && archive.events.length && archive.semaine && archive.semaine !== cle) return ajoute;
     try {
         localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify({
@@ -179,7 +179,7 @@ function planningSansExercicesFaits(jour) {
 function v3FindOverride(id, day) {
     for (let i = customEvents.length - 1; i >= 0; i--) {
         const e = customEvents[i];
-        if (e && e.replacesId === id && e.day === day && !planningExerciceFait(e.exoId)) return e;
+        if (e && !e.date && e.replacesId === id && e.day === day && !planningExerciceFait(e.exoId)) return e;
     }
     return null;
 }
@@ -695,8 +695,8 @@ function emploiFaitsSignature() {
         }),
         iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
         reglesPlanning: '20261019a',
-        customEvents: liste(typeof customEvents !== 'undefined' ? customEvents : [], function (e) {
-            if (!e || e.id === 'boite-garde') return null;
+        customEvents: liste(typeof customEvents !== 'undefined' ? customEvents.filter(function (e) { return e && !e.date; }) : [], function (e) {
+            if (!e || e.date || e.id === 'boite-garde') return null;
             return {
                 id: e.id, day: e.day, title: e.title, startTime: e.startTime, endTime: e.endTime,
                 type: e.type, replacesId: e.replacesId || '', deleted: !!e.deleted, source: e.source || '', exoId: e.exoId || '',
@@ -765,7 +765,7 @@ function emploiJourAReparer(jour, events) {
             ev.id === 'commute2' && heure < (typeof COURS_FIN === 'number' ? COURS_FIN : 16 * 60 + 25);
     })) return true;
     var absents = (typeof customEvents !== 'undefined' ? customEvents : []).some(function (choix) {
-        if (!choix || choix.day !== jour || choix.deleted || choix.replacesId || choix.remplacementConflit ||
+        if (!choix || choix.date || choix.day !== jour || choix.deleted || choix.replacesId || choix.remplacementConflit ||
             (typeof planningExerciceFait === 'function' && planningExerciceFait(choix.exoId))) return false;
         if (typeof holidayMode === 'function' && holidayMode(jour) === 'light' &&
             typeof holidayDroppedIds === 'function' && holidayDroppedIds(jour).indexOf(choix.id) !== -1) return false;
@@ -1179,9 +1179,9 @@ function generateDayEvents(dayIndex, dateApercue) {
        choisi de retirer sont masquées pour ce jour de semaine. Les horaires
        confirmés doivent survivre à un recalcul et au gel hebdomadaire. */
     var remplacements = (customEvents || []).filter(function (e) {
-        return e && e.day === jour && e.remplacementConflit;
+        return e && !e.date && e.day === jour && e.remplacementConflit;
     });
-    if (!remplacements.length) return visible;
+    if (!remplacements.length) return planningAppliquerDate(visible, jour, dateApercue);
     var retires = new Set(remplacements.filter(function (e) { return e.deleted; }).map(function (e) { return e.replacesId; }));
     var choisis = remplacements.filter(function (e) { return !e.deleted; });
     visible = visible.filter(function (ev) { return !retires.has(ev.id); }).map(function (ev) {
@@ -1194,7 +1194,35 @@ function generateDayEvents(dayIndex, dateApercue) {
         visible.push({ id: id, title: force.title, startTime: force.startTime, endTime: force.endTime,
             type: force.type, icon: force.icon || '📌', editable: true, kind: 'pinned', source: 'custom' });
     });
-    return visible.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
+    return planningAppliquerDate(visible.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); }), jour, dateApercue);
+}
+
+/* Les modifications datées se superposent au modèle de la semaine, aux
+   devoirs et aux examens, sans modifier le cache hebdomadaire. Le jour réel
+   de la semaine courante est le repli lorsque Séance demande son programme. */
+function planningAppliquerDate(events, jour, dateApercue) {
+    if (!(customEvents || []).some(function (e) { return e && e.date && e.day === jour; })) return events;
+    var cible = dateApercue instanceof Date ? dateApercue : getWeekDates(new Date())[jour].date;
+    var cle = planningCleDate(cible);
+    var records = (customEvents || []).filter(function (e) { return e && e.date === cle && e.day === jour; });
+    if (!records.length) return events;
+    var reset = records.reduce(function (dernier, e) { return e.resetDate ? Math.max(dernier, Number(e.timestamp) || 0) : dernier; }, 0);
+    records = records.filter(function (e) { return !e.resetDate && (!reset || Number(e.timestamp) > reset); })
+        .sort(function (a, b) { return (Number(a.timestamp) || 0) - (Number(b.timestamp) || 0); });
+    if (!records.length) return events;
+    var overrides = {};
+    records.forEach(function (e) { if (e.replacesId) overrides[e.replacesId] = e; });
+    var listes = events.filter(function (e) { return !overrides[e.id] || !overrides[e.id].deleted; }).map(function (e) {
+        var modif = overrides[e.id];
+        if (!modif) return e;
+        return Object.assign({}, e, {
+            title: modif.title, startTime: modif.startTime, endTime: modif.endTime,
+            icon: modif.icon || e.icon, kind: modif.pinned ? 'pinned' : e.kind
+        });
+    });
+    records.filter(function (e) { return !e.replacesId && !e.deleted && !overrides[e.id] && !planningExerciceFait(e.exoId); })
+        .forEach(function (e) { listes.push(Object.assign({}, e, { editable: true, kind: e.pinned ? 'pinned' : 'flex' })); });
+    return listes.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
 }
 
 function planningDepuisProgression() {
@@ -1589,7 +1617,7 @@ function genererJourBrut(dayIndex) {
     });
 
     // ── CRÉNEAUX AJOUTÉS PAR L'ÉLÈVE (heure choisie → fixés 📌) ──
-    customEvents.filter(e => e && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex) && !planningExerciceFait(e.exoId)).forEach(event => {
+    customEvents.filter(e => e && !e.date && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex) && !planningExerciceFait(e.exoId)).forEach(event => {
         events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
             type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole });
     });
@@ -2077,7 +2105,7 @@ function planningBalayer(events) {
 }
 
 function slotWasRemoved(dayIndex, id) {
-    return customEvents.some(function (e) { return e && e.day === dayIndex && e.replacesId === id && e.deleted; });
+    return customEvents.some(function (e) { return e && !e.date && e.day === dayIndex && e.replacesId === id && e.deleted; });
 }
 
 function closeProgramGaps(events, bedtime, dayIndex) {
@@ -2307,7 +2335,7 @@ function v3FindConflict(dayIndex, startTime, endTime, excludeIds) {
     const s = timeToMinutes(startTime), e = timeToMinutes(endTime);
     if (!(e > s)) return null;
     const ex = new Set(excludeIds || []);
-    for (const ev of generateDayEvents(dayIndex)) {
+    for (const ev of (typeof v3EvenementsJour === 'function' && typeof selectedDay !== 'undefined' && dayIndex === selectedDay ? v3EvenementsJour(dayIndex) : generateDayEvents(dayIndex))) {
         if (ev.id === 'wakeup' || ev.id === 'sleep' || ex.has(ev.id)) continue;
         const es = timeToMinutes(ev.startTime), ee = timeToMinutes(ev.endTime);
         const end = ee > es ? ee : ee + 1440;
@@ -2321,7 +2349,7 @@ function v3ConflictMessage(ev) {
 
 // Chevauchements créneau automatique / cours (pour prévenir l'élève après une modif)
 function v3OverlapWarnings(dayIndex) {
-    const evs = generateDayEvents(dayIndex).filter(e => e.id !== 'wakeup' && e.id !== 'sleep');
+    const evs = (typeof v3EvenementsJour === 'function' && typeof selectedDay !== 'undefined' && dayIndex === selectedDay ? v3EvenementsJour(dayIndex) : generateDayEvents(dayIndex)).filter(e => e.id !== 'wakeup' && e.id !== 'sleep');
     const found = [];
     for (let i = 0; i < evs.length; i++) for (let j = i + 1; j < evs.length; j++) {
         const a = evs[i], b = evs[j];

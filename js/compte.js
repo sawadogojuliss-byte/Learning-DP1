@@ -106,7 +106,7 @@ function compteCleItem(item, cle) {
     try { return JSON.stringify(item); } catch (e) { return ''; }
 }
 
-function compteUnionParId(listes, cle) {
+function compteUnionParId(listes, cle, evenementsDates) {
     var map = {};
     var ordre = [];
     (listes || []).forEach(function (liste) {
@@ -120,6 +120,12 @@ function compteUnionParId(listes, cle) {
                 return;
             }
             var garde = map[id];
+            // Une exception datée modifiée sur un autre appareil conserve sa
+            // version la plus récente ; les autres listes gardent leur fusion.
+            if (evenementsDates && item.date && garde.date && Number(item.timestamp) > Number(garde.timestamp || 0)) {
+                try { map[id] = JSON.parse(JSON.stringify(item)); } catch (e) { map[id] = item; }
+                return;
+            }
             Object.keys(item).forEach(function (k) {
                 if (!compteChampRempli(garde[k]) && compteChampRempli(item[k])) garde[k] = item[k];
             });
@@ -159,7 +165,7 @@ function compteFusionnerProfils(copies) {
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             if (Array.isArray(b)) {
-                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id');
+                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id', k === 'customEvents');
                 return;
             }
             if (b && typeof b === 'object') {
@@ -179,7 +185,7 @@ function compteFusionnerProfils(copies) {
     tous.forEach(function (src) {
         Object.keys(tableaux).forEach(function (k) {
             if (!Array.isArray(src[k]) || !src[k].length) return;
-            base[k] = compteUnionParId([base[k], src[k]], tableaux[k]);
+            base[k] = compteUnionParId([base[k], src[k]], tableaux[k], k === 'customEvents');
         });
     });
     var maxJours = 0;

@@ -81,6 +81,37 @@ function getWeekDates(aujourd, decalageSemaine) {
     });
 }
 
+function planningDateSelectionnee(day) {
+    return getWeekDates(new Date(), planningDecalageSemaine)[day == null ? selectedDay : day].date;
+}
+
+function planningCleDate(date) {
+    return date.getFullYear() + '-' + ('0' + (date.getMonth() + 1)).slice(-2) + '-' + ('0' + date.getDate()).slice(-2);
+}
+
+/* Une modification future appartient à cette date, pas au modèle du mardi
+   ou du mercredi. Aujourd'hui conserve le comportement hebdomadaire. */
+function planningDateEdition(day) {
+    var date = planningDateSelectionnee(day);
+    var aujourdhui = new Date();
+    var minuit = new Date(aujourdhui.getFullYear(), aujourdhui.getMonth(), aujourdhui.getDate());
+    var cle = planningCleDate(date);
+    // Un jour préparé à l'avance garde sa portée datée lorsqu'il arrive.
+    // Sans exception enregistrée, les usages hebdomadaires existants restent.
+    var dejaDate = typeof customEvents !== 'undefined' && customEvents.some(function (e) {
+        return e && e.day === (day == null ? selectedDay : day) && e.date === cle;
+    });
+    return date > minuit || dejaDate ? cle : '';
+}
+
+function planningJourModifiable(day) {
+    if (planningDecalageSemaine === 0) return true;
+    var date = planningDateSelectionnee(day);
+    var maintenant = new Date();
+    var minuit = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+    return date > minuit;
+}
+
 function planningChangerSemaine(pas) {
     var suivant = Math.max(-52, Math.min(52, planningDecalageSemaine + Number(pas || 0)));
     if (suivant === planningDecalageSemaine) return;
@@ -527,7 +558,7 @@ function renderPlanning() {
 }
 
 function openAddModal() {
-    if (planningDecalageSemaine !== 0) return;
+    if (!planningJourModifiable(selectedDay)) return;
     const dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     document.getElementById('addModalDayLabel').textContent = dayNames[selectedDay];
     resetAddWorkflow();
@@ -712,7 +743,7 @@ function confirmAddActivity() {
     }
     errEl.style.display = 'none';
 
-    customEvents.push({
+    customEvents.push(Object.assign({
         id: generateEventId('activity', name, selectedDay),
         day: selectedDay,
         title: name,
@@ -722,7 +753,7 @@ function confirmAddActivity() {
         icon: icon,
         source: 'custom',
         timestamp: Date.now()
-    });
+    }, planningDateEdition(selectedDay) ? { date: planningDateEdition(selectedDay) } : {}));
     localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(customEvents));
     closeAddModal();
     renderPlanning();

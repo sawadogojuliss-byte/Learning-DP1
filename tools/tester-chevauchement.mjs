@@ -2,8 +2,14 @@
    Aucun compte, aucun envoi distant, aucune fiche de test. */
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
-const SITE = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
-const browser = await chromium.launch({ headless: true });
+const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
+const options = { headless: true };
+if (process.env.STUDY_CHROMIUM_LOCAL) {
+    const aws = (await import('@sparticuz/chromium')).default;
+    options.executablePath = await aws.executablePath();
+    options.args = aws.args;
+}
+const browser = await chromium.launch(options);
 try {
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; });
