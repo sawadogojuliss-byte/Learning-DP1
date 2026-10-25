@@ -450,6 +450,7 @@ function boiteLireBoite() {
         if (!boiteEstAdmin()) return publique;
         boiteErreurLecture = '';
         boiteErreurEmplois = '';
+        boiteErreurFeedbacks = '';
         function depuisPour(nom, champ) { return boiteDernierParCollection[nom + '|' + (champ || 'at')] || ''; }
         function retenirDate(nom, champ, items, complet) {
             if (generation !== boiteSessionGeneration) return items;
@@ -485,6 +486,7 @@ function boiteLireBoite() {
                        collections est refusée ; ne rien divulguer au visiteur. */
                     boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
                     if (nom === 'emplois_du_temps') boiteErreurEmplois = boiteErreurLecture;
+                    if (nom === 'feedbacks') boiteErreurFeedbacks = boiteErreurLecture;
                     return [];
                 }));
             });
@@ -501,6 +503,7 @@ function boiteLireBoite() {
 
 var boiteErreurLecture = '';
 var boiteErreurEmplois = '';
+var boiteErreurFeedbacks = '';
 
 function boiteLireJson(cle) {
     try { return JSON.parse(localStorage.getItem(cle) || 'null'); } catch (e) { return null; }
@@ -688,6 +691,8 @@ function boiteNettoyerSession() {
     boiteSecretCache = '';
     boiteErreurLecture = '';
     boiteErreurEmplois = '';
+    boiteErreurFeedbacks = '';
+    boiteLectureEnCours = null;
     boiteReceptionPresente = {};
     boiteControleReceptionEnCours = {};
     boiteAdminVerifie = false;
@@ -1193,10 +1198,15 @@ function boiteFusionner(items) {
 /* Relit la boîte : Firestore pour tout le monde (partie publique), et
    la partie privée pour les quatre admins seulement. Le fichier local
    ne sert plus qu'à garder les envois pas encore partis. */
+var boiteLectureEnCours = null;
 function boiteChargerListes(force) {
     var generation = boiteSessionGeneration;
     if (boiteListesCache && !force) return Promise.resolve(boiteListesCache);
-    return boiteLireBoite().then(function (items) {
+    /* L'alerte admin, le bouton Actualiser et la surveillance peuvent
+       demander la même lecture ensemble : partager la requête, sans
+       laisser une réponse ancienne écraser la liste la plus récente. */
+    if (boiteLectureEnCours && boiteLectureEnCours.generation === generation) return boiteLectureEnCours.promise;
+    var lecture = boiteLireBoite().then(function (items) {
         return { ok: !(boiteEstAdmin() && boiteErreurLecture), items: items };
     }, function () {
         return { ok: false, items: [] };
@@ -1207,6 +1217,7 @@ function boiteChargerListes(force) {
         var fusion = boiteFusionner(items);
         fusion.partiel = !source.ok;
         fusion.erreurEmplois = boiteEstAdmin() && boiteErreurEmplois || '';
+        fusion.erreurFeedbacks = boiteEstAdmin() && boiteErreurFeedbacks || '';
         /* Un admin dont la session Firebase a expiré doit le savoir :
            sinon la boîte paraît vide sans raison. */
         fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
@@ -1214,6 +1225,13 @@ function boiteChargerListes(force) {
         boiteMemoriserVus();
         return fusion;
     });
+    boiteLectureEnCours = { generation: generation, promise: lecture };
+    lecture.then(function () {
+        if (boiteLectureEnCours && boiteLectureEnCours.promise === lecture) boiteLectureEnCours = null;
+    }, function () {
+        if (boiteLectureEnCours && boiteLectureEnCours.promise === lecture) boiteLectureEnCours = null;
+    });
+    return lecture;
 }
 
 function boiteCarte(titre, meta, corps) {
@@ -1252,13 +1270,14 @@ function boiteRendreRetours(fusion) {
     });
     cartes.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
     if (!cartes.length) {
-        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : (fusion.partiel ? 'Les retours ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun retour pour le moment.')) + '</p>';
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.erreurFeedbacks ? 'Lecture des feedbacks indisponible : actualise ou reconnecte ton compte admin.' : fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : (fusion.partiel ? 'Les retours ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun retour pour le moment.')) + '</p>';
     } else {
         liste.innerHTML = cartes.map(function (carte) { return carte.html; }).join('');
     }
     if (statut) {
-        statut.textContent = fusion.partiel
-            ? 'Une partie des messages n\'a pas pu être rechargée.'
+        statut.textContent = fusion.erreurFeedbacks
+            ? 'Lecture des feedbacks indisponible : impossible de confirmer les nouveaux envois.'
+            : fusion.partiel ? 'Une partie des messages n\'a pas pu être rechargée.'
             : (cartes.length + ' message' + (cartes.length > 1 ? 's' : ''));
     }
     boiteMajConnexion(fusion);
@@ -2025,6 +2044,22 @@ function boiteSurveillerEmplois() {
     }, 10000);
 }
 
+var boiteRetoursTimer = null;
+function boiteSurveillerRetours() {
+    if (boiteRetoursTimer) return;
+    boiteRetoursTimer = setInterval(function () {
+        if (document.visibilityState === 'hidden' || !boiteEstAdmin()) return;
+        var retours = document.getElementById('panelRetours');
+        var questions = document.getElementById('panelQuestions');
+        if (!(retours && retours.classList.contains('active')) &&
+            !(questions && questions.classList.contains('active'))) return;
+        boiteChargerListes(true).then(function (fusion) {
+            if (retours && retours.classList.contains('active')) boiteRendreRetours(fusion);
+            if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
+        }).catch(function () {});
+    }, 15000);
+}
+
 function boiteOuvrirAdmin(page) {
     if (!boiteEstAdmin()) {
         navigateTo('planning');
@@ -2036,13 +2071,16 @@ function boiteOuvrirAdmin(page) {
     if (panneau) panneau.classList.add('active');
     boiteBrancherAdmin();
     var statut = document.getElementById(page === 'retours' ? 'retoursStatut' : (page === 'questions' ? 'questionsStatut' : 'emploisStatut'));
-    if (statut && !boiteListesCache) statut.textContent = 'Chargement…';
-    boiteChargerListes(false).then(function (fusion) {
+    if (statut) statut.textContent = 'Chargement…';
+    /* Ne jamais montrer uniquement le cache lorsque l'admin ouvre la page :
+       un message arrivé depuis la précédente visite doit être relu. */
+    boiteChargerListes(true).then(function (fusion) {
         if (page === 'retours') boiteRendreRetours(fusion);
         else if (page === 'questions') boiteRendreQuestions(fusion);
         else boiteRendreEmplois(fusion);
     });
-    if (page !== 'retours' && page !== 'questions') boiteSurveillerEmplois();
+    if (page === 'retours' || page === 'questions') boiteSurveillerRetours();
+    else boiteSurveillerEmplois();
 }
 
 function boiteRafraichirAdmin() {
@@ -3017,8 +3055,16 @@ if (typeof document !== 'undefined') {
         boiteSignalerOuverture();
         boiteVerifierFiche();
         var panneau = document.getElementById('panelEmplois');
-        if (panneau && panneau.classList.contains('active') && boiteEstAdmin()) {
-            boiteChargerListes(true).then(function (fusion) { boiteRendreEmplois(fusion); }).catch(function () {});
+        var retours = document.getElementById('panelRetours');
+        var questions = document.getElementById('panelQuestions');
+        if (boiteEstAdmin() && ((panneau && panneau.classList.contains('active')) ||
+            (retours && retours.classList.contains('active')) ||
+            (questions && questions.classList.contains('active')))) {
+            boiteChargerListes(true).then(function (fusion) {
+                if (panneau && panneau.classList.contains('active')) boiteRendreEmplois(fusion);
+                if (retours && retours.classList.contains('active')) boiteRendreRetours(fusion);
+                if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
+            }).catch(function () {});
         }
     });
 }
