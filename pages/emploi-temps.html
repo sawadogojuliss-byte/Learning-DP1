@@ -28,6 +28,7 @@
                     <p style="margin:0.2rem 0 0;font-size:0.75rem;color:#6b7280;">L'emploi du temps de l'école, une semaine suffit</p>
                 </div>
                 <input type="file" id="emploiFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="emploiLireDocument()">
+                <p id="emploiNomFichier" hidden style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;overflow-wrap:anywhere;"></p>
                 <button type="button" onclick="emploiLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
                 <button type="button" id="emploiAnnulerLecture" hidden onclick="emploiAnnulerLecture()" style="margin-top:0.5rem;border:1.5px solid #a7f3d0;background:#fff;color:#065f46;border-radius:0.7rem;padding:0.5rem 0.8rem;font:inherit;font-size:0.83rem;cursor:pointer;">Annuler la lecture</button>
                 <p style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;">PDF : les trois premières pages au maximum seront lues. Annuler ignore le résultat de la lecture en cours.</p>

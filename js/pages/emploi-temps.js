@@ -241,23 +241,35 @@ function emploiParseItems(items) {
                 yRef = auDessus.y;
             }
             var nom = morceaux.length ? morceaux.join(' ').replace(/\s+/g, ' ').trim() : '';
-            if (nom) jours[ancre.idx].push({ nom: nom, plage: plage });
+            if (nom && !emploiNomGenerique(nom)) jours[ancre.idx].push({ nom: nom, plage: plage });
         });
         jours[ancre.idx].sort(function (a, b) { return a.plage.debut < b.plage.debut ? -1 : 1; });
     });
     return { jours: jours, colonnes: anchors.length };
 }
 
+function emploiNomGenerique(nom) {
+    return /^(?:dp\s*\d?\s*[-–:]?\s*)?(?:cours|class|classe)\s*$/i.test(String(nom || '').trim());
+}
+
+/* Une matière absente du profil peut figurer sur le vrai document. Ne la
+   perdre ni la deviner : n'accepter son nom que sous un jour explicite et
+   avec une plage complète juste après. Écarter les blocs du planning. */
+function emploiNomPotentiel(t) {
+    var n = String(t || '').replace(/^dp\s*\d?\s*[-–:]?\s*/i, '').trim();
+    return /[A-Za-zÀ-ÿ]{3}/.test(n) && n.length <= 80 && !/\d{1,2}\s*[:h.]\s*\d{2}/.test(n) &&
+        !/^(?:cours|study plan|reveil|réveil|petit.déjeuner|déjeuner|dîner|diner|trajet|préparation|téléphone|temps libre|coucher|révisions?|exercices?|mémoire|évaluation)/i.test(n);
+}
+
 /* Repli sans positions (photo lue par l'OCR, texte collé) : les entrées
-   défilent jour après jour ; le jour change quand l'heure de début
-   redescend. Le jour de chaque ligne reste modifiable à la confirmation. */
+   suivent leurs en-têtes de jours explicites. Sans jours, ne pas attribuer
+   arbitrairement des cours au lundi. */
 function emploiParseTexte(texte) {
     var lignes = String(texte || '').split(/[\n\r]+/);
     var jours = [[], [], [], [], [], [], []];
     var jourCourant = 0;
     var entetesPresents = false;
     var buf = [];
-    var dernierePlage = null;
     lignes.forEach(function (ligne) {
         var t = String(ligne || '').trim();
         if (!t) return;
@@ -270,7 +282,6 @@ function emploiParseTexte(texte) {
             /^[A-Za-zÀ-ÿ]+\.?\s*(?:\d{1,2}(?:\s+[A-Za-zÀ-ÿ]+)?|[,.:–-])?\s*$/.test(t)) {
             jourCourant = idx;
             entetesPresents = true;
-            dernierePlage = null;
             buf = [];
             return;
         }
@@ -279,17 +290,21 @@ function emploiParseTexte(texte) {
             var nom = buf.length ? buf.join(' ').replace(/\s+/g, ' ').trim() :
                 t.replace(/^p\d+\s*[·:\-–]\s*/i, '').replace(/\d{1,2}\s*[:h.]\s*\d{2}.*$/, '').trim();
             buf = [];
-            if (plage && nom) {
-                if (!entetesPresents && dernierePlage && plage.debut < dernierePlage.debut && jours[jourCourant].length) {
-                    jourCourant = Math.min(6, jourCourant + 1);
-                }
+            /* Sans en-tête de jour explicite, l'ordre des heures ne permet
+               pas de déterminer le lundi ou le mardi : ne rien inventer. */
+            if (plage && nom && !emploiNomGenerique(nom) && entetesPresents) {
                 jours[jourCourant].push({ nom: nom, plage: plage });
-                dernierePlage = plage;
             }
-        } else if (!/^p\d+$/i.test(t) && (emploiMatiereDe(t) ||
-            /^(?:dp\s*\d\s*[-–:]?\s*)?(?:th[eé]orie de la connaissance|theory of knowledge|tok)\b/i.test(t))) {
-            /* Un événement ou un pied de page sans matière connue est ignoré. */
-            buf.push(t);
+        } else if (!/^p\d+$/i.test(t)) {
+            var connu = emploiMatiereDe(t) ||
+                /^(?:dp\s*\d\s*[-–:]?\s*)?(?:th[eé]orie de la connaissance|theory of knowledge|tok)\b/i.test(t);
+            if (connu) buf.push(t);
+            else if (entetesPresents && emploiNomPotentiel(t)) {
+                /* Une nouvelle ligne inconnue remplace l'éventuel pied de
+                   page précédent ; elle n'est retenue qu'avec l'heure suivante. */
+                if (buf.length && /^(?:literature|littérature|langue|and|et)\b/i.test(t)) buf.push(t);
+                else buf = [t];
+            }
         }
     });
     return { jours: jours, colonnes: 0 };
@@ -342,6 +357,36 @@ function emploiOcrItems(data) {
     return items;
 }
 
+/* Choisir la source qui contient effectivement des cours. Un PDF peut avoir
+   une couche texte partielle (en-tête, date, heure isolée) au-dessus d'une
+   grille scannée : elle ne doit pas empêcher la lecture de l'image. */
+function emploiChoisirLecture(lisibles, ocr) {
+    var essais = [
+        emploiParseItems(lisibles),
+        emploiParseItems(ocr.filter(function (it) { return it.ocrPos; })),
+        emploiParseTexte(lisibles.map(function (it) { return it.str; }).join('\n')),
+        emploiParseTexte(ocr.filter(function (it) { return !it.ocrPos; }).map(function (it) { return it.str; }).join('\n'))
+    ];
+    return essais.find(function (essai) { return essai.jours.some(function (liste) { return liste.length; }); }) || essais[0];
+}
+
+function emploiEstExportSite(texte) {
+    var t = String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    return /study\s*plan\s*i[b8]/.test(t) && /(?:reveil|petit.dejeuner|temps libre|telephone)/.test(t) && /\bcours\b/.test(t);
+}
+
+function emploiDiagnosticLecture(texte) {
+    var t = String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (emploiEstExportSite(t)) {
+        return 'Ce document semble être un planning exporté par Study Plan IB : ses blocs « Cours » ne donnent ni les matières ni les heures de fin. Choisis l’emploi du temps fourni par l’école, avec jours, matières et horaires de début et de fin. Aucun cours n’a été ajouté.';
+    }
+    if (t.trim().length < 15) return 'Le document ne contient pas assez de texte lisible. Essaie une photo nette, bien cadrée et à l’endroit, ou un PDF de l’école. Aucun cours n’a été ajouté.';
+    var jours = EMPLOI_JOURS.some(function (j) { return j.mots.some(function (m) { return new RegExp('\\b' + m + '\\b').test(t); }); });
+    if (!jours) return 'Du texte a été lu, mais aucun jour de cours identifiable (lundi, mardi…) n’a été trouvé. Choisis l’emploi du temps de l’école indiquant les jours, ou renseigne chaque jour dans l’ajout manuel. Aucun cours n’a été ajouté.';
+    if (!emploiContientPlage(t)) return 'Les jours sont lisibles, mais aucune plage complète début–fin (ex. 08:00–09:00) n’a été trouvée. Il manque les heures de fin : utilise un document qui les indique, ou saisis les horaires à la main. Aucun cours n’a été ajouté.';
+    return 'Du texte et des horaires ont été lus, mais les matières n’ont pas pu être reliées avec certitude à leurs jours et horaires. Essaie un PDF de l’école ou une photo nette de la grille complète. Aucun cours n’a été ajouté.';
+}
+
 function emploiAnalyserLecture(items) {
     var jours = [[], [], [], [], [], [], []];
     var pages = {};
@@ -353,16 +398,12 @@ function emploiAnalyserLecture(items) {
         var page = pages[numero];
         var lisibles = page.filter(function (it) { return !it.ocr; });
         var ocr = page.filter(function (it) { return it.ocr; });
-        var position = lisibles.length ? emploiParseItems(lisibles) :
-            emploiParseItems(ocr.filter(function (it) { return it.ocrPos; }));
-        var reconnus = position.jours.some(function (liste) { return liste.length; });
-        var texte = reconnus ? null : emploiParseTexte((lisibles.length ? lisibles : ocr.filter(function (it) { return !it.ocrPos; }))
-            .map(function (it) { return it.str; }).join('\n'));
-        (reconnus ? position : texte).jours.forEach(function (liste, idx) {
+        emploiChoisirLecture(lisibles, ocr).jours.forEach(function (liste, idx) {
             jours[idx] = jours[idx].concat(liste);
         });
     });
-    return { jours: jours };
+    var texteLu = (items || []).map(function (it) { return it.str; }).join(' ');
+    return { jours: jours, diagnostic: emploiDiagnosticLecture(texteLu), exportSite: emploiEstExportSite(texteLu) };
 }
 
 /* ── Le document devient des propositions ─────────────────────────── */
@@ -404,20 +445,17 @@ function emploiPdfItems(fichier, dire, actif) {
             if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
             return doc.getPage(n).then(function (page) {
                 return page.getTextContent().then(function (tc) {
-                    var brut = (tc.items || []).map(function (it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('');
-                    /* Un emploi d'une ou deux matières tient parfois en
-                       moins de 60 caractères : c'est tout de même un PDF
-                       texte, pas une page à passer à l'OCR. */
-                    var assezDeTexte = brut.trim().length >= 15 && /\d{1,2}\s*[:h.]\s*\d{2}/.test(brut);
-                    if (assezDeTexte) {
-                        (tc.items || []).forEach(function (it) {
-                            if (!it.str || !it.str.trim() || !it.transform) return;
-                            items.push({ str: it.str, x: it.transform[4], y: it.transform[5], page: n });
-                        });
+                    var coucheTexte = (tc.items || []).filter(function (it) { return it.str && it.str.trim() && it.transform; })
+                        .map(function (it) { return { str: it.str, x: it.transform[4], y: it.transform[5], page: n }; });
+                    coucheTexte.forEach(function (it) { items.push(it); });
+                    /* Une heure dans l'en-tête ne prouve pas que la grille
+                       scolaire est dans la couche texte. Si aucun cours n'y
+                       est identifiable, lire aussi l'image de cette page. */
+                    if (emploiChoisirLecture(coucheTexte, []).jours.some(function (liste) { return liste.length; })) {
                         return pageSuivante(n + 1);
                     }
-                    /* page scannée : rendu en image puis lecture automatique,
-                       et repli sur l'analyse ligne par ligne */
+                    /* page scannée (ou couche texte incomplète) : rendu en
+                       image puis lecture automatique de la grille */
                     var vp = page.getViewport({ scale: 1 });
                     var echelle = Math.min(2.5, 2200 / Math.max(1, vp.width));
                     var viewport = page.getViewport({ scale: echelle });
@@ -455,6 +493,8 @@ function emploiLireDocument() {
         return;
     }
     if (emploiOcrEnCours) return;
+    var nomFichier = document.getElementById('emploiNomFichier');
+    if (nomFichier) { nomFichier.textContent = 'Document sélectionné : ' + fichier.name; nomFichier.hidden = false; }
     var numero = ++emploiLectureNumero;
     var actif = function () { return numero === emploiLectureNumero; };
     emploiOcrEnCours = true;
@@ -476,9 +516,13 @@ function emploiLireDocument() {
                 logger: function (info) { emploiProgression(info, 1, 1, actif); }
             })).then(function (res) {
                 var items = emploiOcrItems(res && res.data);
-                var colonnes = emploiParseItems(items);
-                return colonnes.jours.some(function (liste) { return liste.length; })
-                    ? colonnes : emploiParseTexte((res && res.data && res.data.text) || '');
+                var texte = String((res && res.data && res.data.text) || '');
+                var lignes = texte.split(/[\n\r]+/).filter(function (l) { return l.trim(); })
+                    .map(function (l) { return { str: l, ocr: true }; });
+                var lecture = emploiChoisirLecture([], items.concat(lignes));
+                lecture.diagnostic = emploiDiagnosticLecture(texte);
+                lecture.exportSite = emploiEstExportSite(texte);
+                return lecture;
             });
         });
     }
@@ -497,7 +541,7 @@ function emploiLireDocument() {
 
 function emploiMontrerPropositions(res) {
     var propositions = [];
-    res.jours.forEach(function (liste, idx) {
+    if (!res.exportSite) res.jours.forEach(function (liste, idx) {
         liste.forEach(function (c) {
             propositions.push({ jour: idx, nom: emploiNettoyerNom(c.nom), matiere: emploiMatiereDe(c.nom), debut: c.plage.debut, fin: c.plage.fin });
         });
@@ -505,8 +549,12 @@ function emploiMontrerPropositions(res) {
     var zone = document.getElementById('emploiConfirmation');
     if (!zone) return;
     if (!propositions.length) {
-        zone.innerHTML = '<div style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:0.9rem 1rem;font-size:0.85rem;color:#92400e;">Aucun cours reconnu dans ce document. Vérifie la photo (lumière, netteté) ou ajoute les cours à la main ci-dessous.</div>';
-        emploiDire('Aucun cours reconnu. Vérifie la photo ou ajoute les cours à la main.', true);
+        emploiPropositions = [];
+        var raison = document.createElement('div');
+        raison.style.cssText = 'background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:0.9rem 1rem;font-size:0.85rem;color:#92400e;';
+        raison.textContent = (res && res.diagnostic) || emploiDiagnosticLecture('');
+        zone.replaceChildren(raison);
+        emploiDire('Aucun cours ajouté. La raison est indiquée ci-dessous.', true);
         return;
     }
     if (emploiImportBrut === null) emploiImportBrut = localStorage.getItem(EMPLOI_CLE);

@@ -27,7 +27,7 @@ const texte = 'Lundi\nMaths AA\n08:00 - 09:00\nMardi 14\nPhysics\n10:00 - 11:00\
 const res = ctx.emploiParseTexte(texte);
 assert.deepStrictEqual(Array.from(res.jours, j => j.length), [1,1,0,0,1,1,1]);
 assert.equal(res.jours[5][0].nom, 'Maths AA');
-assert.equal(ctx.emploiParseTexte('Maths AA\n09:00 - 10:00\nMaths AA\n08:00 - 09:00\nMaths AA\n07:00 - 08:00\nMaths AA\n06:00 - 07:00\nMaths AA\n05:00 - 06:00\nMaths AA\n04:00 - 05:00\nMaths AA\n03:00 - 04:00').jours[6].length, 1, 'dimanche sans en-têtes');
+assert.equal(ctx.emploiParseTexte('Maths AA\n09:00 - 10:00\nMaths AA\n08:00 - 09:00\nMaths AA\n07:00 - 08:00\nMaths AA\n06:00 - 07:00\nMaths AA\n05:00 - 06:00\nMaths AA\n04:00 - 05:00\nMaths AA\n03:00 - 04:00').jours.flat().length, 0, 'sans en-têtes de jour, ne pas inventer le lundi ou le dimanche');
 ctx.emploiScolaireEcrire({at:'ancien',jours:[[{id:'old',nom:'Maths AA',debut:'08:00',fin:'09:00',src:'doc'},
     {id:'man',nom:'Sport',debut:'14:00',fin:'15:00',src:'manuel'}],[],[],[],[],[],[]]});
 ctx.emploiImportBrut = ctx.localStorage.getItem(ctx.EMPLOI_CLE);
@@ -62,4 +62,4 @@ assert.equal(ecrits,avantInvalide,'horaire invalide : pas de sauvegarde');
 ctx.emploiOcrEnCours=true;const num=ctx.emploiLectureNumero;
 ctx.emploiAnnulerLecture();
 assert(ctx.emploiLectureNumero>num && !ctx.emploiOcrEnCours && elements.emploiAnnulerLecture.hidden);
-console.log('ok lot 7 : en-têtes et dimanche, anciens préservés, remplacement choisi, conflit et annulation');
+console.log('ok lot 7 : jours explicites et dimanche, jours absents refusés, anciens préservés, remplacement choisi, conflit et annulation');
