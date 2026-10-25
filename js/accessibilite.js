@@ -193,7 +193,8 @@
         var list = focusables(modale);
         if (!list.length) { e.preventDefault(); modale.focus(); return; }
         var premier = list[0], dernier = list[list.length - 1];
-        if (!modale.contains(document.activeElement) || (e.shiftKey && document.activeElement === premier)) {
+        if (!modale.contains(document.activeElement) || !list.includes(document.activeElement) ||
+            (e.shiftKey && document.activeElement === premier)) {
             e.preventDefault(); (e.shiftKey ? dernier : premier).focus();
         } else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
     }, true);

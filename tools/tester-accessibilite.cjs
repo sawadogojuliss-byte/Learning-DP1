@@ -50,6 +50,10 @@ const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Le
             fenetres: Array.from(document.querySelectorAll('.context-modal.active,.app-panel.active')).map(el => el.id)
         }));
         assert.equal(apresTab.dedans, true, 'focus retenu dans le dialogue : ' + JSON.stringify({ avantTab, apresTab }));
+        await page.evaluate(() => { const el = document.getElementById('contextModal'); el.tabIndex = -1; el.focus(); });
+        await page.keyboard.press('Shift+Tab');
+        assert.equal(await page.evaluate(() => document.getElementById('contextModal').contains(document.activeElement)), true,
+            'Shift+Tab ne sort pas du dialogue lorsque son conteneur porte le focus');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(80);
         assert.equal(await page.evaluate(() => document.getElementById('contextModal').classList.contains('active')), false, 'Échap ferme le dialogue');
