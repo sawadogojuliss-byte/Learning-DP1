@@ -89,10 +89,17 @@ const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Le
         await page.evaluate(() => {
             document.getElementById('emploiModal').classList.remove('active');
             document.getElementById('panelEmplois').classList.add('active');
-            document.getElementById('emploisFiltre').focus();
         });
-        assert.equal(await page.locator('#emploisFiltre').evaluate(el => getComputedStyle(el).outlineColor),
-            'rgb(4, 120, 87)', 'la recherche des élèves porte le contour Émeraude signature, pas l’orange');
+        await page.locator('#emploisFiltre').click();
+        // Le navigateur peut interpoler brièvement la couleur du contour lors du focus.
+        await page.waitForFunction(() => getComputedStyle(document.getElementById('emploisFiltre')).outlineColor === 'rgb(4, 120, 87)', null, { timeout: 1500 });
+        assert.equal(await page.evaluate(() => document.activeElement?.id), 'emploisFiltre', 'la recherche est sélectionnée');
+        const contourRecherche = await page.locator('#emploisFiltre').evaluate(el => ({
+            couleur: getComputedStyle(el).outlineColor, actif: el.matches(':focus-visible'),
+            style: getComputedStyle(el).outlineStyle
+        }));
+        assert.equal(contourRecherche.couleur, 'rgb(4, 120, 87)',
+            'la recherche des élèves porte le contour Émeraude signature, pas l’orange : ' + JSON.stringify(contourRecherche));
         assert.equal(await page.locator('#emploisFiltre').evaluate(el => getComputedStyle(el).outlineWidth),
             '3px', 'le contour de focus reste visible au clavier');
         assert.deepEqual(erreurs, [], 'aucune exception navigateur : ' + erreurs.join(' | '));
