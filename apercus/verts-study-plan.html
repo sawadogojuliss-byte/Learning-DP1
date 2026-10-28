@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#064e3b">
+  <title>Atelier des verts · Study Plan IB</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; --ink:#18342c; --muted:#5e7269; --line:#dbe9e0; --bg:#f5f9f6; --selected:#047857; --selected-light:#ecfdf5; --selected-wash:#d1fae5; }
+    *,*::before,*::after { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; background:var(--bg); color:var(--ink); }
+    button { font:inherit; cursor:pointer; }
+    button:focus-visible { outline:3px solid #0f766e; outline-offset:4px; }
+    .wrap { width:min(1140px,calc(100% - 36px)); margin:auto; }
+    header { background:#063f32; color:#fff; padding:20px 0 70px; position:relative; overflow:hidden; }
+    header::after { content:""; position:absolute; width:520px;height:520px;border:1px solid #59d4a944;border-radius:50%;top:-345px;right:-110px;box-shadow:0 0 0 45px #59d4a911,0 0 0 105px #59d4a911,0 0 0 180px #59d4a90b;pointer-events:none; }
+    .topbar { display:flex; align-items:center; justify-content:space-between;gap:16px; position:relative;z-index:1; }
+    .mark { display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:-.025em;font-size:17px; }
+    .mark b { display:grid;place-items:center; width:35px;height:35px;border:1px solid #6fcbac;border-radius:11px;color:#fff;font:italic 25px Georgia,serif; }
+    .kicker { display:inline-block; padding:8px 13px;border-radius:99px;background:#ffffff1f;color:#e0fff0;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase; }
+    header h1 { max-width:850px;margin:60px 0 15px;font-size:clamp(37px,6vw,68px);line-height:1.07;letter-spacing:-.058em; position:relative;z-index:1; }
+    header h1 span { color:#91e4bb; }
+    .lead { max-width:700px;color:#d5ebe0;line-height:1.65;font-size:clamp(15px,2vw,18px);position:relative;z-index:1; }
+    .info { position:relative;z-index:1; display:inline-flex;gap:9px;align-items:center;background:#ffffff13;border:1px solid #ffffff2c;border-radius:12px;padding:11px 14px;font-size:13px;color:#e0f7ea;margin-top:10px; }
+    main { margin-top:-30px;position:relative;z-index:2; padding-bottom:55px; }
+    .intro,.feature,.option { background:#fff;border:1px solid var(--line);box-shadow:0 18px 55px #123e2511;border-radius:23px; }
+    .intro { padding:clamp(22px,4vw,38px);margin-bottom:24px; }
+    .eyebrow { color:#087a59;letter-spacing:.13em;font-size:11px;font-weight:850;text-transform:uppercase;margin:0 0 12px; }
+    h2 { margin:0;letter-spacing:-.04em;line-height:1.16;font-size:clamp(24px,3vw,33px); }
+    .intro p:not(.eyebrow) { color:var(--muted);line-height:1.65;margin:12px 0 0;max-width:750px; }
+    .feature { padding:clamp(22px,4vw,37px);margin-bottom:32px;display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:36px;align-items:center; }
+    .feature .hint { color:var(--muted);font-size:14px;line-height:1.6;max-width:360px; }
+    .feature-num { margin:28px 0 8px;font-size:12px;color:var(--muted);font-weight:800; }
+    .current { font-weight:800;color:var(--selected);font-size:20px;letter-spacing:-.02em;margin:0; }
+    .tokens { display:flex;gap:8px;flex-wrap:wrap;margin-top:17px; }
+    .tokens span { background:var(--selected-light);color:var(--selected);padding:7px 10px;border-radius:8px;font-weight:750;font-size:11px; }
+    .mock { border-radius:18px;border:1px solid #e3ece5;background:#fbfdfb;padding:clamp(19px,3vw,30px);min-width:0; }
+    .mock .mock-card { background:#fff;border:1px solid #e4ebe4;border-radius:16px;padding:23px;box-shadow:0 14px 32px #1b443014; }
+    .mock-title { font:normal 24px Georgia,serif;letter-spacing:-.045em;margin:0 0 19px; }
+    .field-label { display:block;font-weight:750;color:#4b6557;font-size:13px;margin:0 0 10px; }
+    .focus-field { border:1px solid var(--selected);outline:3px solid var(--selected);outline-offset:3px;border-radius:13px;background:#fff;color:#738079;min-height:51px;display:flex;align-items:center;padding:0 15px;font-size:15px;white-space:nowrap; }
+    .mock-row { display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:25px; }
+    .mock-action { background:var(--selected);border:1px solid var(--selected);color:#fff;padding:11px 17px;border-radius:10px;font-weight:760;font-size:13px; }
+    .mock-chip { display:inline-block;background:var(--selected-light);color:var(--selected);border-radius:99px;padding:10px 13px;font-weight:750;font-size:12px; }
+    .section-head { display:flex;justify-content:space-between;align-items:end;gap:15px;margin:0 0 19px; }
+    .section-head p { color:var(--muted);font-size:13px;max-width:275px;margin:0;line-height:1.5; }
+    .grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px; }
+    .option { padding:25px;position:relative;transition:transform .2s,border-color .2s,box-shadow .2s; }
+    .option:hover { transform:translateY(-3px);box-shadow:0 22px 48px #123e2520; }
+    .option[aria-current="true"] { border-color:var(--tone);box-shadow:0 0 0 2px var(--tone),0 18px 55px #123e2512; }
+    .number { color:var(--tone);font-size:12px;font-weight:850;letter-spacing:.12em; }
+    .recommend { float:right;color:var(--tone);background:var(--soft);font-size:10px;font-weight:850;padding:7px 9px;border-radius:99px; }
+    .swatch { width:100%;height:103px;border-radius:14px;background:linear-gradient(115deg,var(--tone),var(--tone) 55%,var(--soft));margin:17px 0 19px;position:relative;overflow:hidden; }
+    .swatch::after { content:"";width:100px;height:100px;border:1px solid #fff8;border-radius:50%;position:absolute;right:14px;top:30px;box-shadow:0 0 0 16px #ffffff22,0 0 0 36px #ffffff10; }
+    .name { font-size:22px;font-weight:800;letter-spacing:-.035em;margin:0 0 5px; }
+    .desc { color:var(--muted);font-size:13px;line-height:1.5;margin:0 0 16px;min-height:39px; }
+    .values { display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin-bottom:20px; }
+    .values span { background:var(--soft);color:var(--tone);border-radius:7px;padding:6px 9px;font:750 11px ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .mini-label { display:block;color:#4b6557;font-size:12px;font-weight:750;margin:0 0 10px; }
+    .option .focus-field { --selected:var(--tone);min-height:47px;font-size:13px;outline-width:3px; }
+    .option-actions { display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:21px; }
+    .option-actions button { border:1px solid var(--tone);background:var(--tone);color:#fff;border-radius:9px;font-size:12px;font-weight:800;padding:11px 14px; }
+    .option-actions small { color:var(--muted);font-size:11px;text-align:right; }
+    .footnote { margin:24px 0 0;padding:18px 20px;border-radius:13px;background:#eaf4ed;border:1px solid #d4e6d9;color:#36584a;line-height:1.6;font-size:13px; }
+    footer { border-top:1px solid var(--line);color:var(--muted);font-size:12px;padding:20px 0 30px;text-align:center; }
+    @media(max-width:730px) { header{padding-bottom:60px}header h1{margin-top:42px}.feature{grid-template-columns:1fr;gap:21px}.grid{grid-template-columns:1fr}.section-head{display:block}.section-head p{margin-top:10px}.option{padding:20px}.desc{min-height:0} }
+    @media(prefers-reduced-motion:reduce) { html{scroll-behavior:auto}.option{transition:none} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="topbar"><div class="mark"><b aria-hidden="true">S</b> Study Plan IB</div><span class="kicker">Atelier couleurs · maquette indépendante</span></div>
+      <h1>Et si l’orange devenait <span>un vrai beau vert&nbsp;?</span></h1>
+      <p class="lead">Quatre propositions pour les contours de sélection et les accents décoratifs. Compare-les sur le champ « Rechercher un élève » de ta capture, avant toute modification du site principal.</p>
+      <div class="info">● &nbsp;Cette page est une maquette indépendante : aucun changement n’a été appliqué au site.</div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="intro" aria-labelledby="projet">
+      <p class="eyebrow">Le point de départ</p>
+      <h2 id="projet">Remplacer le contour marron-orange de la recherche.</h2>
+      <p>Le champ de ta capture prend en réalité la couleur de la règle de <strong>focus du site</strong>. Les verts ci-dessous montrent le même contour, ainsi qu’un bouton et un badge, pour choisir une couleur cohérente sur tout le site.</p>
+    </section>
+    <section class="feature" aria-labelledby="grand-apercu">
+      <div>
+        <p class="eyebrow">Aperçu grandeur nature</p>
+        <h2 id="grand-apercu">Imagine-le en situation.</h2>
+        <p class="hint">Clique sur « Voir en grand » sous une proposition. Le formulaire et ses accents prendront sa couleur. Rien n’est enregistré ni envoyé.</p>
+        <div class="feature-num" id="currentNum">PROPOSITION 01</div>
+        <p class="current" id="currentName">Émeraude signature</p>
+        <div class="tokens" id="currentTokens"><span>#047857 · contour</span><span>#ECFDF5 · fond doux</span></div>
+      </div>
+      <div class="mock">
+        <div class="mock-card">
+          <h3 class="mock-title">Les élèves</h3>
+          <span class="field-label">Rechercher un élève</span>
+          <div class="focus-field" role="img" aria-label="Aperçu du champ Rechercher un élève avec un contour vert">Nom, classe ou e-mail</div>
+          <div class="mock-row"><span class="mock-chip">Plannings reçus</span><span class="mock-action">Actualiser</span></div>
+        </div>
+      </div>
+    </section>
+    <div class="section-head"><div><p class="eyebrow">Les propositions</p><h2>Quel vert préfères-tu&nbsp;?</h2></div><p>Le premier reprend la famille du vert émeraude déjà présent dans le planning.</p></div>
+    <div class="grid" id="options">
+      <article class="option" style="--tone:#047857;--soft:#ecfdf5" aria-current="true" data-num="01" data-name="Émeraude signature" data-color="#047857" data-soft="#ECFDF5">
+        <span class="number">01 / 04</span><span class="recommend">LE PLUS COHÉRENT</span><div class="swatch" aria-hidden="true"></div>
+        <h3 class="name">Émeraude signature</h3><p class="desc">Frais et net. C’est le plus proche de l’identité actuelle de Study Plan IB.</p><div class="values"><span>#047857</span><span>#ECFDF5</span></div>
+        <span class="mini-label">Rechercher un élève</span><div class="focus-field" role="img" aria-label="Champ de recherche avec contour émeraude">Nom, classe ou e-mail</div>
+        <div class="option-actions"><button type="button" data-choose="01">Voir en grand</button><small>Équilibré sur blanc</small></div>
+      </article>
+      <article class="option" style="--tone:#166534;--soft:#f0fdf4" aria-current="false" data-num="02" data-name="Vert pin" data-color="#166534" data-soft="#F0FDF4">
+        <span class="number">02 / 04</span><div class="swatch" aria-hidden="true"></div>
+        <h3 class="name">Vert pin</h3><p class="desc">Profond, sérieux et très lisible. Idéal si tu veux un rendu plus institutionnel.</p><div class="values"><span>#166534</span><span>#F0FDF4</span></div>
+        <span class="mini-label">Rechercher un élève</span><div class="focus-field" role="img" aria-label="Champ de recherche avec contour vert pin">Nom, classe ou e-mail</div>
+        <div class="option-actions"><button type="button" data-choose="02">Voir en grand</button><small>Contraste marqué</small></div>
+      </article>
+      <article class="option" style="--tone:#0f766e;--soft:#f0fdfa" aria-current="false" data-num="03" data-name="Jade profond" data-color="#0F766E" data-soft="#F0FDFA">
+        <span class="number">03 / 04</span><div class="swatch" aria-hidden="true"></div>
+        <h3 class="name">Jade profond</h3><p class="desc">Un vert légèrement bleuté, lumineux et moderne, sans devenir turquoise.</p><div class="values"><span>#0F766E</span><span>#F0FDFA</span></div>
+        <span class="mini-label">Rechercher un élève</span><div class="focus-field" role="img" aria-label="Champ de recherche avec contour jade">Nom, classe ou e-mail</div>
+        <div class="option-actions"><button type="button" data-choose="03">Voir en grand</button><small>Le plus moderne</small></div>
+      </article>
+      <article class="option" style="--tone:#2f6b52;--soft:#edf7f0" aria-current="false" data-num="04" data-name="Sauge intense" data-color="#2F6B52" data-soft="#EDF7F0">
+        <span class="number">04 / 04</span><div class="swatch" aria-hidden="true"></div>
+        <h3 class="name">Sauge intense</h3><p class="desc">Feutré et apaisant. Un vert doux sans perdre la lisibilité du contour.</p><div class="values"><span>#2F6B52</span><span>#EDF7F0</span></div>
+        <span class="mini-label">Rechercher un élève</span><div class="focus-field" role="img" aria-label="Champ de recherche avec contour sauge">Nom, classe ou e-mail</div>
+        <div class="option-actions"><button type="button" data-choose="04">Voir en grand</button><small>Le plus doux</small></div>
+      </article>
+    </div>
+    <p class="footnote"><strong>À toi de choisir :</strong> réponds-moi simplement « 01 », « 02 », « 03 » ou « 04 ». Je ne remplacerai aucun style du site principal avant ton choix. Les couleurs qui servent à signaler un avertissement ou un conflit restent distinctes.</p>
+  </main>
+  <footer class="wrap">Study Plan IB · Atelier de couleurs séparé du site principal · Aucune connexion et aucune donnée élève utilisée</footer>
+  <script>
+    document.getElementById('options').addEventListener('click', function (event) {
+      const button = event.target.closest('[data-choose]');
+      if (!button) return;
+      const card = button.closest('.option');
+      document.querySelectorAll('.option').forEach(item => item.setAttribute('aria-current', String(item === card)));
+      document.documentElement.style.setProperty('--selected', card.dataset.color);
+      document.documentElement.style.setProperty('--selected-light', card.dataset.soft);
+      document.getElementById('currentNum').textContent = 'PROPOSITION ' + card.dataset.num;
+      document.getElementById('currentName').textContent = card.dataset.name;
+      document.getElementById('currentTokens').innerHTML = '<span>' + card.dataset.color + ' · contour</span><span>' + card.dataset.soft + ' · fond doux</span>';
+      document.getElementById('grand-apercu').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  </script>
+</body>
+</html>
