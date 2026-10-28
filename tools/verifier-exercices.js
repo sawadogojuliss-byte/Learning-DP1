@@ -16,6 +16,7 @@ let activeElement = null;
 function el(id) {
     if (!elements[id]) elements[id] = {
         id, value: '', textContent: '', innerHTML: '', style: {}, attrs: {},
+        replaceChildren() {}, append() {},
         setAttribute(k, v) { this.attrs[k] = v; },
         getAttribute(k) { return this.attrs[k] || null; },
         removeAttribute(k) { delete this.attrs[k]; },
@@ -35,13 +36,14 @@ const document = {
         return match ? el('filter-' + match[1]) : null;
     },
     querySelectorAll(sel) { return sel === '[data-exo-filtre]' ? filters : []; },
-    createElement() { return { style: {}, remove() {} }; },
+    createElement() { return { style: {}, setAttribute() {}, addEventListener() {}, remove() {} }; },
     body: { appendChild() {} },
     get activeElement() { return activeElement; }
 };
 const localStorage = {
     getItem(k) { return values[k] || null; },
-    setItem(k, v) { values[k] = v; }
+    setItem(k, v) { values[k] = v; },
+    removeItem(k) { delete values[k]; }
 };
 const context = vm.createContext({ document, localStorage, Date, console, setTimeout: () => {},
     iconeHtml: () => '📚', subjects: [{ name: 'Physique', icon: '📚' }], optionalSubjects: [] });

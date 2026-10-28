@@ -711,7 +711,7 @@ function memoireSauvegarder() {
 
 function memoireCleDuCompte(cle, sub) {
     if (!cle) return false;
-    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle.indexOf(sub) !== -1;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle.indexOf(sub) !== -1;
 }
 
 function memoireEffacerSuite() {

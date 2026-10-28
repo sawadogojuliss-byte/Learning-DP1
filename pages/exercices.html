@@ -20,13 +20,13 @@
 
             <!-- Onglets -->
             <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1.5rem;">
-                <button id="tabAjouter" onclick="switchExoTab('ajouter')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:white;color:#059669;box-shadow:0 1px 3px rgba(0,0,0,0.1);">➕ Ajouter</button>
-                <button id="tabListe" onclick="switchExoTab('liste')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📋 Ma liste</button>
-                <button id="tabPlanifier" onclick="switchExoTab('planifier')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📅 Planifier</button>
+                <button id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" onclick="switchExoTab('ajouter')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:white;color:#059669;box-shadow:0 1px 3px rgba(0,0,0,0.1);">➕ Ajouter</button>
+                <button id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" onclick="switchExoTab('liste')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📋 Ma liste</button>
+                <button id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" onclick="switchExoTab('planifier')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📅 Planifier</button>
             </div>
 
             <!-- Tab: Ajouter -->
-            <div id="tabContentAjouter">
+            <div id="tabContentAjouter" role="tabpanel" aria-labelledby="tabAjouter">
                 <!-- Sélection matière -->
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📚 Matière concernée</label>
@@ -38,20 +38,20 @@
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📝 Ajoute ton exercice</label>
                     <!-- Zone drag & drop -->
-                    <div id="dragArea" class="drag-area" onclick="document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" style="margin-bottom:0.875rem;">
+                    <div id="dragArea" class="drag-area" role="button" tabindex="0" aria-label="Choisir un nom de fichier comme référence ; le document ne sera pas conservé" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileUploadInput').click()}" onclick="if(event.target.id!=='fileUploadInput')document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" style="margin-bottom:0.875rem;">
                         <div style="font-size:2rem;margin-bottom:0.5rem;">📂</div>
-                        <p style="font-weight:700;color:#059669;font-size:0.9rem;">Glisse ton fichier ici</p>
-                        <p style="font-size:0.75rem;color:#6b7280;margin-top:0.25rem;">PDF, image, Word — ou clique pour choisir</p>
+                        <p style="font-weight:700;color:#059669;font-size:0.9rem;">Indique un fichier comme référence</p>
+                        <p style="font-size:0.75rem;color:#6b7280;margin-top:0.25rem;">PDF, image ou Word : seul son nom sera conservé, pas le document. Clique ou appuie sur Entrée.</p>
                         <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
                     </div>
-                    <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;display:flex;align-items:center;gap:0.5rem;"></div>
+                    <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;align-items:center;gap:0.5rem;"></div>
 
                     <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
                         <div style="flex:1;height:1px;background:#e5e7eb;"></div>
                         <span style="font-size:0.75rem;color:#56665e;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
                         <div style="flex:1;height:1px;background:#e5e7eb;"></div>
                     </div>
-                    <textarea id="exoTextInput" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu')" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+                    <textarea id="exoTextInput" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
                     <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
                 </div>
 
@@ -65,7 +65,7 @@
                         <button onclick="setExoDuration(90)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">1h30</button>
                     </div>
                     <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <input type="range" id="exoDurationSlider" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)" style="flex:1;accent-color:#10b981;">
+                        <input type="range" id="exoDurationSlider" aria-label="Durée estimée de l’exercice" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)" style="flex:1;accent-color:#10b981;">
                         <span id="exoDurationLabel" style="font-weight:800;color:#059669;font-size:1rem;min-width:3.5rem;text-align:right;">60 min</span>
                     </div>
                 </div>
@@ -73,17 +73,18 @@
                 <!-- Deadline -->
                 <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">
                     <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📆 Date limite (deadline)</label>
-                    <input type="date" id="exoDeadline" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date')" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+                    <input type="date" id="exoDeadline" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
                     <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
                 </div>
 
+                <button type="button" onclick="exoBrouillonEffacer()" style="width:100%;padding:0.75rem;background:white;color:#374151;border:1px solid #d1d5db;border-radius:0.75rem;margin-bottom:0.75rem;cursor:pointer;">Effacer le brouillon</button>
                 <button onclick="addExercice()" style="width:100%;padding:1rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:800;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.95rem;box-shadow:0 8px 20px rgba(16,185,129,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                     ➕ Ajouter cet exercice
                 </button>
             </div>
 
             <!-- Tab: Liste -->
-            <div id="tabContentListe" style="display:none;">
+            <div id="tabContentListe" role="tabpanel" aria-labelledby="tabListe" style="display:none;">
                 <div role="group" aria-label="Filtrer les exercices" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
                     <button type="button" data-exo-filtre="tous" aria-pressed="true" onclick="filtrerExos('tous')" style="background:#ecfdf5;border:1px solid #10b981;color:#047857;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">Tous</button>
                     <button type="button" data-exo-filtre="afaire" aria-pressed="false" onclick="filtrerExos('afaire')" style="background:white;border:1px solid #e5e7eb;color:#374151;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">À faire</button>
@@ -99,7 +100,7 @@
             </div>
 
             <!-- Tab: Planifier -->
-            <div id="tabContentPlanifier" style="display:none;">
+            <div id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" style="display:none;">
                 <div id="planifierContent">
                     <div style="text-align:center;padding:3rem 1rem;color:#56665e;">
                         <div style="font-size:3rem;margin-bottom:1rem;">📅</div>

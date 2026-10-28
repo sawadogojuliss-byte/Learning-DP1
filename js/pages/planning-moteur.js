@@ -173,13 +173,25 @@ function planningExerciceFait(id) {
     var liste = typeof exercices !== 'undefined' && Array.isArray(exercices) ? exercices : [];
     return liste.some(function (exercice) { return exercice && exercice.id === id && exercice.done === true; });
 }
+function planningExercicePlanActif(ev) {
+    if (!ev || !ev.exoId) return true;
+    var exo = typeof exercices !== 'undefined' && Array.isArray(exercices)
+        ? exercices.find(function (x) { return x && x.id === ev.exoId; }) : null;
+    // Garder les anciennes données, sans les reproduire d'une semaine à l'autre.
+    if (!exo || !ev.date) return false;
+    return !exo.planVersion || ev.planVersion === exo.planVersion;
+}
 function planningSansExercicesFaits(jour) {
-    return (jour || []).filter(function (ev) { return !ev || !planningExerciceFait(ev.exoId); });
+    return (jour || []).filter(function (ev) {
+        // Les anciens exercices sans date restent stockés, mais ne sont plus
+        // répétés chaque semaine : l'élève doit choisir une date en replanifiant.
+        return !ev || (!planningExerciceFait(ev.exoId) && planningExercicePlanActif(ev));
+    });
 }
 function v3FindOverride(id, day) {
     for (let i = customEvents.length - 1; i >= 0; i--) {
         const e = customEvents[i];
-        if (e && !e.date && e.replacesId === id && e.day === day && !planningExerciceFait(e.exoId)) return e;
+        if (e && !e.date && e.replacesId === id && e.day === day && !planningExerciceFait(e.exoId) && planningExercicePlanActif(e)) return e;
     }
     return null;
 }
@@ -1220,7 +1232,7 @@ function planningAppliquerDate(events, jour, dateApercue) {
             icon: modif.icon || e.icon, kind: modif.pinned ? 'pinned' : e.kind
         });
     });
-    records.filter(function (e) { return !e.replacesId && !e.deleted && !overrides[e.id] && !planningExerciceFait(e.exoId); })
+    records.filter(function (e) { return !e.replacesId && !e.deleted && !overrides[e.id] && !planningExerciceFait(e.exoId) && planningExercicePlanActif(e); })
         .forEach(function (e) { listes.push(Object.assign({}, e, { editable: true, kind: e.pinned ? 'pinned' : 'flex' })); });
     return listes.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); });
 }

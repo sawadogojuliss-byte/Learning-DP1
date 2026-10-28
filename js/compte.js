@@ -106,7 +106,7 @@ function compteCleItem(item, cle) {
     try { return JSON.stringify(item); } catch (e) { return ''; }
 }
 
-function compteUnionParId(listes, cle, evenementsDates) {
+function compteUnionParId(listes, cle, evenementsDates, etatsExercices) {
     var map = {};
     var ordre = [];
     (listes || []).forEach(function (liste) {
@@ -126,7 +126,16 @@ function compteUnionParId(listes, cle, evenementsDates) {
                 try { map[id] = JSON.parse(JSON.stringify(item)); } catch (e) { map[id] = item; }
                 return;
             }
+            // « Fait » et la planification sont des états réversibles. Une copie
+            // distante plus riche mais ancienne ne peut pas annuler un clic récent.
+            if (etatsExercices && (Date.parse(item.etatAt) || 0) > (Date.parse(garde.etatAt) || 0)) {
+                garde.done = item.done === true;
+                garde.scheduledSlot = item.scheduledSlot || null;
+                garde.planVersion = item.planVersion || null;
+                garde.etatAt = item.etatAt;
+            }
             Object.keys(item).forEach(function (k) {
+                if (etatsExercices && (k === 'done' || k === 'scheduledSlot' || k === 'planVersion' || k === 'etatAt')) return;
                 if (!compteChampRempli(garde[k]) && compteChampRempli(item[k])) garde[k] = item[k];
             });
         });
@@ -165,7 +174,7 @@ function compteFusionnerProfils(copies) {
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             if (Array.isArray(b)) {
-                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id', k === 'customEvents');
+                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id', k === 'customEvents', k === 'exercices');
                 return;
             }
             if (b && typeof b === 'object') {
@@ -185,7 +194,7 @@ function compteFusionnerProfils(copies) {
     tous.forEach(function (src) {
         Object.keys(tableaux).forEach(function (k) {
             if (!Array.isArray(src[k]) || !src[k].length) return;
-            base[k] = compteUnionParId([base[k], src[k]], tableaux[k], k === 'customEvents');
+            base[k] = compteUnionParId([base[k], src[k]], tableaux[k], k === 'customEvents', k === 'exercices');
         });
     });
     var maxJours = 0;

@@ -23,7 +23,7 @@
  */
 import { chromium } from 'playwright';
 
-const SITE = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
+const SITE = process.env.STUDYPLAN_TEST_URL || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 
 function echec(message) {
     console.error('ECHEC ' + message);
@@ -934,7 +934,7 @@ if (!exerciceAjoute.id || !exerciceAjoute.badge.includes('1 exercice') ||
 }
 const exerciceDansPlanning = await page.evaluate(() => {
     const id = exercices[0].id, day = indexJourCourant();
-    customEvents.push({ id: 'e2e-exercice-fait', day, exoId: id, source: 'exercice', pinned: true,
+    customEvents.push({ id: 'e2e-exercice-fait', day, date: planningCleDate(new Date()), exoId: id, source: 'exercice', pinned: true,
         title: 'Exercices Physique', startTime: '18:00', endTime: '18:30', type: 'study' });
     exercices[0].scheduledSlot = 'Aujourd’hui · 18:00–18:30';
     localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
@@ -943,7 +943,7 @@ const exerciceDansPlanning = await page.evaluate(() => {
 });
 if (!exerciceDansPlanning) echec('le créneau lié à un exercice à faire doit figurer au planning');
 await page.evaluate(() => switchExoTab('liste'));
-await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
+await page.locator('#exoListContainer [data-exo-action="fait"]').click();
 const exerciceFait = await page.evaluate(() => {
     switchExoTab('planifier');
     return { done: exercices[0]?.done, badge: document.getElementById('exoCountBadge').textContent,
@@ -963,7 +963,7 @@ if (!await page.locator('#exoListContainer').textContent().then(t => t.includes(
     echec('le filtre à faire garde des exercices déjà terminés');
 }
 await page.locator('[data-exo-filtre="faits"]').click();
-if (!await page.locator('#exoListContainer [onclick^="basculerExoFait"]').count()) {
+if (!await page.locator('#exoListContainer [data-exo-action="fait"]').count()) {
     echec('le filtre faits doit montrer l’exercice terminé');
 }
 await page.reload({ waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -982,7 +982,7 @@ if (!apresRechargement.done || !apresRechargement.carte.includes('À faire') ||
     !apresRechargement.badge.includes('0 exercice')) {
     echec('l’état Fait ne survit pas au rechargement : ' + JSON.stringify(apresRechargement));
 }
-await page.locator('#exoListContainer [onclick^="basculerExoFait"]').click();
+await page.locator('#exoListContainer [data-exo-action="fait"]').click();
 const exerciceRetabli = await page.evaluate(() => ({ done: exercices[0]?.done,
     badge: document.getElementById('exoCountBadge').textContent,
     carte: document.getElementById('exoListContainer').textContent }));
