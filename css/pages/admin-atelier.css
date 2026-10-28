@@ -19,7 +19,7 @@
 #panelAdmin .admin-atelier-cartes { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;max-width:72rem;margin-top:2rem; }
 #panelAdmin .admin-atelier-carte { position:relative;display:flex;align-items:center;gap:1rem;min-width:0;min-height:9rem;padding:1.4rem;text-align:left;background:#fff;border:1px solid #e1e9dd;border-radius:1.2rem;box-shadow:0 16px 55px #3659400a;color:#1c3028;cursor:pointer;font:inherit;transition:transform .2s,box-shadow .2s,border-color .2s; }
 #panelAdmin .admin-atelier-carte:hover { transform:translateY(-3px);border-color:#a9cdb3;box-shadow:0 20px 50px #3659401c; }
-#panelAdmin .admin-atelier-carte:focus-visible,#panelAdmin .admin-atelier-retour-mobile:focus-visible { outline:3px solid #059669;outline-offset:2px; }
+#panelAdmin .admin-atelier-carte:focus-visible,#panelAdmin .admin-atelier-retour-mobile:focus-visible { outline:3px solid #047857;outline-offset:2px; }
 #panelAdmin .admin-atelier-icone { flex:none;width:3.4rem;height:3.4rem;display:grid;place-items:center;background:#eaf5e9;border-radius:1rem;font-size:1.65rem; }
 #panelAdmin .admin-atelier-carte:nth-child(2) .admin-atelier-icone { background:#ecfdf5; }
 #panelAdmin .admin-atelier-carte:nth-child(3) .admin-atelier-icone { background:#f5edf4; }
@@ -80,7 +80,7 @@
     background:#e3f0e6;border-color:#e3f0e6;color:#235d4a;box-shadow:0 5px 14px rgba(0,0,0,.12);
 }
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav button:focus-visible {
-    outline:3px solid #34d399;outline-offset:2px;
+    outline:3px solid #6ee7b7;outline-offset:2px;
 }
 :is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) .admin-nav-separation {
     width:1.5rem;border-top:1px solid #ffffff55;margin:.25rem 0;
@@ -155,7 +155,7 @@
 }
 :is(#panelAnnonce,#panelRetours,#panelQuestions) .admin-page-liste button:focus-visible,
 :is(#panelAnnonce,#panelRetours,#panelQuestions) .admin-page-main button:focus-visible {
-    outline:3px solid #059669;outline-offset:2px;
+    outline:3px solid #047857;outline-offset:2px;
 }
 #panelAnnonce .admin-page-annonce { display:grid;grid-template-columns:minmax(16rem,25rem) minmax(0,1fr);gap:1rem;align-items:start; }
 #panelAnnonce.annonce-public .admin-page-annonce { grid-template-columns:minmax(0,50rem); }
@@ -230,7 +230,7 @@
 .annonce-validation-actions button { padding:.85rem 1rem;border:1px solid #235d4a;border-radius:.75rem;background:#235d4a;color:white;font:inherit;font-weight:750;cursor:pointer; }
 .annonce-validation-actions button:last-child { background:white;color:#235d4a; }
 .annonce-validation-actions button:disabled { opacity:.5;cursor:wait; }
-.annonce-validation button:focus-visible { outline:3px solid #cc944f;outline-offset:2px; }
+.annonce-validation button:focus-visible { outline:3px solid #047857;outline-offset:2px; }
 
 /* Tutoriel : gestion dans le bureau, lecture conservée côté élèves. */
 #panelAdmin .admin-atelier-carte:nth-child(5) .admin-atelier-icone { background:#eeeaf6; }

@@ -86,6 +86,15 @@ const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Le
         await page.locator('#emploiConflitsAccord').check();
         await page.getByRole('button', { name: 'Enregistrer mes cours' }).click();
         assert.equal(await page.evaluate(() => emploiScolaireJour(0).length), 2, 'l’ancien cours survit à l’import');
+        await page.evaluate(() => {
+            document.getElementById('emploiModal').classList.remove('active');
+            document.getElementById('panelEmplois').classList.add('active');
+            document.getElementById('emploisFiltre').focus();
+        });
+        assert.equal(await page.locator('#emploisFiltre').evaluate(el => getComputedStyle(el).outlineColor),
+            'rgb(4, 120, 87)', 'la recherche des élèves porte le contour Émeraude signature, pas l’orange');
+        assert.equal(await page.locator('#emploisFiltre').evaluate(el => getComputedStyle(el).outlineWidth),
+            '3px', 'le contour de focus reste visible au clavier');
         assert.deepEqual(erreurs, [], 'aucune exception navigateur : ' + erreurs.join(' | '));
         console.log('ok navigateur : focus, Échap, région unique, largeur 320 px, import non destructif');
     } finally { await browser.close(); }

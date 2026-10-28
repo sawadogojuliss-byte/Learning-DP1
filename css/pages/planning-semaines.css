@@ -20,7 +20,7 @@
 #planningModal .planning-jour.selectionne { border-color: #047857; background: #047857; color: #fff; box-shadow: 0 5px 12px #04785733; }
 #planningModal .planning-jour.selectionne span { color: #fff; }
 #planningModal .planning-jour:hover:not(.selectionne) { background: #ecfdf5; }
-#planningModal .planning-jour:focus-visible, #planningModal .planning-semaine button:focus-visible { outline: 3px solid #059669; outline-offset: 2px; }
+#planningModal .planning-jour:focus-visible, #planningModal .planning-semaine button:focus-visible { outline: 3px solid #047857; outline-offset: 2px; }
 @media(max-width: 420px) {
     #planningModal .planning-semaine-entete { flex-wrap: wrap; }
     #planningModal .planning-semaine-actions { margin-left: auto; }

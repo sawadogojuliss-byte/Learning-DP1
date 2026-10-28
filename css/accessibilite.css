@@ -1,7 +1,10 @@
 /* Couche clavier/lecture d'écran : complète les styles existants, sans refonte. */
 #emploiConflitsAccordLabel[hidden]{display:none!important}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-:where(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #9b5929!important;outline-offset:3px!important;box-shadow:0 0 0 5px #fff!important}
+/* Émeraude signature : contour de clavier commun, y compris la recherche des élèves. */
+:where(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #047857!important;outline-offset:3px!important;box-shadow:0 0 0 5px #fff!important}
+/* Sur les rails foncés, une teinte claire de la même palette reste visible. */
+:is(#panelAdmin,#panelAnnonce,#panelRetours,#panelQuestions,#panelEmplois,#panelTutoriel.tutoriel-admin) :is(.admin-nav,.admin-atelier-rail,.emploi-atelier-rail) :is(button,a):focus-visible{outline-color:#6ee7b7!important;box-shadow:0 0 0 5px #164633!important}
 .context-modal{overflow-x:hidden}
 #eventsContainer [data-v3-type="memoir"]{border-left-style:dashed!important;background-image:repeating-linear-gradient(135deg,transparent 0,transparent 14px,rgba(77,99,161,.07) 14px,rgba(77,99,161,.07) 15px)!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

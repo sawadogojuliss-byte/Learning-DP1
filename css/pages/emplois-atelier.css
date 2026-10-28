@@ -82,7 +82,7 @@
 #panelEmplois .emploi-atelier-historique button[aria-current="true"] { border-color:#2d8053;background:#eaf6e9; }
 #panelEmplois .emploi-atelier-historique button:hover { background:#eaf6e9; }
 #panelEmplois .emploi-atelier-aucun { color:#637869;font-size:.8rem;padding:1rem .45rem; }
-#panelEmplois button:focus-visible,#panelEmplois summary:focus-visible { outline:3px solid #059669;outline-offset:2px; }
+#panelEmplois button:focus-visible,#panelEmplois summary:focus-visible { outline:3px solid #047857;outline-offset:2px; }
 @media(max-width:1040px) {
     #panelEmplois .emploi-atelier-espace { grid-template-columns:minmax(13.5rem,16rem) minmax(0,1fr); }
     #panelEmplois .emploi-atelier-pied { grid-template-columns:1fr; }
