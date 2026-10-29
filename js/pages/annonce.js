@@ -163,7 +163,7 @@ function annonceTexteMail(item) {
     var corps = String(item && item.texte || '').trim();
     var texte = 'Annonce\n\nChers utilisateurs\n\n';
     if (titre) texte += titre + '\n\n';
-    texte += corps + '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
+    texte += corps + '\n\nÀ bientôt,\nL\'équipe Studyplan';
     return texte.slice(0, 4000);
 }
 
@@ -186,7 +186,7 @@ function annonceHtmlMail(item) {
         + titreHtml
         + '<p style="margin:0;">' + lignes(String(item && item.texte || '')) + '</p>'
         + '<p style="margin:32px 0 0;">À bientôt,</p>'
-        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;"><strong>L\'équipe Study Plan IB</strong></p>'
+        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;"><strong>L\'équipe Studyplan</strong></p>'
         + '</td></tr></table></td></tr></table>';
 }
 
@@ -279,7 +279,7 @@ function annonceCarte(item) {
     if (!admin && !item.publie) return '';
     var meta = admin
         ? '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">Par ' + echap(item.nom || annonceLabel(item.auteurCle)) + ' · ' + echap(etat) + (accords.length ? ' · accords : ' + echap(accords.join(', ')) : '') + (manquants.length && !item.publie ? ' · il manque : ' + echap(manquants.join(', ')) : '') + (item.programme ? ' · ' + echap(annonceDateLisible(item.programme)) : '') + (item.publie ? ' · ' + item.envoyes.length + ' adresse(s) confirmée(s) par le service d’envoi (réception non garantie)' : '') + '</p>'
-        : '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">De l\'équipe Study Plan IB · ' + echap(annonceDateLisible(item.publieAt || item.envoyeAt || item.at)) + '</p>';
+        : '<p style="margin:0.35rem 0 0;font-size:0.75rem;color:#6b7280;">De l\'équipe Studyplan · ' + echap(annonceDateLisible(item.publieAt || item.envoyeAt || item.at)) + '</p>';
     return '<article style="background:white;border:1.5px solid #f3f4f6;border-radius:1rem;padding:0.95rem 1rem;margin-bottom:0.75rem;">'
         + '<p style="margin:0;font-size:1.15rem;font-weight:800;color:#059669;">Annonce</p>'
         + '<p style="margin:0.35rem 0 0;font-size:0.95rem;font-weight:700;color:#111827;">Chers utilisateurs</p>'
@@ -287,7 +287,7 @@ function annonceCarte(item) {
         + meta
         + '<p style="margin:0.7rem 0 0;white-space:pre-wrap;line-height:1.5;color:#1f2937;font-size:0.92rem;">' + echap(item.texte) + '</p>'
         + '<p style="margin:1rem 0 0;color:#1f2937;">À bientôt,</p>'
-        + '<p style="margin:0.15rem 0 0;font-weight:800;color:#047857;">L\'équipe Study Plan IB</p>'
+        + '<p style="margin:0.15rem 0 0;font-weight:800;color:#047857;">L\'équipe Studyplan</p>'
         + actions
         + '</article>';
 }
@@ -544,7 +544,7 @@ function annonceLireComptes() {
 
 function annoncePosterMail(email, nom, item) {
     var quand = new Date();
-    var sujet = ('Annonce — ' + String(item.titre || 'Study Plan IB') + ' — Study Plan IB').slice(0, 180);
+    var sujet = ('Annonce — ' + String(item.titre || 'Studyplan') + ' — Studyplan').slice(0, 180);
     var nonce = annonceNonce(item.id, email);
     return Promise.all([
         boiteUrlScript(),

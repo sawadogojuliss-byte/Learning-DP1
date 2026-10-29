@@ -66,7 +66,7 @@ var focusTimer = null;
 var focusAudio = null;
 var focusPip = null;
 var focusBruit = null;
-var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Study Plan IB';
+var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Studyplan';
 var focusPret = false;
 /* Fonds : le décor affiché ne change qu'une fois la nouvelle image décodée,
    et il change d'un coup (sinon le planning apparaissait dessous, ou bien
@@ -1102,7 +1102,7 @@ function focusFondAbsolu() {
 }
 
 function focusPipHtml() {
-    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Study Plan IB</title><style>' +
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Studyplan</title><style>' +
         'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;overflow:hidden;}' +
         '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111 center/cover no-repeat;}' +
         '.time{margin:0;font-size:clamp(3.6rem,18vw,6.6rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 18px rgba(0,0,0,.35);}' +

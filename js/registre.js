@@ -1,5 +1,5 @@
 /* ============================================================
-   Registre des pages — Study Plan IB
+   Registre des pages — Studyplan
    Chaque section a sa vue (pages/*.html) et son script.
    L'ordre des scripts est obligatoire.
    ============================================================ */

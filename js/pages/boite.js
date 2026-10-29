@@ -1375,7 +1375,7 @@ function boiteCarteQuestion(item, reponses) {
             + (rep.nom ? '<p style="display:inline-block;margin-top:0.35rem;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;border-radius:999px;padding:0.15rem 0.6rem;font-size:0.74rem;font-weight:700;">Envoyé par ' + boiteEchap(rep.nom) + '</p>' : '')
             + (rep.salutation ? '<p style="font-size:0.92rem;font-weight:800;color:#111827;white-space:nowrap;margin-top:0.25rem;">' + boiteEchap(rep.salutation) + '</p>' : '')
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
-            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (ok ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (ok ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Studyplan' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
             + '</div>';
     });
     if (!cochee) {
@@ -1419,7 +1419,7 @@ function boiteRendreQuestions(fusion) {
     } else {
         liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
             + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
-            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Study Plan IB. La première fois, Gmail peut le classer en indésirable.</p>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Studyplan. La première fois, Gmail peut le classer en indésirable.</p>'
             + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
             + '</section>'
             + bloc('Questions répondues', repondues, 'Aucune question répondue.');
@@ -1470,8 +1470,8 @@ function boitePrenom(nom) {
 function boiteSujetMail(question) {
     var extrait = String(question || '').replace(/\s+/g, ' ').trim();
     if (extrait.length > 48) extrait = extrait.slice(0, 48).trim();
-    if (!extrait) return 'Réponse à ta question — Study Plan IB';
-    return ('Re: ' + extrait + ' — Study Plan IB').slice(0, 180);
+    if (!extrait) return 'Réponse à ta question — Studyplan';
+    return ('Re: ' + extrait + ' — Studyplan').slice(0, 180);
 }
 
 function boitePeriodeSalutation(quand) {
@@ -1524,7 +1524,7 @@ function boiteSalutation(nom, quand) {
 function boiteTexteMail(message, question, nom, quand) {
     var texte = boiteSalutation(nom, quand) + '\n\n' + boiteLignes(message);
     if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
-    texte += '\n\nÀ bientôt,\nL\'équipe Study Plan IB';
+    texte += '\n\nÀ bientôt,\nL\'équipe Studyplan';
     return texte.slice(0, 4000);
 }
 
@@ -1538,7 +1538,7 @@ function boiteHtmlMail(message, question, nom, quand) {
             + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#4b5563;">' + boiteEchapHtml(boiteLignes(question)) + '</p>'
             + '</td></tr></table>';
     }
-    return '<div style="display:none;max-height:0;overflow:hidden;">' + boiteEchap(ligne) + ' — Study Plan IB</div>'
+    return '<div style="display:none;max-height:0;overflow:hidden;">' + boiteEchap(ligne) + ' — Studyplan</div>'
         + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">'
         + '<tr><td align="center" style="padding:24px 12px;">'
         + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
@@ -1546,7 +1546,7 @@ function boiteHtmlMail(message, question, nom, quand) {
         + '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
         + '<td style="padding-right:14px;vertical-align:middle;"><img src="https://sawadogojuliss-byte.github.io/Learning-DP1/images/logo.png" width="46" height="46" alt="" style="display:block;border:0;border-radius:12px;background:#ecfdf5;"></td>'
         + '<td style="vertical-align:middle;">'
-        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#d1fae5;">Study Plan IB</p>'
+        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#d1fae5;">Studyplan</p>'
         + '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:700;color:#ffffff;white-space:nowrap;">' + boiteEchap(ligne) + '</p>'
         + '<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.3;color:#d1fae5;">Réponse à ta question</p>'
         + '</td></tr></table></td></tr>'
@@ -1555,7 +1555,7 @@ function boiteHtmlMail(message, question, nom, quand) {
         + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
         + questionHtml
         + '<p style="margin:28px 0 0;">À bientôt,</p>'
-        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;">L\'équipe Study Plan IB</p>'
+        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;">L\'équipe Studyplan</p>'
         + '</td></tr></table></td></tr></table>';
 }
 
@@ -1563,7 +1563,7 @@ function boiteMessageEchecMail(err, data) {
     var type = err && (err.type || err.message) || '';
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
     if (type === 'salutation') return 'Le mail doit commencer par Bonjour ou Bonsoir, avec le nom sur la même ligne. Il n\'est pas parti.';
-    if (type === 'script') return 'L\'envoi au nom de l\'équipe Study Plan IB n\'est pas encore activé. La question reste en attente.';
+    if (type === 'script') return 'L\'envoi au nom de l\'équipe Studyplan n\'est pas encore activé. La question reste en attente.';
     if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
@@ -1606,7 +1606,7 @@ function boiteConnecterPartage() {
 
 function boiteMajConnexion() {
     var texte = document.getElementById('retoursPartageTexte');
-    if (texte) texte.textContent = 'Les réponses partent au nom de l\'équipe Study Plan IB.';
+    if (texte) texte.textContent = 'Les réponses partent au nom de l\'équipe Studyplan.';
 }
 
 function boiteNonce() {
@@ -1668,7 +1668,7 @@ function boitePayloadMail(email, message, question, nonce, nom, quand, secret) {
         replyTo: BOITE_EXPEDITEUR,
         nom: destinataire,
         salutation: ligne,
-        subject: 'Réponse à ta question — Study Plan IB',
+        subject: 'Réponse à ta question — Studyplan',
         text: boiteTexteMail(message, question, destinataire, moment),
         html: boiteHtmlMail(message, question, destinataire, moment)
     };
@@ -2991,7 +2991,7 @@ function boiteOuvrirAlerte(neuf) {
         lignes += '<p style="margin:0.45rem 0 0;color:#78716c;font-size:0.88rem;">Et ' + (neuf.lignes.length - 8) + ' autre' + (neuf.lignes.length - 8 > 1 ? 's' : '') + '.</p>';
     }
     el.innerHTML = '<div style="max-width:26rem;width:100%;background:white;border-radius:1.25rem;padding:1.35rem 1.2rem;box-shadow:0 24px 60px rgba(0,0,0,0.18);">'
-        + '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Study Plan IB</p>'
+        + '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Studyplan</p>'
         + '<h3 style="margin:0 0 0.7rem;font-size:1.22rem;color:#1c1917;">Nouveaux messages</h3>'
         + lignes
         + '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.1rem;">'

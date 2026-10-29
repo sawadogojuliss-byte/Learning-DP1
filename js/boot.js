@@ -149,6 +149,6 @@ var version = '20261029e';
         }, 180);
     }).catch(function (err) {
         console.error(err);
-        fail(err && err.message ? err.message : 'Impossible de charger Study Plan IB.');
+        fail(err && err.message ? err.message : 'Impossible de charger Studyplan.');
     });
 })();

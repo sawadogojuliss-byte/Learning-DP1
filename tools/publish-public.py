@@ -146,11 +146,11 @@ def main():
         launcher = ROOT / "dist" / "ouvrir.html"
         launcher.write_text(
             "<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"utf-8\">"
-            "<title>Study Plan IB</title></head><body>"
-            "<p>Chargement de Study Plan IB…</p>"
+            "<title>Studyplan</title></head><body>"
+            "<p>Chargement de Studyplan…</p>"
             f"<script>fetch({json.dumps(raw)}).then(function(r){{return r.text();}})"
             ".then(function(html){document.open();document.write(html);document.close();})"
-            ".catch(function(){document.body.textContent='Impossible de charger Study Plan IB.';});"
+            ".catch(function(){document.body.textContent='Impossible de charger Studyplan.';});"
             "</script></body></html>",
             encoding="utf-8",
         )

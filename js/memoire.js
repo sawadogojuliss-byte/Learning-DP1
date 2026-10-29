@@ -1,5 +1,5 @@
 /* ============================================================
-   Mémoire — Study Plan IB
+   Mémoire — Studyplan
    Enregistre le profil complet dans le navigateur.
    Une actualisation reprend la dernière page, sans recommencer.
    ============================================================ */

@@ -35,7 +35,7 @@ ok(html.indexOf('id="boot-jauge"') !== -1, 'la barre de chargement manque');
 ok(html.indexOf('id="boot-jauge-fill"') !== -1, 'le remplissage de la barre manque');
 ok(/role="progressbar"/.test(html), 'la barre doit être annoncée comme une progression');
 ok(html.indexOf('aria-valuenow="6"') !== -1, 'la barre doit démarrer à 6 %');
-ok(html.indexOf('Chargement de Study Plan IB') !== -1, 'le texte de chargement doit rester');
+ok(html.indexOf('Chargement de Studyplan') !== -1, 'le texte de chargement doit rester');
 ok(boot.indexOf('function avancer(fait, total)') !== -1, 'le calcul d\'avancement manque');
 ok(boot.indexOf('avancer(etapesFaites, etapesTotales)') !== -1, 'la barre doit suivre chaque étape');
 ok((boot.match(/avancer\(/g) || []).length >= 4, 'la barre doit avancer à chaque page et chaque script');

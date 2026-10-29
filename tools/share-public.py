@@ -28,7 +28,7 @@ def verify(url):
     meta = (proc.stdout or "").strip()
     headers = pathlib.Path("/tmp/headers.txt").read_text(encoding="utf-8", errors="replace").lower() if pathlib.Path("/tmp/headers.txt").exists() else ""
     body = pathlib.Path("/tmp/got.html").read_text(encoding="utf-8", errors="replace") if pathlib.Path("/tmp/got.html").exists() else ""
-    ok = meta.startswith("200") and "text/html" in meta and "Study Plan IB" in body and "content-disposition: attachment" not in headers
+    ok = meta.startswith("200") and "text/html" in meta and "Studyplan" in body and "content-disposition: attachment" not in headers
     return ok, meta
 
 

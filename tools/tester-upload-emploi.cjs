@@ -101,14 +101,14 @@ function pdfFictif(jpeg, couchePartielle) {
             const c = document.createElement('canvas'); c.width = 900; c.height = 450;
             const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0,0,900,450);
             x.fillStyle = '#111'; x.font = 'bold 42px Arial';
-            ['Study Plan IB', 'Lun', 'Réveil 06:00', 'Cours 08:15', 'Cours 13:30', 'Coucher 22:00'].forEach((t,i) => x.fillText(t,35,65+i*60));
+            ['Studyplan', 'Lun', 'Réveil 06:00', 'Cours 08:15', 'Cours 13:30', 'Coucher 22:00'].forEach((t,i) => x.fillText(t,35,65+i*60));
             return c.toDataURL('image/png').split(',')[1];
         });
         const avantExport = await page.evaluate(() => JSON.stringify(emploiScolaireLire()));
         await page.locator('#emploiFichier').setInputFiles({ name:'planning-exporte.png', mimeType:'image/png', buffer:Buffer.from(exportSite,'base64') });
         await page.waitForFunction(() => !emploiOcrEnCours, null, { timeout: 90000 });
         assert.equal(await page.evaluate(() => emploiPropositions.length), 0, 'aucun vrai cours ne peut être déduit de l’export du planning');
-        assert.match(await page.locator('#emploiConfirmation').innerText(), /planning exporté par Study Plan IB.*matières.*heures de fin/s);
+        assert.match(await page.locator('#emploiConfirmation').innerText(), /planning exporté par Studyplan.*matières.*heures de fin/s);
         assert.match(await page.locator('#emploiNomFichier').innerText(), /planning-exporte.png/);
         assert.equal(await page.evaluate(() => JSON.stringify(emploiScolaireLire())), avantExport, 'l’échec ne touche pas aux cours enregistrés');
         await importer({ name:'scan-emploi.pdf', mimeType:'application/pdf', buffer:pdfFictif(jpeg) });

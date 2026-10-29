@@ -367,12 +367,12 @@ attendre(200).then(function () {
         const payload = JSON.parse(envoi.opts.body);
         assert.strictEqual(payload.to, 'doriilboudo235@gmail.com');
         assert.strictEqual(payload.secret, 'spx-test-secret', 'le secret ne vient pas de la configuration privée');
-        assert.ok(payload.subject.indexOf('Study Plan IB') !== -1, payload.subject);
+        assert.ok(payload.subject.indexOf('Studyplan') !== -1, payload.subject);
         assert.ok(/^(Bonjour|Bonsoir) Kenzah,$/.test(payload.salutation), 'salutation inattendue : ' + payload.salutation);
         assert.ok(payload.text.indexOf(payload.salutation + '\n') === 0, 'le mail ne commence pas par la salutation');
         assert.ok(payload.text.indexOf('Ta question :') !== -1, 'la question d’origine manque');
-        assert.ok(payload.text.indexOf('À bientôt,\nL\'équipe Study Plan IB') !== -1, 'la signature manque');
-        assert.ok(payload.html.indexOf('Study Plan IB') !== -1, 'le HTML manque');
+        assert.ok(payload.text.indexOf('À bientôt,\nL\'équipe Studyplan') !== -1, 'la signature manque');
+        assert.ok(payload.html.indexOf('Studyplan') !== -1, 'le HTML manque');
         const record = (context.boiteListesCache.reponses || []).filter(function (rep) { return rep.questionId === question.id; })[0];
         assert.ok(record, 'la réponse n’est pas gardée');
         assert.strictEqual(record.mail, true, 'marquée non envoyée');

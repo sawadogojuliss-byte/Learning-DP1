@@ -82,7 +82,7 @@ function creerContexte(typeReseau) {
     }
 
     var documentFaux = {
-        title: 'Study Plan IB',
+        title: 'Studyplan',
         addEventListener: function () {},
         removeEventListener: function () {},
         getElementById: element,

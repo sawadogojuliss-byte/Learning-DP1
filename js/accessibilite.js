@@ -117,7 +117,7 @@
                     if (titre) {
                         if (!titre.id) titre.id = 'titre-dialogue-' + el.id;
                         el.setAttribute('aria-labelledby', titre.id);
-                    } else el.setAttribute('aria-label', 'Fenêtre Study Plan IB');
+                    } else el.setAttribute('aria-label', 'Fenêtre Studyplan');
                 }
             }
             if (el.getAttribute('role') === 'dialog') el.setAttribute('aria-modal', 'true');

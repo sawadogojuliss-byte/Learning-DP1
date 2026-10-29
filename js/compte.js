@@ -1698,7 +1698,7 @@ function compteImporterFichier(input) {
             }
             location.reload();
         } catch (e) {
-            compteMessage('Ce fichier n’est pas une progression Study Plan IB.');
+            compteMessage('Ce fichier n’est pas une progression Studyplan.');
         }
     };
     lecteur.readAsText(fichier);

@@ -1,6 +1,6 @@
 {
-  "name": "Study Plan IB",
-  "short_name": "Study Plan IB",
+  "name": "Studyplan",
+  "short_name": "Studyplan",
   "lang": "fr",
   "start_url": "./",
   "display": "standalone",

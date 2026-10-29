@@ -387,7 +387,7 @@ function emploiEstExportSite(texte) {
 function emploiDiagnosticLecture(texte) {
     var t = String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     if (emploiEstExportSite(t)) {
-        return 'Ce document semble être un planning exporté par Study Plan IB : ses blocs « Cours » ne donnent ni les matières ni les heures de fin. Choisis l’emploi du temps fourni par l’école, avec jours, matières et horaires de début et de fin. Aucun cours n’a été ajouté.';
+        return 'Ce document semble être un planning exporté par Studyplan : ses blocs « Cours » ne donnent ni les matières ni les heures de fin. Choisis l’emploi du temps fourni par l’école, avec jours, matières et horaires de début et de fin. Aucun cours n’a été ajouté.';
     }
     if (t.trim().length < 15) return 'Le document ne contient pas assez de texte lisible. Essaie une photo nette, bien cadrée et à l’endroit, ou un PDF de l’école. Aucun cours n’a été ajouté.';
     var jours = EMPLOI_JOURS.some(function (j) { return j.mots.some(function (m) { return new RegExp('\\b' + m + '\\b').test(t); }); });

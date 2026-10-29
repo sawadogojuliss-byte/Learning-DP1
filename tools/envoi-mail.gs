@@ -1,5 +1,5 @@
 /**
- * Envoi des réponses Study Plan IB. Version 3.
+ * Envoi des réponses Studyplan. Version 4 (accepte encore l'ancien nom pendant la transition).
  * Méthode utilisée par les formulaires statiques : les champs arrivent dans e.parameter.
  * GmailApp, pas MailApp : MailApp part d'un serveur partagé et est rejeté.
  * Déployer > Gérer les déploiements > crayon > Nouvelle version > Déployer.
@@ -92,11 +92,11 @@ function doPost(e) {
   if (!/^[a-z0-9]{16,40}$/.test(nonce)) return reponse({ success: false, error: 'nonce' });
   var to = String(data.to || '').trim();
   if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(to)) return reponse({ success: false, error: 'email' });
-  var sujet = String(data.subject || 'Réponse à ta question — Study Plan IB').slice(0, 180);
-  if (sujet.indexOf('Study Plan IB') === -1) return reponse({ success: false, error: 'sujet' });
+  var sujet = String(data.subject || 'Réponse à ta question — Studyplan').slice(0, 180);
+  if (!marqueOk(sujet)) return reponse({ success: false, error: 'sujet' });
   var texte = String(data.text || '').slice(0, 4000);
   var html = String(data.html || '').slice(0, 80000);
-  if (texte.indexOf('Study Plan IB') === -1 || html.indexOf('Study Plan IB') === -1) {
+  if (!marqueOk(texte) || !marqueOk(html)) {
     return reponse({ success: false, error: 'texte' });
   }
   if (/formsubmit|someone just submitted your form/i.test(html)) {
@@ -121,7 +121,7 @@ function doPost(e) {
     try {
       GmailApp.sendEmail(to, sujet, texte, {
         htmlBody: html,
-        name: 'Équipe Study Plan IB',
+        name: 'Équipe Studyplan',
         replyTo: EXPEDITEUR
       });
     } catch (err2) {
@@ -132,4 +132,8 @@ function doPost(e) {
   } finally {
     verrou.releaseLock();
   }
+}
+
+function marqueOk(texte) {
+  return texte.indexOf('Studyplan') !== -1 || texte.indexOf('Study Plan IB') !== -1;
 }

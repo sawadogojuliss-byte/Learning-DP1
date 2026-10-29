@@ -335,7 +335,7 @@ function exportDessinerSemaine(logo) {
     ctx.fillStyle = '#111827';
     ctx.font = '700 15px Inter, sans-serif';
     var nomX = pad + (logo ? 52 : 16);
-    ctx.fillText(exportCouper(ctx, nom || 'Study Plan IB', 520), nomX, pad + (classe ? 17 : headerH / 2));
+    ctx.fillText(exportCouper(ctx, nom || 'Studyplan', 520), nomX, pad + (classe ? 17 : headerH / 2));
     if (classe) {
         ctx.fillStyle = '#059669';
         ctx.font = '700 11px Inter, sans-serif';

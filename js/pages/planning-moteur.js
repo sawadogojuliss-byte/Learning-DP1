@@ -5,7 +5,7 @@
    ============================================================ */
 
 // ═══════════════════════════════════════════════════════════════════
-//  index_v3.js — Study Plan IB
+//  index_v3.js — Studyplan
 //
 //  1. Méthode Pomodoro intégrée aux sessions d'étude (révisions / exercices)
 //  2. Signalement des doublons quand l'élève planifie une activité

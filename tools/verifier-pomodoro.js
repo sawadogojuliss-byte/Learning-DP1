@@ -129,7 +129,7 @@ ok(memoire.indexOf("__memoirePomodoroEnAttente") !== -1, 'un rafraîchissement s
 ok(lire('js/compte.js').indexOf("ouverte === 'pomodoro'") !== -1, 'la synchro ne doit pas renvoyer le minuteur au planning');
 
 /* ── 5. La page du minuteur elle-même ── */
-['Study Plan IB', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00',
+['Studyplan', 'CONCENTRATION', 'PAUSE COURTE', 'PAUSE LONGUE', '25:00',
  'Sur quoi veux-tu te concentrer ?', 'focusFonds', 'focusTime'].forEach(function (extrait) {
     ok(page.indexOf(extrait) !== -1, 'minuteur incomplet : ' + extrait);
 });
