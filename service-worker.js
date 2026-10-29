@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261029b';
+const VERSION = '20261029d';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -78,6 +78,7 @@ const FICHIERS = [
     "js/pages/planning-interface.js",
     "js/pages/planning-export.js",
     "js/pages/musique.js",
+    "js/synchro.js",
     "js/memoire.js",
     "js/sauvegarde.js",
     "js/compte.js",

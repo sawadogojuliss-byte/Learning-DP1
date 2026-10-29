@@ -97,50 +97,10 @@ function compteChampRempli(v) {
     return true;
 }
 
-function compteCleItem(item, cle) {
-    if (!item || typeof item !== 'object') return '';
-    if (cle && item[cle]) return String(cle) + ':' + String(item[cle]);
-    if (item.id) return 'id:' + String(item.id);
-    if (item.name) return 'name:' + String(item.name);
-    if (item.nom) return 'nom:' + String(item.nom);
-    try { return JSON.stringify(item); } catch (e) { return ''; }
-}
-
+/* Fusion d'une liste d'objets par identifiant. La logique est dans
+   js/synchro.js (dates de modification, pierres tombales). */
 function compteUnionParId(listes, cle, evenementsDates, etatsExercices) {
-    var map = {};
-    var ordre = [];
-    (listes || []).forEach(function (liste) {
-        (liste || []).forEach(function (item) {
-            if (!item || typeof item !== 'object') return;
-            var id = compteCleItem(item, cle);
-            if (!id) return;
-            if (!map[id]) {
-                try { map[id] = JSON.parse(JSON.stringify(item)); } catch (e) { map[id] = item; }
-                ordre.push(id);
-                return;
-            }
-            var garde = map[id];
-            // Une exception datée modifiée sur un autre appareil conserve sa
-            // version la plus récente ; les autres listes gardent leur fusion.
-            if (evenementsDates && item.date && garde.date && Number(item.timestamp) > Number(garde.timestamp || 0)) {
-                try { map[id] = JSON.parse(JSON.stringify(item)); } catch (e) { map[id] = item; }
-                return;
-            }
-            // « Fait » et la planification sont des états réversibles. Une copie
-            // distante plus riche mais ancienne ne peut pas annuler un clic récent.
-            if (etatsExercices && (Date.parse(item.etatAt) || 0) > (Date.parse(garde.etatAt) || 0)) {
-                garde.done = item.done === true;
-                garde.scheduledSlot = item.scheduledSlot || null;
-                garde.planVersion = item.planVersion || null;
-                garde.etatAt = item.etatAt;
-            }
-            Object.keys(item).forEach(function (k) {
-                if (etatsExercices && (k === 'done' || k === 'scheduledSlot' || k === 'planVersion' || k === 'etatAt')) return;
-                if (!compteChampRempli(garde[k]) && compteChampRempli(item[k])) garde[k] = item[k];
-            });
-        });
-    });
-    return ordre.map(function (id) { return map[id]; });
+    return syncFusionnerListes(listes, '', null, { cle: cle, dates: evenementsDates, etats: etatsExercices });
 }
 
 function compteFusionnerObjets(a, b) {
@@ -163,6 +123,8 @@ function compteFusionnerProfils(copies) {
     });
     var base;
     try { base = JSON.parse(JSON.stringify(utiles[0])); } catch (e) { base = utiles[0]; }
+    /* Les suppressions de toutes les copies, et celles de cet appareil, valent pour tout le profil. */
+    var registre = tous.reduce(function (acc, c) { return syncFusionnerRegistres(acc, c.suppressions); }, syncLireRegistre());
     var tableaux = {
         customEvents: 'id',
         exercices: 'id',
@@ -173,8 +135,18 @@ function compteFusionnerProfils(copies) {
         Object.keys(src).forEach(function (k) {
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
+            /* L'emploi du temps se fusionne par cours (ET-16). */
+            if (k === 'emploiScolaire') {
+                base.emploiScolaire = syncFusionnerEmploi(base.emploiScolaire, b, registre) || base.emploiScolaire;
+                return;
+            }
+            /* Devoirs et examens se fusionnent par identifiant (DE-25). */
+            if (k === 'devoirsStore' && b && typeof b === 'object') {
+                base.devoirsStore = syncFusionnerStore(base.devoirsStore, b, registre);
+                return;
+            }
             if (Array.isArray(b)) {
-                base[k] = compteUnionParId([base[k], b], tableaux[k] || 'id', k === 'customEvents', k === 'exercices');
+                base[k] = syncFusionnerListes([base[k], b], k, registre, { cle: tableaux[k] || 'id', dates: k === 'customEvents', etats: k === 'exercices' });
                 return;
             }
             if (b && typeof b === 'object') {
@@ -194,7 +166,7 @@ function compteFusionnerProfils(copies) {
     tous.forEach(function (src) {
         Object.keys(tableaux).forEach(function (k) {
             if (!Array.isArray(src[k]) || !src[k].length) return;
-            base[k] = compteUnionParId([base[k], src[k]], tableaux[k], k === 'customEvents', k === 'exercices');
+            base[k] = syncFusionnerListes([base[k], src[k]], k, registre, { cle: tableaux[k], dates: k === 'customEvents', etats: k === 'exercices' });
         });
     });
     var maxJours = 0;
@@ -265,6 +237,13 @@ function compteFusionnerProfils(copies) {
         if (Array.isArray(sourceRecent.selectedActivities)) base.selectedActivities = sourceRecent.selectedActivities;
         if (Array.isArray(sourceRecent.phoneDays)) base.phoneDays = sourceRecent.phoneDays;
     }
+    base.suppressions = registre;
+    /* Les réglages du minuteur : la version datée la plus récente, toutes copies et cet appareil. */
+    var focusChoisi = syncLireJson(SYNC_CLE_FOCUS, null);
+    tous.forEach(function (c) {
+        if (c.focusReglages && typeof c.focusReglages === 'object' && (!focusChoisi || syncNombre(c.focusReglages.modifieAt) > syncNombre(focusChoisi.modifieAt))) focusChoisi = c.focusReglages;
+    });
+    if (focusChoisi && typeof focusChoisi === 'object') base.focusReglages = syncCopier(focusChoisi);
     return base;
 }
 
@@ -627,6 +606,7 @@ function compteDriveEcrire(token, id, json) {
 }
 
 function compteNuageFusionner(token) {
+    if (typeof syncPreparer === 'function') syncPreparer();
     var session = window.compteSession;
     return compteDriveLister(token).then(function (ids) {
         return Promise.all((ids || []).map(function (id) {

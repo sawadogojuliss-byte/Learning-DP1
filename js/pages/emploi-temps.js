@@ -29,6 +29,8 @@ function emploiScolaireNormaliser(d) {
                 matiere: String(c.matiere || '').slice(0, 60), debut: c.debut, fin: c.fin,
                 src: c.src === 'doc' || c.src === 'manuel' ? c.src : '' };
             if (c.parallele) cours.parallele = true;
+            if (c.modifieAt != null) cours.modifieAt = typeof syncNombre === 'function' ? syncNombre(c.modifieAt) : 0;
+            if (c.modifieChamps && typeof c.modifieChamps === 'object') cours.modifieChamps = c.modifieChamps;
             if (c.importId && /^doc:[a-z0-9-]{1,60}$/i.test(String(c.importId))) cours.importId = String(c.importId);
             return cours;
         }).filter(function (c) {
@@ -59,9 +61,15 @@ function emploiScolaireLire() {
     }) };
 }
 
-function emploiScolaireEcrire(data) {
+/* Chaque cours modifié ou ajouté est daté, et un cours retiré est noté comme
+   supprimé (js/synchro.js). `brut` : restauration d'une sauvegarde, rien n'est daté. */
+function emploiScolaireEcrire(data, opts) {
     try {
-        localStorage.setItem(EMPLOI_CLE, JSON.stringify(emploiScolaireNormaliser(data)));
+        var normal = emploiScolaireNormaliser(data);
+        if (!(opts && opts.brut) && typeof syncEstampiller === 'function') {
+            syncEstampiller('cours', syncAplatirCours(normal), syncAplatirCours(emploiScolaireLire()));
+        }
+        localStorage.setItem(EMPLOI_CLE, JSON.stringify(normal));
         emploiCacheBrut = null; emploiCacheStore = null;
     } catch (e) { console.error('Enregistrement de l’emploi scolaire impossible', e); return false; }
     try {
@@ -72,6 +80,7 @@ function emploiScolaireEcrire(data) {
 
 function emploiScolaireVider() {
     try {
+        if (typeof syncEstampiller === 'function') syncEstampiller('cours', [], syncAplatirCours(emploiScolaireLire()));
         localStorage.removeItem(EMPLOI_CLE); emploiCacheBrut = null; emploiCacheStore = null;
         if (!window.compteRestaurationEnCours && typeof boiteApresMemoire === 'function') boiteApresMemoire();
     } catch (e) {}

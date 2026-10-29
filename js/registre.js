@@ -66,6 +66,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/planning-interface.js',
     'js/pages/planning-export.js',
     'js/pages/musique.js',
+    'js/synchro.js',
     'js/memoire.js',
     'js/sauvegarde.js',
     'js/compte.js',

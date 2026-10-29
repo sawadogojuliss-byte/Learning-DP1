@@ -120,6 +120,7 @@ assert.equal(call('findAvailableSlots(exercices[0])').length, 0, 'aucune fausse 
 
 // Fusion de compte : un ancien profil distant ne rétablit pas « À faire ».
 const compte = fs.readFileSync('js/compte.js', 'utf8');
+vm.runInContext(fs.readFileSync('js/synchro.js', 'utf8'), context); // lot 9 : la fusion par identifiant est dans synchro.js
 vm.runInContext(compte.slice(compte.indexOf('function compteChampRempli('), compte.indexOf('function compteFusionnerObjets(')), context);
 const ancien = [{ id: 'exo-1', done: false, scheduledSlot: 'Ancien créneau', etatAt: '2026-10-27T10:00:00.000Z' }];
 const nouveau = [{ id: 'exo-1', done: true, scheduledSlot: null, etatAt: '2026-10-28T10:00:00.000Z' }];

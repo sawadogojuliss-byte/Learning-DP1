@@ -2660,6 +2660,9 @@ function boitePoserEtat(data) {
 function boiteEmploiDepuisProfil(data, appareil) {
     if (!data || typeof generateDayEvents !== 'function') return null;
     var backup = boiteCopierEtat();
+    /* Simulation : le planning d'un autre élève passe un instant en mémoire.
+       Rien ne doit en être daté ni noté comme supprimé (lot 9). */
+    if (typeof syncDebutApplication === 'function') syncDebutApplication();
     var record = null;
     var ancienBrut = window.__emploiCalculBrut;
     window.__emploiCalculBrut = true;
@@ -2675,6 +2678,7 @@ function boiteEmploiDepuisProfil(data, appareil) {
     if (backup) {
         try { boitePoserEtat(backup); } catch (e2) {}
     }
+    if (typeof syncFinApplication === 'function') syncFinApplication();
     if (!record || !record.jours || !record.jours.length) return null;
     record.appareil = appareil;
     record.id = 'e_' + appareil;

@@ -38,7 +38,14 @@ function devoirsLireStore() {
     return { bac: null, bacDemande: 0, devoirs: [], examens: [] };
 }
 
-function devoirsEcrireStore(store) {
+/* Chaque écriture date les devoirs modifiés et note les suppressions
+   (js/synchro.js). `brut` : restauration d'une sauvegarde, rien n'est daté. */
+function devoirsEcrireStore(store, opts) {
+    if (!(opts && opts.brut) && store && typeof syncEstampiller === 'function') {
+        var avant = devoirsLireStore();
+        syncEstampiller('devoirs', store.devoirs, avant.devoirs);
+        syncEstampiller('examens', store.examens, avant.examens);
+    }
     try { localStorage.setItem(DEVOIRS_CLE, JSON.stringify(store)); } catch (e) {}
 }
 

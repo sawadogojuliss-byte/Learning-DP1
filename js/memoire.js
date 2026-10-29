@@ -67,6 +67,7 @@ function memoireEtapeActive() {
 }
 
 function memoireLireEtat() {
+    if (typeof syncPreparer === 'function') syncPreparer();
     if (typeof eeNettoyerSuivi === 'function') eeNettoyerSuivi();
     var champNom = document.getElementById('nameInput');
     if (champNom && champNom.value.trim()) userName = champNom.value.trim().replace(/\s+/g, ' ');
@@ -132,8 +133,11 @@ function memoireLireEtat() {
         samePhoneDuration: samePhoneDuration,
         phoneDuration: phoneDuration,
         phoneDayDurations: phoneDayDurations,
-        selectedDay: selectedDay,
         customEvents: customEvents,
+        /* Pierres tombales : les suppressions ne reviennent jamais (lot 9). */
+        suppressions: typeof syncLireRegistre === 'function' ? syncLireRegistre() : {},
+        /* Réglages du minuteur, datés (lot 9, point 5). */
+        focusReglages: typeof syncFocusCourant === 'function' ? syncFocusCourant() : null,
         modifsSemaine: (function () {
             try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
         })(),
@@ -226,9 +230,22 @@ function memoireSujetsImposes(list) {
     return names === 'Anglais B|Français A|Mathématiques AA';
 }
 
+/* Pendant l'application, rien n'est daté : l'état reçu devient la référence
+   à la fin (syncFinApplication). Voir js/synchro.js. */
 function memoireAppliquer(data, opts) {
     if (!data || typeof data !== 'object') return;
+    if (typeof syncDebutApplication === 'function') syncDebutApplication();
+    try {
+        memoireAppliquerCorps(data, opts);
+    } finally {
+        if (typeof syncFinApplication === 'function') syncFinApplication();
+    }
+}
+
+function memoireAppliquerCorps(data, opts) {
     var depuisCompte = !!(opts && opts.compte);
+    /* Les suppressions connues de la sauvegarde sont retenues ici. */
+    var registre = typeof syncIntegrerRegistre === 'function' ? syncIntegrerRegistre(data.suppressions) : {};
     if (typeof data.userName === 'string') userName = data.userName;
     if (typeof data.targetScore === 'number') targetScore = data.targetScore;
     if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
@@ -245,7 +262,10 @@ function memoireAppliquer(data, opts) {
     if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
     if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
     if (typeof iaLevels !== 'undefined' && data.iaLevels && typeof data.iaLevels === 'object') iaLevels = data.iaLevels;
-    if (typeof memoirPlan !== 'undefined' && Array.isArray(data.memoirPlan)) memoirPlan = typeof eeNormaliserPlan === 'function' ? eeNormaliserPlan(data.memoirPlan) : data.memoirPlan;
+    if (typeof memoirPlan !== 'undefined' && Array.isArray(data.memoirPlan)) {
+        var planRecu = typeof syncFiltrer === 'function' ? syncFiltrer(data.memoirPlan, 'memoirPlan', registre) : data.memoirPlan;
+        memoirPlan = typeof eeNormaliserPlan === 'function' ? eeNormaliserPlan(planRecu) : planRecu;
+    }
     if (typeof iaPlans !== 'undefined' && data.iaPlans && typeof data.iaPlans === 'object') iaPlans = typeof eeNormaliserPlans === 'function' ? eeNormaliserPlans(data.iaPlans) : data.iaPlans;
     if (typeof eeVus !== 'undefined' && data.eeVus && typeof data.eeVus === 'object') eeVus = data.eeVus;
     if (typeof eeDemandes !== 'undefined' && data.eeDemandes && typeof data.eeDemandes === 'object') eeDemandes = data.eeDemandes;
@@ -324,38 +344,55 @@ function memoireAppliquer(data, opts) {
             }
         } catch (e) {}
     }
-    if (depuisCompte && Array.isArray(data.customEvents)) customEvents = data.customEvents;
+    var filtrer = function (liste, nom) {
+        return typeof syncFiltrer === 'function' ? syncFiltrer(liste, nom, registre) : liste;
+    };
+    if (depuisCompte && Array.isArray(data.customEvents)) customEvents = filtrer(data.customEvents, 'customEvents');
     else if (!depuisCompte) {
         var events = memoireJson('studyPlanIB_customEvents_juliss');
-        if (Array.isArray(events)) customEvents = events;
-        else if (Array.isArray(data.customEvents)) customEvents = data.customEvents;
+        if (Array.isArray(events)) customEvents = filtrer(events, 'customEvents');
+        else if (Array.isArray(data.customEvents)) customEvents = filtrer(data.customEvents, 'customEvents');
     }
 
     if (depuisCompte && typeof emploiScolaireEcrire === 'function') {
         /* L'emploi du temps scolaire revient avec le compte. */
-        if (data.emploiScolaire && data.emploiScolaire.jours) {
-            try { emploiScolaireEcrire(data.emploiScolaire); } catch (e) {}
+        /* Les cours sont fusionnés par identifiant : ceux de l'appareil ne sont
+           plus écrasés (ET-16). */
+        if (data.emploiScolaire && data.emploiScolaire.jours && typeof syncFusionnerEmploi === 'function') {
+            try {
+                var emploiFusionne = syncFusionnerEmploi(emploiScolaireLire(), data.emploiScolaire, registre);
+                emploiScolaireEcrire(emploiFusionne, { brut: true });
+                syncRecaler('cours', syncAplatirCours(emploiScolaireLire()));
+            } catch (e) {}
         } /* Une ancienne copie sans champ emploiScolaire ne doit pas effacer les cours locaux. */
     }
     if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
         /* Les devoirs, les examens et la réponse au bac national reviennent
-           avec le compte. */
+           avec le compte, fusionnés par identifiant (DE-25). */
         var recu = data.devoirsStore;
         if (recu && typeof recu === 'object') {
             var actuel = devoirsLireStore();
+            var fusion = typeof syncFusionnerStore === 'function'
+                ? syncFusionnerStore(actuel, recu, registre)
+                : null;
             devoirsEcrireStore({
                 bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
                 bacDemande: recu.bacDemande === 2 ? 2 : actuel.bacDemande,
-                devoirs: Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs,
-                examens: Array.isArray(recu.examens) ? recu.examens : actuel.examens
-            });
+                devoirs: fusion ? fusion.devoirs : (Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs),
+                examens: fusion ? fusion.examens : (Array.isArray(recu.examens) ? recu.examens : actuel.examens)
+            }, { brut: true });
+            if (fusion) {
+                syncRecaler('devoirs', fusion.devoirs);
+                syncRecaler('examens', fusion.examens);
+            }
         }
     }
-    if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
+    if (typeof syncFocusAppliquer === 'function' && depuisCompte && data.focusReglages) syncFocusAppliquer(data.focusReglages);
+    if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
     else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
-        if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = exos;
-        else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = data.exercices;
+        if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = filtrer(exos, 'exercices');
+        else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
     }
     if (depuisCompte) memoireEcrireMiroir(customEvents, typeof exercices !== 'undefined' ? exercices : []);
     if (data.emploiFige && typeof data.emploiFige === 'object' && Array.isArray(data.emploiFige.jours)) {
@@ -381,6 +418,9 @@ function memoireEcrireMiroir(events, exos) {
 }
 
 function memoireReinitialiser() {
+    /* Ce qui était en attente est daté avant d'être vidé ; le vidage lui-même
+       n'est pas une suppression (lot 9). */
+    if (typeof syncPreparer === 'function') syncPreparer();
     userName = '';
     targetScore = 40;
     weekdayWakeup = '06:00';
@@ -432,6 +472,7 @@ function memoireReinitialiser() {
     if (typeof exercices !== 'undefined') exercices = [];
     if (typeof currentMood !== 'undefined') currentMood = null;
     window.__profilComplet = false;
+    if (typeof syncRemettreAZero === 'function') syncRemettreAZero();
     memoireEcrireMiroir([], []);
     memoireSyncChamps();
 }
@@ -711,7 +752,7 @@ function memoireSauvegarder() {
 
 function memoireCleDuCompte(cle, sub) {
     if (!cle) return false;
-    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle.indexOf(sub) !== -1;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle.indexOf(sub) !== -1;
 }
 
 function memoireEffacerSuite() {
@@ -796,6 +837,8 @@ function memoireDemarrer() {
         if (data.google && data.google.sub && !window.compteSession) window.compteSession = data.google;
     }
     memoirePret = true;
+    /* Point de départ de la synchronisation : ce qui est chargé maintenant n'est pas une modification (lot 9). */
+    if (typeof syncRecalerMemoire === 'function') syncRecalerMemoire();
     if (aRestaurer) {
         var etape = data.etape || 'accueil';
         try {
