@@ -21,7 +21,8 @@ for (const fichier of ['js/memoire.js', 'js/pages/planning-interface.js', 'js/pa
    les révisions, sans ouvrir la fenêtre du planning. */
 const devoirsSrc = fs.readFileSync('js/pages/devoirs.js', 'utf8');
 const exercicesSrc = fs.readFileSync('js/pages/exercices.js', 'utf8');
-assert(devoirsSrc.includes('function devoirsRecalculerPlanning()') && devoirsSrc.includes('devoirsRecalculerPlanning();\n        devoirsActualiserPlanning();'), 'devoirs : suppression sans recalcul du planning');
+const apresChangement = /function devoirsApresChangement\(\) \{([\s\S]*?)\n\}/.exec(devoirsSrc);
+assert(devoirsSrc.includes('function devoirsRecalculerPlanning()') && apresChangement && apresChangement[1].includes('devoirsRecalculerPlanning();') && apresChangement[1].includes('devoirsActualiserPlanning();') && /function devoirsSupprimer[\s\S]*?devoirsApresChangement\(\)/.test(devoirsSrc), 'devoirs : suppression sans recalcul du planning');
 assert(/function deleteExo[\s\S]*?function actualiser\(\) \{[\s\S]*?planningDepuisProgression\(\)/.test(exercicesSrc), 'exercices : suppression sans recalcul du planning');
 const timers = [];
 const nodes = [];
