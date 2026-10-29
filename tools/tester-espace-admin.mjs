@@ -86,7 +86,7 @@ try {
         await page.evaluate(() => navigateTo('admin'));
     }
     await page.evaluate(() => {
-        window.boiteSession = () => ({ sub: BOITE_ADMINS_SUB[1] });
+        window.boiteSession = () => ({ sub: 'sub-test', email: 'faridsere86@gmail.com' });
         window.__approvalClicks = 0;
         window.annonceAccepter = () => { window.__approvalClicks++; return Promise.resolve(true); }; // Aucun envoi.
         annonceListe = annonceFusionner([{ type:'annonce', id:'fake-pending', at:new Date().toISOString(),

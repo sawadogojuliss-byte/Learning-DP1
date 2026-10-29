@@ -286,28 +286,23 @@ function tutorielCharger() {
     });
 }
 
-/* Les vidéos sont publiques par nature : elles partent sur un fil
-   public dédié, distinct de la boîte privée. */
-var TUTORIEL_SUJET = 'ibx-videos-publiques-3d7a1c5e9b2f';
-
+/* Les vidéos sont publiques en lecture, mais seuls les comptes admins de
+   BOITE_ADMINS_EMAIL peuvent en envoyer une : Firebase Storage refuse
+   toute autre écriture (storage.rules). Plus aucun fil ntfy public. */
 function tutorielDeposerFichier(fichier) {
-    var sujet = TUTORIEL_SUJET;
-    var nom = String(fichier.name || 'video.mp4').replace(/[^\w.\-]+/g, '_').slice(0, 80) || 'video.mp4';
-    return fetch('https://ntfy.sh/' + encodeURIComponent(sujet), {
-        method: 'PUT',
-        headers: {
-            Filename: nom,
-            Title: 'tutoriel-fichier',
-            Priority: 'min',
-            Cache: '2160h'
-        },
-        body: fichier
-    }).then(function (res) {
-        return res.json().catch(function () { return {}; }).then(function (data) {
-            var url = data && data.attachment && data.attachment.url;
-            if (!res.ok || !tutorielLienValide(url)) throw new Error('fichier');
-            return url;
+    if (!tutorielEstAdmin()) return Promise.reject(new Error('admin'));
+    return boiteFirebasePret().then(function (user) {
+        if (!user || !window.firebase || typeof firebase.storage !== 'function') throw new Error('stockage');
+        var nom = String(fichier.name || 'video.mp4').replace(/[^\w.\-]+/g, '_').slice(0, 80) || 'video.mp4';
+        var chemin = 'tutoriels/' + Date.now().toString(36) + '-' + nom;
+        return firebase.storage().ref(chemin).put(fichier, {
+            contentType: fichier.type || 'video/mp4'
         });
+    }).then(function (tache) {
+        return tache.ref.getDownloadURL();
+    }).then(function (url) {
+        if (!tutorielLienValide(url)) throw new Error('fichier');
+        return url;
     });
 }
 

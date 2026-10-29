@@ -2,8 +2,8 @@
 const fs = require('node:fs');
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
-const ids = ['116965022060639990571','110718856042093635641','107483800962626598897','108029295239679260667'];
-const compte = { sub: ids[0], email: 'admin@example.test' };
+const ids = ['sawadogojuliss@gmail.com','faridsere86@gmail.com','ashleytamini10@gmail.com','rayyanouedraogo87@gmail.com'];
+const compte = { sub: 'sub-test', email: ids[0] };
 const base = { type:'annonce', id:'fiche-1', at:'2026-10-24T09:00:00Z', titre:'À lire', texte:'Une annonce complète à examiner.', auteurCle:'juliss', programme:'', acceptations:{}, publie:0, envoyes:[] };
 let prive = {}, publicWrites = [], published = [], scheduled = [], mails = 0;
 const firebaseUser = () => ({ uid:'uid-admin', providerData:[{ providerId:'google.com', uid:compte.sub }] });
@@ -21,7 +21,7 @@ const firestore = () => ({ collection: nom => {
 firestore.FieldPath = class extends Array { constructor(...parts) { super(...parts); } };
 firestore.FieldValue = { delete:()=>null };
 const sandbox = { Promise, Date, console, setTimeout,
-    BOITE_ADMINS_SUB:ids, boiteSession:()=>compte, boiteNom:()=> 'Nom libre modifiable',
+    boiteSession:()=>compte, boiteNom:()=> 'Nom libre modifiable',
     boiteEstAdmin:()=>true, boiteFirebasePret:()=>Promise.resolve(firebaseUser()),
     firebase:{ firestore }, boiteEnvoyer:record => { publicWrites.push(record); return Promise.resolve(true); },
     boiteEmailValide: email=> /^[^@ ]+@[^@ ]+\.[^@ ]+$/.test(email),
@@ -44,10 +44,10 @@ sandbox.annoncePosterMail = () => { mails++; throw new Error('mail interdit dans
     await sandbox.annonceEffacerBrouillon('fiche-1');
     assert.equal(Object.keys(prive).length,0);
     sandbox.annonceListe = sandbox.annonceFusionner([base]);
-    compte.sub = ids[0];
+    compte.email = ids[0];
     assert.equal(await sandbox.annonceAccepter('fiche-1'),false,'auteur ne vote pas');
     for (let i=1;i<=3;i++) {
-        compte.sub = ids[i];
+        compte.email = ids[i];
         assert.equal(await sandbox.annonceAccepter('fiche-1'),true);
         assert.equal(published.length,i === 3 ? 1 : 0,'pas de publication avant les trois accords');
         assert.equal(await sandbox.annonceAccepter('fiche-1'),false,'un admin ne vote pas deux fois');
@@ -60,7 +60,7 @@ sandbox.annoncePosterMail = () => { mails++; throw new Error('mail interdit dans
         'audit : le circuit existant limite réellement les destinataires à 40');
     assert.equal((await sandbox.annonceLireComptes()).length,0,
         'audit : aucun répertoire complet de comptes n’est récupéré');
-    compte.sub = 'compte-equipe';
+    compte.email = 'ibstudyplan@gmail.com';
     assert.equal(sandbox.annonceEstAdmin(),false,'le compte d’équipe supervise sans voter');
     console.log('ok annonces sans réseau : brouillon privé, identité, trois votes uniques, départ au 3e, limite de distribution détectée');
 })().catch(err=>{ console.error(err); process.exitCode=1; });

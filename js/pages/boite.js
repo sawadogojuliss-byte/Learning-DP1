@@ -20,23 +20,15 @@ var BOITE_COLLECTIONS = {
 /* Les trois derniers noms ne sont lus que pour ne pas perdre les données
    créées pendant la version précédente ; les nouveaux envois n'y vont pas. */
 var BOITE_PRIVEES = ['questions', 'feedbacks', 'emplois_du_temps', 'reponses', 'emplois', 'profils', 'connexions'];
-/* Identifiants Google opaques (sub) des quatre comptes personnels.
-   Ils servent uniquement à afficher les sections réservées ; la
-   vraie serrure est dans firestore.rules. */
-var BOITE_ADMINS_SUB = [
-    '116965022060639990571',
-    '110718856042093635641',
-    '107483800962626598897',
-    '108029295239679260667'
+/* Adresses Google des quatre comptes personnels admins. C'est la seule
+   liste admin du site : l'accès réel reste contrôlé par firestore.rules
+   et storage.rules. Aucun nom n'est écrit dans le code. */
+var BOITE_ADMINS_EMAIL = [
+    'sawadogojuliss@gmail.com',
+    'faridsere86@gmail.com',
+    'ashleytamini10@gmail.com',
+    'rayyanouedraogo87@gmail.com'
 ];
-/* Le nom gardé de chaque compte admin : il ne sert qu'à signer les
-   messages, jamais à décider d'un accès. */
-var BOITE_ADMINS_NOM = {
-    '116965022060639990571': 'Sawadogo Juliss Bill Owen',
-    '110718856042093635641': 'Sere Farid Abdourrahman',
-    '107483800962626598897': 'Tamini Ashley Kania Harisoa',
-    '108029295239679260667': 'Ouedraogo Wendsom Rayyan'
-};
 var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
 var BOITE_FILE = 'studyPlanIB_boiteFile';
 var BOITE_EMPLOI_FILE = 'studyPlanIB_emploisEnAttente';
@@ -77,10 +69,14 @@ function boiteMots(s) {
 var boiteAdminVerifie = false;
 var boiteAdminTente = false;
 
+function boiteEmailAdmin(session) {
+    var email = session && session.email ? String(session.email).trim().toLowerCase() : '';
+    return !!email && BOITE_ADMINS_EMAIL.indexOf(email) !== -1;
+}
+
 function boiteEstAdmin() {
     if (boiteAdminVerifie) return true;
-    var session = boiteSession();
-    return !!(session && session.sub && BOITE_ADMINS_SUB.indexOf(String(session.sub)) !== -1);
+    return boiteEmailAdmin(boiteSession());
 }
 
 /* Filet de sécurité : si la liste locale des identifiants ne reconnaît
@@ -2166,7 +2162,7 @@ function boiteNom() {
     /* Un admin connecté avec son compte Google signe toujours du nom
        gardé : un seul compte, une seule fiche, quel que soit l'appareil. */
     var session = (typeof boiteSession === 'function') ? boiteSession() : null;
-    var garde = session && session.sub ? BOITE_ADMINS_NOM[String(session.sub)] : '';
+    var garde = boiteEmailAdmin(session) ? String(session.name || session.given_name || '').trim() : '';
     if (garde) return garde;
     return (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
 }

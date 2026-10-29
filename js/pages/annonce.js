@@ -6,10 +6,10 @@
    ============================================================ */
 
 var ANNONCE_GROUPES = [
-    { cle: 'juliss', label: 'Juliss', noms: ['sawadogo juliss bill owen'] },
-    { cle: 'farid', label: 'Farid', noms: ['sere farid abdourrahman', 'sere farid abdourraham'] },
-    { cle: 'ashley', label: 'Ashley', noms: ['tamini ashley kania harisoa'] },
-    { cle: 'wendsom', label: 'Wendsom', noms: ['ouedraogo wendsom rayyan', 'ouedraogo wendsom ryyan'] }
+    { cle: 'juliss', label: 'Juliss', email: 'sawadogojuliss@gmail.com' },
+    { cle: 'farid', label: 'Farid', email: 'faridsere86@gmail.com' },
+    { cle: 'ashley', label: 'Ashley', email: 'ashleytamini10@gmail.com' },
+    { cle: 'wendsom', label: 'Wendsom', email: 'rayyanouedraogo87@gmail.com' }
 ];
 var annonceListe = [];
 var annonceBranchee = false;
@@ -19,35 +19,24 @@ var annonceBrouillons = [];
 var annonceBrouillonCourant = '';
 var annonceAccordEnCours = false;
 
-/* Le nom affiché est modifiable. L'accord utilise l'identifiant Google du
-   compte personnel, pas le champ « Ton nom complet ». */
-function annonceMoi() {
+/* Le nom affiché est modifiable. L'accord utilise l'adresse Google du
+   compte personnel, jamais le champ « Ton nom complet ». */
+function annonceGroupeDeSession() {
     var session = typeof boiteSession === 'function' ? boiteSession() : null;
-    var sub = session && String(session.sub || '');
-    var ids = typeof BOITE_ADMINS_SUB !== 'undefined' ? BOITE_ADMINS_SUB : [];
-    var index = ids.indexOf(sub);
-    return annonceEstAdmin() && index >= 0 ? annonceCles()[index] : '';
+    var email = session && session.email ? String(session.email).trim().toLowerCase() : '';
+    if (!email) return null;
+    var trouves = ANNONCE_GROUPES.filter(function (groupe) { return groupe.email === email; });
+    return trouves.length ? trouves[0] : null;
 }
 
+function annonceMoi() {
+    var groupe = annonceEstAdmin() ? annonceGroupeDeSession() : null;
+    return groupe ? groupe.cle : '';
+}
 
 function annonceMots(nom) {
     if (typeof boiteMots === 'function') return boiteMots(nom);
     return String(nom || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z\s]/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
-}
-
-function annonceCleAdmin(nom) {
-    var mots = annonceMots(nom);
-    if (mots.length < 3) return '';
-    var i, j, alias, attendus, ok;
-    for (i = 0; i < ANNONCE_GROUPES.length; i++) {
-        for (j = 0; j < ANNONCE_GROUPES[i].noms.length; j++) {
-            alias = ANNONCE_GROUPES[i].noms[j];
-            attendus = alias.split(' ');
-            ok = attendus.every(function (mot) { return mots.indexOf(mot) !== -1; });
-            if (ok) return ANNONCE_GROUPES[i].cle;
-        }
-    }
-    return '';
 }
 
 function annonceLabel(cle) {
@@ -63,8 +52,7 @@ function annonceCles() {
 }
 
 function annonceEstAdmin() {
-    return typeof boiteEstAdmin === 'function' && boiteEstAdmin() && !!(typeof boiteSession === 'function' && boiteSession() &&
-        typeof BOITE_ADMINS_SUB !== 'undefined' && BOITE_ADMINS_SUB.indexOf(String(boiteSession().sub || '')) !== -1);
+    return typeof boiteEstAdmin === 'function' && boiteEstAdmin() && !!annonceGroupeDeSession();
 }
 
 function annonceNormaliser(item) {

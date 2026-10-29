@@ -1380,6 +1380,7 @@ function compteChargerFirebase() {
     compteFirebasePromesse = compteChargerScript(base + 'firebase-app-compat.js')
         .then(function () { return compteChargerScript(base + 'firebase-auth-compat.js'); })
         .then(function () { return compteChargerScript(base + 'firebase-firestore-compat.js'); })
+        .then(function () { return compteChargerScript(base + 'firebase-storage-compat.js'); })
         .then(function () {
             if (!window.firebase) throw new Error('firebase');
             if (!firebase.apps.length) firebase.initializeApp(cfg);

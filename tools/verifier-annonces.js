@@ -105,7 +105,7 @@ sandbox.__nom = 'Kenzah Ilboudo';
 ok(!sandbox.annonceEstAdmin(), 'un élève ne peut pas écrire');
 sandbox.__admin = true;
 sandbox.__nom = 'Sere Farid Abdourraham';
-ok(sandbox.annonceCleAdmin(sandbox.__nom) === 'farid', 'les deux orthographes de Farid sont le même compte');
+ok(typeof sandbox.annonceCleAdmin === 'undefined', 'aucune reconnaissance d’admin par nom');
 ok(sandbox.annonceCles().length === 4, 'quatre comptes, pas six alias');
 
 var retire = sandbox.annonceFusionner([

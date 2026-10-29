@@ -31,20 +31,30 @@ function fichiers(dossier, ext) {
 
 const site = fichiers('js', '.js').concat(fichiers('pages', '.html'), ['index.html']);
 
-/* — Aucun identifiant privé dans le site — */
-['sawadogojuliss@gmail.com', 'faridsere86@gmail.com', 'ashleytamini10@gmail.com', 'rayyanouedraogo87@gmail.com'].forEach(function (mail) {
+/* — Dans le site : les quatre adresses admins, et aucun nom admin — */
+const ADMINS = ['sawadogojuliss@gmail.com', 'faridsere86@gmail.com', 'ashleytamini10@gmail.com', 'rayyanouedraogo87@gmail.com'];
+const NOMS = ['Sawadogo Juliss Bill Owen', 'Sere Farid Abdourrahman', 'Sere Farid Abdourraham', 'Tamini Ashley Kania Harisoa', 'Ouedraogo Wendsom Rayyan', 'Ouedraogo Wendsom Ryyan'];
+ADMINS.forEach(function (mail) {
+    ok(lire('js/pages/boite.js').indexOf(mail) !== -1, 'adresse admin absente de la liste admin : ' + mail);
     site.forEach(function (fichier) {
+        if (fichier === path.join('js', 'pages', 'boite.js') || fichier === path.join('js', 'pages', 'annonce.js')) return;
         ok(lire(fichier).indexOf(mail) === -1, 'adresse admin dans ' + fichier);
     });
 });
 site.forEach(function (fichier) {
+    const bas = lire(fichier).toLowerCase();
+    NOMS.forEach(function (nom) {
+        ok(bas.indexOf(nom.toLowerCase()) === -1, 'nom admin écrit dans ' + fichier);
+    });
+});
+const boiteSrc = lire('js/pages/boite.js');
+ok(boiteSrc.indexOf('BOITE_ADMINS_NOM') === -1 && boiteSrc.indexOf('BOITE_ADMINS_SUB') === -1, 'ancienne liste admin par nom ou identifiant encore présente');
+site.forEach(function (fichier) {
     const texte = lire(fichier);
     ok(texte.indexOf('spib-') === -1, 'secret d’envoi dans ' + fichier);
     ok(texte.indexOf('ibx-7c4e9a2b8d1f6c3e5a0b9d4f2e8c1a6b') === -1, 'canal public dans ' + fichier);
-    /* Les vidéos de tutoriel sont publiques par nature : elles seules
-       passent par un hébergeur public, sur un fil distinct de la boîte. */
-    const videos = fichier === path.join('js', 'pages', 'tutoriel.js');
-    if (!videos) ok(texte.indexOf('ntfy.sh') === -1, 'canal public ntfy dans ' + fichier);
+    ok(texte.indexOf('ntfy.sh') === -1, 'canal public ntfy dans ' + fichier);
+    ok(texte.indexOf('ibx-') === -1, 'fil public de vidéos dans ' + fichier);
     ok(texte.indexOf('kvdb.io') === -1, 'coffre kvdb dans ' + fichier);
     ok(texte.indexOf('jsonblob') === -1, 'archive jsonblob dans ' + fichier);
 });
@@ -69,6 +79,12 @@ ok(/match \/boite\/\{message\} \{[\s\S]*?allow update, delete: if false;/.test(r
 ok(/match \/publie\/\{message\} \{[\s\S]*?allow read: if true;/.test(regles), 'les annonces et tutoriels ne sont plus publics');
 ok(/match \/config\/\{doc\} \{[\s\S]*?allow read: if estAdmin\(\);/.test(regles), 'la configuration privée est lisible par tous');
 ok(regles.indexOf('request.auth.token.email_verified == true') !== -1, 'un compte non vérifié peut être admin');
+const stockage = lire('storage.rules');
+ok(stockage.indexOf('match /tutoriels/{fichier}') !== -1 && stockage.indexOf('allow update, delete: if false;') !== -1, 'les vidéos de tutoriel peuvent être écrasées ou effacées');
+ok(ADMINS.every(function (mail) { return stockage.indexOf(mail) !== -1; }), 'storage.rules ne liste pas les quatre admins');
+ok(/allow create: if request\.auth != null[\s\S]*email_verified == true[\s\S]*token\.email in/.test(stockage), 'l’envoi de vidéo ne vérifie pas le compte');
+ok(lire('js/compte.js').indexOf('firebase-storage-compat.js') !== -1, 'le SDK Storage n’est pas chargé');
+ok(lire('js/pages/tutoriel.js').indexOf('firebase.storage().ref(') !== -1, 'les vidéos ne partent pas vers Firebase Storage');
 
 ['questions', 'feedbacks', 'reponses', 'emplois', 'profils', 'connexions'].forEach(function (nom) {
     ok(regles.includes('match /' + nom + '/{message} {'), 'collection absente : ' + nom);

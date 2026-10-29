@@ -217,7 +217,10 @@ assert.strictEqual(boite.indexOf('BOITE_SCRIPT_SECRET'), -1, 'le secret d’envo
 assert.strictEqual(boite.indexOf('spib-'), -1, 'le secret d’envoi est encore dans la page');
 assert.strictEqual(boite.indexOf('kvdb'), -1, 'le coffre public est encore dans la page');
 ['sawadogojuliss@gmail.com', 'faridsere86@gmail.com', 'ashleytamini10@gmail.com', 'rayyanouedraogo87@gmail.com'].forEach(function (mail) {
-    assert.strictEqual(boite.indexOf(mail), -1, 'une adresse admin est encore dans la page : ' + mail);
+    assert.notStrictEqual(boite.indexOf(mail), -1, 'adresse admin absente de la liste admin : ' + mail);
+});
+['Sawadogo Juliss Bill Owen', 'Sere Farid Abdourrahman', 'Tamini Ashley Kania Harisoa', 'Ouedraogo Wendsom Rayyan'].forEach(function (nom) {
+    assert.strictEqual(boite.indexOf(nom), -1, 'un nom admin est encore dans la page : ' + nom);
 });
 assert.strictEqual(compte.indexOf('gmail.send'), -1, 'la connexion Google ne doit pas demander le droit Gmail');
 assert.strictEqual(compte.indexOf('boiteEcrireNtfy'), -1, 'la progression ne doit plus partir sur un fil public');
@@ -244,11 +247,13 @@ assert.ok(!archiveCreation.includes("'question'") && !archiveCreation.includes("
     'un ancien onglet peut encore écrire un message à plat dans boite');
 
 /* — Les identifiants admins, et eux seuls — */
+context.compteSession = { sub: 'sub-google', email: 'SawadogoJuliss@Gmail.com', name: 'Sawadogo Juliss Bill Owen' };
+assert.strictEqual(context.boiteEstAdmin(), true, 'l’adresse admin de Juliss n’est pas reconnue');
+assert.strictEqual(context.boiteNom(), 'Sawadogo Juliss Bill Owen', 'la signature doit venir du compte Google, pas du code');
+context.compteSession = { sub: 'sub-inconnu', email: 'eleve@example.test' };
+assert.strictEqual(context.boiteEstAdmin(), false, 'une session sans adresse admin ne doit pas ouvrir les sections');
 context.compteSession = { sub: '116965022060639990571', email: 'x@y.z' };
-assert.strictEqual(context.boiteEstAdmin(), true, 'le compte de Juliss n’est pas reconnu');
-assert.strictEqual(context.boiteNom(), 'Sawadogo Juliss Bill Owen', 'le compte gardé doit rester le seul nom d’admin');
-context.compteSession = { sub: 'subtest', email: 'sawadogojuliss@gmail.com' };
-assert.strictEqual(context.boiteEstAdmin(), false, 'une adresse seule ne doit plus ouvrir les sections');
+assert.strictEqual(context.boiteEstAdmin(), false, 'un identifiant seul ne doit plus ouvrir les sections');
 context.compteSession = null;
 context.userName = 'Sawadogo Juliss Bill Owen';
 assert.strictEqual(context.boiteEstAdmin(), false, 'le prénom tapé ne doit plus ouvrir les sections');

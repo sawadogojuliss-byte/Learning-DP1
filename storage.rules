@@ -1,0 +1,29 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    /* Vidéos de tutoriel : lecture publique, envoi réservé aux quatre
+       comptes admins personnels (adresse Google vérifiée). Un envoi ne
+       peut ni écraser ni effacer un fichier existant. Les adresses sont
+       les mêmes que BOITE_ADMINS_EMAIL dans js/pages/boite.js. */
+    match /tutoriels/{fichier} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+              'sawadogojuliss@gmail.com',
+              'faridsere86@gmail.com',
+              'ashleytamini10@gmail.com',
+              'rayyanouedraogo87@gmail.com'
+            ]
+        && request.resource.size < 12 * 1024 * 1024
+        && request.resource.contentType.matches('video/.*');
+      allow update, delete: if false;
+    }
+
+    /* Tout le reste est fermé. */
+    match /{tout=**} {
+      allow read, write: if false;
+    }
+  }
+}
