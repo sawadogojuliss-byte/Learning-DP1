@@ -7,12 +7,14 @@ const moteur = fs.readFileSync('js/pages/devoirs-moteur.js', 'utf8');
 const vue = fs.readFileSync('pages/devoirs.html', 'utf8');
 const data = {};
 let renders = 0;
+let plans = 0;
 let values = {};
 const context = vm.createContext({
     console, Date, Promise, setTimeout: () => {},
     window: {}, document: { getElementById: () => null },
     localStorage: { getItem: k => data[k] || null, setItem(k, v) { data[k] = String(v); } },
-    renderPlanning: () => { renders++; }
+    renderPlanning: () => { renders++; },
+    planningDepuisProgression: () => { plans++; }
 });
 vm.runInContext(src, context);
 vm.runInContext(moteur, context);
@@ -35,6 +37,18 @@ assert.equal(x.date, '2027-11-21');
 assert.equal(js(`devoirsNombreSeances(devoirsLireStore().devoirs[0])`), 0);
 assert.equal(js(`devoirsModifier('devoirs',${JSON.stringify(id)},{matiere:'',date:'2027-11-21'})`), 'Indique la matière.');
 assert.equal(JSON.parse(data.studyPlanIB_devoirs).devoirs[0].matiere, 'Mathématiques');
+/* DE-03/DE-06 : chaque enregistrement régénère le planning (point de sortie unique). */
+const plansAvant = plans;
+assert.equal(js(`devoirsModifier('devoirs',${JSON.stringify(id)},{matiere:'Mathématiques',date:'2027-11-21',debut:'12:00',fin:'13:00',seances:0})`), '');
+assert(plans > plansAvant, 'le planning n’est pas régénéré après modification');
+/* Séances « pas encore choisies » : enregistrer ne doit pas les écrire. */
+const sansChoix = js("devoirsAjouter('devoirs',{matiere:'Histoire',date:'2027-12-01'})");
+assert(sansChoix, 'devoir sans séances créé');
+assert.equal(js(`devoirsLireStore().devoirs.find(function (d) { return d.id === ${JSON.stringify(sansChoix)}; }).seances`), undefined);
+assert.equal(js(`devoirsModifier('devoirs',${JSON.stringify(sansChoix)},{matiere:'Histoire',date:'2027-12-02',debut:'',fin:'',seances:''})`), '');
+assert.equal(js(`devoirsLireStore().devoirs.find(function (d) { return d.id === ${JSON.stringify(sansChoix)}; }).seances`), undefined, 'séances écrites à la place de « pas encore choisi »');
+assert.equal(js(`devoirsLireStore().devoirs.find(function (d) { return d.id === ${JSON.stringify(sansChoix)}; }).date`), '2027-12-02');
+assert(src.includes('devoirsApresChangement()') && src.includes('Pas encore choisi'), 'point de sortie unique ou option « pas encore choisi » absent');
 const autre = js("devoirsAjouter('examens',{matiere:'Physique',date:'2027-11-21',debut:'12:30',fin:'13:30'})");
 assert(autre);
 assert.equal(js("devoirsConflits({date:'2027-11-21',debut:'12:45',fin:'13:00'}).length"), 2);

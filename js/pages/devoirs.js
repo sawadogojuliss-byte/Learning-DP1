@@ -1061,15 +1061,24 @@ function devoirsModifier(genre, id, champs) {
     var cible = store[cle].find(function (d) { return d.id === id; });
     if (!cible) return 'Ce créneau n’existe plus.';
     Object.assign(cible, valide);
-    if (cle === 'devoirs' && champs.seances !== undefined) {
+    /* « Pas encore choisi » (vide) : les séances restent à choisir, rien n'est écrit. */
+    if (cle === 'devoirs' && champs.seances !== undefined && champs.seances !== '') {
         cible.seances = champs.seances === 'auto' ? 'auto' : Math.max(0, Math.min(DEVOIRS_MAX_SEANCES, Math.round(Number(champs.seances) || 0)));
     }
     devoirsEcrireStore(store);
     devoirsNettoyerRevisions(id);
     if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
-    devoirsRendre();
-    devoirsActualiserPlanning();
+    devoirsApresChangement();
     return '';
+}
+
+/* Point de sortie unique après un changement (modification, suppression,
+   annulation) : le planning est recalculé, puis la liste et le planning
+   sont redessinés. Évite qu'un bloc de révision ne reste affiché (DE-06). */
+function devoirsApresChangement() {
+    devoirsRendre();
+    devoirsRecalculerPlanning();
+    devoirsActualiserPlanning();
 }
 
 
@@ -1212,9 +1221,7 @@ function devoirsSupprimer(genre, id) {
         return e && (String(e.replacesId || '').indexOf(prefix) === 0 || String(e.id || '').indexOf(prefix) === 0);
     }) : [];
     function actualiser() {
-        devoirsRendre();
-        devoirsRecalculerPlanning();
-        devoirsActualiserPlanning();
+        devoirsApresChangement();
     }
     function supprimer() {
         suppressionAvecAnnulation({
@@ -1268,7 +1275,9 @@ function devoirsEditer(genre, id) {
         '<label for="devoirsEditDate">Date</label><input id="devoirsEditDate" type="date" value="' + devoirsEchap(item.date) + '">' +
         '<div class="devoirs-edit-heures"><div><label for="devoirsEditDebut">Début</label><input id="devoirsEditDebut" type="time" value="' + devoirsEchap(item.debut) + '"></div>' +
         '<div><label for="devoirsEditFin">Fin</label><input id="devoirsEditFin" type="time" value="' + devoirsEchap(item.fin) + '"></div></div>' +
-        (cle === 'devoirs' ? '<label for="devoirsEditNombre">Séances de révision</label><select id="devoirsEditNombre"><option value="auto">Le site propose</option>' +
+        (cle === 'devoirs' ? '<label for="devoirsEditNombre">Séances de révision</label><select id="devoirsEditNombre">' +
+            (item.seances == null ? '<option value="" selected>Pas encore choisi</option>' : '') +
+            '<option value="auto"' + (item.seances === 'auto' ? ' selected' : '') + '>Le site propose</option>' +
             Array.from({length: DEVOIRS_MAX_SEANCES + 1}, function (_, n) { return '<option value="' + n + '"' + (String(item.seances) === String(n) ? ' selected' : '') + '>' + n + (n ? ' séance' + (n > 1 ? 's' : '') : ' — aucune séance') + '</option>'; }).join('') +
             '</select>' : '') +
         '<p id="devoirsEditErreur" role="alert" aria-live="polite"></p>' +
