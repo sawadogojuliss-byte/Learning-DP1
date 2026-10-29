@@ -22,7 +22,15 @@ const document = {
 const localStorage = {
     getItem(k) { return values[k] || null; }, setItem(k, v) { values[k] = v; }, removeItem(k) { delete values[k]; }
 };
-const context = vm.createContext({ console, Date, localStorage, document, window: {},
+/* Horloge figée : le test ne doit pas changer de résultat selon l'heure
+   où la CI le lance (un créneau de 06 h encore libre changeait le choix). */
+const RealDate = Date;
+const MAINTENANT = new RealDate(2026, 9, 28, 20, 0, 0).getTime();
+class FixedDate extends RealDate {
+    constructor(...args) { if (args.length === 0) super(MAINTENANT); else super(...args); }
+    static now() { return MAINTENANT; }
+}
+const context = vm.createContext({ console, Date: FixedDate, localStorage, document, window: {},
     subjects: [{ name: 'Physique', icon: '📚' }], optionalSubjects: [], ibYear: 'DP2',
     devoirsFaitBac: () => false, iconeHtml: () => '📚',
     timeToMinutes: t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3)),
@@ -38,7 +46,7 @@ const context = vm.createContext({ console, Date, localStorage, document, window
 vm.runInContext('let customEvents = []; let selectedDay = 0; let planningDecalageSemaine = 0;', context);
 vm.runInContext(code, context);
 const call = script => vm.runInContext(script, context);
-const today = new Date();
+const today = new FixedDate();
 const local = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 const tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 12);
 const after = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 4, 12);
