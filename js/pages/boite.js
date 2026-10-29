@@ -1375,7 +1375,8 @@ function boiteCarteQuestion(item, reponses) {
         if (!String(rep.texte || '').trim()) return;
         var ok = boiteMailConfirme(rep) || cochee;
         html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
-            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (ok ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + (rep.nom ? ' · ' + boiteEchap(rep.nom) : '') + '</p>'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (ok ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + (rep.nom ? '<p style="display:inline-block;margin-top:0.35rem;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;border-radius:999px;padding:0.15rem 0.6rem;font-size:0.74rem;font-weight:700;">Envoyé par ' + boiteEchap(rep.nom) + '</p>' : '')
             + (rep.salutation ? '<p style="font-size:0.92rem;font-weight:800;color:#111827;white-space:nowrap;margin-top:0.25rem;">' + boiteEchap(rep.salutation) + '</p>' : '')
             + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
             + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (ok ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Study Plan IB' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
