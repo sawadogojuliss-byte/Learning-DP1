@@ -967,6 +967,13 @@ function devoirsValider(champs, genre) {
 
 /* Le planning est construit à la demande : le rafraîchir ne doit pas
    faire quitter la page Devoirs ni ouvrir une autre fenêtre. */
+/* Recalcule les révisions après une suppression (DE-06), sans ouvrir la
+   fenêtre du planning. Appelé aussi après l'annulation. */
+function devoirsRecalculerPlanning() {
+    if (typeof planningDepuisProgression !== 'function') return;
+    try { planningDepuisProgression(); } catch (e) { console.error('Recalcul du planning', e); }
+}
+
 function devoirsActualiserPlanning() {
     if (typeof renderPlanning === 'function' && document.getElementById('eventsContainer')) {
         try { renderPlanning(); } catch (e) { console.error('Planning des devoirs', e); }
@@ -1199,6 +1206,7 @@ function devoirsSupprimer(genre, id) {
     }) : [];
     function actualiser() {
         devoirsRendre();
+        devoirsRecalculerPlanning();
         devoirsActualiserPlanning();
     }
     function supprimer() {

@@ -17,6 +17,12 @@ assert(!fs.existsSync('js/pages/pomodoro.js'));
 for (const fichier of ['js/memoire.js', 'js/pages/planning-interface.js', 'js/pages/exercices.js', 'js/pages/devoirs.js', 'js/pages/emploi-temps.js']) {
     assert(!/\bconfirm\s*\(/.test(fs.readFileSync(fichier, 'utf8')), fichier + ' a encore une confirmation native');
 }
+/* Lot 4 (DE-06) : supprimer ou annuler un devoir ou un exercice recalcule
+   les révisions, sans ouvrir la fenêtre du planning. */
+const devoirsSrc = fs.readFileSync('js/pages/devoirs.js', 'utf8');
+const exercicesSrc = fs.readFileSync('js/pages/exercices.js', 'utf8');
+assert(devoirsSrc.includes('function devoirsRecalculerPlanning()') && devoirsSrc.includes('devoirsRecalculerPlanning();\n        devoirsActualiserPlanning();'), 'devoirs : suppression sans recalcul du planning');
+assert(/function deleteExo[\s\S]*?function actualiser\(\) \{[\s\S]*?planningDepuisProgression\(\)/.test(exercicesSrc), 'exercices : suppression sans recalcul du planning');
 const timers = [];
 const nodes = [];
 const document = {

@@ -349,6 +349,8 @@ function deleteExo(id) {
     const lies = typeof customEvents !== 'undefined' ? customEvents.filter(e => e && e.exoId === id) : [];
     function actualiser() {
         exoMajBadge();
+        /* Recalcule les révisions liées (DE-06), sans ouvrir la fenêtre du planning. */
+        if (typeof planningDepuisProgression === 'function') { try { planningDepuisProgression(); } catch (e) { console.error('Recalcul du planning', e); } }
         renderExoList();
         renderPlanifier();
         if (typeof renderPlanning === 'function' && document.getElementById('eventsContainer')) renderPlanning();
