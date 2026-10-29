@@ -1128,6 +1128,7 @@ function devoirsDemanderSeances(ids) {
     var plusieurs = restants.length > 1;
     var ancien = document.getElementById('seancesQuestionModal');
     if (ancien) ancien.remove();
+    var retourQuestion = document.activeElement;
     var voile = document.createElement('div');
     voile.id = 'seancesQuestionModal';
     voile.setAttribute('role', 'dialog');
@@ -1166,8 +1167,9 @@ function devoirsDemanderSeances(ids) {
     });
     voile.querySelector('#seancesQuestionAuto').onclick = function () { choisir('auto'); };
     voile.querySelector('#seancesQuestionAucune').onclick = function () { choisir(0); };
-    voile.querySelector('#seancesQuestionAnnuler').onclick = function () { voile.remove(); devoirsActualiserPlanning(); };
-    devoirsModalClavier(voile, function () { voile.remove(); devoirsActualiserPlanning(); });
+    function annulerQuestion() { voile.remove(); devoirsActualiserPlanning(); devoirsRendreFocus(retourQuestion); }
+    voile.querySelector('#seancesQuestionAnnuler').onclick = annulerQuestion;
+    devoirsModalClavier(voile, annulerQuestion);
     voile.querySelector('#seancesQuestionAnnuler').focus();
 }
 
@@ -1306,6 +1308,11 @@ function devoirsEditer(genre, id) {
     voile.querySelector('#devoirsEditMatiere').focus();
 }
 
+/* Rend le focus à l'élément qui a ouvert une fenêtre (DE-13). */
+function devoirsRendreFocus(el) {
+    if (el && typeof el.focus === 'function') { try { el.focus(); } catch (e) {} }
+}
+
 function devoirsModalClavier(voile, fermer) {
     voile.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') { e.preventDefault(); fermer(); return; }
@@ -1326,6 +1333,7 @@ function devoirsEditerSeances(id) {
     if (!d) return;
     var ancien = document.getElementById('seancesEditModal');
     if (ancien) ancien.remove();
+    var retourSeances = document.activeElement;
     var voile = document.createElement('div');
     voile.id = 'seancesEditModal';
     voile.setAttribute('role', 'dialog');
@@ -1340,9 +1348,9 @@ function devoirsEditerSeances(id) {
     if (!d.debut || !d.fin) {
         champsHeures =
             '<div style="display:flex;gap:0.5rem;align-items:center;margin:0 0 0.8rem;">' +
-            '<input id="seancesEditDebut" type="time" value="' + devoirsEchap(d.debut) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
+            '<input id="seancesEditDebut" type="time" aria-label="Heure de début" value="' + devoirsEchap(d.debut) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
             '<span style="color:#56665e;">→</span>' +
-            '<input id="seancesEditFin" type="time" value="' + devoirsEchap(d.fin) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
+            '<input id="seancesEditFin" type="time" aria-label="Heure de fin" value="' + devoirsEchap(d.fin) + '" style="flex:1;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.5rem;font:inherit;font-size:0.85rem;">' +
             '</div>';
     }
     var autoActif = d.seances === 'auto';
@@ -1382,7 +1390,7 @@ function devoirsEditerSeances(id) {
         b.onclick = function () { choisir(Number(b.getAttribute('data-n'))); };
     });
     voile.querySelector('#seancesEditAuto').onclick = function () { choisir('auto'); };
-    devoirsModalClavier(voile, function () { voile.remove(); });
+    devoirsModalClavier(voile, function () { voile.remove(); devoirsRendreFocus(retourSeances); });
     voile.querySelector('[data-n]').focus();
 }
 
@@ -1430,8 +1438,11 @@ function devoirsRendre() {
                     ? devoirsSeancesPrevues(x)
                     : (Number(x.seances) >= 1 ? Math.round(Number(x.seances)) : 0);
                 var autoSeances = x.seances === 'auto';
+                /* « pas encore choisi », « zéro » et un nombre se distinguent (DE-11) */
                 var ligneSeances = (genre === 'devoirs')
-                    ? '<p style="margin:0;font-size:0.72rem;color:' + (autoSeances ? '#b45309' : '#047857') + ';">' + nbSeances + ' séance' + (nbSeances > 1 ? 's' : '') + ' de révision' + (autoSeances ? ' · choisie' + (nbSeances > 1 ? 's' : '') + ' par le site' : '') + '</p>'
+                    ? (x.seances == null ? '<p style="margin:0;font-size:0.72rem;color:#92400e;">Séances à choisir</p>'
+                        : (x.seances === 0 ? '<p style="margin:0;font-size:0.72rem;color:#6b7280;">Sans révisions</p>'
+                        : '<p style="margin:0;font-size:0.72rem;color:' + (autoSeances ? '#b45309' : '#047857') + ';">' + nbSeances + ' séance' + (nbSeances > 1 ? 's' : '') + ' de révision' + (autoSeances ? ' · choisie' + (nbSeances > 1 ? 's' : '') + ' par le site' : '') + '</p>'))
                     : '';
                 var boutonSeances = genre === 'devoirs'
                     ? '<button type="button" onclick="devoirsEditerSeances(\'' + x.id + '\')" title="Séances de révision' + (autoSeances ? ' (par le site)' : '') + '" style="border:none;background:none;cursor:pointer;font-size:0.8rem;font-weight:800;color:' + (autoSeances ? '#b45309' : (nbSeances ? '#059669' : '#9ca3af')) + ';white-space:nowrap;">' + (autoSeances ? (nbSeances ? '✨ ' + nbSeances : '✨') : (nbSeances ? '📚 ' + nbSeances : '📚 +')) + '</button>'

@@ -581,8 +581,10 @@ function devoirsAdapterJour(events, dayIndex, dateApercue) {
             posesDoc.push({ debut: d.debut, fin: d.fin });
         });
         var sansHeures = devoirsJour.filter(function (d) { return !d.debut || !d.fin; });
+        var places = {};
         if (sansHeures.length && creneaux.length) {
             devoirsDecouperCreneau(creneaux, posesDoc, sansHeures).forEach(function (part) {
+                places[part.d.id] = true;
                 jour = devoirsPoserBloc(jour, {
                     id: 'devoir-' + part.d.id,
                     titre: 'Devoir · ' + part.d.matiere,
@@ -594,19 +596,19 @@ function devoirsAdapterJour(events, dayIndex, dateApercue) {
                 });
             });
         }
-        /* Sans créneau scolaire de composition, réserver un moment réellement
-           libre plutôt que de masquer le devoir ou de recouvrir un cours. */
-        if (sansHeures.length && !creneaux.length) {
-            sansHeures.forEach(function (d) {
-                var debut = devoirsTrouverHeureLibre(jour);
-                if (debut == null) return;
-                jour = devoirsPoserBloc(jour, {
-                    id: 'devoir-' + d.id, titre: 'Devoir · ' + d.matiere,
-                    sous: 'Heure à confirmer', debut: devoirsM2H(debut),
-                    fin: devoirsM2H(debut + 45), icone: '📝', type: 'school'
-                });
+        /* Ce que le créneau de composition n'accueille pas (absent, ou trop
+           court pour les devoirs qui s'y partagent) prend un moment réellement
+           libre, marqué « heure à confirmer » : un devoir sans heure reste
+           visible, sans recouvrir un cours. */
+        sansHeures.filter(function (d) { return !places[d.id]; }).forEach(function (d) {
+            var debut = devoirsTrouverHeureLibre(jour);
+            if (debut == null) return;
+            jour = devoirsPoserBloc(jour, {
+                id: 'devoir-' + d.id, titre: 'Devoir · ' + d.matiere,
+                sous: 'Heure à confirmer', debut: devoirsM2H(debut),
+                fin: devoirsM2H(debut + 45), icone: '📝', type: 'school'
             });
-        }
+        });
 
     }
 
