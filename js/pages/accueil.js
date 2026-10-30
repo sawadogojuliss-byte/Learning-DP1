@@ -5,7 +5,7 @@
    ============================================================ */
 
 let stressLevel = 30;
-let productivityLevel = 20;
+let productivityLevel = 90;
 let currentSlide = 0;
 let hasAnimated = false;
 const totalSlides = 4;
@@ -32,6 +32,7 @@ function checkScroll() {
 }
 
 function animateMeters() {
+    /* La productivité reste fixe à 90 % : pas d'animation. */
     let stressProgress = 30;
     const stressInterval = setInterval(() => {
         stressProgress += 2;
@@ -47,20 +48,6 @@ function animateMeters() {
         }
     }, 50);
 
-    let prodProgress = 20;
-    const prodInterval = setInterval(() => {
-        prodProgress += 2;
-        if (prodProgress >= 75) {
-            clearInterval(prodInterval);
-            productivityLevel = 75;
-            document.getElementById('prodValue').textContent = '75%';
-            document.getElementById('prodFill').style.width = '75%';
-        } else {
-            productivityLevel = prodProgress;
-            document.getElementById('prodValue').textContent = prodProgress + '%';
-            document.getElementById('prodFill').style.width = prodProgress + '%';
-        }
-    }, 50);
 }
 
 window.addEventListener('scroll', checkScroll);
