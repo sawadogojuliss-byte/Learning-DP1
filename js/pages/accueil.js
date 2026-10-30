@@ -4,19 +4,10 @@
    Vue : pages/accueil.html
    ============================================================ */
 
-let stressLevel = 30;
-let productivityLevel = 90;
+let productivityLevel = 20;
 let currentSlide = 0;
 let hasAnimated = false;
 const totalSlides = 4;
-
-function increaseStress() {
-    if (stressLevel < 90) {
-        stressLevel = Math.min(stressLevel + 15, 90);
-        document.getElementById('stressValue').textContent = stressLevel + '%';
-        document.getElementById('stressFill').style.width = stressLevel + '%';
-    }
-}
 
 function checkScroll() {
     if (hasAnimated) return;
@@ -32,22 +23,22 @@ function checkScroll() {
 }
 
 function animateMeters() {
-    /* La productivité reste fixe à 90 % : pas d'animation. */
-    let stressProgress = 30;
-    const stressInterval = setInterval(() => {
-        stressProgress += 2;
-        if (stressProgress >= 75) {
-            clearInterval(stressInterval);
-            stressLevel = 75;
-            document.getElementById('stressValue').textContent = '75%';
-            document.getElementById('stressFill').style.width = '75%';
+    /* Seule la jauge Après bouge : elle monte de 20 % à 90 %.
+       La jauge Avant reste fixe à 75 %. */
+    let prodProgress = 20;
+    const prodInterval = setInterval(() => {
+        prodProgress += 2;
+        if (prodProgress >= 90) {
+            clearInterval(prodInterval);
+            productivityLevel = 90;
+            document.getElementById('prodValue').textContent = '90%';
+            document.getElementById('prodFill').style.width = '90%';
         } else {
-            stressLevel = stressProgress;
-            document.getElementById('stressValue').textContent = stressProgress + '%';
-            document.getElementById('stressFill').style.width = stressProgress + '%';
+            productivityLevel = prodProgress;
+            document.getElementById('prodValue').textContent = prodProgress + '%';
+            document.getElementById('prodFill').style.width = prodProgress + '%';
         }
     }, 50);
-
 }
 
 window.addEventListener('scroll', checkScroll);
