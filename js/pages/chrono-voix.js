@@ -404,8 +404,8 @@ function chronoVoixSynthese(phrase) {
 function chronoPhrasePause(minutes) {
     var n = Math.round(Number(minutes)) || 1;
     var mots = chronoNombreEnMots(n);
-    if (!mots) return 'Votre séance de révision est terminée. Vous avez droit maintenant à une pause.';
-    return 'Votre séance de révision est terminée. Vous avez droit maintenant à '
+    if (!mots) return 'Ta séance de révision est terminée. Tu as droit maintenant à une pause.';
+    return 'Ta séance de révision est terminée. Tu as droit maintenant à '
         + mots + (n > 1 ? ' minutes' : ' minute') + ' de pause.';
 }
 

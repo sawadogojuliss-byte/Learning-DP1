@@ -363,7 +363,7 @@ function annonceOuvrirAlerte(id) {
     el.className = 'annonce-validation-fond';
     el.innerHTML = '<section class="annonce-validation" role="dialog" aria-modal="true" aria-labelledby="annonceValidationTitre" tabindex="-1">' +
         '<p class="annonce-validation-surtitre">📣 ANNONCE · VALIDATION</p>' +
-        '<h3 id="annonceValidationTitre">Une annonce attend votre validation</h3>' +
+        '<h3 id="annonceValidationTitre">Une annonce attend ta validation</h3>' +
         '<p class="annonce-validation-auteur">De ' + echap(item.nom || annonceLabel(item.auteurCle)) +
         (item.programme ? ' · envoi prévu ' + echap(annonceDateLisible(item.programme)) : '') + '</p>' +
         '<div class="annonce-validation-lecture"><strong>' + echap(item.titre) + '</strong><p>' + echap(item.texte) + '</p></div>' +

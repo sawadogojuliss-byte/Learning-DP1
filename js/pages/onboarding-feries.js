@@ -195,7 +195,7 @@ function renderHolidays() {
     const choices = [
         ['keep', '📅', 'Garder mon emploi du temps', 'Cours, révisions et activités restent comme prévus.'],
         ['light', '🌿', 'Diminuer les activités', 'Tu vois les activités prévues ce jour. Décoche celles que tu ne veux pas.'],
-        ['free', '🎮', 'Temps libre toute la journée', 'Rien ne sera prévu dans votre emploi du temps.']
+        ['free', '🎮', 'Temps libre toute la journée', 'Rien ne sera prévu dans ton emploi du temps.']
     ];
     if (box) {
         box.innerHTML = (missing ? '<p style="text-align:center;color:#6b7280;font-size:0.85rem;margin-bottom:0.8rem;">Choisis une option pour chaque jour férié.</p>' : '') + feries.map(function (cle) {

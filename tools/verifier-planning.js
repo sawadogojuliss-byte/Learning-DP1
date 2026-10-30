@@ -160,7 +160,7 @@ var accueil = lire('pages/accueil.html');
 ok(accueil.indexOf('Créer mon planning gratuitement') === -1, 'le bouton du haut ne dit plus « gratuitement »');
 ok(accueil.indexOf('>🚀 Créer mon planning</button>') !== -1, 'le bouton du haut doit rester « Créer mon planning »');
 ok(accueil.indexOf("Rejoignez des milliers d'étudiants") === -1, 'la phrase « Rejoignez des milliers… » doit disparaître');
-ok(accueil.indexOf('Prêt à transformer vos révisions ?') !== -1, 'la question du bas doit rester');
+ok(accueil.indexOf('Prêt à transformer tes révisions ?') !== -1, 'la question du bas doit rester');
 ok(accueil.indexOf("Commencer maintenant — C'est gratuit !") !== -1, 'le bouton du bas doit rester');
 ok(lire('pages/onboarding-prenom.html').indexOf('Commençons par faire connaissance') === -1,
     'la page du prénom ne garde que la question');

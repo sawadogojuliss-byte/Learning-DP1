@@ -113,7 +113,7 @@ const moodData = {
             'Si l\'anxiété dure, parle-en à quelqu\'un de confiance autour de toi'
         ],
         quotes: [
-            { text: 'L\'action est le remède à l\'anxiété. Commencez n\'importe où.', author: '— Anonyme' },
+            { text: 'L\'action est le remède à l\'anxiété. Commence n\'importe où.', author: '— Anonyme' },
             { text: 'Tu ne peux pas contrôler les vagues, mais tu peux apprendre à surfer.', author: '— Jon Kabat-Zinn' }
         ]
     },
@@ -146,7 +146,7 @@ const moodData = {
         ],
         quotes: [
             { text: 'La façon de manger un éléphant ? Une bouchée à la fois.', author: '— Desmond Tutu' },
-            { text: 'Vous n\'avez pas à tout voir depuis le bas de l\'escalier. Faites juste le premier pas.', author: '— Martin Luther King' }
+            { text: 'Tu n\'as pas à tout voir depuis le bas de l\'escalier. Fais juste le premier pas.', author: '— Martin Luther King' }
         ]
     },
     fier: {
