@@ -671,6 +671,25 @@ function memoireHistoriqueSemer(etape) {
     }
 }
 
+/* L'écran affiché est noté dès qu'il change, sans attendre la sauvegarde
+   périodique : un rechargement juste après un « Retour » ou un « Continuer »
+   doit rouvrir l'écran affiché, et non l'écran d'avant. */
+function memoireNoterEtape(etape) {
+    if (!memoirePret || !etape) return;
+    try {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (!data || typeof data !== 'object') {
+            if (etape === 'accueil') return;
+            data = { v: 1, etape: etape };
+        } else if (data.etape === etape) {
+            return;
+        } else {
+            data.etape = etape;
+        }
+        localStorage.setItem(MEMOIRE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
 function memoireHistoriqueActiver() {
     memoireNavSilence = true;
     try { memoireHistoriqueSemer(memoireEtapeActive()); } catch (e) { memoirePoserHash(memoireEtapeActive()); }
@@ -700,7 +719,9 @@ function memoireHistoriqueActiver() {
             attente = setTimeout(function () {
                 attente = null;
                 if (!memoireNavPret || memoireNavSilence) return;
-                memoirePoserHash(memoireEtapeActive());
+                var etapeAffichee = memoireEtapeActive();
+                memoirePoserHash(etapeAffichee);
+                memoireNoterEtape(etapeAffichee);
             }, 30);
         });
         obs.observe(racine, { subtree: true, attributes: true, attributeFilter: ['class'] });
