@@ -57,10 +57,12 @@ document.getElementById('nameInput').addEventListener('keypress', function(e) {
 
 
 /* ------------------------------------------------------------
-   Bandeau d'étapes : « Étape N sur 10 » en haut de chaque écran
-   de l'inscription. Il suit l'écran réellement affiché. Le moto et
-   la voiture comptent dans l'étape Transport. Le raccourci qui
-   mène directement au planning n'affiche pas de bandeau.
+   Indicateur des 10 étapes en haut de chaque écran de l'inscription.
+   Il reprend le style des points existants : étapes faites en ✓,
+   étape en cours en gras, étapes à venir en gris. Il suit l'écran
+   réellement affiché. Le moto et la voiture comptent dans l'étape
+   Transport. Le raccourci qui mène directement au planning n'affiche
+   pas d'indicateur.
    ------------------------------------------------------------ */
 var ONBOARDING_ETAPES = [
     { ecrans: ['contextModal'], nom: 'Prénom' },
@@ -75,6 +77,24 @@ var ONBOARDING_ETAPES = [
     { ecrans: ['freeTimeModal'], nom: 'Temps libre' }
 ];
 
+function onboardingIndicateurHTML(index) {
+    var total = ONBOARDING_ETAPES.length;
+    var html = '';
+    var k;
+    for (k = 0; k < total; k++) {
+        var faite = k < index;
+        var active = k === index;
+        var classeEtape = (faite || active) ? 'progress-step progress-step-active' : 'progress-step progress-step-inactive';
+        html += '<div class="' + classeEtape + '" style="width:1.75rem;height:1.75rem;min-width:1rem;flex:0 1 1.75rem;aspect-ratio:1 / 1;font-size:0.72rem;">'
+            + (faite ? '✓' : String(k + 1)) + '</div>';
+        if (k < total - 1) {
+            html += '<div class="progress-line ' + (k < index ? 'progress-line-active' : 'progress-line-inactive')
+                + '" style="flex:1 1 0;max-width:1.5rem;min-width:0.25rem;"></div>';
+        }
+    }
+    return html;
+}
+
 function onboardingRafraichirBandeau() {
     var total = ONBOARDING_ETAPES.length;
     var index = -1;
@@ -86,29 +106,30 @@ function onboardingRafraichirBandeau() {
             if (!cible && el && el.classList.contains('active')) { cible = el; index = i; }
         });
     });
-    var bandeau = document.getElementById('onboardingBandeau');
-    if (!cible) {
-        if (bandeau && bandeau.parentNode) bandeau.parentNode.removeChild(bandeau);
-        return;
+    /* L'ancien bandeau écrit n'existe plus : on le retire s'il reste. */
+    var ancien = document.getElementById('onboardingBandeau');
+    if (ancien && ancien.parentNode) ancien.parentNode.removeChild(ancien);
+    if (!cible) return;
+    var indicateur = cible.querySelector('.progress-indicator');
+    if (!indicateur) {
+        indicateur = document.createElement('div');
+        indicateur.className = 'progress-indicator';
+        var parent = cible.querySelector('.context-card') || cible.querySelector('.context-center') || cible;
+        parent.insertBefore(indicateur, parent.firstChild);
     }
-    if (!bandeau) {
-        bandeau = document.createElement('div');
-        bandeau.id = 'onboardingBandeau';
-        bandeau.setAttribute('aria-label', 'Progression de l\'inscription');
-    }
-    var segments = '';
-    for (var k = 0; k < total; k++) {
-        var couleur = k <= index ? '#059669' : '#d1fae5';
-        segments += '<span style="flex:1;height:6px;border-radius:999px;background:' + couleur + ';"></span>';
-    }
-    bandeau.innerHTML =
-        '<p style="margin:0 0 0.4rem;font-size:0.78rem;font-weight:800;color:#047857;letter-spacing:0.04em;text-transform:uppercase;">'
-        + 'Étape ' + (index + 1) + ' sur ' + total + ' · ' + ONBOARDING_ETAPES[index].nom + '</p>'
-        + '<div style="display:flex;gap:4px;margin:0 auto 1rem;max-width:22rem;">' + segments + '</div>';
-    var parent = cible.querySelector('.context-center') || cible;
-    if (bandeau.parentNode !== parent || parent.firstChild !== bandeau) {
-        parent.insertBefore(bandeau, parent.firstChild);
-    }
+    /* Ne reconstruire que si l'étape change : la reconstruction modifie des
+       classes, et l'observateur ne doit pas relancer le même travail. */
+    if (indicateur.getAttribute('data-etape') === String(index)) return;
+    indicateur.setAttribute('data-etape', String(index));
+    indicateur.setAttribute('role', 'group');
+    indicateur.setAttribute('aria-label', 'Étape ' + (index + 1) + ' sur ' + total + ' : ' + ONBOARDING_ETAPES[index].nom);
+    /* Les points sont élastiques et les traits font l'espacement : pas d'écart
+       supplémentaire, sinon les dix étapes débordent sur un téléphone. */
+    indicateur.style.gap = '0';
+    indicateur.style.width = '100%';
+    indicateur.style.boxSizing = 'border-box';
+    indicateur.style.padding = '0 0.25rem';
+    indicateur.innerHTML = onboardingIndicateurHTML(index);
 }
 
 if (typeof MutationObserver === 'function' && document.body) {

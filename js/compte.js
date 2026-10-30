@@ -394,10 +394,12 @@ function comptePageOuverte() {
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
     var ouverte = comptePageOuverte();
+    var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var accueilLocal = !ouverte && !!locale && locale.etape === 'accueil';
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
-    var etape = ouverte || (data.profilComplet ? 'planning' : (data.etape || 'accueil'));
+    var etape = ouverte || (accueilLocal ? 'accueil' : (data.profilComplet ? 'planning' : (data.etape || 'accueil')));
     if (ouverte === 'pomodoro') etape = 'pomodoro';
     if (typeof memoireAller === 'function' && ouverte !== 'pomodoro') memoireAller(etape);
     if (data.profilComplet && typeof renderPlanning === 'function') {

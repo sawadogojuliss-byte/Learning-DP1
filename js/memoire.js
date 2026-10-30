@@ -870,7 +870,6 @@ function memoireDemarrer() {
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;
         } else {
-            if (data.profilComplet && etape === 'accueil') etape = 'planning';
             try { memoireAller(etape); } catch (e) { console.error(e); }
         }
     }
