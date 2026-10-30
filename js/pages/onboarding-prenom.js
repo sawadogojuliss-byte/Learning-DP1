@@ -75,50 +75,14 @@ var ONBOARDING_ETAPES = [
     { ecrans: ['freeTimeModal'], nom: 'Temps libre' }
 ];
 
-/* Étapes qu'on peut passer : l'élève garde les valeurs par défaut.
-   Le prénom, la classe, l'objectif et les matières ne sont pas passables. */
-var ONBOARDING_PASSABLES = {
-    sleepModal: function () { memoireAller('habitudes'); },
-    habitsModal: function () { memoireAller('transport'); },
-    transportModal: function () { memoireAller('activites'); },
-    activitiesModal: function () { memoireAller('ecran'); },
-    screenTimeModal: function () { memoireAller('libre'); },
-    freeTimeModal: function () { showEmploiPage(); }
-};
-
+/* Le curseur se place dans le champ du prénom, sur la première page
+   seulement. Il ne bouge que quand l'écran change. */
 var onboardingEcranCourant = '';
 
-function onboardingAjouterPasser(cible) {
-    var fn = ONBOARDING_PASSABLES[cible.id];
-    var existant = cible.querySelector('.onboarding-passer');
-    if (!fn || existant) return;
-    var boutons = cible.querySelector('.context-buttons');
-    if (!boutons) return;
-    var bouton = document.createElement('button');
-    bouton.type = 'button';
-    bouton.className = 'btn-back onboarding-passer';
-    bouton.textContent = 'Passer cette étape →';
-    bouton.addEventListener('click', function () { fn(); });
-    boutons.appendChild(bouton);
-}
-
-/* Le curseur se place sur le premier champ de texte de l'écran ; à défaut,
-   sur le premier choix. Il ne bouge que quand l'écran change, pour ne pas
-   voler le curseur à quelqu'un qui écrit. */
 function onboardingPoserCurseur(cible) {
-    var visible = function (el) { return el.offsetParent !== null && !el.disabled; };
-    var champs = cible.querySelectorAll('input[type="text"], input:not([type]), input[type="number"]');
-    var i;
-    for (i = 0; i < champs.length; i++) {
-        if (visible(champs[i])) { champs[i].focus({ preventScroll: true }); return; }
-    }
-    var boutons = cible.querySelectorAll('button');
-    for (i = 0; i < boutons.length; i++) {
-        var b = boutons[i];
-        if (!visible(b) || b.classList.contains('btn-back') || b.classList.contains('btn-continue') || b.classList.contains('onboarding-passer')) continue;
-        b.focus({ preventScroll: true });
-        return;
-    }
+    if (cible.id !== 'contextModal') return;
+    var champ = cible.querySelector('input[type="text"], input:not([type])');
+    if (champ && champ.offsetParent !== null) champ.focus({ preventScroll: true });
 }
 
 function onboardingIndicateurHTML(index) {
@@ -153,8 +117,13 @@ function onboardingRafraichirBandeau() {
     /* L'ancien bandeau écrit n'existe plus : on le retire s'il reste. */
     var ancien = document.getElementById('onboardingBandeau');
     if (ancien && ancien.parentNode) ancien.parentNode.removeChild(ancien);
+    /* Pendant l'inscription, la page elle-même ne défile pas : seule la
+       fenêtre d'inscription défile, pour n'avoir qu'une barre à droite. */
+    var dansInscription = !!cible;
+    if (document.body.classList.contains('inscription-ouverte') !== dansInscription) {
+        document.body.classList.toggle('inscription-ouverte', dansInscription);
+    }
     if (!cible) { onboardingEcranCourant = ''; return; }
-    onboardingAjouterPasser(cible);
     if (cible.id !== onboardingEcranCourant) {
         onboardingEcranCourant = cible.id;
         onboardingPoserCurseur(cible);

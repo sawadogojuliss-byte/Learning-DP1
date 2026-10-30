@@ -899,6 +899,11 @@
             display: block;
         }
 
+        /* Pendant l'inscription, une seule barre de défilement : celle de la fenêtre. */
+        body.inscription-ouverte {
+            overflow: hidden;
+        }
+
         .context-shape {
             position: absolute;
             border-radius: 50%;
