@@ -817,9 +817,14 @@ function boiteEmploiRetire(item) {
     if (!item) return true;
     var appareil = String(item.appareil || '');
     var id = String(item.id || '').replace(/^e_/, '');
-    /* Les fiches de test ont été supprimées : on ne retire plus aucune
-       fiche d'après son nom. Une fiche sans adresse reste affichée. */
-    return !!(BOITE_EMPLOIS_RETIRES[appareil] || BOITE_EMPLOIS_RETIRES[id]);
+    if (BOITE_EMPLOIS_RETIRES[appareil] || BOITE_EMPLOIS_RETIRES[id]) return true;
+    var nom = boiteNormaliser(item.nom || '');
+    /* Retrait demandé dans la vue du site uniquement : les fiches « julia »,
+       « u » et « E2E Preparation » en DP2 ne sont plus affichées. Le nom ET
+       la classe doivent correspondre pour E2E ; les documents Firestore ne
+       sont pas supprimés par ce filtre. */
+    var ficheE2 = nom === 'e2e preparation' && boiteNormaliser(item.classe || '') === 'dp2';
+    return nom === 'julia' || nom === 'u' || ficheE2;
 }
 
 function boiteCleEmploi(item) {
@@ -940,7 +945,7 @@ function boiteNomInterdit(nom) {
 function boiteNomUtile(item) {
     var nom = String(item && item.nom || '').trim();
     var n = boiteNormaliser(nom);
-    if (!n || n === 'sans nom' || boiteNomInterdit(nom)) return '';
+    if (!n || n === 'u' || n === 'julia' || n === 'sans nom' || boiteNomInterdit(nom)) return '';
     return nom;
 }
 

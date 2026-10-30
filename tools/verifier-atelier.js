@@ -32,10 +32,11 @@ const fiche = (appareil,at,jours) => ({ type:'emploi',id:'e_'+appareil,at,nom:'C
 const a1 = fiche('a','2026-10-23T09:00:00.000Z',[{j:'Lundi',s:[{d:'08:00',f:'09:00',t:'Ancien cours'}]}]);
 const a2 = fiche('a','2026-10-24T09:00:00.000Z',week('Math <script>intrus</script>'));
 const b = fiche('b','2026-10-24T08:00:00.000Z',week('Histoire distincte'));
-const fusion = context.boiteFusionner([a1,a2,b,{
+const e2 = { ...fiche('e2','2026-10-24T08:00:00.000Z',week('Test')),nom:'E2E Preparation' };
+const fusion = context.boiteFusionner([a1,a2,b,e2,{
     type:'question',id:'q-contact',at:'2026-10-24T07:00:00.000Z',nom:'Nora',texte:'Question'
 }]);
-assert.equal(fusion.emplois.length,2,'deux homonymes distincts');
+assert.equal(fusion.emplois.length,2,'deux homonymes distincts / E2E masqué');
 assert.equal(fusion.emploisVersions.length,3,'versions confirmées conservées');
 context.boiteRendreEmplois(fusion);
 assert.equal(el('emploisTotal').textContent,'3','comptage des contacts');
@@ -43,6 +44,7 @@ assert.equal(el('emploisRecus').textContent,'2','comptage des plannings reçus')
 assert.equal(el('emploisSans').textContent,'1','contacts sans emploi');
 assert.match(el('emploisListe').innerHTML,/Camille/);
 assert.match(el('emploisListe').innerHTML,/Nora/);
+assert.doesNotMatch(el('emploisListe').innerHTML,/E2E Preparation/);
 assert.match(el('emploisDetail').innerHTML,/Math &lt;script&gt;intrus&lt;\/script&gt;/,'texte hostile échappé');
 assert.doesNotMatch(el('emploisDetail').innerHTML,/<script>intrus/);
 assert.match(el('emploisDetail').innerHTML,/Versions reçues \(2\)/,'les versions du voisin ne sont pas mêlées');

@@ -138,13 +138,14 @@ assert.equal(admin.boiteNormaliser('E2E Preparation'), 'e2e preparation', 'les c
 assert.equal(admin.boiteNormaliser('DP2'), 'dp2', 'les chiffres de la classe sont conservés');
 const ficheE2 = { type: 'emploi', id: 'e_essai', nom: 'E2E Preparation', classe: 'DP2',
     jours: [{ j: 'Lundi', s: [{ d: '08:00', f: '09:00', t: 'Maths' }] }] };
-assert(!admin.boiteEmploiRetire(ficheE2), 'une fiche sans retrait par nom reste affichée (fiches de test supprimées)');
-assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'julia' }), 'un nom « julia » n\'est plus retiré');
-assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'u' }), 'un nom « u » n\'est plus retiré');
+assert(admin.boiteEmploiRetire(ficheE2), 'E2E Preparation · DP2 est retiré du site');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, classe: 'DP1' }), 'E2E Preparation en DP1 reste affiché');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2E Preparation 2' }), 'autre nom en DP2 reste affiché');
+assert(!admin.boiteEmploiRetire({ ...ficheE2, nom: 'E2' }), 'autre compte E2 reste affiché');
 assert.equal(admin.boitePersonnes({ emplois: [ficheE2, { ...ficheE2, id: 'autre', nom: 'Autre élève' }] }).length,
-    2, 'la vue administrateur présente chaque fiche sans filtre par nom');
+    1, 'la vue administrateur ne présente plus cette fiche de test');
 assert.equal(admin.boiteFusionnerPersonnes([ficheE2, { ...ficheE2, id: 'e3', nom: 'E3E Preparation' }]).length,
-    2, 'E2E et E3E restent deux personnes distinctes');
+    1, 'E2E est retiré mais le compte E3E reste distinct');
 // Même parcours que le panneau admin, y compris la lecture d'un document
 // Firestore au format lisible et le rendu du HTML de la capture signalée.
 const elementsAdmin = {
@@ -158,9 +159,9 @@ const ficheFirestore = { type: 'emploi', id: 'e_e2', at: '2026-10-24T08:00:00Z',
 const voisin = { ...ficheE2, id: 'e_e3', nom: 'E3E Preparation' };
 const fusionAdmin = admin.boiteFusionner([ficheFirestore, voisin]);
 admin.boiteRendreEmplois(fusionAdmin);
-assert(elementsAdmin.emploisListe.innerHTML.includes('E2E Preparation'), 'la fiche sans adresse reste affichée dans le HTML');
+assert(!elementsAdmin.emploisListe.innerHTML.includes('E2E Preparation'), 'la carte E2E ne doit pas apparaître dans le HTML');
 assert(elementsAdmin.emploisListe.innerHTML.includes('E3E Preparation'), 'le compte voisin doit rester visible');
-assert.equal(elementsAdmin.emploisStatut.textContent, '2 personnes · 2 plannings reçus', 'le compteur admin compte chaque fiche');
+assert.equal(elementsAdmin.emploisStatut.textContent, '1 personne · 1 planning reçu', 'le compteur admin ne compte pas la fiche E2E');
 (async () => {
     const records = await admin.boiteLireCollectionHistorique('emplois_du_temps');
     assert.equal(records.length, 825, 'pagination au-delà des 1200 entrées');
