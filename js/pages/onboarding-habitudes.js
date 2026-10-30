@@ -131,8 +131,7 @@ function habitudesChevauche(aHeure, aDuree, bHeure, bDuree) {
 }
 
 function habitudesSuiteEffective() {
-    if (habitudesSuite === 'planning' || habitudesSuite === 'transport') return habitudesSuite;
-    return window.__profilComplet ? 'planning' : 'transport';
+    return habitudesSuite === 'planning' ? 'planning' : 'transport';
 }
 
 function habitudesErreur(message) {
@@ -213,7 +212,7 @@ function renderHabitudes() {
 }
 
 function showHabitsPage(suite) {
-    habitudesSuite = suite === 'planning' ? 'planning' : (suite === 'transport' ? 'transport' : habitudesSuiteEffective());
+    habitudesSuite = suite === 'planning' ? 'planning' : 'transport';
     habitudesBrouillon = habitudesBrouillonInitial();
     document.querySelectorAll('.context-modal').forEach(function (el) {
         if (el.id !== 'habitsModal') el.classList.remove('active');
@@ -403,17 +402,9 @@ function validateHabits() {
     if (typeof memoireSauvegarder === 'function') {
         try { memoireSauvegarder(); } catch (e) {}
     }
-    var suite = habitudesSuiteEffective();
     var modal = document.getElementById('habitsModal');
     if (modal) modal.classList.remove('active');
-    if (suite === 'planning') {
-        if (typeof generatePlanning === 'function') generatePlanning();
-        else {
-            var planning = document.getElementById('planningModal');
-            if (planning) planning.classList.add('active');
-            if (typeof planningActualiser === 'function') planningActualiser();
-        }
-        return;
-    }
+    /* Continuer ouvre toujours l'écran suivant, même pour un profil déjà
+       complet. */
     if (typeof showTransportPage === 'function') showTransportPage();
 }

@@ -43,7 +43,9 @@ function setIbYear(year) {
 
 function validateClasse() {
     if (ibYear !== 'DP1' && ibYear !== 'DP2') return;
-    var versPlanning = classeRetour === 'planning' || (window.__profilComplet && classeRetour !== 'sujets');
+    /* Continuer passe à l'écran suivant ; le planning n'est rouvert que si
+       l'élève était venu d'une page qui demandait la classe. */
+    var versPlanning = classeRetour === 'planning';
     classeRetour = '';
     if (versPlanning && typeof generatePlanning === 'function') {
         document.getElementById('classeModal').classList.remove('active');

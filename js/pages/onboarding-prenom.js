@@ -27,10 +27,8 @@ function handleContinue() {
         compteLierNom(window.compteSession.sub, name, window.compteSession.email || '');
     }
     classeRetour = '';
-    if (window.__profilComplet && typeof memoireAller === 'function') {
-        memoireAller('planning');
-        return;
-    }
+    /* Continuer ouvre toujours l'écran suivant, même pour un profil déjà
+       complet : seul le dernier écran mène au planning. */
     showClassePage();
 }
 
