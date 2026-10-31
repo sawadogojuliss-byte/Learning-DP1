@@ -1323,7 +1323,9 @@ function compteProgressionEnregistrer() {
     var nom = compteNomLie(window.compteSession.sub) || '';
     if (nom) neuve.userName = nom;
     firebase.firestore().collection('comptes').doc(user.uid).set({
-        progression: neuve,
+        /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
+           emploiFige.jours). Une écriture refusée restait silencieuse. compteProgressionFirebase relit le texte. */
+        progression: JSON.stringify(neuve),
         progressionLe: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).then(function () {
         compteProgressionDerniere = empreinte;
@@ -1528,8 +1530,9 @@ function compteFirebaseEcrire(user, nom, data) {
     if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
     var session = window.compteSession || {};
     return compteFirebaseLireDoc(user).then(function (deja) {
+        var ancienne = compteProgressionFirebase(deja);
         var nomGarde = compteGarderNom(deja && deja.nom, nom || '');
-        if (!nomGarde && deja && deja.progression && deja.progression.userName) nomGarde = deja.progression.userName;
+        if (!nomGarde && ancienne && ancienne.userName) nomGarde = ancienne.userName;
         var payload = {
             email: user.email || session.email || (deja && deja.email) || '',
             nom: nomGarde || (deja && deja.nom) || '',
@@ -1540,10 +1543,9 @@ function compteFirebaseEcrire(user, nom, data) {
             dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
         };
         var neuve = data && compteUtile(data) ? compteSansDocuments(data) : null;
-        var ancienne = compteProgressionFirebase(deja);
         if (neuve) {
             if (nomGarde) neuve.userName = nomGarde;
-            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) payload.progression = neuve;
+            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) payload.progression = JSON.stringify(neuve);
         }
         return firebase.firestore().collection('comptes').doc(user.uid).set(payload, { merge: true });
     }).catch(function () {});
