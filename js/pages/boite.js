@@ -435,6 +435,15 @@ function boiteIdEmploi(uid, semaine) {
     });
 }
 
+/* Vrai si l'administration a supprimé la fiche de cette semaine. La trace
+   se lit par identifiant seulement ; l'élève ne peut ni la créer ni l'effacer. */
+function boiteSemaineSupprimee(db, id) {
+    if (!id) return Promise.resolve(false);
+    return db.collection('suppressions_emplois').doc(id).get().then(function (snap) {
+        return !!(snap && snap.exists);
+    }, function () { return false; });
+}
+
 function boiteEcrireBoite(record) {
     if (record && record.type === 'emploi') {
         if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
@@ -476,7 +485,13 @@ function boiteEcrireBoite(record) {
                 var documentEmploi = id ? db.collection(collection).doc(id) : db.collection(collection).doc();
                 var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
                 function mettreAJour() {
-                    return documentEmploi.set(propre).then(function () { return documentEmploi.id; });
+                    return documentEmploi.set(propre).then(function () { return documentEmploi.id; }, function (err) {
+                        if (!err || err.code !== 'permission-denied') throw err;
+                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
+                            if (supprimee) return id;
+                            throw err;
+                        });
+                    });
                 }
                 function creer() {
                     var lot = db.batch();
@@ -487,7 +502,10 @@ function boiteEcrireBoite(record) {
                        accepté, sans prétendre disposer d'un reçu vérifiable. */
                     return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
                         if (!err || err.code !== 'permission-denied') throw err;
-                        return documentEmploi.set(propre).then(function () { return ''; });
+                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
+                            if (supprimee) return id;
+                            return documentEmploi.set(propre).then(function () { return ''; });
+                        });
                     });
                 }
                 if (!id) {
@@ -1043,6 +1061,11 @@ function boiteSupprimerEmploi(ids) {
             var collection = String(ref).slice(0, i);
             if (i < 1 || autorisees.indexOf(collection) === -1) throw new Error('reference');
             lot.delete(firebase.firestore().collection(collection).doc(String(ref).slice(i + 1)));
+            /* Trace : l'élève ne recrée pas cette semaine après la suppression. */
+            if (collection === 'emplois_du_temps') {
+                lot.set(firebase.firestore().collection('suppressions_emplois').doc(String(ref).slice(i + 1)),
+                    { supprime: true, at: new Date().toISOString() });
+            }
         });
         return lot.commit();
     }).then(function () {

@@ -106,7 +106,8 @@ ok(emploiCreation.includes('allow get: if estAdmin() || (request.auth != null') 
     emploiCreation.includes('allow list: if estAdmin() || (request.auth != null') &&
     emploiCreation.includes('request.query.limit <= 1') &&
     emploiCreation.includes('resource.data.z_donnees_techniques.firebaseUid == request.auth.uid') &&
-    emploiCreation.includes('allow create: if emploiValide();'),
+    emploiCreation.includes('allow create: if emploiValide()') &&
+    emploiCreation.includes('suppressions_emplois/$(message)'),
     'les emplois valides ne sont pas reçus uniquement par les admins');
 ok(regles.includes('request.resource.data.z_donnees_techniques.firebaseUid == request.auth.uid') &&
     regles.includes('request.resource.data.z_donnees_techniques.jours.size() == 7'), 'identité ou semaine non vérifiée');

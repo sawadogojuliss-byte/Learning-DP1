@@ -136,7 +136,8 @@ service cloud.firestore {
       allow list: if estAdmin() || (request.auth != null
         && request.query.limit <= 1
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
-      allow create: if emploiValide();
+      allow create: if emploiValide()
+        && !exists(/databases/$(database)/documents/suppressions_emplois/$(message));
       /* Mise à jour de sa propre fiche de semaine, à chaque changement. */
       allow update: if request.auth != null
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
@@ -162,6 +163,19 @@ service cloud.firestore {
           == (request.auth != null ? request.auth.uid : '');
       allow update, delete: if false;
     }
+    /* Trace d'une suppression faite par un admin : la fiche de cette semaine ne
+       peut plus être recréée par l'élève. Lecture par identifiant seulement,
+       jamais de liste. Personne ne peut la modifier ni l'effacer. */
+    match /suppressions_emplois/{message} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if estAdmin()
+        && request.resource.data.keys().hasOnly(['supprime', 'at'])
+        && request.resource.data.supprime == true
+        && request.resource.data.at is string;
+      allow update, delete: if false;
+    }
+
     /* Les collections de transition restent privées si elles existent.
        Les nouveaux formulaires ne les utilisent plus. */
     match /emplois/{message} {
