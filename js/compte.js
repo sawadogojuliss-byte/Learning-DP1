@@ -1433,17 +1433,13 @@ function compteProgressionEnregistrer() {
     var neuve = compteSansDocuments(data);
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
-    var docsTexte = JSON.stringify(Array.isArray(data.iaDocs) ? data.iaDocs : []);
     var progressionChangee = empreinte !== compteProgressionDerniere;
-    /* Documents vides : jamais écrits ici, pour ne pas effacer ceux du nuage. */
-    var documentsChanges = docsTexte !== compteDocumentsDerniers && docsTexte !== '[]';
-    if (!progressionChangee && !documentsChanges) return;
-    var nom = compteNomLie(window.compteSession.sub) || '';
+    var nom = (window.compteSession && window.compteSession.sub) ? (compteNomLie(window.compteSession.sub) || '') : '';
     if (nom) neuve.userName = nom;
-    var db = firebase.firestore();
+    if (nom && !data.userName) data.userName = nom;
     var ecritures = [];
     if (progressionChangee) {
-        ecritures.push(db.collection('progressions').doc(user.uid).set({
+        ecritures.push(firebase.firestore().collection('progressions').doc(user.uid).set({
             /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
                emploiFige.jours). compteProgressionFirebase relit le texte. */
             progression: JSON.stringify(neuve),
@@ -1452,15 +1448,91 @@ function compteProgressionEnregistrer() {
             compteProgressionDerniere = empreinte;
         }));
     }
-    if (documentsChanges) {
-        ecritures.push(db.collection('documents').doc(user.uid).set({
-            iaDocs: docsTexte,
-            documentsLe: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).then(function () {
-            compteDocumentsDerniers = docsTexte;
-        }));
-    }
+    /* La fiche documents/{uid} suit chaque changement, indépendamment de la progression. */
+    ecritures.push(compteFicheEnregistrer(user, data));
     Promise.all(ecritures).catch(function (err) { console.warn('Progression non enregistrée', err); });
+}
+
+/* Fiche de l'élève, collection documents/{uid} : ce qu'il a modifié, lisible par
+   l'administration. Chaque bloc complexe est un texte JSON (Firestore refuse les
+   tableaux dans un tableau). Les champs sont écrits à chaque changement, même vides,
+   pour qu'une suppression soit reflétée. Un bloc trop long est laissé vide plutôt
+   que de faire refuser toute la fiche par les règles. */
+var COMPTE_FICHE_MAX = {
+    matieresJson: 10000, activitesJson: 20000, exercicesJson: 200000,
+    devoirsJson: 100000, emploiScolaireJson: 150000, reglagesJson: 100000, iaDocs: 60000
+};
+var COMPTE_FICHE_EXCLUS = [
+    'v', 'savedAt', 'etape', 'profilComplet', 'userName', 'targetScore', 'subjects',
+    'optionalSubjects', 'ibYear', 'selectedActivities', 'exercices', 'devoirsStore',
+    'emploiScolaire', 'iaDocs', 'emploiFige', 'suppressions', 'iaPlans', 'memoirPlan',
+    'google', 'utilisateurId', 'flammes', 'flammeJour', 'joursConnectes', 'dernierJour'
+];
+var compteFicheDerniere = '';
+
+function compteFicheJson(valeur, max) {
+    var texte = '';
+    try { texte = JSON.stringify(valeur === undefined ? null : valeur) || ''; } catch (e) { texte = ''; }
+    return texte.length <= max ? texte : '';
+}
+
+function compteFicheDonnees(data, uid) {
+    var fiche = {
+        uid: uid,
+        nom: String(data.userName || '').slice(0, 120),
+        classe: (data.ibYear === 'DP1' || data.ibYear === 'DP2') ? data.ibYear : '',
+        flammes: Math.max(0, Math.min(100000, Number(data.flammes) || 0)),
+        flammeJour: String(data.flammeJour || '').slice(0, 20),
+        joursConnectes: Math.max(0, Math.min(1000000, Number(data.joursConnectes) || 0)),
+        dernierJour: String(data.dernierJour || '').slice(0, 20)
+    };
+    if (typeof data.targetScore === 'number') fiche.objectif = data.targetScore;
+
+    var obligatoires = Array.isArray(data.subjects) ? data.subjects : [];
+    var optionnelles = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    fiche.nbMatieres = Math.min(50, obligatoires.length + optionnelles.length);
+    fiche.matieresJson = compteFicheJson({ obligatoires: obligatoires, optionnelles: optionnelles }, COMPTE_FICHE_MAX.matieresJson);
+
+    var activites = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
+    fiche.nbActivites = Math.min(100, activites.length);
+    fiche.activitesJson = compteFicheJson(activites, COMPTE_FICHE_MAX.activitesJson);
+
+    var exos = Array.isArray(data.exercices) ? data.exercices : [];
+    fiche.nbExercices = Math.min(10000, exos.length);
+    fiche.exercicesJson = compteFicheJson(exos, COMPTE_FICHE_MAX.exercicesJson);
+    fiche.devoirsJson = compteFicheJson(data.devoirsStore || null, COMPTE_FICHE_MAX.devoirsJson);
+
+    fiche.emploiScolaireJson = compteFicheJson(data.emploiScolaire || null, COMPTE_FICHE_MAX.emploiScolaireJson);
+
+    /* Documents importés : écrits seulement s'il y en a localement (voir compteFirebaseLireDocuments). */
+    if (Array.isArray(data.iaDocs) && data.iaDocs.length) {
+        fiche.nbDocuments = Math.min(10, data.iaDocs.length);
+        fiche.iaDocs = compteFicheJson(data.iaDocs, COMPTE_FICHE_MAX.iaDocs);
+    }
+
+    /* Tous les autres réglages que l'élève a pu modifier (sommeil, transport, habitudes,
+       événements, humeur, bac, etc.). Le planning figé et les plans restent dans progressions. */
+    var reglages = {};
+    Object.keys(data).forEach(function (cle) {
+        if (COMPTE_FICHE_EXCLUS.indexOf(cle) === -1) reglages[cle] = data[cle];
+    });
+    fiche.reglagesJson = compteFicheJson(reglages, COMPTE_FICHE_MAX.reglagesJson);
+    return fiche;
+}
+
+function compteFicheEnregistrer(user, data) {
+    if (!user || !user.uid || !firebase.firestore) return Promise.resolve();
+    var fiche = compteFicheDonnees(data, user.uid);
+    var empreinte = JSON.stringify(fiche);
+    if (empreinte === compteFicheDerniere) return Promise.resolve();
+    fiche.misAJourLe = firebase.firestore.FieldValue.serverTimestamp();
+    return firebase.firestore().collection('documents').doc(user.uid).set(fiche, { merge: true })
+        .then(function () {
+            compteFicheDerniere = empreinte;
+            compteDocumentsDerniers = fiche.iaDocs || compteDocumentsDerniers;
+        }, function (err) {
+            console.warn('Fiche élève non enregistrée', err);
+        });
 }
 
 /* Documents IA de l'élève : collection documents/{uid}, texte JSON, même UID. */
