@@ -211,6 +211,7 @@ function initSoutien() {
     // Reset mood selection
     document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
     document.getElementById('encouragementSection').style.display = 'none';
+    var videInit = document.getElementById('soutienVide'); if (videInit) videInit.style.display = 'block';
     // Streak
     updateStreak();
 }
@@ -223,7 +224,7 @@ function updateStreak() {
 }
 
 function selectMood(mood) {
-    if (!mood) { document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected')); document.getElementById('encouragementSection').style.display = 'none'; return; }
+    if (!mood) { document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected')); document.getElementById('encouragementSection').style.display = 'none'; var vide = document.getElementById('soutienVide'); if (vide) vide.style.display = 'block'; var annonce = document.getElementById('soutienAnnonce'); if (annonce) annonce.textContent = ''; return; }
     currentMood = mood;
     document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('selected', b.dataset.mood === mood));
     const data = moodData[mood];
@@ -242,5 +243,7 @@ function selectMood(mood) {
     document.getElementById('quoteText').textContent = '" ' + q.text + ' "';
     document.getElementById('quoteAuthor').textContent = q.author;
     document.getElementById('encouragementSection').style.display = 'block';
+    var videMasque = document.getElementById('soutienVide'); if (videMasque) videMasque.style.display = 'none';
+    var annonceTexte = document.getElementById('soutienAnnonce'); if (annonceTexte) annonceTexte.textContent = 'Conseils affichés : ' + data.label;
     document.getElementById('encouragementSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
