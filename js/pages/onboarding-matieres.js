@@ -20,7 +20,64 @@ function showSubjectsPage() {
     updateSubjectsUI();
 }
 
+/* Édition depuis le planning : rien n'est effacé avant l'enregistrement.
+   « Retour » annule les changements. */
+var matieresEdition = null;
+
+function ouvrirMatieresDepuisPlanning() {
+    if (typeof closeSideMenu === 'function') closeSideMenu();
+    var planning = document.getElementById('planningModal');
+    if (planning) planning.classList.remove('active');
+    matieresEdition = { subjects: subjects.slice(), optionalSubjects: optionalSubjects.slice() };
+    var bouton = document.getElementById('subjectsContinueBtn');
+    if (bouton) bouton.textContent = 'Enregistrer';
+    showSubjectsPage();
+}
+
+function matieresNoms(liste) {
+    return liste.map(function (s) { return s && s.name; }).filter(Boolean);
+}
+
+/* Supprime le travail lié aux matières retirées : exercices, évaluations
+   internes, devoirs et examens. */
+function matieresPurgerTravail(noms) {
+    if (!noms.length) return;
+    if (Array.isArray(exercices)) {
+        exercices = exercices.filter(function (e) { return !e || noms.indexOf(e.subject) === -1; });
+        localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exercices));
+    }
+    if (iaPlans && typeof iaPlans === 'object') {
+        noms.forEach(function (nom) { delete iaPlans[nom]; });
+    }
+    if (typeof devoirsLireStore === 'function' && typeof devoirsEcrireStore === 'function') {
+        var store = devoirsLireStore();
+        store.devoirs = store.devoirs.filter(function (d) { return noms.indexOf(d.matiere) === -1; });
+        store.examens = store.examens.filter(function (x) { return noms.indexOf(x.matiere) === -1; });
+        devoirsEcrireStore(store);
+    }
+}
+
+function matieresFinirEdition(enregistrer) {
+    var avant = matieresEdition;
+    matieresEdition = null;
+    var bouton = document.getElementById('subjectsContinueBtn');
+    if (bouton) bouton.textContent = 'Continuer →';
+    if (enregistrer) {
+        var retirees = matieresNoms(avant.subjects.concat(avant.optionalSubjects)).filter(function (nom) {
+            return matieresNoms(subjects.concat(optionalSubjects)).indexOf(nom) === -1;
+        });
+        matieresPurgerTravail(retirees);
+    } else {
+        subjects = avant.subjects;
+        optionalSubjects = avant.optionalSubjects;
+    }
+    document.getElementById('subjectsModal').classList.remove('active');
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    if (typeof generatePlanning === 'function') generatePlanning();
+}
+
 function hideSubjectsPage() {
+    if (matieresEdition) { matieresFinirEdition(false); return; }
     document.getElementById('subjectsModal').classList.remove('active');
     if (typeof showObjectivesPage === 'function') {
         showObjectivesPage();
@@ -335,6 +392,11 @@ function handleAddSubject(select) {
 }
 
 function validateSubjects() {
+    if (matieresEdition) {
+        if (!isSubjectsValid()) return;
+        matieresFinirEdition(true);
+        return;
+    }
     if (!isSubjectsValid()) return;
     /* La question du bac national vient plus tard : juste après la page
        d'insertion de l'emploi du temps scolaire (voir emploi-temps.js). */

@@ -236,6 +236,21 @@ function memoireAppliquer(data, opts) {
     }
 }
 
+/* La flamme (jours d'affilée) vient du profil enregistré : sur un autre
+   téléphone, elle reprend la valeur la plus récente, au lieu de repartir de zéro. */
+function memoireRestaurerFlamme(data) {
+    try {
+        if (!data || typeof data.flammeJour !== 'string' || !data.flammeJour) return;
+        var jourLocal = localStorage.getItem('studyPlanIB_flammeJour') || '';
+        var fLocal = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0;
+        var fDonnee = Number(data.flammes) || 0;
+        if (jourLocal > data.flammeJour) return;
+        if (jourLocal === data.flammeJour && fLocal >= fDonnee) return;
+        localStorage.setItem('studyPlanIB_flammeJour', data.flammeJour);
+        localStorage.setItem('studyPlanIB_flamme', String(fDonnee));
+    } catch (e) {}
+}
+
 function memoireAppliquerCorps(data, opts) {
     var depuisCompte = !!(opts && opts.compte);
     /* Les suppressions connues de la sauvegarde sont retenues ici. */
@@ -248,6 +263,7 @@ function memoireAppliquerCorps(data, opts) {
     /* Les matières de l'élève sont reprises telles qu'elles sont enregistrées, quel que soit leur nombre. */
     if (Array.isArray(data.subjects)) subjects = data.subjects;
     if (Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
+    memoireRestaurerFlamme(data);
     if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
     if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear;
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
