@@ -438,6 +438,14 @@ function compteProfilIncomplet(data) {
     return !(Array.isArray(data.subjects) && data.subjects.length);
 }
 
+/* Profil terminé (classe et matières présentes) : un retrait volontaire (activité,
+   exercice, etc.) doit passer, même si le profil devient « moins riche ». Jamais
+   pendant une restauration, jamais pour un profil en cours de création. */
+function compteRichesseLibre(data) {
+    return !!(data && data.profilComplet && compteUtile(data) && !compteProfilIncomplet(data)
+        && !window.compteRestaurationEnCours);
+}
+
 /* Matières d'un profil complet reçu sans matières : on reprend celles du même compte
    présentes sur cet appareil (copie locale ou archive), la plus complète. */
 function compteMatieresAGarder(data) {

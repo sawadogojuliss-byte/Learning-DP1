@@ -758,6 +758,8 @@ function memoireSauvegarder() {
             var cleLie = MEMOIRE_KEY + ':' + canon;
             var ancienLie = memoireJson(cleLie);
             var garder = typeof compteDoitGarderLie === 'function' && compteDoitGarderLie(ancienLie, data);
+            /* Retrait volontaire d'un profil terminé : la copie et la fiche suivent. */
+            if (garder && typeof compteRichesseLibre === 'function' && compteRichesseLibre(data)) garder = false;
             var dataSub = data.google && (data.utilisateurId || data.google.sub);
             if (!garder && dataSub && typeof compteMemeCompte === 'function' && !compteMemeCompte(dataSub, canon)) garder = true;
             if (!garder) localStorage.setItem(cleLie, json);
