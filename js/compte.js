@@ -427,12 +427,32 @@ function comptePageOuverte() {
     return page;
 }
 
+/* La classe (DP1/DP2) n'est jamais effacée par une copie reçue qui n'en a pas.
+   Sans elle, le planning renvoie au choix de la classe et l'écran est sauvegardé.
+   On garde la classe locale seulement si elle appartient au même compte. */
+function compteProfilSansClasse(data) {
+    return !!(data && data.profilComplet) && data.ibYear !== 'DP1' && data.ibYear !== 'DP2';
+}
+
+function compteClasseAGarder(data) {
+    if (!data || data.ibYear === 'DP1' || data.ibYear === 'DP2') return '';
+    if (typeof memoireJson !== 'function') return '';
+    var locale = memoireJson(MEMOIRE_KEY);
+    if (!locale || (locale.ibYear !== 'DP1' && locale.ibYear !== 'DP2')) return '';
+    var sub = (window.compteSession && window.compteSession.sub) || (data.google && data.google.sub) || '';
+    if (!sub) return '';
+    if (compteProfilEtranger(locale, sub)) return '';
+    return locale.ibYear;
+}
+
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
     var ouverte = comptePageOuverte();
     var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
     /* Un profil complet restauré ouvre le planning, même si cet appareil était encore sur l'accueil. */
     var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
+    var classeGardee = compteClasseAGarder(data);
+    if (classeGardee) data = Object.assign({}, data, { ibYear: classeGardee });
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
@@ -1356,6 +1376,8 @@ function compteProgressionEnregistrer() {
     var data = null;
     try { data = memoireLireEtat(); } catch (e) { return; }
     if (!data || !compteUtile(data)) return;
+    /* Profil « complet » sans classe : copie cassée, jamais envoyée pour remplacer le nuage. */
+    if (compteProfilSansClasse(data)) return;
     var neuve = compteSansDocuments(data);
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
@@ -1406,6 +1428,7 @@ function comptePublierProgression(session) {
     var data = null;
     try { data = memoireLireEtat(); } catch (e) { data = null; }
     if (!data || !compteUtile(data)) return Promise.resolve();
+    if (compteProfilSansClasse(data)) return Promise.resolve();
     data = compteEstampiller(compteSansDocuments(data), session);
     var nom = compteNomLie(session.sub);
     if (nom) data.userName = nom;
