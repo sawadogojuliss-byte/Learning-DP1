@@ -1461,6 +1461,10 @@ function compteFirebaseOuvrir(session, idToken) {
                 boiteVerifierAdmin();
             } catch (e) {}
         }
+        /* Les fiches restées en attente (sans identité) peuvent partir maintenant. */
+        if (typeof boiteReessayer === 'function') {
+            setTimeout(function () { try { boiteReessayer(); } catch (e) {} }, 1500);
+        }
         return compteFirebaseLireDoc(user).then(function (doc) {
             return { user: user, doc: doc };
         });

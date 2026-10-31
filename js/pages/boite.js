@@ -388,6 +388,11 @@ function boiteMessageDepuisFirestore(collection, data, identifiant) {
     };
 }
 
+function boiteGoogleActif() {
+    var session = typeof boiteSession === 'function' ? boiteSession() : null;
+    return !!(session && session.sub);
+}
+
 function boiteEcrireBoite(record) {
     if (record && record.type === 'emploi') {
         if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
@@ -399,6 +404,12 @@ function boiteEcrireBoite(record) {
     if (collection === 'questions' || collection === 'feedbacks') propre = boiteMessagePourFirestore(propre);
     if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function (user) {
+        /* Élève connecté à Google sur cet appareil mais sans compte Firebase :
+           une fiche envoyée maintenant n'aurait ni identifiant Google ni
+           adresse, et ferait un doublon. Elle reste dans la file d'attente. */
+        if (collection === 'emplois_du_temps' && !user && boiteGoogleActif()) {
+            throw new Error('identite_en_attente');
+        }
         if (collection === 'emplois_du_temps') {
             var tech = propre.z_donnees_techniques;
             tech.firebaseUid = user && user.uid ? user.uid : '';
@@ -955,8 +966,10 @@ function boiteMemePersonne(a, b) {
     var subB = String(b.googleSub || '').trim();
     var uidA = String(a.firebaseUid || '').trim();
     var uidB = String(b.firebaseUid || '').trim();
+    /* Même compte Google : même personne, quel que soit l'appareil. */
+    if (subA && subB && subA === subB) return true;
     if (uidA && uidB) return uidA === uidB;
-    if (subA && subB) return subA === subB;
+    if (subA && subB) return false;
     var mailA = boiteMailPersonne(a);
     var mailB = boiteMailPersonne(b);
     /* Une archive anonyme peut contenir une adresse déclarative. Elle
