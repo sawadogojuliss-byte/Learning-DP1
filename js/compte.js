@@ -1710,6 +1710,10 @@ function comptePreparerGoogle() {
                 auto_select: false,
                 cancel_on_tap_outside: true,
                 ux_mode: 'popup',
+                /* Bouton en mode FedCM (Chrome Android 128+ et Chrome bureau 125+) : le choix du
+                   compte passe par le navigateur, sans fenêtre ni cookies tiers. Pour tous les élèves,
+                   sans réglage de leur part. Les anciens navigateurs gardent le mode précédent. */
+                use_fedcm_for_button: true,
                 context: 'signin'
             });
             compteGisPret = true;
