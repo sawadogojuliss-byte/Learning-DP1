@@ -270,14 +270,98 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    /* Documents IA de l'élève (4 au plus, texte résumé), même identifiant que comptes/{uid}.
-       Seul l'élève connecté lit et écrit son document ; personne d'autre, admins compris. */
+    /* Fiche de l'élève : documents/{uid}, même identifiant que progressions/{uid}.
+       L'élève lit et écrit SA fiche. Les administrateurs la lisent (présentation
+       dans l'espace admin) et ne la modifient jamais. Personne ne la supprime.
+
+       Contenu :
+       - identité : uid, nom, classe, objectif (points IB, 24 à 45)
+       - flammes : flammes, flammeJour, joursConnectes, dernierJour
+       - matières : nbMatieres (nombre) + matieresJson (liste en texte JSON)
+       - activités : nbActivites + activitesJson
+       - exercices et devoirs : nbExercices + exercicesJson, devoirsJson
+       - documents importés : nbDocuments + iaDocs (documents IA, texte JSON),
+         emploiScolaireJson (emploi du temps scolaire importé)
+       - autres réglages modifiés par l'élève : reglagesJson
+       - dates : documentsLe et misAJourLe (heure du serveur)
+       Les listes complexes restent en texte JSON : Firestore refuse les tableaux
+       dans un tableau. Les nombres restent lisibles directement dans la console. */
     match /documents/{uid} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || estAdmin());
       allow create, update: if request.auth != null && request.auth.uid == uid
-        && request.resource.data.keys().hasOnly(['iaDocs', 'documentsLe'])
-        && request.resource.data.iaDocs is string
-        && request.resource.data.iaDocs.size() <= 900000;
+        && request.resource.data.keys().hasOnly([
+             'uid', 'nom', 'classe', 'objectif',
+             'flammes', 'flammeJour', 'joursConnectes', 'dernierJour',
+             'nbMatieres', 'matieresJson',
+             'nbActivites', 'activitesJson',
+             'nbExercices', 'exercicesJson', 'devoirsJson',
+             'nbDocuments', 'iaDocs', 'emploiScolaireJson',
+             'reglagesJson',
+             'documentsLe', 'misAJourLe'
+           ])
+        && (!('uid' in request.resource.data) || request.resource.data.uid == uid)
+        && (!('nom' in request.resource.data)
+            || (request.resource.data.nom is string && request.resource.data.nom.size() <= 120))
+        && (!('classe' in request.resource.data)
+            || request.resource.data.classe in ['DP1', 'DP2', ''])
+        && (!('objectif' in request.resource.data)
+            || (request.resource.data.objectif is number
+                && request.resource.data.objectif >= 0
+                && request.resource.data.objectif <= 100))
+        && (!('flammes' in request.resource.data)
+            || (request.resource.data.flammes is number
+                && request.resource.data.flammes >= 0
+                && request.resource.data.flammes <= 100000))
+        && (!('flammeJour' in request.resource.data)
+            || (request.resource.data.flammeJour is string
+                && request.resource.data.flammeJour.size() <= 20))
+        && (!('joursConnectes' in request.resource.data)
+            || (request.resource.data.joursConnectes is number
+                && request.resource.data.joursConnectes >= 0
+                && request.resource.data.joursConnectes <= 1000000))
+        && (!('dernierJour' in request.resource.data)
+            || (request.resource.data.dernierJour is string
+                && request.resource.data.dernierJour.size() <= 20))
+        && (!('nbMatieres' in request.resource.data)
+            || (request.resource.data.nbMatieres is number
+                && request.resource.data.nbMatieres >= 0
+                && request.resource.data.nbMatieres <= 50))
+        && (!('matieresJson' in request.resource.data)
+            || (request.resource.data.matieresJson is string
+                && request.resource.data.matieresJson.size() <= 10000))
+        && (!('nbActivites' in request.resource.data)
+            || (request.resource.data.nbActivites is number
+                && request.resource.data.nbActivites >= 0
+                && request.resource.data.nbActivites <= 100))
+        && (!('activitesJson' in request.resource.data)
+            || (request.resource.data.activitesJson is string
+                && request.resource.data.activitesJson.size() <= 20000))
+        && (!('nbExercices' in request.resource.data)
+            || (request.resource.data.nbExercices is number
+                && request.resource.data.nbExercices >= 0
+                && request.resource.data.nbExercices <= 10000))
+        && (!('exercicesJson' in request.resource.data)
+            || (request.resource.data.exercicesJson is string
+                && request.resource.data.exercicesJson.size() <= 200000))
+        && (!('devoirsJson' in request.resource.data)
+            || (request.resource.data.devoirsJson is string
+                && request.resource.data.devoirsJson.size() <= 100000))
+        && (!('nbDocuments' in request.resource.data)
+            || (request.resource.data.nbDocuments is number
+                && request.resource.data.nbDocuments >= 0
+                && request.resource.data.nbDocuments <= 10))
+        && (!('iaDocs' in request.resource.data)
+            || (request.resource.data.iaDocs is string
+                && request.resource.data.iaDocs.size() <= 60000))
+        && (!('emploiScolaireJson' in request.resource.data)
+            || (request.resource.data.emploiScolaireJson is string
+                && request.resource.data.emploiScolaireJson.size() <= 150000))
+        && (!('reglagesJson' in request.resource.data)
+            || (request.resource.data.reglagesJson is string
+                && request.resource.data.reglagesJson.size() <= 100000))
+        && (!('misAJourLe' in request.resource.data)
+            || request.resource.data.misAJourLe == request.time);
       allow delete: if false;
     }
 
