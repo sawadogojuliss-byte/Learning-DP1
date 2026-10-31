@@ -58,6 +58,8 @@ const firebase = {
             return {
                 doc(id) {
                     const ref = { nom, id: id || 'aleatoire' + (++docNumero) };
+                    /* Sous-collection (historique de synchronisation) : écriture acceptée, non relue ici. */
+                    ref.collection = () => ({ doc: () => ({ nom: nom + '/historique', id: 'h' + (++docNumero) }) });
                     ref.get = () => {
                         if (bloque || (nom === 'receptions_emplois' && lectureEmploisRefusee)) return Promise.reject({ code: 'permission-denied' });
                         return Promise.resolve({ exists: receptions.has(ref.id), data: () => receptions.get(ref.id) });

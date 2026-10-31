@@ -50,6 +50,11 @@ function accepte(ecritures) {
                 if (existe('suppressions_emplois/' + op.id)) return false;
             }
             attendu[chemin] = copie(op.data);
+        } else if (op.nom.indexOf('synchronisation/') === 0 && op.nom.split('/').length === 3) {
+            /* Historique : sous-collection de l'élève connecté seulement. */
+            if (!utilisateur || op.nom.split('/')[1] !== utilisateur.uid) return false;
+            if (op.data.emploi !== utilisateur.uid || op.data.action === undefined) return false;
+            attendu[chemin] = copie(op.data);
         } else if (op.nom === 'synchronisation') {
             if (!utilisateur || op.id !== utilisateur.uid) return false;
             attendu[chemin] = Object.assign({}, lire(chemin) || {}, copie(op.data));
@@ -77,6 +82,9 @@ function accepte(ecritures) {
 function document(nom, id) {
     return {
         nom, id,
+        collection(sous) {
+            return { doc: (sid) => document(nom + '/' + (id) + '/' + sous, sid || ('auto' + (++auto))) };
+        },
         get() {
             const chemin = nom + '/' + id;
             return Promise.resolve(chemin in base
@@ -202,6 +210,16 @@ const SUB = 'sub-eleve';
     assert.equal(base['emplois_du_temps/' + sansCompte].z_donnees_techniques.firebaseUid, '');
     assert.notEqual(sansCompte, UID, 'un élève sans compte ne doit pas recevoir l’UID');
     console.log('élève sans compte : identifiant aléatoire conservé');
+
+    /* 6 bis. Historique : une entrée par synchronisation de l'élève connecté, avec l'heure. */
+    const historique = Object.keys(base).filter((c) => c.startsWith('synchronisation/' + UID + '/historique/'));
+    /* Écritures réelles du scénario : création, mise à jour, nouvelle création après suppression.
+       La reprise sans changement et la semaine refusée n’ajoutent rien. */
+    assert.equal(historique.length, 3, 'historique attendu : 3 entrées pour ce scénario');
+    const actions = historique.map((c) => base[c].action).sort();
+    assert.deepEqual(actions, ['creation', 'creation', 'mise_a_jour'], 'actions de l’historique inattendues');
+    assert.ok(historique.every((c) => base[c].semaine && base[c].emploi === UID), 'entrée incomplète');
+    console.log('historique : ' + historique.length + ' entrées');
 
     /* 7. Aucune fiche d'élève connecté ne porte un identifiant calculé. */
     const fichesConnectees = Object.keys(base).filter((c) => c.startsWith('emplois_du_temps/') && base[c].z_donnees_techniques.firebaseUid);

@@ -70,6 +70,7 @@ function fausseCollection(nom) {
         doc: function (id) {
             return {
                 id: id || 'fake-recu-' + (++autoDoc), nom: nom,
+                collection: function () { return { doc: function () { return { id: 'h' + (++autoDoc), nom: nom + '/historique' }; } }; },
                 get: function () {
                     var v = (bdd[nom] || {})[id];
                     return Promise.resolve({ exists: !!v, data: function () { return v; } });

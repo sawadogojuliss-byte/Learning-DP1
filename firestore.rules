@@ -274,6 +274,21 @@ service cloud.firestore {
         && (!('emploi' in request.resource.data) || request.resource.data.emploi is string)
         && (!('effaceParEleve' in request.resource.data) || request.resource.data.effaceParEleve == true);
       allow delete: if false;
+
+      /* Historique des synchronisations de l'élève : une entrée par écriture, datée
+         par l'heure du serveur. Lecture par l'élève seulement ; jamais modifiable ni
+         effaçable par lui (la conservation est décidée séparément). */
+      match /historique/{entree} {
+        allow get, list: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['semaine', 'emploi', 'action', 'at'])
+          && request.resource.data.keys().hasAll(['semaine', 'emploi', 'action', 'at'])
+          && request.resource.data.semaine is string
+          && request.resource.data.emploi == uid
+          && request.resource.data.action in ['creation', 'mise_a_jour']
+          && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
     }
   }
 }

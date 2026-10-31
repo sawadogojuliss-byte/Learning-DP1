@@ -395,7 +395,8 @@ function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
     var ouverte = comptePageOuverte();
     var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
-    var accueilLocal = !ouverte && !!locale && locale.etape === 'accueil';
+    /* Un profil complet restauré ouvre le planning, même si cet appareil était encore sur l'accueil. */
+    var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;

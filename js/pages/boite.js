@@ -571,6 +571,13 @@ function boiteEcrireBoite(record) {
                 envoi.set(documentEmploi, propre);
                 if (creation) envoi.set(reception, { recu: true });
                 envoi.set(synchro, syncDoc, { merge: true });
+                /* Historique : une entrée datée par synchronisation, dans le même lot. */
+                envoi.set(synchro.collection('historique').doc(), {
+                    semaine: semaine,
+                    emploi: id,
+                    action: creation ? 'creation' : 'mise_a_jour',
+                    at: firebase.firestore.FieldValue.serverTimestamp()
+                });
                 return envoi.commit().then(function () { return accuse; }, function (err) {
                     if (!err || err.code !== 'permission-denied') throw err;
                     return boiteSemaineSupprimee(db, id + '_' + semaine).then(function (supprimee) {
