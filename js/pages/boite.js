@@ -564,6 +564,7 @@ function boiteEcrireBoite(record) {
                         return boiteSemaineSupprimee(db, id).then(function (supprimee) {
                             if (supprimee) return id;
                             /* Anciennes règles, sans synchronisation : l'emploi seul reste accepté. */
+                            console.warn('Liaison de la semaine non écrite : fiche seule envoyée', err);
                             return documentEmploi.set(propre).then(function () { return creation ? '' : documentEmploi.id; });
                         });
                     });
@@ -2844,16 +2845,29 @@ function boitePublierEmploi(force, manqueConfirme) {
    et la fiche de la semaine ; si la fiche manque ou si la synchronisation
    pointe une autre semaine, elle est renvoyée. */
 var boiteSemaineVerifiee = '';
-function boiteVerifierSemaine(forcer) {
+/* Réessai quand le nom, la connexion ou le serveur ne sont pas encore prêts :
+   la semaine n'est alors PAS marquée comme vérifiée. */
+function boiteReessayerSemaine(forcer, essai) {
+    if (essai >= 12) return Promise.resolve();
+    setTimeout(function () { boiteVerifierSemaine(forcer, essai + 1); }, 5000);
+    return Promise.resolve();
+}
+
+function boiteVerifierSemaine(forcer, essai) {
+    essai = essai || 0;
     var semaine = boiteSemaineCle(new Date());
     if (!forcer && boiteSemaineVerifiee === semaine) return Promise.resolve();
-    boiteSemaineVerifiee = semaine;
-    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return Promise.resolve();
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return Promise.resolve();
+    if (!boiteNom()) return boiteReessayerSemaine(forcer, essai);
     return boiteFirebasePret().then(function (user) {
-        if (!user || !user.uid) return null;
+        if (!user || !user.uid) return boiteReessayerSemaine(forcer, essai);
         var db = firebase.firestore();
         return boiteIdEmploi(user.uid, semaine).then(function (id) {
-            if (!id) return boitePublierEmploi(false);
+            if (!id) {
+                boiteSemaineVerifiee = semaine;
+                boitePublierEmploi(false);
+                return null;
+            }
             return Promise.all([
                 db.collection('synchronisation').doc(user.uid).get({ source: 'server' }).then(function (snap) {
                     return snap && snap.exists ? (snap.data() || {}) : null;
@@ -2862,13 +2876,22 @@ function boiteVerifierSemaine(forcer) {
                     return !!(snap && snap.exists);
                 }, function () { return false; })
             ]).then(function (lus) {
-                if (boiteSemaineARefaire(lus[0], lus[1], semaine)) boitePublierEmploi(false, true);
-                else boitePublierEmploi(false);
+                if (!boiteSemaineARefaire(lus[0], lus[1], semaine)) {
+                    /* À jour sur le serveur : la semaine est vérifiée. */
+                    boiteSemaineVerifiee = semaine;
+                    boitePublierEmploi(false);
+                    return null;
+                }
+                /* Fiche ou liaison absente : on renvoie, puis on relit le serveur.
+                   La semaine reste non vérifiée tant que le serveur ne confirme pas. */
+                boitePublierEmploi(false, true);
+                if (essai < 4) setTimeout(function () { boiteVerifierSemaine(true, essai + 1); }, 8000);
+                return null;
             });
         });
     }).catch(function () {
         /* Hors ligne ou refus : la prochaine vérification recommencera. */
-        boiteSemaineVerifiee = '';
+        return boiteReessayerSemaine(forcer, essai);
     });
 }
 

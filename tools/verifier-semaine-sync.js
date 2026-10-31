@@ -68,9 +68,11 @@ function docRef(nom, id) {
     };
 }
 const appels = [];
+const differes = [];
 const ctx = vm.createContext({
     console,
     window: {},
+    setTimeout: (fn) => { differes.push(fn); return 0; },
     BOITE_EMPLOIS_SUSPENDUS: false,
     boiteNom: () => 'Ali',
     boiteFirebasePret: () => Promise.resolve({ uid: 'U1' }),
@@ -80,7 +82,7 @@ const ctx = vm.createContext({
     firebase: { firestore: () => ({ collection: (nom) => ({ doc: (id) => docRef(nom, id) }) }) },
     boiteSemaineVerifiee: ''
 });
-vm.runInContext(extraire(boite, 'boiteSemaineARefaire') + extraire(boite, 'boiteVerifierSemaine'), ctx);
+vm.runInContext(extraire(boite, 'boiteSemaineARefaire') + extraire(boite, 'boiteReessayerSemaine') + extraire(boite, 'boiteVerifierSemaine'), ctx);
 
 async function scenario(nom, sync, emploi, attendu) {
     for (const cle of Object.keys(store)) delete store[cle];
@@ -97,6 +99,37 @@ async function scenario(nom, sync, emploi, attendu) {
     await scenario('nouvelle semaine : renvoi forcé', { semaine: '2026-10-19' }, true, [false, true]);
     await scenario('fiche de la semaine absente : renvoi forcé', { semaine: '2026-10-26' }, false, [false, true]);
     await scenario('synchronisation absente : renvoi forcé', undefined, true, [false, true]);
+
+    /* Nom pas encore restauré : la semaine n'est pas marquée, puis l'envoi a lieu quand le nom arrive. */
+    {
+        const nomReel = ctx.boiteNom;
+        ctx.boiteNom = () => '';
+        store['synchronisation/U1'] = { semaine: '2026-10-26' };
+        store['emplois_du_temps/ID1'] = { z_donnees_techniques: { firebaseUid: 'U1' } };
+        appels.length = 0; differes.length = 0;
+        ctx.boiteSemaineVerifiee = '';
+        await ctx.boiteVerifierSemaine(false);
+        same(ctx.boiteSemaineVerifiee, '', 'nom absent : semaine non marquée');
+        same(appels.length, 0, 'nom absent : aucun envoi');
+        same(differes.length, 1, 'nom absent : réessai programmé');
+        ctx.boiteNom = nomReel;
+        const reessai = differes.shift();
+        reessai();
+        await new Promise(r => setTimeout(r, 20));
+        same(appels.map(a => a.slice(0, 2)), [[false]], 'nom arrivé : vérification faite');
+        same(ctx.boiteSemaineVerifiee, '2026-10-26', 'nom arrivé : semaine marquée');
+    }
+
+    /* Liaison absente : la semaine reste non marquée tant que le serveur ne confirme pas. */
+    {
+        ctx.boiteSemaineVerifiee = '';
+        appels.length = 0; differes.length = 0;
+        for (const cle of Object.keys(store)) delete store[cle];
+        await ctx.boiteVerifierSemaine(false);
+        same(ctx.boiteSemaineVerifiee, '', 'liaison absente : semaine non marquée');
+        same(appels.map(a => a.slice(0, 2)), [[false, true]], 'liaison absente : renvoi');
+        same(differes.length, 1, 'liaison absente : relecture programmée');
+    }
 
     /* Une seule vérification par semaine et par session, sauf à la connexion. */
     appels.length = 0;
