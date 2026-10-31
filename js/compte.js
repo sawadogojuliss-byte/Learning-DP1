@@ -1093,7 +1093,10 @@ function compteRestaurerTout(session, token, distantes, options) {
     compteMemoriserSession(session);
     compteMemoriserProprietaire(session);
     compteRevendiquerArchiveLocale(session);
-    var copies = compteCopiesLocales(session).concat(distantes);
+    /* nuageDeReference : la progression du nuage remplace la copie locale du même compte ;
+       les archives locales ne sont pas fusionnées (elles pourraient être plus anciennes). */
+    var archives = options.nuageDeReference ? [] : compteCopiesLocales(session);
+    var copies = archives.concat(distantes);
     if (vivant && comptePeutJoindreLocal(vivant, session)) copies.push(vivant);
     var choisi = compteFusionnerProfils(copies);
     if (choisi && compteUtile(choisi)) {
@@ -1104,7 +1107,7 @@ function compteRestaurerTout(session, token, distantes, options) {
         ? compteNuageFusionner(token).catch(function () { return 'echec'; })
         : Promise.resolve(choisi && compteUtile(choisi) ? 'local' : 'vide');
     return suite.then(function (etat) {
-        var apresCopies = compteCopiesLocales(session).concat(distantes);
+        var apresCopies = archives.concat(distantes);
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         if (courant && comptePeutJoindreLocal(courant, session)) apresCopies.push(courant);
         var apres = compteFusionnerProfils(apresCopies);
@@ -1384,8 +1387,11 @@ function compteRetrouverApresChargement(essai) {
     lireFirebase.then(function (doc) {
         return compteLireCopiesPartagees(session).then(function (distantes) {
             var firebaseCopie = compteProgressionFirebase(doc);
-            if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
-            if (distantes && distantes.length) return compteRestaurerTout(session, null, distantes, { silencieux: true });
+            if (firebaseCopie) {
+                compteBasculer(firebaseCopie, session);
+                distantes = [firebaseCopie];
+            }
+            if (distantes && distantes.length) return compteRestaurerTout(session, null, distantes, { silencieux: true, nuageDeReference: !!firebaseCopie });
             return 'local';
         });
     }).then(function () {
@@ -1625,8 +1631,13 @@ function compteOnCredential(resp) {
         return compteLireCopiesPartagees(session).then(function (distantes) {
             return compteFirebaseLireProgression(ouvert && ouvert.user).then(function (progDoc) {
                 var firebaseCopie = compteProgressionFirebase(progDoc);
-                if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
-                return compteRestaurerTout(session, null, distantes).then(function () {
+                /* À chaque connexion, la progression de progressions/{uid} est rechargée :
+                   elle remplace la copie locale de ce compte, même si la locale est plus riche. */
+                if (firebaseCopie) {
+                    compteBasculer(firebaseCopie, session);
+                    distantes = [firebaseCopie];
+                }
+                return compteRestaurerTout(session, null, distantes, firebaseCopie ? { nuageDeReference: true } : null).then(function () {
                     return ouvert;
                 });
             });
