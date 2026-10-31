@@ -430,8 +430,31 @@ function comptePageOuverte() {
 /* La classe (DP1/DP2) n'est jamais effacée par une copie reçue qui n'en a pas.
    Sans elle, le planning renvoie au choix de la classe et l'écran est sauvegardé.
    On garde la classe locale seulement si elle appartient au même compte. */
-function compteProfilSansClasse(data) {
-    return !!(data && data.profilComplet) && data.ibYear !== 'DP1' && data.ibYear !== 'DP2';
+/* Un profil complet a forcément une classe et des matières. Sans l'un des deux, la copie
+   est incomplète : elle ne doit jamais remplacer la bonne copie du nuage. */
+function compteProfilIncomplet(data) {
+    if (!data || !data.profilComplet) return false;
+    if (data.ibYear !== 'DP1' && data.ibYear !== 'DP2') return true;
+    return !(Array.isArray(data.subjects) && data.subjects.length);
+}
+
+/* Matières d'un profil complet reçu sans matières : on reprend celles du même compte
+   présentes sur cet appareil (copie locale ou archive), la plus complète. */
+function compteMatieresAGarder(data) {
+    if (!data || !data.profilComplet) return null;
+    if (Array.isArray(data.subjects) && data.subjects.length) return null;
+    var session = window.compteSession || {};
+    var sub = session.sub || (data.google && data.google.sub) || '';
+    if (!sub || typeof compteCopiesLocales !== 'function' || typeof memoireJson !== 'function') return null;
+    var candidats = [memoireJson(MEMOIRE_KEY)].concat(compteCopiesLocales({ sub: sub, email: session.email || '' }));
+    var meilleur = null;
+    candidats.forEach(function (c) {
+        if (!c || typeof c !== 'object' || c.efface) return;
+        if (compteProfilEtranger(c, sub)) return;
+        if (!Array.isArray(c.subjects) || !c.subjects.length) return;
+        if (!meilleur || c.subjects.length > meilleur.subjects.length) meilleur = c;
+    });
+    return meilleur;
 }
 
 function compteClasseAGarder(data) {
@@ -454,6 +477,13 @@ function compteAfficherProfil(data) {
     var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
     var classeGardee = compteClasseAGarder(data);
     if (classeGardee) data = Object.assign({}, data, { ibYear: classeGardee });
+    var matieresGardees = compteMatieresAGarder(data);
+    if (matieresGardees) {
+        data = Object.assign({}, data, {
+            subjects: matieresGardees.subjects,
+            optionalSubjects: (Array.isArray(data.optionalSubjects) && data.optionalSubjects.length) ? data.optionalSubjects : (matieresGardees.optionalSubjects || [])
+        });
+    }
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
@@ -1398,8 +1428,8 @@ function compteProgressionEnregistrer() {
     var data = null;
     try { data = memoireLireEtat(); } catch (e) { return; }
     if (!data || !compteUtile(data)) return;
-    /* Profil « complet » sans classe : copie cassée, jamais envoyée pour remplacer le nuage. */
-    if (compteProfilSansClasse(data)) return;
+    /* Profil « complet » sans classe ni matières : copie cassée, jamais envoyée pour remplacer le nuage. */
+    if (compteProfilIncomplet(data)) return;
     var neuve = compteSansDocuments(data);
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
@@ -1450,7 +1480,7 @@ function comptePublierProgression(session) {
     var data = null;
     try { data = memoireLireEtat(); } catch (e) { data = null; }
     if (!data || !compteUtile(data)) return Promise.resolve();
-    if (compteProfilSansClasse(data)) return Promise.resolve();
+    if (compteProfilIncomplet(data)) return Promise.resolve();
     data = compteEstampiller(compteSansDocuments(data), session);
     var nom = compteNomLie(session.sub);
     if (nom) data.userName = nom;
