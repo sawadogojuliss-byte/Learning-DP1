@@ -425,6 +425,8 @@ function boiteSemaineCle(date) {
 /* Identifiant stable de la fiche d'un élève pour une semaine : il ne révèle
    pas l'identifiant du compte, et ne change pas d'un envoi à l'autre. */
 function boiteIdEmploi(uid, semaine) {
+    /* Sans module de chiffrement : identifiant aléatoire (ancien comportement). */
+    if (typeof TextEncoder === 'undefined' || typeof crypto === 'undefined' || !crypto.subtle) return Promise.resolve('');
     var octets = new TextEncoder().encode('studyplan-emploi|' + uid + '|' + semaine);
     return crypto.subtle.digest('SHA-256', octets).then(function (buf) {
         return Array.prototype.map.call(new Uint8Array(buf), function (b) {
@@ -488,7 +490,17 @@ function boiteEcrireBoite(record) {
                         return documentEmploi.set(propre).then(function () { return ''; });
                     });
                 }
-                if (!id) return creer();
+                if (!id) {
+                    /* Sans identifiant stable : ancien envoi, avec l'accusé et la
+                       possibilité de repli sur l'ancienne collection. */
+                    var lot = db.batch();
+                    lot.set(documentEmploi, propre);
+                    lot.set(reception, { recu: true });
+                    return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
+                        if (!err || err.code !== 'permission-denied') throw err;
+                        return db.collection(collection).add(propre).then(function () { return ''; });
+                    });
+                }
                 return documentEmploi.get().then(function (snap) {
                     return snap && snap.exists ? mettreAJour() : creer();
                 }, function () {
