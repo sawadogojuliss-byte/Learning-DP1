@@ -319,6 +319,8 @@ function boiteEmploiDepuisDocument(item) {
     var technique = item.z_donnees_techniques || {};
     return Object.assign({}, technique, {
         type: 'emploi', id: item.id, at: item.at,
+        /* L'identifiant du document Firestore doit survivre à la conversion. */
+        docId: item.docId, docColl: item.docColl,
         nom: String(item['01_nom_utilisateur'] || ''),
         matieres: Array.isArray(item['02_matieres']) ? item['02_matieres'] : [],
         jours: Array.isArray(technique.jours) ? technique.jours : []
