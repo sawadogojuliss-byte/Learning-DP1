@@ -95,6 +95,7 @@ const firebase = {
         }
     }; }
 };
+firebase.firestore.FieldValue = { serverTimestamp: () => "horodatage" };
 const context = { console, Promise, Date: Horloge, JSON, Math, Object, Array, String, Number,
     setTimeout, clearTimeout, setInterval() { return 0; }, localStorage: storage, firebase,
     compteChargerFirebase() { return Promise.resolve(firebase); },

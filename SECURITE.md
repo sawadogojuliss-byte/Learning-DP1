@@ -10,8 +10,8 @@ Aucune explication de ce changement n'a été ajoutée aux pages des élèves.
 |---|---|---|
 | `questions` | Nouvelles questions posées dans Aide | Cinq comptes admins seulement |
 | `feedbacks` | Nouveaux avis et suggestions | Cinq comptes admins seulement |
-| `emplois_du_temps` | Semaines privées reçues et versions immuables ; conservation des archives | Cinq admins ; un élève connecté ne peut rechercher que ses propres semaines |
-| `receptions_emplois` | Accusés de réception sans nom ni créneaux | Lecture individuelle par ID aléatoire ; liste interdite |
+| `emplois_du_temps` | Une fiche par élève connecté, identifiée par son UID (même identifiant que `comptes` et `synchronisation`), remplacée à chaque changement et chaque semaine ; les élèves sans compte gardent un identifiant aléatoire ; anciennes fiches conservées | Cinq admins ; un élève connecté ne peut lire et modifier que sa propre fiche |
+| `receptions_emplois` | Accusés de réception sans nom ni créneaux ; identifiant aléatoire rangé dans la fiche privée (`z_donnees_techniques.accuse`) | Lecture individuelle par ID aléatoire ; liste interdite |
 | `reponses` | Traces des réponses envoyées | Cinq comptes admins seulement |
 | `emplois`, `profils`, `connexions` | Archives de la version précédente, seulement si ces collections ont reçu des données | Cinq comptes admins seulement |
 | `boite` | **Archives** reçues avant cette séparation ; anciens onglets encore ouverts peuvent aussi y écrire temporairement | Cinq comptes admins seulement |

@@ -370,7 +370,8 @@ function boiteEmploiDepuisDocument(item) {
         docId: item.docId, docColl: item.docColl,
         nom: String(item['01_nom_utilisateur'] || ''),
         matieres: Array.isArray(item['02_matieres']) ? item['02_matieres'] : [],
-        jours: Array.isArray(technique.jours) ? technique.jours : []
+        jours: Array.isArray(technique.jours) ? technique.jours : [],
+        semaine: technique.semaine || ''
     });
 }
 
@@ -471,15 +472,20 @@ function boiteSemaineCle(date) {
 
 /* Identifiant stable de la fiche d'un élève pour une semaine : il ne révèle
    pas l'identifiant du compte, et ne change pas d'un envoi à l'autre. */
-function boiteIdEmploi(uid, semaine) {
-    /* Sans module de chiffrement : identifiant aléatoire (ancien comportement). */
-    if (typeof TextEncoder === 'undefined' || typeof crypto === 'undefined' || !crypto.subtle) return Promise.resolve('');
-    var octets = new TextEncoder().encode('studyplan-emploi|' + uid + '|' + semaine);
-    return crypto.subtle.digest('SHA-256', octets).then(function (buf) {
-        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
-            return ('0' + b.toString(16)).slice(-2);
-        }).join('').slice(0, 40);
-    });
+function boiteIdEmploi(uid) {
+    /* Identifiant de la fiche = UID de l'élève : le même que comptes/{uid}
+       et synchronisation/{uid}. Une seule fiche par élève, remplacée chaque semaine. */
+    return Promise.resolve(uid ? String(uid) : '');
+}
+
+/* Identifiant aléatoire de l'accusé de réception : jamais l'UID. */
+function boiteNouvelIdentifiant() {
+    var octets = new Uint8Array(20);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(octets);
+    else for (var k = 0; k < octets.length; k++) octets[k] = Math.floor(Math.random() * 256);
+    return Array.prototype.map.call(octets, function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+    }).join('');
 }
 
 /* Vrai si l'administration a supprimé la fiche de cette semaine. La trace
@@ -527,56 +533,67 @@ function boiteEcrireBoite(record) {
         if (collection === 'emplois_du_temps') {
             var db = firebase.firestore();
             var semaine = boiteSemaineCle(maintenant);
-            /* Une seule fiche par élève et par semaine, mise à jour à chaque
-               changement. Sans identifiant (navigateur sans chiffrement) : ancien envoi. */
-            var identifiant = user && user.uid ? boiteIdEmploi(user.uid, semaine) : Promise.resolve('');
-            return identifiant.then(function (id) {
-                var documentEmploi = id ? db.collection(collection).doc(id) : db.collection(collection).doc();
-                var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
-                if (!id) {
-                    var lot = db.batch();
-                    lot.set(documentEmploi, propre);
-                    lot.set(reception, { recu: true });
-                    return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
-                        if (!err || err.code !== 'permission-denied') throw err;
-                        return db.collection(collection).add(propre).then(function () { return ''; });
-                    });
-                }
-                var synchro = db.collection('synchronisation').doc(user.uid);
-                function lire(ref) {
-                    return ref.get().then(function (snap) {
-                        return snap && snap.exists ? (snap.data() || {}) : null;
-                    }, function () { return null; });
-                }
-                function envoyer(creation) {
-                    var syncDoc = {
-                        uid: user.uid,
-                        semaine: semaine,
-                        emploi: documentEmploi.id,
-                        misAJourLe: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    var envoi = db.batch();
-                    envoi.set(documentEmploi, propre);
-                    if (creation) envoi.set(reception, { recu: true });
-                    envoi.set(synchro, syncDoc, { merge: true });
-                    return envoi.commit().then(function () { return documentEmploi.id; }, function (err) {
-                        if (!err || err.code !== 'permission-denied') throw err;
-                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
-                            if (supprimee) return id;
-                            /* Anciennes règles, sans synchronisation : l'emploi seul reste accepté. */
-                            console.warn('Liaison de la semaine non écrite : fiche seule envoyée', err);
-                            return documentEmploi.set(propre).then(function () { return creation ? '' : documentEmploi.id; });
-                        });
-                    });
-                }
-                return Promise.all([lire(documentEmploi), lire(synchro)]).then(function (lus) {
-                    var garde = boiteEffacementGarde(lus[1], lus[0]);
-                    if (garde) {
-                        propre.z_donnees_techniques.effaceParEleve = true;
-                        propre.z_donnees_techniques.effaceLe = garde.effaceLe;
-                    }
-                    return envoyer(!lus[0]);
+            propre.z_donnees_techniques.semaine = semaine;
+            if (!user || !user.uid) {
+                /* Élève sans compte Google : pas d'UID, donc pas de compte à relier.
+                   Sa fiche garde un identifiant aléatoire, comme avant. */
+                var sansCompte = db.collection(collection).doc();
+                var lotSansCompte = db.batch();
+                lotSansCompte.set(sansCompte, propre);
+                lotSansCompte.set(db.collection('receptions_emplois').doc(sansCompte.id), { recu: true });
+                return lotSansCompte.commit().then(function () { return sansCompte.id; }, function (err) {
+                    if (!err || err.code !== 'permission-denied') throw err;
+                    return db.collection(collection).add(propre).then(function () { return ''; });
                 });
+            }
+            /* Élève connecté : une seule fiche, identifiée par son UID (comme comptes/{uid}
+               et synchronisation/{uid}). Elle est remplacée à chaque changement et chaque semaine. */
+            var id = user.uid;
+            var documentEmploi = db.collection(collection).doc(id);
+            var synchro = db.collection('synchronisation').doc(id);
+            function lire(ref) {
+                return ref.get().then(function (snap) {
+                    return snap && snap.exists ? (snap.data() || {}) : null;
+                }, function () { return null; });
+            }
+            /* accuse : identifiant aléatoire du document receptions_emplois. Il est
+               rangé dans la fiche privée, et l'accusé est créé dans le même lot. */
+            function envoyer(creation, accuse) {
+                propre.z_donnees_techniques.accuse = accuse;
+                var reception = db.collection('receptions_emplois').doc(accuse);
+                var syncDoc = {
+                    uid: id,
+                    semaine: semaine,
+                    emploi: id,
+                    misAJourLe: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                var envoi = db.batch();
+                envoi.set(documentEmploi, propre);
+                if (creation) envoi.set(reception, { recu: true });
+                envoi.set(synchro, syncDoc, { merge: true });
+                return envoi.commit().then(function () { return accuse; }, function (err) {
+                    if (!err || err.code !== 'permission-denied') throw err;
+                    return boiteSemaineSupprimee(db, id + '_' + semaine).then(function (supprimee) {
+                        /* Semaine supprimée par l'administration : elle n'est pas recréée. */
+                        if (supprimee) return accuse;
+                        /* Anciennes règles, sans synchronisation ni accusé : la fiche seule reste
+                           acceptée, et l'écriture suivante créera l'accusé. */
+                        console.warn('Liaison de la semaine non écrite : fiche seule envoyée', err);
+                        var repli = creation ? '' : accuse;
+                        propre.z_donnees_techniques.accuse = repli;
+                        return documentEmploi.set(propre).then(function () { return repli; });
+                    });
+                });
+            }
+            return Promise.all([lire(documentEmploi), lire(synchro)]).then(function (lus) {
+                var garde = boiteEffacementGarde(lus[1], lus[0]);
+                if (garde) {
+                    propre.z_donnees_techniques.effaceParEleve = true;
+                    propre.z_donnees_techniques.effaceLe = garde.effaceLe;
+                }
+                var accuseActuel = lus[0] && lus[0].z_donnees_techniques ? lus[0].z_donnees_techniques.accuse : '';
+                var creation = !accuseActuel;
+                return envoyer(creation, creation ? boiteNouvelIdentifiant() : accuseActuel);
             });
         }
         return firebase.firestore().collection(collection).add(propre).then(function () { return true; });
@@ -1112,10 +1129,14 @@ function boiteSupprimerEmploi(ids) {
             var i = String(ref).indexOf('/');
             var collection = String(ref).slice(0, i);
             if (i < 1 || autorisees.indexOf(collection) === -1) throw new Error('reference');
-            lot.delete(firebase.firestore().collection(collection).doc(String(ref).slice(i + 1)));
-            /* Trace : l'élève ne recrée pas cette semaine après la suppression. */
+            var morceaux = String(ref).split('#');
+            var identifiant = morceaux[0].slice(i + 1);
+            lot.delete(firebase.firestore().collection(collection).doc(identifiant));
+            /* Trace par semaine : l'élève ne recrée pas cette semaine après la suppression,
+               mais il reçoit une fiche la semaine suivante. */
             if (collection === 'emplois_du_temps') {
-                lot.set(firebase.firestore().collection('suppressions_emplois').doc(String(ref).slice(i + 1)),
+                var cleTrace = morceaux[1] ? identifiant + '_' + morceaux[1] : identifiant;
+                lot.set(firebase.firestore().collection('suppressions_emplois').doc(cleTrace),
                     { supprime: true, at: new Date().toISOString() });
             }
         });
@@ -1184,7 +1205,11 @@ function boiteIdsDocs(item) {
     if (!item) return [];
     if (Array.isArray(item.docRefs) && item.docRefs.length) return item.docRefs.slice();
     if (!item.docId) return [];
-    return [(item.docColl || 'emplois_du_temps') + '/' + String(item.docId)];
+    var coll = item.docColl || 'emplois_du_temps';
+    var reference = coll + '/' + String(item.docId);
+    /* La semaine suit la référence, pour que la suppression trace la bonne semaine. */
+    if (coll === 'emplois_du_temps' && item.semaine) reference += '#' + String(item.semaine);
+    return [reference];
 }
 
 function boiteJoindrePersonne(a, b) {

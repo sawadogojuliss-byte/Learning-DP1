@@ -86,10 +86,11 @@ service cloud.firestore {
       allow create: if ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
-    /* Une fiche par élève et par semaine : seul son propriétaire la met à jour. Les admins lisent toutes les
-       versions ; un compte connecté ne peut vérifier QUE ses propres
-       documents via une requête filtrée par son UID. Jamais de lecture
-       d'emplois d'un autre élève, ni de liste publique. */
+    /* Une fiche par élève, identifiée par son UID (même identifiant que comptes/{uid}
+       et synchronisation/{uid}), remplacée chaque semaine : seul son propriétaire la
+       met à jour. Les admins lisent toutes les fiches ; un compte connecté ne peut
+       vérifier QUE ses propres documents via une requête filtrée par son UID. Jamais
+       de lecture d'emplois d'un autre élève, ni de liste publique. */
     function emploiValide() {
       return request.resource.data.keys().hasAll([
                'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
@@ -101,6 +102,13 @@ service cloud.firestore {
            ])
         /* Sous-section « Semaine actuelle » (titre du calendrier) : dates de la semaine,
            mises à jour chaque lundi. Absente des anciennes fiches : elles restent valides. */
+        /* Semaine de la fiche (AAAA-MM-JJ, lundi) et identifiant de l'accusé : absents des anciennes fiches. */
+        && (!('semaine' in request.resource.data.z_donnees_techniques)
+            || (request.resource.data.z_donnees_techniques.semaine is string
+                && request.resource.data.z_donnees_techniques.semaine.size() <= 10))
+        && (!('accuse' in request.resource.data.z_donnees_techniques)
+            || (request.resource.data.z_donnees_techniques.accuse is string
+                && request.resource.data.z_donnees_techniques.accuse.size() <= 60))
         && (!('Semaine actuelle' in request.resource.data)
             || (request.resource.data['Semaine actuelle'] is map
                 && request.resource.data['Semaine actuelle'].dates is string
@@ -145,38 +153,56 @@ service cloud.firestore {
       allow list: if estAdmin() || (request.auth != null
         && request.query.limit <= 1
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
-      allow create: if emploiValide()
-        && !exists(/databases/$(database)/documents/suppressions_emplois/$(message));
-      /* Mise à jour de sa propre fiche de semaine, à chaque changement. */
+      /* Création seulement pour soi-même, et seulement si l'administration n'a pas
+         supprimé cette semaine-là (trace par semaine : UID_AAAA-MM-JJ). */
+      allow create: if (request.auth != null
+          && message == request.auth.uid
+          && request.resource.data.z_donnees_techniques.semaine is string
+          && emploiValide()
+          && !exists(/databases/$(database)/documents/suppressions_emplois/$(message + '_' + request.resource.data.z_donnees_techniques.semaine)))
+        /* Élève sans compte Google : identifiant aléatoire, fiche sans UID (comme avant). */
+        || (request.auth == null
+          && emploiValide()
+          && !exists(/databases/$(database)/documents/suppressions_emplois/$(message)));
+      /* Mise à jour de sa propre fiche, à chaque changement et chaque semaine. */
       allow update: if request.auth != null
+        && message == request.auth.uid
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
         && emploiValide();
       /* Suppression réservée aux cinq admins, depuis le bouton de la vue admin. */
       allow delete: if estAdmin();
     }
-    /* Accusé sans nom, UID ni créneaux. Son ID aléatoire est le même que
-       celui du document privé ; seule une écriture atomique des DEUX
-       documents peut créer un accusé. Un visiteur peut connaître la
-       réception avec son ID, jamais parcourir la collection ni lire la
-       semaine privée. Les archives anciennes ne sont pas modifiées. */
+    /* Accusé sans nom, UID ni créneaux. Son identifiant est aléatoire : il est rangé
+       dans la fiche privée (z_donnees_techniques.accuse), et seule une écriture atomique
+       de la fiche et de l'accusé peut le créer. Un visiteur peut connaître la réception
+       avec son identifiant, jamais parcourir la collection ni lire la semaine privée. */
     match /receptions_emplois/{message} {
       allow get: if true;
       allow list: if false;
       allow create: if request.resource.data.keys().hasOnly(['recu'])
         && request.resource.data.keys().hasAll(['recu'])
         && request.resource.data.recu == true
-        && !exists(/databases/$(database)/documents/emplois_du_temps/$(message))
-        && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(message))
-        && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.type == 'emploi'
-        && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.z_donnees_techniques.firebaseUid
-          == (request.auth != null ? request.auth.uid : '');
+        && !exists(/databases/$(database)/documents/receptions_emplois/$(message))
+        && (
+          (request.auth != null
+            && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid))
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.type == 'emploi'
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.z_donnees_techniques.firebaseUid
+              == request.auth.uid
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.z_donnees_techniques.accuse
+              == message)
+          || (request.auth == null
+            && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(message))
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.type == 'emploi'
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.z_donnees_techniques.firebaseUid == ''));
       allow update, delete: if false;
     }
     /* Trace d'une suppression faite par un admin : la fiche de cette semaine ne
        peut plus être recréée par l'élève. Lecture par identifiant seulement,
        jamais de liste. Personne ne peut la modifier ni l'effacer. */
     match /suppressions_emplois/{message} {
-      allow get: if true;
+      /* Lecture par l'élève seulement pour ses propres traces (UID_semaine), et par l'admin. */
+      allow get: if estAdmin() || (request.auth != null && message.split('_')[0] == request.auth.uid);
       allow list: if false;
       allow create: if estAdmin()
         && request.resource.data.keys().hasOnly(['supprime', 'at'])

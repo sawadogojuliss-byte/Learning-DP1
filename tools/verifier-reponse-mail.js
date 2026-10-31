@@ -105,6 +105,7 @@ const fauxFirebase = {
             } };
     } }; }
 };
+fauxFirebase.firestore.FieldValue = { serverTimestamp: () => "horodatage" };
 
 const context = {
     console: console,
