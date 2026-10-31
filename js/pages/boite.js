@@ -210,6 +210,16 @@ var boiteDernierScanComplet = Object.create(null);
 /* Les anciens messages ont « at » au premier niveau ; les nouveaux ont
    la même date dans le seul groupe technique. On lit les deux formats sans
    modifier l'historique et sans exposer la boîte aux non-admins. */
+/* Fiches d'emploi retirées de la vue du site uniquement, par identifiant du
+   document Firestore. Le document n'est ni modifié ni supprimé. */
+var BOITE_DOCS_MASQUES = {
+    JN4wP5IN9cIr6wSjiO4q: 1
+};
+
+function boiteDocMasque(nom, id) {
+    return nom === 'emplois_du_temps' && !!BOITE_DOCS_MASQUES[String(id || '')];
+}
+
 function boiteLireCollection(nom, depuis, max, champDate) {
     var date = champDate || 'at';
     var base = firebase.firestore().collection(nom);
@@ -218,6 +228,7 @@ function boiteLireCollection(nom, depuis, max, champDate) {
         .then(function (snap) {
             var out = [];
             snap.forEach(function (doc) {
+                if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) out.push(data);
             });
@@ -238,6 +249,7 @@ function boiteLireCollectionHistorique(nom, champDate, depuis) {
         if (apres) q = q.startAfter(apres);
         return q.limit(400).get().then(function (snap) {
             snap.forEach(function (doc) {
+                if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) out.push(data);
             });
