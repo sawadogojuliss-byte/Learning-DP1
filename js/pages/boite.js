@@ -1052,11 +1052,11 @@ function boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) {
     var cle = boiteEchap(ids.join(','));
     if (boiteEmploiConfirmer === ids.join(',')) {
         return '<div style="text-align:right;max-width:20rem;margin-left:auto;">'
-            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#7f1d1d;">Supprimer définitivement cet emploi du temps de la base ?</p>'
-            + '<button type="button" data-emploi-confirmer="' + cle + '" style="margin:0 0.3rem 0 0;padding:0.5rem 0.9rem;border:1px solid #b91c1c;border-radius:0.6rem;background:#b91c1c;color:#fff;font-weight:700;cursor:pointer;">Oui, supprimer</button>'
+            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#256444;">Supprimer définitivement cet emploi du temps de la base ?</p>'
+            + '<button type="button" data-emploi-confirmer="' + cle + '" style="margin:0 0.3rem 0 0;padding:0.5rem 0.9rem;border:1px solid #047857;border-radius:0.6rem;background:#047857;color:#fff;font-weight:700;cursor:pointer;">Oui, supprimer</button>'
             + '<button type="button" data-emploi-annuler="1" style="padding:0.5rem 0.9rem;border:1px solid #d1d5db;border-radius:0.6rem;background:#fff;color:#374151;font-weight:700;cursor:pointer;">Annuler</button></div>';
     }
-    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer l’emploi du temps</button>';
+    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #047857;border-radius:0.6rem;background:#e1f3e8;color:#256444;font-weight:700;cursor:pointer;">Supprimer l’emploi du temps</button>';
 }
 
 /* Tous les documents qui composent une semaine (un emploi peut être envoyé en plusieurs morceaux). */
