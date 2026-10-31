@@ -1300,6 +1300,7 @@ function comptePublierMorceaux(session, data) {
    localement ne touche pas au nuage. */
 var compteProgressionTimer = null;
 var compteProgressionDerniere = '';
+var compteDocumentsDerniers = '';
 function compteProgressionPlanifier() {
     if (window.compteRestaurationEnCours) return;
     if (!window.compteSession || !window.compteSession.sub) return;
@@ -1322,17 +1323,44 @@ function compteProgressionEnregistrer() {
     var neuve = compteSansDocuments(data);
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
-    if (empreinte === compteProgressionDerniere) return;
+    var docsTexte = JSON.stringify(Array.isArray(data.iaDocs) ? data.iaDocs : []);
+    var progressionChangee = empreinte !== compteProgressionDerniere;
+    /* Documents vides : jamais écrits ici, pour ne pas effacer ceux du nuage. */
+    var documentsChanges = docsTexte !== compteDocumentsDerniers && docsTexte !== '[]';
+    if (!progressionChangee && !documentsChanges) return;
     var nom = compteNomLie(window.compteSession.sub) || '';
     if (nom) neuve.userName = nom;
-    firebase.firestore().collection('progressions').doc(user.uid).set({
-        /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
-           emploiFige.jours). Une écriture refusée restait silencieuse. compteProgressionFirebase relit le texte. */
-        progression: JSON.stringify(neuve),
-        progressionLe: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true }).then(function () {
-        compteProgressionDerniere = empreinte;
-    }).catch(function (err) { console.warn('Progression non enregistrée', err); });
+    var db = firebase.firestore();
+    var ecritures = [];
+    if (progressionChangee) {
+        ecritures.push(db.collection('progressions').doc(user.uid).set({
+            /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
+               emploiFige.jours). compteProgressionFirebase relit le texte. */
+            progression: JSON.stringify(neuve),
+            progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            compteProgressionDerniere = empreinte;
+        }));
+    }
+    if (documentsChanges) {
+        ecritures.push(db.collection('documents').doc(user.uid).set({
+            iaDocs: docsTexte,
+            documentsLe: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            compteDocumentsDerniers = docsTexte;
+        }));
+    }
+    Promise.all(ecritures).catch(function (err) { console.warn('Progression non enregistrée', err); });
+}
+
+/* Documents IA de l'élève : collection documents/{uid}, texte JSON, même UID. */
+function compteFirebaseLireDocuments(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve([]);
+    return firebase.firestore().collection('documents').doc(user.uid).get().then(function (snap) {
+        if (!snap || !snap.exists) return [];
+        var liste = JSON.parse((snap.data() || {}).iaDocs || '[]');
+        return Array.isArray(liste) ? liste : [];
+    }).catch(function () { return []; });
 }
 
 function comptePublierProgression(session) {
@@ -1385,8 +1413,11 @@ function compteRetrouverApresChargement(essai) {
         });
     }).catch(function () { return null; });
     lireFirebase.then(function (doc) {
-        return compteLireCopiesPartagees(session).then(function (distantes) {
+        var utilisateur = window.firebase && firebase.auth ? firebase.auth().currentUser : null;
+        return Promise.all([compteLireCopiesPartagees(session), compteFirebaseLireDocuments(utilisateur)]).then(function (lus) {
+            var distantes = lus[0];
             var firebaseCopie = compteProgressionFirebase(doc);
+            if (firebaseCopie && lus[1].length) firebaseCopie.iaDocs = lus[1];
             if (firebaseCopie) {
                 compteBasculer(firebaseCopie, session);
                 distantes = [firebaseCopie];
@@ -1573,6 +1604,12 @@ function compteFirebaseEcrire(user, nom, data) {
                 }, { merge: true }));
             }
         }
+        if (data && Array.isArray(data.iaDocs) && data.iaDocs.length) {
+            ecritures.push(firebase.firestore().collection('documents').doc(user.uid).set({
+                iaDocs: JSON.stringify(data.iaDocs),
+                documentsLe: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }));
+        }
         return Promise.all(ecritures);
     }).catch(function () {});
 }
@@ -1629,8 +1666,9 @@ function compteOnCredential(resp) {
     window.compteRestaurationEnCours = true;
     compteFirebaseOuvrir(session, resp.credential).then(function (ouvert) {
         return compteLireCopiesPartagees(session).then(function (distantes) {
-            return compteFirebaseLireProgression(ouvert && ouvert.user).then(function (progDoc) {
-                var firebaseCopie = compteProgressionFirebase(progDoc);
+            return Promise.all([compteFirebaseLireProgression(ouvert && ouvert.user), compteFirebaseLireDocuments(ouvert && ouvert.user)]).then(function (lus) {
+                var firebaseCopie = compteProgressionFirebase(lus[0]);
+                if (firebaseCopie && lus[1].length) firebaseCopie.iaDocs = lus[1];
                 /* À chaque connexion, la progression de progressions/{uid} est rechargée :
                    elle remplace la copie locale de ce compte, même si la locale est plus riche. */
                 if (firebaseCopie) {
