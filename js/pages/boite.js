@@ -985,8 +985,6 @@ function boiteNomUtile(item) {
 function boiteSupprimerEmploi(ids) {
     ids = (ids || []).filter(function (id) { return !!id; });
     if (!boiteEstAdmin() || !ids.length) return;
-    if (!window.confirm('Supprimer définitivement cette semaine de la base ? Cette action est irréversible.')) return;
-    if (!window.confirm('Dernière confirmation : la fiche de cette semaine sera effacée. Continuer ?')) return;
     boiteFirebasePret().then(function (user) {
         if (!user) throw new Error('connexion');
         var lot = firebase.firestore().batch();
@@ -1033,6 +1031,22 @@ function boiteRichesseEmploi(item) {
     var n = 0;
     (item && item.jours || []).forEach(function (jour) { n += (jour && jour.s ? jour.s.length : 0); });
     return n;
+}
+
+/* Bouton « Supprimer le planning » (admins) : remplace l'étiquette « Semaine reçue »
+   quand la semaine a un identifiant. Une validation est demandée avant d'agir. */
+function boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) {
+    var ids = boiteIdsDocs(semaine);
+    var etiquette = '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span>';
+    if (!boiteEstAdmin() || !aSemaine || !ids.length) return etiquette;
+    var cle = boiteEchap(ids.join(','));
+    if (boiteEmploiConfirmer === ids.join(',')) {
+        return '<div style="text-align:right;max-width:20rem;margin-left:auto;">'
+            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#7f1d1d;">Supprimer définitivement ce planning de la base ?</p>'
+            + '<button type="button" data-emploi-confirmer="' + cle + '" style="margin:0 0.3rem 0 0;padding:0.5rem 0.9rem;border:1px solid #b91c1c;border-radius:0.6rem;background:#b91c1c;color:#fff;font-weight:700;cursor:pointer;">Oui, supprimer</button>'
+            + '<button type="button" data-emploi-annuler="1" style="padding:0.5rem 0.9rem;border:1px solid #d1d5db;border-radius:0.6rem;background:#fff;color:#374151;font-weight:700;cursor:pointer;">Annuler</button></div>';
+    }
+    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer le planning</button>';
 }
 
 /* Tous les documents qui composent une semaine (un emploi peut être envoyé en plusieurs morceaux). */
@@ -1925,6 +1939,8 @@ function boiteRepondre(questionId, origine, forcer) {
    les copies confirmées entrent dans les détails de la page admin. */
 var boiteEmploiSelection = '';
 var boiteEmploiVersion = '';
+/* Semaine dont la suppression attend une validation (identifiants joints). */
+var boiteEmploiConfirmer = '';
 var boiteEmploiFiltre = 'tous';
 var boiteEmploisAffiches = [];
 var boiteEmploisVersionsAffichees = [];
@@ -2061,12 +2077,8 @@ function boiteRendreEmplois(fusion) {
             : '<div class="emploi-atelier-encart"><strong>Versions reçues</strong>Aucune semaine n’a encore été reçue pour cette personne.</div>';
         if (detail) detail.innerHTML = '<div class="emploi-atelier-fiche-entete"><div><p class="emploi-atelier-fiche-eyebrow">PLANNING PRIVÉ · VUE ADMIN</p>'
             + '<h3>' + nomAffiche + '</h3><p class="emploi-atelier-meta">' + meta + '</p></div>'
-            + '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span></div>'
+            + boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) + '</div>'
             + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
-            + (boiteEstAdmin() && aSemaine && boiteIdsDocs(semaine).length
-                ? '<div class="emploi-atelier-encart"><strong>Supprimer ce planning</strong>Cette semaine sera effacée de la base. Action irréversible.<br>'
-                  + '<button type="button" data-emploi-supprimer="' + boiteEchap(boiteIdsDocs(semaine).join(',')) + '" style="margin-top:0.5rem;padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer ce planning</button></div>'
-                : '')
             + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
             + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
             + '<div class="emploi-atelier-pied"><div class="emploi-atelier-encart"><strong>Lecture fidèle</strong>Seuls les créneaux effectivement reçus sont présentés. Une lecture incomplète est signalée, jamais complétée par des cours supposés.</div>'
@@ -2198,18 +2210,33 @@ function boiteBrancherAdmin() {
         if (!bouton || !Number.isInteger(numero) || !boiteEmploisAffiches[numero]) return;
         boiteEmploiSelection = boiteCleAfficheEmploi(boiteEmploisAffiches[numero]);
         boiteEmploiVersion = '';
+        boiteEmploiConfirmer = '';
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
     });
     var detailEmplois = document.getElementById('emploisDetail');
     if (detailEmplois) detailEmplois.addEventListener('click', function (e) {
         var supprimer = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer]') : null;
-        if (supprimer) { boiteSupprimerEmploi(supprimer.getAttribute('data-emploi-supprimer').split(',')); return; }
+        var demande = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer-demande]') : null;
+        var confirme = e.target && e.target.closest ? e.target.closest('[data-emploi-confirmer]') : null;
+        var annule = e.target && e.target.closest ? e.target.closest('[data-emploi-annuler]') : null;
+        if (demande || confirme || annule) {
+            if (demande) boiteEmploiConfirmer = demande.getAttribute('data-emploi-supprimer-demande');
+            if (annule) boiteEmploiConfirmer = '';
+            if (confirme) {
+                boiteEmploiConfirmer = '';
+                boiteSupprimerEmploi(confirme.getAttribute('data-emploi-confirmer').split(','));
+                return;
+            }
+            if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+            return;
+        }
         var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-version]') : null;
         if (!bouton) return;
         var cle = bouton.getAttribute('data-emploi-version');
         var numero = Number(cle);
         if (cle !== 'courante' && (!Number.isInteger(numero) || !boiteEmploisVersionsAffichees[numero])) return;
         boiteEmploiVersion = cle === 'courante' ? '' : boiteCleVersionEmploi(boiteEmploisVersionsAffichees[numero]);
+        boiteEmploiConfirmer = '';
         if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
         if (boiteEmploiVersion) {
             var historique = detailEmplois.querySelector('.emploi-atelier-historique');
