@@ -1670,16 +1670,52 @@ function compteDeconnecter() {
     if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Le nom et l’emploi du temps restent liés à ce compte.', 'info');
 }
 
-function compteExporter() {
-    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
-    var brut = localStorage.getItem(MEMOIRE_KEY) || '{}';
-    var blob = new Blob([brut], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'study-plan-ib-progression.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+function compteImprimerSemaine() {
+    var bouton = document.querySelector('#compteOutils button[onclick="compteImprimerSemaine()"]');
+    if (bouton && bouton.disabled) return;
+    var libelle = 'Imprimer mon emploi du temps de la semaine';
+    if (bouton) {
+        bouton.disabled = true;
+        bouton.textContent = 'Préparation…';
+    }
+    var polices = Promise.resolve();
+    if (document.fonts && document.fonts.load) {
+        polices = Promise.all([
+            document.fonts.load('700 15px Inter'),
+            document.fonts.load('800 13px Inter'),
+            document.fonts.ready
+        ]).catch(function () { return null; });
+    }
+    polices.then(exportChargerLogo).then(function (logo) {
+        return exportDessinerSemaine(logo).toDataURL('image/png');
+    }).then(function (url) {
+        var ancienne = document.getElementById('impressionSemaine');
+        if (ancienne) ancienne.parentNode.removeChild(ancienne);
+        var zone = document.createElement('div');
+        zone.id = 'impressionSemaine';
+        var image = new Image();
+        image.alt = 'Emploi du temps de la semaine';
+        image.src = url;
+        zone.appendChild(image);
+        document.body.appendChild(zone);
+        var retirer = function () {
+            var z = document.getElementById('impressionSemaine');
+            if (z) z.parentNode.removeChild(z);
+            window.removeEventListener('afterprint', retirer);
+        };
+        window.addEventListener('afterprint', retirer);
+        var lancer = function () { window.print(); };
+        if (image.decode) image.decode().then(lancer, lancer);
+        else lancer();
+    }).catch(function (e) {
+        console.error(e);
+        if (typeof v3Toast === 'function') v3Toast('L’impression n’a pas pu être préparée.', 'info');
+    }).then(function () {
+        if (bouton) {
+            bouton.disabled = false;
+            bouton.textContent = libelle;
+        }
+    });
 }
 
 function compteImporterFichier(input) {

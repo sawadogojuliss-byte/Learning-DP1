@@ -1422,14 +1422,3 @@ body.v3-deplacement, body.v3-deplacement * {
 }
 
 
-/* Impression du planning du jour : noir sur blanc, sans les boutons. */
-#impressionJour { display: none; }
-@media print {
-    @page { margin: 15mm; }
-    body > * { display: none !important; }
-    #impressionJour { display: block !important; position: static !important; color: #000 !important; background: #fff !important; font-family: Arial, Helvetica, sans-serif; }
-    #impressionJour * { color: #000 !important; background: #fff !important; box-shadow: none !important; text-shadow: none !important; border-color: #000 !important; border-radius: 0 !important; }
-    #impressionJour h2 { font-size: 16pt; margin: 0 0 4pt; }
-    #impressionJour > p { font-size: 11pt; margin: 0 0 10pt; }
-    #impressionJour button, #impressionJour input, #impressionJour select, #impressionJour textarea { display: none !important; }
-}

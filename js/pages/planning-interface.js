@@ -1629,38 +1629,3 @@ if (typeof document !== 'undefined') {
 }
 
 
-/* Feuille d'impression du planning du jour affiché (en noir sur blanc).
-   La zone est copiée à côté du site, puis seule cette zone s'imprime. */
-function planningImprimerJour() {
-    var source = document.getElementById('eventsContainer');
-    var date = document.getElementById('planningJourDate');
-    var ancienne = document.getElementById('impressionJour');
-    if (ancienne) ancienne.parentNode.removeChild(ancienne);
-
-    var zone = document.createElement('div');
-    zone.id = 'impressionJour';
-    var titre = document.createElement('h2');
-    titre.textContent = 'Studyplan — planning du jour';
-    var sousTitre = document.createElement('p');
-    sousTitre.textContent = date ? date.textContent.trim() : '';
-    var contenu = document.createElement('div');
-    contenu.innerHTML = source ? source.innerHTML : '';
-    contenu.querySelectorAll('[id]').forEach(function (el) { el.removeAttribute('id'); });
-    if (!contenu.textContent.trim()) {
-        var vide = document.createElement('p');
-        vide.textContent = 'Aucune activité prévue ce jour.';
-        contenu.appendChild(vide);
-    }
-    zone.appendChild(titre);
-    zone.appendChild(sousTitre);
-    zone.appendChild(contenu);
-    document.body.appendChild(zone);
-
-    var retirer = function () {
-        var z = document.getElementById('impressionJour');
-        if (z) z.parentNode.removeChild(z);
-        window.removeEventListener('afterprint', retirer);
-    };
-    window.addEventListener('afterprint', retirer);
-    window.print();
-}

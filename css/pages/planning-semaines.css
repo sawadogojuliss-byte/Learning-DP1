@@ -11,7 +11,6 @@
 #planningModal .planning-semaine-actions #planningAujourdhui { font: 750 .75rem/1.2 Inter, system-ui, sans-serif; padding: 0 .7rem; white-space: nowrap; }
 #planningModal .planning-semaine-actions button[hidden], #planningModal .planning-semaine-sousbar button[hidden] { display: none; }
 #planningModal .planning-semaine-sousbar { display: flex; align-items: center; justify-content: space-between; gap: .4rem; min-height: 1.8rem; margin: .35rem 0 .1rem; font-size: .76rem; color: #4b5563; font-weight: 650; }
-#planningModal #planningImprimerJour { border: 1px solid #d1d5db; background: #fff; color: #374151; padding: .4rem .55rem; border-radius: .55rem; font: 750 .72rem Inter, system-ui, sans-serif; cursor: pointer; }
 #planningModal #planningMinuteurEntete { border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; padding: .4rem .55rem; border-radius: .55rem; font: 750 .72rem Inter, system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
 #planningModal .planning-jours { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: .35rem; }
 #planningModal .planning-jour { min-width: 0; min-height: 3.5rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; background: #fff; border: 1px solid #d1fae5; border-radius: .75rem; color: #111827; cursor: pointer; font-family: Inter, system-ui, sans-serif; }

@@ -224,3 +224,12 @@
     .btn-compte { padding: 0.4rem 0.65rem; font-size: 0.8rem; }
     .memoire-nav { display: none; }
 }
+
+/* Impression de l'emploi du temps de la semaine : seule l'image s'imprime. */
+#impressionSemaine { display: none; }
+@media print {
+    @page { margin: 10mm; }
+    body > * { display: none !important; }
+    #impressionSemaine { display: block !important; position: static !important; }
+    #impressionSemaine img { display: block; width: 100%; height: auto; max-height: 277mm; object-fit: contain; }
+}
