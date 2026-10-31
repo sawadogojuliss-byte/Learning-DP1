@@ -258,6 +258,18 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == uid;
     }
 
+    /* Progression personnelle, dans sa propre collection (séparée de comptes/{uid}).
+       Seul l'élève connecté lit et écrit son document ; personne d'autre, admins compris.
+       Une seule donnée : le texte JSON de sa progression, et l'heure de l'écriture. */
+    match /progressions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['progression', 'progressionLe'])
+        && request.resource.data.progression is string
+        && request.resource.data.progression.size() <= 900000;
+      allow delete: if false;
+    }
+
     /* Synchronisation : un seul document par élève, identifiant = son UID.
        Lu et écrit par lui seul ; jamais listé, jamais public, admins compris.
        Il pointe vers sa semaine courante dans emplois_du_temps et porte

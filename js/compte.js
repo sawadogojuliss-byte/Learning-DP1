@@ -1322,7 +1322,7 @@ function compteProgressionEnregistrer() {
     if (empreinte === compteProgressionDerniere) return;
     var nom = compteNomLie(window.compteSession.sub) || '';
     if (nom) neuve.userName = nom;
-    firebase.firestore().collection('comptes').doc(user.uid).set({
+    firebase.firestore().collection('progressions').doc(user.uid).set({
         /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
            emploiFige.jours). Une écriture refusée restait silencieuse. compteProgressionFirebase relit le texte. */
         progression: JSON.stringify(neuve),
@@ -1377,7 +1377,7 @@ function compteRetrouverApresChargement(essai) {
                 if (fini || !user) return;
                 fini = true;
                 clearTimeout(timer);
-                compteFirebaseLireDoc(user).then(resolve, function () { resolve(null); });
+                compteFirebaseLireProgression(user).then(resolve, function () { resolve(null); });
             });
         });
     }).catch(function () { return null; });
@@ -1526,13 +1526,27 @@ function compteFirebaseLireDoc(user) {
     }).catch(function () { return null; });
 }
 
+/* La progression vit dans progressions/{uid}, séparée de la fiche comptes/{uid}.
+   Repli : une ancienne copie restée dans comptes/{uid}.progression reste lisible. */
+function compteFirebaseLireProgression(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve(null);
+    return firebase.firestore().collection('progressions').doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) return snap.data() || null;
+        return compteFirebaseLireDoc(user).then(function (ancien) {
+            return ancien && ancien.progression ? { progression: ancien.progression } : null;
+        });
+    }).catch(function () { return null; });
+}
+
 function compteFirebaseEcrire(user, nom, data) {
     if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
     var session = window.compteSession || {};
-    return compteFirebaseLireDoc(user).then(function (deja) {
-        var ancienne = compteProgressionFirebase(deja);
+    return Promise.all([compteFirebaseLireDoc(user), compteFirebaseLireProgression(user)]).then(function (lus) {
+        var deja = lus[0];
+        var ancienne = compteProgressionFirebase(lus[1]);
         var nomGarde = compteGarderNom(deja && deja.nom, nom || '');
         if (!nomGarde && ancienne && ancienne.userName) nomGarde = ancienne.userName;
+        var db = firebase.firestore();
         var payload = {
             email: user.email || session.email || (deja && deja.email) || '',
             nom: nomGarde || (deja && deja.nom) || '',
@@ -1542,12 +1556,18 @@ function compteFirebaseEcrire(user, nom, data) {
             googleSub: session.sub || (deja && deja.googleSub) || '',
             dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
         };
+        var ecritures = [db.collection('comptes').doc(user.uid).set(payload, { merge: true })];
         var neuve = data && compteUtile(data) ? compteSansDocuments(data) : null;
         if (neuve) {
             if (nomGarde) neuve.userName = nomGarde;
-            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) payload.progression = JSON.stringify(neuve);
+            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) {
+                ecritures.push(db.collection('progressions').doc(user.uid).set({
+                    progression: JSON.stringify(neuve),
+                    progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }));
+            }
         }
-        return firebase.firestore().collection('comptes').doc(user.uid).set(payload, { merge: true });
+        return Promise.all(ecritures);
     }).catch(function () {});
 }
 
@@ -1603,10 +1623,12 @@ function compteOnCredential(resp) {
     window.compteRestaurationEnCours = true;
     compteFirebaseOuvrir(session, resp.credential).then(function (ouvert) {
         return compteLireCopiesPartagees(session).then(function (distantes) {
-            var firebaseCopie = compteProgressionFirebase(ouvert && ouvert.doc);
-            if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
-            return compteRestaurerTout(session, null, distantes).then(function () {
-                return ouvert;
+            return compteFirebaseLireProgression(ouvert && ouvert.user).then(function (progDoc) {
+                var firebaseCopie = compteProgressionFirebase(progDoc);
+                if (firebaseCopie) distantes = [firebaseCopie].concat(distantes || []);
+                return compteRestaurerTout(session, null, distantes).then(function () {
+                    return ouvert;
+                });
             });
         });
     }).then(function (ouvert) {
