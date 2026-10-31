@@ -135,7 +135,9 @@ service cloud.firestore {
         && request.query.limit <= 1
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
       allow create: if emploiValide();
-      allow update, delete: if false;
+      allow update: if false;
+      /* Suppression réservée aux cinq admins, depuis le bouton de la vue admin. */
+      allow delete: if estAdmin();
     }
     /* Accusé sans nom, UID ni créneaux. Son ID aléatoire est le même que
        celui du document privé ; seule une écriture atomique des DEUX

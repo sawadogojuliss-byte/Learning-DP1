@@ -230,7 +230,10 @@ function boiteLireCollection(nom, depuis, max, champDate) {
             snap.forEach(function (doc) {
                 if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
-                if (data && data.type && data.id && data.at) out.push(data);
+                if (data && data.type && data.id && data.at) {
+                    if (nom === 'emplois_du_temps') data.docId = doc.id;
+                    out.push(data);
+                }
             });
             return out;
         });
@@ -251,7 +254,10 @@ function boiteLireCollectionHistorique(nom, champDate, depuis) {
             snap.forEach(function (doc) {
                 if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
-                if (data && data.type && data.id && data.at) out.push(data);
+                if (data && data.type && data.id && data.at) {
+                    if (nom === 'emplois_du_temps') data.docId = doc.id;
+                    out.push(data);
+                }
             });
             return snap.docs && snap.docs.length === 400 ? page(snap.docs[snap.docs.length - 1]) : out;
         });
@@ -972,6 +978,25 @@ function boiteNomUtile(item) {
     return nom;
 }
 
+/* Suppression d'une semaine d'emploi du temps, réservée aux admins. Deux
+   confirmations ; les règles de la base refusent tout autre compte. */
+function boiteSupprimerEmploi(docId) {
+    if (!boiteEstAdmin() || !docId) return;
+    if (!window.confirm('Supprimer définitivement cette semaine de la base ? Cette action est irréversible.')) return;
+    if (!window.confirm('Dernière confirmation : la fiche de cette semaine sera effacée. Continuer ?')) return;
+    boiteFirebasePret().then(function (user) {
+        if (!user) throw new Error('connexion');
+        return firebase.firestore().collection('emplois_du_temps').doc(String(docId)).delete();
+    }).then(function () {
+        window.location.reload();
+    }).catch(function (err) {
+        var refus = err && (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED');
+        window.alert(refus
+            ? 'La suppression n’est pas encore autorisée par les règles de la base. Les nouvelles règles doivent être publiées dans Firebase.'
+            : 'La suppression n’a pas pu être faite. Vérifie la connexion admin, puis réessaie.');
+    });
+}
+
 function boiteMemePersonne(a, b) {
     if (!a || !b) return false;
     var subA = String(a.googleSub || '').trim();
@@ -1030,7 +1055,8 @@ function boiteJoindrePersonne(a, b) {
         flammes: recent.flammes != null ? Number(recent.flammes || 0) : Number(ancien.flammes || 0),
         matieres: semaine ? (semaine.matieres || []) : ((recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || [])),
         jours: semaine ? boiteJoursOrdonnes(semaine.jours) : boiteJoindreJours(ancien.jours, recent.jours, false),
-        complet: complet ? 1 : 0
+        complet: complet ? 1 : 0,
+        docId: semaine && semaine.docId ? String(semaine.docId) : ''
     };
 }
 
@@ -2027,6 +2053,10 @@ function boiteRendreEmplois(fusion) {
             + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
             + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
             + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
+            + (boiteEstAdmin() && aSemaine && semaine.docId
+                ? '<div class="emploi-atelier-encart"><strong>Supprimer ce planning</strong>Cette semaine sera effacée de la base. Action irréversible.<br>'
+                  + '<button type="button" data-emploi-supprimer="' + boiteEchap(semaine.docId) + '" style="margin-top:0.5rem;padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer ce planning</button></div>'
+                : '')
             + '<div class="emploi-atelier-pied"><div class="emploi-atelier-encart"><strong>Lecture fidèle</strong>Seuls les créneaux effectivement reçus sont présentés. Une lecture incomplète est signalée, jamais complétée par des cours supposés.</div>'
             + historique + '</div>';
     }
@@ -2160,6 +2190,8 @@ function boiteBrancherAdmin() {
     });
     var detailEmplois = document.getElementById('emploisDetail');
     if (detailEmplois) detailEmplois.addEventListener('click', function (e) {
+        var supprimer = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer]') : null;
+        if (supprimer) { boiteSupprimerEmploi(supprimer.getAttribute('data-emploi-supprimer')); return; }
         var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-version]') : null;
         if (!bouton) return;
         var cle = bouton.getAttribute('data-emploi-version');
