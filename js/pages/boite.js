@@ -231,7 +231,8 @@ function boiteLireCollection(nom, depuis, max, champDate) {
                 if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) {
-                    if (nom === 'emplois_du_temps') data.docId = doc.id;
+                    data.docId = doc.id;
+                    data.docColl = nom;
                     out.push(data);
                 }
             });
@@ -255,7 +256,8 @@ function boiteLireCollectionHistorique(nom, champDate, depuis) {
                 if (boiteDocMasque(nom, doc.id)) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) {
-                    if (nom === 'emplois_du_temps') data.docId = doc.id;
+                    data.docId = doc.id;
+                    data.docColl = nom;
                     out.push(data);
                 }
             });
@@ -905,8 +907,8 @@ function boiteReassemblerEmplois(items) {
         Object.keys(g.base).forEach(function (k) { plein[k] = g.base[k]; });
         plein.jours = jours;
         plein.complet = 1;
-        plein.docIds = [];
-        for (i = 1; i <= g.total; i++) if (g.parts[i] && g.parts[i].docId) plein.docIds.push(g.parts[i].docId);
+        plein.docRefs = [];
+        for (i = 1; i <= g.total; i++) if (g.parts[i]) plein.docRefs = plein.docRefs.concat(boiteIdsDocs(g.parts[i]));
         delete plein.partie;
         delete plein.total;
         delete plein.coupee;
@@ -988,7 +990,13 @@ function boiteSupprimerEmploi(ids) {
     boiteFirebasePret().then(function (user) {
         if (!user) throw new Error('connexion');
         var lot = firebase.firestore().batch();
-        ids.forEach(function (id) { lot.delete(firebase.firestore().collection('emplois_du_temps').doc(String(id))); });
+        var autorisees = ['emplois_du_temps', 'emplois', 'boite'];
+        ids.forEach(function (ref) {
+            var i = String(ref).indexOf('/');
+            var collection = String(ref).slice(0, i);
+            if (i < 1 || autorisees.indexOf(collection) === -1) throw new Error('reference');
+            lot.delete(firebase.firestore().collection(collection).doc(String(ref).slice(i + 1)));
+        });
         return lot.commit();
     }).then(function () {
         window.location.reload();
@@ -1042,18 +1050,19 @@ function boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) {
     var cle = boiteEchap(ids.join(','));
     if (boiteEmploiConfirmer === ids.join(',')) {
         return '<div style="text-align:right;max-width:20rem;margin-left:auto;">'
-            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#7f1d1d;">Supprimer définitivement ce planning de la base ?</p>'
+            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#7f1d1d;">Supprimer définitivement cet emploi du temps de la base ?</p>'
             + '<button type="button" data-emploi-confirmer="' + cle + '" style="margin:0 0.3rem 0 0;padding:0.5rem 0.9rem;border:1px solid #b91c1c;border-radius:0.6rem;background:#b91c1c;color:#fff;font-weight:700;cursor:pointer;">Oui, supprimer</button>'
             + '<button type="button" data-emploi-annuler="1" style="padding:0.5rem 0.9rem;border:1px solid #d1d5db;border-radius:0.6rem;background:#fff;color:#374151;font-weight:700;cursor:pointer;">Annuler</button></div>';
     }
-    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer le planning</button>';
+    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer l’emploi du temps</button>';
 }
 
 /* Tous les documents qui composent une semaine (un emploi peut être envoyé en plusieurs morceaux). */
 function boiteIdsDocs(item) {
     if (!item) return [];
-    if (Array.isArray(item.docIds) && item.docIds.length) return item.docIds.slice();
-    return item.docId ? [String(item.docId)] : [];
+    if (Array.isArray(item.docRefs) && item.docRefs.length) return item.docRefs.slice();
+    if (!item.docId) return [];
+    return [(item.docColl || 'emplois_du_temps') + '/' + String(item.docId)];
 }
 
 function boiteJoindrePersonne(a, b) {
@@ -1082,7 +1091,7 @@ function boiteJoindrePersonne(a, b) {
         matieres: semaine ? (semaine.matieres || []) : ((recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || [])),
         jours: semaine ? boiteJoursOrdonnes(semaine.jours) : boiteJoindreJours(ancien.jours, recent.jours, false),
         complet: complet ? 1 : 0,
-        docIds: boiteIdsDocs(semaine)
+        docRefs: boiteIdsDocs(semaine)
     };
 }
 

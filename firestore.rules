@@ -69,7 +69,9 @@ service cloud.firestore {
              'profil', 'profilpart', 'connexion', 'reponse'
            ]
         && (request.resource.data.type != 'reponse' || estAdmin());
-      allow update, delete: if false;
+      allow update: if false;
+      /* Suppression d'une semaine d'emploi depuis la vue admin, admins seulement. */
+      allow delete: if estAdmin() && resource.data.type == 'emploi';
     }
 
     /* Une collection par catégorie, avec la même protection serveur.
@@ -162,7 +164,8 @@ service cloud.firestore {
     match /emplois/{message} {
       allow read: if estAdmin();
       allow create: if false;
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if estAdmin() && resource.data.type == 'emploi';
     }
     match /profils/{message} {
       allow read: if estAdmin();
