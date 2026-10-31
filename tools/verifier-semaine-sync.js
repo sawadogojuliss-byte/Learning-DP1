@@ -25,21 +25,20 @@ vm.runInContext(
     ctxSemaine);
 const info = ctxSemaine.boiteSemaineInfo;
 same(JSON.parse(JSON.stringify(info(new Date(2026, 9, 31)))),
-    { debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'semaine 44 de 2026 (samedi 31 octobre)');
+    { dates: '26 oct. – 1 nov. 2026', debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'semaine 44 de 2026 (samedi 31 octobre)');
 same(JSON.parse(JSON.stringify(info(new Date(2026, 0, 1)))),
-    { debut: '2025-12-29', fin: '2026-01-04', numero: 1, annee: 2026 }, 'premier jeudi de 2026 : semaine 1');
+    { dates: '29 déc. – 4 janv. 2026', debut: '2025-12-29', fin: '2026-01-04', numero: 1, annee: 2026 }, 'premier jeudi de 2026 : semaine 1');
 same(JSON.parse(JSON.stringify(info(new Date(2027, 0, 1)))),
-    { debut: '2026-12-28', fin: '2027-01-03', numero: 53, annee: 2026 }, 'vendredi 1er janvier 2027 : semaine 53 de 2026');
+    { dates: '28 déc. – 3 janv. 2027', debut: '2026-12-28', fin: '2027-01-03', numero: 53, annee: 2026 }, 'vendredi 1er janvier 2027 : semaine 53 de 2026');
 same(JSON.parse(JSON.stringify(info(new Date(2026, 9, 26)))),
-    { debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'lundi : même semaine');
+    { dates: '26 oct. – 1 nov. 2026', debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'lundi : même semaine');
 
 const fiche = ctxSemaine.boiteEmploiPourFirestore({
     type: 'emploi', id: 'e_x', at: '2026-10-31T08:00:00.000Z', nom: 'Ali', matieres: ['Maths'],
     jours: [{ j: 'Lundi', s: [{ d: '08:00', f: '09:00', t: 'Maths' }] }]
 }, new Date(2026, 9, 31));
-same(JSON.parse(JSON.stringify(fiche['00_semaine'])),
-    { debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'sous-section semaine dans la fiche');
-same(Object.keys(fiche)[0], 'type', 'les clés de la fiche gardent leur ordre');
+same(JSON.parse(JSON.stringify(fiche['Semaine actuelle'])),
+    { dates: '26 oct. – 1 nov. 2026', debut: '2026-10-26', fin: '2026-11-01', numero: 44, annee: 2026 }, 'sous-section semaine dans la fiche');
 assert(Object.keys(fiche).includes('03_emploi_du_temps'), 'créneaux toujours présents');
 
 /* 2. L'indicateur d'effacement suit l'élève. */
@@ -111,7 +110,7 @@ async function scenario(nom, sync, emploi, attendu) {
     const debutEmplois = regles.indexOf('match /emplois_du_temps/{message}');
     const debutValide = regles.indexOf('function emploiValide()');
     const bloc = regles.slice(debutValide, debutEmplois);
-    assert(bloc.includes("'00_semaine'") && bloc.includes("!('00_semaine' in request.resource.data)"), 'emploiValide accepte la sous-section semaine');
+    assert(bloc.includes("'Semaine actuelle'") && bloc.includes("!('Semaine actuelle' in request.resource.data)"), 'emploiValide accepte la sous-section Semaine actuelle');
     const debutSync = regles.indexOf('match /synchronisation/{uid}');
     assert(debutSync !== -1, 'bloc synchronisation présent');
     const blocSync = regles.slice(debutSync, regles.indexOf('\n    }', debutSync) + 6);

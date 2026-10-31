@@ -295,15 +295,19 @@ function boiteJourCle(d) {
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
-/* Sous-section « semaine » de chaque fiche : lundi, dimanche, numéro de
-   semaine ISO et année ISO (ex. semaine 44 de 2026 : lundi 2026-10-26). */
+/* Sous-section « Semaine actuelle » de chaque fiche : mêmes dates que le
+   calendrier (planningEnteteSemaine), numéro de semaine ISO et année ISO.
+   Elle change chaque lundi, parce que la semaine enregistrée change. */
 function boiteSemaineInfo(date) {
     var lundi = new Date(date.getFullYear(), date.getMonth(), date.getDate());
     lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
     var dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
     var jeudi = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 3);
     var jours = Math.round((jeudi - new Date(jeudi.getFullYear(), 0, 1)) / 86400000);
+    /* Même formatage que le calendrier : « 26 oct. – 1 nov. 2026 ». */
+    var court = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
     return {
+        dates: court.format(lundi) + ' – ' + court.format(dimanche) + ' ' + dimanche.getFullYear(),
         debut: boiteJourCle(lundi),
         fin: boiteJourCle(dimanche),
         numero: Math.floor(jours / 7) + 1,
@@ -349,7 +353,7 @@ function boiteEmploiPourFirestore(record, maintenant) {
     ['type', 'id', 'at', 'nom', 'matieres'].forEach(function (champ) { delete technique[champ]; });
     return {
         type: 'emploi', id: record.id, at: record.at,
-        '00_semaine': boiteSemaineInfo(maintenant || new Date()),
+        'Semaine actuelle': boiteSemaineInfo(maintenant || new Date()),
         '01_nom_utilisateur': String(record.nom || 'Sans nom'),
         '02_matieres': Array.isArray(record.matieres) ? record.matieres : [],
         '03_emploi_du_temps': semaine,

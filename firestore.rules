@@ -96,17 +96,18 @@ service cloud.firestore {
                '03_emploi_du_temps', 'z_donnees_techniques'
              ])
         && request.resource.data.keys().hasOnly([
-             'type', 'id', 'at', '00_semaine', '01_nom_utilisateur', '02_matieres',
+             'type', 'id', 'at', 'Semaine actuelle', '01_nom_utilisateur', '02_matieres',
              '03_emploi_du_temps', 'z_donnees_techniques'
            ])
-        /* Sous-section « semaine » : obligatoire dans les nouvelles fiches, absente
-           des anciennes (elles restent valides pour leur propriétaire). */
-        && (!('00_semaine' in request.resource.data)
-            || (request.resource.data['00_semaine'] is map
-                && request.resource.data['00_semaine'].debut is string
-                && request.resource.data['00_semaine'].fin is string
-                && request.resource.data['00_semaine'].numero is int
-                && request.resource.data['00_semaine'].annee is int))
+        /* Sous-section « Semaine actuelle » (titre du calendrier) : dates de la semaine,
+           mises à jour chaque lundi. Absente des anciennes fiches : elles restent valides. */
+        && (!('Semaine actuelle' in request.resource.data)
+            || (request.resource.data['Semaine actuelle'] is map
+                && request.resource.data['Semaine actuelle'].dates is string
+                && request.resource.data['Semaine actuelle'].debut is string
+                && request.resource.data['Semaine actuelle'].fin is string
+                && request.resource.data['Semaine actuelle'].numero is int
+                && request.resource.data['Semaine actuelle'].annee is int))
         && request.resource.data.type == 'emploi'
         && request.resource.data.id is string
         && request.resource.data.id.size() <= 100
