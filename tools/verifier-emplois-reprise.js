@@ -26,12 +26,8 @@ function semaine(titre) {
     return jours.map((j, i) => ({ j, s: i === 0 ? [{ d: '08:00', f: '09:00', t: titre }] : [] }));
 }
 function fiche(nom, appareil, at, titre) {
-    /* Seule Camille est connectée dans ce scénario. */
-    const compte = !!utilisateur && nom === 'Camille';
     return { type: 'emploi', id: 'e_' + appareil, appareil, at, nom, classe: 'DP1',
-        jours: semaine(titre), schema: 2, complet: 1,
-        google: compte ? 'compte@example.org' : '', googleSub: compte ? 'sub-prouve' : '',
-        email: compte ? 'compte@example.org' : '', matieres: ['Mathématiques'] };
+        jours: semaine(titre), schema: 2, complet: 1, google: '', googleSub: '', email: '', matieres: ['Mathématiques'] };
 }
 const receptions = new Map();
 let docNumero = 0;
@@ -64,12 +60,6 @@ const firebase = {
                     const ref = { nom, id: id || 'aleatoire' + (++docNumero) };
                     /* Sous-collection (historique de synchronisation) : écriture acceptée, non relue ici. */
                     ref.collection = () => ({ doc: () => ({ nom: nom + '/historique', id: 'h' + (++docNumero) }) });
-                    /* Écriture directe d'un document (repli de l'élève connecté, anciennes règles). */
-                    ref.set = (data) => {
-                        if (bloque) return Promise.reject(new Error('permission-denied'));
-                        (collections[nom] || (collections[nom] = [])).push(JSON.parse(JSON.stringify(data)));
-                        return Promise.resolve();
-                    };
                     ref.get = () => {
                         if (bloque || (nom === 'receptions_emplois' && lectureEmploisRefusee)) return Promise.reject({ code: 'permission-denied' });
                         return Promise.resolve({ exists: receptions.has(ref.id), data: () => receptions.get(ref.id) });
@@ -122,14 +112,9 @@ vm.runInContext(source, context);
     assert.equal(context.boiteSnapshotEmploi(), null, 'une journée en erreur devient silencieusement vide');
     context.generateDayEvents = () => [{ title: 'Maths', startTime: '08:00', endTime: '09:00' }];
     assert.equal(context.boiteSnapshotEmploi().jours.length, 7, 'la semaine générée est incomplète');
-    /* Élève connecté pour toute la suite : une fiche n'est envoyée qu'avec un compte. */
-    utilisateur = { uid: 'uid-prouve', email: 'compte@example.org', displayName: 'Compte Google',
-        providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
-    context.compteSession = { sub: 'sub-prouve', email: 'compte@example.org' };
     const a = fiche('Camille', 'a', '2026-10-24T08:00:00.000Z', 'Ancien cours');
     const b = fiche('Camille', 'b', '2026-10-24T08:01:00.000Z', 'Cours différent');
-    const bAutre = { ...b, googleSub: 'sub-autre', google: 'autre@example.org', email: 'autre@example.org' };
-    assert.equal(context.boiteFusionnerPersonnes([a, bAutre]).length, 2, 'les homonymes sont distincts');
+    assert.equal(context.boiteFusionnerPersonnes([a, b]).length, 2, 'les homonymes sont distincts');
     const partiel = { ...a, at: '2026-10-24T09:00:00.000Z', jours: [a.jours[0]], complet: 1 };
     assert.equal(context.boiteFusionnerPersonnes([a, partiel])[0].jours.length, 7, 'une fiche partielle efface la semaine');
     const change = fiche('Camille', 'a', '2026-10-24T10:00:00.000Z', 'Nouveau cours');
@@ -148,28 +133,21 @@ vm.runInContext(source, context);
     assert.equal(receptions.size, 0, 'un reçu a été créé malgré le refus du document privé');
     assert.equal(Object.keys(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])).length, 1);
     bloque = false;
-    /* Sans connexion : aucune fiche n'est envoyée, elle attend dans la file (pas de doublon). */
-    utilisateur = null;
-    context.compteSession = null;
-    await context.boiteReessayer();
-    assert.equal(documents.length, 0, 'une fiche sans identité a été envoyée');
-    assert.equal(Object.keys(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])).length, 1, 'la fiche sans identité a quitté la file');
-    /* Connexion : la fiche attendante part avec le compte. */
-    utilisateur = { uid: 'uid-prouve', email: 'compte@example.org', displayName: 'Compte Google',
-        providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
-    context.compteSession = { sub: 'sub-prouve', email: 'compte@example.org' };
     await context.boiteReessayer();
     assert.equal(documents.length, 1);
     assert.equal(Object.keys(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])).length, 0);
-    assert.equal(documents[0].z_donnees_techniques.googleSub, 'sub-prouve', 'la fiche n’a pas reçu l’identité du compte');
+    assert.equal(documents[0].z_donnees_techniques.googleSub, '', 'le visiteur usurpe un identifiant Google');
+    utilisateur = { uid: 'uid-prouve', email: 'compte@example.org', displayName: 'Compte Google',
+        providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
     const declareFaux = { ...b, googleSub: 'sub-usurpe', google: 'autre@example.org', email: 'autre@example.org' };
     assert.equal(await context.boiteEnvoyer(declareFaux), true);
     const prouve = documents.at(-1).z_donnees_techniques;
     assert.equal(prouve.firebaseUid, 'uid-prouve');
     assert.equal(prouve.googleSub, 'sub-prouve');
     assert.equal(prouve.email, 'compte@example.org', 'l’adresse vient des champs locaux et non de Firebase Auth');
+    utilisateur = null;
     // L'ACK d'une semaine antérieure autorise à vider volontairement TOUT le planning.
-    donnees[context.BOITE_EMPLOI_HASH] = JSON.stringify({ cle: 'sub:sub-prouve', hash: 'avant', at: heure });
+    donnees[context.BOITE_EMPLOI_HASH] = JSON.stringify({ cle: 'app:a|camille', hash: 'avant', at: heure });
     const vide = { ...a, at: '2026-10-24T09:01:00.000Z', jours: jours.map((j) => ({ j, s: [] })) };
     assert.equal(await context.boiteEnvoyer(vide), true, 'la suppression de tous les créneaux ne met pas à jour la fiche');
     assert.equal(context.boiteFusionner(documents).emplois[0].jours[0].s.length, 0, 'une semaine vidée réaffiche des cours');
@@ -184,7 +162,7 @@ vm.runInContext(source, context);
     await new Promise((res) => setTimeout(res, 0));
     const dernier = fiche('Camille', 'a', '2026-10-24T10:02:00.000Z', 'Dernière édition');
     const envoiB = context.boiteEnvoyer(dernier);
-    assert.equal(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])['sub:sub-prouve'].at, dernier.at);
+    assert.equal(JSON.parse(donnees[context.BOITE_EMPLOI_FILE])['app:a|camille'].at, dernier.at);
     ouvrir();
     gardeEnCours = null;
     await Promise.all([envoiA, envoiB]);
@@ -195,7 +173,10 @@ vm.runInContext(source, context);
     // incrémental ne le voit pas ; le balayage complet à 5 min le récupère.
     context.boiteEstAdmin = () => true;
     await context.boiteLireBoite();
-    documents.push(context.boiteEmploiPourFirestore(fiche('Fatou', 'retard', '2026-10-23T01:00:00.000Z', 'Histoire')));
+    const retard = context.boiteEmploiPourFirestore(fiche('Fatou', 'retard', '2026-10-23T01:00:00.000Z', 'Histoire'));
+    /* Élève connecté : sa fiche est visible dans l'administration. */
+    retard.z_donnees_techniques = Object.assign({}, retard.z_donnees_techniques, { firebaseUid: 'uid-fatou' });
+    documents.push(retard);
     assert.equal((await context.boiteLireBoite()).filter((d) => d.appareil === 'retard').length, 0,
         'le test de lecture incrémentale ne teste pas un envoi tardif');
     heure += 301000;
@@ -259,7 +240,7 @@ vm.runInContext(source, context);
     bloque = false;
     await context.boiteReessayer();
     assert.equal(documents.length, 1);
-    assert.equal(context.boiteLireAckEmploi(context.boiteSnapshotEmploi()).cle, 'sub:sub-prouve');
+    assert.equal(context.boiteLireAckEmploi(context.boiteSnapshotEmploi()).cle, 'app:a|camille');
     context.boitePublierEmploi(true);
     await new Promise((res) => setTimeout(res, 10));
     assert.equal(documents.length, 1, 'le réessai après refus est renvoyé sans édition');
@@ -294,9 +275,6 @@ vm.runInContext(source, context);
     assert.equal(await context.boiteVerifierReceptionEmploi(), 'indisponible');
     assert.equal(documents.length, avantRefus, 'un refus du backend est pris pour une absence');
     lectureEmploisRefusee = false;
-    /* Sans connexion : un ancien accusé ne peut pas être vérifié. */
-    utilisateur = null;
-    context.compteSession = null;
     context.boiteEcrireAckEmploi(context.boiteSnapshotEmploi(), { cle: 'app:a|camille', hash: 'ancien' });
     assert.equal(await context.boiteVerifierReceptionEmploi(), 'ancien_indeterminable');
     assert.equal(documents.length, avantRefus, 'une archive anonyme non vérifiable est dupliquée');
@@ -309,8 +287,6 @@ vm.runInContext(source, context);
     utilisateur = { uid: 'uid-prouve', email: 'compte@example.org',
         providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
     context.compteSession = { sub: 'sub-prouve', email: 'compte@example.org' };
-    /* Aucun accusé de cet élève sur cet appareil : seule l'archive prouvée reste. */
-    Object.keys(donnees).filter((k) => k.indexOf(context.BOITE_EMPLOI_HASH) === 0).forEach((k) => delete donnees[k]);
     assert.equal(await context.boiteVerifierReceptionEmploi(), 'recu_ancien');
     assert.equal(documents.length, avantRefus + 1, 'une archive prouvée est republiée');
     context.boitePublierEmploi(true);
@@ -333,9 +309,8 @@ vm.runInContext(source, context);
     assert.equal(await context.boiteVerifierReceptionEmploi(), 'session',
         'une session locale différente du compte Firebase récupère le planning d’autrui');
     assert.equal(documents.length, dernierCompte);
-    utilisateur = { uid: 'uid-prouve', email: 'compte@example.org', displayName: 'Compte Google',
-        providerData: [{ providerId: 'google.com', uid: 'sub-prouve' }] };
-    context.compteSession = { sub: 'sub-prouve', email: 'compte@example.org' };
+    utilisateur = null;
+    context.compteSession = null;
 
     // Deux jours manqués sont tolérés ; trois journées manquées ramènent
     // la flamme à zéro, y compris pour les vues Planning, Soutien et Focus.

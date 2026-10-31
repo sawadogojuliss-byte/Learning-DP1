@@ -512,10 +512,7 @@ function boiteEcrireBoite(record) {
         /* Élève connecté à Google sur cet appareil mais sans compte Firebase :
            une fiche envoyée maintenant n'aurait ni identifiant Google ni
            adresse, et ferait un doublon. Elle reste dans la file d'attente. */
-        /* Pas de fiche sans identité Google : une fiche à identifiant aléatoire
-           faisait un doublon à côté de la fiche de l'élève (identifiant = UID).
-           Elle reste dans la file d'attente, et partira avec le compte. */
-        if (collection === 'emplois_du_temps' && !user) {
+        if (collection === 'emplois_du_temps' && !user && boiteGoogleActif()) {
             throw new Error('identite_en_attente');
         }
         if (collection === 'emplois_du_temps') {
@@ -537,7 +534,18 @@ function boiteEcrireBoite(record) {
             var db = firebase.firestore();
             var semaine = boiteSemaineCle(maintenant);
             propre.z_donnees_techniques.semaine = semaine;
-            if (!user || !user.uid) throw new Error('identite_en_attente');
+            if (!user || !user.uid) {
+                /* Élève sans compte Google : pas d'UID, donc pas de compte à relier.
+                   Sa fiche garde un identifiant aléatoire, comme avant. */
+                var sansCompte = db.collection(collection).doc();
+                var lotSansCompte = db.batch();
+                lotSansCompte.set(sansCompte, propre);
+                lotSansCompte.set(db.collection('receptions_emplois').doc(sansCompte.id), { recu: true });
+                return lotSansCompte.commit().then(function () { return sansCompte.id; }, function (err) {
+                    if (!err || err.code !== 'permission-denied') throw err;
+                    return db.collection(collection).add(propre).then(function () { return ''; });
+                });
+            }
             /* Élève connecté : une seule fiche, identifiée par son UID (comme comptes/{uid}
                et synchronisation/{uid}). Elle est remplacée à chaque changement et chaque semaine. */
             var id = user.uid;
@@ -641,7 +649,12 @@ function boiteLireBoite() {
                 toutes.push(((nom === 'emplois_du_temps' || nom === 'emplois' || nom === 'questions' || nom === 'feedbacks')
                     ? boiteLireCollectionHistorique(nom, champ, depuis)
                     : boiteLireCollection(nom, depuis, depuis ? 300 : 400, champ))
-                    .then(function (items) { return retenirDate(nom, champ, items, tout); }).catch(function (err) {
+                    .then(function (items) {
+                        var recus = retenirDate(nom, champ, items, tout);
+                        /* Fiche d'un élève jamais connecté à Google : elle reste dans Firebase,
+                           mais n'est pas affichée dans l'administration. */
+                        return nom === 'emplois_du_temps' ? (recus || []).filter(boiteEmploiVisibleAdmin) : recus;
+                    }).catch(function (err) {
                     /* Avant la publication des règles, la lecture des nouvelles
                        collections est refusée ; ne rien divulguer au visiteur. */
                     boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
@@ -671,6 +684,14 @@ function boiteLireJson(cle) {
 
 function boiteEcrireJson(cle, valeur) {
     try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch (e) {}
+}
+
+/* Une fiche sans identifiant Google ni UID vient d'un élève qui ne s'est jamais
+   connecté. Elle reste dans emplois_du_temps (Firebase), sans être affichée. */
+function boiteEmploiVisibleAdmin(item) {
+    if (!item || item.type !== 'emploi') return true;
+    var tech = item.z_donnees_techniques || {};
+    return !!(tech.firebaseUid || tech.googleSub || tech.google || tech.email);
 }
 
 function boiteCleFileEmploi(item) {

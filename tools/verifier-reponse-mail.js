@@ -472,7 +472,11 @@ attendre(200).then(function () {
             ['01_heure_envoi', '02_nom_utilisateur', '03_compte_gmail', '04_feedback', 'z_donnees_techniques'].sort());
         bdd.feedbacks.push(avis);
         bdd.reponses = [{ type: 'reponse', id: 'r-new', at: '2026-10-24T06:01:00Z', texte: 'Réponse privée' }];
-        bdd.emplois_du_temps = [{ type: 'emploi', id: 'e-new', at: '2026-10-24T06:02:00Z' }];
+        bdd.emplois_du_temps = [
+            { type: 'emploi', id: 'e-new', at: '2026-10-24T06:02:00Z', z_donnees_techniques: { firebaseUid: 'uid-eleve' } },
+            /* Élève jamais connecté : gardé dans Firebase, jamais affiché dans l'administration. */
+            { type: 'emploi', id: 'e-anonyme', at: '2026-10-24T06:03:00Z', z_donnees_techniques: { firebaseUid: '', googleSub: '', google: '', email: '' } }
+        ];
         context.boiteBruts = [];
         context.boiteDernierAt = '';
         return context.boiteLireBoite();
@@ -482,6 +486,7 @@ attendre(200).then(function () {
         assert.ok(items.some(function (item) { return item.id === 'f2-new' && item.texte === 'Avis privé' && item.email === 'contact@example.com'; }), 'feedback compact ou adresse de réponse perdu');
         assert.ok(items.some(function (item) { return item.id === 'r-new'; }), 'nouvelle réponse absente');
         assert.ok(items.some(function (item) { return item.id === 'e-new'; }), 'nouvel emploi du temps absent');
+        assert.ok(!items.some(function (item) { return item.id === 'e-anonyme'; }), 'un élève jamais connecté est affiché');
         const planning = {
             type: 'emploi', id: 'e-envoye', at: new Date().toISOString(),
             nom: 'Awa', classe: 'DP2', appareil: 'app-awa',
