@@ -224,12 +224,6 @@ function memoireSyncChamps() {
     }
 }
 
-function memoireSujetsImposes(list) {
-    if (!Array.isArray(list) || list.length !== 3) return false;
-    var names = list.map(function (s) { return s && s.name; }).sort().join('|');
-    return names === 'Anglais B|Français A|Mathématiques AA';
-}
-
 /* Pendant l'application, rien n'est daté : l'état reçu devient la référence
    à la fin (syncFinApplication). Voir js/synchro.js. */
 function memoireAppliquer(data, opts) {
@@ -251,10 +245,9 @@ function memoireAppliquerCorps(data, opts) {
     if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
     if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
     if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
-    var optionnelsSauves = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
-    var anciensImposes = !depuisCompte && memoireSujetsImposes(data.subjects) && optionnelsSauves.length === 0;
-    if (!anciensImposes && Array.isArray(data.subjects)) subjects = data.subjects;
-    if (!anciensImposes && Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
+    /* Les matières de l'élève sont reprises telles qu'elles sont enregistrées, quel que soit leur nombre. */
+    if (Array.isArray(data.subjects)) subjects = data.subjects;
+    if (Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
     if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
     if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear;
     if (typeof majClasseAffichage === 'function') majClasseAffichage();
