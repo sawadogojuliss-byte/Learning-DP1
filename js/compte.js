@@ -1289,8 +1289,49 @@ function comptePublierMorceaux(session, data) {
     return Promise.resolve();
 }
 
+/* Progression dans comptes/{uid} : renvoyée après un changement réel (regroupé sur
+   3 s), pour qu'une connexion sur un autre appareil retrouve le planning et les
+   réglages. Un appareil sans données n'écrit rien ; un état identique n'est pas
+   réécrit (savedAt change à chaque sauvegarde locale, il est ignoré). Effacer
+   localement ne touche pas au nuage. */
+var compteProgressionTimer = null;
+var compteProgressionDerniere = '';
+function compteProgressionPlanifier() {
+    if (window.compteRestaurationEnCours) return;
+    if (!window.compteSession || !window.compteSession.sub) return;
+    /* Déjà prévu : l'envoi lira l'état au moment où il part. */
+    if (compteProgressionTimer) return;
+    compteProgressionTimer = setTimeout(function () {
+        compteProgressionTimer = null;
+        compteProgressionEnregistrer();
+    }, 3000);
+}
+
+function compteProgressionEnregistrer() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid || typeof memoireLireEtat !== 'function') return;
+    var data = null;
+    try { data = memoireLireEtat(); } catch (e) { return; }
+    if (!data || !compteUtile(data)) return;
+    var neuve = compteSansDocuments(data);
+    delete neuve.savedAt;
+    var empreinte = JSON.stringify(neuve);
+    if (empreinte === compteProgressionDerniere) return;
+    var nom = compteNomLie(window.compteSession.sub) || '';
+    if (nom) neuve.userName = nom;
+    firebase.firestore().collection('comptes').doc(user.uid).set({
+        progression: neuve,
+        progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true }).then(function () {
+        compteProgressionDerniere = empreinte;
+    }).catch(function (err) { console.warn('Progression non enregistrée', err); });
+}
+
 function comptePublierProgression(session) {
     if (window.compteRestaurationEnCours) return Promise.resolve();
+    compteProgressionPlanifier();
     if (!session || !session.email || typeof memoireLireEtat !== 'function') return Promise.resolve();
     var data = null;
     try { data = memoireLireEtat(); } catch (e) { data = null; }

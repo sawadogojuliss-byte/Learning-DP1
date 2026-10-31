@@ -769,6 +769,7 @@ function memoireSauvegarder() {
                 });
             }
             if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
+            if (!garder && typeof compteProgressionPlanifier === 'function') compteProgressionPlanifier();
         }
         if (typeof compteArchiverProgression === 'function') compteArchiverProgression(data);
         memoirePoserHash(data.etape);
