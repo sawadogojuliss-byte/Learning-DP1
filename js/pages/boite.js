@@ -2051,12 +2051,12 @@ function boiteRendreEmplois(fusion) {
             + '<h3>' + nomAffiche + '</h3><p class="emploi-atelier-meta">' + meta + '</p></div>'
             + '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span></div>'
             + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
-            + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
-            + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
             + (boiteEstAdmin() && aSemaine && semaine.docId
                 ? '<div class="emploi-atelier-encart"><strong>Supprimer ce planning</strong>Cette semaine sera effacée de la base. Action irréversible.<br>'
                   + '<button type="button" data-emploi-supprimer="' + boiteEchap(semaine.docId) + '" style="margin-top:0.5rem;padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer ce planning</button></div>'
                 : '')
+            + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
+            + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
             + '<div class="emploi-atelier-pied"><div class="emploi-atelier-encart"><strong>Lecture fidèle</strong>Seuls les créneaux effectivement reçus sont présentés. Une lecture incomplète est signalée, jamais complétée par des cours supposés.</div>'
             + historique + '</div>';
     }
