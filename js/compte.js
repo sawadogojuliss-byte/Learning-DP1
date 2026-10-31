@@ -447,7 +447,8 @@ function compteClasseAGarder(data) {
 
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
-    var ouverte = comptePageOuverte();
+    /* Pendant un changement de compte, la page ouverte appartient à l'autre compte : on ne la garde pas. */
+    var ouverte = window.compteChangementDeCompte ? '' : comptePageOuverte();
     var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
     /* Un profil complet restauré ouvre le planning, même si cet appareil était encore sur l'accueil. */
     var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
@@ -956,6 +957,21 @@ function compteLireDedie(sub) {
     return choisi;
 }
 
+/* Le compte auquel appartiennent les données de cet appareil, avant la connexion en cours.
+   compteSession est déjà le nouveau compte pendant une connexion : on ne le lit pas ici. */
+function compteProprietairePrecedent() {
+    if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+    try {
+        var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+        if (garde && garde.sub) return garde;
+    } catch (e) {}
+    if (typeof memoireJson === 'function') {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (data && data.google && data.google.sub) return data.google;
+    }
+    return null;
+}
+
 function compteProprietaireConnu() {
     if (window.compteSession && window.compteSession.sub) return window.compteSession;
     if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
@@ -1133,17 +1149,22 @@ function compteRestaurerTout(session, token, distantes, options) {
     if (!session || !session.sub) return Promise.resolve('vide');
     options = options || {};
     distantes = distantes || [];
-    var ancien = compteProprietaireConnu();
+    var ancien = compteProprietairePrecedent();
     var vivant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+    /* Données d'un autre compte : archivées, elles ne doivent jamais rejoindre le compte qui se connecte. */
+    var vivantEtranger = false;
     if (ancien && ancien.sub && !compteMemeCompte(ancien.sub, session.sub)) {
         if (vivant) compteArchiverProgression(compteEstampiller(vivant, ancien));
         compteArchiverPour(ancien.sub, vivant);
         vivant = null;
+        vivantEtranger = true;
     } else if (vivant && vivant.google && vivant.google.sub && !compteMemeCompte(vivant.google.sub, session.sub)) {
         compteArchiverProgression(vivant);
         compteArchiverPour(vivant.google.sub, vivant);
         vivant = null;
+        vivantEtranger = true;
     }
+    window.compteChangementDeCompte = vivantEtranger;
     compteLierCompte(session, (vivant && vivant.userName) || '');
     var canon = compteCanonique(session.sub) || session.sub;
     compteMemoriserSession(session);
@@ -1165,7 +1186,7 @@ function compteRestaurerTout(session, token, distantes, options) {
     return suite.then(function (etat) {
         var apresCopies = archives.concat(distantes);
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
-        if (courant && comptePeutJoindreLocal(courant, session)) apresCopies.push(courant);
+        if (courant && !vivantEtranger && comptePeutJoindreLocal(courant, session)) apresCopies.push(courant);
         var apres = compteFusionnerProfils(apresCopies);
         if (apres && compteUtile(apres) && compteRichesse(apres) >= compteRichesse(courant)) {
             if (!compteEquivalent(apres, courant)) {
@@ -1189,6 +1210,7 @@ function compteRestaurerTout(session, token, distantes, options) {
         }
         if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
         if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 1200);
+        window.compteChangementDeCompte = false;
         compteRafraichir();
         compteCopieEnAttente = false;
         if (window.__profilComplet) fermerCompte();

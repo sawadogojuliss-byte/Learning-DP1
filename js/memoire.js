@@ -188,12 +188,15 @@ function memoireLireEtat() {
             return typeof compteCanonique === 'function' ? (compteCanonique(s) || s) : s;
         })(),
         google: (function () {
-            if (window.compteSession && window.compteSession.sub) return window.compteSession;
+            /* À qui appartiennent ces données : au compte enregistré sur l'appareil.
+               Pendant une connexion, compteSession est déjà le nouveau compte ; il ne doit
+               pas réattribuer les données de l'ancien. */
             if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
             try {
                 var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
                 if (garde && garde.sub) return garde;
             } catch (e) {}
+            if (window.compteSession && window.compteSession.sub) return window.compteSession;
             return null;
         })()
     };
