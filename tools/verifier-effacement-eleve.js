@@ -27,6 +27,7 @@ const stock = new Map([
 ]);
 const refuses = new Set(['A1']);
 let suppressions = 0;
+const sync = {};
 let ecritures = 0;
 
 function lire(obj, chemin) {
@@ -69,7 +70,23 @@ function requete(etat) {
     };
 }
 
-const firestore = function () { return { collection() { return requete({}); } }; };
+const firestore = function () {
+    return {
+        collection(nom) {
+            if (nom !== 'synchronisation') return requete({});
+            return {
+                doc(id) {
+                    return {
+                        set(d, opts) {
+                            sync[id] = Object.assign(opts && opts.merge ? (sync[id] || {}) : {}, d);
+                            return Promise.resolve();
+                        }
+                    };
+                }
+            };
+        }
+    };
+};
 firestore.FieldPath = { documentId() { return '__name__'; } };
 
 const firebase = {
@@ -93,12 +110,17 @@ const context = vm.createContext({
 });
 vm.runInContext(extraire(compte, 'compteMasquerFichesEleve'), context);
 vm.runInContext(extraire(compte, 'compteMasquerFiche'), context);
+vm.runInContext(extraire(compte, 'compteMarquerSynchro'), context);
 vm.runInContext('var COMPTE_FICHES_MAX = 60;', context);
 
 (async function () {
     /* 1. Le bouton d'effacement marque les fiches de l'élève, sans supprimer. */
     await context.compteMasquerFichesEleve();
     assert.equal(stock.size, 4, 'aucun document ne doit disparaître');
+    /* La synchronisation porte l'indicateur, sans écraser le reste. */
+    assert.equal(sync.U1.effaceParEleve, true, 'synchronisation marquée');
+    assert.equal(sync.U1.uid, 'U1', 'synchronisation : identifiant');
+    assert.equal(sync.U2, undefined, 'synchronisation d\'un autre élève intacte');
     assert.equal(suppressions, 0, 'aucune suppression');
     assert.equal(lire(stock.get('D4'), 'z_donnees_techniques.effaceParEleve'), true, 'fiche D4 marquée');
     assert.equal(typeof lire(stock.get('D4'), 'z_donnees_techniques.effaceLe'), 'string', 'date d\'effacement');

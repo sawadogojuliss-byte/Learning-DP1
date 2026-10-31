@@ -714,8 +714,20 @@ function compteMasquerFichesEleve() {
         });
     }).then(function (user) {
         if (!user || !user.uid) return;
-        return compteMasquerFiche(user.uid, null, 0);
+        /* L'indicateur est posé sur la synchronisation d'abord : il suit l'élève
+           pour les semaines à venir, même si aucune fiche n'existe encore. */
+        return compteMarquerSynchro(user.uid).then(function () {
+            return compteMasquerFiche(user.uid, null, 0);
+        });
     }).catch(function () {});
+}
+
+function compteMarquerSynchro(uid) {
+    return firebase.firestore().collection('synchronisation').doc(uid).set({
+        uid: uid,
+        effaceParEleve: true,
+        effaceLe: new Date().toISOString()
+    }, { merge: true }).catch(function (err) { console.warn('Synchronisation non marquée', err); });
 }
 
 function compteMasquerFiche(uid, apres, rang) {
@@ -1561,6 +1573,10 @@ function compteOnCredential(resp) {
         return suite.then(function () {
             window.compteRestaurationEnCours = false;
             compteRafraichir();
+            /* À chaque connexion : vérifier la fiche de la semaine dans Firebase. */
+            if (user && typeof boiteVerifierSemaine === 'function') {
+                setTimeout(function () { try { boiteVerifierSemaine(true); } catch (e) {} }, 2000);
+            }
             return comptePublierProgression(session);
         });
     }).catch(function () {

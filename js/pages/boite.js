@@ -290,7 +290,44 @@ function boiteAjouterBruts(items) {
 /* Format lisible par un responsable dans la console Firestore. Elle trie
    les champs par nom : 01 nom, 02 matières, 03 semaine. Les vrais créneaux
    restent intacts sous z_donnees_techniques pour le planning du site. */
-function boiteEmploiPourFirestore(record) {
+/* Jour au format AAAA-MM-JJ (heure locale). */
+function boiteJourCle(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* Sous-section « semaine » de chaque fiche : lundi, dimanche, numéro de
+   semaine ISO et année ISO (ex. semaine 44 de 2026 : lundi 2026-10-26). */
+function boiteSemaineInfo(date) {
+    var lundi = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+    var dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    var jeudi = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 3);
+    var jours = Math.round((jeudi - new Date(jeudi.getFullYear(), 0, 1)) / 86400000);
+    return {
+        debut: boiteJourCle(lundi),
+        fin: boiteJourCle(dimanche),
+        numero: Math.floor(jours / 7) + 1,
+        annee: jeudi.getFullYear()
+    };
+}
+
+/* Indicateur d'effacement à garder dans une fiche. Il suit l'élève : si la
+   synchronisation le porte, chaque nouvelle semaine le reçoit aussi. Renvoie
+   null si la fiche n'est pas effacée. */
+function boiteEffacementGarde(sync, existant) {
+    if (sync && sync.effaceParEleve === true) return { effaceLe: sync.effaceLe || '' };
+    var tech = existant && existant.z_donnees_techniques;
+    if (tech && tech.effaceParEleve === true) return { effaceLe: tech.effaceLe || '' };
+    return null;
+}
+
+/* Faut-il renvoyer la fiche de cette semaine ? Oui si son document manque
+   sur le serveur, ou si la synchronisation pointe vers une autre semaine. */
+function boiteSemaineARefaire(sync, emploiExiste, semaine) {
+    return !emploiExiste || !sync || sync.semaine !== semaine;
+}
+
+function boiteEmploiPourFirestore(record, maintenant) {
     if (!record || record.type !== 'emploi' || Object.prototype.hasOwnProperty.call(record, '03_emploi_du_temps')) return record;
     var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
     var semaine = {};
@@ -312,6 +349,7 @@ function boiteEmploiPourFirestore(record) {
     ['type', 'id', 'at', 'nom', 'matieres'].forEach(function (champ) { delete technique[champ]; });
     return {
         type: 'emploi', id: record.id, at: record.at,
+        '00_semaine': boiteSemaineInfo(maintenant || new Date()),
         '01_nom_utilisateur': String(record.nom || 'Sans nom'),
         '02_matieres': Array.isArray(record.matieres) ? record.matieres : [],
         '03_emploi_du_temps': semaine,
@@ -456,7 +494,8 @@ function boiteEcrireBoite(record) {
     }
     var propre = boiteSansVides(record);
     var collection = propre && BOITE_COLLECTIONS[propre.type];
-    if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre);
+    var maintenant = new Date();
+    if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre, maintenant);
     if (collection === 'questions' || collection === 'feedbacks') propre = boiteMessagePourFirestore(propre);
     if (!collection) return Promise.reject(new Error('record'));
     return boiteFirebasePret().then(function (user) {
@@ -483,39 +522,14 @@ function boiteEcrireBoite(record) {
         }
         if (collection === 'emplois_du_temps') {
             var db = firebase.firestore();
-            /* Une seule fiche par élève et par semaine : elle est mise à jour
-               à chaque changement. Sans compte Firebase, identifiant aléatoire. */
-            var identifiant = user && user.uid ? boiteIdEmploi(user.uid, boiteSemaineCle(new Date())) : Promise.resolve('');
+            var semaine = boiteSemaineCle(maintenant);
+            /* Une seule fiche par élève et par semaine, mise à jour à chaque
+               changement. Sans identifiant (navigateur sans chiffrement) : ancien envoi. */
+            var identifiant = user && user.uid ? boiteIdEmploi(user.uid, semaine) : Promise.resolve('');
             return identifiant.then(function (id) {
                 var documentEmploi = id ? db.collection(collection).doc(id) : db.collection(collection).doc();
                 var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
-                function mettreAJour() {
-                    return documentEmploi.set(propre).then(function () { return documentEmploi.id; }, function (err) {
-                        if (!err || err.code !== 'permission-denied') throw err;
-                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
-                            if (supprimee) return id;
-                            throw err;
-                        });
-                    });
-                }
-                function creer() {
-                    var lot = db.batch();
-                    lot.set(documentEmploi, propre);
-                    lot.set(reception, { recu: true });
-                    /* Les règles du site et celles de Firestore sont publiées
-                       séparément : sur les anciennes règles, l'emploi seul reste
-                       accepté, sans prétendre disposer d'un reçu vérifiable. */
-                    return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
-                        if (!err || err.code !== 'permission-denied') throw err;
-                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
-                            if (supprimee) return id;
-                            return documentEmploi.set(propre).then(function () { return ''; });
-                        });
-                    });
-                }
                 if (!id) {
-                    /* Sans identifiant stable : ancien envoi, avec l'accusé et la
-                       possibilité de repli sur l'ancienne collection. */
                     var lot = db.batch();
                     lot.set(documentEmploi, propre);
                     lot.set(reception, { recu: true });
@@ -524,11 +538,39 @@ function boiteEcrireBoite(record) {
                         return db.collection(collection).add(propre).then(function () { return ''; });
                     });
                 }
-                return documentEmploi.get().then(function (snap) {
-                    return snap && snap.exists ? mettreAJour() : creer();
-                }, function () {
-                    /* Lecture refusée pour une fiche absente : c'est une création. */
-                    return creer();
+                var synchro = db.collection('synchronisation').doc(user.uid);
+                function lire(ref) {
+                    return ref.get().then(function (snap) {
+                        return snap && snap.exists ? (snap.data() || {}) : null;
+                    }, function () { return null; });
+                }
+                function envoyer(creation) {
+                    var syncDoc = {
+                        uid: user.uid,
+                        semaine: semaine,
+                        emploi: documentEmploi.id,
+                        misAJourLe: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    var envoi = db.batch();
+                    envoi.set(documentEmploi, propre);
+                    if (creation) envoi.set(reception, { recu: true });
+                    envoi.set(synchro, syncDoc, { merge: true });
+                    return envoi.commit().then(function () { return documentEmploi.id; }, function (err) {
+                        if (!err || err.code !== 'permission-denied') throw err;
+                        return boiteSemaineSupprimee(db, id).then(function (supprimee) {
+                            if (supprimee) return id;
+                            /* Anciennes règles, sans synchronisation : l'emploi seul reste accepté. */
+                            return documentEmploi.set(propre).then(function () { return creation ? '' : documentEmploi.id; });
+                        });
+                    });
+                }
+                return Promise.all([lire(documentEmploi), lire(synchro)]).then(function (lus) {
+                    var garde = boiteEffacementGarde(lus[1], lus[0]);
+                    if (garde) {
+                        propre.z_donnees_techniques.effaceParEleve = true;
+                        propre.z_donnees_techniques.effaceLe = garde.effaceLe;
+                    }
+                    return envoyer(!lus[0]);
                 });
             });
         }
@@ -2652,7 +2694,9 @@ function boiteFaitsEmploi() {
         delete copie.depuisSemaine;
         return copie;
     });
-    return JSON.stringify(faits);
+    /* La semaine fait partie de l'empreinte : une nouvelle semaine est une
+       nouvelle version, même sans modification de l'élève. */
+    return JSON.stringify(faits) + '|' + boiteSemaineCle(new Date());
 }
 
 /* La page Emploi du temps vérifie la réception dans Firestore, pas dans
@@ -2788,6 +2832,39 @@ function boitePublierEmploi(force, manqueConfirme) {
         }
     }).catch(function () {}).then(function () {
         if (boitePublicationsEnCours[cle] === signature) delete boitePublicationsEnCours[cle];
+    });
+}
+
+/* Vérification de la semaine sur le serveur : une fois par semaine et par
+   session, et à chaque connexion (forcer = true). Elle lit la synchronisation
+   et la fiche de la semaine ; si la fiche manque ou si la synchronisation
+   pointe une autre semaine, elle est renvoyée. */
+var boiteSemaineVerifiee = '';
+function boiteVerifierSemaine(forcer) {
+    var semaine = boiteSemaineCle(new Date());
+    if (!forcer && boiteSemaineVerifiee === semaine) return Promise.resolve();
+    boiteSemaineVerifiee = semaine;
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return Promise.resolve();
+    return boiteFirebasePret().then(function (user) {
+        if (!user || !user.uid) return null;
+        var db = firebase.firestore();
+        return boiteIdEmploi(user.uid, semaine).then(function (id) {
+            if (!id) return boitePublierEmploi(false);
+            return Promise.all([
+                db.collection('synchronisation').doc(user.uid).get({ source: 'server' }).then(function (snap) {
+                    return snap && snap.exists ? (snap.data() || {}) : null;
+                }, function () { return null; }),
+                db.collection('emplois_du_temps').doc(id).get({ source: 'server' }).then(function (snap) {
+                    return !!(snap && snap.exists);
+                }, function () { return false; })
+            ]).then(function (lus) {
+                if (boiteSemaineARefaire(lus[0], lus[1], semaine)) boitePublierEmploi(false, true);
+                else boitePublierEmploi(false);
+            });
+        });
+    }).catch(function () {
+        /* Hors ligne ou refus : la prochaine vérification recommencera. */
+        boiteSemaineVerifiee = '';
     });
 }
 
@@ -3063,6 +3140,7 @@ function boiteApresMemoire() {
     clearTimeout(boiteEmploiTimer);
     boiteEmploiTimer = setTimeout(function () {
         boiteVerifierFiche();
+        boiteVerifierSemaine(false);
         /* Ne pas republier les anciens profils locaux avec l'emploi scolaire d'un autre compte. */
     }, 1500);
 }

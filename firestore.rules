@@ -96,9 +96,17 @@ service cloud.firestore {
                '03_emploi_du_temps', 'z_donnees_techniques'
              ])
         && request.resource.data.keys().hasOnly([
-             'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
+             'type', 'id', 'at', '00_semaine', '01_nom_utilisateur', '02_matieres',
              '03_emploi_du_temps', 'z_donnees_techniques'
            ])
+        /* Sous-section « semaine » : obligatoire dans les nouvelles fiches, absente
+           des anciennes (elles restent valides pour leur propriétaire). */
+        && (!('00_semaine' in request.resource.data)
+            || (request.resource.data['00_semaine'] is map
+                && request.resource.data['00_semaine'].debut is string
+                && request.resource.data['00_semaine'].fin is string
+                && request.resource.data['00_semaine'].numero is int
+                && request.resource.data['00_semaine'].annee is int))
         && request.resource.data.type == 'emploi'
         && request.resource.data.id is string
         && request.resource.data.id.size() <= 100
@@ -221,6 +229,24 @@ service cloud.firestore {
        Ni les autres élèves ni les admins ne lisent comptes/{uid} d'autrui. */
     match /comptes/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    /* Synchronisation : un seul document par élève, identifiant = son UID.
+       Lu et écrit par lui seul ; jamais listé, jamais public, admins compris.
+       Il pointe vers sa semaine courante dans emplois_du_temps et porte
+       l'indicateur d'effacement qui suit l'élève d'une semaine à l'autre. */
+    match /synchronisation/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+             'uid', 'semaine', 'emploi', 'misAJourLe', 'effaceParEleve', 'effaceLe'
+           ])
+        && request.resource.data.uid == uid
+        && (!('semaine' in request.resource.data) || request.resource.data.semaine is string)
+        && (!('emploi' in request.resource.data) || request.resource.data.emploi is string)
+        && (!('effaceParEleve' in request.resource.data) || request.resource.data.effaceParEleve == true);
+      allow delete: if false;
     }
   }
 }
