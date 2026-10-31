@@ -905,6 +905,8 @@ function boiteReassemblerEmplois(items) {
         Object.keys(g.base).forEach(function (k) { plein[k] = g.base[k]; });
         plein.jours = jours;
         plein.complet = 1;
+        plein.docIds = [];
+        for (i = 1; i <= g.total; i++) if (g.parts[i] && g.parts[i].docId) plein.docIds.push(g.parts[i].docId);
         delete plein.partie;
         delete plein.total;
         delete plein.coupee;
@@ -980,13 +982,16 @@ function boiteNomUtile(item) {
 
 /* Suppression d'une semaine d'emploi du temps, réservée aux admins. Deux
    confirmations ; les règles de la base refusent tout autre compte. */
-function boiteSupprimerEmploi(docId) {
-    if (!boiteEstAdmin() || !docId) return;
+function boiteSupprimerEmploi(ids) {
+    ids = (ids || []).filter(function (id) { return !!id; });
+    if (!boiteEstAdmin() || !ids.length) return;
     if (!window.confirm('Supprimer définitivement cette semaine de la base ? Cette action est irréversible.')) return;
     if (!window.confirm('Dernière confirmation : la fiche de cette semaine sera effacée. Continuer ?')) return;
     boiteFirebasePret().then(function (user) {
         if (!user) throw new Error('connexion');
-        return firebase.firestore().collection('emplois_du_temps').doc(String(docId)).delete();
+        var lot = firebase.firestore().batch();
+        ids.forEach(function (id) { lot.delete(firebase.firestore().collection('emplois_du_temps').doc(String(id))); });
+        return lot.commit();
     }).then(function () {
         window.location.reload();
     }).catch(function (err) {
@@ -1030,6 +1035,13 @@ function boiteRichesseEmploi(item) {
     return n;
 }
 
+/* Tous les documents qui composent une semaine (un emploi peut être envoyé en plusieurs morceaux). */
+function boiteIdsDocs(item) {
+    if (!item) return [];
+    if (Array.isArray(item.docIds) && item.docIds.length) return item.docIds.slice();
+    return item.docId ? [String(item.docId)] : [];
+}
+
 function boiteJoindrePersonne(a, b) {
     if (!a) return b;
     if (!b) return a;
@@ -1056,7 +1068,7 @@ function boiteJoindrePersonne(a, b) {
         matieres: semaine ? (semaine.matieres || []) : ((recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || [])),
         jours: semaine ? boiteJoursOrdonnes(semaine.jours) : boiteJoindreJours(ancien.jours, recent.jours, false),
         complet: complet ? 1 : 0,
-        docId: semaine && semaine.docId ? String(semaine.docId) : ''
+        docIds: boiteIdsDocs(semaine)
     };
 }
 
@@ -2051,9 +2063,9 @@ function boiteRendreEmplois(fusion) {
             + '<h3>' + nomAffiche + '</h3><p class="emploi-atelier-meta">' + meta + '</p></div>'
             + '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span></div>'
             + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
-            + (boiteEstAdmin() && aSemaine && semaine.docId
+            + (boiteEstAdmin() && aSemaine && boiteIdsDocs(semaine).length
                 ? '<div class="emploi-atelier-encart"><strong>Supprimer ce planning</strong>Cette semaine sera effacée de la base. Action irréversible.<br>'
-                  + '<button type="button" data-emploi-supprimer="' + boiteEchap(semaine.docId) + '" style="margin-top:0.5rem;padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer ce planning</button></div>'
+                  + '<button type="button" data-emploi-supprimer="' + boiteEchap(boiteIdsDocs(semaine).join(',')) + '" style="margin-top:0.5rem;padding:0.5rem 0.9rem;border:1px solid #fecaca;border-radius:0.6rem;background:#fef2f2;color:#b91c1c;font-weight:700;cursor:pointer;">Supprimer ce planning</button></div>'
                 : '')
             + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
             + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
@@ -2191,7 +2203,7 @@ function boiteBrancherAdmin() {
     var detailEmplois = document.getElementById('emploisDetail');
     if (detailEmplois) detailEmplois.addEventListener('click', function (e) {
         var supprimer = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer]') : null;
-        if (supprimer) { boiteSupprimerEmploi(supprimer.getAttribute('data-emploi-supprimer')); return; }
+        if (supprimer) { boiteSupprimerEmploi(supprimer.getAttribute('data-emploi-supprimer').split(',')); return; }
         var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-version]') : null;
         if (!bouton) return;
         var cle = bouton.getAttribute('data-emploi-version');
