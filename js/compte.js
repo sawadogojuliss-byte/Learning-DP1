@@ -689,6 +689,56 @@ function compteNuageEffacer() {
     }).then(supprimer).catch(function () { return null; });
 }
 
+/* Effacement de la progression par l'élève : ses fiches d'emploi du temps
+   restent dans la base, mais un indicateur les retire de la vue admin.
+   Rien n'est supprimé. Les règles permettent à l'élève de modifier sa
+   propre fiche seulement ; sans connexion Firebase, rien n'est marqué. */
+var COMPTE_FICHES_MAX = 60;
+
+function compteMasquerFichesEleve() {
+    if (!window.compteSession || !window.compteSession.sub) return Promise.resolve();
+    return compteChargerFirebase().then(function () {
+        return new Promise(function (resolve) {
+            var fini = false;
+            var timer = setTimeout(function () {
+                if (fini) return;
+                fini = true;
+                resolve((firebase.auth() && firebase.auth().currentUser) || null);
+            }, 6000);
+            firebase.auth().onAuthStateChanged(function (user) {
+                if (fini) return;
+                fini = true;
+                clearTimeout(timer);
+                resolve(user || null);
+            });
+        });
+    }).then(function (user) {
+        if (!user || !user.uid) return;
+        return compteMasquerFiche(user.uid, null, 0);
+    }).catch(function () {});
+}
+
+function compteMasquerFiche(uid, apres, rang) {
+    if (rang >= COMPTE_FICHES_MAX) return Promise.resolve();
+    var requete = firebase.firestore().collection('emplois_du_temps')
+        .where('z_donnees_techniques.firebaseUid', '==', uid)
+        .orderBy(firebase.firestore.FieldPath.documentId())
+        .limit(1);
+    if (apres) requete = requete.startAfter(apres);
+    return requete.get().then(function (snap) {
+        if (!snap || snap.empty || !snap.docs.length) return null;
+        var doc = snap.docs[0];
+        var tech = (doc.data() || {}).z_donnees_techniques || {};
+        var travail = tech.effaceParEleve === true
+            ? Promise.resolve()
+            : doc.ref.update({
+                'z_donnees_techniques.effaceParEleve': true,
+                'z_donnees_techniques.effaceLe': new Date().toISOString()
+            }).catch(function (err) { console.warn('Fiche non masquée', err); });
+        return travail.then(function () { return compteMasquerFiche(uid, doc, rang + 1); });
+    });
+}
+
 var compteCopieEnAttente = false;
 var COMPTE_INVITE = 'Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.';
 

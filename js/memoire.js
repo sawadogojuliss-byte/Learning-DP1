@@ -838,6 +838,9 @@ function memoireEffacerConfirme() {
         try { local = Promise.resolve(sauvegardeEffacerLocal()); } catch (e) {}
     }
     var nuage = typeof compteNuageEffacer === 'function' ? Promise.resolve(compteNuageEffacer()) : Promise.resolve();
+    /* Fiches d'emploi du temps retirées de la vue admin (gardées dans la base).
+       Lancé avant la fin de la session, qui vide l'identité locale. */
+    var fiches = typeof compteMasquerFichesEleve === 'function' ? Promise.resolve(compteMasquerFichesEleve()) : Promise.resolve();
     var fait = false;
     var fin = function () {
         if (fait) return;
@@ -845,7 +848,7 @@ function memoireEffacerConfirme() {
         memoireEffacerSuite();
     };
     setTimeout(fin, 15000);
-    Promise.all([local.catch(function () {}), nuage.catch(function () {})]).then(fin, fin);
+    Promise.all([local.catch(function () {}), nuage.catch(function () {}), fiches.catch(function () {})]).then(fin, fin);
 }
 
 function memoireBrancher(nom) {

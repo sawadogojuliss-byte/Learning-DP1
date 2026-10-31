@@ -216,8 +216,13 @@ var BOITE_DOCS_MASQUES = {
     JN4wP5IN9cIr6wSjiO4q: 1
 };
 
-function boiteDocMasque(nom, id) {
-    return nom === 'emplois_du_temps' && !!BOITE_DOCS_MASQUES[String(id || '')];
+/* Retire de la vue admin une fiche d'emploi du temps effacée par l'élève
+   (indicateur z_donnees_techniques.effaceParEleve). Le document reste dans la base. */
+function boiteDocMasque(nom, id, data) {
+    if (nom !== 'emplois_du_temps') return false;
+    if (BOITE_DOCS_MASQUES[String(id || '')]) return true;
+    var tech = data && data.z_donnees_techniques;
+    return !!(tech && tech.effaceParEleve === true);
 }
 
 function boiteLireCollection(nom, depuis, max, champDate) {
@@ -228,7 +233,7 @@ function boiteLireCollection(nom, depuis, max, champDate) {
         .then(function (snap) {
             var out = [];
             snap.forEach(function (doc) {
-                if (boiteDocMasque(nom, doc.id)) return;
+                if (boiteDocMasque(nom, doc.id, doc.data())) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) {
                     data.docId = doc.id;
@@ -253,7 +258,7 @@ function boiteLireCollectionHistorique(nom, champDate, depuis) {
         if (apres) q = q.startAfter(apres);
         return q.limit(400).get().then(function (snap) {
             snap.forEach(function (doc) {
-                if (boiteDocMasque(nom, doc.id)) return;
+                if (boiteDocMasque(nom, doc.id, doc.data())) return;
                 var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
                 if (data && data.type && data.id && data.at) {
                     data.docId = doc.id;
