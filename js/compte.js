@@ -111,6 +111,38 @@ function compteFusionnerObjets(a, b) {
     return mix;
 }
 
+/* Série de flammes (jours d'affilée) : entre plusieurs copies, on garde la plus
+   récente. Une série d'un seul jour (appareil neuf) ne remplace pas une vraie série
+   de l'autre copie si elle date de trois jours au plus. Le résultat ne dépend pas
+   de l'ordre des copies. */
+function compteEcartJours(a, b) {
+    var pa = String(a).split('-');
+    var pb = String(b).split('-');
+    if (pa.length !== 3 || pb.length !== 3) return 99;
+    return Math.round((Date.UTC(+pb[0], +pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], +pa[1] - 1, +pa[2])) / 86400000);
+}
+
+function compteFlammeChoisie(copies) {
+    var liste = (copies || []).filter(function (c) {
+        return c && typeof c === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(c.flammeJour || ''));
+    }).map(function (c) {
+        return { flammeJour: String(c.flammeJour), flammes: Number(c.flammes) || 0 };
+    });
+    if (!liste.length) return null;
+    liste.sort(function (x, y) {
+        if (x.flammeJour !== y.flammeJour) return x.flammeJour > y.flammeJour ? -1 : 1;
+        return y.flammes - x.flammes;
+    });
+    var meilleure = liste[0];
+    if (meilleure.flammes <= 1) {
+        var serie = liste.filter(function (c) {
+            return c.flammes > 1 && Math.abs(compteEcartJours(c.flammeJour, meilleure.flammeJour)) <= 3;
+        })[0];
+        if (serie) meilleure = serie;
+    }
+    return meilleure;
+}
+
 function compteFusionnerProfils(copies) {
     var tous = (copies || []).filter(function (c) { return c && typeof c === 'object' && !c.efface; });
     var utiles = tous.filter(function (c) { return compteUtile(c); });
@@ -182,17 +214,10 @@ function compteFusionnerProfils(copies) {
     });
     if (maxJours) base.joursConnectes = maxJours;
     if (dernier) base.dernierJour = dernier;
-    var flammeJour = '';
-    var flammes = 0;
-    tous.forEach(function (src) {
-        if (src.flammeJour && String(src.flammeJour) >= flammeJour) {
-            flammeJour = src.flammeJour;
-            flammes = Number(src.flammes) || 0;
-        }
-    });
-    if (flammeJour) {
-        base.flammeJour = flammeJour;
-        base.flammes = flammes;
+    var flammeChoisie = compteFlammeChoisie(tous);
+    if (flammeChoisie) {
+        base.flammeJour = flammeChoisie.flammeJour;
+        base.flammes = flammeChoisie.flammes;
     }
     if (!base.savedAt) base.savedAt = new Date().toISOString();
     var sourceSujets = null;
@@ -224,19 +249,30 @@ function compteFusionnerProfils(copies) {
     if (sourceFige) {
         try { base.emploiFige = JSON.parse(JSON.stringify(sourceFige)); } catch (e) { base.emploiFige = sourceFige; }
     }
-    var sourceRecent = null;
-    var quandRecent = -1;
+    /* Activités et jours de téléphone : la copie la plus récente qui en contient.
+       Une copie locale vide, datée d'aujourd'hui, ne doit pas effacer celles du compte. */
+    var copieAvecActivites = null;
+    var quandActivites = -1;
     utiles.forEach(function (src) {
+        if (!Array.isArray(src.selectedActivities) || !src.selectedActivities.length) return;
         var t = Date.parse(src.savedAt) || 0;
-        if (!sourceRecent || t >= quandRecent) {
-            sourceRecent = src;
-            quandRecent = t;
+        if (!copieAvecActivites || t >= quandActivites) {
+            copieAvecActivites = src;
+            quandActivites = t;
         }
     });
-    if (sourceRecent) {
-        if (Array.isArray(sourceRecent.selectedActivities)) base.selectedActivities = sourceRecent.selectedActivities;
-        if (Array.isArray(sourceRecent.phoneDays)) base.phoneDays = sourceRecent.phoneDays;
-    }
+    base.selectedActivities = copieAvecActivites ? copieAvecActivites.selectedActivities : [];
+    var copieAvecJours = null;
+    var quandJours = -1;
+    utiles.forEach(function (src) {
+        if (!Array.isArray(src.phoneDays) || !src.phoneDays.length) return;
+        var t = Date.parse(src.savedAt) || 0;
+        if (!copieAvecJours || t >= quandJours) {
+            copieAvecJours = src;
+            quandJours = t;
+        }
+    });
+    base.phoneDays = copieAvecJours ? copieAvecJours.phoneDays : (Array.isArray(base.phoneDays) ? base.phoneDays : []);
     base.suppressions = registre;
     /* Les réglages du minuteur : la version datée la plus récente, toutes copies et cet appareil. */
     var focusChoisi = syncLireJson(SYNC_CLE_FOCUS, null);

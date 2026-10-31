@@ -241,13 +241,17 @@ function memoireAppliquer(data, opts) {
 function memoireRestaurerFlamme(data) {
     try {
         if (!data || typeof data.flammeJour !== 'string' || !data.flammeJour) return;
-        var jourLocal = localStorage.getItem('studyPlanIB_flammeJour') || '';
-        var fLocal = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0;
-        var fDonnee = Number(data.flammes) || 0;
-        if (jourLocal > data.flammeJour) return;
-        if (jourLocal === data.flammeJour && fLocal >= fDonnee) return;
-        localStorage.setItem('studyPlanIB_flammeJour', data.flammeJour);
-        localStorage.setItem('studyPlanIB_flamme', String(fDonnee));
+        var local = {
+            flammeJour: localStorage.getItem('studyPlanIB_flammeJour') || '',
+            flammes: parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0
+        };
+        var donnee = { flammeJour: data.flammeJour, flammes: Number(data.flammes) || 0 };
+        /* Même règle que la fusion des copies (compteFlammeChoisie). */
+        var choisie = typeof compteFlammeChoisie === 'function' ? compteFlammeChoisie([local, donnee]) : donnee;
+        if (!choisie) return;
+        if (choisie.flammeJour === local.flammeJour && choisie.flammes === local.flammes) return;
+        localStorage.setItem('studyPlanIB_flammeJour', choisie.flammeJour);
+        localStorage.setItem('studyPlanIB_flamme', String(choisie.flammes));
     } catch (e) {}
 }
 
@@ -323,15 +327,6 @@ function memoireAppliquerCorps(data, opts) {
                 if (data.dernierJour) localStorage.setItem('studyPlanIB_dernierJour', data.dernierJour);
             } catch (e) {}
         }
-    }
-    if (data.flammeJour) {
-        try {
-            var jourLocal = localStorage.getItem('studyPlanIB_flammeJour') || '';
-            if (String(data.flammeJour) >= jourLocal) {
-                localStorage.setItem('studyPlanIB_flammeJour', data.flammeJour);
-                localStorage.setItem('studyPlanIB_flamme', String(Number(data.flammes) || 0));
-            }
-        } catch (e2) {}
     }
     if (Array.isArray(data.iaDocs) && data.iaDocs.length && data.userName) {
         var cleDocs = 'ia-docs-' + String(data.userName).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').slice(0, 80);

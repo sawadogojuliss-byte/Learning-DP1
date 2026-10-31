@@ -204,12 +204,10 @@ const SUB = 'sub-eleve';
 
     /* 6. Élève sans compte Google : identifiant aléatoire, comme avant. */
     utilisateur = null;
-    const sansCompte = await context.boiteEcrireBoite(fiche('2026-11-09T11:00:00.000Z', 'Anglais'));
-    assert.ok(base['emplois_du_temps/' + sansCompte], 'fiche sans compte non créée');
-    assert.equal(base['receptions_emplois/' + sansCompte].recu, true, 'accusé sans compte non créé');
-    assert.equal(base['emplois_du_temps/' + sansCompte].z_donnees_techniques.firebaseUid, '');
-    assert.notEqual(sansCompte, UID, 'un élève sans compte ne doit pas recevoir l’UID');
-    console.log('élève sans compte : identifiant aléatoire conservé');
+    const avantSansCompte = Object.keys(base).filter((c) => c.startsWith('emplois_du_temps/')).length;
+    await assert.rejects(context.boiteEcrireBoite(fiche('2026-11-09T11:00:00.000Z', 'Anglais')), /identite_en_attente/);
+    assert.equal(Object.keys(base).filter((c) => c.startsWith('emplois_du_temps/')).length, avantSansCompte, 'fiche sans compte créée : doublon');
+    console.log('élève sans compte : aucune fiche à identifiant aléatoire (doublon évité)');
 
     /* 6 bis. Historique : une entrée par synchronisation de l'élève connecté, avec l'heure. */
     const historique = Object.keys(base).filter((c) => c.startsWith('synchronisation/' + UID + '/historique/'));
