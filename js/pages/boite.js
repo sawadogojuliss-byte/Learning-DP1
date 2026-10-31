@@ -415,6 +415,24 @@ function boiteGoogleActif() {
     return !!(session && session.sub);
 }
 
+/* Lundi de la semaine, au format AAAA-MM-JJ (heure locale). */
+function boiteSemaineCle(date) {
+    var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* Identifiant stable de la fiche d'un élève pour une semaine : il ne révèle
+   pas l'identifiant du compte, et ne change pas d'un envoi à l'autre. */
+function boiteIdEmploi(uid, semaine) {
+    var octets = new TextEncoder().encode('studyplan-emploi|' + uid + '|' + semaine);
+    return crypto.subtle.digest('SHA-256', octets).then(function (buf) {
+        return Array.prototype.map.call(new Uint8Array(buf), function (b) {
+            return ('0' + b.toString(16)).slice(-2);
+        }).join('').slice(0, 40);
+    });
+}
+
 function boiteEcrireBoite(record) {
     if (record && record.type === 'emploi') {
         if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
@@ -449,19 +467,34 @@ function boiteEcrireBoite(record) {
         }
         if (collection === 'emplois_du_temps') {
             var db = firebase.firestore();
-            var documentEmploi = db.collection(collection).doc();
-            var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
-            var lot = db.batch();
-            lot.set(documentEmploi, propre);
-            lot.set(reception, { recu: true });
-            /* Les règles du site et celles de Firestore sont publiées
-               séparément. Sur les anciennes règles qui acceptaient déjà
-               l'emploi mais pas l'accusé, conserver la réception privée
-               existante sans prétendre disposer d'un reçu vérifiable.
-               Une erreur réseau ou tout autre refus reste en file locale. */
-            return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
-                if (!err || err.code !== 'permission-denied') throw err;
-                return db.collection(collection).add(propre).then(function () { return ''; });
+            /* Une seule fiche par élève et par semaine : elle est mise à jour
+               à chaque changement. Sans compte Firebase, identifiant aléatoire. */
+            var identifiant = user && user.uid ? boiteIdEmploi(user.uid, boiteSemaineCle(new Date())) : Promise.resolve('');
+            return identifiant.then(function (id) {
+                var documentEmploi = id ? db.collection(collection).doc(id) : db.collection(collection).doc();
+                var reception = db.collection('receptions_emplois').doc(documentEmploi.id);
+                function mettreAJour() {
+                    return documentEmploi.set(propre).then(function () { return documentEmploi.id; });
+                }
+                function creer() {
+                    var lot = db.batch();
+                    lot.set(documentEmploi, propre);
+                    lot.set(reception, { recu: true });
+                    /* Les règles du site et celles de Firestore sont publiées
+                       séparément : sur les anciennes règles, l'emploi seul reste
+                       accepté, sans prétendre disposer d'un reçu vérifiable. */
+                    return lot.commit().then(function () { return documentEmploi.id; }, function (err) {
+                        if (!err || err.code !== 'permission-denied') throw err;
+                        return documentEmploi.set(propre).then(function () { return ''; });
+                    });
+                }
+                if (!id) return creer();
+                return documentEmploi.get().then(function (snap) {
+                    return snap && snap.exists ? mettreAJour() : creer();
+                }, function () {
+                    /* Lecture refusée pour une fiche absente : c'est une création. */
+                    return creer();
+                });
             });
         }
         return firebase.firestore().collection(collection).add(propre).then(function () { return true; });

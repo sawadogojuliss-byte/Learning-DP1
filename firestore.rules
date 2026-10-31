@@ -86,7 +86,7 @@ service cloud.firestore {
       allow create: if ficheValide('feedback', '04_feedback');
       allow update, delete: if false;
     }
-    /* Les nouvelles semaines sont immuables. Les admins lisent toutes les
+    /* Une fiche par élève et par semaine : seul son propriétaire la met à jour. Les admins lisent toutes les
        versions ; un compte connecté ne peut vérifier QUE ses propres
        documents via une requête filtrée par son UID. Jamais de lecture
        d'emplois d'un autre élève, ni de liste publique. */
@@ -137,7 +137,10 @@ service cloud.firestore {
         && request.query.limit <= 1
         && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
       allow create: if emploiValide();
-      allow update: if false;
+      /* Mise à jour de sa propre fiche de semaine, à chaque changement. */
+      allow update: if request.auth != null
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
+        && emploiValide();
       /* Suppression réservée aux cinq admins, depuis le bouton de la vue admin. */
       allow delete: if estAdmin();
     }
