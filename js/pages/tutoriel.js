@@ -121,6 +121,18 @@ function tutorielActiverInsertion() {
         publier.style.background = peut ? 'linear-gradient(135deg,#059669,#10b981)' : '#d1d5db';
         publier.style.cursor = peut ? 'pointer' : 'not-allowed';
     }
+    var manque = document.getElementById('tutorielManque');
+    if (manque) {
+        var texteManque = '';
+        if (!peut) {
+            if (!tutorielTitreValide(titre ? titre.value : '')) {
+                texteManque = 'Pour publier, écris d\'abord un titre (entre 2 et 80 lettres).';
+            } else {
+                texteManque = 'Pour publier, il manque la vidéo : choisis un fichier ou colle un lien valide (YouTube, Vimeo, Drive ou fichier mp4).';
+            }
+        }
+        manque.textContent = texteManque;
+    }
 }
 
 function tutorielMontrerApercu(url, embed) {

@@ -149,6 +149,7 @@ function sauvegardeCapturer() {
 }
 
 function sauvegardeApresMemoire() {
+    if (window.__effacementEnCours) return;
     var data = sauvegardeCapturer();
     if (!data || sauvegardeRiche(data) <= 0) return;
     var json = '';

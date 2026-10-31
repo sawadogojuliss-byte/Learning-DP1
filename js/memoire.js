@@ -830,13 +830,14 @@ function memoireEffacer() {
 }
 
 function memoireEffacerConfirme() {
+    /* Pendant l'effacement, plus rien n'écrit les données : sinon la sauvegarde
+       de la page qui se ferme les remettrait au rechargement. */
+    window.__effacementEnCours = true;
+    var local = Promise.resolve();
     if (typeof sauvegardeEffacerLocal === 'function') {
-        try { sauvegardeEffacerLocal(); } catch (e) {}
+        try { local = Promise.resolve(sauvegardeEffacerLocal()); } catch (e) {}
     }
-    if (typeof compteNuageEffacer !== 'function') {
-        memoireEffacerSuite();
-        return;
-    }
+    var nuage = typeof compteNuageEffacer === 'function' ? Promise.resolve(compteNuageEffacer()) : Promise.resolve();
     var fait = false;
     var fin = function () {
         if (fait) return;
@@ -844,7 +845,7 @@ function memoireEffacerConfirme() {
         memoireEffacerSuite();
     };
     setTimeout(fin, 15000);
-    compteNuageEffacer().then(fin, fin);
+    Promise.all([local.catch(function () {}), nuage.catch(function () {})]).then(fin, fin);
 }
 
 function memoireBrancher(nom) {
