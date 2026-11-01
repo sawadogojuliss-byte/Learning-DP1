@@ -1521,16 +1521,20 @@ function compteProgressionEnregistrer() {
     var nom = (window.compteSession && window.compteSession.sub) ? (compteNomLie(window.compteSession.sub) || '') : '';
     if (nom) neuve.userName = nom;
     if (nom && !data.userName) data.userName = nom;
+    /* La date de sauvegarde reste dans le texte envoyé : sans elle, la copie du nuage
+       paraît « très ancienne » à la fusion des activités et perd celles qui ont une suppression
+       dans le registre (second téléphone sans activités). */
+    var texte = JSON.stringify(Object.assign({}, neuve, { savedAt: new Date().toISOString() }));
     var ecritures = [];
     if (progressionChangee) {
         ecritures.push(firebase.firestore().collection('progressions').doc(user.uid).set({
             /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
                emploiFige.jours). compteProgressionFirebase relit le texte. */
-            progression: JSON.stringify(neuve),
+            progression: texte,
             progressionLe: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function () {
             compteProgressionDerniere = empreinte;
-            compteVueEcrire(JSON.stringify(neuve), empreinteLocale);
+            compteVueEcrire(texte, empreinteLocale);
         }));
     }
     /* La fiche documents/{uid} suit chaque changement, indépendamment de la progression. */
@@ -1834,6 +1838,10 @@ function compteProgressionFirebase(doc) {
     if (!data || typeof data !== 'object') return null;
     if (doc.nom && !data.userName) data.userName = doc.nom;
     if (doc.nom) data.userName = compteGarderNom(doc.nom, data.userName);
+    /* Copie écrite avant cette correction : la date d'écriture du serveur sert de date de sauvegarde. */
+    if (!data.savedAt && doc.progressionLe && typeof doc.progressionLe.toDate === 'function') {
+        try { data.savedAt = doc.progressionLe.toDate().toISOString(); } catch (e) {}
+    }
     return compteUtile(data) ? data : null;
 }
 
@@ -1878,6 +1886,7 @@ function compteFirebaseEcrire(user, nom, data) {
         var neuve = data && compteUtile(data) ? compteSansDocuments(data) : null;
         if (neuve) {
             if (nomGarde) neuve.userName = nomGarde;
+            if (!neuve.savedAt) neuve.savedAt = new Date().toISOString();
             if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) {
                 ecritures.push(db.collection('progressions').doc(user.uid).set({
                     progression: JSON.stringify(neuve),
