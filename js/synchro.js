@@ -26,7 +26,9 @@ var SYNC_CLE_REGISTRE = 'studyPlanIB_suppressions';
 var SYNC_CLE_FOCUS = 'studyPlanIB_focusReglages';
 var SYNC_DELAI_PURGE_MS = 60 * 24 * 60 * 60 * 1000;
 var SYNC_MAX_PAR_LISTE = 2000;
-var SYNC_LISTES = ['customEvents', 'exercices', 'memoirPlan', 'devoirs', 'examens', 'cours'];
+var SYNC_LISTES = ['customEvents', 'exercices', 'memoirPlan', 'devoirs', 'examens', 'cours', 'selectedActivities'];
+/* Activités sélectionnées : identifiées par leur nom, suivies par leur nom (pas d'identifiant). */
+var SYNC_CLE_ACTIVITES = 'studyPlanIB_activitesInstantane';
 var SYNC_ETATS_EXERCICE = ['done', 'scheduledSlot', 'planVersion', 'etatAt'];
 var syncInstantanes = {};
 var syncApplicationProfonde = 0;
@@ -255,6 +257,7 @@ function syncPreparer() {
     if (syncApplicationProfonde > 0) return;
     var l = syncListesMemoire();
     Object.keys(l).forEach(function (nom) { syncEstampiller(nom, l[nom]); });
+    syncEstamperActivites(typeof selectedActivities !== 'undefined' ? selectedActivities : []);
     syncFocusCourant();
 }
 
@@ -262,12 +265,78 @@ function syncPreparer() {
 function syncRecalerMemoire() {
     var l = syncListesMemoire();
     Object.keys(l).forEach(function (nom) { syncRecaler(nom, l[nom]); });
+    syncRecalerActivites(typeof selectedActivities !== 'undefined' ? selectedActivities : []);
+}
+
+/* ── Activités sélectionnées : suppressions datées par nom ─────────── */
+
+function syncNomsActivites(liste) {
+    var noms = [];
+    (Array.isArray(liste) ? liste : []).forEach(function (a) {
+        if (a && typeof a === 'object' && a.name) {
+            var n = String(a.name);
+            if (noms.indexOf(n) === -1) noms.push(n);
+        }
+    });
+    return noms;
+}
+
+/* Instantané des noms : le dernier état connu, appliqué ou sauvegardé. */
+function syncRecalerActivites(liste) {
+    try { localStorage.setItem(SYNC_CLE_ACTIVITES, JSON.stringify({ noms: syncNomsActivites(liste) })); } catch (e) {}
+}
+
+/* Une activité présente à la dernière sauvegarde et absente maintenant a été
+   retirée par l'élève : la suppression est datée dans le registre. Sans
+   instantané, on en prend un et rien n'est supprimé. */
+function syncEstamperActivites(liste) {
+    if (syncApplicationProfonde > 0) return;
+    var actuels = syncNomsActivites(liste);
+    var ancien = syncLireJson(SYNC_CLE_ACTIVITES, null);
+    if (!ancien || !Array.isArray(ancien.noms)) { syncRecalerActivites(liste); return; }
+    var maintenant = Date.now();
+    var reg = syncLireRegistre();
+    var change = false;
+    ancien.noms.forEach(function (n) {
+        if (actuels.indexOf(String(n)) !== -1) return;
+        reg.selectedActivities = reg.selectedActivities || {};
+        reg.selectedActivities[String(n)] = maintenant;
+        change = true;
+    });
+    if (change) syncEcrireRegistre(reg);
+    syncRecalerActivites(liste);
+}
+
+/* Fusion des activités de toutes les copies, par nom. La version de l'activité
+   est celle de la copie la plus récente qui la contient. Une activité est retirée
+   si sa suppression est postérieure à cette copie : une copie vide ou ancienne ne
+   la fait donc plus revenir. Une activité ré-ajoutée après sa suppression reste. */
+function syncFusionnerActivites(copies, reg) {
+    var supprimes = (reg && reg.selectedActivities) || {};
+    var triees = (copies || []).filter(function (c) {
+        return c && typeof c === 'object' && Array.isArray(c.selectedActivities);
+    }).map(function (c) { return { c: c, t: Date.parse(c.savedAt) || 0 }; });
+    triees.sort(function (x, y) { return y.t - x.t; });
+    var parNom = {};
+    var ordre = [];
+    triees.forEach(function (x) {
+        x.c.selectedActivities.forEach(function (a) {
+            if (!a || typeof a !== 'object' || !a.name) return;
+            var n = String(a.name);
+            if (!parNom[n]) { parNom[n] = { act: a, t: x.t }; ordre.push(n); }
+        });
+    });
+    return ordre.filter(function (n) {
+        var s = syncNombre(supprimes[n]);
+        return !(s && s >= parNom[n].t);
+    }).map(function (n) { return syncCopier(parNom[n].act); });
 }
 
 /* Effacement volontaire de la progression de cet appareil : pas de suppression
    propagée, la liste repart à vide. */
 function syncRemettreAZero() {
     ['customEvents', 'exercices', 'memoirPlan'].forEach(function (nom) { syncInstantanes[nom] = {}; });
+    syncRecalerActivites([]);
 }
 
 function syncDebutApplication() { syncApplicationProfonde++; }

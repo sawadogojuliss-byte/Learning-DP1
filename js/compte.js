@@ -251,17 +251,9 @@ function compteFusionnerProfils(copies) {
     }
     /* Activités et jours de téléphone : la copie la plus récente qui en contient.
        Une copie locale vide, datée d'aujourd'hui, ne doit pas effacer celles du compte. */
-    var copieAvecActivites = null;
-    var quandActivites = -1;
-    utiles.forEach(function (src) {
-        if (!Array.isArray(src.selectedActivities) || !src.selectedActivities.length) return;
-        var t = Date.parse(src.savedAt) || 0;
-        if (!copieAvecActivites || t >= quandActivites) {
-            copieAvecActivites = src;
-            quandActivites = t;
-        }
-    });
-    base.selectedActivities = copieAvecActivites ? copieAvecActivites.selectedActivities : [];
+    /* Activités : fusion par nom avec les suppressions datées (registre). Une copie vide
+       ou ancienne ne fait plus revenir une activité retirée par l'élève. */
+    base.selectedActivities = syncFusionnerActivites(tous, registre);
     var copieAvecJours = null;
     var quandJours = -1;
     utiles.forEach(function (src) {
