@@ -1624,6 +1624,12 @@ function compteRetrouverApresChargement(essai) {
             var distantes = lus[0];
             var firebaseCopie = compteProgressionFirebase(doc);
             if (firebaseCopie && lus[1].length) firebaseCopie.iaDocs = lus[1];
+            /* Au simple rechargement de la page, la copie de cet appareil reste celle qui s'affiche :
+               le nuage ne la remplace pas (il peut être plus ancien et faire changer l'emploi du temps
+               quelques secondes après l'affichage). Le nuage est repris à la connexion (compteOnCredential),
+               ou ici seulement si cet appareil n'a rien d'utilisable pour ce compte. */
+            var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+            if (locale && compteUtile(locale) && comptePeutJoindreLocal(locale, session)) return 'local';
             if (firebaseCopie) {
                 compteBasculer(firebaseCopie, session);
                 distantes = [firebaseCopie];
