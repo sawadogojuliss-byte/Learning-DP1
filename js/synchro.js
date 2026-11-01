@@ -255,6 +255,10 @@ function syncListesMemoire() {
 /* Date ce qui a changé depuis la dernière sauvegarde (appelé avant de sauver). */
 function syncPreparer() {
     if (syncApplicationProfonde > 0) return;
+    /* Mémoire pas encore chargée (démarrage, ou après effacement) : les listes sont vides sans que
+       l'élève ait rien retiré. Rien n'est daté ni recalé : sinon chaque activité de l'instantané
+       deviendrait une fausse suppression, propagée à tous les appareils. */
+    if (typeof memoirePret !== 'undefined' && !memoirePret) return;
     var l = syncListesMemoire();
     Object.keys(l).forEach(function (nom) { syncEstampiller(nom, l[nom]); });
     syncEstamperActivites(typeof selectedActivities !== 'undefined' ? selectedActivities : []);

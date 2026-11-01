@@ -128,7 +128,8 @@ async function connecter(ctx) { ctx.compteOnCredential({ credential }); await at
 async function verifierAppareil2(nom, nuage, E1, init, journal) {
   const b = creerContexte(init); b.firebase = firebaseFactice(nuage, 'UID-FARID', user); charger(b, ordreReel());
   await connecter(b);
-  await attendre(2000);
+  /* Attente de la restauration complète : 4 s (la restauration est asynchrone, 2 s pouvaient être trop courtes). */
+  await attendre(4000);
   const e = b.memoireLireEtat();
   const diff = CLES.filter(k => contenu(k, e[k]) !== contenu(k, E1[k]));
   console.log('APPAREIL 2 (' + nom + ') : ' + (diff.length ? 'différences : ' + diff.map(k => k + ' (obtenu ' + ok(e[k]).slice(0, 120) + ' / attendu ' + ok(E1[k]).slice(0, 120) + ')').join(' ; ') : 'identique à l appareil 1 sur tous les champs (' + CLES.length + ')'));
