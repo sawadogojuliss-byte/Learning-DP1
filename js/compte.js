@@ -231,11 +231,16 @@ function compteFusionnerProfils(copies) {
             quandSujets = t;
         }
     });
-    var listeSujets = sourceSujets ? [].concat(sourceSujets.subjects || [], sourceSujets.optionalSubjects || []) : [].concat(base.subjects || [], base.optionalSubjects || []);
+    /* Les matières principales et optionnelles viennent ensemble de la copie la plus récente
+       qui en a : leur répartition est gardée (une optionnelle ne devient pas une principale). */
+    var valides = function (s) { return s && s.name; };
+    var principales = sourceSujets ? (sourceSujets.subjects || []) : (base.subjects || []);
+    var optionnelles = sourceSujets ? (sourceSujets.optionalSubjects || []) : (base.optionalSubjects || []);
+    principales = principales.filter(valides);
     base.subjects = typeof plafonnerSujetsChoisis === 'function'
-        ? plafonnerSujetsChoisis(listeSujets, sourceSujets || base)
-        : listeSujets.filter(function (s) { return s && s.name; }).slice(0, 6);
-    base.optionalSubjects = [];
+        ? plafonnerSujetsChoisis(principales, sourceSujets || base)
+        : principales.slice(0, 6);
+    base.optionalSubjects = optionnelles.filter(valides);
     var sourceFige = null;
     var quandFige = -1;
     utiles.forEach(function (src) {
@@ -468,20 +473,26 @@ function compteClasseAGarder(data) {
     return locale.ibYear;
 }
 
-/* Réglages remis à leurs valeurs par défaut quand une donnée reçue ne les contient pas
-   (sommeil, réveils, objectif, nom). Ils gardent la valeur du profil de ce compte
-   présent sur l'appareil : une donnée incomplète ne peut plus tout réinitialiser. */
-var COMPTE_REGLAGES_CLES = ['userName', 'targetScore', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup',
-    'weekdaySleepHours', 'saturdaySleepHours', 'sundaySleepHours'];
+/* Champs du profil qui ne doivent jamais être remis à leur valeur par défaut parce qu'une
+   donnée reçue ne les contient pas (réglages de sommeil, objectif, matières, activités,
+   emploi du temps figé, etc.). Une liste vide ou une valeur « non » reste une vraie valeur. */
+var COMPTE_CHAMPS_PROFIL = ['userName', 'targetScore', 'ibYear', 'memoirLevel', 'iaLevel', 'iaLevels', 'memoirPlan', 'iaPlans',
+    'eeVus', 'eeDemandes', 'transportMode', 'carDeparture', 'carToSchool', 'carFromSchool', 'motoDeparture', 'motoReturn',
+    'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates', 'holidayDroppedDates', 'sameFreeTime',
+    'freeTimeMinutes', 'freeTimeByDay', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup', 'weekdaySleepHours',
+    'saturdaySleepHours', 'sundaySleepHours', 'habitudesDefinies', 'prepMatinMinutes', 'prepMatinDebut', 'prepMatinFin',
+    'prepSoirMinutes', 'prepSoirDebut', 'prepSoirFin', 'petitDejHeure', 'petitDejMinutes', 'dinerHeure', 'dinerMinutes',
+    'phoneDays', 'samePhoneDuration', 'phoneDuration', 'phoneDayDurations', 'customEvents', 'exercices', 'devoirsStore',
+    'emploiScolaire', 'emploiFige', 'subjects', 'optionalSubjects', 'currentMood'];
 function compteCompleterReglages(data) {
     if (!data || typeof data !== 'object' || typeof memoireJson !== 'function') return data;
     /* Le profil enregistré porte l'identité de son compte ; l'état en mémoire, au démarrage, ne la porte pas. */
     var courant = memoireJson(MEMOIRE_KEY);
     if (!courant || !compteUtile(courant) || !comptePeutJoindreLocal(courant, window.compteSession)) return data;
     var copie = Object.assign({}, data);
-    COMPTE_REGLAGES_CLES.forEach(function (cle) {
-        var absent = copie[cle] == null || copie[cle] === '';
-        if (absent && courant[cle] != null && courant[cle] !== '') copie[cle] = courant[cle];
+    COMPTE_CHAMPS_PROFIL.forEach(function (cle) {
+        var absent = copie[cle] === undefined || copie[cle] === null || copie[cle] === '';
+        if (absent && courant[cle] !== undefined && courant[cle] !== null && courant[cle] !== '') copie[cle] = courant[cle];
     });
     return copie;
 }

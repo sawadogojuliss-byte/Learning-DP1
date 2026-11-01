@@ -434,6 +434,13 @@ function syncFusionnerListes(listes, nom, reg, opts) {
     var ordre = [];
     (listes || []).forEach(function (liste) {
         (Array.isArray(liste) ? liste : []).forEach(function (item) {
+            /* Listes de valeurs simples (activités choisies, jours, dates) : chaque valeur
+               compte une fois. Elles étaient jetées, ce qui vidait par exemple les activités. */
+            if (item !== null && item !== undefined && typeof item !== 'object') {
+                var cleValeur = 'v:' + typeof item + ':' + String(item);
+                if (!(cleValeur in map)) { map[cleValeur] = item; ordre.push(cleValeur); }
+                return;
+            }
             if (!item || typeof item !== 'object') return;
             var id = syncCleItem(item, cle);
             if (!id) return;
@@ -442,6 +449,7 @@ function syncFusionnerListes(listes, nom, reg, opts) {
         });
     });
     return ordre.map(function (id) { return map[id]; }).filter(function (item) {
+        if (item === null || typeof item !== 'object') return true;
         return !syncEstSupprime(item, supprimes);
     });
 }
