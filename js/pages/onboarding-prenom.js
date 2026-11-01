@@ -26,6 +26,8 @@ function handleContinue() {
     if (window.compteSession && window.compteSession.sub && typeof compteLierNom === 'function') {
         compteLierNom(window.compteSession.sub, name, window.compteSession.email || '');
     }
+    /* Prénom saisi à l'écran d'accueil : il devient le nom de référence du compte. */
+    if (typeof compteSaisieNom === 'function') compteSaisieNom(name);
     classeRetour = '';
     /* Continuer ouvre toujours l'écran suivant, même pour un profil déjà
        complet : seul le dernier écran mène au planning. */

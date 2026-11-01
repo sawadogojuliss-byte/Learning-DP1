@@ -1348,7 +1348,48 @@ function compteAppartient(session, item) {
     return false;
 }
 
+/* Nom de référence : le userName de la progression du nuage (progressions/{uid}.progression.userName).
+   Il remplace les heuristiques de choix de nom : le nom affiché, le nom du menu et le nom envoyé au nuage
+   sont toujours les mêmes. Mémorisé par compte sur l'appareil. */
+var COMPTE_NOM_REFERENCE_KEY = 'studyPlanIB_nomReference';
+function compteNomReference(sub) {
+    if (!sub) return '';
+    try {
+        var r = JSON.parse(localStorage.getItem(COMPTE_NOM_REFERENCE_KEY) || 'null');
+        if (r && r.sub && compteMemeCompte(r.sub, sub)) {
+            var nom = compteNormaliserNom(r.nom);
+            if (nom && !compteNomInterdit(nom)) return nom;
+        }
+    } catch (e) {}
+    return '';
+}
+function compteNomReferenceEcrire(sub, nom) {
+    nom = compteNormaliserNom(nom);
+    if (!sub || !nom || compteNomInterdit(nom)) return;
+    try { localStorage.setItem(COMPTE_NOM_REFERENCE_KEY, JSON.stringify({ sub: sub, nom: nom })); } catch (e) {}
+}
+
+/* Saisie explicite du nom par l'élève (champ du nom validé, ou écran du prénom) : c'est le seul
+   moyen de changer la référence depuis l'appareil. Un ancien nom local ne peut plus revenir dans le nuage. */
+function compteSaisieNom(valeur) {
+    var nom = compteNormaliserNom(valeur);
+    if (!nom || compteNomInterdit(nom)) return;
+    var sub = window.compteSession && window.compteSession.sub;
+    if (sub) {
+        compteNomReferenceEcrire(sub, nom);
+        if (typeof compteLierNom === 'function') compteLierNom(sub, nom, window.compteSession.email || '');
+    }
+    if (typeof userName !== 'undefined') userName = nom;
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('change', function (e) {
+        if (e && e.target && e.target.id === 'nameInput') compteSaisieNom(e.target.value);
+    }, true);
+}
+
 function compteChoisirNom(session, copies) {
+    var reference = session && session.sub ? compteNomReference(session.sub) : '';
+    if (reference) return reference;
     var estampilles = [];
     var libres = [];
     (copies || []).forEach(function (data) {
@@ -1386,6 +1427,7 @@ function compteFigerNom(session, copies) {
     if (typeof userName !== 'undefined' && compteNormaliserNom(userName) !== compteNormaliserNom(nom)) {
         userName = nom;
         if (typeof memoireSyncChamps === 'function') memoireSyncChamps();
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
     }
     return nom;
 }
@@ -1518,7 +1560,8 @@ function compteProgressionEnregistrer() {
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
     var progressionChangee = empreinte !== compteProgressionDerniere;
-    var nom = (window.compteSession && window.compteSession.sub) ? (compteNomLie(window.compteSession.sub) || '') : '';
+    var subEnvoi = window.compteSession && window.compteSession.sub;
+    var nom = (subEnvoi && compteNomReference(subEnvoi)) || compteNormaliserNom(data.userName) || (subEnvoi ? (compteNomLie(subEnvoi) || '') : '');
     if (nom) neuve.userName = nom;
     if (nom && !data.userName) data.userName = nom;
     /* La date de sauvegarde reste dans le texte envoyé : sans elle, la copie du nuage
@@ -1535,6 +1578,7 @@ function compteProgressionEnregistrer() {
         }, { merge: true }).then(function () {
             compteProgressionDerniere = empreinte;
             compteVueEcrire(texte, empreinteLocale);
+            if (nom && subEnvoi) compteNomReferenceEcrire(subEnvoi, nom);
         }));
     }
     /* La fiche documents/{uid} suit chaque changement, indépendamment de la progression. */
@@ -1836,8 +1880,12 @@ function compteProgressionFirebase(doc) {
         try { data = JSON.parse(data); } catch (e) { data = null; }
     }
     if (!data || typeof data !== 'object') return null;
-    if (doc.nom && !data.userName) data.userName = doc.nom;
-    if (doc.nom) data.userName = compteGarderNom(doc.nom, data.userName);
+    var subLu = window.compteSession && window.compteSession.sub;
+    if (compteNormaliserNom(data.userName) && !compteNomInterdit(data.userName)) {
+        if (subLu) compteNomReferenceEcrire(subLu, data.userName);
+    } else {
+        data.userName = (subLu && compteNomReference(subLu)) || compteNormaliserNom(doc.nom) || '';
+    }
     /* Copie écrite avant cette correction : la date d'écriture du serveur sert de date de sauvegarde. */
     if (!data.savedAt && doc.progressionLe && typeof doc.progressionLe.toDate === 'function') {
         try { data.savedAt = doc.progressionLe.toDate().toISOString(); } catch (e) {}
@@ -1870,7 +1918,7 @@ function compteFirebaseEcrire(user, nom, data) {
     return Promise.all([compteFirebaseLireDoc(user), compteFirebaseLireProgression(user)]).then(function (lus) {
         var deja = lus[0];
         var ancienne = compteProgressionFirebase(lus[1]);
-        var nomGarde = compteGarderNom(deja && deja.nom, nom || '');
+        var nomGarde = compteNormaliserNom(nom) || compteNomReference(session.sub) || compteGarderNom(deja && deja.nom, '');
         if (!nomGarde && ancienne && ancienne.userName) nomGarde = ancienne.userName;
         var db = firebase.firestore();
         var payload = {
