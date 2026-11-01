@@ -474,8 +474,9 @@ function compteClasseAGarder(data) {
 var COMPTE_REGLAGES_CLES = ['userName', 'targetScore', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup',
     'weekdaySleepHours', 'saturdaySleepHours', 'sundaySleepHours'];
 function compteCompleterReglages(data) {
-    if (!data || typeof data !== 'object' || typeof memoireLireEtat !== 'function') return data;
-    var courant = memoireLireEtat();
+    if (!data || typeof data !== 'object' || typeof memoireJson !== 'function') return data;
+    /* Le profil enregistré porte l'identité de son compte ; l'état en mémoire, au démarrage, ne la porte pas. */
+    var courant = memoireJson(MEMOIRE_KEY);
     if (!courant || !compteUtile(courant) || !comptePeutJoindreLocal(courant, window.compteSession)) return data;
     var copie = Object.assign({}, data);
     COMPTE_REGLAGES_CLES.forEach(function (cle) {
