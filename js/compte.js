@@ -468,6 +468,23 @@ function compteClasseAGarder(data) {
     return locale.ibYear;
 }
 
+/* Réglages remis à leurs valeurs par défaut quand une donnée reçue ne les contient pas
+   (sommeil, réveils, objectif, nom). Ils gardent la valeur du profil de ce compte
+   présent sur l'appareil : une donnée incomplète ne peut plus tout réinitialiser. */
+var COMPTE_REGLAGES_CLES = ['userName', 'targetScore', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup',
+    'weekdaySleepHours', 'saturdaySleepHours', 'sundaySleepHours'];
+function compteCompleterReglages(data) {
+    if (!data || typeof data !== 'object' || typeof memoireLireEtat !== 'function') return data;
+    var courant = memoireLireEtat();
+    if (!courant || !compteUtile(courant) || !comptePeutJoindreLocal(courant, window.compteSession)) return data;
+    var copie = Object.assign({}, data);
+    COMPTE_REGLAGES_CLES.forEach(function (cle) {
+        var absent = copie[cle] == null || copie[cle] === '';
+        if (absent && courant[cle] != null && courant[cle] !== '') copie[cle] = courant[cle];
+    });
+    return copie;
+}
+
 function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
     /* Pendant un changement de compte, la page ouverte appartient à l'autre compte : on ne la garde pas. */
@@ -484,6 +501,7 @@ function compteAfficherProfil(data) {
             optionalSubjects: (Array.isArray(data.optionalSubjects) && data.optionalSubjects.length) ? data.optionalSubjects : (matieresGardees.optionalSubjects || [])
         });
     }
+    data = compteCompleterReglages(data);
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
     if (data.profilComplet) window.__profilComplet = true;
@@ -1224,7 +1242,11 @@ function compteRestaurerTout(session, token, distantes, options) {
                 if (etat !== 'uploaded' && etat !== 'same') etat = 'restored';
             }
         } else if (!options.silencieux && !(choisi && compteUtile(choisi)) && etat !== 'restored') {
-            compteBasculer(compteEtatVide(session), session);
+            /* Un profil utilisable de ce compte n'est jamais remplacé par un profil vide :
+               il est archivé d'abord, puis gardé. */
+            var courantGarde = !!(courant && compteUtile(courant) && !vivantEtranger && comptePeutJoindreLocal(courant, session));
+            if (courantGarde) compteArchiverProgression(compteEstampiller(courant, session));
+            else compteBasculer(compteEtatVide(session), session);
         }
         var nom = compteFigerNom(session, apresCopies.concat([apres, courant])) || (typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || '';
         var finalData = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
