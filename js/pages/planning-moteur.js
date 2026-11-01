@@ -71,10 +71,14 @@ function reporterModificationsSemaine() {
     if (archive && archive.semaine && archive.semaine !== cle && Array.isArray(archive.events)) {
         var vus = {};
         customEvents.forEach(function (ev) { if (ev && !ev.date) vus[cleModification(ev)] = true; });
+        /* Suppressions datées (ici ou sur un autre appareil) : un bloc retiré par l'élève
+           ne revient jamais le lundi. Un bloc perdu sans suppression reste récupérable. */
+        var supprimes = (typeof syncLireRegistre === 'function') ? (syncLireRegistre().customEvents || {}) : {};
         archive.events.forEach(function (ev) {
             if (!ev || ev.id === 'boite-garde') return;
             var copie = Object.assign({}, ev);
             if (vus[cleModification(copie)]) return;
+            if (typeof syncEstSupprime === 'function' && syncEstSupprime(copie, supprimes)) return;
             copie.reporte = true;
             copie.depuisSemaine = archive.semaine;
             customEvents.push(copie);
