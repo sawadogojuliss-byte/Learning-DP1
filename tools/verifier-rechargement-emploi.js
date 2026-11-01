@@ -78,7 +78,7 @@ async function rechargement(stockage, { connexion } = {}) {
   ctx.window.STUDYPLAN_FIREBASE_CONFIG = {};
   const marque = () => { const e = ctx.memoireLireEtat(); return e.emploiFige && e.emploiFige.jours ? (e.emploiFige.jours[0] || {}).marque : 'aucun'; };
   const auth = { currentUser: { uid: 'UID-FARID', displayName: 'Sere Farid' }, onAuthStateChanged(cb) { setTimeout(() => cb({ uid: 'UID-FARID' }), 1500); } };
-  ctx.firebase = { apps: [{}], auth: () => auth, firestore: () => ({ collection: () => ({ doc: () => ({ get: () => Promise.resolve({ exists: false }) }) }) }) };
+  ctx.firebase = { apps: [{}], auth: () => auth, firestore: Object.assign(() => ({ collection: () => ({ doc: () => ({ get: () => Promise.resolve({ exists: false }), set: () => Promise.resolve() }) }) }), { FieldValue: { serverTimestamp: () => 'TS' } }) };
   charger(ctx, ordreReel());
   ctx.compteFirebaseLireProgression = () => Promise.resolve({ progression: NUAGE });
   ctx.compteFirebaseLireDocuments = () => Promise.resolve([]);

@@ -403,7 +403,7 @@ function memoireAppliquerCorps(data, opts) {
     }
     if (depuisCompte) memoireEcrireMiroir(customEvents, typeof exercices !== 'undefined' ? exercices : []);
     if (data.emploiFige && typeof data.emploiFige === 'object' && Array.isArray(data.emploiFige.jours)) {
-        emploiFige = data.emploiFige;
+        emploiFige = memoireSansSommeilFige(data.emploiFige);
     }
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
@@ -415,6 +415,21 @@ function memoireAppliquerCorps(data, opts) {
     }
 
     memoireSyncChamps();
+}
+
+/* Le sommeil de base n'est jamais restauré tel quel : un jour du planning figé qui contient un
+   coucher est laissé vide (null) et recalculé à partir des réglages de sommeil et de réveil
+   (genererJourBrut). Les autres jours restent figés. */
+function memoireSansSommeilFige(fige) {
+    if (!fige || !Array.isArray(fige.jours)) return fige;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(fige)); } catch (e) { return fige; }
+    copie.jours = copie.jours.map(function (jour) {
+        if (!Array.isArray(jour)) return jour;
+        var avecSommeil = jour.some(function (ev) { return ev && (ev.id === 'sleep' || ev.type === 'sleep'); });
+        return avecSommeil ? null : jour;
+    });
+    return copie;
 }
 
 function memoireEcrireMiroir(events, exos) {

@@ -2969,7 +2969,7 @@ function boitePoserEtat(data) {
     if (typeof sundayWakeup !== 'undefined') sundayWakeup = data.sundayWakeup || '08:00';
     if (typeof subjects !== 'undefined') subjects = Array.isArray(data.subjects) ? data.subjects : [];
     if (typeof optionalSubjects !== 'undefined') optionalSubjects = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
-    if (typeof emploiFige !== 'undefined') emploiFige = data.emploiFige && data.emploiFige.jours ? data.emploiFige : null;
+    if (typeof emploiFige !== 'undefined') emploiFige = data.emploiFige && data.emploiFige.jours ? memoireSansSommeilFige(data.emploiFige) : null;
     if (typeof selectedActivities !== 'undefined') selectedActivities = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
     if (typeof customEvents !== 'undefined') customEvents = Array.isArray(data.customEvents) ? data.customEvents.slice() : [];
     if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear || '';

@@ -1442,6 +1442,52 @@ function comptePublierMorceaux(session, data) {
    localement ne touche pas au nuage. */
 var compteProgressionTimer = null;
 var compteProgressionDerniere = '';
+
+/* Repère de synchronisation entre appareils (rechargement). Pour cet appareil, on garde seulement
+   des empreintes courtes : la version du nuage vue en dernier (texte reçu ou envoyé), et l'empreinte
+   du contenu local à ce moment. Au rechargement, le nuage n'est repris que si sa version a changé
+   depuis ce repère (modification faite sur un autre appareil) et si ce contenu local n'a pas changé. */
+var COMPTE_EMPREINTE_EXCLUS = ['savedAt', 'google', 'etape', 'joursConnectes', 'dernierJour', 'emploiFige'];
+function compteHachage(texte) {
+    var h = 2166136261;
+    texte = String(texte || '');
+    for (var i = 0; i < texte.length; i++) {
+        h ^= texte.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return texte.length + ':' + h.toString(16);
+}
+function compteEmpreinteLocale(data) {
+    try {
+        var copie = JSON.parse(JSON.stringify(data || {}));
+        COMPTE_EMPREINTE_EXCLUS.forEach(function (k) { delete copie[k]; });
+        return compteHachage(JSON.stringify(copie));
+    } catch (e) { return ''; }
+}
+function compteVueLire() {
+    try { return JSON.parse(localStorage.getItem('studyPlanIB_progressionVue') || 'null'); } catch (e) { return null; }
+}
+function compteVueEcrire(texteNuage, empreinteLocale) {
+    try {
+        localStorage.setItem('studyPlanIB_progressionVue', JSON.stringify({
+            nuage: compteHachage(texteNuage), local: empreinteLocale
+        }));
+    } catch (e) {}
+}
+function compteLocalModifie(data) {
+    var vue = compteVueLire();
+    if (!vue || !vue.local) return true;
+    return compteEmpreinteLocale(data) !== vue.local;
+}
+function compteTexteProgression(doc) {
+    if (!doc || doc.progression === undefined || doc.progression === null) return '';
+    return typeof doc.progression === 'string' ? doc.progression : JSON.stringify(doc.progression);
+}
+function compteNuageChangeAilleurs(texteNuage) {
+    var vue = compteVueLire();
+    if (!vue || !vue.nuage || !texteNuage) return false;
+    return vue.nuage !== compteHachage(texteNuage);
+}
 var compteDocumentsDerniers = '';
 function compteProgressionPlanifier() {
     if (window.compteRestaurationEnCours) return;
@@ -1464,6 +1510,10 @@ function compteProgressionEnregistrer() {
     if (!data || !compteUtile(data)) return;
     /* Profil « complet » sans classe ni matières : copie cassée, jamais envoyée pour remplacer le nuage. */
     if (compteProfilIncomplet(data)) return;
+    /* Le stockage local suit ce qui est envoyé : un rechargement repart de l'état envoyé, jamais
+       d'une copie plus ancienne restée sur l'appareil après une restauration. */
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    var empreinteLocale = compteEmpreinteLocale(data);
     var neuve = compteSansDocuments(data);
     delete neuve.savedAt;
     var empreinte = JSON.stringify(neuve);
@@ -1480,6 +1530,7 @@ function compteProgressionEnregistrer() {
             progressionLe: firebase.firestore.FieldValue.serverTimestamp()
         }, { merge: true }).then(function () {
             compteProgressionDerniere = empreinte;
+            compteVueEcrire(JSON.stringify(neuve), empreinteLocale);
         }));
     }
     /* La fiche documents/{uid} suit chaque changement, indépendamment de la progression. */
@@ -1640,7 +1691,14 @@ function compteRetrouverApresChargement(essai) {
                quelques secondes après l'affichage). Le nuage est repris à la connexion (compteOnCredential),
                ou ici seulement si cet appareil n'a rien d'utilisable pour ce compte. */
             var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
-            if (locale && compteUtile(locale) && comptePeutJoindreLocal(locale, session)) return 'local';
+            if (locale && compteUtile(locale) && comptePeutJoindreLocal(locale, session)) {
+                /* Modification faite sur un autre appareil depuis le dernier rechargement de celui-ci,
+                   et aucune modification locale non envoyée : le nuage est repris (une seule fois). */
+                var changeAilleurs = !!firebaseCopie && compteNuageChangeAilleurs(compteTexteProgression(doc));
+                var etatLocal = null;
+                try { etatLocal = typeof memoireLireEtat === 'function' ? memoireLireEtat() : locale; } catch (e) { etatLocal = locale; }
+                if (!changeAilleurs || compteLocalModifie(etatLocal)) return 'local';
+            }
             if (firebaseCopie) {
                 compteBasculer(firebaseCopie, session);
                 distantes = [firebaseCopie];
@@ -1910,6 +1968,9 @@ function compteOnCredential(resp) {
         var suite = user ? compteFirebaseEcrire(user, nomLie, courant) : Promise.resolve();
         return suite.then(function () {
             window.compteRestaurationEnCours = false;
+            /* Le stockage local doit refléter ce qui vient d'être restauré : sinon un rechargement
+               relit l'ancienne copie et la renvoie au nuage. */
+            if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
             compteRafraichir();
             /* À chaque connexion : vérifier la fiche de la semaine dans Firebase. */
             if (user && typeof boiteVerifierSemaine === 'function') {
