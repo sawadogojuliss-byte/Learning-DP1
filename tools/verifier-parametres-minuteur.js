@@ -79,6 +79,8 @@ ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause lo
 
 ok(/\.focus-tiroir-contenu\s*,\s*\.focus-tiroir-menu[^{]*\{[^}]*scrollbar-width:\s*none/.test(css) || css.indexOf('scrollbar-width: none') !== -1, 'la barre de défilement du menu Paramètres doit être masquée');
 
+ok(css.indexOf('html:has(#panelPomodoro.active) { scrollbar-width: none') !== -1, 'la page Pomodoro ne doit pas afficher de barre de défilement à droite');
+
 /* ── 3b. Couleurs du site : pas de violet (capture 3 écartée) ── */
 var violet = /#(7c3aed|8b5cf6|a855f7|9333ea|6d28d9|7e22ce|c084fc|a78bfa|ddd6fe|6366f1|4f46e5)\b|\bpurple\b|\bviolet\b|rgba?\(\s*(139|168|124|147|109)\s*,\s*(92|85|58|51|40|34)/i;
 ok(!violet.test(css), 'focus-parametres.css ne doit pas contenir de violet');
