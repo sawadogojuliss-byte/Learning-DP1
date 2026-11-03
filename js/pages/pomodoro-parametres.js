@@ -233,6 +233,135 @@ function focusTuileNom(nom) {
     return '<span class="focus-tuile-nom">' + nom + '</span>';
 }
 
+/* ── Thèmes : catégories ─────────────────────────────────────────
+   « Tout » affiche une rangée par catégorie, à faire défiler à la main.
+   Une catégorie affiche sa grille. Une catégorie sans photo n'apparaît pas. */
+var FOCUS_CATEGORIES_FONDS = [
+    { id: 'tout', nom: 'Tout' },
+    { id: 'degrades', nom: 'Dégradés et couleurs' },
+    { id: 'abstrait', nom: 'Abstrait' },
+    { id: 'paysages', nom: 'Paysages' },
+    { id: 'nature', nom: 'Nature' },
+    { id: 'urbain', nom: 'Urbain' },
+    { id: 'interieur', nom: 'Intérieur' },
+    { id: 'anime', nom: 'Animé' }
+];
+var focusCategorieFonds = 'tout';
+
+function focusCategoriesFondsPresentes() {
+    return FOCUS_CATEGORIES_FONDS.filter(function (c) {
+        return c.id === 'tout' || FOCUS_FONDS.some(function (f) { return f.cat === c.id; });
+    });
+}
+
+function focusNomCategorieFonds(id) {
+    for (var i = 0; i < FOCUS_CATEGORIES_FONDS.length; i++) {
+        if (FOCUS_CATEGORIES_FONDS[i].id === id) return FOCUS_CATEGORIES_FONDS[i].nom;
+    }
+    return '';
+}
+
+function focusTuileTheme(item, index) {
+    var bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'focus-tuile focus-tuile-theme';
+    bouton.setAttribute('data-index', String(index));
+    bouton.setAttribute('aria-pressed', 'false');
+    bouton.innerHTML = '<span class="focus-tuile-image focus-tuile-photo" style="background-image:url(\'' + item.mini + '\')"></span>' + focusTuileNom(item.nom);
+    bouton.onclick = function () {
+        if (typeof focusPoserFond === 'function') focusPoserFond(index);
+        focusPeindreParametres();
+    };
+    return bouton;
+}
+
+function focusChoisirCategorieFonds(id) {
+    focusCategorieFonds = id;
+    focusConstruireThemes();
+    var haut = document.getElementById('focusFiltresFonds');
+    if (haut && haut.scrollIntoView) haut.scrollIntoView({ block: 'nearest' });
+}
+
+function focusConstruireThemes() {
+    var filtres = document.getElementById('focusFiltresFonds');
+    var corps = document.getElementById('focusThemesCorps');
+    if (!filtres || !corps) return;
+
+    if (filtres.getAttribute('data-pret') !== '1') {
+        filtres.setAttribute('data-pret', '1');
+        focusCategoriesFondsPresentes().forEach(function (c) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'focus-filtre';
+            b.setAttribute('data-cat', c.id);
+            b.setAttribute('aria-pressed', 'false');
+            b.textContent = c.nom;
+            b.onclick = function () { focusChoisirCategorieFonds(c.id); };
+            filtres.appendChild(b);
+        });
+    }
+
+    /* on ne reconstruit la zone que si la catégorie change : le défilement reste en place */
+    if (corps.getAttribute('data-vue') !== focusCategorieFonds) {
+        corps.setAttribute('data-vue', focusCategorieFonds);
+        corps.innerHTML = '';
+        if (focusCategorieFonds === 'tout') {
+            focusCategoriesFondsPresentes().forEach(function (c) {
+                if (c.id === 'tout') return;
+                var photos = [];
+                FOCUS_FONDS.forEach(function (f, i) { if (f.cat === c.id) photos.push({ f: f, i: i }); });
+                if (!photos.length) return;
+                var section = document.createElement('section');
+                section.className = 'focus-rangee';
+                var tete = document.createElement('div');
+                tete.className = 'focus-rangee-tete';
+                var titre = document.createElement('h4');
+                titre.textContent = c.nom;
+                var voir = document.createElement('button');
+                voir.type = 'button';
+                voir.className = 'focus-voirtout';
+                voir.textContent = 'Voir tout (' + photos.length + ')';
+                voir.onclick = (function (id) { return function () { focusChoisirCategorieFonds(id); }; })(c.id);
+                tete.appendChild(titre);
+                tete.appendChild(voir);
+                var defile = document.createElement('div');
+                defile.className = 'focus-rangee-defile';
+                photos.forEach(function (p) { defile.appendChild(focusTuileTheme(p.f, p.i)); });
+                section.appendChild(tete);
+                section.appendChild(defile);
+                corps.appendChild(section);
+            });
+        } else {
+            var titre2 = document.createElement('h4');
+            titre2.className = 'focus-rangee-titre';
+            titre2.textContent = focusNomCategorieFonds(focusCategorieFonds);
+            var grille = document.createElement('div');
+            grille.className = 'focus-grille-fonds';
+            FOCUS_FONDS.forEach(function (f, i) { if (f.cat === focusCategorieFonds) grille.appendChild(focusTuileTheme(f, i)); });
+            corps.appendChild(titre2);
+            corps.appendChild(grille);
+        }
+    }
+    focusMarquerThemes();
+}
+
+/* Met en évidence la catégorie choisie et le thème actif. */
+function focusMarquerThemes() {
+    var filtres = document.querySelectorAll('#focusFiltresFonds .focus-filtre');
+    for (var k = 0; k < filtres.length; k++) {
+        var actif = filtres[k].getAttribute('data-cat') === focusCategorieFonds;
+        filtres[k].classList.toggle('is-on', actif);
+        filtres[k].setAttribute('aria-pressed', String(actif));
+    }
+    if (typeof focusEtat === 'undefined') return;
+    var tuiles = document.querySelectorAll('#focusThemesCorps [data-index]');
+    for (var t = 0; t < tuiles.length; t++) {
+        var on = Number(tuiles[t].getAttribute('data-index')) === focusEtat.fond;
+        tuiles[t].classList.toggle('is-on', on);
+        tuiles[t].setAttribute('aria-pressed', String(on));
+    }
+}
+
 function focusConstruireChoix() {
     focusRemplirGrille('focusChoixTaille', FOCUS_TAILLES, 'taille', null, function (item) {
         return '<span class="focus-tuile-image"><span class="focus-tuile-texte focus-tuile-taille-' + item.id + '">2:24</span></span>' + focusTuileNom(item.nom);
@@ -243,14 +372,7 @@ function focusConstruireChoix() {
     focusRemplirGrille('focusChoixStyle', FOCUS_STYLES_TEMPS, 'style', null, function (item) {
         return '<span class="focus-tuile-image focus-tuile-miniature">' + FOCUS_MINI[item.id] + '</span>' + focusTuileNom(item.nom);
     });
-    if (typeof FOCUS_FONDS !== 'undefined') {
-        focusRemplirGrille('focusChoixFonds', FOCUS_FONDS, 'fond', null, function (item) {
-            return '<span class="focus-tuile-image focus-tuile-photo" style="background-image:url(\'' + item.mini + '\')"></span>' + focusTuileNom(item.nom);
-        }, function (item, i) {
-            if (typeof focusPoserFond === 'function') focusPoserFond(i);
-            focusPeindreParametres();
-        });
-    }
+    if (typeof FOCUS_FONDS !== 'undefined') focusConstruireThemes();
 }
 
 function focusMarquerChoix(id, cle, valeur) {
@@ -305,14 +427,7 @@ function focusPeindreParametres() {
     focusMarquerChoix('focusChoixPolice', 'police', r.police);
     focusMarquerChoix('focusChoixTaille', 'taille', r.taille);
 
-    if (typeof focusEtat !== 'undefined') {
-        var fonds = document.querySelectorAll('#focusChoixFonds button');
-        for (var f = 0; f < fonds.length; f++) {
-            var actif = f === focusEtat.fond;
-            fonds[f].classList.toggle('is-on', actif);
-            fonds[f].setAttribute('aria-pressed', String(actif));
-        }
-    }
+    focusMarquerThemes();
 
     var cochees = { focusOptBarre: r.barre, focusOptNotif: r.notif, focusOptAuto: r.auto, focusOptCitation: r.citation };
     Object.keys(cochees).forEach(function (id) {

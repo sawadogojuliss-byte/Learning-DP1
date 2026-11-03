@@ -589,3 +589,57 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 .focus-rond, .focus-ampoule { background: rgba(6, 78, 59, 0.28); border-color: rgba(255, 255, 255, 0.28); }
 .focus-rond.is-on, .focus-ampoule.is-on { background: rgba(6, 78, 59, 0.28); border-color: rgba(255, 255, 255, 0.7); box-shadow: none; }
 .focus-rond:hover, .focus-ampoule:hover { background: #10b981; border-color: #059669; }
+
+/* ── Thèmes : catégories, rangées défilantes et grille (couleurs du site) ── */
+.focus-page .focus-themes { padding-top: 1rem; }
+.focus-page .focus-filtres { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.2rem; }
+.focus-page .focus-filtre {
+    padding: 0.45rem 0.95rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.78); font: inherit; font-size: 0.85rem; font-weight: 600;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.focus-page .focus-filtre:hover { border-color: rgba(110, 231, 183, 0.5); color: #fff; }
+.focus-page .focus-filtre:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 2px; }
+.focus-page .focus-filtre.is-on {
+    background: rgba(16, 185, 129, 0.24); border-color: rgba(110, 231, 183, 0.7); color: #fff;
+}
+
+.focus-page .focus-rangee { margin-bottom: 1.3rem; }
+.focus-page .focus-rangee:last-child { margin-bottom: 0; }
+.focus-page .focus-rangee-tete { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.65rem; }
+.focus-page .focus-rangee-tete h4,
+.focus-page .focus-rangee-titre { margin: 0; font-size: 1rem; font-weight: 700; color: #fff; }
+.focus-page .focus-rangee-titre { margin-bottom: 0.7rem; }
+.focus-page .focus-voirtout {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font: inherit; font-size: 0.82rem; font-weight: 600; color: var(--focus-menthe);
+}
+.focus-page .focus-voirtout:hover { color: #fff; }
+.focus-page .focus-voirtout:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 3px; border-radius: 0.3rem; }
+
+/* Rangée : défilement horizontal sans barre visible (on fait défiler au doigt ou à la molette). */
+.focus-page .focus-rangee-defile {
+    display: flex; gap: 0.75rem; overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -ms-overflow-style: none;
+    padding: 0.2rem 0.2rem 0.4rem; margin: 0 -0.2rem;
+}
+.focus-page .focus-rangee-defile::-webkit-scrollbar { display: none; }
+.focus-page .focus-rangee-defile > .focus-tuile-theme {
+    flex: 0 0 min(11.5rem, 62%); scroll-snap-align: start;
+}
+
+.focus-page .focus-tuile-theme .focus-tuile-image {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+    border-color: rgba(110, 231, 183, 0.16);
+}
+.focus-page .focus-tuile-theme .focus-tuile-nom { font-size: 0.85rem; }
+.focus-page .focus-tuile-theme.is-on .focus-tuile-image {
+    border-color: #6ee7b7;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.45), 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+.focus-page .focus-grille-fonds { grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: 0.9rem; }
+@media (max-width: 720px) {
+    .focus-page .focus-grille-fonds { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .focus-page .focus-rangee-defile > .focus-tuile-theme { flex-basis: 70%; }
+}

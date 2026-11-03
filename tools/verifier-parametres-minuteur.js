@@ -77,7 +77,7 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
     ok(minuteur.indexOf('<span>' + nom + '</span>') !== -1, 'libellé de menu manquant : ' + nom);
 });
 ['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
- 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus', 'focusChoixFonds', 'focusOptCitation'].forEach(function (id) {
+ 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus', 'focusThemesCorps', 'focusOptCitation'].forEach(function (id) {
     ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le menu Paramètres doit contenir #' + id);
 });
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
