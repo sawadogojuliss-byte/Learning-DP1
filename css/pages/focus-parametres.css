@@ -583,3 +583,9 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
     color: rgba(110, 231, 183, 0.1); pointer-events: none;
 }
 [data-page="citations"] .focus-carte > * { position: relative; }
+
+/* Boutons ronds du bas : neutres par défaut, vert seulement quand le curseur passe dessus.
+   L'état « actif » ne se voit plus en vert : seul l'anneau devient plus clair. */
+.focus-rond, .focus-ampoule { background: rgba(6, 78, 59, 0.28); border-color: rgba(255, 255, 255, 0.28); }
+.focus-rond.is-on, .focus-ampoule.is-on { background: rgba(6, 78, 59, 0.28); border-color: rgba(255, 255, 255, 0.7); box-shadow: none; }
+.focus-rond:hover, .focus-ampoule:hover { background: #10b981; border-color: #059669; }
