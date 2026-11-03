@@ -336,7 +336,7 @@ function focusConstruireThemes() {
             titre2.className = 'focus-rangee-titre';
             titre2.textContent = focusNomCategorieFonds(focusCategorieFonds);
             var grille = document.createElement('div');
-            grille.className = 'focus-grille-fonds';
+            grille.className = 'focus-grille-tuiles focus-grille-fonds';
             FOCUS_FONDS.forEach(function (f, i) { if (f.cat === focusCategorieFonds) grille.appendChild(focusTuileTheme(f, i)); });
             corps.appendChild(titre2);
             corps.appendChild(grille);
