@@ -82,6 +82,7 @@
                     <li><button type="button" class="focus-tiroir-item" data-onglet="minuteur" onclick="focusChoisirOnglet('minuteur')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 9v4M10 2.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Minuteur</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="citations" onclick="focusChoisirOnglet('citations')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 16c-1.6 0-2.5-1-2.5-2.6S5.6 10.5 7.5 10.5V9M17 16c-1.6 0-2.5-1-2.5-2.6s1.1-2.9 3-2.9V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Citations</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="voix" onclick="focusChoisirOnglet('voix')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h3.5L12 18V6L7.5 10H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Voix</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="statistiques" onclick="focusChoisirOnglet('statistiques')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Statistiques</span></button></li>
                 </ul>
             </nav>
             <div class="focus-tiroir-contenu">
@@ -154,6 +155,13 @@
                         <label for="focusVoixVolume">Volume de la voix</label>
                         <input id="focusVoixVolume" type="range" min="0" max="100" value="70" oninput="chronoSauverReglagesVoix()">
                     </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="statistiques" hidden>
+                    <header class="focus-page-titre"><h2>Statistiques</h2><p>Tes minuteurs terminés, enregistrés sur cet appareil.</p></header>
+                    <div id="statsPeriodes" class="focus-filtres stats-periodes" role="group" aria-label="Période"></div>
+                    <p id="statsVide" class="stats-vide" hidden>Aucun minuteur terminé sur cette période. Lance une séance de révision pour voir tes chiffres ici.</p>
+                    <div id="statsCartes" class="stats-cartes"></div>
+                    <div id="statsSemaine" class="stats-semaine"></div>
                 </section>
             </div>
         </div>

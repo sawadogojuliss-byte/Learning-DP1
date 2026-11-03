@@ -706,6 +706,12 @@ function focusChoisirMode(mode, enchainement) {
     }
 }
 
+/* Une concentration qui part de zéro compte comme « minuteur lancé » (pour le score). */
+function focusCompterLancement() {
+    if (typeof statsEnregistrer !== 'function') return;
+    if (focusEtat.mode === 'focus' && focusEtat.restant >= focusEtat.total) statsEnregistrer({ k: 'lance' });
+}
+
 function focusBasculer() {
     var panel = document.getElementById('panelPomodoro');
     if (!panel || !panel.classList.contains('active')) return;
@@ -725,6 +731,7 @@ function focusBasculer() {
         return;
     }
     if (focusEtat.restant <= 0) focusEtat.restant = focusEtat.total;
+    focusCompterLancement();
     focusEtat.running = true;
     focusEtat.fin = Date.now() + focusEtat.restant * 1000;
     focusLancerIntervalle();
@@ -761,6 +768,11 @@ function focusRecommencer() {
 
 function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
+    /* La phase qui se termine est notée pour les statistiques (une fois, ici seulement). */
+    if (typeof statsEnregistrer === 'function') {
+        statsEnregistrer({ k: fini, m: Math.round(focusEtat.total / 60),
+            s: fini === 'focus' && focusSeanceMinuteur ? focusSeanceMinuteur.id : null });
+    }
     /* Le chronomètre s'arrête à la fin de la phase : la suivante est
        proposée avec sa durée, jamais lancée. Personne ne se retrouve
        dans une nouvelle concentration sans l'avoir demandée. */
@@ -968,6 +980,10 @@ function focusNouvelId() {
 function focusCocherTache(id) {
     var tache = focusTacheParId(id);
     if (tache) tache.fait = !tache.fait;
+    if (tache && typeof statsEnregistrer === 'function') {
+        if (tache.fait) statsEnregistrer({ k: 'tache', id: tache.id });
+        else if (typeof statsRetirerTache === 'function') statsRetirerTache(tache.id);
+    }
     focusSauverTaches();
     focusPeindreTaches();
 }

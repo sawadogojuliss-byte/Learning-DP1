@@ -79,7 +79,7 @@ var FOCUS_TAILLES = [
     { id: 'grande', nom: 'Grande' }
 ];
 
-var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix'];
+var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques'];
 
 var FOCUS_REGLAGES_CLE = 'studyPlanIB_minuteurParametres';
 var FOCUS_CERCLE = 2 * Math.PI * 45;
@@ -376,6 +376,7 @@ function focusChoisirOnglet(id) {
 }
 
 function focusAfficherOnglet() {
+    if (focusOngletCourant === 'statistiques' && typeof statsPeindre === 'function') statsPeindre();
     FOCUS_ONGLETS.forEach(function (id) {
         var page = document.querySelector('#focusReglages [data-page="' + id + '"]');
         if (page && page.hidden !== (id !== focusOngletCourant)) page.hidden = id !== focusOngletCourant;
@@ -564,6 +565,7 @@ function focusNotifierFin(fini) {
 
 /* Enchaînement automatique : la phase suivante démarre seule, avec sa durée. */
 function focusDemarrerEnchainement() {
+    if (typeof focusCompterLancement === 'function') focusCompterLancement();
     focusEtat.running = true;
     focusEtat.fin = Date.now() + focusEtat.restant * 1000;
     focusLancerIntervalle();
