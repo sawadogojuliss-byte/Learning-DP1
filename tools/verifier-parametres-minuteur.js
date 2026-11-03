@@ -36,7 +36,7 @@ ok((citations.match(/"[^"]+"|'[^']+'/g) || []).length >= 10, 'il faut au moins 1
 /* ── 2. Bouton Paramètres (icône seule, en bas), sur les deux pages ── */
 ok(minuteur.indexOf('id="focusBtnReglages"') !== -1, 'le minuteur doit avoir le bouton Paramètres');
 ok(/id="focusBtnReglages"[^>]*aria-label="Paramètres"/.test(minuteur), 'le bouton du minuteur doit avoir aria-label="Paramètres"');
-ok(/id="focusBtnReglages"[^>]*title="Paramètres"/.test(minuteur), 'le bouton du minuteur doit avoir title="Paramètres"');
+ok(minuteur.indexOf('title="Paramètres"') === -1 && seances.indexOf('title="Paramètres"') === -1, 'aucune info-bulle « Paramètres » au survol des boutons (pas de title)');
 ok(!/id="focusBtnReglages"[\s\S]*?<\/button>/.test(minuteur) || !/id="focusBtnReglages"[\s\S]*?>Paramètres<\/button>/.test(minuteur),
     'le bouton du minuteur ne doit pas afficher le mot Paramètres (icône seule)');
 ok(seances.indexOf('id="accueilBtnParametres"') !== -1 && seances.indexOf('accueilOuvrirParametres()') !== -1,
@@ -76,6 +76,8 @@ ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \
 });
 ok(script.indexOf('FOCUS_FORMATS') === -1 && script.indexOf('focusPeindreHeure') === -1, 'le code d\'affichage de l\'heure doit être retiré');
 ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause longue <input') !== -1, 'les durées doivent rester dans Minuteur');
+
+ok(/\.focus-tiroir-contenu\s*,\s*\.focus-tiroir-menu[^{]*\{[^}]*scrollbar-width:\s*none/.test(css) || css.indexOf('scrollbar-width: none') !== -1, 'la barre de défilement du menu Paramètres doit être masquée');
 
 /* ── 3b. Couleurs du site : pas de violet (capture 3 écartée) ── */
 var violet = /#(7c3aed|8b5cf6|a855f7|9333ea|6d28d9|7e22ce|c084fc|a78bfa|ddd6fe|6366f1|4f46e5)\b|\bpurple\b|\bviolet\b|rgba?\(\s*(139|168|124|147|109)\s*,\s*(92|85|58|51|40|34)/i;

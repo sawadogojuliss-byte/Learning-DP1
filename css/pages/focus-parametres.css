@@ -464,3 +464,7 @@
 
 /* Bouton Paramètres : même style que les autres boutons ronds (.focus-rond) ; seule l'icône est une roue pleine. */
 #focusBtnReglages svg, #accueilBtnParametres svg { width: 18px; height: 18px; }
+
+/* Pas de barre de défilement visible dans le menu Paramètres : le défilement reste possible à la molette et au doigt. */
+.focus-tiroir-menu, .focus-tiroir-contenu { scrollbar-width: none; -ms-overflow-style: none; }
+.focus-tiroir-menu::-webkit-scrollbar, .focus-tiroir-contenu::-webkit-scrollbar { display: none; width: 0; height: 0; }
