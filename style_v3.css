@@ -84,3 +84,7 @@
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.04); }
         }
+
+/* Flèches des boutons ronds : dessinées en SVG et centrées par le bouton (un caractère « ← » de police descend ou monte selon la police). */
+.fleche-icone { display:block; flex:none; width:1em; height:1em; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; pointer-events:none; }
+button:has(> .fleche-icone) { line-height:1; }
