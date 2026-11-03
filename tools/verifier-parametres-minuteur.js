@@ -1,5 +1,5 @@
 /* Vérifie les paramètres du minuteur et de la séance de révision :
-   citations, heure, styles d'affichage, polices, format, taille, options,
+   citations, styles d'affichage, polices, taille, options,
    police Degular, clé de stockage propre, et câblage dans le registre et
    le service worker. Lancer : node tools/verifier-parametres-minuteur.js */
 var fs = require('fs');
@@ -23,11 +23,12 @@ var sw = lire('service-worker.js');
 var index = lire('index.html');
 var boot = lire('js/boot.js');
 
-/* ── 1. Citation et heure en haut ── */
+/* ── 1. Citation en haut, sans heure ── */
 ok(minuteur.indexOf('id="focusCitation"') !== -1, 'le minuteur doit avoir la citation en haut à droite');
-ok(minuteur.indexOf('id="focusHeure"') !== -1, 'le minuteur doit afficher l\'heure');
+ok(minuteur.indexOf('id="focusHeure"') === -1, 'l\'heure ne doit plus être affichée sur le minuteur');
 ok(seances.indexOf('id="focusAccueilCitation"') !== -1, 'la séance doit avoir la citation en haut à droite');
-ok(seances.indexOf('id="focusAccueilHeure"') !== -1, 'la séance doit afficher l\'heure');
+ok(seances.indexOf('id="focusAccueilHeure"') === -1, 'l\'heure ne doit plus être affichée sur la séance');
+ok(minuteur.indexOf('Format de l\'heure') === -1 && minuteur.indexOf('id="focusChoixFormat"') === -1, 'la carte « Format de l\'heure » doit disparaître');
 
 var citations = (script.match(/FOCUS_CITATIONS = \[([\s\S]*?)\];/) || [])[1] || '';
 ok((citations.match(/"[^"]+"|'[^']+'/g) || []).length >= 10, 'il faut au moins 10 citations en français');
@@ -57,11 +58,10 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
     ok(minuteur.indexOf('<span>' + nom + '</span>') !== -1, 'libellé de menu manquant : ' + nom);
 });
 ['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
- 'focusChoixFormat', 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus', 'focusChoixFonds', 'focusOptCitation'].forEach(function (id) {
+ 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus', 'focusChoixFonds', 'focusOptCitation'].forEach(function (id) {
     ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le menu Paramètres doit contenir #' + id);
 });
-ok(minuteur.indexOf('Format de l\'heure') !== -1 && minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1,
-    'la page Horloge doit avoir les cartes « Format de l\'heure » et « Taille de l\'horloge et du minuteur »');
+ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
 ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
 ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \'citations\', \'voix\']') !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Horloge à palettes', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
@@ -71,11 +71,10 @@ ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \
  'Serif condensé', 'Sportif', 'Très large', 'Digital', 'Manuscrite'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'police manquante : ' + nom);
 });
-ok(script.indexOf("nom: '12 heures'") !== -1 && script.indexOf("nom: '24 heures'") !== -1, 'formats 12 h et 24 h manquants');
 ['Petite', 'Normale', 'Grande'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'taille manquante : ' + nom);
 });
-ok(script.indexOf("format: dans(FOCUS_FORMATS, b.format, '24')") !== -1, 'le format par défaut doit être 24 h (à confirmer)');
+ok(script.indexOf('FOCUS_FORMATS') === -1 && script.indexOf('focusPeindreHeure') === -1, 'le code d\'affichage de l\'heure doit être retiré');
 ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause longue <input') !== -1, 'les durées doivent rester dans Minuteur');
 
 /* ── 3b. Couleurs du site : pas de violet (capture 3 écartée) ── */
@@ -121,4 +120,4 @@ if (echecs.length) {
     echecs.forEach(function (e) { console.error(' - ' + e); });
     process.exit(1);
 }
-console.log('Paramètres minuteur : 0 échec (styles, polices, citations, heure, options, Degular, câblage)');
+console.log('Paramètres minuteur : 0 échec (styles, polices, citations, options, Degular, câblage ; sans heure)');

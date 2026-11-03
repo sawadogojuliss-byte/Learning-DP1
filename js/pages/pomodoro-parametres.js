@@ -50,11 +50,6 @@ var FOCUS_POLICES = [
     { id: 'manuscrite', nom: 'Manuscrite' }
 ];
 
-var FOCUS_FORMATS = [
-    { id: '12', nom: '12 heures', exemple: '2:24' },
-    { id: '24', nom: '24 heures', exemple: '14:24' }
-];
-
 var FOCUS_TAILLES = [
     { id: 'petite', nom: 'Petite' },
     { id: 'normale', nom: 'Normale' },
@@ -92,7 +87,6 @@ function focusNormaliserReglages(brut) {
         auto: b.auto === true,
         citation: b.citation !== false,
         police: dans(FOCUS_POLICES, b.police, 'gras'),
-        format: dans(FOCUS_FORMATS, b.format, '24'),
         taille: dans(FOCUS_TAILLES, b.taille, 'normale')
     };
 }
@@ -117,27 +111,6 @@ function focusMajReglage(cle, valeur) {
     Object.keys(r).forEach(function (k) { copie[k] = r[k]; });
     copie[cle] = valeur;
     focusEcrireReglages(copie);
-}
-
-/* Heure affichée : 12 h sans « AM/PM » comme sur la capture, ou 24 h. */
-function focusTexteHeure(date, format) {
-    var h = date.getHours();
-    var m = date.getMinutes();
-    var mm = (m < 10 ? '0' : '') + m;
-    if (format === '12') {
-        h = h % 12;
-        if (h === 0) h = 12;
-        return h + ':' + mm;
-    }
-    return (h < 10 ? '0' : '') + h + ':' + mm;
-}
-
-function focusPeindreHeure() {
-    var texte = focusTexteHeure(new Date(), focusLireReglages().format);
-    ['focusHeure', 'focusAccueilHeure'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && el.textContent !== texte) el.textContent = texte;
-    });
 }
 
 /* Une citation par jour : la même toute la journée, une autre le lendemain. */
@@ -187,9 +160,6 @@ function focusTuileNom(nom) {
 }
 
 function focusConstruireChoix() {
-    focusRemplirGrille('focusChoixFormat', FOCUS_FORMATS, 'format', null, function (item) {
-        return '<span class="focus-tuile-image"><span class="focus-tuile-texte">' + item.exemple + '</span></span>' + focusTuileNom(item.nom);
-    });
     focusRemplirGrille('focusChoixTaille', FOCUS_TAILLES, 'taille', null, function (item) {
         return '<span class="focus-tuile-image"><span class="focus-tuile-texte focus-tuile-taille-' + item.id + '">2:24</span></span>' + focusTuileNom(item.nom);
     });
@@ -252,14 +222,12 @@ function focusPeindreParametres() {
         FOCUS_TAILLES.forEach(function (t) { el.classList.toggle('focus-taille-' + t.id, t.id === r.taille); });
     });
 
-    focusPeindreHeure();
     focusPeindreCitation();
     focusPeindreStyleTemps(r);
     focusAfficherOnglet();
 
     focusMarquerChoix('focusChoixStyle', 'style', r.style);
     focusMarquerChoix('focusChoixPolice', 'police', r.police);
-    focusMarquerChoix('focusChoixFormat', 'format', r.format);
     focusMarquerChoix('focusChoixTaille', 'taille', r.taille);
 
     if (typeof focusEtat !== 'undefined') {
@@ -427,7 +395,6 @@ function accueilOuvrirParametres() {
 }
 
 focusConstruireChoix();
-if (!window.__focusHorloge) window.__focusHorloge = setInterval(focusPeindreHeure, 15000);
 if (!window.__focusEchap) {
     window.__focusEchap = true;
     document.addEventListener('keydown', function (event) {
