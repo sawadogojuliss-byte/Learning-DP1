@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261103v';
+const VERSION = '20261103w';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",

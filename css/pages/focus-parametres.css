@@ -169,10 +169,10 @@
 .focus-camembert {
     width: calc(clamp(8rem, 22vh, 13rem) * var(--fv));
     height: calc(clamp(8rem, 22vh, 13rem) * var(--fv));
-    border-radius: 50%;
-    border: 2px solid rgba(110, 231, 183, 0.35);
-    background: conic-gradient(var(--focus-menthe) 0 100%, rgba(255, 255, 255, 0.12) 100% 100%);
+    overflow: visible;
+    filter: drop-shadow(0 10px 28px rgba(16, 185, 129, 0.32));
 }
+.focus-camembert-fond { fill: rgba(255, 255, 255, 0.05); stroke: rgba(110, 231, 183, 0.32); stroke-width: 1.2; }
 .focus-barre {
     width: min(28rem, 80vw);
     height: 0.5rem;
@@ -361,11 +361,8 @@
 .focus-mini-matrice { display: grid; grid-template-columns: repeat(6, 5px); gap: 4px; }
 .focus-mini-matrice i { width: 5px; height: 5px; border-radius: 50%; background: rgba(255, 255, 255, 0.3); }
 .focus-mini-matrice i:nth-child(-n+14) { background: var(--focus-menthe); }
-.focus-mini-camembert {
-    width: 2.6rem; height: 2.6rem; border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.4);
-    background: conic-gradient(var(--focus-menthe) 0 62%, rgba(255, 255, 255, 0.12) 62% 100%);
-}
+.focus-mini-camembert { width: 2.6rem; height: 2.6rem; overflow: visible; }
+.focus-mini-secteur { fill: #6ee7b7; }
 
 /* Durées */
 .focus-durees { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.4rem; }

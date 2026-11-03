@@ -71,7 +71,7 @@ var FOCUS_MINI = {
     barre: '<span class="focus-mini-texte">25:00</span><span class="focus-mini-barre"><i></i></span>',
     jauge: '<svg class="focus-mini-jauge" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" class="focus-mini-anneau-fond"/><circle cx="20" cy="20" r="16" class="focus-mini-anneau" transform="rotate(-90 20 20)" stroke-dasharray="100.5" stroke-dashoffset="20"/></svg>',
     matrice: '<span class="focus-mini-matrice">' + new Array(FOCUS_POINTS).join('<i></i>') + '<i></i></span>',
-    camembert: '<span class="focus-mini-camembert"></span>'
+    camembert: '<svg class="focus-mini-camembert" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="focus-camembert-fond"/><path d="' + focusSecteur(0.62) + '" class="focus-mini-secteur"/></svg>'
 };
 
 function focusNormaliserReglages(brut) {
@@ -280,13 +280,23 @@ function focusPeindreStyleTemps(r) {
         var allumes = Math.ceil(fraction * points.length);
         for (var p = 0; p < points.length; p++) points[p].classList.toggle('is-allume', p < allumes);
     } else if (style === 'camembert') {
-        var pion = visuel.querySelector('.focus-camembert');
-        var pct = (fraction * 100).toFixed(2);
-        if (pion) pion.style.background = 'conic-gradient(#fff 0 ' + pct + '%, rgba(255,255,255,0.14) ' + pct + '% 100%)';
+        var part = visuel.querySelector('.focus-camembert-part');
+        if (part) part.setAttribute('d', focusSecteur(fraction));
     }
 
     barre.hidden = !(r.barre || style === 'barre');
     if (fill) fill.style.width = (fraction * 100).toFixed(2) + '%';
+}
+
+/* Tracé d'un secteur de disque de rayon 44 (viewBox 100), à partir de 12 h, sens horaire. */
+function focusSecteur(fraction) {
+    var f = Math.max(0, Math.min(1, fraction));
+    if (f <= 0.0005) return '';
+    if (f >= 0.9995) return 'M50 6 A44 44 0 1 1 49.99 6 Z';
+    var a = f * 2 * Math.PI;
+    var x = 50 + 44 * Math.sin(a);
+    var y = 50 - 44 * Math.cos(a);
+    return 'M50 50 L50 6 A44 44 0 ' + (f > 0.5 ? 1 : 0) + ' 1 ' + x.toFixed(2) + ' ' + y.toFixed(2) + ' Z';
 }
 
 /* Contenu d'un affichage du minuteur (créé quand le style change). */
@@ -308,7 +318,11 @@ function focusHtmlStyle(style) {
         for (i = 0; i < FOCUS_POINTS; i++) html += '<span class="focus-point"></span>';
         html += '</div>';
     } else if (style === 'camembert') {
-        html = '<div class="focus-camembert" aria-hidden="true"></div>';
+        html = '<svg class="focus-camembert" viewBox="0 0 100 100" aria-hidden="true">' +
+            '<defs><linearGradient id="focusCamGrad" x1="0" y1="0" x2="1" y2="1">' +
+            '<stop offset="0" stop-color="#a7f3d0"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs>' +
+            '<circle cx="50" cy="50" r="44" class="focus-camembert-fond"/>' +
+            '<path class="focus-camembert-part" d="' + focusSecteur(1) + '" fill="url(#focusCamGrad)"/></svg>';
     }
     return html;
 }
