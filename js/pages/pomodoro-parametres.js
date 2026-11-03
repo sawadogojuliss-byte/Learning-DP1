@@ -9,20 +9,66 @@
    Chargé après js/pages/pomodoro-page.js.
    ============================================================ */
 
-var FOCUS_CITATIONS = [
-    "Chaque minute de travail compte, même les petites.",
-    "Commence petit, mais commence aujourd'hui.",
-    "La régularité vaut mieux que la perfection.",
-    "Un pas après l'autre, et la route se fait.",
-    "Concentre-toi sur le prochain pas, pas sur la montagne.",
-    "Ce que tu répètes aujourd'hui devient facile demain.",
-    "Une pause bien placée rend la concentration plus forte.",
-    "La difficulté d'aujourd'hui est la compétence de demain.",
-    "Ne cherche pas à être parfait, cherche à être constant.",
-    "Le plus dur, c'est de s'asseoir. Ensuite, ça avance.",
-    "Tu n'as pas besoin d'être prêt, il suffit de commencer.",
-    "Chaque séance terminée est une petite victoire."
+/* Citations en français, classées par catégorie. Aucun point final.
+   Les auteurs viennent de recueils de citations ; certaines attributions sont anonymes. */
+var FOCUS_CATEGORIES_CITATIONS = [
+    { id: 'toutes', nom: 'Toutes les citations' },
+    { id: 'motivation', nom: 'Motivation' },
+    { id: 'inspiration', nom: 'Inspiration' },
+    { id: 'bien-etre', nom: 'Bien-être' },
+    { id: 'gratitude', nom: 'Gratitude' }
 ];
+
+var FOCUS_CITATIONS = {
+    'motivation': [
+        { t: "Je n’ai jamais rêvé de réussir, j’ai travaillé pour ça", a: "Estée Lauder" },
+        { t: "La plupart des hommes, pour arriver à leurs fins, sont plus capables d’un grand effort que d’une longue persévérance", a: "Jean de La Bruyère" },
+        { t: "Il n’y a pas de magie dans la réussite, c’est vraiment une question de travail acharné, de choix et de persévérance", a: "Michelle Obama" },
+        { t: "Tomber sept fois, se relever huit", a: "Proverbe japonais" },
+        { t: "Il n’y a pas de substitut au travail", a: "Thomas Edison" },
+        { t: "Le talent est un don, mais l’effort est un choix", a: "John C. Maxwell" },
+        { t: "Les grands accomplissements sont réussis non par la force, mais par la persévérance", a: "Samuel Johnson" },
+        { t: "Un jour ou jour un, à vous de choisir", a: "Anonyme" },
+        { t: "Je suis convaincu que ce qui sépare les entrepreneurs qui ont du succès de ceux qui n’en ont pas est la persévérance", a: "Steve Jobs" },
+        { t: "La récompense d’une chose bien faite, c’est de l’avoir faite", a: "Ralph Waldo Emerson" }
+    ],
+    'inspiration': [
+        { t: "Dans le domaine des idées, tout dépend de l’enthousiasme. Dans le monde réel, tout repose sur la persévérance", a: "Johann Wolfgang von Goethe" },
+        { t: "Ce n’est pas le temps qui manque, mais la volonté", a: "Paul Claudel" },
+        { t: "La meilleure façon de prédire l’avenir, c’est de le créer", a: "Peter Drucker" },
+        { t: "Notre persévérance fait de nous ce que nous rêvons d’être", a: "Euvrard Tristan" },
+        { t: "Le courage et la persévérance ont un talisman magique devant lequel les difficultés disparaissent et les obstacles s’évaporent", a: "John Quincy Adams" },
+        { t: "Vous êtes plus fort que vous ne le pensez", a: "Anonyme" },
+        { t: "Confronté à la roche, le ruisseau l’emporte toujours, non pas par la force, mais par la persévérance", a: "Confucius" },
+        { t: "Rien ne peut vous arrêter si vous avez décidé d’avancer", a: "Paulo Coelho" },
+        { t: "Il ne faut jamais baisser les bras, le succès vient avec la ténacité et la persévérance", a: "Marie du Deffand" },
+        { t: "Avec un talent ordinaire et une persévérance extraordinaire, on peut tout obtenir", a: "Thomas Foxwell Buxton" }
+    ],
+    'bien-etre': [
+        { t: "Prendre soin de soi-même n’est pas de l’égoïsme, c’est de l’auto-préservation", a: "Audre Lorde" },
+        { t: "Le sommeil est la meilleure méditation", a: "Dalaï-Lama" },
+        { t: "Le repos n’est pas une récompense, c’est une nécessité", a: "Anonyme" },
+        { t: "Vous ne pouvez pas verser d’un vase vide", a: "Anonyme" },
+        { t: "Le bien-être n’est pas une destination, mais un chemin", a: "Wayne Dyer" },
+        { t: "Parfois, ne rien faire, c’est aussi une façon de prendre soin de soi", a: "M. Mariani" },
+        { t: "Se connaître soi-même est le début de toute sagesse", a: "Aristote" },
+        { t: "Votre corps est l’endroit où vous vivez, maintenez-le en bon état", a: "Jim Rohn" },
+        { t: "Un corps sain est la chambre de l’âme, un corps malade est sa prison", a: "Francis Bacon" },
+        { t: "Presque tout fonctionnera à nouveau si vous le débranchez quelques minutes, y compris vous-même", a: "Anne Lamott" }
+    ],
+    'gratitude': [
+        { t: "La gratitude est la mémoire du cœur", a: "Jean-Baptiste Massieu" },
+        { t: "Nous pouvons nous plaindre parce que les rosiers ont des épines, ou nous réjouir parce que les épines ont des roses", a: "Alphonse Karr" },
+        { t: "La gratitude est non seulement la plus grande des vertus, mais la mère de toutes les autres", a: "Cicéron" },
+        { t: "Soyons reconnaissants aux personnes qui nous donnent du bonheur, elles sont les charmants jardiniers par qui nos âmes sont fleuries", a: "Marcel Proust" },
+        { t: "Il n’y a pas de devoir plus urgent que de remercier", a: "James Allen" },
+        { t: "La gratitude transforme ce que nous avons en suffisant", a: "Anonyme" },
+        { t: "L’âme qui fait preuve de reconnaissance peut trouver du réconfort dans tout", a: "Hannah Whitall Smith" },
+        { t: "C’est un homme sage, celui qui ne regrette pas ce qu’il n’a pas, mais se réjouit de ce qu’il possède", a: "Épictète" },
+        { t: "La gratitude est le signe des âmes nobles", a: "Ésope" },
+        { t: "Le bonheur est la seule chose qui se double si on le partage", a: "Albert Schweitzer" }
+    ]
+};
 
 var FOCUS_STYLES_TEMPS = [
     { id: 'defaut', nom: 'Par défaut' },
@@ -86,6 +132,7 @@ function focusNormaliserReglages(brut) {
         notif: b.notif === true,
         auto: b.auto === true,
         citation: b.citation !== false,
+        citationCategorie: dans(FOCUS_CATEGORIES_CITATIONS, b.citationCategorie, 'toutes'),
         police: dans(FOCUS_POLICES, b.police, 'gras'),
         taille: dans(FOCUS_TAILLES, b.taille, 'normale')
     };
@@ -113,12 +160,46 @@ function focusMajReglage(cle, valeur) {
     focusEcrireReglages(copie);
 }
 
-/* Une citation par jour : la même toute la journée, une autre le lendemain. */
+/* Citations d'une catégorie (« toutes » = toutes les catégories réunies). */
+function focusCitationsDeCategorie(categorie) {
+    if (categorie !== 'toutes' && FOCUS_CITATIONS[categorie]) return FOCUS_CITATIONS[categorie];
+    var tout = [];
+    FOCUS_CATEGORIES_CITATIONS.forEach(function (c) {
+        if (c.id !== 'toutes' && FOCUS_CITATIONS[c.id]) tout = tout.concat(FOCUS_CITATIONS[c.id]);
+    });
+    return tout;
+}
+
+/* Une citation par jour dans la catégorie choisie : la même toute la journée, une autre le lendemain.
+   Affichée entre guillemets courbes, sans point final. */
 function focusCitationDuJour(date) {
     var d = date || new Date();
     var debut = new Date(d.getFullYear(), 0, 0);
     var jour = Math.floor((d - debut) / 86400000);
-    return FOCUS_CITATIONS[jour % FOCUS_CITATIONS.length];
+    var liste = focusCitationsDeCategorie(focusLireReglages().citationCategorie);
+    var citation = liste[jour % liste.length];
+    return '\u201C' + citation.t.replace(/\.\s*$/, '') + '\u201D';
+}
+
+/* Remplit la liste déroulante des catégories et affiche le choix courant. */
+function focusPeindreCategorieCitation(r) {
+    var sel = document.getElementById('focusCategorieCitation');
+    if (!sel) return;
+    if (!sel.options.length) {
+        FOCUS_CATEGORIES_CITATIONS.forEach(function (c) {
+            var o = document.createElement('option');
+            o.value = c.id;
+            o.textContent = c.nom;
+            sel.appendChild(o);
+        });
+    }
+    if (sel.value !== r.citationCategorie) sel.value = r.citationCategorie;
+}
+
+/* Choix de la catégorie depuis la liste déroulante. */
+function focusChoisirCategorieCitation(categorie) {
+    focusMajReglage('citationCategorie', categorie);
+    focusPeindre();
 }
 
 function focusPeindreCitation() {
@@ -222,6 +303,7 @@ function focusPeindreParametres() {
         FOCUS_TAILLES.forEach(function (t) { el.classList.toggle('focus-taille-' + t.id, t.id === r.taille); });
     });
 
+    focusPeindreCategorieCitation(r);
     focusPeindreCitation();
     focusPeindreStyleTemps(r);
     focusAfficherOnglet();

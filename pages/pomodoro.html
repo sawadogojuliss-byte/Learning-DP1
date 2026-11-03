@@ -132,7 +132,8 @@
                     <header class="focus-page-titre"><h2>Citations</h2><p>Une citation s'affiche en haut à droite, une par jour.</p></header>
                     <div class="focus-carte">
                         <h3>Citation du jour</h3>
-                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
+                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher les citations en mode focus</span></label>
+                        <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
                         <p class="focus-citation-apercu" id="focusCitationApercu"></p>
                     </div>
                 </section>

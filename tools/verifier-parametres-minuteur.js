@@ -30,8 +30,27 @@ ok(seances.indexOf('id="focusAccueilCitation"') !== -1, 'la séance doit avoir l
 ok(seances.indexOf('id="focusAccueilHeure"') === -1, 'l\'heure ne doit plus être affichée sur la séance');
 ok(minuteur.indexOf('Format de l\'heure') === -1 && minuteur.indexOf('id="focusChoixFormat"') === -1, 'la carte « Format de l\'heure » doit disparaître');
 
-var citations = (script.match(/FOCUS_CITATIONS = \[([\s\S]*?)\];/) || [])[1] || '';
-ok((citations.match(/"[^"]+"|'[^']+'/g) || []).length >= 10, 'il faut au moins 10 citations en français');
+/* Citations par catégorie : évaluées dans un contexte isolé. */
+var vm = require('vm');
+var blocCitations = (script.match(/var FOCUS_CATEGORIES_CITATIONS[\s\S]*?\n\};/) || [])[0] || '';
+var contexteCitations = {};
+try { vm.runInNewContext(blocCitations + '\nthis.C = FOCUS_CITATIONS; this.K = FOCUS_CATEGORIES_CITATIONS;', contexteCitations); } catch (e) { contexteCitations = {}; }
+var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre', 'gratitude'];
+var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être', 'Gratitude'];
+var listeCategories = contexteCitations.K || [];
+ok(listeCategories.length === 5 && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
+    'les 5 catégories doivent exister avec leurs libellés français');
+var lesCitations = contexteCitations.C || {};
+['motivation', 'inspiration', 'bien-etre', 'gratitude'].forEach(function (id) {
+    var liste = lesCitations[id] || [];
+    ok(liste.length >= 8, 'la catégorie ' + id + ' doit avoir au moins 8 citations');
+    liste.forEach(function (c) {
+        ok(typeof c.t === 'string' && !/\.\s*$/.test(c.t), 'citation sans point final : ' + (c.t || '').slice(0, 40));
+        ok(!/\b(the|and|you|your)\b/i.test(c.t), 'citation en anglais détectée : ' + (c.t || '').slice(0, 40));
+    });
+});
+ok(script.indexOf("focusCategorieCitation") !== -1 && /id="focusCategorieCitation"/.test(lire('pages/pomodoro.html')), 'la liste déroulante des catégories doit exister dans Citations');
+ok(/Afficher les citations en mode focus/.test(lire('pages/pomodoro.html')), 'la case doit s\'appeler « Afficher les citations en mode focus »');
 
 /* ── 2. Bouton Paramètres (icône seule, en bas), sur les deux pages ── */
 ok(minuteur.indexOf('id="focusBtnReglages"') !== -1, 'le minuteur doit avoir le bouton Paramètres');
@@ -62,7 +81,7 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
     ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le menu Paramètres doit contenir #' + id);
 });
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
-ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
+ok(minuteur.indexOf('Afficher les citations en mode focus') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
 ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \'citations\', \'voix\']') !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Horloge à palettes', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
