@@ -709,52 +709,31 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 }
 .focus-page .stats-semaine-titre { margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; }
 .focus-page .stats-semaine-sous { margin: 0.25rem 0 1rem; font-size: 0.84rem; color: rgba(255, 255, 255, 0.6); }
-.focus-page .stats-jours {
-    display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.35rem; align-items: end;
-}
-.focus-page .stats-jour { display: flex; flex-direction: column; align-items: center; min-width: 0; }
-.focus-page .stats-jour.is-futur { opacity: 0.4; }
-.focus-page .stats-jour-valeur {
-    height: 1.1rem; font-size: 0.66rem; color: rgba(255, 255, 255, 0.72); white-space: nowrap;
-    margin-bottom: 0.3rem; overflow: visible;
-}
-.focus-page .stats-barre {
-    width: 100%; max-width: 2.4rem; height: 6.2rem; display: flex; align-items: flex-end;
-    border-radius: 0.6rem; background: rgba(255, 255, 255, 0.06); overflow: hidden;
-}
-.focus-page .stats-barre i {
-    display: block; width: 100%; min-height: 0; border-radius: 0.6rem 0.6rem 0 0;
-    background: linear-gradient(180deg, #6ee7b7 0%, #059669 100%);
-}
-.focus-page .stats-jour.is-aujourdhui .stats-barre { box-shadow: inset 0 0 0 1px rgba(110, 231, 183, 0.7); }
-.focus-page .stats-jour-nom { margin-top: 0.45rem; font-size: 0.74rem; font-weight: 700; color: rgba(255, 255, 255, 0.78); }
-.focus-page .stats-jour.is-aujourdhui .stats-jour-nom { color: #6ee7b7; }
-.focus-page .stats-jour-num { font-size: 0.7rem; color: rgba(255, 255, 255, 0.5); }
+.focus-page .stats-courbe { display: block; width: 100%; height: auto; overflow: visible; margin-top: 0.1rem; }
+.focus-page .stats-courbe text { font-family: inherit; }
 @media (max-width: 400px) {
-    .focus-page .stats-jour-valeur { font-size: 0.6rem; }
     .focus-page .stats-valeur { font-size: 1.35rem; }
 }
 
 /* Compteurs de minuterie : une icône par séance choisie, en vert du site.
    Icône pleine = minuteur terminé ; icône vide = estompée. */
 .focus-page .focus-compteur {
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem;
-    max-width: 30rem; margin: 0.9rem auto 0.3rem;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 0.32rem;
+    max-width: 16rem; margin: 0.7rem auto 0.9rem;
 }
 .focus-page .focus-compteur:empty { display: none; }
 .focus-page .focus-compteur-item {
-    width: 2.15rem; height: 2.15rem; border-radius: 50%; color: #fff;
+    width: 1.5rem; height: 1.5rem; border-radius: 50%; color: #fff;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: 1.15rem; line-height: 1;
-    background: rgba(4, 20, 16, 0.5); border: 1px solid rgba(110, 231, 183, 0.22);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    font-size: 0.76rem; line-height: 1;
+    background: rgba(4, 20, 16, 0.4); border: 1px solid rgba(110, 231, 183, 0.18);
     transition: opacity 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
 }
 .focus-page .focus-compteur-item.is-vide { opacity: 0.3; filter: grayscale(1); }
 .focus-page .focus-compteur-item.is-plein {
     border-color: rgba(110, 231, 183, 0.6); box-shadow: 0 0 16px rgba(110, 231, 183, 0.35);
 }
-.focus-page .focus-compteur-item svg { width: 1.05rem; height: 1.05rem; }
+.focus-page .focus-compteur-item svg { width: 0.72rem; height: 0.72rem; }
 
 .focus-page .focus-compteurs-carte .focus-compteur-choix {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;

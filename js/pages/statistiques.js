@@ -199,11 +199,42 @@ function statsPeindreCartes(resume, serie) {
     });
 }
 
+/* Courbe lissée (Catmull-Rom converti en Bézier) des minuteurs de concentration
+   par jour de la semaine. Les jours à venir n'ont pas de point. */
+var STATS_COURBE = { largeur: 640, hauteur: 250, gauche: 40, droite: 600, base: 196, haut: 80 };
+
+function statsCourbeY(y) {
+    return Math.min(STATS_COURBE.base, Math.max(STATS_COURBE.haut - 12, y));
+}
+
+function statsTrajet(points) {
+    var d = 'M' + points[0].x + ' ' + points[0].y;
+    for (var i = 0; i < points.length - 1; i++) {
+        var p0 = points[i > 0 ? i - 1 : i];
+        var p1 = points[i];
+        var p2 = points[i + 1];
+        var p3 = points[i + 2 < points.length ? i + 2 : i + 1];
+        var c1x = p1.x + (p2.x - p0.x) / 6;
+        var c1y = statsCourbeY(p1.y + (p2.y - p0.y) / 6);
+        var c2x = p2.x - (p3.x - p1.x) / 6;
+        var c2y = statsCourbeY(p2.y - (p3.y - p1.y) / 6);
+        d += ' C' + c1x.toFixed(1) + ' ' + c1y.toFixed(1) + ' ' + c2x.toFixed(1) + ' ' + c2y.toFixed(1) + ' ' + p2.x.toFixed(1) + ' ' + p2.y.toFixed(1);
+    }
+    return d;
+}
+
+function statsSvg(nom, attributs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', nom);
+    Object.keys(attributs || {}).forEach(function (cle) { el.setAttribute(cle, String(attributs[cle])); });
+    return el;
+}
+
 function statsPeindreSemaine(jours) {
     var conteneur = document.getElementById('statsSemaine');
     if (!conteneur) return;
+    var c = STATS_COURBE;
     var maximum = 0;
-    jours.forEach(function (j) { if (j.minutes > maximum) maximum = j.minutes; });
+    jours.forEach(function (j) { if (!j.futur && j.minutes > maximum) maximum = j.minutes; });
 
     conteneur.textContent = '';
     var titre = document.createElement('p');
@@ -218,38 +249,60 @@ function statsPeindreSemaine(jours) {
     sous.textContent = 'Cette semaine, du ' + premier.numero + ' ' + premier.mois + ' au ' + dernier.numero + ' ' + dernier.mois;
     conteneur.appendChild(sous);
 
-    var grille = document.createElement('div');
-    grille.className = 'stats-jours';
-    jours.forEach(function (j) {
-        var colonne = document.createElement('div');
-        colonne.className = 'stats-jour' + (j.aujourdhui ? ' is-aujourdhui' : '') + (j.futur ? ' is-futur' : '');
-        colonne.setAttribute('aria-label', j.nom + ' ' + j.numero + ' : ' + statsDuree(j.minutes));
-
-        var valeur = document.createElement('span');
-        valeur.className = 'stats-jour-valeur';
-        valeur.textContent = j.minutes > 0 ? statsDuree(j.minutes) : '';
-        colonne.appendChild(valeur);
-
-        var barre = document.createElement('div');
-        barre.className = 'stats-barre';
-        var remplie = document.createElement('i');
-        remplie.style.height = (maximum > 0 ? Math.round(100 * j.minutes / maximum) : 0) + '%';
-        barre.appendChild(remplie);
-        colonne.appendChild(barre);
-
-        var nom = document.createElement('span');
-        nom.className = 'stats-jour-nom';
-        nom.textContent = j.nom;
-        colonne.appendChild(nom);
-
-        var numero = document.createElement('span');
-        numero.className = 'stats-jour-num';
-        numero.textContent = String(j.numero);
-        colonne.appendChild(numero);
-
-        grille.appendChild(colonne);
+    var pas = (c.droite - c.gauche) / (jours.length - 1);
+    var points = jours.map(function (j, i) {
+        var y = maximum > 0 ? c.base - (j.minutes / maximum) * (c.base - c.haut) : c.base;
+        return { x: c.gauche + i * pas, y: y, j: j };
     });
-    conteneur.appendChild(grille);
+    var passes = points.filter(function (p) { return !p.j.futur; });
+    var resume = jours.map(function (j) { return j.nom + ' ' + statsDuree(j.minutes); }).join(', ');
+
+    var svg = statsSvg('svg', { viewBox: '0 0 ' + c.largeur + ' ' + c.hauteur, class: 'stats-courbe', role: 'img',
+        'aria-label': 'Concentration par jour : ' + resume });
+    var defs = statsSvg('defs');
+    var degrade = statsSvg('linearGradient', { id: 'statsAire', x1: '0', y1: '0', x2: '0', y2: '1' });
+    degrade.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.42' }));
+    degrade.appendChild(statsSvg('stop', { offset: '100%', 'stop-color': '#6ee7b7', 'stop-opacity': '0' }));
+    defs.appendChild(degrade);
+    svg.appendChild(defs);
+
+    svg.appendChild(statsSvg('line', { x1: c.gauche, y1: c.base, x2: c.droite, y2: c.base,
+        stroke: 'rgba(255,255,255,0.14)', 'stroke-width': '1.5' }));
+
+    if (passes.length > 1) {
+        var trajet = statsTrajet(passes);
+        var dernierX = passes[passes.length - 1].x;
+        var premierX = passes[0].x;
+        svg.appendChild(statsSvg('path', { d: trajet + ' L' + dernierX + ' ' + c.base + ' L' + premierX + ' ' + c.base + ' Z',
+            fill: 'url(#statsAire)' }));
+        svg.appendChild(statsSvg('path', { d: trajet, fill: 'none', stroke: '#6ee7b7', 'stroke-width': '3.5',
+            'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    }
+
+    passes.forEach(function (p) {
+        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: '6', fill: '#04140f', stroke: '#6ee7b7', 'stroke-width': '3' }));
+        /* Valeur sur une pastille sombre, décalée pour rester dans le graphique. */
+        var texte = statsDuree(p.j.minutes);
+        var largeur = Math.round(texte.length * 14.5 + 22);
+        var x = Math.max(6, Math.min(c.largeur - 6 - largeur, p.x - largeur / 2));
+        var y = Math.max(8, p.y - 52);
+        svg.appendChild(statsSvg('rect', { x: x, y: y, width: largeur, height: 38, rx: '11',
+            fill: 'rgba(4,20,16,0.9)', stroke: 'rgba(110,231,183,0.35)', 'stroke-width': '1.5' }));
+        var valeur = statsSvg('text', { x: x + largeur / 2, y: y + 27, 'text-anchor': 'middle',
+            fill: '#ffffff', 'font-size': '24', 'font-weight': '700' });
+        valeur.textContent = texte;
+        svg.appendChild(valeur);
+    });
+
+    points.forEach(function (p) {
+        var nom = statsSvg('text', { x: p.x, y: c.hauteur - 8, 'text-anchor': 'middle', 'font-size': '24',
+            'font-weight': p.j.aujourdhui ? '700' : '500',
+            fill: p.j.aujourdhui ? '#6ee7b7' : (p.j.futur ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.72)') });
+        nom.textContent = p.j.nom;
+        svg.appendChild(nom);
+    });
+
+    conteneur.appendChild(svg);
 }
 
 function statsPeindrePeriodes() {

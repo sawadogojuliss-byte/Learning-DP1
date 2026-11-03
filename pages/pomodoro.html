@@ -19,6 +19,8 @@
         <main class="focus-center">
             <label class="focus-sr" for="focusTache">Sur quoi veux-tu te concentrer ?</label>
             <input id="focusTache" class="focus-question" maxlength="120" placeholder="Sur quoi veux-tu te concentrer ?" autocomplete="off">
+            <!-- Compteur : une icône par séance choisie, les terminées sont allumées. -->
+            <div class="focus-compteur" id="focusCompteur"></div>
             <div class="focus-modes" role="tablist">
                 <button type="button" id="focusModeFocus" class="is-on" aria-pressed="true" onclick="focusChoisirMode('focus')">CONCENTRATION</button>
                 <button type="button" id="focusModeShort" aria-pressed="false" onclick="focusChoisirMode('short')">PAUSE COURTE</button>
@@ -28,8 +30,6 @@
             <!-- Affichages du minuteur (style choisi dans Paramètres) : vides par défaut. -->
             <div class="focus-visuel" id="focusVisuel" hidden></div>
             <div class="focus-barre" id="focusBarre" hidden><i id="focusBarreRemplie"></i></div>
-            <!-- Compteur : une icône par séance choisie, les terminées sont allumées. -->
-            <div class="focus-compteur" id="focusCompteur"></div>
             <div class="focus-controls">
                 <button type="button" id="focusPlay" class="focus-glass" onclick="focusBasculer()" aria-label="Démarrer">
                     <svg id="focusIconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>

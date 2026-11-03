@@ -130,8 +130,8 @@ ok(parametresJs.indexOf("'statistiques'") !== -1 && parametresJs.indexOf("statsP
 ok(minuteurJs.indexOf('statsEnregistrer({ k: fini') !== -1, 'la fin d’une phase doit être enregistrée');
 ok(minuteurJs.indexOf('focusCompterLancement();') !== -1 && parametresJs.indexOf('focusCompterLancement()') !== -1, 'les lancements doivent être comptés, à la main et en enchaînement');
 ok(minuteurJs.indexOf('statsRetirerTache(tache.id)') !== -1, 'décocher une tâche doit la retirer des statistiques');
-ok(css.indexOf('.stats-carte-serie') !== -1 && css.indexOf('.stats-jours') !== -1, 'les styles des cartes et du calendrier doivent exister');
-ok(css.indexOf('.stats-jour') !== -1 && /stats-carte-pause[^}]*#052e22/.test(css), 'la carte pause doit avoir un texte sombre lisible');
+ok(css.indexOf('.stats-carte-serie') !== -1 && css.indexOf('.stats-courbe') !== -1, 'les styles des cartes et de la courbe doivent exister');
+ok(css.indexOf('.stats-courbe') !== -1 && /stats-carte-pause[^}]*#052e22/.test(css), 'la carte pause doit avoir un texte sombre lisible, et la courbe doit être stylée');
 
 /* ── 4. Pas de réseau ni d’écriture Firestore ───────────────────────── */
 const codeSeul = stats.replace(/\/\*[\s\S]*?\*\//g, '');
