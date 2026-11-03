@@ -28,6 +28,8 @@
             <!-- Affichages du minuteur (style choisi dans Paramètres) : vides par défaut. -->
             <div class="focus-visuel" id="focusVisuel" hidden></div>
             <div class="focus-barre" id="focusBarre" hidden><i id="focusBarreRemplie"></i></div>
+            <!-- Compteur : une icône par séance choisie, les terminées sont allumées. -->
+            <div class="focus-compteur" id="focusCompteur"></div>
             <div class="focus-controls">
                 <button type="button" id="focusPlay" class="focus-glass" onclick="focusBasculer()" aria-label="Démarrer">
                     <svg id="focusIconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
@@ -127,6 +129,22 @@
                     <div class="focus-carte">
                         <h3>Style du minuteur</h3>
                         <div class="focus-grille-tuiles" id="focusChoixStyle"></div>
+                    </div>
+                    <div class="focus-carte focus-compteurs-carte">
+                        <h3>Compteurs de minuterie</h3>
+                        <p>Chaque icône représente une concentration terminée. Il y en a autant que de séances choisies.</p>
+                        <div class="focus-compteur-choix">
+                            <span>Choisi : <strong id="focusCompteurNom">Points</strong></span>
+                            <button type="button" id="focusCompteurBouton" class="focus-compteur-bouton" onclick="focusBasculerCompteurs()" aria-expanded="true">Fait</button>
+                        </div>
+                        <div id="focusCompteurListe" class="focus-compteur-liste">
+                            <h4 class="focus-compteur-sous">Comptage statique</h4>
+                            <p class="focus-compteur-explic">La même icône se répète pour chaque minuteur.</p>
+                            <div id="focusCompteurStatique" class="focus-grille-tuiles"></div>
+                            <h4 class="focus-compteur-sous">Comptage dynamique</h4>
+                            <p class="focus-compteur-explic">Chaque minuteur a sa propre icône.</p>
+                            <div id="focusCompteurDynamique" class="focus-grille-tuiles"></div>
+                        </div>
                     </div>
                     <div class="focus-carte">
                         <details class="focus-depliant">

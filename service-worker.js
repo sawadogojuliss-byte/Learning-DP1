@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261103am';
+const VERSION = '20261103an';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -88,6 +88,7 @@ const FICHIERS = [
     "js/pages/annonce.js",
     "js/pages/tutoriel.js",
     "js/pages/statistiques.js",
+    "js/pages/minuteur-compteurs.js",
     "js/pages/pomodoro-page.js",
     "js/pages/pomodoro-parametres.js"
 ];

@@ -849,6 +849,7 @@ function focusPeindre() {
     focusPeindreFonds();
     focusTitre();
     focusPipMaj();
+    if (typeof focusPeindreCompteur === 'function') focusPeindreCompteur();
     if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
     focusSauverEtat();
     /* style d'affichage, police, heure et citation : js/pages/pomodoro-parametres.js */

@@ -75,6 +75,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/annonce.js',
     'js/pages/tutoriel.js',
     'js/pages/statistiques.js',
+    'js/pages/minuteur-compteurs.js',
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js'
 ];

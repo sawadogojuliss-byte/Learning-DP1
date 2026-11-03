@@ -111,7 +111,8 @@ function focusNormaliserReglages(brut) {
         citation: b.citation !== false,
         citationCategorie: dans(FOCUS_CATEGORIES_CITATIONS, b.citationCategorie, 'toutes'),
         police: dans(FOCUS_POLICES, b.police, 'gras'),
-        taille: dans(FOCUS_TAILLES, b.taille, 'normale')
+        taille: dans(FOCUS_TAILLES, b.taille, 'normale'),
+        compteur: dans(FOCUS_COMPTEURS, b.compteur, 'points')
     };
 }
 
@@ -351,6 +352,10 @@ function focusConstruireChoix() {
     focusRemplirGrille('focusChoixPolice', FOCUS_POLICES, 'police', function (p) { return 'focus-police-' + p.id; }, function (item) {
         return '<span class="focus-tuile-image"><span class="focus-tuile-texte">12:24</span></span>' + focusTuileNom(item.nom);
     });
+    if (typeof FOCUS_COMPTEURS !== 'undefined' && typeof focusCompteurTuile === 'function') {
+        focusRemplirGrille('focusCompteurStatique', FOCUS_COMPTEURS.filter(function (c) { return c.groupe === 'statique'; }), 'compteur', null, focusCompteurTuile);
+        focusRemplirGrille('focusCompteurDynamique', FOCUS_COMPTEURS.filter(function (c) { return c.groupe === 'dynamique'; }), 'compteur', null, focusCompteurTuile);
+    }
     focusRemplirGrille('focusChoixStyle', FOCUS_STYLES_TEMPS, 'style', null, function (item) {
         return '<span class="focus-tuile-image focus-tuile-miniature">' + FOCUS_MINI[item.id] + '</span>' + focusTuileNom(item.nom);
     });
@@ -409,6 +414,7 @@ function focusPeindreParametres() {
     focusMarquerChoix('focusChoixStyle', 'style', r.style);
     focusMarquerChoix('focusChoixPolice', 'police', r.police);
     focusMarquerChoix('focusChoixTaille', 'taille', r.taille);
+    if (typeof focusMarquerCompteurs === 'function') focusMarquerCompteurs();
 
     focusMarquerThemes();
 
