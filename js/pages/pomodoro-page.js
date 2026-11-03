@@ -45,7 +45,7 @@ var FOCUS_FONDS = [
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
     short: 'Lève-toi, bois de l’eau, regarde au loin.',
-    long: 'Marche un peu. La pause longue arrive toutes les 4 concentrations.'
+    long: 'Marche un peu. La pause longue arrive après tes séances de révision.'
 };
 var focusEtat = {
     mode: 'focus',
@@ -161,7 +161,8 @@ function focusDurees() {
     return {
         focus: focusBorner(sauve.focus, 25, 1, 180),
         short: focusBorner(sauve.short, 5, 1, 60),
-        long: focusBorner(sauve.long, 15, 1, 60)
+        long: focusBorner(sauve.long, 15, 1, 60),
+        seances: focusBorner(sauve.seances, 4, 1, 12)
     };
 }
 
@@ -768,7 +769,7 @@ function focusPhaseSuivante(silencieux) {
     focusStopIntervalle();
     if (fini === 'focus') {
         focusEtat.cycles += 1;
-        var modePause = focusEtat.cycles % 4 === 0 ? 'long' : 'short';
+        var modePause = focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short';
         /* la pause annoncée est celle de la configuration de l'élève,
            pas une valeur écrite dans le site */
         var minutesPause = focusDurees()[modePause];
@@ -1132,15 +1133,35 @@ function focusRemplirDurees() {
     if (focus) focus.value = String(durees.focus);
     if (courte) courte.value = String(durees.short);
     if (longue) longue.value = String(durees.long);
+    focusPeindreSeances(durees.seances);
+}
+
+/* Texte de la question : rappelle le nombre choisi. */
+function focusPeindreSeances(n) {
+    var champ = document.getElementById('focusDureeSeances');
+    var aide = document.getElementById('focusSeancesAide');
+    var nombre = focusBorner(n === undefined ? (champ && champ.value) : n, 4, 1, 12);
+    if (champ && champ.value !== String(nombre)) champ.value = String(nombre);
+    if (aide) aide.textContent = 'Après ' + nombre + (nombre > 1 ? ' séances' : ' séance') + ' de révision, la pause longue arrive.';
+}
+
+/* Boutons − et + : un pas à la fois, entre 1 et 12. */
+function focusAjusterSeances(pas) {
+    var champ = document.getElementById('focusDureeSeances');
+    if (!champ) return;
+    champ.value = String(focusBorner(Number(champ.value) + pas, 4, 1, 12));
+    focusSauverDurees();
 }
 
 function focusSauverDurees() {
     var durees = {
         focus: focusBorner(document.getElementById('focusDureeFocus') && document.getElementById('focusDureeFocus').value, 25, 1, 180),
         short: focusBorner(document.getElementById('focusDureeShort') && document.getElementById('focusDureeShort').value, 5, 1, 60),
-        long: focusBorner(document.getElementById('focusDureeLong') && document.getElementById('focusDureeLong').value, 15, 1, 60)
+        long: focusBorner(document.getElementById('focusDureeLong') && document.getElementById('focusDureeLong').value, 15, 1, 60),
+        seances: focusBorner(document.getElementById('focusDureeSeances') && document.getElementById('focusDureeSeances').value, 4, 1, 12)
     };
     try { localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify(durees)); } catch (e) {}
+    focusPeindreSeances(durees.seances);
     if (!focusEtat.running) {
         focusEtat.total = durees[focusEtat.mode] * 60;
         focusEtat.restant = focusEtat.total;

@@ -373,8 +373,46 @@
 .focus-mini-secteur { fill: #6ee7b7; }
 
 /* Durées */
-.focus-durees { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.4rem; }
-.focus-durees label { display: flex; align-items: center; gap: 0.4rem; font-size: 0.86rem; color: #fff; }
+/* Durées (Minuteur) : trois tuiles, puis la question du nombre de séances. */
+.focus-page .focus-durees { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 0.6rem; }
+.focus-page .focus-duree {
+    display: flex; flex-direction: column; gap: 0.45rem;
+    padding: 0.7rem 0.8rem 0.75rem; border-radius: 0.9rem;
+    background: rgba(4, 30, 24, 0.55); border: 1px solid rgba(110, 231, 183, 0.18);
+    font-size: 0.8rem; color: var(--focus-menthe);
+}
+.focus-page .focus-duree-champ { display: flex; align-items: baseline; gap: 0.3rem; }
+.focus-page .focus-duree-champ input {
+    width: 100%; min-width: 0; padding: 0; border: 0; border-radius: 0;
+    background: transparent; color: #fff; font: inherit; font-size: 1.5rem; font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+.focus-page .focus-duree-champ input:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 4px; }
+.focus-page .focus-duree-champ small { color: rgba(255, 255, 255, 0.6); font-size: 0.8rem; }
+.focus-page .focus-seances {
+    margin-top: 1rem; padding-top: 0.9rem; border-top: 1px solid rgba(110, 231, 183, 0.14);
+    display: flex; flex-direction: column; gap: 0.55rem;
+}
+.focus-page .focus-seances-question { margin: 0; font-size: 0.95rem; font-weight: 600; color: #fff; }
+.focus-page .focus-stepper {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 0.45rem;
+    padding: 0.3rem; border-radius: 999px;
+    background: rgba(4, 30, 24, 0.55); border: 1px solid rgba(110, 231, 183, 0.25);
+}
+.focus-page .focus-stepper button {
+    width: 2.3rem; height: 2.3rem; border-radius: 50%; border: 0; cursor: pointer;
+    background: rgba(16, 185, 129, 0.22); color: #fff; font: inherit; font-size: 1.2rem; line-height: 1;
+}
+.focus-page .focus-stepper button:hover { background: rgba(16, 185, 129, 0.4); }
+.focus-page .focus-stepper button:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 2px; }
+.focus-page .focus-stepper input {
+    width: 3rem; padding: 0; border: 0; background: transparent; color: #fff;
+    text-align: center; font: inherit; font-size: 1.3rem; font-weight: 700;
+    -moz-appearance: textfield; appearance: textfield;
+}
+.focus-page .focus-stepper input::-webkit-inner-spin-button,
+.focus-page .focus-stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.focus-page .focus-seances-aide { margin: 0; font-size: 0.8rem; color: var(--focus-menthe); }
 .focus-page input[type="number"] {
     width: 4.3rem;
     padding: 0.42rem 0.5rem;
@@ -418,25 +456,12 @@
 .focus-switch input:checked + i::after { transform: translateX(1.1rem); }
 .focus-switch input:focus-visible + i { outline: 2px solid var(--focus-menthe); outline-offset: 2px; }
 .focus-statut-reglage { min-height: 1.1em; margin: 0.35rem 0 0; font-size: 0.8rem; color: var(--focus-menthe); }
-.focus-citation-apercu {
-    margin: 0.8rem 0 0;
-    padding: 0.9rem 1rem;
-    border-radius: 0.9rem;
-    background: rgba(16, 185, 129, 0.08);
-    border-left: 3px solid var(--focus-vert);
-    font-style: normal;
-    font-weight: 700;
-    text-align: right;
-    font-size: 1rem;
-    line-height: 1.4;
-    color: #fff;
-}
 /* Liste déroulante « Catégorie » (Citations) : aux couleurs menthe du site. */
 .focus-champ-liste {
     display: flex;
     flex-direction: column;
     gap: 0.35rem;
-    margin-top: 0.9rem;
+    margin-top: 0.4rem;
     font-size: 0.85rem;
     color: var(--focus-menthe);
 }
@@ -456,6 +481,7 @@
     font-size: 0.95rem;
     cursor: pointer;
 }
+.focus-citation-bouton { margin-top: 0.9rem; }
 .focus-select option { background: #0b2a22; color: #fff; }
 .focus-select:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 2px; }
 

@@ -110,11 +110,19 @@
                     <div class="focus-carte">
                         <h3>Durées</h3>
                         <div class="focus-durees">
-                            <label>Concentration <input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"></label>
-                            <label>Pause courte <input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"></label>
-                            <label>Pause longue <input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"></label>
+                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
                         </div>
-                        <p>La pause longue arrive toutes les 4 concentrations.</p>
+                        <div class="focus-seances">
+                            <p class="focus-seances-question" id="focusSeancesQuestion">Combien de séances de révision avant une pause longue ?</p>
+                            <div class="focus-stepper">
+                                <button type="button" onclick="focusAjusterSeances(-1)" aria-label="Une séance de moins">&minus;</button>
+                                <input id="focusDureeSeances" type="number" min="1" max="12" value="4" aria-labelledby="focusSeancesQuestion" onchange="focusSauverDurees()">
+                                <button type="button" onclick="focusAjusterSeances(1)" aria-label="Une séance de plus">+</button>
+                            </div>
+                            <p class="focus-seances-aide" id="focusSeancesAide">Après 4 séances de révision, la pause longue arrive.</p>
+                        </div>
                     </div>
                     <div class="focus-carte">
                         <h3>Style du minuteur</h3>
@@ -132,9 +140,8 @@
                     <header class="focus-page-titre"><h2>Citations</h2><p>Une citation s'affiche en haut à droite, une par jour.</p></header>
                     <div class="focus-carte">
                         <h3>Citation du jour</h3>
-                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher les citations en mode focus</span></label>
                         <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
-                        <p class="focus-citation-apercu" id="focusCitationApercu"></p>
+                        <label class="focus-interrupteur focus-citation-bouton"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
                     </div>
                 </section>
                 <section class="focus-tiroir-page" data-page="voix" hidden>

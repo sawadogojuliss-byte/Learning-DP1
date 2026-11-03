@@ -50,7 +50,7 @@ var lesCitations = contexteCitations.C || {};
     });
 });
 ok(script.indexOf("focusCategorieCitation") !== -1 && /id="focusCategorieCitation"/.test(lire('pages/pomodoro.html')), 'la liste déroulante des catégories doit exister dans Citations');
-ok(/Afficher les citations en mode focus/.test(lire('pages/pomodoro.html')), 'la case doit s\'appeler « Afficher les citations en mode focus »');
+ok(/Afficher la citation</.test(lire('pages/pomodoro.html')), 'la case doit s\'appeler « Afficher la citation »');
 
 /* ── 2. Bouton Paramètres (icône seule, en bas), sur les deux pages ── */
 ok(minuteur.indexOf('id="focusBtnReglages"') !== -1, 'le minuteur doit avoir le bouton Paramètres');
@@ -81,7 +81,7 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
     ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le menu Paramètres doit contenir #' + id);
 });
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
-ok(minuteur.indexOf('Afficher les citations en mode focus') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
+ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
 ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \'citations\', \'voix\']') !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Horloge à palettes', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
@@ -94,7 +94,7 @@ ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'taille manquante : ' + nom);
 });
 ok(script.indexOf('FOCUS_FORMATS') === -1 && script.indexOf('focusPeindreHeure') === -1, 'le code d\'affichage de l\'heure doit être retiré');
-ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause longue <input') !== -1, 'les durées doivent rester dans Minuteur');
+ok(minuteur.indexOf('id="focusDureeFocus"') !== -1 && minuteur.indexOf('id="focusDureeLong"') !== -1 && minuteur.indexOf('id="focusDureeSeances"') !== -1, 'les durées doivent rester dans Minuteur');
 
 ok(/\.focus-tiroir-contenu\s*,\s*\.focus-tiroir-menu[^{]*\{[^}]*scrollbar-width:\s*none/.test(css) || css.indexOf('scrollbar-width: none') !== -1, 'la barre de défilement du menu Paramètres doit être masquée');
 

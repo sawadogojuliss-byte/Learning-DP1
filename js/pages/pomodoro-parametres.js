@@ -206,8 +206,6 @@ function focusPeindreCitation() {
         if (el.textContent !== texte) el.textContent = texte;
         if (el.hidden !== !visible) el.hidden = !visible;
     });
-    var apercu = document.getElementById('focusCitationApercu');
-    if (apercu && apercu.textContent !== texte) apercu.textContent = texte;
 }
 
 /* Construit une fois les tuiles de chaque rubrique. contenu(item, i) renvoie
