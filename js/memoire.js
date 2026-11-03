@@ -119,6 +119,7 @@ function memoireLireEtat() {
         weekdaySleepHours: weekdaySleepHours,
         saturdaySleepHours: saturdaySleepHours,
         sundaySleepHours: sundaySleepHours,
+        sommeilChoisiLe: typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '',
         habitudesDefinies: typeof habitudesDefinies !== 'undefined' ? !!habitudesDefinies : false,
         prepMatinMinutes: typeof prepMatinMinutes !== 'undefined' ? prepMatinMinutes : 30,
         prepMatinDebut: typeof prepMatinDebut !== 'undefined' ? prepMatinDebut : '',
@@ -242,6 +243,36 @@ function memoireAppliquer(data, opts) {
 
 /* La flamme (jours d'affilée) vient du profil enregistré : sur un autre
    téléphone, elle reprend la valeur la plus récente, au lieu de repartir de zéro. */
+/* Décide si le sommeil et le réveil reçus peuvent remplacer ceux de cet appareil.
+   - rien de réglé ici : on reprend ce qui vient (premier chargement, anciens profils) ;
+   - un réglage de l'élève ici et rien de reçu : on garde le sien (une valeur de base ne le remplace pas) ;
+   - les deux : le réglage le plus récent gagne. */
+/* Applique le sommeil et les réveils reçus, seulement si memoireSommeilPeutAppliquer l'accepte.
+   Renvoie true si quelque chose a été appliqué. */
+function memoireAppliquerSommeil(data) {
+    if (!data || !memoireSommeilPeutAppliquer(data)) return false;
+    var avant = typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '';
+    if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
+    if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
+    if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
+    if (typeof setSleepHours === 'function') {
+        if (data.weekdaySleepHours != null) setSleepHours('weekday', data.weekdaySleepHours);
+        if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
+        if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
+    }
+    if (typeof sommeilChoisiLe !== 'undefined' && data.sommeilChoisiLe && typeof data.sommeilChoisiLe === 'string') sommeilChoisiLe = data.sommeilChoisiLe;
+    /* Vrai seulement si un réglage plus récent du nuage a été repris : rien à enregistrer sinon. */
+    return !!data.sommeilChoisiLe && typeof data.sommeilChoisiLe === 'string' && data.sommeilChoisiLe !== avant;
+}
+
+function memoireSommeilPeutAppliquer(data) {
+    var local = typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '';
+    var recu = data && typeof data.sommeilChoisiLe === 'string' ? data.sommeilChoisiLe : '';
+    if (!local) return true;
+    if (!recu) return false;
+    return recu >= local;
+}
+
 /* Archive des modifications de la semaine (reportées le lundi). Elle fait partie de l'état du compte,
    pour que tous les téléphones reportent la même chose, une seule fois par semaine. */
 function memoireArchiveSemaine() {
@@ -283,9 +314,6 @@ function memoireAppliquerCorps(data, opts) {
     var registre = typeof syncIntegrerRegistre === 'function' ? syncIntegrerRegistre(data.suppressions) : {};
     if (typeof data.userName === 'string') userName = data.userName;
     if (typeof data.targetScore === 'number') targetScore = data.targetScore;
-    if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
-    if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
-    if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
     /* Les matières de l'élève sont reprises telles qu'elles sont enregistrées, quel que soit leur nombre. */
     if (Array.isArray(data.subjects)) subjects = data.subjects;
     if (Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
@@ -326,11 +354,7 @@ function memoireAppliquerCorps(data, opts) {
             freeTimeByDay[jour] = Math.min(180, Math.max(0, Number(brut) || 0));
         }
     }
-    if (typeof setSleepHours === 'function') {
-        if (data.weekdaySleepHours != null) setSleepHours('weekday', data.weekdaySleepHours);
-        if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
-        if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
-    }
+    memoireAppliquerSommeil(data);
     if (typeof appliquerHabitudes === 'function') appliquerHabitudes(data);
     if (Array.isArray(data.phoneDays)) phoneDays = data.phoneDays;
     if (typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
@@ -477,6 +501,7 @@ function memoireReinitialiser() {
         saturdaySleepHours = 8;
         sundaySleepHours = 8;
     }
+    if (typeof sommeilChoisiLe !== 'undefined') sommeilChoisiLe = '';
     subjects = [];
     optionalSubjects = [];
     if (typeof emploiFige !== 'undefined') emploiFige = null;

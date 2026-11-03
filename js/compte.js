@@ -535,8 +535,11 @@ function compteAfficherProfil(data) {
         });
     }
     data = compteCompleterReglages(data);
+    /* Le réglage de sommeil de l'élève sur cet appareil est gardé à travers la réinitialisation. */
+    var sommeilGarde = typeof sommeilCapturer === 'function' ? sommeilCapturer() : null;
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
+    if (sommeilGarde && sommeilGarde.le && (!data.sommeilChoisiLe || data.sommeilChoisiLe < sommeilGarde.le) && typeof sommeilRestaurer === 'function') sommeilRestaurer(sommeilGarde);
     if (data.profilComplet) window.__profilComplet = true;
     var etape = ouverte || (accueilLocal ? 'accueil' : (data.profilComplet ? 'planning' : (data.etape || 'accueil')));
     if (ouverte === 'pomodoro') etape = 'pomodoro';
@@ -1887,7 +1890,10 @@ function compteRetrouverApresChargement(essai) {
                     /* On garde le profil de cet appareil, mais ses listes (activités, exercices, cours)
                        sont complétées par celles du nuage : un téléphone sans activités ne doit pas
                        effacer celles que le compte a déjà. */
+                    /* Le sommeil reçu n'écrase que les valeurs de base de cet appareil, jamais un réglage de l'élève plus récent. */
+                    var sommeilRecu = firebaseCopie ? memoireAppliquerSommeil(firebaseCopie) : false;
                     if (firebaseCopie) compteCompleterListes(etatLocal, firebaseCopie);
+                    if (sommeilRecu && typeof memoireSauvegarder === 'function') memoireSauvegarder();
                     return 'local';
                 }
             }

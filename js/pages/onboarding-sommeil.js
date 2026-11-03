@@ -28,6 +28,23 @@ let sundaySleepHours = 8;
 const SLEEP_MIN_HOURS = 5;
 const SLEEP_MAX_HOURS = 16;
 
+/* Date du dernier réglage de sommeil ou de réveil fait par l'élève lui-même (vide = jamais réglé).
+   Une valeur de base n'écrase jamais un réglage plus récent : voir memoireSommeilPeutAppliquer. */
+let sommeilChoisiLe = '';
+function sommeilMarquerChoix() { sommeilChoisiLe = new Date().toISOString(); }
+/* Photo du sommeil et du réveil, pour le retrouver après une réinitialisation du profil. */
+function sommeilCapturer() {
+    return { le: sommeilChoisiLe, semaine: [weekdaySleepHours, saturdaySleepHours, sundaySleepHours], reveil: [weekdayWakeup, saturdayWakeup, sundayWakeup] };
+}
+function sommeilRestaurer(photo) {
+    if (!photo || !photo.le) return;
+    if (typeof setSleepHours === 'function') {
+        setSleepHours('weekday', photo.semaine[0]); setSleepHours('saturday', photo.semaine[1]); setSleepHours('sunday', photo.semaine[2]);
+    }
+    weekdayWakeup = photo.reveil[0]; saturdayWakeup = photo.reveil[1]; sundayWakeup = photo.reveil[2];
+    sommeilChoisiLe = photo.le;
+}
+
 function sleepMins(value) {
     const parts = String(value || '00:00').split(':');
     return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
@@ -94,6 +111,7 @@ function showSleepError(which, message) {
 }
 
 function adjustSleepHours(which, delta) {
+    sommeilMarquerChoix();
     const current = sleepHoursOf(which);
     const next = current + delta;
     if (next < SLEEP_MIN_HOURS) {
@@ -107,6 +125,7 @@ function adjustSleepHours(which, delta) {
 }
 
 function setBedtimeFromInput(which, value) {
+    sommeilMarquerChoix();
     let diff = sleepMins(wakeupOf(which)) - sleepMins(value);
     if (diff <= 0) diff += 1440;
     const hours = diff / 60;
