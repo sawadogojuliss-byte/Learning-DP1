@@ -554,10 +554,11 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 
 /* Durées : le nombre de séances est en haut de la carte, les durées dessous. */
 .focus-page .focus-seances-haut {
-    margin-top: 0.9rem; padding: 0 0 0.95rem; border-top: 0;
+    margin-top: 0; padding: 0 0 1rem; border-top: 0;
     border-bottom: 1px solid rgba(110, 231, 183, 0.14);
 }
-.focus-page .focus-durees { margin-top: 0.95rem; }
+.focus-page .focus-carte > h3 { margin-top: 1rem; }
+.focus-page .focus-durees { margin-top: 0.85rem; }
 
 /* Affichage : les options n'apparaissent qu'après un appui sur la rubrique. */
 .focus-depliant > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
