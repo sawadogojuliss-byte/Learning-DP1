@@ -534,3 +534,20 @@
    n'est plus dans le document. Sans elle, la page tient dans la fenêtre : plus de barre à droite. */
 html:has(#panelPomodoro.active) #app-pages > :is(nav, section, footer),
 html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display: none !important; }
+
+/* Page Citations : une carte nette, catégorie en haut, interrupteur en bas dans une ligne. */
+[data-page="citations"] .focus-carte { padding: 1.25rem 1.3rem 1.3rem; }
+[data-page="citations"] .focus-carte h3 { font-size: 1.1rem; }
+[data-page="citations"] .focus-champ-liste { gap: 0.5rem; margin-top: 1.1rem; }
+[data-page="citations"] .focus-champ-liste > span {
+    font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(110, 231, 183, 0.85);
+}
+[data-page="citations"] .focus-select { height: 3rem; padding-left: 1rem; font-size: 1rem; border-radius: 0.9rem; }
+[data-page="citations"] .focus-citation-bouton {
+    flex-direction: row-reverse; justify-content: space-between; align-items: center;
+    margin-top: 1.1rem; padding: 0.8rem 1rem; border-radius: 0.9rem;
+    background: rgba(4, 30, 24, 0.55); border: 1px solid rgba(110, 231, 183, 0.18);
+    font-size: 0.95rem; font-weight: 600;
+}
+[data-page="citations"] .focus-citation-bouton .focus-switch { margin-top: 0; }
