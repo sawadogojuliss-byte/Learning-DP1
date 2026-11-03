@@ -3122,6 +3122,8 @@ function boiteFlammes() {
             var parsed = ancien ? new Date(ancien) : null;
             if (parsed && !isNaN(parsed.getTime())) dernier = boiteJourCle(parsed);
         }
+        /* Une date stockée plus récente qu'aujourd'hui (horloge en retard) n'est jamais remplacée par une plus ancienne. */
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dernier) && dernier > aujourd) aujourd = dernier;
         var parts = dernier.split('-');
         var debut = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) : null;
         var fin = new Date();
@@ -3138,8 +3140,13 @@ function boiteFlammes() {
         } else if (jours == null) {
             n = 1;
         }
+        /* Passage à un jour plus récent (ou valeur recalculée) : la série part vers le nuage. */
+        var changement = localStorage.getItem('studyPlanIB_flamme') !== String(n) || (localStorage.getItem('studyPlanIB_flammeJour') || '') < aujourd;
         localStorage.setItem('studyPlanIB_flamme', String(n));
         localStorage.setItem('studyPlanIB_flammeJour', aujourd);
+        /* Un nouveau jour (ou une valeur recalculée) doit atteindre le nuage, sinon les autres
+           téléphones gardent l'ancienne série. Seule la série est envoyée (voir compteFlammesPousser). */
+        if (changement && typeof compteFlammesPousser === 'function') compteFlammesPousser();
     } catch (e) {
         n = 1;
     }

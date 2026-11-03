@@ -88,12 +88,17 @@ function reporterModificationsSemaine() {
     }
     var actuels = (customEvents || []).filter(function (ev) { return ev && !ev.date && ev.id !== 'boite-garde'; });
     if (!actuels.length && archive && archive.events && archive.events.length && archive.semaine && archive.semaine !== cle) return ajoute;
+    /* Seul un vrai changement de semaine pousse tout de suite : un premier chargement ne doit pas renvoyer
+       une copie plus ancienne après une modification faite sur un autre téléphone. */
+    var semaineNouvelle = !!archive && !!archive.semaine && archive.semaine !== cle;
     try {
         localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify({
             semaine: cle,
             events: actuels
         }));
     } catch (e) {}
+    /* Le report de cette semaine doit atteindre le nuage, pour que les autres téléphones ne le refassent pas. */
+    if (semaineNouvelle && typeof memoireSauvegarder === 'function') setTimeout(function () { memoireSauvegarder(); }, 0);
     return ajoute;
 }
 

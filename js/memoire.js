@@ -110,6 +110,7 @@ function memoireLireEtat() {
         motoToSchool: motoToSchool,
         motoFromSchool: motoFromSchool,
         selectedActivities: selectedActivities,
+        modifsSemaine: memoireArchiveSemaine(),
         holidayDates: typeof holidayDates !== 'undefined' ? holidayDates : {},
         holidayDroppedDates: typeof holidayDroppedDates !== 'undefined' ? holidayDroppedDates : {},
         sameFreeTime: sameFreeTime,
@@ -241,6 +242,24 @@ function memoireAppliquer(data, opts) {
 
 /* La flamme (jours d'affilée) vient du profil enregistré : sur un autre
    téléphone, elle reprend la valeur la plus récente, au lieu de repartir de zéro. */
+/* Archive des modifications de la semaine (reportées le lundi). Elle fait partie de l'état du compte,
+   pour que tous les téléphones reportent la même chose, une seule fois par semaine. */
+function memoireArchiveSemaine() {
+    try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
+}
+
+/* Si le nuage a déjà reporté les modifications de cette semaine, cet appareil reprend son archive
+   au lieu de reporter à partir de la sienne (ce qui donnait des résultats différents selon le téléphone). */
+function memoireAdopterArchive(distant) {
+    try {
+        var cle = cleSemaineCourante();
+        var local = memoireArchiveSemaine();
+        if (distant.semaine === cle && (!local || local.semaine !== cle)) {
+            localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify(distant));
+        }
+    } catch (e) {}
+}
+
 function memoireRestaurerFlamme(data) {
     try {
         if (!data || typeof data.flammeJour !== 'string' || !data.flammeJour) return;
@@ -408,6 +427,7 @@ function memoireAppliquerCorps(data, opts) {
     if (typeof verrouillerSujetsChoisis === 'function') {
         try { verrouillerSujetsChoisis(); } catch (e) {}
     }
+    if (depuisCompte && data.modifsSemaine && typeof data.modifsSemaine === 'object') memoireAdopterArchive(data.modifsSemaine);
     if (typeof reporterModificationsSemaine === 'function') {
         try {
             if (reporterModificationsSemaine() && typeof emploiFige !== 'undefined') emploiFige = null;

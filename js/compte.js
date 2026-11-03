@@ -1584,7 +1584,71 @@ function compteProgressionPlanifier() {
     }, 3000);
 }
 
+/* Changement de série de flammes : seule la série part vers le nuage, sur la copie du nuage. Envoyer tout
+   le profil ici renverrait une copie peut-être plus ancienne (un autre téléphone a pu retirer une activité)
+   et l'écraserait. La copie du nuage gagne sauf si ce téléphone a une série plus haute pour le même jour. */
+function compteFlammesPousser() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.firestore) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid || !window.compteSession || !window.compteSession.sub) return;
+    var ref = firebase.firestore().collection('progressions').doc(user.uid);
+    ref.get().then(function (snap) {
+        var distant = snap && snap.exists ? snap.data() : null;
+        if (!distant || !distant.progression) return;
+        var texte = null;
+        try { texte = JSON.parse(distant.progression); } catch (e) { texte = null; }
+        if (!texte || typeof texte !== 'object') return;
+        var locale = { flammeJour: localStorage.getItem('studyPlanIB_flammeJour') || '', flammes: parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0 };
+        var choisie = typeof compteFlammeChoisie === 'function' ? compteFlammeChoisie([{ flammeJour: texte.flammeJour, flammes: texte.flammes }, locale]) : null;
+        if (!choisie) return;
+        /* Une date plus ancienne que celle du nuage ne remplace jamais le nuage (horloge en avance ailleurs). */
+        if (String(choisie.flammeJour) < String(texte.flammeJour || '')) { if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte); return; }
+        if (choisie.flammeJour === texte.flammeJour && choisie.flammes === texte.flammes) {
+            if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+            return;
+        }
+        texte.flammeJour = choisie.flammeJour;
+        texte.flammes = choisie.flammes;
+        return ref.set({
+            progression: JSON.stringify(texte),
+            progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }).catch(function (err) { console.warn('Série de flammes non envoyée', err); });
+}
+
+/* Avant chaque envoi, la série de flammes est comparée à celle du nuage. Sans cela, un téléphone qui
+   a recalculé le jour à partir d'une ancienne série écraserait la bonne valeur (ex. 8 au lieu de 11). */
 function compteProgressionEnregistrer() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid) return compteProgressionEnvoyer();
+    /* Copie du nuage déjà reçue en direct : envoi immédiat, sans attendre une lecture (sinon un envoi
+       plus ancien pourrait arriver après un retrait fait entre-temps). */
+    if (window.compteNuageVu && window.compteNuageVu.progression) {
+        compteFlammesDuNuage(window.compteNuageVu);
+        return compteProgressionEnvoyer();
+    }
+    return firebase.firestore().collection('progressions').doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) compteFlammesDuNuage(snap.data());
+    }).catch(function () {}).then(function () { compteProgressionEnvoyer(); });
+}
+
+/* Garde la série de flammes la plus juste entre ce téléphone et la copie du nuage (même règle que
+   compteFlammeChoisie), puis recalcule l'affichage si elle a changé. */
+function compteFlammesDuNuage(distant) {
+    if (!distant || !distant.progression) return;
+    var texte = null;
+    try { texte = JSON.parse(distant.progression); } catch (e) { texte = null; }
+    if (!texte || typeof texte !== 'object') return;
+    var avant = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+    if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+    var apres = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+    if (apres !== avant && typeof boiteFlammes === 'function') boiteFlammes();
+}
+
+function compteProgressionEnvoyer() {
     if (window.compteRestaurationEnCours) return;
     if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
     var user = firebase.auth().currentUser;
@@ -1641,7 +1705,7 @@ var COMPTE_FICHE_EXCLUS = [
     'v', 'savedAt', 'etape', 'profilComplet', 'userName', 'targetScore', 'subjects',
     'optionalSubjects', 'ibYear', 'selectedActivities', 'exercices', 'devoirsStore',
     'emploiScolaire', 'iaDocs', 'emploiFige', 'suppressions', 'iaPlans', 'memoirPlan',
-    'google', 'utilisateurId', 'flammes', 'flammeJour', 'joursConnectes', 'dernierJour'
+    'google', 'utilisateurId', 'flammes', 'flammeJour', 'joursConnectes', 'dernierJour', 'modifsSemaine'
 ];
 var compteFicheDerniere = '';
 
@@ -1865,6 +1929,7 @@ function compteEcouterNuage() {
             var meta = snap.metadata || {};
             /* Ce que cet appareil vient d'envoyer, et le cache local, ne sont pas un changement venu d'ailleurs. */
             if (meta.hasPendingWrites || meta.fromCache) return;
+            window.compteNuageVu = snap.data();
             compteAppliquerNuage(snap.data());
         }, function (err) {
             console.warn('Écoute du nuage interrompue', err);
