@@ -88,8 +88,8 @@ ok(!violet.test(script), 'pomodoro-parametres.js ne doit pas contenir de violet'
 ok(!violet.test(minuteur), 'pages/pomodoro.html ne doit pas contenir de violet');
 
 /* ── 3c. Photo des tuiles : image verte, copie dans le dépôt ── */
-ok(css.indexOf('images/parametres/aurore.png') !== -1, 'les tuiles doivent utiliser images/parametres/aurore.png');
-ok(fs.existsSync(path.join(__dirname, '..', 'images/parametres/aurore.png')), 'images/parametres/aurore.png doit exister');
+ok(css.indexOf('images/pomodoro/lumiere.webp') !== -1, 'les tuiles doivent utiliser la photo lumière (images/pomodoro/lumiere.webp)');
+ok(fs.existsSync(path.join(__dirname, '..', 'images/pomodoro/lumiere.webp')), 'images/pomodoro/lumiere.webp doit exister');
 
 /* ── 4. Stockage : clé propre, pas celle de la synchronisation ── */
 ok(script.indexOf("'studyPlanIB_focusReglages'") === -1,

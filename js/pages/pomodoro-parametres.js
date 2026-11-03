@@ -3,7 +3,7 @@
    Pages : pages/pomodoro.html et pages/seances.html
    Un bouton-roue ouvre un menu latéral : Thèmes, Horloge, Minuteur,
    Citations, Voix. Chaque rubrique a sa page, avec des tuiles qui
-   montrent le résultat (photo d'aperçu : images/parametres/aurore.png).
+   montrent le résultat (photo d'aperçu : images/pomodoro/lumiere.webp).
    Réglages gardés sur cet appareil : localStorage « studyPlanIB_minuteurParametres »
    (la clé « studyPlanIB_focusReglages » appartient à js/synchro.js).
    Chargé après js/pages/pomodoro-page.js.
