@@ -420,6 +420,32 @@ function planningMinutes(time) {
     return isFinite(n) ? n : 0;
 }
 
+/* Réveil effectif du jour, comme celui qui sert à calculer la journée (samedi du bac : 7 h). */
+function planningReveilDuJour(dayIndex) {
+    var reveil = dayIndex === 5 ? saturdayWakeup : dayIndex === 6 ? sundayWakeup : weekdayWakeup;
+    if (dayIndex === 5 && typeof devoirsFaitBac === 'function' && devoirsFaitBac() && planningMinutes(saturdayWakeup) > 7 * 60) reveil = '07:00';
+    return reveil;
+}
+
+/* Règle : aucune activité ne commence avant le réveil du jour. Une activité placée plus tôt
+   commence au réveil et garde sa durée. Les autres blocs ne sont pas modifiés. */
+function planningActiviteApresReveil(ev, reveil) {
+    if (!ev || ev.type !== 'activity' || !reveil) return ev;
+    var debut = planningMinutes(ev.startTime);
+    var r = planningMinutes(reveil);
+    if (debut >= r) return ev;
+    var duree = planningMinutes(ev.endTime) - debut;
+    if (duree <= 0) duree += 1440;
+    return Object.assign({}, ev, { startTime: reveil, endTime: v3M2T((r + duree) % 1440) });
+}
+
+/* Applique la règle à tous les blocs d'une journée, quelle que soit leur origine (calcul,
+   emploi figé, popup de l'élève). */
+function planningRegleReveil(evenements, dayIndex) {
+    var reveil = planningReveilDuJour(dayIndex);
+    return (evenements || []).map(function (ev) { return planningActiviteApresReveil(ev, reveil); });
+}
+
 function planningDuree(ev) {
     var d = planningMinutes(ev.endTime) - planningMinutes(ev.startTime);
     if (d <= 0) d += 1440;
@@ -1202,7 +1228,7 @@ function generateDayEvents(dayIndex, dateApercue) {
     var remplacements = (customEvents || []).filter(function (e) {
         return e && !e.date && e.day === jour && e.remplacementConflit;
     });
-    if (!remplacements.length) return planningAppliquerDate(visible, jour, dateApercue);
+    if (!remplacements.length) return planningRegleReveil(planningAppliquerDate(visible, jour, dateApercue), jour);
     var retires = new Set(remplacements.filter(function (e) { return e.deleted; }).map(function (e) { return e.replacesId; }));
     var choisis = remplacements.filter(function (e) { return !e.deleted; });
     visible = visible.filter(function (ev) { return !retires.has(ev.id); }).map(function (ev) {
@@ -1215,7 +1241,7 @@ function generateDayEvents(dayIndex, dateApercue) {
         visible.push({ id: id, title: force.title, startTime: force.startTime, endTime: force.endTime,
             type: force.type, icon: force.icon || '📌', editable: true, kind: 'pinned', source: 'custom' });
     });
-    return planningAppliquerDate(visible.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); }), jour, dateApercue);
+    return planningRegleReveil(planningAppliquerDate(visible.sort(function (a, b) { return timeToMinutes(a.startTime) - timeToMinutes(b.startTime); }), jour, dateApercue), jour);
 }
 
 /* Les modifications datées se superposent au modèle de la semaine, aux
@@ -1634,13 +1660,14 @@ function genererJourBrut(dayIndex) {
             if (ov.pinned && ov.startTime) { startTime = ov.startTime; endTime = ov.endTime; }
             else if (ovDur > 0) endTime = addMinutes(startTime, ovDur);
         }
-        events.push({ id, title, subtitle: 'Activité', startTime, endTime, type: 'activity', icon, editable: true, kind });
+        var activite = planningActiviteApresReveil({ id, title, subtitle: 'Activité', startTime, endTime, type: 'activity', icon, editable: true, kind }, wakeupTime);
+        events.push(activite);
     });
 
     // ── CRÉNEAUX AJOUTÉS PAR L'ÉLÈVE (heure choisie → fixés 📌) ──
     customEvents.filter(e => e && !e.date && e.day === dayIndex && !e.replacesId && !e.deleted && !coursEconomieSamedi(e, dayIndex) && !planningExerciceFait(e.exoId)).forEach(event => {
-        events.push({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
-            type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole });
+        events.push(planningActiviteApresReveil({ id: event.id, title: event.title, subtitle: '', startTime: event.startTime, endTime: event.endTime,
+            type: event.type, icon: event.icon || '📌', editable: true, kind: 'pinned', source: event.source, exoId: event.exoId, resteEcole: !!event.resteEcole }, wakeupTime));
     });
 
     poserPreparationSoir();
@@ -1668,7 +1695,7 @@ function genererJourBrut(dayIndex) {
     var jour = assurerRevision(planningSansChevauchement([wakeupEvt, ...scheduled, sleepEvt], wakeupTime, bedtime), dayIndex);
     jour = planningCompleterPages(jour, dayIndex, wakeupTime, bedtime);
     if (dayIndex === 5) jour = jour.filter(function (ev) { return !coursEconomieSamedi(ev, dayIndex); });
-    return planningGarantirJour(planningCorrigerCours(planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex)));
+    return planningRegleReveil(planningGarantirJour(planningCorrigerCours(planningCondenserConsecutifs(planningRetirerTravauxFinis(verrouillerTrajets(planningBalayer(jour), dayIndex)), dayIndex))), dayIndex);
 }
 
 function planningCleActivite(ev) {
@@ -2033,11 +2060,11 @@ function planningCompleterPages(events, dayIndex, wakeupTime, bedtime) {
             });
             var horaire = choix && (choix.sameTime ? { start: choix.startTime, end: choix.endTime } :
                 (choix.dayTimes && (choix.dayTimes[dayIndex] || choix.dayTimes[String(dayIndex)])));
-            if (horaire && horaire.start && horaire.end) list.push({
+            if (horaire && horaire.start && horaire.end) list.push(planningActiviteApresReveil({
                 id: bloc.id, title: bloc.title, subtitle: bloc.subtitle,
                 startTime: horaire.start, endTime: horaire.end, type: 'activity',
                 icon: bloc.icon, editable: true, kind: 'pinned'
-            });
+            }, wakeupTime));
             return;
         }
         var donor = null;

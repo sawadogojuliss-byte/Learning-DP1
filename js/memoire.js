@@ -119,7 +119,7 @@ function memoireLireEtat() {
         weekdaySleepHours: weekdaySleepHours,
         saturdaySleepHours: saturdaySleepHours,
         sundaySleepHours: sundaySleepHours,
-        sommeilChoisiLe: typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '',
+        sommeilChoisiLe: memoireDateSommeilLocal(),
         habitudesDefinies: typeof habitudesDefinies !== 'undefined' ? !!habitudesDefinies : false,
         prepMatinMinutes: typeof prepMatinMinutes !== 'undefined' ? prepMatinMinutes : 30,
         prepMatinDebut: typeof prepMatinDebut !== 'undefined' ? prepMatinDebut : '',
@@ -251,7 +251,7 @@ function memoireAppliquer(data, opts) {
    Renvoie true si quelque chose a été appliqué. */
 function memoireAppliquerSommeil(data) {
     if (!data || !memoireSommeilPeutAppliquer(data)) return false;
-    var avant = typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '';
+    var avant = memoireEtatSommeil();
     if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
     if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
     if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
@@ -261,13 +261,56 @@ function memoireAppliquerSommeil(data) {
         if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
     }
     if (typeof sommeilChoisiLe !== 'undefined' && data.sommeilChoisiLe && typeof data.sommeilChoisiLe === 'string') sommeilChoisiLe = data.sommeilChoisiLe;
-    /* Vrai seulement si un réglage plus récent du nuage a été repris : rien à enregistrer sinon. */
-    return !!data.sommeilChoisiLe && typeof data.sommeilChoisiLe === 'string' && data.sommeilChoisiLe !== avant;
+    /* Vrai seulement si quelque chose a réellement changé : rien à enregistrer sinon. */
+    return memoireEtatSommeil() !== avant;
 }
 
+/* Valeurs de base du sommeil et du réveil (celles de la première ouverture). */
+var MEMOIRE_SOMMEIL_BASE_HEURES = [8, 8, 8];
+var MEMOIRE_SOMMEIL_BASE_REVEILS = ['06:00', '07:00', '08:00'];
+
+/* Vrai si un sommeil ou un réveil diffère des valeurs de base. Un tel réglage ne peut venir
+   que de l'élève : il sert de choix même lorsqu'il n'a pas de date (anciens profils). */
+function memoireSommeilPersonnalise(heures, reveils) {
+    var h = heures || [], r = reveils || [];
+    for (var i = 0; i < 3; i++) {
+        if (h[i] != null && Number(h[i]) !== MEMOIRE_SOMMEIL_BASE_HEURES[i]) return true;
+        if (r[i] && r[i] !== MEMOIRE_SOMMEIL_BASE_REVEILS[i]) return true;
+    }
+    return false;
+}
+
+/* Date effective d'un réglage : la date du choix de l'élève ; sinon une date très ancienne si le
+   réglage n'est pas la base (choix fait avant les dates) ; sinon rien (valeurs de base). */
+function memoireDateSommeil(date, heures, reveils) {
+    if (typeof date === 'string' && date) return date;
+    return memoireSommeilPersonnalise(heures, reveils) ? '0000-00-00' : '';
+}
+
+/* Date du réglage de cet appareil : seulement un choix daté de l'élève. Un réglage sans date n'est
+   pas protégé ici, car rien ne dit à quel compte il appartient (il pourrait venir d'un autre compte). */
+function memoireDateSommeilLocal() {
+    return typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe || '' : '';
+}
+
+/* Empreinte de tout le sommeil de cet appareil (date et valeurs). */
+function memoireEtatSommeil() {
+    return JSON.stringify([memoireDateSommeilLocal(),
+        typeof weekdaySleepHours !== 'undefined' ? weekdaySleepHours : null,
+        typeof saturdaySleepHours !== 'undefined' ? saturdaySleepHours : null,
+        typeof sundaySleepHours !== 'undefined' ? sundaySleepHours : null,
+        typeof weekdayWakeup !== 'undefined' ? weekdayWakeup : null,
+        typeof saturdayWakeup !== 'undefined' ? saturdayWakeup : null,
+        typeof sundayWakeup !== 'undefined' ? sundayWakeup : null]);
+}
+
+/* Règle : une donnée reçue ne remplace le sommeil de cet appareil que si elle est plus récente.
+   - aucun réglage ici (valeurs de base, jamais choisies) : on reprend ce qui vient ;
+   - un réglage ici et une donnée sans date : la donnée ne remplace pas le réglage ;
+   - les deux datés : le plus récent gagne. */
 function memoireSommeilPeutAppliquer(data) {
-    var local = typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe : '';
-    var recu = data && typeof data.sommeilChoisiLe === 'string' ? data.sommeilChoisiLe : '';
+    var local = memoireDateSommeilLocal();
+    var recu = data ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : '';
     if (!local) return true;
     if (!recu) return false;
     return recu >= local;

@@ -539,7 +539,9 @@ function compteAfficherProfil(data) {
     var sommeilGarde = typeof sommeilCapturer === 'function' ? sommeilCapturer() : null;
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     memoireAppliquer(data, { compte: true });
-    if (sommeilGarde && sommeilGarde.le && (!data.sommeilChoisiLe || data.sommeilChoisiLe < sommeilGarde.le) && typeof sommeilRestaurer === 'function') sommeilRestaurer(sommeilGarde);
+    /* Même règle que memoireSommeilPeutAppliquer : le réglage gardé ne revient que s'il est plus récent que celui reçu. */
+    var dateRecue = typeof memoireDateSommeil === 'function' ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : (data.sommeilChoisiLe || '');
+    if (sommeilGarde && sommeilGarde.le && (!dateRecue || dateRecue < sommeilGarde.le) && typeof sommeilRestaurer === 'function') sommeilRestaurer(sommeilGarde);
     if (data.profilComplet) window.__profilComplet = true;
     var etape = ouverte || (accueilLocal ? 'accueil' : (data.profilComplet ? 'planning' : (data.etape || 'accueil')));
     if (ouverte === 'pomodoro') etape = 'pomodoro';

@@ -34,6 +34,7 @@ let sommeilChoisiLe = '';
 function sommeilMarquerChoix() { sommeilChoisiLe = new Date().toISOString(); }
 /* Photo du sommeil et du réveil, pour le retrouver après une réinitialisation du profil. */
 function sommeilCapturer() {
+    /* Seul un choix daté de l'élève est gardé : un réglage sans date peut appartenir à un autre compte. */
     return { le: sommeilChoisiLe, semaine: [weekdaySleepHours, saturdaySleepHours, sundaySleepHours], reveil: [weekdayWakeup, saturdayWakeup, sundayWakeup] };
 }
 function sommeilRestaurer(photo) {

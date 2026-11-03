@@ -341,12 +341,36 @@ async function scenarioSommeilChoixLocalPlusRecent() {
   verif('choix local plus récent : il reste à la réouverture', sommeil(h1)[1], voulu[1]);
 }
 
+/* Réglage du nuage réécrit directement (ancien profil sans date, ou base écrasant un réglage). */
+function ecrireSommeilNuage(nuage, valeurs) {
+  const doc = nuage.docs['progressions/UID-FARID'];
+  const d = JSON.parse(doc.progression);
+  Object.assign(d, valeurs);
+  doc.progression = JSON.stringify(d);
+  doc.progressionLe = new Date().toISOString();
+}
+const BASE_NUAGE = { weekdaySleepHours: 8, saturdaySleepHours: 8, sundaySleepHours: 8, weekdayWakeup: '06:00', saturdayWakeup: '07:00', sundayWakeup: '08:00', sommeilChoisiLe: '' };
+
+async function scenarioSommeilSansDate() {
+  console.log('--- Sommeil sans date : un réglage du nuage sans date est repris par un téléphone sur les valeurs de base');
+  /* Le téléphone a la base (sans date) ; le nuage porte un ancien réglage sans date : il est repris. */
+  const nuage2 = creerNuage();
+  const b = semer(nouvelAppareilAJour(nuage2, {}, 0));
+  await connecter(b);
+  ecrireSommeilNuage(nuage2, { weekdaySleepHours: 7.5, weekdayWakeup: '06:45', sommeilChoisiLe: '' });
+  const y = semer(nouvelAppareil(nuage2, {}));
+  lire(y, "setSleepHours('weekday', 8); setSleepHours('saturday', 8); setSleepHours('sunday', 8); weekdayWakeup = '06:00'; saturdayWakeup = '07:00'; sundayWakeup = '08:00'; sommeilChoisiLe = ''; memoireSauvegarder();");
+  await connecter(y);
+  verif('sans date : la base locale reprend l\'ancien réglage du nuage', [sommeil(y)[0], sommeil(y)[3]], [7.5, '06:45']);
+}
+
 (async function main() {
   await scenarioSommeil();
   await scenarioSommeilBase();
   await scenarioSommeilLocalDeBase();
   await scenarioSommeilReouverture();
   await scenarioSommeilChoixLocalPlusRecent();
+  await scenarioSommeilSansDate();
   const ok = verifs.filter(Boolean).length;
   console.log('TEST_OK ' + ok + '/' + verifs.length);
   process.exit(ok === verifs.length ? 0 : 1);

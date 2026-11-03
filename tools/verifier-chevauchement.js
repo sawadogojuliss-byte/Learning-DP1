@@ -7,7 +7,8 @@ const file = fs.readFileSync(path.join(__dirname, '../js/pages/planning-interfac
 const source = file.slice(file.indexOf('function v3PorteeEvenement('), file.indexOf('function v3IconeActivitesSemaine(')) +
     file.slice(file.indexOf('function v3EstActivite('), file.indexOf('function v3SignalerChevauchementJour('));
 const moteur = fs.readFileSync(path.join(__dirname, '../js/pages/planning-moteur.js'), 'utf8');
-const moteurSource = moteur.slice(moteur.indexOf('function generateDayEvents('), moteur.indexOf('function planningDepuisProgression('));
+const moteurSource = moteur.slice(moteur.indexOf('function planningMinutes('), moteur.indexOf('function planningDuree(')) +
+    moteur.slice(moteur.indexOf('function generateDayEvents('), moteur.indexOf('function planningDepuisProgression('));
 const minutes = t => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
 const clock = n => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
 function scenario(base, utiliserMoteur = false) {
