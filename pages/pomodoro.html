@@ -109,12 +109,7 @@
                     <header class="focus-page-titre"><h2>Minuteur</h2><p>Durées, style d'affichage et enchaînement.</p></header>
                     <div class="focus-carte">
                         <h3>Durées</h3>
-                        <div class="focus-durees">
-                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
-                        </div>
-                        <div class="focus-seances">
+                        <div class="focus-seances focus-seances-haut">
                             <p class="focus-seances-question" id="focusSeancesQuestion">Combien de séances de révision avant une pause longue ?</p>
                             <div class="focus-stepper">
                                 <button type="button" onclick="focusAjusterSeances(-1)" aria-label="Une séance de moins">&minus;</button>
@@ -123,17 +118,26 @@
                             </div>
                             <p class="focus-seances-aide" id="focusSeancesAide">Après 4 séances de révision, la pause longue arrive.</p>
                         </div>
+                        <div class="focus-durees">
+                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
+                        </div>
                     </div>
                     <div class="focus-carte">
                         <h3>Style du minuteur</h3>
                         <div class="focus-grille-tuiles" id="focusChoixStyle"></div>
                     </div>
                     <div class="focus-carte">
-                        <h3>Affichage</h3>
-                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptBarre" type="checkbox" onchange="focusChoisirOption('barre', this.checked)"><i></i></span><span>Afficher la barre de progression sous le minuteur</span></label>
-                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptNotif" type="checkbox" onchange="focusChoisirOption('notif', this.checked)"><i></i></span><span>Afficher une notification à la fin <em>(fonction bêta)</em></span></label>
-                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em></span></label>
-                        <p class="focus-statut-reglage" id="focusStatutReglage" role="status" aria-live="polite"></p>
+                        <details class="focus-depliant">
+                            <summary><h3>Affichage</h3><span class="focus-depliant-fleche" aria-hidden="true"></span></summary>
+                            <div class="focus-depliant-contenu">
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptBarre" type="checkbox" onchange="focusChoisirOption('barre', this.checked)"><i></i></span><span>Afficher la barre de progression sous le minuteur</span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptNotif" type="checkbox" onchange="focusChoisirOption('notif', this.checked)"><i></i></span><span>Afficher une notification à la fin <em>(fonction bêta)</em></span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em></span></label>
+                            <p class="focus-statut-reglage" id="focusStatutReglage" role="status" aria-live="polite"></p>
+                            </div>
+                        </details>
                     </div>
                 </section>
                 <section class="focus-tiroir-page" data-page="citations" hidden>

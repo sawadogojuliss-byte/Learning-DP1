@@ -551,3 +551,35 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
     font-size: 0.95rem; font-weight: 600;
 }
 [data-page="citations"] .focus-citation-bouton .focus-switch { margin-top: 0; }
+
+/* Durées : le nombre de séances est en haut de la carte, les durées dessous. */
+.focus-page .focus-seances-haut {
+    margin-top: 0.9rem; padding: 0 0 0.95rem; border-top: 0;
+    border-bottom: 1px solid rgba(110, 231, 183, 0.14);
+}
+.focus-page .focus-durees { margin-top: 0.95rem; }
+
+/* Affichage : les options n'apparaissent qu'après un appui sur la rubrique. */
+.focus-depliant > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+.focus-depliant > summary::-webkit-details-marker { display: none; }
+.focus-depliant > summary:focus-visible { outline: 2px solid var(--focus-menthe); outline-offset: 4px; border-radius: 0.4rem; }
+.focus-depliant-fleche {
+    width: 0.5rem; height: 0.5rem; margin-right: 0.3rem; flex: none;
+    border-right: 2px solid var(--focus-menthe); border-bottom: 2px solid var(--focus-menthe);
+    transform: rotate(45deg); transition: transform 0.2s ease;
+}
+.focus-depliant[open] .focus-depliant-fleche { transform: rotate(-135deg); }
+.focus-depliant-contenu { margin-top: 0.8rem; }
+
+/* Page Citations, plus soignée : carte en dégradé menthe et grand guillemet discret. */
+[data-page="citations"] .focus-carte {
+    position: relative; overflow: hidden;
+    background: linear-gradient(145deg, rgba(16, 185, 129, 0.13), rgba(255, 255, 255, 0.02));
+    border-color: rgba(110, 231, 183, 0.22);
+}
+[data-page="citations"] .focus-carte::after {
+    content: '\201C'; position: absolute; right: 0.9rem; top: -1.1rem;
+    font-family: Georgia, 'Times New Roman', serif; font-size: 7.5rem; line-height: 1;
+    color: rgba(110, 231, 183, 0.1); pointer-events: none;
+}
+[data-page="citations"] .focus-carte > * { position: relative; }
