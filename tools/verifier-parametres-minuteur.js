@@ -35,17 +35,18 @@ var vm = require('vm');
 var blocCitations = (script.match(/var FOCUS_CATEGORIES_CITATIONS[\s\S]*?\n\};/) || [])[0] || '';
 var contexteCitations = {};
 try { vm.runInNewContext(blocCitations + '\nthis.C = FOCUS_CITATIONS; this.K = FOCUS_CATEGORIES_CITATIONS;', contexteCitations); } catch (e) { contexteCitations = {}; }
-var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre', 'gratitude'];
-var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être', 'Gratitude'];
+var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre'];
+var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être'];
 var listeCategories = contexteCitations.K || [];
-ok(listeCategories.length === 5 && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
-    'les 5 catégories doivent exister avec leurs libellés français');
+ok(listeCategories.length === 4 && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
+    'les 4 catégories doivent exister avec leurs libellés français (sans Gratitude)');
 var lesCitations = contexteCitations.C || {};
-['motivation', 'inspiration', 'bien-etre', 'gratitude'].forEach(function (id) {
+['motivation', 'inspiration', 'bien-etre'].forEach(function (id) {
     var liste = lesCitations[id] || [];
-    ok(liste.length >= 8, 'la catégorie ' + id + ' doit avoir au moins 8 citations');
+    ok(liste.length >= 5, 'la catégorie ' + id + ' doit avoir au moins 5 citations');
     liste.forEach(function (c) {
         ok(typeof c.t === 'string' && !/\.\s*$/.test(c.t), 'citation sans point final : ' + (c.t || '').slice(0, 40));
+        ok(typeof c.t === 'string' && c.t.length <= 75, 'citation trop longue : ' + (c.t || '').slice(0, 40));
         ok(!/\b(the|and|you|your)\b/i.test(c.t), 'citation en anglais détectée : ' + (c.t || '').slice(0, 40));
     });
 });

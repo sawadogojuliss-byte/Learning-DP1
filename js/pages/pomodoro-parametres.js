@@ -15,53 +15,35 @@ var FOCUS_CATEGORIES_CITATIONS = [
     { id: 'toutes', nom: 'Toutes les citations' },
     { id: 'motivation', nom: 'Motivation' },
     { id: 'inspiration', nom: 'Inspiration' },
-    { id: 'bien-etre', nom: 'Bien-être' },
-    { id: 'gratitude', nom: 'Gratitude' }
+    { id: 'bien-etre', nom: 'Bien-être' }
 ];
 
+/* Citations courtes, simples, sans point final. « a » = auteur (non affiché). */
 var FOCUS_CITATIONS = {
     'motivation': [
-        { t: "Le succès est la somme de petits efforts, répétés jour après jour", a: "Robert Collier" },
-        { t: "La persévérance n’est pas une longue course ; ce sont de courtes courses les unes après les autres", a: "Walter Elliot" },
+        { t: "Le succès, c’est de petits efforts répétés chaque jour", a: "Robert Collier" },
+        { t: "Un voyage de mille lieues commence par un premier pas", a: "Lao Tseu" },
+        { t: "Le secret pour avancer, c’est de commencer", a: "Mark Twain" },
         { t: "Le hasard ne favorise que les esprits préparés", a: "Louis Pasteur" },
-        { t: "Le travail éloigne de nous trois grands maux : l’ennui, le vice et le besoin", a: "Voltaire" },
-        { t: "Tomber sept fois, se relever huit", a: "Proverbe japonais" },
-        { t: "Le secret pour aller de l’avant est de commencer", a: "Mark Twain" },
-        { t: "Les grands accomplissements sont réussis non par la force, mais par la persévérance", a: "Samuel Johnson" },
-        { t: "Le succès n’est pas un accident : c’est du travail acharné, de la persévérance, de l’apprentissage, des études et des sacrifices", a: "Pelé" },
-        { t: "La récompense d’une chose bien faite, c’est de l’avoir faite", a: "Ralph Waldo Emerson" },
-        { t: "La plupart des hommes, pour arriver à leurs fins, sont plus capables d’un grand effort que d’une longue persévérance", a: "Jean de La Bruyère" }
+        { t: "Le travail éloigne l’ennui, le vice et le besoin", a: "Voltaire" },
+        { t: "Un jour après l’autre, tu avances", a: "Anonyme" },
+        { t: "Fais-le maintenant, tu te remercieras plus tard", a: "Anonyme" }
     ],
     'inspiration': [
-        { t: "Au milieu de l’hiver, j’apprenais enfin qu’il y avait en moi un été invincible", a: "Albert Camus" },
-        { t: "Une rivière traverse la roche, non pas par sa puissance, mais par sa persistance", a: "Jim Watkins" },
-        { t: "Ce sont nos choix, Harry, qui révèlent ce que nous sommes, bien plus que nos capacités", a: "J. K. Rowling" },
-        { t: "Tous nos rêves peuvent devenir réalité si nous avons le courage de les poursuivre", a: "Walt Disney" },
-        { t: "Un voyage de mille lieues commence toujours par un premier pas", a: "Lao Tseu" },
-        { t: "La meilleure façon de prédire l’avenir, c’est de le créer", a: "Peter Drucker" },
         { t: "L’essentiel est invisible pour les yeux", a: "Antoine de Saint-Exupéry" },
-        { t: "Ne cherchons pas à éviter à nos enfants les difficultés de la vie ; apprenons-leur à les surmonter", a: "Louis Pasteur" },
-        { t: "Avec un talent ordinaire et une persévérance extraordinaire, on peut tout obtenir", a: "Thomas Foxwell Buxton" }
+        { t: "Tous nos rêves peuvent devenir réalité", a: "Walt Disney" },
+        { t: "La meilleure façon de prédire l’avenir, c’est de le créer", a: "Peter Drucker" },
+        { t: "Ce sont nos choix qui révèlent qui nous sommes", a: "J. K. Rowling" },
+        { t: "Au milieu de l’hiver, j’apprenais qu’il y avait en moi un été invincible", a: "Albert Camus" },
+        { t: "Chaque petit pas te rapproche de ton but", a: "Anonyme" }
     ],
     'bien-etre': [
-        { t: "Prendre soin de soi-même n’est pas de l’égoïsme, c’est de l’auto-préservation", a: "Audre Lorde" },
-        { t: "Le bien-être n’est pas une destination, mais un chemin", a: "Wayne Dyer" },
-        { t: "Se connaître soi-même est le début de toute sagesse", a: "Aristote" },
-        { t: "Ce ne sont pas les choses qui troublent les hommes, mais l’opinion qu’ils en ont", a: "Épictète" },
-        { t: "Un corps sain est la chambre de l’âme, un corps malade est sa prison", a: "Francis Bacon" },
-        { t: "Votre corps est l’endroit où vous vivez, maintenez-le en bon état", a: "Jim Rohn" },
-        { t: "Presque tout fonctionnera à nouveau si vous le débranchez quelques minutes, y compris vous-même", a: "Anne Lamott" },
-        { t: "Ne perds plus de temps à discuter de ce que doit être un homme de bien : sois-le", a: "Marc Aurèle" }
-    ],
-    'gratitude': [
-        { t: "La gratitude est la mémoire du cœur", a: "Jean-Baptiste Massieu" },
-        { t: "Nous pouvons nous plaindre parce que les rosiers ont des épines, ou nous réjouir parce que les épines ont des roses", a: "Alphonse Karr" },
-        { t: "La gratitude est non seulement la plus grande des vertus, mais la mère de toutes les autres", a: "Cicéron" },
-        { t: "Ce n’est pas le bonheur qui nous rend reconnaissants, c’est la gratitude qui nous rend heureux", a: "David Steindl-Rast" },
-        { t: "Il n’y a pas de devoir plus urgent que de remercier", a: "James Allen" },
-        { t: "L’âme qui fait preuve de reconnaissance peut trouver du réconfort dans tout", a: "Hannah Whitall Smith" },
-        { t: "Soyons reconnaissants aux personnes qui nous donnent du bonheur, elles sont les charmants jardiniers par qui nos âmes sont fleuries", a: "Marcel Proust" },
-        { t: "Le bonheur est la seule chose qui se double si on le partage", a: "Albert Schweitzer" }
+        { t: "Prendre soin de soi n’est pas de l’égoïsme", a: "Audre Lorde" },
+        { t: "Le bien-être est un chemin, pas une destination", a: "Wayne Dyer" },
+        { t: "Un esprit sain dans un corps sain", a: "Juvénal" },
+        { t: "Se connaître soi-même est le début de la sagesse", a: "Aristote" },
+        { t: "Repose-toi, tu en as besoin", a: "Anonyme" },
+        { t: "Respire, tu fais de ton mieux", a: "Anonyme" }
     ]
 };
 
