@@ -153,6 +153,13 @@ function compteFlammeChoisie(copies) {
             return c.flammes > 1 && Math.abs(compteEcartJours(c.flammeJour, meilleure.flammeJour)) <= 3;
         })[0];
         if (serie) meilleure = serie;
+    } else {
+        /* Un téléphone qui a calculé le jour d'après à partir d'une ancienne série donne une valeur
+           trop basse pour ce jour-là : une copie plus haute, datée d'un jour près, est la vraie série. */
+        var plusHaute = liste.filter(function (c) {
+            return c.flammes > meilleure.flammes && Math.abs(compteEcartJours(c.flammeJour, meilleure.flammeJour)) <= 1;
+        }).sort(function (x, y) { return y.flammes - x.flammes; })[0];
+        if (plusHaute) meilleure = plusHaute;
     }
     return meilleure;
 }
@@ -1741,6 +1748,38 @@ function comptePublierProgression(session) {
     });
 }
 
+/* Listes complétées par le nuage, sans rien perdre ni faire revenir de supprimé (même fusion que
+   compteFusionnerProfils, qui s'appuie sur le registre des suppressions). Rien n'est daté : ce sont
+   des éléments reçus, pas des modifications de cet appareil. */
+function compteCompleterListes(locale, distante) {
+    try {
+        if (!locale || !distante) return;
+        /* La série de flammes suit la même règle que partout ailleurs : la plus récente, sinon la plus longue. */
+        var flammeAvant = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+        if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(distante);
+        var flammeApres = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+        var changes = flammeApres !== flammeAvant;
+        var fusion = compteFusionnerProfils([locale, distante]);
+        if (!fusion) { if (changes && typeof memoireSauvegarder === 'function') memoireSauvegarder(); return; }
+        var acts = Array.isArray(fusion.selectedActivities) ? fusion.selectedActivities : null;
+        if (acts && JSON.stringify(acts) !== JSON.stringify(locale.selectedActivities || [])) {
+            selectedActivities = acts; changes = true;
+        }
+        var evts = Array.isArray(fusion.customEvents) ? fusion.customEvents : null;
+        if (evts && JSON.stringify(evts) !== JSON.stringify(locale.customEvents || [])) {
+            customEvents = evts; changes = true;
+        }
+        var exos = Array.isArray(fusion.exercices) ? fusion.exercices : null;
+        if (exos && JSON.stringify(exos) !== JSON.stringify(locale.exercices || [])) {
+            exercices = exos; changes = true;
+        }
+        if (!changes) return;
+        if (typeof memoireEcrireMiroir === 'function') memoireEcrireMiroir(customEvents, exercices);
+        if (typeof syncRecalerMemoire === 'function') syncRecalerMemoire();
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    } catch (e) {}
+}
+
 function compteRetrouverApresChargement(essai) {
     var session = window.compteSession;
     if (!session || !session.sub) return;
@@ -1780,7 +1819,13 @@ function compteRetrouverApresChargement(essai) {
                 var changeAilleurs = !!firebaseCopie && compteNuageChangeAilleurs(compteTexteProgression(doc));
                 var etatLocal = null;
                 try { etatLocal = typeof memoireLireEtat === 'function' ? memoireLireEtat() : locale; } catch (e) { etatLocal = locale; }
-                if (!changeAilleurs || compteLocalModifie(etatLocal)) return 'local';
+                if (!changeAilleurs || compteLocalModifie(etatLocal)) {
+                    /* On garde le profil de cet appareil, mais ses listes (activités, exercices, cours)
+                       sont complétées par celles du nuage : un téléphone sans activités ne doit pas
+                       effacer celles que le compte a déjà. */
+                    if (firebaseCopie) compteCompleterListes(etatLocal, firebaseCopie);
+                    return 'local';
+                }
             }
             if (firebaseCopie) {
                 compteBasculer(firebaseCopie, session);
