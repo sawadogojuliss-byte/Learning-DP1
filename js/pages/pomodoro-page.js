@@ -58,6 +58,10 @@ var focusEtat = {
     son: 'off',
     astuce: false
 };
+/* Le minuteur est gardé dans le navigateur : un rechargement ne le remet
+   plus à zéro. focusEtatRestaure empêche d'écrire avant la lecture. */
+var focusEtatRestaure = false;
+var focusEtatSauve = '';
 var focusTaches = [];
 var focusAmbianceChoisie = [];
 var focusMenuTache = null;
@@ -95,6 +99,61 @@ function focusLireJson(cle, defaut) {
     } catch (e) {
         return defaut;
     }
+}
+
+/* Sauvegarde l'état du minuteur. Pendant que le chrono tourne, on garde
+   l'heure de fin (et non le temps restant, qui change chaque seconde) :
+   la chaîne ne change qu'à chaque vrai changement, donc peu d'écritures. */
+function focusSauverEtat() {
+    if (!focusEtatRestaure) return;
+    var donnees = {
+        mode: focusEtat.mode,
+        total: focusEtat.total,
+        restant: focusEtat.running ? null : focusEtat.restant,
+        running: !!focusEtat.running,
+        fin: focusEtat.running ? focusEtat.fin : 0,
+        cycles: focusEtat.cycles,
+        date: new Date().toDateString()
+    };
+    var texte = JSON.stringify(donnees);
+    if (texte === focusEtatSauve) return;
+    focusEtatSauve = texte;
+    try { localStorage.setItem('studyPlanIB_focusEtat', texte); } catch (e) {}
+}
+
+/* Relit l'état sauvegardé. Une sauvegarde d'un autre jour est écartée :
+   les cycles repartent à zéro chaque jour. Si le chrono tournait et que
+   sa fin est passée pendant que la page était fermée, la phase suivante
+   est proposée en pause, sans annonce vocale ni son. */
+function focusRestaurerEtat() {
+    var donnees = focusLireJson('studyPlanIB_focusEtat', null);
+    if (!donnees || typeof donnees !== 'object') return false;
+    if (donnees.date !== new Date().toDateString()) {
+        try { localStorage.removeItem('studyPlanIB_focusEtat'); } catch (e) {}
+        return false;
+    }
+    if (donnees.mode !== 'focus' && donnees.mode !== 'short' && donnees.mode !== 'long') return false;
+    var total = Number(donnees.total);
+    if (!(total > 0)) return false;
+    focusEtat.mode = donnees.mode;
+    focusEtat.total = total;
+    focusEtat.cycles = Math.max(0, Math.floor(Number(donnees.cycles) || 0));
+    if (donnees.running && Number(donnees.fin) > 0) {
+        focusEtat.running = true;
+        focusEtat.fin = Number(donnees.fin);
+        focusEtat.restant = Math.max(0, Math.round((focusEtat.fin - Date.now()) / 1000));
+        if (focusEtat.restant <= 0) {
+            focusEtat.running = false;
+            focusEtat.fin = 0;
+            focusPhaseSuivante(true);
+        }
+    } else {
+        focusEtat.running = false;
+        focusEtat.fin = 0;
+        var restant = Number(donnees.restant);
+        focusEtat.restant = restant > 0 ? Math.min(restant, total) : total;
+    }
+    return true;
 }
 
 function focusDurees() {
@@ -145,7 +204,13 @@ function focusCharger() {
     if (!Array.isArray(focusTaches)) focusTaches = [];
     focusPreparerFonds();
     focusPoserFond(focusEtat.fond, true);
+    focusRestaurerEtat();
+    focusEtatRestaure = true;
+    focusSauverEtat();
     focusBrancher();
+    /* un chrono qui tournait avant le rechargement repart tout seul :
+       son heure de fin est gardée, il ne recommence pas à zéro */
+    if (focusEtat.running) focusLancerIntervalle();
     focusPeindre();
 }
 
@@ -694,7 +759,7 @@ function focusRecommencer() {
     focusPeindre();
 }
 
-function focusPhaseSuivante() {
+function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
     /* Le chronomètre s'arrête à la fin de la phase : la suivante est
        proposée avec sa durée, jamais lancée. Personne ne se retrouve
@@ -708,11 +773,13 @@ function focusPhaseSuivante() {
            pas une valeur écrite dans le site */
         var minutesPause = focusDurees()[modePause];
         focusChoisirMode(modePause, false);
-        if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
+        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
+        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
         else focusBip(2);
     } else {
         focusChoisirMode('focus', false);
-        if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
+        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
+        else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
         else focusBip(1);
     }
     focusPeindre();
@@ -766,6 +833,7 @@ function focusPeindre() {
     focusTitre();
     focusPipMaj();
     if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
+    focusSauverEtat();
 }
 
 function focusPeindreFonds() {
