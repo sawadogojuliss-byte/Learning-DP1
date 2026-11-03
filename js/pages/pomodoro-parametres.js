@@ -1,12 +1,12 @@
 /* ============================================================
    Paramètres du minuteur et de la séance de révision — Studyplan
    Pages : pages/pomodoro.html et pages/seances.html
-   Ce fichier ajoute : les citations (en haut à droite), l'heure,
-   le style d'affichage du minuteur, la police, le format de l'heure,
-   la taille, les options (barre, notification, enchaînement).
-   Les réglages sont gardés sur cet appareil :
-   localStorage « studyPlanIB_focusReglages ».
-   Il se charge après js/pages/pomodoro-page.js.
+   Un bouton-roue ouvre un menu latéral : Thèmes, Horloge, Minuteur,
+   Citations, Voix. Chaque rubrique a sa page, avec des tuiles qui
+   montrent le résultat (photo d'aperçu : images/parametres/aurore.png).
+   Réglages gardés sur cet appareil : localStorage « studyPlanIB_minuteurParametres »
+   (la clé « studyPlanIB_focusReglages » appartient à js/synchro.js).
+   Chargé après js/pages/pomodoro-page.js.
    ============================================================ */
 
 var FOCUS_CITATIONS = [
@@ -33,8 +33,8 @@ var FOCUS_STYLES_TEMPS = [
     { id: 'camembert', nom: 'Camembert' }
 ];
 
-/* Chaque police est une combinaison de la police Degular (poids, italique,
-   espacement) ou, à défaut, d'une police présente sur l'appareil. */
+/* Chaque police : Degular (poids, italique, espacement) ou, à défaut,
+   une police du système. Voir css/pages/focus-parametres.css. */
 var FOCUS_POLICES = [
     { id: 'gras', nom: 'Gras par défaut' },
     { id: 'leger', nom: 'Léger par défaut' },
@@ -51,8 +51,8 @@ var FOCUS_POLICES = [
 ];
 
 var FOCUS_FORMATS = [
-    { id: '12', nom: '12 heures' },
-    { id: '24', nom: '24 heures' }
+    { id: '12', nom: '12 heures', exemple: '2:24' },
+    { id: '24', nom: '24 heures', exemple: '14:24' }
 ];
 
 var FOCUS_TAILLES = [
@@ -61,11 +61,23 @@ var FOCUS_TAILLES = [
     { id: 'grande', nom: 'Grande' }
 ];
 
-/* Clé propre : « studyPlanIB_focusReglages » appartient à la synchronisation du minuteur (js/synchro.js). */
+var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix'];
+
 var FOCUS_REGLAGES_CLE = 'studyPlanIB_minuteurParametres';
 var FOCUS_CERCLE = 2 * Math.PI * 45;
 var FOCUS_POINTS = 24;
 var focusReglagesVus = null;
+var focusOngletCourant = 'horloge';
+
+/* Aperçus en mini-dessins, dans les tuiles de style (contenu fixe). */
+var FOCUS_MINI = {
+    defaut: '<span class="focus-mini-texte">25:00</span>',
+    horloge: '<span class="focus-mini-flip"><b>2</b><b>5</b><b>0</b><b>0</b></span>',
+    barre: '<span class="focus-mini-texte">25:00</span><span class="focus-mini-barre"><i></i></span>',
+    jauge: '<svg class="focus-mini-jauge" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" class="focus-mini-anneau-fond"/><circle cx="20" cy="20" r="16" class="focus-mini-anneau" transform="rotate(-90 20 20)" stroke-dasharray="100.5" stroke-dashoffset="20"/></svg>',
+    matrice: '<span class="focus-mini-matrice">' + new Array(FOCUS_POINTS).join('<i></i>') + '<i></i></span>',
+    camembert: '<span class="focus-mini-camembert"></span>'
+};
 
 function focusNormaliserReglages(brut) {
     var b = brut || {};
@@ -78,6 +90,7 @@ function focusNormaliserReglages(brut) {
         barre: b.barre === true,
         notif: b.notif === true,
         auto: b.auto === true,
+        citation: b.citation !== false,
         police: dans(FOCUS_POLICES, b.police, 'gras'),
         format: dans(FOCUS_FORMATS, b.format, '24'),
         taille: dans(FOCUS_TAILLES, b.taille, 'normale')
@@ -95,6 +108,15 @@ function focusLireReglages() {
 function focusEcrireReglages(reglages) {
     focusReglagesVus = focusNormaliserReglages(reglages);
     try { localStorage.setItem(FOCUS_REGLAGES_CLE, JSON.stringify(focusReglagesVus)); } catch (e) {}
+}
+
+/* Change un seul réglage et garde les autres. */
+function focusMajReglage(cle, valeur) {
+    var copie = {};
+    var r = focusLireReglages();
+    Object.keys(r).forEach(function (k) { copie[k] = r[k]; });
+    copie[cle] = valeur;
+    focusEcrireReglages(copie);
 }
 
 /* Heure affichée : 12 h sans « AM/PM » comme sur la capture, ou 24 h. */
@@ -128,43 +150,63 @@ function focusCitationDuJour(date) {
 
 function focusPeindreCitation() {
     var texte = focusCitationDuJour();
+    var visible = focusLireReglages().citation;
     ['focusCitation', 'focusAccueilCitation'].forEach(function (id) {
         var el = document.getElementById(id);
-        if (el && el.textContent !== texte) el.textContent = texte;
+        if (!el) return;
+        if (el.textContent !== texte) el.textContent = texte;
+        if (el.hidden !== !visible) el.hidden = !visible;
     });
+    var apercu = document.getElementById('focusCitationApercu');
+    if (apercu && apercu.textContent !== texte) apercu.textContent = texte;
 }
 
-/* Construit une fois les boutons de choix (style, police, format, taille). */
-function focusRemplirGrille(id, liste, cle, classeItem) {
+/* Construit une fois les tuiles de chaque rubrique. contenu(item, i) renvoie
+   du HTML fixe (jamais de texte saisi par l'élève). */
+function focusRemplirGrille(id, liste, cle, classeItem, contenu, surClic) {
     var conteneur = document.getElementById(id);
     if (!conteneur || conteneur.getAttribute('data-pret') === '1') return;
     conteneur.setAttribute('data-pret', '1');
-    liste.forEach(function (item) {
+    liste.forEach(function (item, i) {
         var bouton = document.createElement('button');
         bouton.type = 'button';
-        bouton.className = 'focus-choix' + (classeItem ? ' ' + classeItem(item) : '');
-        bouton.setAttribute('data-' + cle, item.id);
+        bouton.className = 'focus-tuile' + (classeItem ? ' ' + classeItem(item) : '');
+        bouton.setAttribute('data-' + cle, String(item.id !== undefined ? item.id : i));
         bouton.setAttribute('aria-pressed', 'false');
-        if (cle === 'police') {
-            var apercu = document.createElement('span');
-            apercu.className = 'focus-choix-apercu';
-            apercu.textContent = '12:24';
-            bouton.appendChild(apercu);
-        }
-        var libelle = document.createElement('span');
-        libelle.className = 'focus-choix-libelle';
-        libelle.textContent = item.nom;
-        bouton.appendChild(libelle);
-        bouton.onclick = function () { focusChoisirReglage(cle, item.id); };
+        bouton.innerHTML = contenu(item, i);
+        bouton.onclick = function () {
+            if (surClic) surClic(item, i);
+            else focusChoisirReglage(cle, item.id);
+        };
         conteneur.appendChild(bouton);
     });
 }
 
+function focusTuileNom(nom) {
+    return '<span class="focus-tuile-nom">' + nom + '</span>';
+}
+
 function focusConstruireChoix() {
-    focusRemplirGrille('focusChoixStyle', FOCUS_STYLES_TEMPS, 'style');
-    focusRemplirGrille('focusChoixPolice', FOCUS_POLICES, 'police', function (p) { return 'focus-choix-police focus-police-' + p.id; });
-    focusRemplirGrille('focusChoixFormat', FOCUS_FORMATS, 'format');
-    focusRemplirGrille('focusChoixTaille', FOCUS_TAILLES, 'taille');
+    focusRemplirGrille('focusChoixFormat', FOCUS_FORMATS, 'format', null, function (item) {
+        return '<span class="focus-tuile-image"><span class="focus-tuile-texte">' + item.exemple + '</span></span>' + focusTuileNom(item.nom);
+    });
+    focusRemplirGrille('focusChoixTaille', FOCUS_TAILLES, 'taille', null, function (item) {
+        return '<span class="focus-tuile-image"><span class="focus-tuile-texte focus-tuile-taille-' + item.id + '">2:24</span></span>' + focusTuileNom(item.nom);
+    });
+    focusRemplirGrille('focusChoixPolice', FOCUS_POLICES, 'police', function (p) { return 'focus-police-' + p.id; }, function (item) {
+        return '<span class="focus-tuile-image"><span class="focus-tuile-texte">12:24</span></span>' + focusTuileNom(item.nom);
+    });
+    focusRemplirGrille('focusChoixStyle', FOCUS_STYLES_TEMPS, 'style', null, function (item) {
+        return '<span class="focus-tuile-image focus-tuile-miniature">' + FOCUS_MINI[item.id] + '</span>' + focusTuileNom(item.nom);
+    });
+    if (typeof FOCUS_FONDS !== 'undefined') {
+        focusRemplirGrille('focusChoixFonds', FOCUS_FONDS, 'fond', null, function (item) {
+            return '<span class="focus-tuile-image focus-tuile-photo" style="background-image:url(\'' + item.mini + '\')"></span>' + focusTuileNom(item.nom);
+        }, function (item, i) {
+            if (typeof focusPoserFond === 'function') focusPoserFond(i);
+            focusPeindreParametres();
+        });
+    }
 }
 
 function focusMarquerChoix(id, cle, valeur) {
@@ -178,31 +220,65 @@ function focusMarquerChoix(id, cle, valeur) {
     }
 }
 
-/* Contenu d'un affichage du minuteur (créé quand le style change). */
-function focusHtmlStyle(style) {
-    var i, html = '';
-    if (style === 'horloge') {
-        html = '<div class="focus-flip">' +
-            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
-            '<span class="focus-flip-sep">:</span>' +
-            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
-            '</div>';
-    } else if (style === 'jauge') {
-        html = '<svg class="focus-jauge" viewBox="0 0 100 100" aria-hidden="true">' +
-            '<circle class="focus-jauge-fond" cx="50" cy="50" r="45"></circle>' +
-            '<circle class="focus-jauge-arc" cx="50" cy="50" r="45" transform="rotate(-90 50 50)" ' +
-            'stroke-dasharray="' + FOCUS_CERCLE.toFixed(2) + '" stroke-dashoffset="0"></circle></svg>';
-    } else if (style === 'matrice') {
-        html = '<div class="focus-matrice" aria-hidden="true">';
-        for (i = 0; i < FOCUS_POINTS; i++) html += '<span class="focus-point"></span>';
-        html += '</div>';
-    } else if (style === 'camembert') {
-        html = '<div class="focus-camembert" aria-hidden="true"></div>';
-    }
-    return html;
+/* Affiche la rubrique choisie dans le menu latéral. */
+function focusChoisirOnglet(id) {
+    if (FOCUS_ONGLETS.indexOf(id) === -1) return;
+    focusOngletCourant = id;
+    focusAfficherOnglet();
 }
 
-/* Affiche le temps restant selon le style choisi. « Ce qui reste » diminue. */
+function focusAfficherOnglet() {
+    FOCUS_ONGLETS.forEach(function (id) {
+        var page = document.querySelector('#focusReglages [data-page="' + id + '"]');
+        if (page && page.hidden !== (id !== focusOngletCourant)) page.hidden = id !== focusOngletCourant;
+        var item = document.querySelector('#focusReglages [data-onglet="' + id + '"]');
+        if (item) {
+            var actif = id === focusOngletCourant;
+            item.classList.toggle('is-on', actif);
+            if (actif) item.setAttribute('aria-current', 'page'); else item.removeAttribute('aria-current');
+        }
+    });
+}
+
+/* Peint tout ce qui dépend des réglages. Appelé à chaque affichage du minuteur. */
+function focusPeindreParametres() {
+    focusConstruireChoix();
+    var r = focusLireReglages();
+
+    ['focusPage', 'focusAccueil'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        FOCUS_POLICES.forEach(function (p) { el.classList.toggle('focus-police-' + p.id, p.id === r.police); });
+        FOCUS_TAILLES.forEach(function (t) { el.classList.toggle('focus-taille-' + t.id, t.id === r.taille); });
+    });
+
+    focusPeindreHeure();
+    focusPeindreCitation();
+    focusPeindreStyleTemps(r);
+    focusAfficherOnglet();
+
+    focusMarquerChoix('focusChoixStyle', 'style', r.style);
+    focusMarquerChoix('focusChoixPolice', 'police', r.police);
+    focusMarquerChoix('focusChoixFormat', 'format', r.format);
+    focusMarquerChoix('focusChoixTaille', 'taille', r.taille);
+
+    if (typeof focusEtat !== 'undefined') {
+        var fonds = document.querySelectorAll('#focusChoixFonds button');
+        for (var f = 0; f < fonds.length; f++) {
+            var actif = f === focusEtat.fond;
+            fonds[f].classList.toggle('is-on', actif);
+            fonds[f].setAttribute('aria-pressed', String(actif));
+        }
+    }
+
+    var cochees = { focusOptBarre: r.barre, focusOptNotif: r.notif, focusOptAuto: r.auto, focusOptCitation: r.citation };
+    Object.keys(cochees).forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && el.checked !== cochees[id]) el.checked = cochees[id];
+    });
+}
+
+/* Affichage du minuteur selon le style choisi. « Ce qui reste » diminue. */
 function focusPeindreStyleTemps(r) {
     var temps = document.getElementById('focusTime');
     var visuel = document.getElementById('focusVisuel');
@@ -245,32 +321,28 @@ function focusPeindreStyleTemps(r) {
     if (fill) fill.style.width = (fraction * 100).toFixed(2) + '%';
 }
 
-/* Peint tout ce qui dépend des réglages. Appelé à chaque affichage du minuteur. */
-function focusPeindreParametres() {
-    focusConstruireChoix();
-    var r = focusLireReglages();
-
-    ['focusPage', 'focusAccueil'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        FOCUS_POLICES.forEach(function (p) { el.classList.toggle('focus-police-' + p.id, p.id === r.police); });
-        FOCUS_TAILLES.forEach(function (t) { el.classList.toggle('focus-taille-' + t.id, t.id === r.taille); });
-    });
-
-    focusPeindreHeure();
-    focusPeindreCitation();
-    focusPeindreStyleTemps(r);
-
-    focusMarquerChoix('focusChoixStyle', 'style', r.style);
-    focusMarquerChoix('focusChoixPolice', 'police', r.police);
-    focusMarquerChoix('focusChoixFormat', 'format', r.format);
-    focusMarquerChoix('focusChoixTaille', 'taille', r.taille);
-
-    var cochees = { focusOptBarre: r.barre, focusOptNotif: r.notif, focusOptAuto: r.auto };
-    Object.keys(cochees).forEach(function (id) {
-        var el = document.getElementById(id);
-        if (el && el.checked !== cochees[id]) el.checked = cochees[id];
-    });
+/* Contenu d'un affichage du minuteur (créé quand le style change). */
+function focusHtmlStyle(style) {
+    var i, html = '';
+    if (style === 'horloge') {
+        html = '<div class="focus-flip">' +
+            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
+            '<span class="focus-flip-sep">:</span>' +
+            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
+            '</div>';
+    } else if (style === 'jauge') {
+        html = '<svg class="focus-jauge" viewBox="0 0 100 100" aria-hidden="true">' +
+            '<circle class="focus-jauge-fond" cx="50" cy="50" r="45"></circle>' +
+            '<circle class="focus-jauge-arc" cx="50" cy="50" r="45" transform="rotate(-90 50 50)" ' +
+            'stroke-dasharray="' + FOCUS_CERCLE.toFixed(2) + '" stroke-dashoffset="0"></circle></svg>';
+    } else if (style === 'matrice') {
+        html = '<div class="focus-matrice" aria-hidden="true">';
+        for (i = 0; i < FOCUS_POINTS; i++) html += '<span class="focus-point"></span>';
+        html += '</div>';
+    } else if (style === 'camembert') {
+        html = '<div class="focus-camembert" aria-hidden="true"></div>';
+    }
+    return html;
 }
 
 function focusMessageReglage(texte) {
@@ -280,62 +352,45 @@ function focusMessageReglage(texte) {
 
 /* Un choix de style, de police, de format ou de taille. */
 function focusChoisirReglage(cle, valeur) {
-    var r = focusLireReglages();
-    var nouveau = {
-        style: r.style, barre: r.barre, notif: r.notif, auto: r.auto,
-        police: r.police, format: r.format, taille: r.taille
-    };
-    nouveau[cle] = valeur;
-    focusEcrireReglages(nouveau);
+    focusMajReglage(cle, valeur);
     focusPeindre();
 }
 
-/* Les trois interrupteurs. La notification demande l'autorisation du navigateur. */
+/* Les interrupteurs. La notification demande l'autorisation du navigateur. */
 function focusChoisirOption(cle, actif) {
-    var r = focusLireReglages();
-    var nouveau = {
-        style: r.style, barre: r.barre, notif: r.notif, auto: r.auto,
-        police: r.police, format: r.format, taille: r.taille
-    };
     if (cle === 'notif' && actif) {
         if (typeof Notification === 'undefined') {
             focusMessageReglage('Les notifications ne sont pas disponibles dans ce navigateur.');
-            nouveau.notif = false;
-            focusEcrireReglages(nouveau);
+            focusMajReglage('notif', false);
             focusPeindre();
             return;
         }
         if (Notification.permission === 'denied') {
             focusMessageReglage('Notifications bloquées : autorise-les dans les réglages du navigateur.');
-            nouveau.notif = false;
-            focusEcrireReglages(nouveau);
+            focusMajReglage('notif', false);
             focusPeindre();
             return;
         }
         if (Notification.permission === 'default') {
             focusMessageReglage('Demande d\'autorisation en cours…');
             Promise.resolve(Notification.requestPermission()).then(function (reponse) {
-                var suite = focusLireReglages();
-                var fin = {
-                    style: suite.style, barre: suite.barre, notif: reponse === 'granted', auto: suite.auto,
-                    police: suite.police, format: suite.format, taille: suite.taille
-                };
-                focusEcrireReglages(fin);
+                focusMajReglage('notif', reponse === 'granted');
                 focusMessageReglage(reponse === 'granted' ? 'Notifications activées.' : 'Notifications non autorisées.');
                 focusPeindre();
             }, function () {
+                focusMajReglage('notif', false);
                 focusMessageReglage('Notifications non autorisées.');
                 focusPeindre();
             });
             return;
         }
-        nouveau.notif = true;
+        focusMajReglage('notif', true);
         focusMessageReglage('Notifications activées.');
-    } else {
-        nouveau[cle] = !!actif;
-        focusMessageReglage('');
+        focusPeindre();
+        return;
     }
-    focusEcrireReglages(nouveau);
+    focusMajReglage(cle, !!actif);
+    if (cle !== 'notif') focusMessageReglage('');
     focusPeindre();
 }
 
@@ -361,7 +416,7 @@ function focusDemarrerEnchainement() {
     focusPeindre();
 }
 
-/* Le bouton Paramètres de la séance : ouvre le minuteur avec le panneau. */
+/* Le bouton-roue de la séance : ouvre le minuteur avec le menu Paramètres. */
 function accueilOuvrirParametres() {
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
@@ -373,3 +428,11 @@ function accueilOuvrirParametres() {
 
 focusConstruireChoix();
 if (!window.__focusHorloge) window.__focusHorloge = setInterval(focusPeindreHeure, 15000);
+if (!window.__focusEchap) {
+    window.__focusEchap = true;
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+        var panneau = document.getElementById('focusReglages');
+        if (panneau && !panneau.hidden && typeof focusFermer === 'function') focusFermer('focusReglages');
+    });
+}

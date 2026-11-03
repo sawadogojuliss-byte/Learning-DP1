@@ -32,18 +32,38 @@ ok(seances.indexOf('id="focusAccueilHeure"') !== -1, 'la séance doit afficher l
 var citations = (script.match(/FOCUS_CITATIONS = \[([\s\S]*?)\];/) || [])[1] || '';
 ok((citations.match(/"[^"]+"|'[^']+'/g) || []).length >= 10, 'il faut au moins 10 citations en français');
 
-/* ── 2. Bouton Paramètres en bas, sur les deux pages ── */
-ok(minuteur.indexOf('id="focusBtnReglages"') !== -1 && minuteur.indexOf('<span>Paramètres</span>') !== -1,
-    'le minuteur doit avoir un bouton Paramètres en bas');
+/* ── 2. Bouton Paramètres (icône seule, en bas), sur les deux pages ── */
+ok(minuteur.indexOf('id="focusBtnReglages"') !== -1, 'le minuteur doit avoir le bouton Paramètres');
+ok(/id="focusBtnReglages"[^>]*aria-label="Paramètres"/.test(minuteur), 'le bouton du minuteur doit avoir aria-label="Paramètres"');
+ok(/id="focusBtnReglages"[^>]*title="Paramètres"/.test(minuteur), 'le bouton du minuteur doit avoir title="Paramètres"');
+ok(!/id="focusBtnReglages"[\s\S]*?<\/button>/.test(minuteur) || !/id="focusBtnReglages"[\s\S]*?>Paramètres<\/button>/.test(minuteur),
+    'le bouton du minuteur ne doit pas afficher le mot Paramètres (icône seule)');
 ok(seances.indexOf('id="accueilBtnParametres"') !== -1 && seances.indexOf('accueilOuvrirParametres()') !== -1,
-    'la séance doit avoir un bouton Paramètres en bas');
+    'la séance doit avoir le bouton Paramètres en bas');
+ok(/id="accueilBtnParametres"[^>]*aria-label="Paramètres"/.test(seances), 'le bouton de la séance doit avoir aria-label="Paramètres"');
+ok(!/id="accueilBtnParametres"[\s\S]*?>Paramètres<\/button>/.test(seances), 'le bouton de la séance ne doit pas afficher le mot Paramètres');
 ok(minuteur.indexOf('aria-label="Durées"') === -1, 'l\'ancien bouton « Durées » doit disparaître');
+ok(minuteur.indexOf('focus-bouton-parametres') === -1 && !/id="focusReglages"[^>]*focus-panneau/.test(minuteur),
+    'les anciennes classes focus-bouton-parametres et focus-panneau ne doivent plus servir aux paramètres');
 
-/* ── 3. Panneau Paramètres : toutes les sections des captures ── */
-['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
- 'focusChoixFormat', 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus'].forEach(function (id) {
-    ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le panneau Paramètres doit contenir #' + id);
+/* ── 3. Menu latéral et pages : toutes les rubriques des captures ── */
+ok(/id="focusReglages"[^>]*class="focus-tiroir"|class="focus-tiroir"[^>]*id="focusReglages"/.test(minuteur), 'le menu Paramètres doit être un tiroir (focus-tiroir)');
+ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit avoir une croix de fermeture');
+['themes', 'horloge', 'minuteur', 'citations', 'voix'].forEach(function (onglet) {
+    ok(minuteur.indexOf('data-onglet="' + onglet + '"') !== -1, 'entrée de menu manquante : ' + onglet);
+    ok(minuteur.indexOf('data-page="' + onglet + '"') !== -1, 'page manquante : ' + onglet);
 });
+['Thèmes', 'Horloge', 'Minuteur', 'Citations', 'Voix'].forEach(function (nom) {
+    ok(minuteur.indexOf('<span>' + nom + '</span>') !== -1, 'libellé de menu manquant : ' + nom);
+});
+['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
+ 'focusChoixFormat', 'focusChoixTaille', 'focusVoixActive', 'focusDureeFocus', 'focusChoixFonds', 'focusOptCitation'].forEach(function (id) {
+    ok(minuteur.indexOf('id="' + id + '"') !== -1, 'le menu Paramètres doit contenir #' + id);
+});
+ok(minuteur.indexOf('Format de l\'heure') !== -1 && minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1,
+    'la page Horloge doit avoir les cartes « Format de l\'heure » et « Taille de l\'horloge et du minuteur »');
+ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
+ok(script.indexOf('var FOCUS_ONGLETS = [\'themes\', \'horloge\', \'minuteur\', \'citations\', \'voix\']') !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Horloge à palettes', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
 });
@@ -55,7 +75,18 @@ ok(script.indexOf("nom: '12 heures'") !== -1 && script.indexOf("nom: '24 heures'
 ['Petite', 'Normale', 'Grande'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'taille manquante : ' + nom);
 });
-ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause longue <input') !== -1, 'les durées doivent rester dans Paramètres');
+ok(script.indexOf("format: dans(FOCUS_FORMATS, b.format, '24')") !== -1, 'le format par défaut doit être 24 h (à confirmer)');
+ok(minuteur.indexOf('Concentration <input') !== -1 && minuteur.indexOf('Pause longue <input') !== -1, 'les durées doivent rester dans Minuteur');
+
+/* ── 3b. Couleurs du site : pas de violet (capture 3 écartée) ── */
+var violet = /#(7c3aed|8b5cf6|a855f7|9333ea|6d28d9|7e22ce|c084fc|a78bfa|ddd6fe|6366f1|4f46e5)\b|\bpurple\b|\bviolet\b|rgba?\(\s*(139|168|124|147|109)\s*,\s*(92|85|58|51|40|34)/i;
+ok(!violet.test(css), 'focus-parametres.css ne doit pas contenir de violet');
+ok(!violet.test(script), 'pomodoro-parametres.js ne doit pas contenir de violet');
+ok(!violet.test(minuteur), 'pages/pomodoro.html ne doit pas contenir de violet');
+
+/* ── 3c. Photo des tuiles : image verte, copie dans le dépôt ── */
+ok(css.indexOf('images/parametres/aurore.png') !== -1, 'les tuiles doivent utiliser images/parametres/aurore.png');
+ok(fs.existsSync(path.join(__dirname, '..', 'images/parametres/aurore.png')), 'images/parametres/aurore.png doit exister');
 
 /* ── 4. Stockage : clé propre, pas celle de la synchronisation ── */
 ok(script.indexOf("'studyPlanIB_focusReglages'") === -1,
