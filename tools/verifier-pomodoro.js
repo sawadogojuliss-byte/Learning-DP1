@@ -101,9 +101,9 @@ tousFonds.forEach(function (ligne) {
     ok(m && fs.existsSync(path.join(__dirname, '..', 'images', 'pomodoro', m[1] + '.webp')), 'le fichier du décor manque : ' + ligne);
 });
 
-/* le bouton de la galerie, sur la page Séance de révision */
-ok(seancesHtml.indexOf('id="accueilBtnFonds"') !== -1, 'la page des séances doit offrir le bouton « Changer l\'image »');
-ok(seancesHtml.indexOf("onclick=\"accueilBasculerFonds()\"") !== -1, 'le bouton doit ouvrir la galerie');
+/* le bouton nuage (fonds) est retiré des pages Séance et Pomodoro : les thèmes restent dans les paramètres */
+ok(seancesHtml.indexOf('id="accueilBtnFonds"') === -1, 'le bouton nuage ne doit plus figurer sur la page des séances');
+ok(lire('pages/pomodoro.html').indexOf('id="focusBtnFonds"') === -1, 'le bouton nuage ne doit plus figurer sur la page Pomodoro');
 ok(seancesHtml.indexOf('id="accueilFonds"') !== -1 && seancesHtml.indexOf('accueilFonds') !== -1, 'la galerie des décors manque sur la page des séances');
 var musiqueJs = lire('js/pages/musique.js');
 ok(musiqueJs.indexOf('function accueilBasculerFonds') !== -1, 'la galerie des décors ne s\'ouvre pas');

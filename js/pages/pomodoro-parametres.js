@@ -21,51 +21,46 @@ var FOCUS_CATEGORIES_CITATIONS = [
 
 var FOCUS_CITATIONS = {
     'motivation': [
-        { t: "Je n’ai jamais rêvé de réussir, j’ai travaillé pour ça", a: "Estée Lauder" },
-        { t: "La plupart des hommes, pour arriver à leurs fins, sont plus capables d’un grand effort que d’une longue persévérance", a: "Jean de La Bruyère" },
-        { t: "Il n’y a pas de magie dans la réussite, c’est vraiment une question de travail acharné, de choix et de persévérance", a: "Michelle Obama" },
+        { t: "Le succès est la somme de petits efforts, répétés jour après jour", a: "Robert Collier" },
+        { t: "La persévérance n’est pas une longue course ; ce sont de courtes courses les unes après les autres", a: "Walter Elliot" },
+        { t: "Le hasard ne favorise que les esprits préparés", a: "Louis Pasteur" },
+        { t: "Le travail éloigne de nous trois grands maux : l’ennui, le vice et le besoin", a: "Voltaire" },
         { t: "Tomber sept fois, se relever huit", a: "Proverbe japonais" },
-        { t: "Il n’y a pas de substitut au travail", a: "Thomas Edison" },
-        { t: "Le talent est un don, mais l’effort est un choix", a: "John C. Maxwell" },
+        { t: "Le secret pour aller de l’avant est de commencer", a: "Mark Twain" },
         { t: "Les grands accomplissements sont réussis non par la force, mais par la persévérance", a: "Samuel Johnson" },
-        { t: "Un jour ou jour un, à vous de choisir", a: "Anonyme" },
-        { t: "Je suis convaincu que ce qui sépare les entrepreneurs qui ont du succès de ceux qui n’en ont pas est la persévérance", a: "Steve Jobs" },
-        { t: "La récompense d’une chose bien faite, c’est de l’avoir faite", a: "Ralph Waldo Emerson" }
+        { t: "Le succès n’est pas un accident : c’est du travail acharné, de la persévérance, de l’apprentissage, des études et des sacrifices", a: "Pelé" },
+        { t: "La récompense d’une chose bien faite, c’est de l’avoir faite", a: "Ralph Waldo Emerson" },
+        { t: "La plupart des hommes, pour arriver à leurs fins, sont plus capables d’un grand effort que d’une longue persévérance", a: "Jean de La Bruyère" }
     ],
     'inspiration': [
-        { t: "Dans le domaine des idées, tout dépend de l’enthousiasme. Dans le monde réel, tout repose sur la persévérance", a: "Johann Wolfgang von Goethe" },
-        { t: "Ce n’est pas le temps qui manque, mais la volonté", a: "Paul Claudel" },
+        { t: "Au milieu de l’hiver, j’apprenais enfin qu’il y avait en moi un été invincible", a: "Albert Camus" },
+        { t: "Une rivière traverse la roche, non pas par sa puissance, mais par sa persistance", a: "Jim Watkins" },
+        { t: "Ce sont nos choix, Harry, qui révèlent ce que nous sommes, bien plus que nos capacités", a: "J. K. Rowling" },
+        { t: "Tous nos rêves peuvent devenir réalité si nous avons le courage de les poursuivre", a: "Walt Disney" },
+        { t: "Un voyage de mille lieues commence toujours par un premier pas", a: "Lao Tseu" },
         { t: "La meilleure façon de prédire l’avenir, c’est de le créer", a: "Peter Drucker" },
-        { t: "Notre persévérance fait de nous ce que nous rêvons d’être", a: "Euvrard Tristan" },
-        { t: "Le courage et la persévérance ont un talisman magique devant lequel les difficultés disparaissent et les obstacles s’évaporent", a: "John Quincy Adams" },
-        { t: "Vous êtes plus fort que vous ne le pensez", a: "Anonyme" },
-        { t: "Confronté à la roche, le ruisseau l’emporte toujours, non pas par la force, mais par la persévérance", a: "Confucius" },
-        { t: "Rien ne peut vous arrêter si vous avez décidé d’avancer", a: "Paulo Coelho" },
-        { t: "Il ne faut jamais baisser les bras, le succès vient avec la ténacité et la persévérance", a: "Marie du Deffand" },
+        { t: "L’essentiel est invisible pour les yeux", a: "Antoine de Saint-Exupéry" },
+        { t: "Ne cherchons pas à éviter à nos enfants les difficultés de la vie ; apprenons-leur à les surmonter", a: "Louis Pasteur" },
         { t: "Avec un talent ordinaire et une persévérance extraordinaire, on peut tout obtenir", a: "Thomas Foxwell Buxton" }
     ],
     'bien-etre': [
         { t: "Prendre soin de soi-même n’est pas de l’égoïsme, c’est de l’auto-préservation", a: "Audre Lorde" },
-        { t: "Le sommeil est la meilleure méditation", a: "Dalaï-Lama" },
-        { t: "Le repos n’est pas une récompense, c’est une nécessité", a: "Anonyme" },
-        { t: "Vous ne pouvez pas verser d’un vase vide", a: "Anonyme" },
         { t: "Le bien-être n’est pas une destination, mais un chemin", a: "Wayne Dyer" },
-        { t: "Parfois, ne rien faire, c’est aussi une façon de prendre soin de soi", a: "M. Mariani" },
         { t: "Se connaître soi-même est le début de toute sagesse", a: "Aristote" },
-        { t: "Votre corps est l’endroit où vous vivez, maintenez-le en bon état", a: "Jim Rohn" },
+        { t: "Ce ne sont pas les choses qui troublent les hommes, mais l’opinion qu’ils en ont", a: "Épictète" },
         { t: "Un corps sain est la chambre de l’âme, un corps malade est sa prison", a: "Francis Bacon" },
-        { t: "Presque tout fonctionnera à nouveau si vous le débranchez quelques minutes, y compris vous-même", a: "Anne Lamott" }
+        { t: "Votre corps est l’endroit où vous vivez, maintenez-le en bon état", a: "Jim Rohn" },
+        { t: "Presque tout fonctionnera à nouveau si vous le débranchez quelques minutes, y compris vous-même", a: "Anne Lamott" },
+        { t: "Ne perds plus de temps à discuter de ce que doit être un homme de bien : sois-le", a: "Marc Aurèle" }
     ],
     'gratitude': [
         { t: "La gratitude est la mémoire du cœur", a: "Jean-Baptiste Massieu" },
         { t: "Nous pouvons nous plaindre parce que les rosiers ont des épines, ou nous réjouir parce que les épines ont des roses", a: "Alphonse Karr" },
         { t: "La gratitude est non seulement la plus grande des vertus, mais la mère de toutes les autres", a: "Cicéron" },
-        { t: "Soyons reconnaissants aux personnes qui nous donnent du bonheur, elles sont les charmants jardiniers par qui nos âmes sont fleuries", a: "Marcel Proust" },
+        { t: "Ce n’est pas le bonheur qui nous rend reconnaissants, c’est la gratitude qui nous rend heureux", a: "David Steindl-Rast" },
         { t: "Il n’y a pas de devoir plus urgent que de remercier", a: "James Allen" },
-        { t: "La gratitude transforme ce que nous avons en suffisant", a: "Anonyme" },
         { t: "L’âme qui fait preuve de reconnaissance peut trouver du réconfort dans tout", a: "Hannah Whitall Smith" },
-        { t: "C’est un homme sage, celui qui ne regrette pas ce qu’il n’a pas, mais se réjouit de ce qu’il possède", a: "Épictète" },
-        { t: "La gratitude est le signe des âmes nobles", a: "Ésope" },
+        { t: "Soyons reconnaissants aux personnes qui nous donnent du bonheur, elles sont les charmants jardiniers par qui nos âmes sont fleuries", a: "Marcel Proust" },
         { t: "Le bonheur est la seule chose qui se double si on le partage", a: "Albert Schweitzer" }
     ]
 };
@@ -345,7 +340,11 @@ function focusPeindreStyleTemps(r) {
     }
     visuel.hidden = style === 'defaut' || style === 'barre';
     temps.hidden = style === 'horloge';
-    temps.classList.toggle('is-petit', style === 'jauge' || style === 'matrice' || style === 'camembert');
+    /* Jauge, matrice de points et camembert : le temps passe petit, sous le graphique. */
+    var dessous = style === 'jauge' || style === 'matrice' || style === 'camembert';
+    temps.classList.toggle('is-dessous', dessous);
+    if (dessous && visuel.nextElementSibling !== temps) visuel.after(temps);
+    if (!dessous && visuel.nextElementSibling === temps) visuel.before(temps);
 
     var texte = focusTexte(focusEtat.restant);
     if (style === 'horloge') {

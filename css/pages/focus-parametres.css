@@ -58,7 +58,8 @@
     font-style: var(--fp-style, normal);
     letter-spacing: var(--fp-espace, -0.03em);
 }
-.focus-time.is-petit { font-size: calc(clamp(2.4rem, 7vh, 3.6rem) * var(--fv)); }
+/* Temps sous le graphique (camembert, jauge, matrice de points) : petit, comme sur la référence. */
+.focus-time.is-dessous { font-size: calc(clamp(1.1rem, 3.2vh, 1.5rem) * var(--fv)); margin: 0; }
 .focus-taille-petite .focus-time { font-size: clamp(3rem, 9vh, 5.2rem); }
 .focus-taille-grande .focus-time { font-size: clamp(6rem, 22vh, 11rem); }
 
