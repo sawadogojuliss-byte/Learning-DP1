@@ -324,8 +324,10 @@
 }
 
 @media (max-width: 720px) {
-    .focus-bouton-parametres span { display: none; }
-    .focus-bouton-parametres { padding: 0 0.6rem; }
+    /* Le libellé reste visible : la barre du bas passe sur deux lignes si besoin. */
+    .focus-bottom { flex-wrap: wrap; justify-content: center; row-gap: 0.5rem; }
+    .focus-bouton-parametres { padding: 0 0.75rem; background: rgba(16, 185, 129, 0.34); border-color: rgba(255, 255, 255, 0.5); }
+    .focus-bouton-parametres span { display: inline; font-size: 0.82rem; }
     .focus-heure { font-size: calc(1.1rem * var(--fv)); }
     .focus-top .focus-quote { max-width: 9rem; }
     .focus-choix-grille { grid-template-columns: repeat(2, minmax(0, 1fr)); }
