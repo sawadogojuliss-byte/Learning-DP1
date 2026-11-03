@@ -461,14 +461,6 @@
 /* Espace entre le titre d'une carte et ses tuiles, même sans paragraphe intermédiaire. */
 .focus-carte h3 + .focus-grille-tuiles { margin-top: 0.9rem; }
 
-/* Bouton Paramètres : roue pleine blanche, bien visible sur les photos. */
-#focusBtnReglages, #accueilBtnParametres {
-    width: 2.7rem;
-    height: 2.7rem;
-    border-radius: 0.9rem;
-    background: rgba(4, 30, 24, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.32);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-#focusBtnReglages svg, #accueilBtnParametres svg { width: 20px; height: 20px; }
-#focusBtnReglages:hover, #accueilBtnParametres:hover { background: #10b981; border-color: #059669; }
+
+/* Bouton Paramètres : même style que les autres boutons ronds (.focus-rond) ; seule l'icône est une roue pleine. */
+#focusBtnReglages svg, #accueilBtnParametres svg { width: 18px; height: 18px; }
