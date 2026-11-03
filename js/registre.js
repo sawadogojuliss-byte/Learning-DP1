@@ -74,5 +74,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/boite.js',
     'js/pages/annonce.js',
     'js/pages/tutoriel.js',
-    'js/pages/pomodoro-page.js'
+    'js/pages/pomodoro-page.js',
+    'js/pages/pomodoro-parametres.js'
 ];

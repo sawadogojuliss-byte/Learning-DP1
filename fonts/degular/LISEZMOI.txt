@@ -1,0 +1,19 @@
+Police Degular (OH no Type Co, dessinée par James Edmondson)
+=============================================================
+
+Ce dossier reçoit les fichiers de la police Degular utilisés par le
+minuteur (pages/pomodoro.html) et la séance de révision (pages/seances.html).
+
+1. Ouvre le dossier fonts/degular/.
+2. Dépose les fichiers au format .woff2 sous ces noms exacts :
+   Degular-Thin.woff2, Degular-Light.woff2, Degular-Regular.woff2,
+   Degular-Regular-Italic.woff2, Degular-Medium.woff2,
+   Degular-Semibold.woff2, Degular-Bold.woff2, Degular-Black.woff2,
+   Degular-Black-Italic.woff2
+3. Vérifie que la licence permet l'usage sur le site (la version gratuite
+   est réservée à un usage personnel ; un usage public demande une licence
+   commerciale auprès de OH no Type Co, ou un abonnement Adobe Fonts).
+
+Sans ces fichiers, le site reste lisible : la police de repli est utilisée.
+Les fichiers de police ne sont pas inclus dans le dépôt tant que la licence
+n'a pas été vérifiée.

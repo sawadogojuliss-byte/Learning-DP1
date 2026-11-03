@@ -784,7 +784,12 @@ function focusPhaseSuivante(silencieux) {
     }
     focusPeindre();
     focusTitre();
-
+    /* Options du panneau Paramètres : notification de fin, enchaînement automatique.
+       Un rattrapage au rechargement ne déclenche rien. */
+    if (!silencieux && typeof focusNotifierFin === 'function') {
+        focusNotifierFin(fini);
+        if (focusLireReglages().auto) focusDemarrerEnchainement();
+    }
 }
 
 function focusTick() {
@@ -834,6 +839,8 @@ function focusPeindre() {
     focusPipMaj();
     if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
     focusSauverEtat();
+    /* style d'affichage, police, heure et citation : js/pages/pomodoro-parametres.js */
+    if (typeof focusPeindreParametres === 'function') focusPeindreParametres();
 }
 
 function focusPeindreFonds() {

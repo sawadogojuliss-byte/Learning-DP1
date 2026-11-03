@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261103i';
+const VERSION = '20261103k';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -15,6 +15,7 @@ const FICHIERS = [
     "css/pages/retours.css",
     "css/pages/emplois-atelier.css",
     "css/pages/admin-atelier.css",
+    "css/pages/focus-parametres.css",
     "css/compte.css",
     "css/accessibilite.css",
     "js/accessibilite.js",
@@ -86,7 +87,8 @@ const FICHIERS = [
     "js/pages/boite.js",
     "js/pages/annonce.js",
     "js/pages/tutoriel.js",
-    "js/pages/pomodoro-page.js"
+    "js/pages/pomodoro-page.js",
+    "js/pages/pomodoro-parametres.js"
 ];
 function urlDuSite(fichier) {
     var url = new URL(fichier || './', self.registration.scope);
