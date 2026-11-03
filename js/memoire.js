@@ -763,8 +763,11 @@ function memoireSauvegarder() {
     try {
         var data = memoireLireEtat();
         var json = JSON.stringify(data);
-        if (json === memoireDernier) return;
-        memoireDernier = json;
+        /* savedAt est recalculé à chaque lecture : il ne doit pas faire croire à un changement, sinon
+           chaque sauvegarde relance l'envoi vers le nuage et l'écoute des autres appareils ne s'applique jamais. */
+        var sansDate = JSON.stringify(Object.assign({}, data, { savedAt: '' }));
+        if (sansDate === memoireDernier) return;
+        memoireDernier = sansDate;
         localStorage.setItem(MEMOIRE_KEY, json);
         localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(data.customEvents || []));
         localStorage.setItem('studyPlanIB_exercices', JSON.stringify(data.exercices || []));

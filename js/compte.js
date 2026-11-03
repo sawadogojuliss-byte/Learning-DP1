@@ -54,6 +54,20 @@ function compteUtile(data) {
     return false;
 }
 
+/* Richesse du profil seulement (nom, classe, matières, profil complet). Les activités, les cours et
+   les exercices ne comptent pas : une suppression rendrait sinon une copie « plus pauvre » et l'ancienne
+   copie, qui contient encore l'élément supprimé, reprendrait le dessus au rechargement. Entre deux copies
+   de même profil, la plus récente gagne. */
+function compteRichesseProfil(data) {
+    if (!compteUtile(data)) return 0;
+    var n = data.profilComplet ? 40 : 0;
+    if (data.userName) n += 4;
+    if (data.ibYear) n += 2;
+    if (Array.isArray(data.subjects)) n += Math.min(data.subjects.length, 6) * 3;
+    if (Array.isArray(data.optionalSubjects)) n += Math.min(data.optionalSubjects.length, 6) * 2;
+    return n;
+}
+
 function compteRichesse(data) {
     if (!compteUtile(data)) return 0;
     var n = data.profilComplet ? 40 : 0;
@@ -74,8 +88,8 @@ function compteChoisirProfil(a, b) {
     if (ua && !ub) return a;
     if (ub && !ua) return b;
     if (!ua && !ub) return null;
-    var ra = compteRichesse(a);
-    var rb = compteRichesse(b);
+    var ra = compteRichesseProfil(a);
+    var rb = compteRichesseProfil(b);
     if (ra !== rb) return ra > rb ? a : b;
     var ca = !!(a && a.profilComplet);
     var cb = !!(b && b.profilComplet);
@@ -148,8 +162,8 @@ function compteFusionnerProfils(copies) {
     var utiles = tous.filter(function (c) { return compteUtile(c); });
     if (!utiles.length) return null;
     utiles.sort(function (a, b) {
-        var ra = compteRichesse(a);
-        var rb = compteRichesse(b);
+        var ra = compteRichesseProfil(a);
+        var rb = compteRichesseProfil(b);
         if (ra !== rb) return rb - ra;
         return (Date.parse(b.savedAt) || 0) - (Date.parse(a.savedAt) || 0);
     });
@@ -545,7 +559,7 @@ function compteEquivalent(a, b) {
 function compteDoitGarderLie(ancien, courant) {
     if (!compteUtile(ancien)) return false;
     if (!compteUtile(courant)) return true;
-    if (compteRichesse(ancien) > compteRichesse(courant)) return true;
+    if (compteRichesseProfil(ancien) > compteRichesseProfil(courant)) return true;
     if (ancien.profilComplet && !courant.profilComplet) return true;
     return false;
 }
@@ -1499,7 +1513,28 @@ function compteHachage(texte) {
     }
     return texte.length + ':' + h.toString(16);
 }
+/* Les dates de modification de chaque champ (modifieChamps, modifieAt) sont ajoutées au chargement
+   de la mémoire, pas par l'élève : elles ne comptent pas comme une modification locale. */
+function compteSansHorodatages(valeur) {
+    if (Array.isArray(valeur)) return valeur.map(compteSansHorodatages);
+    if (!valeur || typeof valeur !== 'object') return valeur;
+    var copie = {};
+    Object.keys(valeur).forEach(function (k) {
+        if (k === 'modifieChamps' || k === 'modifieAt') return;
+        copie[k] = compteSansHorodatages(valeur[k]);
+    });
+    return copie;
+}
 function compteEmpreinteLocale(data) {
+    try {
+        var copie = JSON.parse(JSON.stringify(data || {}));
+        COMPTE_EMPREINTE_EXCLUS.forEach(function (k) { delete copie[k]; });
+        return compteHachage(JSON.stringify(compteSansHorodatages(copie)));
+    } catch (e) { return ''; }
+}
+/* Ancienne empreinte (avec les dates de modification) : une empreinte enregistrée avant cette
+   correction reste reconnue, pour qu'aucun appareil ne prenne sa copie pour une modification. */
+function compteEmpreinteAvecHorodatages(data) {
     try {
         var copie = JSON.parse(JSON.stringify(data || {}));
         COMPTE_EMPREINTE_EXCLUS.forEach(function (k) { delete copie[k]; });
@@ -1519,7 +1554,7 @@ function compteVueEcrire(texteNuage, empreinteLocale) {
 function compteLocalModifie(data) {
     var vue = compteVueLire();
     if (!vue || !vue.local) return true;
-    return compteEmpreinteLocale(data) !== vue.local;
+    return compteEmpreinteLocale(data) !== vue.local && compteEmpreinteAvecHorodatages(data) !== vue.local;
 }
 function compteTexteProgression(doc) {
     if (!doc || doc.progression === undefined || doc.progression === null) return '';
@@ -1758,10 +1793,74 @@ function compteRetrouverApresChargement(essai) {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         if (courant) compteFigerNom(session, [courant]);
         window.compteRestaurationEnCours = false;
+        compteEcouterNuage();
         return comptePublierProgression(session);
     }).catch(function () {
         window.compteRestaurationEnCours = false;
     });
+}
+
+/* Écoute en direct de progressions/{uid} : un changement fait sur un autre appareil arrive ici
+   sans attendre un rechargement. Même règle qu'au rechargement : la copie du nuage n'est appliquée
+   que si cet appareil n'a pas de modification locale non envoyée. Si une modification locale attend
+   son envoi, elle l'emporte (elle partira dans quelques secondes). */
+var compteEcouteArreter = null;
+var compteEcouteUid = '';
+function compteEcouterNuage() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.firestore) return;
+    if (!window.compteSession || !window.compteSession.sub) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid) return;
+    if (compteEcouteArreter && compteEcouteUid === user.uid) return;
+    compteEcouterArreter();
+    compteEcouteUid = user.uid;
+    try {
+        compteEcouteArreter = firebase.firestore().collection('progressions').doc(user.uid).onSnapshot(function (snap) {
+            if (!snap || !snap.exists) return;
+            var meta = snap.metadata || {};
+            /* Ce que cet appareil vient d'envoyer, et le cache local, ne sont pas un changement venu d'ailleurs. */
+            if (meta.hasPendingWrites || meta.fromCache) return;
+            compteAppliquerNuage(snap.data());
+        }, function (err) {
+            console.warn('Écoute du nuage interrompue', err);
+            compteEcouteArreter = null;
+            compteEcouteUid = '';
+        });
+    } catch (e) {
+        compteEcouteArreter = null;
+        compteEcouteUid = '';
+    }
+}
+function compteEcouterArreter() {
+    var arreter = compteEcouteArreter;
+    compteEcouteArreter = null;
+    compteEcouteUid = '';
+    if (typeof arreter === 'function') { try { arreter(); } catch (e) {} }
+}
+function compteAppliquerNuage(doc) {
+    if (window.compteRestaurationEnCours) return;
+    var session = window.compteSession;
+    if (!session || !session.sub) return;
+    var texte = compteTexteProgression(doc);
+    if (!texte) return;
+    var vue = compteVueLire();
+    if (vue && vue.nuage === compteHachage(texte)) return;   /* déjà connu de cet appareil */
+    if (compteProgressionTimer) return;                       /* un envoi local est prévu : il l'emporte */
+    var locale = null;
+    try { locale = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null; } catch (e) { locale = null; }
+    if (!locale || compteLocalModifie(locale)) return;        /* modification locale non envoyée */
+    var data = compteProgressionFirebase(doc);
+    if (!data) return;
+    window.compteRestaurationEnCours = true;
+    try {
+        compteBasculer(data, session);
+        /* Cette copie est maintenant la référence : elle ne sera pas renvoyée telle quelle. */
+        compteVueEcrire(texte, compteEmpreinteLocale(memoireLireEtat()));
+    } catch (e) {
+        console.warn('Copie du nuage non appliquée', e);
+    } finally {
+        window.compteRestaurationEnCours = false;
+    }
 }
 
 function comptePublierPartage(session) {
@@ -2029,6 +2128,7 @@ function compteOnCredential(resp) {
                relit l'ancienne copie et la renvoie au nuage. */
             if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
             compteRafraichir();
+            compteEcouterNuage();
             /* À chaque connexion : vérifier la fiche de la semaine dans Firebase. */
             if (user && typeof boiteVerifierSemaine === 'function') {
                 setTimeout(function () { try { boiteVerifierSemaine(true); } catch (e) {} }, 2000);
@@ -2175,6 +2275,7 @@ function compteDeconnecter() {
         compteMemoriserProprietaire(window.compteSession);
         if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
     }
+    compteEcouterArreter();
     window.compteSession = null;
     compteCopieEnAttente = false;
     compteJeton = '';

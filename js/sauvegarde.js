@@ -11,6 +11,10 @@ var sauvegardeDernier = '';
 
 function sauvegardeRiche(data) {
     if (!data || typeof data !== 'object' || data.efface) return 0;
+    /* Même règle que compte.js : seul le profil compte. Les activités et les cours sont des
+       contenus qui peuvent être supprimés ; une copie plus « riche » mais ancienne ne doit pas
+       les faire revenir. */
+    if (typeof compteRichesseProfil === 'function') return compteRichesseProfil(data);
     var n = data.profilComplet ? 50 : 0;
     if (data.userName) n += 4;
     if (data.ibYear) n += 2;
@@ -154,8 +158,11 @@ function sauvegardeApresMemoire() {
     if (!data || sauvegardeRiche(data) <= 0) return;
     var json = '';
     try { json = JSON.stringify(data); } catch (e) { return; }
-    if (json === sauvegardeDernier) return;
-    sauvegardeDernier = json;
+    /* savedAt est recalculé à chaque lecture : il ne compte pas comme un changement. */
+    var sansDate = '';
+    try { sansDate = JSON.stringify(Object.assign({}, data, { savedAt: '' })); } catch (e) { return; }
+    if (sansDate === sauvegardeDernier) return;
+    sauvegardeDernier = sansDate;
     var sub = window.compteSession && window.compteSession.sub;
     sauvegardeEcrireLocal('locale', data, false);
     if (sub) {
