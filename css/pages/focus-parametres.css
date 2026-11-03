@@ -469,8 +469,8 @@
 .focus-tiroir-menu, .focus-tiroir-contenu { scrollbar-width: none; -ms-overflow-style: none; }
 .focus-tiroir-menu::-webkit-scrollbar, .focus-tiroir-contenu::-webkit-scrollbar { display: none; width: 0; height: 0; }
 
-/* Page Pomodoro : pas de barre de défilement à droite (le défilement reste possible à la molette et au doigt). */
-html:has(#panelPomodoro.active) { scrollbar-width: none; -ms-overflow-style: none; }
-html:has(#panelPomodoro.active)::-webkit-scrollbar { display: none; width: 0; height: 0; }
-#panelPomodoro.active, #panelPomodoro.active * { scrollbar-width: none; -ms-overflow-style: none; }
-#panelPomodoro.active::-webkit-scrollbar, #panelPomodoro.active *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+
+/* Pages Minuteur et Séance : la vitrine du site (barre du haut, bannière, sections, pied de page)
+   n'est plus dans le document. Sans elle, la page tient dans la fenêtre : plus de barre à droite. */
+html:has(#panelPomodoro.active) #app-pages > :is(nav, section, footer),
+html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display: none !important; }
