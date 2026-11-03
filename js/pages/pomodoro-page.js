@@ -443,8 +443,7 @@ function focusPeindreAccueil() {
         var heure = new Date().getHours();
         var mot = heure < 18 ? 'Bonjour' : 'Bonsoir';
         var nom = (typeof userName !== 'undefined' && userName) ? String(userName) : '';
-        var date = focusDateTexte(focusJourIndex());
-        bonjour.textContent = mot + (nom ? ' ' + nom : '') + (date ? ' · ' + date : '');
+        bonjour.textContent = mot + (nom ? ' ' + nom : '');
     }
 
     var total = 0;

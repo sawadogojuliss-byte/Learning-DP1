@@ -182,7 +182,7 @@ function focusChoisirCategorieCitation(categorie) {
 function focusPeindreCitation() {
     var texte = focusCitationDuJour();
     var visible = focusLireReglages().citation;
-    ['focusCitation', 'focusAccueilCitation'].forEach(function (id) {
+    ['focusCitation'].forEach(function (id) {
         var el = document.getElementById(id);
         if (!el) return;
         if (el.textContent !== texte) el.textContent = texte;
@@ -574,15 +574,6 @@ function focusDemarrerEnchainement() {
     focusPeindre();
 }
 
-/* Le bouton-roue de la séance : ouvre le minuteur avec le menu Paramètres. */
-function accueilOuvrirParametres() {
-    if (typeof memoireAller === 'function') memoireAller('pomodoro');
-    else if (typeof navigateTo === 'function') navigateTo('pomodoro');
-    setTimeout(function () {
-        var panneau = document.getElementById('focusReglages');
-        if (panneau && panneau.hidden && typeof focusBasculerReglages === 'function') focusBasculerReglages();
-    }, 0);
-}
 
 focusConstruireChoix();
 if (!window.__focusEchap) {

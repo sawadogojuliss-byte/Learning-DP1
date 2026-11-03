@@ -32,8 +32,8 @@ ok(blocPomodoro.indexOf('🍅') !== -1, 'le menu Pomodoro doit montrer une tomat
 ok(blocPomodoro.indexOf('⏱') === -1, 'le menu Pomodoro ne doit plus montrer le minuteur ⏱️');
 
 ok(pomodoroHtml.indexOf('id="focusBtnSon"') !== -1, 'le minuteur Pomodoro doit garder son bouton Sons');
-ok(seancesHtml.indexOf('id="accueilBtnSons"') !== -1 && seancesHtml.indexOf('focusBasculerSonsAccueil()') !== -1,
-    'la page Séance du jour doit avoir le bouton Sons');
+ok(seancesHtml.indexOf('id="accueilBtnSons"') === -1 && seancesHtml.indexOf('focusBasculerSonsAccueil()') === -1,
+    'la page Séance du jour ne doit plus avoir le bouton Sons (il reste sur le minuteur)');
 ok(musiqueJs.indexOf('accueilSonsGrille') !== -1, 'le panneau Sons de la page Séance manque');
 ok(musiqueJs.indexOf('focusFermerMusique') !== -1, 'la fermeture des panneaux musique manque');
 ok(registreJs.indexOf('js/pages/musique.js') !== -1, 'le script musique.js manque au registre');

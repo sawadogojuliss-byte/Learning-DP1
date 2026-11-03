@@ -26,7 +26,7 @@ var boot = lire('js/boot.js');
 /* ── 1. Citation en haut, sans heure ── */
 ok(minuteur.indexOf('id="focusCitation"') !== -1, 'le minuteur doit avoir la citation en haut à droite');
 ok(minuteur.indexOf('id="focusHeure"') === -1, 'l\'heure ne doit plus être affichée sur le minuteur');
-ok(seances.indexOf('id="focusAccueilCitation"') !== -1, 'la séance doit avoir la citation en haut à droite');
+ok(seances.indexOf('id="focusAccueilCitation"') === -1, 'la page Séance ne doit plus afficher de citation');
 ok(seances.indexOf('id="focusAccueilHeure"') === -1, 'l\'heure ne doit plus être affichée sur la séance');
 ok(minuteur.indexOf('Format de l\'heure') === -1 && minuteur.indexOf('id="focusChoixFormat"') === -1, 'la carte « Format de l\'heure » doit disparaître');
 
@@ -59,10 +59,10 @@ ok(/id="focusBtnReglages"[^>]*aria-label="Paramètres"/.test(minuteur), 'le bout
 ok(minuteur.indexOf('title="Paramètres"') === -1 && seances.indexOf('title="Paramètres"') === -1, 'aucune info-bulle « Paramètres » au survol des boutons (pas de title)');
 ok(!/id="focusBtnReglages"[\s\S]*?<\/button>/.test(minuteur) || !/id="focusBtnReglages"[\s\S]*?>Paramètres<\/button>/.test(minuteur),
     'le bouton du minuteur ne doit pas afficher le mot Paramètres (icône seule)');
-ok(seances.indexOf('id="accueilBtnParametres"') !== -1 && seances.indexOf('accueilOuvrirParametres()') !== -1,
-    'la séance doit avoir le bouton Paramètres en bas');
-ok(/id="accueilBtnParametres"[^>]*aria-label="Paramètres"/.test(seances), 'le bouton de la séance doit avoir aria-label="Paramètres"');
-ok(!/id="accueilBtnParametres"[\s\S]*?>Paramètres<\/button>/.test(seances), 'le bouton de la séance ne doit pas afficher le mot Paramètres');
+ok(seances.indexOf('id="accueilBtnParametres"') === -1 && seances.indexOf('accueilOuvrirParametres()') === -1,
+    'la page Séance ne doit plus avoir le bouton Paramètres : il est seulement sur le minuteur');
+ok(seances.indexOf('id="accueilBtnSons"') === -1 && seances.indexOf('focusBasculerSonsAccueil()') === -1,
+    'la page Séance ne doit plus avoir le bouton Sons : il est seulement sur le minuteur');
 ok(minuteur.indexOf('aria-label="Durées"') === -1, 'l\'ancien bouton « Durées » doit disparaître');
 ok(minuteur.indexOf('focus-bouton-parametres') === -1 && !/id="focusReglages"[^>]*focus-panneau/.test(minuteur),
     'les anciennes classes focus-bouton-parametres et focus-panneau ne doivent plus servir aux paramètres');
