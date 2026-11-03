@@ -1138,10 +1138,8 @@ function focusRemplirDurees() {
 /* Texte de la question : rappelle le nombre choisi. */
 function focusPeindreSeances(n) {
     var champ = document.getElementById('focusDureeSeances');
-    var aide = document.getElementById('focusSeancesAide');
     var nombre = focusBorner(n === undefined ? (champ && champ.value) : n, 4, 1, 12);
     if (champ && champ.value !== String(nombre)) champ.value = String(nombre);
-    if (aide) aide.textContent = 'Après ' + nombre + (nombre > 1 ? ' séances' : ' séance') + ' de révision, la pause longue arrive.';
 }
 
 /* Boutons − et + : un pas à la fois, entre 1 et 12. */

@@ -412,7 +412,6 @@
 }
 .focus-page .focus-stepper input::-webkit-inner-spin-button,
 .focus-page .focus-stepper input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.focus-page .focus-seances-aide { margin: 0; font-size: 0.8rem; color: var(--focus-menthe); }
 .focus-page input[type="number"] {
     width: 4.3rem;
     padding: 0.42rem 0.5rem;

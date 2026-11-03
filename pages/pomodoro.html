@@ -115,7 +115,6 @@
                                 <input id="focusDureeSeances" type="number" min="1" max="12" value="4" aria-labelledby="focusSeancesQuestion" onchange="focusSauverDurees()">
                                 <button type="button" onclick="focusAjusterSeances(1)" aria-label="Une séance de plus">+</button>
                             </div>
-                            <p class="focus-seances-aide" id="focusSeancesAide">Après 4 séances de révision, la pause longue arrive.</p>
                         </div>
                         <h3>Durées</h3>
                         <div class="focus-durees">
@@ -141,9 +140,8 @@
                     </div>
                 </section>
                 <section class="focus-tiroir-page" data-page="citations" hidden>
-                    <header class="focus-page-titre"><h2>Citations</h2></header>
+                    <header class="focus-page-titre"><h2>Citations</h2><p>Les citations se trouvent en haut à droite.</p></header>
                     <div class="focus-carte">
-                        <p>Les citations se trouvent en haut à droite.</p>
                         <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
                         <label class="focus-interrupteur focus-citation-bouton"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
                     </div>
