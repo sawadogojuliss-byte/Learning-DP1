@@ -202,7 +202,7 @@ function statsPeindreCartes(resume, serie) {
 /* Courbe lissée des minuteurs de concentration par jour de la semaine.
    Graphique compact : une zone dégradée sous la ligne, un point par jour passé,
    le jour en cours mis en valeur. Les jours à venir n'ont pas de point. */
-var STATS_COURBE = { largeur: 360, hauteur: 150, gauche: 16, droite: 344, haut: 40, base: 120 };
+var STATS_COURBE = { pas: 100, haut: 14, base: 104, largeur: 700, hauteur: 118 };
 
 function statsCourbeY(y) {
     return Math.min(STATS_COURBE.base, Math.max(STATS_COURBE.haut, y));
@@ -231,6 +231,8 @@ function statsSvg(nom, attributs) {
     return el;
 }
 
+/* Calendrier : 7 colonnes égales. Les valeurs (en haut), la courbe et les jours (en bas)
+   utilisent la même grille, donc chaque valeur tombe exactement au-dessus de son jour. */
 function statsPeindreSemaine(jours) {
     var conteneur = document.getElementById('statsSemaine');
     if (!conteneur) return;
@@ -251,10 +253,24 @@ function statsPeindreSemaine(jours) {
     sous.textContent = 'Cette semaine, du ' + premier.numero + ' ' + premier.mois + ' au ' + dernier.numero + ' ' + dernier.mois;
     conteneur.appendChild(sous);
 
-    var pas = (c.droite - c.gauche) / (jours.length - 1);
+    var zone = document.createElement('div');
+    zone.className = 'stats-courbe-zone';
+
+    /* Ligne des valeurs, en haut de chaque colonne. */
+    var lignePlus = document.createElement('div');
+    lignePlus.className = 'stats-courbe-valeurs';
+    jours.forEach(function (j) {
+        var v = document.createElement('span');
+        v.className = 'stats-courbe-valeur' + (j.aujourdhui ? ' is-aujourdhui' : '') + (j.futur ? ' is-futur' : '');
+        if (!j.futur) v.textContent = statsDuree(j.minutes);
+        lignePlus.appendChild(v);
+    });
+    zone.appendChild(lignePlus);
+
+    /* Centre de la colonne i : pas * i + pas / 2. */
     var points = jours.map(function (j, i) {
         var y = maximum > 0 ? c.base - (j.minutes / maximum) * (c.base - c.haut) : c.base;
-        return { x: c.gauche + i * pas, y: y, j: j };
+        return { x: c.pas * i + c.pas / 2, y: y, j: j };
     });
     var passes = points.filter(function (p) { return !p.j.futur; });
     var resume = jours.map(function (j) { return j.nom + ' ' + statsDuree(j.minutes); }).join(', ');
@@ -278,28 +294,24 @@ function statsPeindreSemaine(jours) {
             'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     }
 
-    /* Points simples ; valeur écrite en clair au-dessus de chaque point. */
     passes.forEach(function (p) {
-        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: p.j.aujourdhui ? '4.5' : '3.5', fill: '#6ee7b7' }));
-        /* Libellé au-dessus et décalé à droite : il ne croise pas la ligne qui descend vers le point. */
-        var aDroite = p.x > c.largeur - 60;
-        var valeur = statsSvg('text', { x: aDroite ? p.x - 7 : p.x + 7, y: Math.max(14, p.y - 9),
-            'text-anchor': aDroite ? 'end' : 'start',
-            fill: 'rgba(255,255,255,0.86)', 'font-size': '11', 'font-weight': p.j.aujourdhui ? '700' : '500' });
-        valeur.textContent = statsDuree(p.j.minutes);
-        svg.appendChild(valeur);
+        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: p.j.aujourdhui ? '5' : '4', fill: '#6ee7b7' }));
     });
 
-    /* Jours de la semaine en abscisse. */
-    points.forEach(function (p) {
-        var nom = statsSvg('text', { x: p.x, y: c.hauteur - 6, 'text-anchor': 'middle', 'font-size': '11',
-            'font-weight': p.j.aujourdhui ? '700' : '500', 'letter-spacing': '0.4',
-            fill: p.j.aujourdhui ? '#6ee7b7' : (p.j.futur ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.62)') });
-        nom.textContent = p.j.nom;
-        svg.appendChild(nom);
-    });
+    zone.appendChild(svg);
 
-    conteneur.appendChild(svg);
+    /* Jours de la semaine, en bas, une colonne par jour. */
+    var ligneJours = document.createElement('div');
+    ligneJours.className = 'stats-courbe-jours';
+    jours.forEach(function (j) {
+        var nom = document.createElement('span');
+        nom.className = (j.aujourdhui ? 'is-aujourdhui' : '') + (j.futur ? ' is-futur' : '');
+        nom.textContent = j.nom;
+        ligneJours.appendChild(nom);
+    });
+    zone.appendChild(ligneJours);
+
+    conteneur.appendChild(zone);
 }
 
 function statsPeindrePeriodes() {

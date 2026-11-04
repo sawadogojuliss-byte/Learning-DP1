@@ -709,8 +709,21 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 }
 .focus-page .stats-semaine-titre { margin: 0; font-size: 1.05rem; font-weight: 700; color: #fff; }
 .focus-page .stats-semaine-sous { margin: 0.25rem 0 1rem; font-size: 0.84rem; color: rgba(255, 255, 255, 0.6); }
-.focus-page .stats-courbe { display: block; width: 100%; max-width: 28rem; height: auto; margin: 0.2rem 0 0; overflow: visible; }
-.focus-page .stats-courbe text { font-family: inherit; }
+/* Calendrier : 7 colonnes égales ; valeurs en haut, courbe au milieu, jours en bas. */
+.focus-page .stats-courbe-zone { max-width: 40rem; }
+.focus-page .stats-courbe-valeurs,
+.focus-page .stats-courbe-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); text-align: center; }
+.focus-page .stats-courbe-valeurs { margin-bottom: 0.4rem; }
+.focus-page .stats-courbe-valeur {
+    font-size: clamp(0.62rem, 2.6vw, 0.8rem); font-weight: 600; color: rgba(255, 255, 255, 0.86);
+    white-space: nowrap; overflow: hidden; text-overflow: clip;
+}
+.focus-page .stats-courbe-valeur.is-aujourdhui { color: #6ee7b7; font-weight: 700; }
+.focus-page .stats-courbe-valeur.is-futur { color: transparent; }
+.focus-page .stats-courbe { display: block; width: 100%; height: auto; overflow: visible; }
+.focus-page .stats-courbe-jours { margin-top: 0.5rem; font-size: clamp(0.7rem, 2.8vw, 0.8rem); color: rgba(255, 255, 255, 0.62); }
+.focus-page .stats-courbe-jours .is-aujourdhui { color: #6ee7b7; font-weight: 700; }
+.focus-page .stats-courbe-jours .is-futur { color: rgba(255, 255, 255, 0.3); }
 @media (max-width: 400px) {
     .focus-page .stats-valeur { font-size: 1.35rem; }
 }
