@@ -4,6 +4,11 @@
      Script : js/pages/exercices.js
      ============================================================ -->
 <div class="app-panel exo-page" id="panelExercices">
+    <div class="exo-bg">
+        <div class="exo-glow exo-glow-1"></div>
+        <div class="exo-glow exo-glow-2"></div>
+        <div class="exo-glow exo-glow-3"></div>
+    </div>
     <div class="exo-page-wrapper">
         <!-- Header -->
         <header class="exo-header">
@@ -50,7 +55,9 @@
                     <div id="uploadedFileName" class="exo-file-chip" style="display:none;"></div>
 
                     <div class="exo-or">
+                        <span class="exo-or-line"></span>
                         <span class="exo-or-text">OU ÉCRIS TON EXERCICE</span>
+                        <span class="exo-or-line"></span>
                     </div>
                     <textarea id="exoTextInput" class="exo-textarea" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
                     <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-error"></p>
