@@ -3,6 +3,13 @@
 /* ─── PAGE PANELS ─── */
 .app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;animation:slideInRight 0.3s ease-out; }
 .app-panel.active { display:block; }
+
+/* Quand un panneau plein écran est ouvert, on bloque le défilement de la page de fond :
+   ainsi il n'y a qu'une seule barre de défilement, celle du panneau. */
+html:has(.app-panel.active),
+body:has(.app-panel.active) {
+  overflow: hidden;
+}
 @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
 /* ─── MOOD BUTTONS ─── */
 .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
@@ -12,6 +19,14 @@
 .exo-card { background:white;border:2px solid #e5e7eb;border-radius:1rem;padding:1rem;transition:all 0.2s;position:relative;overflow:hidden; }
 .exo-card::before { content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(to bottom,#10b981,#059669); }
 .exo-card:hover { border-color:#a7f3d0;box-shadow:0 8px 24px rgba(16,185,129,0.1); }
+
+/* ─── TITRE MES EXERCICES ─── */
+.exo-entete-titre {
+  color: transparent !important;
+  background: linear-gradient(90deg, #059669, #10b981, #34d399);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 /* ─── TIME SLOT CHIPS ─── */
 .slot-chip { padding:0.5rem 0.875rem;border-radius:9999px;border:2px solid #a7f3d0;background:#ecfdf5;color:#047857;font-weight:600;font-size:0.8rem;cursor:pointer;transition:all 0.2s; }
 .slot-chip:hover,.slot-chip.selected { background:#10b981;color:white;border-color:#10b981;transform:scale(1.04); }
