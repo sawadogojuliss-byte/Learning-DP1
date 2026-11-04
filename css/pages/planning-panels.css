@@ -1,8 +1,17 @@
 /* Styles des panneaux Planning, Soutien et Exercices */
 .menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
 /* ─── PAGE PANELS ─── */
-.app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;animation:slideInRight 0.3s ease-out; }
-.app-panel.active { display:block; }
+.app-panel { display:none;position:fixed;inset:0;z-index:9999;background:#fff;overflow-y:auto;overscroll-behavior:contain;animation:slideInRight 0.3s ease-out; }
+.app-panel.active { display:block !important; }
+/* Voile blanc opaque pour masquer complètement le planning derrière le panneau */
+.app-panel.active::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:#fff;
+    opacity:1;
+}
 @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
 /* ─── MOOD BUTTONS ─── */
 .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
