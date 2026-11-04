@@ -2,7 +2,15 @@
 .menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
 /* ─── PAGE PANELS ─── */
 .app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;overscroll-behavior:contain;animation:slideInRight 0.3s ease-out; }
-.app-panel.active { display:block; }
+.app-panel.active { display:block;background:#fff !important;opacity:1 !important;z-index:200 !important; }
+/* Voile blanc opaque derrière chaque panneau pour masquer complètement le planning */
+.app-panel.active::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    z-index:-1;
+    background:#fff;
+}
 
 /* Éviter les doubles barres de défilement : un seul niveau de scroll par conteneur ouvert */
 [role="dialog"], [style*="position:fixed"][style*="overflow-y:auto"], .add-modal { overscroll-behavior: contain; }
@@ -24,7 +32,7 @@ body:has(.app-panel.active) {
 .exo-card:hover { border-color:#a7f3d0;box-shadow:0 8px 24px rgba(16,185,129,0.1); }
 
 /* ─── PAGE MES EXERCICES : esthétique améliorée ─── */
-.exo-page { width:100%;height:100%;padding:0 1rem 4rem;box-sizing:border-box; }
+.exo-page { width:100%;height:100%;padding:0 1rem 4rem;box-sizing:border-box;background:#fff; }
 .exo-entete { position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid #e5e7eb;padding:0.875rem 0;margin-bottom:1.5rem; }
 .exo-entete-bar { display:flex;align-items:center;justify-content:space-between;gap:0.75rem; }
 .exo-entete-gauche { display:flex;align-items:center;gap:0.75rem; }
