@@ -765,13 +765,20 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 .focus-page .focus-compteur-sous { margin: 1.1rem 0 0.2rem; font-size: 1rem; font-weight: 700; color: #fff; }
 .focus-page .focus-compteur-explic { margin: 0 0 0.8rem; font-size: 0.84rem; color: rgba(255, 255, 255, 0.6); }
 
-/* Tuiles des compteurs : même photo « Lumière » que le minuteur, voile sombre pour la lisibilité. */
+/* Tuiles des compteurs : même photo « Lumière » que le minuteur, voile sombre pour la lisibilité,
+   et même pourtour que les vignettes de thèmes (bordure translucide et ombre douce). */
 .focus-page .focus-tuile-compteur {
     background-image:
         linear-gradient(180deg, rgba(2, 12, 9, 0.18) 0%, rgba(2, 12, 9, 0.5) 100%),
         url('../../images/pomodoro/mini/lumiere.webp?v=20261015p');
     background-size: cover; background-position: center;
     display: flex; align-items: center; justify-content: center;
+    border-color: rgba(110, 231, 183, 0.16);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+}
+.focus-page .focus-tuile-compteur + .focus-tuile-nom {
+    display: block; width: 100%; font-size: 0.85rem;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 /* Icônes regroupées dans une pastille translucide, bien centrée. */
 .focus-page .focus-compteur-apercu {

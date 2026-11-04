@@ -243,7 +243,7 @@ function statsPeindreSemaine(jours) {
     conteneur.textContent = '';
     var titre = document.createElement('p');
     titre.className = 'stats-semaine-titre';
-    titre.textContent = 'Calendrier de concentration';
+    titre.textContent = 'Calendrier de concentration hebdomadaire';
     conteneur.appendChild(titre);
 
     var sous = document.createElement('p');

@@ -72,7 +72,9 @@ function focusCompteurEtat() {
     var n = typeof focusDurees === 'function' ? focusDurees().seances : 4;
     var c = Math.max(0, Math.floor(Number(focusEtat.cycles) || 0));
     var reste = c % n;
-    var plein = reste;
+    /* Dès qu'une séance de concentration démarre, son compteur s'allume (même avant la fin). */
+    var seanceCommencee = focusEtat.mode === 'focus' && (focusEtat.running || focusEtat.restant < focusEtat.total);
+    var plein = reste + (seanceCommencee ? 1 : 0);
     if (focusEtat.mode === 'long' && c > 0 && reste === 0) plein = n;
     return { n: n, plein: Math.min(n, plein) };
 }
