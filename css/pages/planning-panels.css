@@ -1,8 +1,48 @@
 /* Styles des panneaux Planning, Soutien et Exercices */
 .menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
 /* ─── PAGE PANELS ─── */
-.app-panel { display:none;position:fixed;inset:0;z-index:99999;background:#fff;overflow-y:auto;overscroll-behavior:contain;animation:slideInRight 0.3s ease-out; }
-.app-panel.active { display:block !important;width:100vw !important;height:100vh !important;background:#fff !important;opacity:1 !important;top:0 !important;left:0 !important; }
+.app-panel {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:#fff;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    animation:slideInRight 0.3s ease-out;
+}
+
+.app-panel.active {
+    display:block !important;
+    width:100vw !important;
+    height:100vh !important;
+    min-height:100vh !important;
+    background:#fff !important;
+    opacity:1 !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+}
+
+/* Voile blanc opaque plein écran pour masquer totalement tout contenu derrière le panneau */
+.app-panel.active::before {
+    content:'';
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    z-index:-1 !important;
+    background:#fff !important;
+    opacity:1 !important;
+}
+
+/* S'assurer qu'aucun autre élément ne s'affiche au-dessus du panneau quand il est ouvert */
+html:has(.app-panel.active),
+body:has(.app-panel.active) {
+    overflow:hidden !important;
+}
 @keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
 /* ─── MOOD BUTTONS ─── */
 .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
