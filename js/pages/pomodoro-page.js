@@ -241,10 +241,11 @@ function focusOuvrirSeances() {
     if (accueil) accueil.hidden = false;
     var page = document.getElementById('focusPage');
     if (page) page.hidden = true;
-    focusSeanceMinuteur = null;
-    focusEtat.run = false;
-    focusEtat.serie = 0;
-    try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
+    /* une série en cours garde son lien : un retour à la liste ne l'interrompt pas */
+    if (!focusEtat.run) {
+        focusSeanceMinuteur = null;
+        try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
+    }
     focusPeindreFlamme();
     focusPeindre();
     focusChoisirSeance();
@@ -275,10 +276,9 @@ function focusOuvrirMinuteur() {
     if (accueil) accueil.hidden = true;
     var page = document.getElementById('focusPage');
     if (page) page.hidden = false;
-    if (!focusEntreeDepuisSeance) {
+    /* une série en cours (chrono lancé, même après un rechargement) garde son lien */
+    if (!focusEntreeDepuisSeance && !focusEtat.run) {
         focusSeanceMinuteur = null;
-        focusEtat.run = false;
-        focusEtat.serie = 0;
         try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
     }
     focusEntreeDepuisSeance = false;
@@ -744,7 +744,9 @@ function focusBasculer() {
         return;
     }
     if (focusEtat.restant <= 0) focusEtat.restant = focusEtat.total;
-    if (focusEtat.mode === 'focus' && focusSeanceMinuteur && !focusEtat.run) {
+    /* une série (compteurs) commence à la première concentration lancée ;
+       l'enchaînement automatique, lui, n'existe que pour une séance de révision */
+    if (focusEtat.mode === 'focus' && !focusEtat.run) {
         focusEtat.run = true;
         focusEtat.serie = 0;
     }
@@ -804,17 +806,19 @@ function focusPhaseSuivante(silencieux) {
     }
     focusEtat.running = false;
     focusStopIntervalle();
-    var serie = focusEnchainementSeance() && !silencieux;
-    /* Hors série, le chronomètre s'arrête à la fin de la phase : la suivante est
-       proposée avec sa durée, jamais lancée (sauf option d'enchaînement). */
+    /* Enchaînement automatique : séance de révision seulement, et pas au rattrapage. */
+    var chaine = focusEnchainementSeance() && !silencieux;
 
     if (fini === 'focus') {
         focusEtat.cycles += 1;
-        if (serie) {
+        /* La série compte chaque concentration terminée, minuteur libre compris. */
+        if (focusEtat.run) {
             focusEtat.serie = Math.min(focusDurees().seances, focusEtat.serie + 1);
-            if (focusEtat.serie >= focusDurees().seances) {
+            if (focusEtat.serie >= focusDurees().seances) focusEtat.run = false;
+        }
+        if (chaine) {
+            if (!focusEtat.run) {
                 /* Dernière séance de la série : fin, sans pause. */
-                focusEtat.run = false;
                 focusChoisirMode('focus', false);
                 if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(2);
                 focusPeindre();
@@ -833,7 +837,7 @@ function focusPhaseSuivante(silencieux) {
             if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
             return;
         }
-        /* Minuteur libre : comportement d'origine (la phase suivante est proposée). */
+        /* Minuteur libre : la phase suivante est proposée, jamais lancée d'elle-même. */
         var modePause = focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short';
         /* la pause annoncée est celle de la configuration de l'élève,
            pas une valeur écrite dans le site */
@@ -844,7 +848,7 @@ function focusPhaseSuivante(silencieux) {
         else focusBip(2);
     } else {
         focusChoisirMode('focus', false);
-        if (serie) {
+        if (chaine) {
             /* Même son qu'à la fin d'une séance, puis la concentration reprend seule. */
             if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(1);
             focusLancerPhase();

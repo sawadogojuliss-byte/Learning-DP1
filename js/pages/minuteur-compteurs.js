@@ -2,8 +2,9 @@
    COMPTEURS DE MINUTERIE — Paramètres > Minuteur > Compteurs
 
    Une icône par séance choisie (Durées > « Combien de séances »).
-   Série de révision : au lancement, la 1re icône s'allume dès que la
-   concentration démarre ; chaque séance terminée allume la suivante.
+   Série : au lancement, la 1re icône s'allume dès que la concentration
+   démarre ; chaque concentration terminée allume la suivante. Une série
+   commence à la première concentration lancée et se termine à N séances.
    Les compteurs suivent la série (focusEtat.serie), pas le cumul de la journée.
 
    Deux familles :
