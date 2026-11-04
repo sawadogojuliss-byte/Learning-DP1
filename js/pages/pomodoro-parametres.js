@@ -49,7 +49,6 @@ var FOCUS_CITATIONS = {
 
 var FOCUS_STYLES_TEMPS = [
     { id: 'defaut', nom: 'Par défaut' },
-    { id: 'horloge', nom: 'Horloge à palettes' },
     { id: 'barre', nom: 'Barre de progression' },
     { id: 'jauge', nom: 'Jauge' },
     { id: 'matrice', nom: 'Matrice de points' },
@@ -90,7 +89,6 @@ var focusOngletCourant = 'horloge';
 /* Aperçus en mini-dessins, dans les tuiles de style (contenu fixe). */
 var FOCUS_MINI = {
     defaut: '<span class="focus-mini-texte">25:00</span>',
-    horloge: '<span class="focus-mini-flip"><b>2</b><b>5</b><b>0</b><b>0</b></span>',
     barre: '<span class="focus-mini-texte">25:00</span><span class="focus-mini-barre"><i></i></span>',
     jauge: '<svg class="focus-mini-jauge" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="16" class="focus-mini-anneau-fond"/><circle cx="20" cy="20" r="16" class="focus-mini-anneau" transform="rotate(-90 20 20)" stroke-dasharray="100.5" stroke-dashoffset="20"/></svg>',
     matrice: '<span class="focus-mini-matrice">' + new Array(FOCUS_POINTS).join('<i></i>') + '<i></i></span>',
@@ -441,7 +439,6 @@ function focusPeindreStyleTemps(r) {
         visuel.innerHTML = focusHtmlStyle(style);
     }
     visuel.hidden = style === 'defaut' || style === 'barre';
-    temps.hidden = style === 'horloge';
     /* Jauge, matrice de points et camembert : le temps passe petit, sous le graphique. */
     var dessous = style === 'jauge' || style === 'matrice' || style === 'camembert';
     temps.classList.toggle('is-dessous', dessous);
@@ -449,13 +446,7 @@ function focusPeindreStyleTemps(r) {
     if (!dessous && visuel.nextElementSibling === temps) visuel.before(temps);
 
     var texte = focusTexte(focusEtat.restant);
-    if (style === 'horloge') {
-        var cases = visuel.querySelectorAll('.focus-flip-case b');
-        var chiffres = texte.replace(':', '').split('');
-        for (var k = 0; k < cases.length && k < chiffres.length; k++) {
-            if (cases[k].textContent !== chiffres[k]) cases[k].textContent = chiffres[k];
-        }
-    } else if (style === 'jauge') {
+    if (style === 'jauge') {
         var arc = visuel.querySelector('.focus-jauge-arc');
         if (arc) arc.setAttribute('stroke-dashoffset', (FOCUS_CERCLE * (1 - fraction)).toFixed(2));
     } else if (style === 'matrice') {
@@ -485,13 +476,7 @@ function focusSecteur(fraction) {
 /* Contenu d'un affichage du minuteur (créé quand le style change). */
 function focusHtmlStyle(style) {
     var i, html = '';
-    if (style === 'horloge') {
-        html = '<div class="focus-flip">' +
-            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
-            '<span class="focus-flip-sep">:</span>' +
-            '<span class="focus-flip-case"><b>0</b></span><span class="focus-flip-case"><b>0</b></span>' +
-            '</div>';
-    } else if (style === 'jauge') {
+    if (style === 'jauge') {
         html = '<svg class="focus-jauge" viewBox="0 0 100 100" aria-hidden="true">' +
             '<circle class="focus-jauge-fond" cx="50" cy="50" r="45"></circle>' +
             '<circle class="focus-jauge-arc" cx="50" cy="50" r="45" transform="rotate(-90 50 50)" ' +

@@ -84,9 +84,11 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
 ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
 ok(script.indexOf("var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques']") !== -1, 'ordre des rubriques incorrect');
-['Par défaut', 'Horloge à palettes', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
+['Par défaut', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
 });
+ok(script.indexOf('Horloge à palettes') === -1 && script.indexOf("id: 'horloge'") === -1, 'l’option « Horloge à palettes » doit être retirée des réglages');
+ok(css.indexOf('.focus-flip') === -1 && script.indexOf('focus-flip') === -1, 'le style « Horloge à palettes » ne doit plus laisser de code');
 ['Gras par défaut', 'Léger par défaut', 'Doux', 'Bulle', 'Minimal léger', 'Minimal', 'Serif',
  'Serif condensé', 'Sportif', 'Très large', 'Digital', 'Manuscrite'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'police manquante : ' + nom);
