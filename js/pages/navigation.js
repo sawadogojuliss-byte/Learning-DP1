@@ -102,3 +102,11 @@ function navigateTo(page) {
     /* Verrouiller le défilement du fond quand un panneau est ouvert, pour une seule barre. */
     verrouillerDefilement(panneauxOuverts());
 }
+
+/* Au (re)chargement de la page, aucun panneau ne doit être actif par défaut :
+   ainsi seul le planning est visible et la page « Mes Exercices » ne s'affiche
+   pas par-dessus par erreur. */
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+    verrouillerDefilement(false);
+});
