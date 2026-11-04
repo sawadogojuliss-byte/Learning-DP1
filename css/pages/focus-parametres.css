@@ -761,3 +761,11 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 .focus-page .focus-compteur-apercu { margin: 0; max-width: 94%; gap: 0.35rem; }
 .focus-page .focus-compteur-apercu .focus-compteur-item { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 .focus-page .focus-compteur-apercu .focus-compteur-item svg { width: 0.85rem; height: 0.85rem; }
+
+/* Compteur de séances : petit, posé juste sous le mot CONCENTRATION (aligné à gauche de la rangée des modes). */
+.focus-page .focus-modes-zone { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; }
+.focus-page .focus-modes-zone:has(.focus-compteur:not(:empty)) { padding-bottom: 2.6rem; }
+.focus-page .focus-modes-zone .focus-compteur {
+    position: absolute; left: 0; bottom: 0.4rem; top: auto; margin: 0; max-width: none;
+    justify-content: flex-start; gap: 0.3rem;
+}
