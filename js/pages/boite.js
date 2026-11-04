@@ -1,0 +1,3409 @@
+/* ============================================================
+   Aide, Feedback, et les trois sections des quatre comptes.
+
+   Les messages sont privés. Ils sont écrits dans Firestore et
+   lisibles seulement par les quatre comptes Google admins : la
+   décision est prise par les règles Firebase, côté serveur, pas
+   par cette page. Rien ici ne contient d'adresse, de nom d'admin,
+   de mot de passe ni de nom de canal public.
+   ============================================================ */
+
+var BOITE_COLLECTION = 'boite'; /* archive conservée, jamais utilisée pour les nouveaux formulaires */
+var BOITE_PUBLIE = 'publie';
+/* Les semaines valides sont désormais publiées ; les archives restent intactes. */
+var BOITE_EMPLOIS_SUSPENDUS = false;
+var BOITE_COLLECTIONS = {
+    question: 'questions', feedback: 'feedbacks', emploi: 'emplois_du_temps',
+    reponse: 'reponses', profil: 'boite', profilpart: 'boite',
+    connexion: 'boite', annonce: 'publie', tutoriel: 'publie'
+};
+/* Les trois derniers noms ne sont lus que pour ne pas perdre les données
+   créées pendant la version précédente ; les nouveaux envois n'y vont pas. */
+var BOITE_PRIVEES = ['questions', 'feedbacks', 'emplois_du_temps', 'reponses', 'emplois', 'profils', 'connexions'];
+/* Adresses Google des quatre comptes personnels admins. C'est la seule
+   liste admin du site : l'accès réel reste contrôlé par firestore.rules
+   et storage.rules. Aucun nom n'est écrit dans le code. */
+var BOITE_ADMINS_EMAIL = [
+    'sawadogojuliss@gmail.com',
+    'faridsere86@gmail.com',
+    'ashleytamini10@gmail.com',
+    'rayyanouedraogo87@gmail.com'
+];
+var BOITE_EXPEDITEUR = 'ibstudyplan@gmail.com';
+var BOITE_FILE = 'studyPlanIB_boiteFile';
+var BOITE_EMPLOI_FILE = 'studyPlanIB_emploisEnAttente';
+var BOITE_VUS = 'studyPlanIB_boiteVus';
+var BOITE_EMPLOI_HASH = 'studyPlanIB_boiteEmploiHash';
+var BOITE_FICHE_ENVOI = 'studyPlanIB_boiteFicheEnvoi';
+var BOITE_COMPLET = 'studyPlanIB_boiteComplet';
+var BOITE_COMPLET_VERSION = '20261008b';
+var boiteListesCache = null;
+var boiteEnvoiEnCours = false;
+var boiteFirebasePromesse = null;
+var boiteSessionGeneration = 0;
+var aideBranchee = false;
+var feedbackBranche = false;
+var boiteAdminBranche = false;
+
+function boiteNormaliser(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        /* Les chiffres font partie des noms et des classes (E2E, DP2).
+           Les retirer fusionnait des élèves distincts et empêchait le
+           retrait ciblé de la fiche E2E Preparation · DP2. */
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function boiteMots(s) {
+    return boiteNormaliser(s).split(' ').filter(Boolean);
+}
+
+/* Les sections réservées s'affichent pour les quatre comptes Google
+   admins, reconnus par leur identifiant opaque. Un visiteur peut
+   toujours fabriquer une session locale : il verra alors des sections
+   vides, car les règles Firestore refusent la lecture. */
+var boiteAdminVerifie = false;
+var boiteAdminTente = false;
+
+function boiteEmailAdmin(session) {
+    var email = session && session.email ? String(session.email).trim().toLowerCase() : '';
+    return !!email && BOITE_ADMINS_EMAIL.indexOf(email) !== -1;
+}
+
+function boiteEstAdmin() {
+    if (boiteAdminVerifie) return true;
+    return boiteEmailAdmin(boiteSession());
+}
+
+/* Filet de sécurité : si la liste locale des identifiants ne reconnaît
+   pas un compte que les règles Firestore acceptent (identifiant
+   différent selon le fournisseur), la première lecture réussie le
+   rétablit comme admin — sans jamais ouvrir la lecture à un autre. */
+function boiteVerifierAdmin() {
+    if (boiteAdminVerifie || boiteAdminTente) return Promise.resolve(boiteEstAdmin());
+    if (!boiteSession()) return Promise.resolve(false);
+    boiteAdminTente = true;
+    var generation = boiteSessionGeneration;
+    return boiteFirebasePret().then(function (user) {
+        if (!user) { boiteAdminTente = false; return false; }
+        return firebase.firestore().collection(BOITE_COLLECTION).limit(1).get().then(function () {
+            if (generation !== boiteSessionGeneration) return false;
+            boiteAdminVerifie = true;
+            boiteMajMenu();
+            return true;
+        }, function () {
+            boiteAdminTente = false;
+            return false;
+        });
+    }).catch(function () { boiteAdminTente = false; return false; });
+}
+
+function boiteEchap(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function boiteDate(iso) {
+    try {
+        return new Date(iso).toLocaleString('fr-FR', {
+            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) {
+        return '';
+    }
+}
+
+function boiteId(prefix) {
+    return prefix + Date.now().toString(16) + Math.random().toString(16).slice(2, 10);
+}
+
+function boiteAppareil() {
+    var cle = 'studyPlanIB_appareil';
+    try {
+        var id = localStorage.getItem(cle);
+        if (id) return id;
+        id = 'a' + Date.now().toString(16) + Math.random().toString(16).slice(2, 10);
+        localStorage.setItem(cle, id);
+        return id;
+    } catch (e) {
+        return 'a-session';
+    }
+}
+
+function boiteEmailValide(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
+}
+
+function boiteFetch(url, options, ms) {
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var opts = Object.assign({}, options || {});
+    if (ctrl) opts.signal = ctrl.signal;
+    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, ms || 12000);
+    return fetch(url, opts).then(function (res) {
+        clearTimeout(timer);
+        return res;
+    }, function (err) {
+        clearTimeout(timer);
+        throw err;
+    });
+}
+
+/* ---------- Firestore : la seule serrure des messages ----------
+
+   Écrire ne demande aucun compte : la règle Firestore autorise la
+   création d'un message par n'importe qui. Lire exige un compte Google
+   dont l'adresse est dans la liste des admins — vérifié par Firebase,
+   pas par la page. Un visiteur qui bricole le code ne peut donc pas
+   lire les messages des autres. */
+
+function boiteFirebase() {
+    if (typeof compteChargerFirebase !== 'function') return Promise.reject(new Error('firebase'));
+    return compteChargerFirebase();
+}
+
+function boiteFirebasePret() {
+    if (!boiteFirebasePromesse) {
+        boiteFirebasePromesse = boiteFirebase().then(function () {
+            return new Promise(function (resolve) {
+                var fini = false;
+                var timer = setTimeout(function () {
+                    if (fini) return;
+                    fini = true;
+                    resolve();
+                }, 6000);
+                firebase.auth().onAuthStateChanged(function () {
+                    if (fini) return;
+                    fini = true;
+                    clearTimeout(timer);
+                    resolve();
+                });
+            });
+        }).catch(function (err) {
+            boiteFirebasePromesse = null;
+            throw err;
+        });
+    }
+    return boiteFirebasePromesse.then(function () {
+        return (window.firebase && firebase.auth() ? firebase.auth().currentUser : null) || null;
+    });
+}
+
+function boiteSansVides(record) {
+    try { return JSON.parse(JSON.stringify(record)); } catch (e) { return null; }
+}
+
+/* Lecture incrémentale : la première lecture prend tout, les suivantes
+   ne demandent que ce qui est arrivé depuis. Sans cela, la surveillance
+   de la boîte coûterait des milliers de lectures par heure. */
+var boiteBruts = [];
+var boiteIndexBruts = Object.create(null);
+var boiteDernierParCollection = Object.create(null);
+var boiteDernierScanComplet = Object.create(null);
+
+/* Les anciens messages ont « at » au premier niveau ; les nouveaux ont
+   la même date dans le seul groupe technique. On lit les deux formats sans
+   modifier l'historique et sans exposer la boîte aux non-admins. */
+/* Fiches d'emploi retirées de la vue du site uniquement, par identifiant du
+   document Firestore. Le document n'est ni modifié ni supprimé. */
+var BOITE_DOCS_MASQUES = {
+    JN4wP5IN9cIr6wSjiO4q: 1
+};
+
+/* Retire de la vue admin une fiche d'emploi du temps effacée par l'élève
+   (indicateur z_donnees_techniques.effaceParEleve). Le document reste dans la base. */
+function boiteDocMasque(nom, id, data) {
+    if (nom !== 'emplois_du_temps') return false;
+    if (BOITE_DOCS_MASQUES[String(id || '')]) return true;
+    var tech = data && data.z_donnees_techniques;
+    return !!(tech && tech.effaceParEleve === true);
+}
+
+function boiteLireCollection(nom, depuis, max, champDate) {
+    var date = champDate || 'at';
+    var base = firebase.firestore().collection(nom);
+    var requete = depuis ? base.where(date, '>', depuis) : base;
+    return requete.orderBy(date, depuis ? 'asc' : 'desc').limit(max || 400).get()
+        .then(function (snap) {
+            var out = [];
+            snap.forEach(function (doc) {
+                if (boiteDocMasque(nom, doc.id, doc.data())) return;
+                var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
+                if (data && data.type && data.id && data.at) {
+                    data.docId = doc.id;
+                    data.docColl = nom;
+                    out.push(data);
+                }
+            });
+            return out;
+        });
+}
+
+/* La liste admin est une archive, pas une fenêtre des 1200 derniers envois.
+   Les pages sont lues uniquement au premier chargement de la session ; les
+   rafraîchissements suivants restent incrémentaux. */
+function boiteLireCollectionHistorique(nom, champDate, depuis) {
+    var out = [];
+    var date = champDate || 'at';
+    var base = firebase.firestore().collection(nom);
+    if (depuis) base = base.where(date, '>', depuis);
+    function page(apres) {
+        var q = base.orderBy(date, depuis ? 'asc' : 'desc');
+        if (apres) q = q.startAfter(apres);
+        return q.limit(400).get().then(function (snap) {
+            snap.forEach(function (doc) {
+                if (boiteDocMasque(nom, doc.id, doc.data())) return;
+                var data = boiteMessageDepuisFirestore(nom, doc.data(), doc.id);
+                if (data && data.type && data.id && data.at) {
+                    data.docId = doc.id;
+                    data.docColl = nom;
+                    out.push(data);
+                }
+            });
+            return snap.docs && snap.docs.length === 400 ? page(snap.docs[snap.docs.length - 1]) : out;
+        });
+    }
+    return page(null);
+}
+
+function boiteAjouterBruts(items) {
+    (items || []).forEach(function (item) {
+        if (!item) return;
+        var cle = String(item.id || '') + '|' + String(item.at || '');
+        if (boiteIndexBruts[cle]) return;
+        boiteIndexBruts[cle] = true;
+        boiteBruts.push(item);
+    });
+    /* Ne pas perdre les anciens emplois lors du prochain rafraîchissement. */
+}
+
+/* Questions, feedbacks, emplois du temps et réponses ont chacun leur
+   collection. Si les règles refusent une écriture, on la signale à
+   l'appelant et la file locale la conserve pour réessayer : ne jamais
+   afficher « envoyé » après un repli silencieux dans l'archive. */
+/* Format lisible par un responsable dans la console Firestore. Elle trie
+   les champs par nom : 01 nom, 02 matières, 03 semaine. Les vrais créneaux
+   restent intacts sous z_donnees_techniques pour le planning du site. */
+/* Jour au format AAAA-MM-JJ (heure locale). */
+function boiteJourCle(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* Sous-section « Semaine actuelle » de chaque fiche : mêmes dates que le
+   calendrier (planningEnteteSemaine), numéro de semaine ISO et année ISO.
+   Elle change chaque lundi, parce que la semaine enregistrée change. */
+function boiteSemaineInfo(date) {
+    var lundi = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    lundi.setDate(lundi.getDate() - ((lundi.getDay() + 6) % 7));
+    var dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    var jeudi = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 3);
+    var jours = Math.round((jeudi - new Date(jeudi.getFullYear(), 0, 1)) / 86400000);
+    /* Même formatage que le calendrier : « 26 oct. – 1 nov. 2026 ». */
+    var court = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
+    return {
+        dates: court.format(lundi) + ' – ' + court.format(dimanche) + ' ' + dimanche.getFullYear(),
+        debut: boiteJourCle(lundi),
+        fin: boiteJourCle(dimanche),
+        numero: Math.floor(jours / 7) + 1,
+        annee: jeudi.getFullYear()
+    };
+}
+
+/* Indicateur d'effacement à garder dans une fiche. Il suit l'élève : si la
+   synchronisation le porte, chaque nouvelle semaine le reçoit aussi. Renvoie
+   null si la fiche n'est pas effacée. */
+function boiteEffacementGarde(sync, existant) {
+    if (sync && sync.effaceParEleve === true) return { effaceLe: sync.effaceLe || '' };
+    var tech = existant && existant.z_donnees_techniques;
+    if (tech && tech.effaceParEleve === true) return { effaceLe: tech.effaceLe || '' };
+    return null;
+}
+
+/* Faut-il renvoyer la fiche de cette semaine ? Oui si son document manque
+   sur le serveur, ou si la synchronisation pointe vers une autre semaine. */
+function boiteSemaineARefaire(sync, emploiExiste, semaine) {
+    return !emploiExiste || !sync || sync.semaine !== semaine;
+}
+
+function boiteEmploiPourFirestore(record, maintenant) {
+    if (!record || record.type !== 'emploi' || Object.prototype.hasOwnProperty.call(record, '03_emploi_du_temps')) return record;
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    var semaine = {};
+    (record.jours || []).forEach(function (jour) {
+        var rang = noms.indexOf(jour && jour.j);
+        if (rang === -1) return;
+        var cle = String(rang + 1).padStart(2, '0') + '_' + noms[rang];
+        semaine[cle] = (jour.s || []).slice().sort(function (a, b) {
+            return String(a && a.d || '').localeCompare(String(b && b.d || ''));
+        }).map(function (slot) {
+            var debut = String(slot && slot.d || '').trim();
+            var fin = String(slot && slot.f || '').trim();
+            function heureLisible(h) { return /^\d{1,2}:\d{2}$/.test(h) ? h.replace(':', 'h') : h; }
+            var periode = heureLisible(debut) + (fin ? ' – ' + heureLisible(fin) : '');
+            return (periode ? periode + '  ·  ' : '') + String(slot && slot.t || '').trim();
+        });
+    });
+    var technique = Object.assign({}, record);
+    ['type', 'id', 'at', 'nom', 'matieres'].forEach(function (champ) { delete technique[champ]; });
+    return {
+        type: 'emploi', id: record.id, at: record.at,
+        'Semaine actuelle': boiteSemaineInfo(maintenant || new Date()),
+        '01_nom_utilisateur': String(record.nom || 'Sans nom'),
+        '02_matieres': Array.isArray(record.matieres) ? record.matieres : [],
+        '03_emploi_du_temps': semaine,
+        z_donnees_techniques: technique
+    };
+}
+
+function boiteEmploiDepuisDocument(item) {
+    if (!item || item.type !== 'emploi' || !Object.prototype.hasOwnProperty.call(item, '03_emploi_du_temps')) return item;
+    var technique = item.z_donnees_techniques || {};
+    return Object.assign({}, technique, {
+        type: 'emploi', id: item.id, at: item.at,
+        /* L'identifiant du document Firestore doit survivre à la conversion. */
+        docId: item.docId, docColl: item.docColl,
+        nom: String(item['01_nom_utilisateur'] || ''),
+        matieres: Array.isArray(item['02_matieres']) ? item['02_matieres'] : [],
+        jours: Array.isArray(technique.jours) ? technique.jours : [],
+        semaine: technique.semaine || ''
+    });
+}
+
+/* Une fiche sans vrai créneau était envoyée dès l'inscription et créait
+   les documents vides vus dans la console. Même après la fin de la pause,
+   elle ne doit plus pouvoir partir. */
+function boiteEmploiAvecCreneaux(record) {
+    return !!(record && Array.isArray(record.jours) && record.jours.some(function (jour) {
+        return jour && Array.isArray(jour.s) && jour.s.some(function (slot) {
+            return slot && String(slot.d || '').trim() && String(slot.t || '').trim();
+        });
+    }));
+}
+
+function boiteLireAckEmploi(record) {
+    var cle = boiteCleFileEmploi(record);
+    var ack = boiteLireJson(BOITE_EMPLOI_HASH + ':' + encodeURIComponent(cle));
+    if (ack && ack.cle === cle) return ack;
+    ack = boiteLireJson(BOITE_EMPLOI_HASH); /* version ancienne, non partitionnée */
+    return ack && ack.cle === cle ? ack : null;
+}
+
+function boiteEcrireAckEmploi(record, ack) {
+    boiteEcrireJson(BOITE_EMPLOI_HASH + ':' + encodeURIComponent(ack.cle), ack);
+    boiteEcrireJson(BOITE_EMPLOI_HASH, ack); /* compatibilité avec les anciens onglets */
+}
+
+function boiteEmploiVideAutorise(record) {
+    /* Une semaine entièrement vidée est une édition, pas une inscription
+       vide : elle ne part que si cette personne a déjà une copie reçue. */
+    return !!(record && boiteLireAckEmploi(record));
+}
+
+/* À l'écriture, seules les informations de lecture restent à plat.
+   Le contact pour répondre et la date ISO utilisée pour trier résident
+   dans un unique groupe technique repliable dans la console Firebase. */
+function boiteMessagePourFirestore(record) {
+    if (!record || (record.type !== 'question' && record.type !== 'feedback')) return record;
+    var cleTexte = record.type === 'question' ? '04_question' : '04_feedback';
+    /* Une ancienne file locale peut être rejouée après le refus d'une
+       écriture à plat : garder l'heure originale dans la fiche lisible. */
+    var heure = record['01_heure_envoi'];
+    if (!heure && record.at) {
+        var date = new Date(record.at);
+        if (!isNaN(date.getTime())) {
+            heure = date.toLocaleString('fr-FR', {
+                timeZone: 'Africa/Ouagadougou',
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) + ' (Ouagadougou)';
+        }
+    }
+    var technique = {
+        type: record.type, id: record.id, at: record.at,
+        email_reponse: String(record.z_email_reponse || record.email || ''),
+        google_connecte: String(record.z_google_connecte || ''),
+        google_nom: String(record.z_google_nom || '')
+    };
+    var fiche = {
+        '01_heure_envoi': String(heure || ''),
+        '02_nom_utilisateur': String(record['02_nom_utilisateur'] || record.nom || 'Sans nom'),
+        z_donnees_techniques: technique
+    };
+    if (record['03_compte_gmail']) fiche['03_compte_gmail'] = String(record['03_compte_gmail']);
+    fiche[cleTexte] = String(record[cleTexte] || record.texte || '');
+    return fiche;
+}
+
+function boiteMessageDepuisFirestore(collection, data, identifiant) {
+    if (!data || !data.z_donnees_techniques ||
+        (collection !== 'questions' && collection !== 'feedbacks')) return data;
+    var technique = data.z_donnees_techniques;
+    var type = collection === 'questions' ? 'question' : 'feedback';
+    if (technique.type !== type) return null;
+    var cleTexte = type === 'question' ? '04_question' : '04_feedback';
+    return {
+        type: type, id: String(technique.id || identifiant || ''),
+        at: String(technique.at || ''),
+        nom: String(data['02_nom_utilisateur'] || ''),
+        texte: String(data[cleTexte] || ''),
+        email: String(technique.email_reponse || ''),
+        google: String(technique.google_connecte || ''),
+        googleNom: String(technique.google_nom || '')
+    };
+}
+
+function boiteGoogleActif() {
+    var session = typeof boiteSession === 'function' ? boiteSession() : null;
+    return !!(session && session.sub);
+}
+
+/* Lundi de la semaine, au format AAAA-MM-JJ (heure locale). */
+function boiteSemaineCle(date) {
+    var d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/* Identifiant stable de la fiche d'un élève pour une semaine : il ne révèle
+   pas l'identifiant du compte, et ne change pas d'un envoi à l'autre. */
+function boiteIdEmploi(uid) {
+    /* Identifiant de la fiche = UID de l'élève : le même que comptes/{uid}
+       et synchronisation/{uid}. Une seule fiche par élève, remplacée chaque semaine. */
+    return Promise.resolve(uid ? String(uid) : '');
+}
+
+/* Identifiant aléatoire de l'accusé de réception : jamais l'UID. */
+function boiteNouvelIdentifiant() {
+    var octets = new Uint8Array(20);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(octets);
+    else for (var k = 0; k < octets.length; k++) octets[k] = Math.floor(Math.random() * 256);
+    return Array.prototype.map.call(octets, function (b) {
+        return ('0' + b.toString(16)).slice(-2);
+    }).join('');
+}
+
+/* Vrai si l'administration a supprimé la fiche de cette semaine. La trace
+   se lit par identifiant seulement ; l'élève ne peut ni la créer ni l'effacer. */
+function boiteSemaineSupprimee(db, id) {
+    if (!id) return Promise.resolve(false);
+    return db.collection('suppressions_emplois').doc(id).get().then(function (snap) {
+        return !!(snap && snap.exists);
+    }, function () { return false; });
+}
+
+function boiteEcrireBoite(record) {
+    if (record && record.type === 'emploi') {
+        if (BOITE_EMPLOIS_SUSPENDUS) return Promise.reject(new Error('emploi_suspendu'));
+        if (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) return Promise.reject(new Error('emploi_vide'));
+    }
+    var propre = boiteSansVides(record);
+    var collection = propre && BOITE_COLLECTIONS[propre.type];
+    var maintenant = new Date();
+    if (collection === 'emplois_du_temps') propre = boiteEmploiPourFirestore(propre, maintenant);
+    if (collection === 'questions' || collection === 'feedbacks') propre = boiteMessagePourFirestore(propre);
+    if (!collection) return Promise.reject(new Error('record'));
+    return boiteFirebasePret().then(function (user) {
+        /* Élève connecté à Google sur cet appareil mais sans compte Firebase :
+           une fiche envoyée maintenant n'aurait ni identifiant Google ni
+           adresse, et ferait un doublon. Elle reste dans la file d'attente. */
+        if (collection === 'emplois_du_temps' && !user && boiteGoogleActif()) {
+            throw new Error('identite_en_attente');
+        }
+        if (collection === 'emplois_du_temps') {
+            var tech = propre.z_donnees_techniques;
+            tech.firebaseUid = user && user.uid ? user.uid : '';
+            /* Les attributs du compte viennent de Firebase Auth, jamais de
+               champs locaux modifiables par un autre utilisateur. */
+            if (user) {
+                var fournisseur = (user.providerData || []).filter(function (p) { return p && p.providerId === 'google.com'; })[0];
+                tech.googleSub = fournisseur && fournisseur.uid || '';
+                tech.email = user.email || '';
+                tech.google = tech.email;
+                tech.googleNom = user.displayName || '';
+            } else {
+                tech.googleSub = ''; tech.google = ''; tech.email = ''; tech.googleNom = '';
+            }
+        }
+        if (collection === 'emplois_du_temps') {
+            var db = firebase.firestore();
+            var semaine = boiteSemaineCle(maintenant);
+            propre.z_donnees_techniques.semaine = semaine;
+            if (!user || !user.uid) {
+                /* Élève sans compte Google : pas d'UID, donc pas de compte à relier.
+                   Sa fiche garde un identifiant aléatoire, comme avant. */
+                var sansCompte = db.collection(collection).doc();
+                var lotSansCompte = db.batch();
+                lotSansCompte.set(sansCompte, propre);
+                lotSansCompte.set(db.collection('receptions_emplois').doc(sansCompte.id), { recu: true });
+                return lotSansCompte.commit().then(function () { return sansCompte.id; }, function (err) {
+                    if (!err || err.code !== 'permission-denied') throw err;
+                    return db.collection(collection).add(propre).then(function () { return ''; });
+                });
+            }
+            /* Élève connecté : une seule fiche, identifiée par son UID (comme comptes/{uid}
+               et synchronisation/{uid}). Elle est remplacée à chaque changement et chaque semaine. */
+            var id = user.uid;
+            var documentEmploi = db.collection(collection).doc(id);
+            var synchro = db.collection('synchronisation').doc(id);
+            function lire(ref) {
+                return ref.get().then(function (snap) {
+                    return snap && snap.exists ? (snap.data() || {}) : null;
+                }, function () { return null; });
+            }
+            /* accuse : identifiant aléatoire du document receptions_emplois. Il est
+               rangé dans la fiche privée, et l'accusé est créé dans le même lot. */
+            function envoyer(creation, accuse) {
+                propre.z_donnees_techniques.accuse = accuse;
+                var reception = db.collection('receptions_emplois').doc(accuse);
+                var syncDoc = {
+                    uid: id,
+                    semaine: semaine,
+                    emploi: id,
+                    misAJourLe: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                var envoi = db.batch();
+                envoi.set(documentEmploi, propre);
+                if (creation) envoi.set(reception, { recu: true });
+                envoi.set(synchro, syncDoc, { merge: true });
+                /* Historique : une entrée datée par synchronisation, dans le même lot. */
+                envoi.set(synchro.collection('historique').doc(), {
+                    semaine: semaine,
+                    emploi: id,
+                    action: creation ? 'creation' : 'mise_a_jour',
+                    at: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                return envoi.commit().then(function () { return accuse; }, function (err) {
+                    if (!err || err.code !== 'permission-denied') throw err;
+                    return boiteSemaineSupprimee(db, id + '_' + semaine).then(function (supprimee) {
+                        /* Semaine supprimée par l'administration : elle n'est pas recréée. */
+                        if (supprimee) return accuse;
+                        /* Anciennes règles, sans synchronisation ni accusé : la fiche seule reste
+                           acceptée, et l'écriture suivante créera l'accusé. */
+                        console.warn('Liaison de la semaine non écrite : fiche seule envoyée', err);
+                        var repli = creation ? '' : accuse;
+                        propre.z_donnees_techniques.accuse = repli;
+                        return documentEmploi.set(propre).then(function () { return repli; });
+                    });
+                });
+            }
+            return Promise.all([lire(documentEmploi), lire(synchro)]).then(function (lus) {
+                var garde = boiteEffacementGarde(lus[1], lus[0]);
+                if (garde) {
+                    propre.z_donnees_techniques.effaceParEleve = true;
+                    propre.z_donnees_techniques.effaceLe = garde.effaceLe;
+                }
+                var accuseActuel = lus[0] && lus[0].z_donnees_techniques ? lus[0].z_donnees_techniques.accuse : '';
+                var creation = !accuseActuel;
+                return envoyer(creation, creation ? boiteNouvelIdentifiant() : accuseActuel);
+            });
+        }
+        return firebase.firestore().collection(collection).add(propre).then(function () { return true; });
+    });
+}
+
+/* L'ancienne boîte reste lisible par les admins : les documents qui y
+   sont déjà ne disparaissent pas de l'interface. Les quatre nouvelles
+   collections et les éventuelles collections de transition sont lues
+   séparément ; la vraie autorisation est dans Firestore. */
+function boiteLireBoite() {
+    var generation = boiteSessionGeneration;
+    return boiteFirebasePret().then(function () {
+        var publique = boiteLireCollection(BOITE_PUBLIE, '', 200).catch(function () { return []; });
+        if (!boiteEstAdmin()) return publique;
+        boiteErreurLecture = '';
+        boiteErreurEmplois = '';
+        boiteErreurFeedbacks = '';
+        function depuisPour(nom, champ) { return boiteDernierParCollection[nom + '|' + (champ || 'at')] || ''; }
+        function retenirDate(nom, champ, items, complet) {
+            if (generation !== boiteSessionGeneration) return items;
+            var cle = nom + '|' + (champ || 'at');
+            if (complet) boiteDernierScanComplet[cle] = Date.now();
+            (items || []).forEach(function (item) {
+                if (String(item.at || '') > (boiteDernierParCollection[cle] || '')) boiteDernierParCollection[cle] = String(item.at);
+            });
+            return items;
+        }
+        var dateArchive = depuisPour(BOITE_COLLECTION, 'at');
+        var legacy = boiteLireCollectionHistorique(BOITE_COLLECTION, 'at', dateArchive)
+            .then(function (items) { return retenirDate(BOITE_COLLECTION, 'at', items, !dateArchive); }).catch(function (err) {
+            boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
+            return [];
+        });
+        var lectures = BOITE_PRIVEES.reduce(function (toutes, nom) {
+            var champs = (nom === 'questions' || nom === 'feedbacks')
+                ? ['at', 'z_donnees_techniques.at'] : ['at'];
+            champs.forEach(function (champ) {
+                var cle = nom + '|' + champ;
+                var dateConnue = depuisPour(nom, champ);
+                /* Un envoi hors ligne peut arriver après un document plus
+                   récent avec un ancien `at`. Refaire un balayage complet
+                   toutes les 5 minutes ; le cache mémoire ne perd rien. */
+                var tout = !dateConnue || Date.now() - (boiteDernierScanComplet[cle] || 0) > 5 * 60 * 1000;
+                var depuis = tout ? '' : dateConnue;
+                toutes.push(((nom === 'emplois_du_temps' || nom === 'emplois' || nom === 'questions' || nom === 'feedbacks')
+                    ? boiteLireCollectionHistorique(nom, champ, depuis)
+                    : boiteLireCollection(nom, depuis, depuis ? 300 : 400, champ))
+                    .then(function (items) {
+                        var recus = retenirDate(nom, champ, items, tout);
+                        /* Fiche d'un élève jamais connecté à Google : elle reste dans Firebase,
+                           mais n'est pas affichée dans l'administration. */
+                        return nom === 'emplois_du_temps' ? (recus || []).filter(boiteEmploiVisibleAdmin) : recus;
+                    }).catch(function (err) {
+                    /* Avant la publication des règles, la lecture des nouvelles
+                       collections est refusée ; ne rien divulguer au visiteur. */
+                    boiteErreurLecture = (err && (err.code || err.message)) || 'refus';
+                    if (nom === 'emplois_du_temps') boiteErreurEmplois = boiteErreurLecture;
+                    if (nom === 'feedbacks') boiteErreurFeedbacks = boiteErreurLecture;
+                    return [];
+                }));
+            });
+            return toutes;
+        }, []);
+        return Promise.all([legacy, publique].concat(lectures)).then(function (listes) {
+            if (generation !== boiteSessionGeneration) return [];
+            listes.slice(2).forEach(function (items) { boiteAjouterBruts(items); });
+            boiteAjouterBruts(listes[0]);
+            return boiteBruts.concat(listes[1]);
+        });
+    });
+}
+
+var boiteErreurLecture = '';
+var boiteErreurEmplois = '';
+var boiteErreurFeedbacks = '';
+
+function boiteLireJson(cle) {
+    try { return JSON.parse(localStorage.getItem(cle) || 'null'); } catch (e) { return null; }
+}
+
+function boiteEcrireJson(cle, valeur) {
+    try { localStorage.setItem(cle, JSON.stringify(valeur)); } catch (e) {}
+}
+
+/* Une fiche sans identifiant Google ni UID vient d'un élève qui ne s'est jamais
+   connecté. Elle reste dans emplois_du_temps (Firebase), sans être affichée. */
+function boiteEmploiVisibleAdmin(item) {
+    if (!item || item.type !== 'emploi') return true;
+    var tech = item.z_donnees_techniques || {};
+    return !!(tech.firebaseUid || tech.googleSub || tech.google || tech.email);
+}
+
+function boiteCleFileEmploi(item) {
+    var sub = String(item && item.googleSub || '').trim();
+    if (sub) return 'sub:' + sub;
+    return 'app:' + String(item && item.appareil || '') + '|' + boiteNormaliser(item && item.nom || '');
+}
+
+function boiteLireEmploisEnAttente() {
+    var file = boiteLireJson(BOITE_EMPLOI_FILE);
+    return file && typeof file === 'object' && !Array.isArray(file) ? file : {};
+}
+
+function boiteLireFile() {
+    var file = boiteLireJson(BOITE_FILE);
+    if (!Array.isArray(file)) file = [];
+    /* Les anciennes files mélangées ne doivent pas perdre un emploi en
+       attente : migrer chaque fiche vers le stockage non plafonné. */
+    var anciens = file.filter(function (item) { return item && item.type === 'emploi'; });
+    if (anciens.length) {
+        var emplois = boiteLireEmploisEnAttente();
+        anciens.forEach(function (item) { emplois[boiteCleFileEmploi(item)] = item; });
+        localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois));
+        file = file.filter(function (item) { return item && item.type !== 'emploi'; });
+        boiteEcrireJson(BOITE_FILE, file);
+    }
+    var enAttente = boiteLireEmploisEnAttente();
+    return file.concat(Object.keys(enAttente).map(function (cle) { return enAttente[cle]; }));
+}
+
+function boiteGarderFile(record) {
+    if (record.type === 'emploi') {
+        var emplois = boiteLireEmploisEnAttente();
+        emplois[boiteCleFileEmploi(record)] = record; /* le plus récent remplace l'attente précédente */
+        localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois)); /* erreur de quota : ne pas mentir */
+        return;
+    }
+    var file = boiteLireFile().filter(function (item) { return item && item.type !== 'emploi' && item.id !== record.id; });
+    file.push(record);
+    boiteEcrireJson(BOITE_FILE, file.slice(-40));
+}
+
+function boiteRetirerFile(record) {
+    if (record.type === 'emploi') {
+        var emplois = boiteLireEmploisEnAttente();
+        var cle = boiteCleFileEmploi(record);
+        if (emplois[cle] && JSON.stringify(emplois[cle]) === JSON.stringify(record)) {
+            delete emplois[cle];
+            localStorage.setItem(BOITE_EMPLOI_FILE, JSON.stringify(emplois));
+        }
+        return;
+    }
+    boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) {
+        return item && item.type !== 'emploi' && item.id !== record.id;
+    }));
+}
+
+function boiteMajMenu() {
+    try { boiteVerifierAdmin(); } catch (e) {}
+    var admin = boiteEstAdmin();
+    if (admin && typeof boiteSignalerOuverture === 'function') boiteSignalerOuverture();
+    /* Une seule entrée pour les admins ; les trois pages privées gardent
+       leur fonctionnement. La lecture des annonces reste accessible aux élèves. */
+    var espace = document.getElementById('menuEspaceAdmin');
+    if (espace) espace.style.display = admin ? 'flex' : 'none';
+    var annonce = document.getElementById('menuAnnonce');
+    if (annonce) annonce.style.display = admin ? 'none' : 'flex';
+    ['menuRetours', 'menuQuestions', 'menuEmplois'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+    // L'accès au rail privé d'Annonce suit aussi les vérifications tardives
+    // du compte, sans exposer les autres sections aux lecteurs publics.
+    if (typeof annonceMajMenu === 'function') annonceMajMenu();
+    if (typeof tutorielMajMenu === 'function') tutorielMajMenu();
+    if (typeof focusAfficherEntree === 'function') focusAfficherEntree();
+    var champ = document.getElementById('menuNom');
+    if (!champ) return;
+    if (document.activeElement !== champ && champ.value !== boiteNom()) champ.value = boiteNom();
+    if (champ.__boite) return;
+    champ.__boite = true;
+    champ.addEventListener('change', function () {
+        var nom = champ.value.trim();
+        if (!nom) {
+            champ.value = boiteNom();
+            return;
+        }
+        if (typeof userName !== 'undefined') userName = nom;
+        if (window.compteSession && window.compteSession.sub && typeof compteLierNom === 'function') {
+            compteLierNom(window.compteSession.sub, nom, window.compteSession.email || '');
+        }
+        var origine = document.getElementById('nameInput');
+        if (origine) origine.value = nom;
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        boiteMajMenu();
+    });
+}
+
+/* Plus de coffre externe : la configuration distante a disparu avec le
+   canal public. La fonction reste pour les appelants qui la consultent
+   (tutoriels), et renvoie une configuration vide. */
+function boiteLireConfig() {
+    return Promise.resolve({});
+}
+
+function boiteJoursCompacts(jours, maxSlots) {
+    return (jours || []).slice(0, 7).map(function (jour) {
+        return {
+            j: jour.j,
+            s: (jour.s || []).slice(0, maxSlots || 12).map(function (slot) {
+                return { d: slot.d, f: slot.f, t: String(slot.t || '').slice(0, 28) };
+            })
+        };
+    });
+}
+
+var boiteEmploisEnCours = {};
+function boiteAcquitterEmploi(record, receptionId) {
+    var cle = boiteCleFileEmploi(record);
+    var metaCle = BOITE_EMPLOI_HASH + ':attente:' + encodeURIComponent(cle);
+    var meta = boiteLireJson(metaCle);
+    /* Un réessai hors ligne peut se terminer dans un nouvel onglet, après
+       rechargement : l'ACK appartient à la version réellement confirmée. */
+    if (!meta || meta.at !== record.at) return;
+    boiteEcrireAckEmploi(record, { hash: meta.hash, faits: meta.faits, cle: cle,
+        at: Date.now(), receptionId: receptionId || '' });
+    try { localStorage.removeItem(metaCle); } catch (e) {}
+}
+
+function boiteEnvoyerDistant(record) {
+    /* Sérialiser les versions d'un même élève ; une ancienne réponse du
+       serveur ne peut pas acquitter une version plus récente. */
+    if (record && record.type === 'emploi') {
+        var cle = boiteCleFileEmploi(record);
+        var precedent = boiteEmploisEnCours[cle] || Promise.resolve();
+        var envoi = precedent.catch(function () {}).then(function () {
+            var courant = boiteLireEmploisEnAttente()[cle];
+            if (!courant || JSON.stringify(courant) !== JSON.stringify(record)) return false;
+            return boiteEcrireBoite(record).then(function (receptionId) {
+                boiteRetirerFile(record);
+                boiteAcquitterEmploi(record, receptionId);
+                return true;
+            });
+        });
+        boiteEmploisEnCours[cle] = envoi;
+        envoi.then(function () { if (boiteEmploisEnCours[cle] === envoi) delete boiteEmploisEnCours[cle]; },
+            function () { if (boiteEmploisEnCours[cle] === envoi) delete boiteEmploisEnCours[cle]; });
+        return envoi;
+    }
+    return boiteEcrireBoite(record).then(function (ok) {
+        boiteRetirerFile(record);
+        return ok;
+    });
+}
+
+/* Les anciennes versions stockaient les questions et réponses admin dans
+   localStorage, visible par l'utilisateur suivant du même navigateur.
+   Firestore est maintenant la source : ne plus garder ces copies locales. */
+function boiteLireVus() { return []; }
+function boiteMemoriserVus() {
+    try { localStorage.removeItem(BOITE_VUS); } catch (e) {}
+}
+function boiteGarderVu() { boiteMemoriserVus(); }
+
+function boiteNettoyerSession() {
+    boiteSessionGeneration++;
+    /* Les brouillons d’annonce appartiennent à un seul compte Google. */
+    if (typeof annonceBrouillons !== 'undefined') annonceBrouillons = [];
+    if (typeof annonceBrouillonCourant !== 'undefined') annonceBrouillonCourant = '';
+    if (typeof annonceListe !== 'undefined') annonceListe = [];
+    if (typeof annonceFermerAlerte === 'function') annonceFermerAlerte();
+    boiteMemoriserVus();
+    boiteBruts = [];
+    boiteIndexBruts = Object.create(null);
+    boiteDernierParCollection = Object.create(null);
+    boiteDernierScanComplet = Object.create(null);
+    boiteListesCache = null;
+    boiteSecretCache = '';
+    boiteErreurLecture = '';
+    boiteErreurEmplois = '';
+    boiteErreurFeedbacks = '';
+    boiteLectureEnCours = null;
+    boiteReceptionPresente = {};
+    boiteControleReceptionEnCours = {};
+    boiteAdminVerifie = false;
+    boiteAdminTente = false;
+    /* Ne pas laisser sur l'appareil une réponse mail restée en attente. */
+    try {
+        boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) {
+            return item && item.type !== 'reponse' && item.type !== 'emploi';
+        }));
+    } catch (e) {}
+    boiteEmploiSelection = '';
+    boiteEmploiVersion = '';
+    boiteEmploisAffiches = [];
+    boiteEmploisVersionsAffichees = [];
+    ['emploisTotal', 'emploisRecus', 'emploisSans', 'emploisStatut'].forEach(function (id) {
+        var compteur = document.getElementById(id);
+        if (compteur) compteur.textContent = '';
+    });
+    ['questionsListe', 'retoursListe', 'emploisListe', 'emploisDetail'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.innerHTML = '';
+    });
+}
+
+function boiteSlotsJour(jour) {
+    return (jour && jour.s && jour.s.length) || 0;
+}
+
+function boiteEstReveil(slot) {
+    return boiteNormaliser(slot && (slot.t || slot.title) || '').indexOf('reveil') === 0;
+}
+
+function boiteEstCoucher(slot) {
+    return boiteNormaliser(slot && (slot.t || slot.title) || '').indexOf('coucher') === 0;
+}
+
+function boiteCorrigerCours(slot) {
+    if (!slot || String(slot.t || '') !== 'Cours') return slot;
+    var debut = String(slot.d || '');
+    var fin = String(slot.f || '');
+    if (fin === '16:35') {
+        var apres = Object.assign({}, slot);
+        apres.f = '16:25';
+        return apres;
+    }
+    if (!debut || debut >= '12:00' || fin !== '12:30' || debut === '07:50') return slot;
+    var copie = Object.assign({}, slot);
+    copie.d = '07:50';
+    return copie;
+}
+
+function boiteOrdonnerCreneaux(slots) {
+    var corriges = (slots || []).map(boiteCorrigerCours);
+    if (typeof planningGarantirJour === 'function') return planningGarantirJour(corriges);
+    var reveils = [];
+    var couchers = [];
+    var milieu = [];
+    corriges.forEach(function (slot) {
+        if (boiteEstReveil(slot)) reveils.push(slot);
+        else if (boiteEstCoucher(slot)) couchers.push(slot);
+        else milieu.push(slot);
+    });
+    return reveils.concat(milieu, couchers);
+}
+
+function boiteJourIncomplet(slots) {
+    var fin = '';
+    (slots || []).forEach(function (slot) {
+        if (!slot || boiteEstCoucher(slot) || boiteEstReveil(slot)) return;
+        var debut = String(slot.d || '');
+        var heureFin = String(slot.f || '');
+        if (debut > fin) fin = debut;
+        if (heureFin > fin) fin = heureFin;
+    });
+    return !!(fin && fin <= '12:30');
+}
+
+function boiteJoursOrdonnes(jours) {
+    var map = {};
+    (jours || []).forEach(function (jour) {
+        if (jour && jour.j) map[jour.j] = jour;
+    });
+    return ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'].filter(function (nom) {
+        return map[nom];
+    }).map(function (nom) { return map[nom]; });
+}
+
+function boiteJoindreJours(anciens, nouveaux, nouveauComplet) {
+    if (nouveauComplet && nouveaux && nouveaux.length === 7) return boiteJoursOrdonnes(nouveaux);
+    var map = {};
+    (anciens || []).forEach(function (jour) {
+        if (jour && jour.j) map[jour.j] = jour;
+    });
+    (nouveaux || []).forEach(function (jour) {
+        if (!jour || !jour.j) return;
+        var deja = map[jour.j];
+        if (!deja || boiteSlotsJour(jour) > boiteSlotsJour(deja)) map[jour.j] = jour;
+    });
+    return boiteJoursOrdonnes(Object.keys(map).map(function (nom) { return map[nom]; }));
+}
+
+function boiteSignatureJours(item) {
+    return JSON.stringify(boiteJoursOrdonnes(item && item.jours).map(function (jour) {
+        return {
+            j: jour.j,
+            s: (jour.s || []).map(function (slot) {
+                return { d: slot.d || '', f: slot.f || '', t: slot.t || '' };
+            })
+        };
+    }));
+}
+
+function boiteEstComplet(item) {
+    if (!item || !Number(item.complet) || item.partie || !Array.isArray(item.jours) || item.jours.length !== 7) return false;
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    return noms.every(function (nom) { return item.jours.filter(function (jour) { return jour && jour.j === nom && Array.isArray(jour.s); }).length === 1; });
+}
+
+var BOITE_EMPLOIS_RETIRES = {
+    a1a112dcf4ed266ce751: 1,
+    a1a112dd6ac2adcf6166: 1,
+    a1a11c0ee01878c1524f: 1
+};
+
+function boiteEmploiRetire(item) {
+    if (!item) return true;
+    var appareil = String(item.appareil || '');
+    var id = String(item.id || '').replace(/^e_/, '');
+    if (BOITE_EMPLOIS_RETIRES[appareil] || BOITE_EMPLOIS_RETIRES[id]) return true;
+    var nom = boiteNormaliser(item.nom || '');
+    /* Retrait demandé dans la vue du site uniquement : les fiches « julia »,
+       « u » et « E2E Preparation » en DP2 ne sont plus affichées. Le nom ET
+       la classe doivent correspondre pour E2E ; les documents Firestore ne
+       sont pas supprimés par ce filtre. */
+    var ficheE2 = nom === 'e2e preparation' && boiteNormaliser(item.classe || '') === 'dp2';
+    return nom === 'julia' || nom === 'u' || ficheE2;
+}
+
+function boiteCleEmploi(item) {
+    if (!item || boiteEmploiRetire(item)) return '';
+    var sub = String(item.googleSub || '').trim();
+    if (sub) return 'sub:' + sub;
+    var mail = boiteNormaliser(item.google || item.email || '');
+    if (mail) return 'mail:' + mail;
+    return 'app:' + String(item.appareil || item.id || item.nom || '');
+}
+
+/* Firestore accepte le planning de toute la semaine dans un document.
+   L'ancien découpage en morceaux (limite du canal ntfy supprimé) rendait
+   illisible la semaine dans la console ; les anciens morceaux restent
+   pris en charge par boiteReassemblerEmplois à la lecture. */
+function boiteDecouperEmploi(record) {
+    return [record];
+}
+
+function boiteReassemblerEmplois(items) {
+    var groupes = {};
+    var autres = [];
+    (items || []).forEach(function (item) {
+        var total = Number(item && item.total || 0);
+        var partie = Number(item && item.partie || 0);
+        if (!item || item.type !== 'emploi' || !partie || !total) {
+            autres.push(item);
+            return;
+        }
+        var cle = String(item.appareil || item.id || '') + '|' + String(item.at || '') + '|' + total;
+        if (!groupes[cle]) groupes[cle] = { total: total, parts: {}, base: item, coupee: false };
+        if (item.coupee) groupes[cle].coupee = true;
+        groupes[cle].parts[partie] = item;
+    });
+    Object.keys(groupes).forEach(function (cle) {
+        var g = groupes[cle];
+        var i;
+        var jours = [];
+        var complet = !g.coupee && g.total > 0;
+        for (i = 1; i <= g.total; i++) {
+            if (!g.parts[i]) { complet = false; break; }
+            jours = jours.concat(g.parts[i].jours || []);
+        }
+        if (!complet) {
+            for (i = 1; i <= g.total; i++) if (g.parts[i]) autres.push(g.parts[i]);
+            return;
+        }
+        var plein = {};
+        Object.keys(g.base).forEach(function (k) { plein[k] = g.base[k]; });
+        plein.jours = jours;
+        plein.complet = 1;
+        plein.docRefs = [];
+        for (i = 1; i <= g.total; i++) if (g.parts[i]) plein.docRefs = plein.docRefs.concat(boiteIdsDocs(g.parts[i]));
+        delete plein.partie;
+        delete plein.total;
+        delete plein.coupee;
+        autres.push(plein);
+    });
+    return autres;
+}
+
+function boiteEnvoyer(record) {
+    if (record && record.type === 'emploi') {
+        if (window.__STUDYPLAN_E2E || boiteEmploiRetire(record)) return Promise.resolve(false);
+        if (BOITE_EMPLOIS_SUSPENDUS || (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) || !boiteEstComplet(record)) return Promise.resolve(false);
+    }
+    var morceaux = boiteDecouperEmploi(record);
+    try { morceaux.forEach(boiteGarderFile); } catch (e) { return Promise.reject(e); }
+    var envoi = morceaux.reduce(function (chaine, morceau) {
+        return chaine.then(function () { return boiteEnvoyerDistant(morceau); });
+    }, Promise.resolve(true));
+    return envoi.then(function (ok) {
+        if (ok) boiteGarderVu(record);
+        return ok;
+    });
+}
+
+function boiteReessayer() {
+    var file = boiteLireFile();
+    if (!file.length) return Promise.resolve();
+    return file.reduce(function (chaine, record) {
+        return chaine.then(function () {
+            var sub = window.compteSession && window.compteSession.sub || '';
+            if (record.type === 'emploi' && (!boiteEstComplet(record) || (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) ||
+                boiteEmploiRetire(record) || window.__STUDYPLAN_E2E || (record.googleSub && record.googleSub !== sub))) return;
+            return boiteEnvoyerDistant(record).catch(function () {});
+        });
+    }, Promise.resolve());
+}
+
+function boiteMailPersonne(item) {
+    return String((item && (item.google || item.email)) || '').trim().toLowerCase();
+}
+
+function boiteChoisirNom(recent, ancien) {
+    var nr = boiteNomUtile(recent) || String(recent && recent.googleNom || '').trim();
+    var na = boiteNomUtile(ancien) || String(ancien && ancien.googleNom || '').trim();
+    if (!nr) return na;
+    if (!na) return nr;
+    var r = boiteNormaliser(nr);
+    var a = boiteNormaliser(na);
+    if (r.length < 3 && a.length >= 3) return na;
+    if (a.length < 3 && r.length >= 3) return nr;
+    if (a.indexOf(r) === 0 && a.length > r.length) return na;
+    if (r.indexOf(a) === 0 && r.length > a.length) return nr;
+    return String(recent && recent.at || '') >= String(ancien && ancien.at || '') ? nr : na;
+}
+
+function boiteNomInterdit(nom) {
+    var n = boiteNormaliser(nom);
+    if (!n) return true;
+    return n.indexOf('acces bloque') !== -1
+        || n.indexOf('na pas termine') !== -1
+        || n.indexOf('procedure de validation') !== -1
+        || n.indexOf('access blocked') !== -1
+        || n.indexOf('has not completed') !== -1
+        || n.indexOf('verification process') !== -1;
+}
+
+function boiteNomUtile(item) {
+    var nom = String(item && item.nom || '').trim();
+    var n = boiteNormaliser(nom);
+    if (!n || n === 'u' || n === 'julia' || n === 'sans nom' || boiteNomInterdit(nom)) return '';
+    return nom;
+}
+
+/* Suppression d'une semaine d'emploi du temps, réservée aux admins. Deux
+   confirmations ; les règles de la base refusent tout autre compte. */
+function boiteSupprimerEmploi(ids) {
+    ids = (ids || []).filter(function (id) { return !!id; });
+    if (!boiteEstAdmin() || !ids.length) return;
+    boiteFirebasePret().then(function (user) {
+        if (!user) throw new Error('connexion');
+        var lot = firebase.firestore().batch();
+        var autorisees = ['emplois_du_temps', 'emplois', 'boite'];
+        ids.forEach(function (ref) {
+            var i = String(ref).indexOf('/');
+            var collection = String(ref).slice(0, i);
+            if (i < 1 || autorisees.indexOf(collection) === -1) throw new Error('reference');
+            var morceaux = String(ref).split('#');
+            var identifiant = morceaux[0].slice(i + 1);
+            lot.delete(firebase.firestore().collection(collection).doc(identifiant));
+            /* Trace par semaine : l'élève ne recrée pas cette semaine après la suppression,
+               mais il reçoit une fiche la semaine suivante. */
+            if (collection === 'emplois_du_temps') {
+                var cleTrace = morceaux[1] ? identifiant + '_' + morceaux[1] : identifiant;
+                lot.set(firebase.firestore().collection('suppressions_emplois').doc(cleTrace),
+                    { supprime: true, at: new Date().toISOString() });
+            }
+        });
+        return lot.commit();
+    }).then(function () {
+        window.location.reload();
+    }).catch(function (err) {
+        var refus = err && (err.code === 'permission-denied' || err.code === 'PERMISSION_DENIED');
+        window.alert(refus
+            ? 'La suppression n’est pas encore autorisée par les règles de la base. Les nouvelles règles doivent être publiées dans Firebase.'
+            : 'La suppression n’a pas pu être faite. Vérifie la connexion admin, puis réessaie.');
+    });
+}
+
+function boiteMemePersonne(a, b) {
+    if (!a || !b) return false;
+    var subA = String(a.googleSub || '').trim();
+    var subB = String(b.googleSub || '').trim();
+    var uidA = String(a.firebaseUid || '').trim();
+    var uidB = String(b.firebaseUid || '').trim();
+    /* Même compte Google : même personne, quel que soit l'appareil. */
+    if (subA && subB && subA === subB) return true;
+    if (uidA && uidB) return uidA === uidB;
+    if (subA && subB) return false;
+    var mailA = boiteMailPersonne(a);
+    var mailB = boiteMailPersonne(b);
+    /* Une archive anonyme peut contenir une adresse déclarative. Elle
+       ne prouve pas l'identité d'un compte Firebase authentifié. */
+    if (mailA && mailB && !uidA && !uidB) return mailA === mailB;
+    var nomA = boiteNormaliser(boiteNomUtile(a));
+    var nomB = boiteNormaliser(boiteNomUtile(b));
+    /* Deux homonymes sans lien de compte ne sont pas la même personne. */
+    var appA = String(a.appareil || '').trim();
+    var appB = String(b.appareil || '').trim();
+    if (appA && appA === appB) {
+        if (!nomA || !nomB || nomA === nomB) return true;
+        if (nomA.length >= 3 && nomB.length >= 3 && (nomA.indexOf(nomB) !== -1 || nomB.indexOf(nomA) !== -1)) return true;
+    }
+    return false;
+}
+
+function boiteRichesseEmploi(item) {
+    var n = 0;
+    (item && item.jours || []).forEach(function (jour) { n += (jour && jour.s ? jour.s.length : 0); });
+    return n;
+}
+
+/* Bouton « Supprimer le planning » (admins) : remplace l'étiquette « Semaine reçue »
+   quand la semaine a un identifiant. Une validation est demandée avant d'agir. */
+function boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) {
+    var ids = boiteIdsDocs(semaine);
+    var etiquette = '<span class="emploi-atelier-badge ' + (aSemaine ? 'recu' : 'absent') + '">' + badge + '</span>';
+    if (!boiteEstAdmin() || !aSemaine || !ids.length) return etiquette;
+    var cle = boiteEchap(ids.join(','));
+    if (boiteEmploiConfirmer === ids.join(',')) {
+        return '<div style="text-align:right;max-width:20rem;margin-left:auto;">'
+            + '<p style="margin:0 0 0.5rem;font-weight:700;color:#256444;">Supprimer définitivement cet emploi du temps de la base ?</p>'
+            + '<button type="button" data-emploi-confirmer="' + cle + '" style="margin:0 0.3rem 0 0;padding:0.5rem 0.9rem;border:1px solid #047857;border-radius:0.6rem;background:#047857;color:#fff;font-weight:700;cursor:pointer;">Oui, supprimer</button>'
+            + '<button type="button" data-emploi-annuler="1" style="padding:0.5rem 0.9rem;border:1px solid #d1d5db;border-radius:0.6rem;background:#fff;color:#374151;font-weight:700;cursor:pointer;">Annuler</button></div>';
+    }
+    return '<button type="button" data-emploi-supprimer-demande="' + cle + '" style="padding:0.5rem 0.9rem;border:1px solid #047857;border-radius:0.6rem;background:#e1f3e8;color:#256444;font-weight:700;cursor:pointer;">Supprimer l’emploi du temps</button>';
+}
+
+/* Tous les documents qui composent une semaine (un emploi peut être envoyé en plusieurs morceaux). */
+function boiteIdsDocs(item) {
+    if (!item) return [];
+    if (Array.isArray(item.docRefs) && item.docRefs.length) return item.docRefs.slice();
+    if (!item.docId) return [];
+    var coll = item.docColl || 'emplois_du_temps';
+    var reference = coll + '/' + String(item.docId);
+    /* La semaine suit la référence, pour que la suppression trace la bonne semaine. */
+    if (coll === 'emplois_du_temps' && item.semaine) reference += '#' + String(item.semaine);
+    return [reference];
+}
+
+function boiteJoindrePersonne(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    var recent = String(b.at || '') >= String(a.at || '') ? b : a;
+    var ancien = recent === b ? a : b;
+    var nom = boiteChoisirNom(recent, ancien);
+    /* Un contact récent ou un vieux morceau partiel ne remplace pas la
+       dernière semaine complète effectivement reçue. */
+    var semaine = boiteEstComplet(recent) ? recent : (boiteEstComplet(ancien) ? ancien : null);
+    var complet = !!semaine;
+    return {
+        type: 'emploi',
+        id: recent.id || ancien.id || '',
+        appareil: recent.appareil || ancien.appareil || '',
+        at: semaine ? semaine.at : (recent.at || ancien.at || ''),
+        nom: nom,
+        classe: recent.classe || ancien.classe || '',
+        email: recent.email || ancien.email || recent.google || ancien.google || '',
+        google: recent.google || ancien.google || recent.email || ancien.email || '',
+        googleNom: recent.googleNom || ancien.googleNom || '',
+        googleSub: recent.googleSub || ancien.googleSub || '',
+        firebaseUid: recent.firebaseUid || ancien.firebaseUid || '',
+        flammes: recent.flammes != null ? Number(recent.flammes || 0) : Number(ancien.flammes || 0),
+        matieres: semaine ? (semaine.matieres || []) : ((recent.matieres && recent.matieres.length) ? recent.matieres : (ancien.matieres || [])),
+        jours: semaine ? boiteJoursOrdonnes(semaine.jours) : boiteJoindreJours(ancien.jours, recent.jours, false),
+        complet: complet ? 1 : 0,
+        docRefs: boiteIdsDocs(semaine)
+    };
+}
+
+function boiteFusionnerPersonnes(liste) {
+    var groupes = [];
+    (liste || []).forEach(function (item) {
+        if (!item || boiteEmploiRetire(item)) return;
+        var trouve = -1;
+        var i;
+        for (i = 0; i < groupes.length; i++) {
+            if (boiteMemePersonne(groupes[i], item)) { trouve = i; break; }
+        }
+        if (trouve === -1) groupes.push(item);
+        else groupes[trouve] = boiteJoindrePersonne(groupes[trouve], item);
+    });
+    var stable = false;
+    while (!stable) {
+        stable = true;
+        var i;
+        for (i = 0; i < groupes.length; i++) {
+            var j;
+            for (j = i + 1; j < groupes.length; j++) {
+                if (!boiteMemePersonne(groupes[i], groupes[j])) continue;
+                groupes[i] = boiteJoindrePersonne(groupes[i], groupes[j]);
+                groupes.splice(j, 1);
+                stable = false;
+                break;
+            }
+            if (!stable) break;
+        }
+    }
+    return groupes;
+}
+
+function boitePersonneDepuisMessage(item) {
+    if (!item || (item.type !== 'question' && item.type !== 'feedback')) return null;
+    if (boiteEmploiRetire(item)) return null;
+    if (!boiteNomUtile(item) && !boiteMailPersonne(item) && !item.googleSub) return null;
+    return {
+        type: 'emploi',
+        id: 'msg_' + (item.id || ''),
+        appareil: item.appareil || '',
+        at: item.at || '',
+        nom: item.nom || '',
+        classe: item.classe || '',
+        email: item.email || '',
+        google: item.google || item.email || '',
+        googleNom: item.googleNom || '',
+        googleSub: item.googleSub || '',
+        matieres: item.matieres || [],
+        jours: item.jours || []
+    };
+}
+
+function boitePersonnes(fusion) {
+    var liste = (fusion && fusion.emplois || []).slice();
+    if (fusion && Array.isArray(fusion.personnesMessages)) liste = liste.concat(fusion.personnesMessages);
+    else (fusion && fusion.questions || []).concat(fusion && fusion.feedbacks || []).forEach(function (item) {
+        var personne = boitePersonneDepuisMessage(item);
+        if (personne) liste.push(personne);
+    });
+    return boiteFusionnerPersonnes(liste);
+}
+
+function boiteCompleterIdentite(record) {
+    var session = boiteSession() || {};
+    var snap = null;
+    try { snap = boiteSnapshotEmploi(); } catch (e) { snap = null; }
+    record.appareil = record.appareil || boiteAppareil();
+    if (!record.nom) record.nom = boiteNom();
+    if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
+    if (!record.googleSub && session.sub) record.googleSub = session.sub;
+    if (!record.googleNom && (session.name || session.given_name)) record.googleNom = session.name || session.given_name;
+    if (!record.google && session.email) record.google = session.email;
+    if (snap) {
+        if (!(record.matieres && record.matieres.length)) record.matieres = snap.matieres || [];
+        if (!(record.jours && record.jours.length)) record.jours = snap.jours || [];
+        if (!record.nom) record.nom = snap.nom || '';
+        if (!record.classe) record.classe = snap.classe || '';
+    }
+    return record;
+}
+
+/* Lecture des envois encore en file locale (les documents Firestore,
+   eux, sont convertis par boiteMessageDepuisFirestore). Les archives de
+   l'ancienne version conservent leurs champs nom/texte/email. */
+function boiteQuestionDepuisDocument(item) {
+    if (!item || (item.type !== 'question' && item.type !== 'feedback')) return item;
+    var texte = item.type === 'question' ? '04_question' : '04_feedback';
+    if (!Object.prototype.hasOwnProperty.call(item, texte)) return item;
+    return Object.assign({}, item, {
+        nom: String(item['02_nom_utilisateur'] || ''),
+        texte: String(item[texte] || ''),
+        email: String(item.z_email_reponse || ''),
+        google: String(item.z_google_connecte || ''),
+        googleNom: String(item.z_google_nom || '')
+    });
+}
+
+function boiteFusionner(items) {
+    var questions = [];
+    var feedbacks = [];
+    var reponses = [];
+    var profils = [];
+    var connexions = [];
+    var tutoriels = [];
+    var annonces = [];
+    var brutsEmplois = [];
+    var vusQ = {};
+    var vusF = {};
+    var vusR = {};
+    var vusP = {};
+    var vusC = {};
+    var vusT = {};
+    (items || []).forEach(function (item) {
+        item = boiteEmploiDepuisDocument(boiteQuestionDepuisDocument(item));
+        if (!item || !item.type || item.type === 'coffre') return;
+        /* Les envois de test de la vérification navigatrice ne doivent
+           jamais s'afficher chez les admins. */
+        if (typeof item.id === 'string' && (item.id.indexOf('qtest') === 0 || item.id.indexOf('ftest') === 0)) return;
+        if (item.type === 'question' && item.id && !vusQ[item.id]) {
+            vusQ[item.id] = 1;
+            questions.push(item);
+        } else if (item.type === 'feedback' && item.id && !vusF[item.id]) {
+            vusF[item.id] = 1;
+            feedbacks.push(item);
+        } else if (item.type === 'reponse' && item.id) {
+            if (!vusR[item.id]) {
+                vusR[item.id] = 1;
+                reponses.push(item);
+            } else if (boiteMailConfirme(item)) {
+                reponses.forEach(function (deja, index) {
+                    if (deja.id === item.id && !boiteMailConfirme(deja)) reponses[index] = item;
+                });
+            }
+        } else if (item.type === 'profil' && item.id) {
+            if (!vusP[item.id]) {
+                vusP[item.id] = 1;
+                profils.push(item);
+            } else if (item.data) {
+                profils.forEach(function (deja, index) {
+                    if (deja.id === item.id && !deja.data) profils[index] = item;
+                });
+            }
+        } else if (item.type === 'connexion' && item.id) {
+            if (!vusC[item.id]) {
+                vusC[item.id] = 1;
+                connexions.push(item);
+            } else if (item.partage) {
+                connexions.forEach(function (deja, index) {
+                    if (deja.id === item.id && !deja.partage) connexions[index] = item;
+                });
+            }
+        } else if (item.type === 'tutoriel' && item.id) {
+            if (!vusT[item.id] || String(item.at || '') >= String(vusT[item.id].at || '')) vusT[item.id] = item;
+        } else if (item.type === 'annonce' && item.id) {
+            annonces.push(item);
+        } else if (item.type === 'emploi') {
+            if (!boiteEmploiRetire(item)) brutsEmplois.push(item);
+        }
+    });
+    brutsEmplois = boiteReassemblerEmplois(brutsEmplois);
+    var listeEmplois = boiteFusionnerPersonnes(brutsEmplois);
+    var personnesMessages = boiteFusionnerPersonnes(questions.concat(feedbacks).map(boitePersonneDepuisMessage).filter(Boolean));
+    questions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    feedbacks.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    reponses.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
+    listeEmplois.sort(function (a, b) { return boiteNormaliser(a.nom).localeCompare(boiteNormaliser(b.nom), 'fr'); });
+    connexions.sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+    Object.keys(vusT).forEach(function (id) { tutoriels.push(vusT[id]); });
+    tutoriels.sort(function (a, b) { return String(a.at || '').localeCompare(String(b.at || '')); });
+    if (typeof annonceFusionner === 'function') annonces = annonceFusionner(annonces);
+    return {
+        questions: questions.slice(0, 120),
+        feedbacks: feedbacks.slice(0, 120),
+        reponses: reponses.slice(0, 120),
+        profils: profils.slice(0, 80),
+        connexions: connexions.slice(0, 8),
+        emplois: listeEmplois,
+        emploisVersions: brutsEmplois,
+        personnesMessages: personnesMessages,
+        tutoriels: tutoriels.slice(0, 40),
+        annonces: annonces.slice(0, 40)
+    };
+}
+
+/* Relit la boîte : Firestore pour tout le monde (partie publique), et
+   la partie privée pour les quatre admins seulement. Le fichier local
+   ne sert plus qu'à garder les envois pas encore partis. */
+var boiteLectureEnCours = null;
+function boiteChargerListes(force) {
+    var generation = boiteSessionGeneration;
+    if (boiteListesCache && !force) return Promise.resolve(boiteListesCache);
+    /* L'alerte admin, le bouton Actualiser et la surveillance peuvent
+       demander la même lecture ensemble : partager la requête, sans
+       laisser une réponse ancienne écraser la liste la plus récente. */
+    if (boiteLectureEnCours && boiteLectureEnCours.generation === generation) return boiteLectureEnCours.promise;
+    var lecture = boiteLireBoite().then(function (items) {
+        return { ok: !(boiteEstAdmin() && boiteErreurLecture), items: items };
+    }, function () {
+        return { ok: false, items: [] };
+    }).then(function (source) {
+        if (generation !== boiteSessionGeneration) return boiteFusionner([]);
+        /* Une fiche locale non acquittée ne doit pas être présentée comme reçue. */
+        var items = (boiteEstAdmin() && source.ok ? boiteLireFile().filter(function (item) { return item.type !== 'emploi'; }) : []).concat(source.items || []);
+        var fusion = boiteFusionner(items);
+        fusion.partiel = !source.ok;
+        fusion.erreurEmplois = boiteEstAdmin() && boiteErreurEmplois || '';
+        fusion.erreurFeedbacks = boiteEstAdmin() && boiteErreurFeedbacks || '';
+        /* Un admin dont la session Firebase a expiré doit le savoir :
+           sinon la boîte paraît vide sans raison. */
+        fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
+        boiteListesCache = fusion;
+        boiteMemoriserVus();
+        return fusion;
+    });
+    boiteLectureEnCours = { generation: generation, promise: lecture };
+    lecture.then(function () {
+        if (boiteLectureEnCours && boiteLectureEnCours.promise === lecture) boiteLectureEnCours = null;
+    }, function () {
+        if (boiteLectureEnCours && boiteLectureEnCours.promise === lecture) boiteLectureEnCours = null;
+    });
+    return lecture;
+}
+
+function boiteCarte(titre, meta, corps) {
+    return '<article style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
+        + '<p style="font-weight:800;color:#111827;">' + titre + '</p>'
+        + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + meta + '</p>'
+        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + corps + '</p>'
+        + '</article>';
+}
+
+function boiteRendreRetours(fusion) {
+    var liste = document.getElementById('retoursListe');
+    var statut = document.getElementById('retoursStatut');
+    if (!liste) return;
+    var cartes = [];
+    fusion.feedbacks.forEach(function (item) {
+        var qui = boiteNomExpediteur(item);
+        var meta = boiteEchap(boiteDate(item.at)) + ' · ' + (item.email ? boiteEchap(item.email) : 'E-mail non renseigné');
+        if (item.googleNom && item.nom && boiteNormaliser(item.nom) !== boiteNormaliser(item.googleNom)) {
+            meta += ' · compte Google : ' + boiteEchap(item.googleNom);
+        }
+        cartes.push({
+            at: item.at || '',
+            html: boiteCarte(
+                'Suggestion · ' + boiteEchap(qui.nom),
+                meta,
+                boiteEchap(item.texte || '')
+            )
+        });
+    });
+    fusion.questions.forEach(function (item) {
+        cartes.push({
+            at: item.at || '',
+            html: boiteCarteQuestion(item, boiteReponsesLiees(fusion, item.id))
+        });
+    });
+    cartes.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
+    if (!cartes.length) {
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.erreurFeedbacks ? 'Lecture des feedbacks indisponible : actualise ou reconnecte ton compte admin.' : fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : (fusion.partiel ? 'Les retours ne sont pas accessibles pour le moment. Réessaie.' : 'Aucun retour pour le moment.')) + '</p>';
+    } else {
+        liste.innerHTML = cartes.map(function (carte) { return carte.html; }).join('');
+    }
+    if (statut) {
+        statut.textContent = fusion.erreurFeedbacks
+            ? 'Lecture des feedbacks indisponible : impossible de confirmer les nouveaux envois.'
+            : fusion.partiel ? 'Une partie des messages n\'a pas pu être rechargée.'
+            : (cartes.length + ' message' + (cartes.length > 1 ? 's' : ''));
+    }
+    boiteMajConnexion(fusion);
+}
+
+function boiteEmailQuestion(item) {
+    return String((item && (item.email || item.google)) || '').trim();
+}
+
+function boiteEmailsDe(item) {
+    var brut = [].concat(item && item.email, item && item.google, item && item.destinataire, item && item.destinataires);
+    var out = [];
+    brut.forEach(function (email) {
+        var v = String(email || '').trim().toLowerCase();
+        if (v && out.indexOf(v) === -1) out.push(v);
+    });
+    return out;
+}
+
+function boiteMemeDestinataire(rep, question) {
+    var dest = boiteEmailsDe(rep);
+    var src = boiteEmailsDe(question);
+    if (!dest.length || !src.length) return false;
+    return src.some(function (email) { return dest.indexOf(email) !== -1;});
+}
+
+function boiteMailConfirme(rep) {
+    if (!rep) return false;
+    if (rep.repondu) return true;
+    if (rep.gmailId && String(rep.gmailId).length >= 16) return true;
+    if (rep.mail === true && (rep.questionId || rep.destinataire || (rep.destinataires && rep.destinataires.length))) return true;
+    return false;
+}
+
+function boiteIndexQuestions(fusion) {
+    var ids = {};
+    (fusion && fusion.questions || []).forEach(function (item) {
+        if (item && item.id) ids[item.id] = 1;
+    });
+    return ids;
+}
+
+function boiteReponseLiee(rep, question, questions) {
+    if (!rep || !question) return false;
+    if (rep.questionId && rep.questionId === question.id) return true;
+    if (rep.questionId && questions && questions[rep.questionId]) return false;
+    if (!boiteMailConfirme(rep)) return false;
+    /* Anciens envois, d'avant le numéro de question : on ne les rattache
+       qu'à une question posée avant l'envoi et portant la même adresse.
+       Avant, un simple prénom suffisait (« Kenza » ≈ « Kenzah ») : la
+       réponse partie pour une autre question s'affichait sur celle de
+       Kenzah, cochée comme répondue par Farid alors que non. */
+    if (String(rep.at || '') < String(question.at || '')) return false;
+    return boiteMemeDestinataire(rep, question);
+}
+
+function boiteReponsesPour(fusion, question) {
+    var ids = boiteIndexQuestions(fusion);
+    return (fusion && fusion.reponses || []).filter(function (rep) {
+        return boiteReponseLiee(rep, question, ids);
+    });
+}
+
+function boiteReponsesLiees(fusion, questionId) {
+    var question = null;
+    (fusion && fusion.questions || []).some(function (item) {
+        if (item && item.id === questionId) { question = item; return true; }
+        return false;
+    });
+    if (!question) {
+        return (fusion && fusion.reponses || []).filter(function (rep) {
+            return rep && rep.questionId === questionId;
+        });
+    }
+    return boiteReponsesPour(fusion, question);
+}
+
+function boiteReponsesDe(fusion, questionId) {
+    return boiteReponsesLiees(fusion, questionId).filter(boiteMailConfirme);
+}
+
+function boiteCase(cochee) {
+    return '<input type="checkbox" disabled ' + (cochee ? 'checked' : '') + ' style="width:1.15rem;height:1.15rem;accent-color:#059669;flex:none;">';
+}
+
+function boiteCarteQuestion(item, reponses) {
+    var compte = item.google ? boiteEchap(item.google) : 'Sans compte Google';
+    if (item.googleNom) compte += ' · ' + boiteEchap(item.googleNom);
+    var email = boiteEmailQuestion(item);
+    var cochee = reponses.some(boiteMailConfirme);
+    var html = '<article style="background:white;border:1.5px solid ' + (cochee ? '#a7f3d0' : '#e5e7eb') + ';border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
+        + '<div style="display:flex;align-items:flex-start;gap:0.65rem;">'
+        + boiteCase(cochee)
+        + '<div style="flex:1;min-width:0;">'
+        + '<p style="font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + '</p>'
+        + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte + '</p>'
+        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
+    reponses.forEach(function (rep) {
+        if (!String(rep.texte || '').trim()) return;
+        var ok = boiteMailConfirme(rep) || cochee;
+        html += '<div style="margin-top:0.75rem;background:#f0fdf4;border-radius:0.75rem;padding:0.7rem 0.8rem;">'
+            + '<p style="font-size:0.75rem;font-weight:800;color:#047857;">' + (ok ? 'Message envoyé' : 'Envoi non confirmé') + ' · ' + boiteEchap(boiteDate(rep.at)) + '</p>'
+            + (rep.nom ? '<p style="display:inline-block;margin-top:0.35rem;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0;border-radius:999px;padding:0.15rem 0.6rem;font-size:0.74rem;font-weight:700;">Envoyé par ' + boiteEchap(rep.nom) + '</p>' : '')
+            + (rep.salutation ? '<p style="font-size:0.92rem;font-weight:800;color:#111827;white-space:nowrap;margin-top:0.25rem;">' + boiteEchap(rep.salutation) + '</p>' : '')
+            + '<p style="font-size:0.88rem;color:#1f2937;white-space:pre-wrap;margin-top:0.25rem;">' + boiteEchap(rep.texte || '') + '</p>'
+            + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.3rem;">' + (ok ? 'Mail confirmé à ' + boiteEchap(rep.destinataire || email) + ' par l\'équipe Studyplan' : 'Gmail n\'a pas confirmé cet envoi.') + '</p>'
+            + '</div>';
+    });
+    if (!cochee) {
+        if (!boiteEmailValide(email)) {
+            html += '<p style="margin-top:0.75rem;font-size:0.84rem;color:#b45309;">Cette personne n\'a pas laissé d\'e-mail. Le mail ne peut pas partir.</p>';
+        } else {
+            var ligneMail = boiteSalutation(boiteNomPourMail(item), new Date());
+            html += '<label style="display:block;margin-top:0.85rem;font-size:0.8rem;font-weight:700;color:#374151;">Message pour ' + boiteEchap(email) + '</label>'
+                + '<p style="margin:0.35rem 0 0;font-size:0.95rem;font-weight:800;color:#111827;white-space:nowrap;">Le mail commencera par : ' + boiteEchap(ligneMail) + '</p>'
+                + '<textarea data-reponse-texte="' + boiteEchap(item.id) + '" maxlength="800" rows="4" placeholder="Écris le message…" style="width:100%;box-sizing:border-box;margin-top:0.35rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.7rem 0.8rem;font:inherit;font-size:0.9rem;resize:vertical;outline:none;"></textarea>'
+                + '<p style="font-size:0.75rem;color:#6b7280;margin-top:0.35rem;">Avant l\'envoi, le message est relu : orthographe, grammaire et conjugaison.</p>'
+                + '<div data-reponse-analyse="' + boiteEchap(item.id) + '"></div>'
+                + '<button type="button" data-repondre="' + boiteEchap(item.id) + '" style="width:100%;margin-top:0.55rem;padding:0.75rem 1rem;border:none;border-radius:0.8rem;background:#059669;color:white;font-weight:800;cursor:pointer;">Envoyer le mail et le message</button>'
+                + '<p data-reponse-statut="' + boiteEchap(item.id) + '" style="min-height:1.1rem;margin-top:0.4rem;font-size:0.8rem;color:#047857;"></p>';
+        }
+    }
+    html += '</div></div></article>';
+    return html;
+}
+
+function boiteRendreQuestions(fusion) {
+    var liste = document.getElementById('questionsListe');
+    var statut = document.getElementById('questionsStatut');
+    if (!liste) return;
+    var attente = [];
+    var repondues = [];
+    (fusion.questions || []).forEach(function (item) {
+        var reps = boiteReponsesLiees(fusion, item.id);
+        var carte = boiteCarteQuestion(item, reps);
+        if (boiteReponsesDe(fusion, item.id).length) repondues.push(carte);
+        else attente.push(carte);
+    });
+    function bloc(titre, cartes, vide) {
+        return '<section style="margin-bottom:1.25rem;">'
+            + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.65rem;">' + titre + '</h3>'
+            + (cartes.length ? cartes.join('') : '<p style="color:#6b7280;margin-bottom:0.5rem;">' + vide + '</p>')
+            + '</section>';
+    }
+    if (!fusion.questions.length && fusion.partiel) {
+        liste.innerHTML = '<p style="color:#6b7280;">' + (fusion.reconnecter ? 'Connecte-toi avec ton compte Google, puis clique sur Actualiser.' : 'Les questions ne sont pas accessibles pour le moment. Réessaie.') + '</p>';
+    } else {
+        liste.innerHTML = '<section style="margin-bottom:1.25rem;">'
+            + '<h3 style="font-size:0.95rem;font-weight:800;color:#111827;margin-bottom:0.35rem;">Questions en attente</h3>'
+            + '<p style="font-size:0.78rem;color:#6b7280;margin-bottom:0.65rem;">Le mail part au nom de l\'équipe Studyplan. La première fois, Gmail peut le classer en indésirable.</p>'
+            + (attente.length ? attente.join('') : '<p style="color:#6b7280;">Aucune question en attente.</p>')
+            + '</section>'
+            + bloc('Questions répondues', repondues, 'Aucune question répondue.');
+    }
+    if (statut) {
+        statut.textContent = fusion.partiel
+            ? 'Une partie des questions n\'a pas pu être rechargée.'
+            : (attente.length + ' en attente · ' + repondues.length + ' répondue' + (repondues.length > 1 ? 's' : ''));
+    }
+}
+
+function boiteOctets(str) {
+    if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(String(str));
+    var utf8 = unescape(encodeURIComponent(String(str)));
+    var out = new Uint8Array(utf8.length);
+    var i;
+    for (i = 0; i < utf8.length; i++) out[i] = utf8.charCodeAt(i);
+    return out;
+}
+
+function boiteBase64(str) {
+    var bytes = boiteOctets(str);
+    var bin = '';
+    var i;
+    for (i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+}
+
+function boiteBase64Url(str) {
+    return boiteBase64(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function boiteLignes(s) {
+    return String(s || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+}
+
+function boiteEchapHtml(s) {
+    return boiteEchap(s).replace(/\n/g, '<br>');
+}
+
+function boitePrenom(nom) {
+    var mot = String(nom || '').trim().split(/\s+/)[0] || '';
+    if (mot.length < 2 || mot.length > 40) return '';
+    if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'\u2019-]+$/.test(mot)) return '';
+    return mot.charAt(0).toUpperCase() + mot.slice(1);
+}
+
+function boiteSujetMail(question) {
+    var extrait = String(question || '').replace(/\s+/g, ' ').trim();
+    if (extrait.length > 48) extrait = extrait.slice(0, 48).trim();
+    if (!extrait) return 'Réponse à ta question — Studyplan';
+    return ('Re: ' + extrait + ' — Studyplan').slice(0, 180);
+}
+
+function boitePeriodeSalutation(quand) {
+    var date = quand instanceof Date ? quand : new Date();
+    var heure = date.getHours();
+    return (heure >= 5 && heure < 18) ? 'Bonjour' : 'Bonsoir';
+}
+
+function boiteNomCourrier(nom) {
+    var propre = String(nom || '').replace(/\s+/g, ' ').trim();
+    if (!propre) return '';
+    if (propre.indexOf('@') !== -1) propre = propre.split('@')[0].replace(/[._+-]+/g, ' ');
+    propre = propre.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (propre.length < 2) return '';
+    if (propre.length > 48) propre = propre.slice(0, 48).trim();
+    if (propre !== propre.toLowerCase()) return propre;
+    return propre.split(' ').map(function (mot) {
+        return mot ? mot.charAt(0).toUpperCase() + mot.slice(1) : '';
+    }).join(' ');
+}
+
+function boiteNomPourMail(question) {
+    var candidats = [];
+    var email = String(question && (question.email || question.google) || '').trim().toLowerCase();
+    if (question) candidats.push(question.nom, question.googleNom);
+    var fusion = typeof boiteListesCache !== 'undefined' ? boiteListesCache : null;
+    ['emplois', 'profils', 'questions', 'feedbacks'].forEach(function (cle) {
+        ((fusion && fusion[cle]) || []).forEach(function (item) {
+            if (!item) return;
+            var mail = String(item.google || item.email || '').trim().toLowerCase();
+            if (!email || mail !== email) return;
+            candidats.push(item.nom, item.googleNom);
+        });
+    });
+    if (email) candidats.push(email.split('@')[0].replace(/[._+-]+/g, ' '));
+    var i, nom;
+    for (i = 0; i < candidats.length; i++) {
+        nom = boiteNomCourrier(candidats[i]);
+        if (nom && nom.toLowerCase() !== 'sans nom') return nom;
+    }
+    return '';
+}
+
+function boiteSalutation(nom, quand) {
+    var mot = boitePeriodeSalutation(quand);
+    var qui = boiteNomCourrier(nom);
+    return qui ? (mot + ' ' + qui + ',') : (mot + ',');
+}
+
+function boiteTexteMail(message, question, nom, quand) {
+    var texte = boiteSalutation(nom, quand) + '\n\n' + boiteLignes(message);
+    if (boiteLignes(question)) texte += '\n\nTa question :\n' + boiteLignes(question);
+    texte += '\n\nÀ bientôt,\nL\'équipe Studyplan';
+    return texte.slice(0, 4000);
+}
+
+function boiteHtmlMail(message, question, nom, quand) {
+    var ligne = boiteSalutation(nom, quand);
+    var questionHtml = '';
+    if (boiteLignes(question)) {
+        questionHtml = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:22px 0 0;background:#f7f8f7;border-radius:12px;">'
+            + '<tr><td style="padding:16px 18px;border-left:3px solid #34d399;">'
+            + '<p style="margin:0 0 8px;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#047857;">Ta question</p>'
+            + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#4b5563;">' + boiteEchapHtml(boiteLignes(question)) + '</p>'
+            + '</td></tr></table>';
+    }
+    return '<div style="display:none;max-height:0;overflow:hidden;">' + boiteEchap(ligne) + ' — Studyplan</div>'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;">'
+        + '<tr><td align="center" style="padding:24px 12px;">'
+        + '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:18px;overflow:hidden;">'
+        + '<tr><td style="background:#059669;padding:22px 28px;">'
+        + '<table role="presentation" cellpadding="0" cellspacing="0"><tr>'
+        + '<td style="padding-right:14px;vertical-align:middle;"><img src="https://sawadogojuliss-byte.github.io/Learning-DP1/images/logo.png" width="46" height="46" alt="" style="display:block;border:0;border-radius:12px;background:#ecfdf5;"></td>'
+        + '<td style="vertical-align:middle;">'
+        + '<p style="margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:#d1fae5;">Studyplan</p>'
+        + '<p style="margin:6px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.15;font-weight:700;color:#ffffff;white-space:nowrap;">' + boiteEchap(ligne) + '</p>'
+        + '<p style="margin:4px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.3;color:#d1fae5;">Réponse à ta question</p>'
+        + '</td></tr></table></td></tr>'
+        + '<tr><td style="padding:32px 28px 28px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.6;color:#1f2937;">'
+        + '<p style="margin:0 0 18px;font-size:18px;font-weight:700;color:#111827;white-space:nowrap;">' + boiteEchap(ligne) + '</p>'
+        + '<p style="margin:0;">' + boiteEchapHtml(boiteLignes(message)) + '</p>'
+        + questionHtml
+        + '<p style="margin:28px 0 0;">À bientôt,</p>'
+        + '<p style="margin:4px 0 0;font-weight:700;color:#047857;">L\'équipe Studyplan</p>'
+        + '</td></tr></table></td></tr></table>';
+}
+
+function boiteMessageEchecMail(err, data) {
+    var type = err && (err.type || err.message) || '';
+    var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
+    if (type === 'salutation') return 'Le mail doit commencer par Bonjour ou Bonsoir, avec le nom sur la même ligne. Il n\'est pas parti.';
+    if (type === 'script') return 'L\'envoi au nom de l\'équipe Studyplan n\'est pas encore activé. La question reste en attente.';
+    if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
+    if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
+    if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
+    if (/SERVICE_DISABLED|accessNotConfigured|has not been used/i.test(api)) {
+        return 'Le service Gmail n\'est pas activé. La question reste en attente.';
+    }
+    return 'Gmail n\'a pas confirmé l\'envoi. La question reste en attente.';
+}
+
+function boiteConnexionPartagee(fusion) {
+    var liste = (fusion && fusion.connexions) || [];
+    var i;
+    for (i = 0; i < liste.length; i++) {
+        if (liste[i] && liste[i].partage && compteEmailCleSafe(liste[i].email) === compteEmailCleSafe(BOITE_EXPEDITEUR)) return liste[i];
+    }
+    return null;
+}
+
+function compteEmailCleSafe(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+function boiteConnecterPartage() {
+    var record = {
+        type: 'connexion',
+        id: 'connexion-admins',
+        at: new Date().toISOString(),
+        email: BOITE_EXPEDITEUR,
+        partage: true,
+        nom: boiteNom()
+    };
+    return boiteEnvoyer(record).then(function () {
+        if (boiteListesCache) {
+            boiteListesCache.connexions = [record].concat(boiteListesCache.connexions || []);
+        }
+        boiteMajConnexion(boiteListesCache || { connexions: [record] });
+        return record;
+    });
+}
+
+function boiteMajConnexion() {
+    var texte = document.getElementById('retoursPartageTexte');
+    if (texte) texte.textContent = 'Les réponses partent au nom de l\'équipe Studyplan.';
+}
+
+function boiteNonce() {
+    var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    var s = '';
+    var i;
+    for (i = 0; i < 24; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+}
+
+function boiteMailAccepte(data, nonce) {
+    return !!(data && nonce && String(data.id || '') === String(nonce));
+}
+
+function boiteUrlScript() {
+    return boiteFetch('data/mail-script.json?t=' + Date.now(), { cache: 'no-store' }, 8000).then(function (res) {
+        return res.ok ? res.json() : {};
+    }).catch(function () {
+        return {};
+    }).then(function (data) {
+        var url = String((data && data.url) || '').trim();
+        if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)) {
+            throw new Error('script');
+        }
+        return url;
+    });
+}
+
+/* Le secret d'envoi n'est plus écrit dans la page : il vit dans le
+   document Firestore « config/mail », que seuls les admins peuvent
+   lire. Un élève qui ouvre le code ne le voit donc jamais. */
+var boiteSecretCache = '';
+
+function boiteSecretMail() {
+    var generation = boiteSessionGeneration;
+    if (boiteSecretCache && boiteEstAdmin() && window.firebase && firebase.auth().currentUser) return Promise.resolve(boiteSecretCache);
+    return boiteFirebasePret().then(function (user) {
+        if (!user || !boiteEstAdmin()) throw new Error('script');
+        return firebase.firestore().collection('config').doc('mail').get();
+    }).then(function (snap) {
+        var data = snap && snap.exists ? snap.data() : null;
+        var secret = data && data.secret ? String(data.secret) : '';
+        if (!secret || generation !== boiteSessionGeneration) throw new Error('script');
+        boiteSecretCache = secret;
+        return secret;
+    }).catch(function () {
+        throw new Error('script');
+    });
+}
+
+function boitePayloadMail(email, message, question, nonce, nom, quand, secret) {
+    var moment = quand instanceof Date ? quand : new Date();
+    var destinataire = boiteNomCourrier(nom) || boiteNomPourMail({ email: email, nom: nom });
+    var ligne = boiteSalutation(destinataire, moment);
+    return {
+        secret: secret || '',
+        nonce: nonce,
+        to: email,
+        replyTo: BOITE_EXPEDITEUR,
+        nom: destinataire,
+        salutation: ligne,
+        subject: 'Réponse à ta question — Studyplan',
+        text: boiteTexteMail(message, question, destinataire, moment),
+        html: boiteHtmlMail(message, question, destinataire, moment)
+    };
+}
+
+function boiteMailCommenceBien(payload) {
+    var ligne = String(payload && payload.salutation || '');
+    var texte = String(payload && payload.text || '');
+    var html = String(payload && payload.html || '');
+    if (!/^(Bonjour|Bonsoir) [^,\n]+,$/.test(ligne)) return false;
+    if (texte.indexOf(ligne + '\n') !== 0) return false;
+    if (html.indexOf('>' + ligne + '<') === -1) return false;
+    return true;
+}
+
+function boitePosterFormulaire(url, payload) {
+    var nom = 'boiteMail' + Date.now();
+    var cadre = document.createElement('iframe');
+    cadre.name = nom;
+    cadre.title = '';
+    cadre.setAttribute('style', 'position:absolute;width:1px;height:1px;left:-9999px;border:0;');
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = nom;
+    form.acceptCharset = 'UTF-8';
+    var champ = document.createElement('input');
+    champ.type = 'hidden';
+    champ.name = 'payload';
+    champ.value = JSON.stringify(payload);
+    form.appendChild(champ);
+    document.body.appendChild(cadre);
+    document.body.appendChild(form);
+    form.submit();
+    return new Promise(function (resolve) { setTimeout(resolve, 400); });
+}
+
+function boitePosterChamps(url, payload) {
+    return new Promise(function (resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded;charset=UTF-8');
+        xhr.onload = function () {
+            var data = {};
+            try { data = JSON.parse(xhr.responseText); } catch (e) {}
+            if (xhr.status === 200 && boiteMailAccepte(data, payload.nonce)) resolve(data);
+            else reject(new Error('mail'));
+        };
+        xhr.onerror = function () { reject(new Error('mail')); };
+        xhr.send(Object.keys(payload).map(function (cle) {
+            return encodeURIComponent(cle) + '=' + encodeURIComponent(payload[cle]);
+        }).join('&'));
+    });
+}
+
+function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
+    var email = String(destinataire || '').trim();
+    if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
+    var nonce = boiteNonce();
+    var moment = quand instanceof Date ? quand : new Date();
+    return Promise.all([boiteUrlScript(), boiteSecretMail()]).then(function (prets) {
+        var url = prets[0];
+        var payload = boitePayloadMail(email, message, question, nonce, nom, moment, prets[1]);
+        if (!boiteMailCommenceBien(payload)) return Promise.reject(new Error('salutation'));
+        return fetch(url, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        }).then(function (res) {
+            return res.json().catch(function () { return {}; }).then(function (data) {
+                if (res.ok && boiteMailAccepte(data, nonce)) return data;
+                return boitePosterChamps(url, payload);
+            });
+        }).catch(function () {
+            return boitePosterChamps(url, payload);
+        });
+    });
+}
+
+function boiteDireDans(el, texte, erreur) {
+    if (!el) return;
+    el.textContent = texte;
+    el.style.color = erreur ? '#b45309' : '#047857';
+}
+
+function boiteMontrerAnalyse(questionId, article, texte, erreurs) {
+    var zone = article ? article.querySelector('[data-reponse-analyse]') : document.querySelector('[data-reponse-analyse="' + questionId + '"]');
+    if (!zone) return;
+    if (!erreurs || !erreurs.length) {
+        zone.innerHTML = '';
+        return;
+    }
+    var lignes = erreurs.map(function (err) {
+        var extrait = texte.slice(err.debut, err.fin);
+        var suggestion = err.suggestions && err.suggestions.length ? ' Suggestion : « ' + err.suggestions[0] + ' ».' : '';
+        var etiquette = typeof langueEtiquette === 'function' ? langueEtiquette(err.type) : 'À corriger';
+        return '<li style="margin:0.35rem 0;"><strong>' + boiteEchap(etiquette) + '.</strong> « ' + boiteEchap(extrait) + ' » — ' + boiteEchap(err.message) + boiteEchap(suggestion) + '</li>';
+    }).join('');
+    var apercu = typeof langueMarquer === 'function' ? langueMarquer(texte, erreurs) : boiteEchap(texte);
+    zone.innerHTML = '<div style="margin-top:0.7rem;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:0.8rem;padding:0.75rem 0.8rem;">'
+        + '<p style="font-weight:800;color:#92400e;margin:0;">Corrige ces points avant l\'envoi. Le mail n\'est pas parti.</p>'
+        + '<p style="font-size:0.9rem;line-height:1.45;white-space:pre-wrap;margin:0.55rem 0 0;color:#1f2937;">' + apercu + '</p>'
+        + '<ul style="margin:0.55rem 0 0;padding-left:1.1rem;color:#78350f;font-size:0.84rem;">' + lignes + '</ul>'
+        + '<button type="button" data-repondre-quand-meme="' + boiteEchap(questionId) + '" style="width:100%;margin-top:0.7rem;padding:0.7rem 1rem;border:1.5px solid #d97706;border-radius:0.8rem;background:white;color:#92400e;font-weight:800;cursor:pointer;">Envoyer malgré ces remarques</button>'
+        + '</div>';
+    if (zone.scrollIntoView) zone.scrollIntoView({ block: 'nearest' });
+}
+
+function boiteRepondre(questionId, origine, forcer) {
+    if (!boiteEstAdmin() || !boiteListesCache) return;
+    var question = null;
+    (boiteListesCache.questions || []).some(function (item) {
+        if (item.id === questionId) { question = item; return true; }
+        return false;
+    });
+    var article = origine && origine.closest ? origine.closest('article') : null;
+    var zone = article ? article.querySelector('[data-reponse-statut]') : document.querySelector('[data-reponse-statut="' + questionId + '"]');
+    var champ = article ? article.querySelector('[data-reponse-texte]') : document.querySelector('[data-reponse-texte="' + questionId + '"]');
+    var bouton = article ? article.querySelector('[data-repondre]') : document.querySelector('[data-repondre="' + questionId + '"]');
+    if (!question) return;
+    var email = boiteEmailQuestion(question);
+    var texte = champ ? champ.value.trim() : '';
+    if (!boiteEmailValide(email)) {
+        boiteDireDans(zone, 'Cette personne n\'a pas laissé d\'e-mail.', true);
+        return;
+    }
+    if (texte.length < 2) {
+        boiteDireDans(zone, 'Écris le message avant de l\'envoyer.', true);
+        return;
+    }
+    if (bouton && bouton.disabled) return;
+    if (bouton) bouton.disabled = true;
+    function envoyer() {
+        boiteMontrerAnalyse(questionId, article, texte, []);
+        var nomMail = boiteNomPourMail(question);
+        var quand = new Date();
+        var ligneMail = boiteSalutation(nomMail, quand);
+        boiteDireDans(zone, 'Envoi vers ' + email + ' — ' + ligneMail, false);
+        boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', nomMail, quand).then(function (data) {
+            var gmailId = String(data && data.id || '');
+            var record = {
+                type: 'reponse',
+                id: boiteId('r'),
+                questionId: question.id,
+                at: new Date().toISOString(),
+                nom: boiteNom(),
+                email: BOITE_EXPEDITEUR,
+                destinataire: email,
+                texte: texte.slice(0, 800),
+                salutation: ligneMail,
+                mail: true,
+                repondu: true,
+                gmailId: gmailId.length >= 16 ? gmailId : '',
+                partage: true
+            };
+            boiteGarderVu(record);
+            boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+            boiteRendreQuestions(boiteListesCache);
+            boiteRendreRetours(boiteListesCache);
+            boiteEnvoyer(record).catch(function () {});
+        }).catch(function (err) {
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
+        });
+    }
+    if (forcer || typeof langueAnalyser !== 'function') {
+        envoyer();
+        return;
+    }
+    boiteDireDans(zone, 'Vérification de l\'orthographe, de la grammaire et de la conjugaison…', false);
+    langueAnalyser(texte.slice(0, 800)).then(function (erreurs) {
+        if (erreurs && erreurs.length) {
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le message n\'a pas été envoyé. Les erreurs sont indiquées ci-dessus.', true);
+            boiteMontrerAnalyse(questionId, article, texte.slice(0, 800), erreurs);
+            return;
+        }
+        envoyer();
+    }).catch(function () {
+        envoyer();
+    });
+}
+
+/* La liste est compacte ; les versions restent dans Firestore et seules
+   les copies confirmées entrent dans les détails de la page admin. */
+var boiteEmploiSelection = '';
+var boiteEmploiVersion = '';
+/* Semaine dont la suppression attend une validation (identifiants joints). */
+var boiteEmploiConfirmer = '';
+var boiteEmploiFiltre = 'tous';
+var boiteEmploisAffiches = [];
+var boiteEmploisVersionsAffichees = [];
+
+function boiteCleAfficheEmploi(item) {
+    if (item.firebaseUid) return 'uid:' + item.firebaseUid;
+    if (item.googleSub) return 'sub:' + item.googleSub;
+    if (item.google || item.email) return 'mail:' + boiteNormaliser(item.google || item.email);
+    if (item.appareil) return 'app:' + item.appareil + ':' + boiteNormaliser(item.nom);
+    return 'doc:' + String(item.id || '') + ':' + boiteNormaliser(item.nom);
+}
+
+function boiteEmploiRecu(item) {
+    return !!(item && Array.isArray(item.jours) && item.jours.length);
+}
+
+function boiteCleVersionEmploi(item) {
+    return String(item.id || '') + '|' + String(item.at || '') + '|' + boiteSignatureJours(item);
+}
+
+function boiteVersionsPourEmploi(item, fusion) {
+    var vues = {};
+    return ((fusion && fusion.emploisVersions) || []).filter(function (version) {
+        if (!boiteEmploiRecu(version) || boiteEmploiRetire(version) || !boiteMemePersonne(item, version)) return false;
+        var cle = boiteCleVersionEmploi(version);
+        if (vues[cle]) return false;
+        vues[cle] = true;
+        return true;
+    }).sort(function (a, b) { return String(b.at || '').localeCompare(String(a.at || '')); });
+}
+
+function boiteTypeCreneau(slot) {
+    var nom = boiteNormaliser(slot && slot.t || '');
+    if (/math|analyse|algebre|statistique/.test(nom)) return 'math';
+    if (/physique|chimie|biologie|science|informatique/.test(nom)) return 'science';
+    if (/francais|anglais|litterature|langue|histoire|philosophie/.test(nom)) return 'litterature';
+    return 'autre';
+}
+
+function boiteCalendrierAtelier(item) {
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    var jours = {};
+    (item.jours || []).forEach(function (jour) {
+        if (jour && noms.indexOf(jour.j) !== -1 && Array.isArray(jour.s)) jours[jour.j] = jour.s;
+    });
+    return '<div class="emploi-atelier-calendrier-scroll" role="region" aria-label="Calendrier de la semaine, défilement horizontal possible" tabindex="0">'
+        + '<div class="emploi-atelier-calendrier">' + noms.map(function (nom) {
+            var slots = jours[nom];
+            var contenu = !slots ? '<p class="emploi-atelier-jour-vide">Jour non transmis dans cette version.</p>'
+                : !slots.length ? '<p class="emploi-atelier-jour-vide">Aucun créneau reçu.</p>'
+                : slots.slice().sort(function (a, b) { return String(a && a.d || '').localeCompare(String(b && b.d || '')); }).map(function (slot) {
+                    if (!slot) return '';
+                    var heures = String(slot.d || '') + (slot.f ? ' – ' + slot.f : '');
+                    return '<div class="emploi-atelier-slot ' + boiteTypeCreneau(slot) + '">'
+                        + '<time>' + boiteEchap(heures) + '</time><strong>' + boiteEchap(slot.t || '') + '</strong></div>';
+                }).join('');
+            return '<section class="emploi-atelier-jour"><h5>' + nom + '</h5>' + contenu + '</section>';
+        }).join('') + '</div></div>';
+}
+
+function boiteRendreEmplois(fusion) {
+    var liste = document.getElementById('emploisListe');
+    var detail = document.getElementById('emploisDetail');
+    var statut = document.getElementById('emploisStatut');
+    var filtre = document.getElementById('emploisFiltre');
+    if (!liste) return;
+    var mot = boiteNormaliser(filtre ? filtre.value : '');
+    var personnes = boitePersonnes(fusion);
+    var nbRecus = personnes.filter(boiteEmploiRecu).length;
+    [['emploisTotal', personnes.length], ['emploisRecus', nbRecus], ['emploisSans', personnes.length - nbRecus]].forEach(function (paire) {
+        var compteur = document.getElementById(paire[0]);
+        if (compteur) compteur.textContent = String(paire[1]);
+    });
+    var filtres = document.getElementById('emploisFiltres');
+    if (filtres && filtres.querySelectorAll) filtres.querySelectorAll('[data-emploi-filtre]').forEach(function (bouton) {
+        bouton.setAttribute('aria-pressed', bouton.getAttribute('data-emploi-filtre') === boiteEmploiFiltre ? 'true' : 'false');
+    });
+    var rows = personnes.filter(function (item) {
+        if (!item || boiteEmploiRetire(item)) return false;
+        if (boiteEmploiFiltre === 'recus' && !boiteEmploiRecu(item)) return false;
+        if (boiteEmploiFiltre === 'sans' && boiteEmploiRecu(item)) return false;
+        return !mot || boiteNormaliser((item.nom || '') + ' ' + (item.classe || '') + ' ' + (item.google || '') + ' ' + (item.email || '')).indexOf(mot) !== -1;
+    });
+    boiteEmploisAffiches = rows;
+    if (rows.length && !rows.some(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })) {
+        boiteEmploiSelection = boiteCleAfficheEmploi(rows[0]);
+        boiteEmploiVersion = '';
+    }
+    if (!rows.length) {
+        var vide = personnes.length ? 'Aucun élève ne correspond à ce filtre.'
+            : (fusion.reconnecter ? 'Reconnecte ton compte admin, puis actualise.'
+                : fusion.partiel ? 'Lecture incomplète : impossible de confirmer la liste des emplois pour le moment.'
+                    : 'Aucun emploi reçu pour le moment.');
+        liste.innerHTML = '<p class="emploi-atelier-aucun">' + vide + '</p>';
+        if (detail) detail.innerHTML = '<div class="emploi-atelier-attente"><strong>Aucune fiche à afficher</strong>' + vide + '</div>';
+        boiteEmploisVersionsAffichees = [];
+    } else {
+        liste.innerHTML = rows.map(function (item, index) {
+            var nom = item.nom || item.googleNom || 'Sans nom';
+            var initiales = nom.trim().split(/\s+/).slice(0, 2).map(function (partie) { return partie.charAt(0).toUpperCase(); }).join('');
+            var recu = boiteEmploiRecu(item);
+            return '<button type="button" class="emploi-atelier-personne" data-emploi-personne="' + index + '" aria-current="'
+                + (boiteCleAfficheEmploi(item) === boiteEmploiSelection ? 'true' : 'false') + '">'
+                + '<span class="emploi-atelier-avatar" aria-hidden="true">' + boiteEchap(initiales) + '</span>'
+                + '<span class="emploi-atelier-identite"><strong>' + boiteEchap(nom) + '</strong><small>' + boiteEchap(item.classe || 'Classe non indiquée') + '</small></span>'
+                + '<span class="emploi-atelier-badge ' + (recu ? 'recu' : 'absent') + '">' + (recu ? 'Reçu' : 'Absent') + '</span></button>';
+        }).join('');
+        var choix = rows.filter(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })[0] || rows[0];
+        var versions = boiteVersionsPourEmploi(choix, fusion);
+        boiteEmploisVersionsAffichees = versions;
+        var selectionVersion = versions.filter(function (item) { return boiteCleVersionEmploi(item) === boiteEmploiVersion; })[0];
+        if (!selectionVersion) boiteEmploiVersion = '';
+        var semaine = selectionVersion || choix;
+        var aSemaine = boiteEmploiRecu(semaine);
+        var complet = aSemaine && boiteEstComplet(semaine);
+        var nomAffiche = boiteEchap(choix.nom || choix.googleNom || 'Sans nom');
+        var meta = boiteEchap(choix.classe || 'Classe non indiquée')
+            + (choix.matieres && choix.matieres.length ? ' · ' + choix.matieres.length + ' matière' + (choix.matieres.length > 1 ? 's' : '') : '');
+        var date = semaine.at ? boiteEchap(boiteDate(semaine.at)) : '';
+        var badge = !aSemaine ? 'Aucun planning reçu' : !complet ? 'Semaine partielle / reconstituée' : 'Semaine reçue';
+        var calendrier = !aSemaine
+            ? '<div class="emploi-atelier-attente"><strong>Aucun planning reçu</strong>Cette personne est connue par un contact, mais aucune semaine n’est consultable ici.</div>'
+            : boiteCalendrierAtelier(semaine);
+        var historiqueOuvert = !!(boiteEmploiVersion || (detail && detail.querySelector && detail.querySelector('.emploi-atelier-historique') && detail.querySelector('.emploi-atelier-historique').open));
+        var historique = versions.length
+            ? '<details class="emploi-atelier-encart emploi-atelier-historique"' + (historiqueOuvert ? ' open' : '') + '><summary>Versions reçues (' + versions.length + ')</summary>'
+                + '<button type="button" data-emploi-version="courante" aria-current="' + (!boiteEmploiVersion ? 'true' : 'false') + '">Semaine affichée · synthèse actuelle</button>'
+                + versions.map(function (version, index) {
+                    return '<button type="button" data-emploi-version="' + index + '" aria-current="'
+                        + (selectionVersion === version ? 'true' : 'false') + '">Version ' + (index + 1)
+                        + (version.at ? ' · ' + boiteEchap(boiteDate(version.at)) : '')
+                        + (boiteEstComplet(version) ? '' : ' · partielle') + '</button>';
+                }).join('') + '</details>'
+            : '<div class="emploi-atelier-encart"><strong>Versions reçues</strong>Aucune semaine n’a encore été reçue pour cette personne.</div>';
+        if (detail) detail.innerHTML = '<div class="emploi-atelier-fiche-entete"><div><p class="emploi-atelier-fiche-eyebrow">PLANNING PRIVÉ · VUE ADMIN</p>'
+            + '<h3>' + nomAffiche + '</h3><p class="emploi-atelier-meta">' + meta + '</p></div>'
+            + boiteBoutonSupprimerSemaine(semaine, aSemaine, badge) + '</div>'
+            + (date && aSemaine ? '<p class="emploi-atelier-info">Date indiquée sur la fiche : ' + date + '</p>' : '')
+            + '<div class="emploi-atelier-semaine-tete"><h4>' + (selectionVersion ? 'Version archivée' : 'La semaine en un regard')
+            + '</h4><small>Sept jours · faire défiler si nécessaire →</small></div>' + calendrier
+            + '<div class="emploi-atelier-pied"><div class="emploi-atelier-encart"><strong>Lecture fidèle</strong>Seuls les créneaux effectivement reçus sont présentés. Une lecture incomplète est signalée, jamais complétée par des cours supposés.</div>'
+            + historique + '</div>';
+    }
+    if (statut) {
+        var n = personnes.length;
+        statut.textContent = (fusion.erreurEmplois ? 'Lecture des emplois du temps refusée ou indisponible : vérifier la connexion admin et les règles Firestore actives. ' :
+            fusion.partiel ? 'Lecture incomplète : certaines fiches peuvent manquer. ' : '')
+            + n + ' personne' + (n > 1 ? 's' : '') + ' · ' + nbRecus + ' planning' + (nbRecus > 1 ? 's' : '') + ' reçu' + (nbRecus > 1 ? 's' : '');
+        if (statut.setAttribute) statut.setAttribute('data-partiel', fusion.partiel ? 'true' : 'false');
+    }
+    boiteEmploisSignature = boiteSignatureEmplois(fusion);
+}
+
+function boiteSignatureEmplois(fusion) {
+    return JSON.stringify({
+        partiel: !!(fusion && fusion.partiel),
+        erreurEmplois: fusion && fusion.erreurEmplois || '',
+        personnes: boitePersonnes(fusion).map(function (item) {
+            return [item.id || '', item.nom || '', item.classe || '', item.google || item.email || '', item.at || '', item.jours || []];
+        }),
+        versions: ((fusion && fusion.emploisVersions) || []).map(function (item) { return [item.id || '', item.at || '']; })
+    });
+}
+
+var boiteEmploisTimer = null;
+var boiteEmploisSignature = '';
+function boiteSurveillerEmplois() {
+    if (boiteEmploisTimer) return;
+    boiteEmploisTimer = setInterval(function () {
+        var panneau = document.getElementById('panelEmplois');
+        if (!panneau || !panneau.classList.contains('active') || !boiteEstAdmin()) return;
+        boiteChargerListes(true).then(function (fusion) {
+            if (!document.getElementById('panelEmplois') || !document.getElementById('panelEmplois').classList.contains('active')) return;
+            var sig = boiteSignatureEmplois(fusion);
+            if (sig === boiteEmploisSignature) return;
+            boiteRendreEmplois(fusion);
+        }).catch(function () {});
+    }, 10000);
+}
+
+var boiteRetoursTimer = null;
+function boiteSurveillerRetours() {
+    if (boiteRetoursTimer) return;
+    boiteRetoursTimer = setInterval(function () {
+        if (document.visibilityState === 'hidden' || !boiteEstAdmin()) return;
+        var retours = document.getElementById('panelRetours');
+        var questions = document.getElementById('panelQuestions');
+        if (!(retours && retours.classList.contains('active')) &&
+            !(questions && questions.classList.contains('active'))) return;
+        boiteChargerListes(true).then(function (fusion) {
+            if (retours && retours.classList.contains('active')) boiteRendreRetours(fusion);
+            if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
+        }).catch(function () {});
+    }, 15000);
+}
+
+function boiteOuvrirAdmin(page) {
+    if (!boiteEstAdmin()) {
+        navigateTo('planning');
+        return;
+    }
+    boiteMajMenu();
+    var id = page === 'retours' ? 'panelRetours' : (page === 'questions' ? 'panelQuestions' : 'panelEmplois');
+    var panneau = document.getElementById(id);
+    if (panneau) panneau.classList.add('active');
+    boiteBrancherAdmin();
+    var statut = document.getElementById(page === 'retours' ? 'retoursStatut' : (page === 'questions' ? 'questionsStatut' : 'emploisStatut'));
+    if (statut) statut.textContent = 'Chargement…';
+    /* Ne jamais montrer uniquement le cache lorsque l'admin ouvre la page :
+       un message arrivé depuis la précédente visite doit être relu. */
+    boiteChargerListes(true).then(function (fusion) {
+        if (page === 'retours') boiteRendreRetours(fusion);
+        else if (page === 'questions') boiteRendreQuestions(fusion);
+        else boiteRendreEmplois(fusion);
+    });
+    if (page === 'retours' || page === 'questions') boiteSurveillerRetours();
+    else boiteSurveillerEmplois();
+}
+
+function boiteRafraichirAdmin() {
+    ['retoursStatut', 'questionsStatut', 'emploisStatut'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = 'Chargement…';
+    });
+    boiteListesCache = null;
+    boiteChargerListes(true).then(function (fusion) {
+        boiteRendreRetours(fusion);
+        boiteRendreQuestions(fusion);
+        boiteRendreEmplois(fusion);
+    });
+}
+
+function boiteBrancherAdmin() {
+    if (boiteAdminBranche) return;
+    boiteAdminBranche = true;
+    ['retoursRafraichir', 'questionsRafraichir', 'emploisRafraichir'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.onclick = boiteRafraichirAdmin;
+    });
+    var partager = document.getElementById('retoursConnecter');
+    if (partager) partager.onclick = function () {
+        partager.disabled = true;
+        boiteConnecterPartage().then(function () {
+            partager.disabled = false;
+            if (boiteListesCache) boiteRendreRetours(boiteListesCache);
+        }).catch(function () {
+            partager.disabled = false;
+            var texte = document.getElementById('retoursPartageTexte');
+            if (texte) texte.textContent = 'La boîte n’a pas pu être connectée. Réessaie.';
+        });
+    };
+    var filtre = document.getElementById('emploisFiltre');
+    if (filtre) filtre.oninput = function () {
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+    };
+    var filtresEmplois = document.getElementById('emploisFiltres');
+    if (filtresEmplois) filtresEmplois.addEventListener('click', function (e) {
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-filtre]') : null;
+        if (!bouton) return;
+        boiteEmploiFiltre = bouton.getAttribute('data-emploi-filtre');
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+    });
+    var listeEmplois = document.getElementById('emploisListe');
+    if (listeEmplois) listeEmplois.addEventListener('click', function (e) {
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-personne]') : null;
+        var numero = bouton && Number(bouton.getAttribute('data-emploi-personne'));
+        if (!bouton || !Number.isInteger(numero) || !boiteEmploisAffiches[numero]) return;
+        boiteEmploiSelection = boiteCleAfficheEmploi(boiteEmploisAffiches[numero]);
+        boiteEmploiVersion = '';
+        boiteEmploiConfirmer = '';
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+    });
+    var detailEmplois = document.getElementById('emploisDetail');
+    if (detailEmplois) detailEmplois.addEventListener('click', function (e) {
+        var supprimer = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer]') : null;
+        var demande = e.target && e.target.closest ? e.target.closest('[data-emploi-supprimer-demande]') : null;
+        var confirme = e.target && e.target.closest ? e.target.closest('[data-emploi-confirmer]') : null;
+        var annule = e.target && e.target.closest ? e.target.closest('[data-emploi-annuler]') : null;
+        if (demande || confirme || annule) {
+            if (demande) boiteEmploiConfirmer = demande.getAttribute('data-emploi-supprimer-demande');
+            if (annule) boiteEmploiConfirmer = '';
+            if (confirme) {
+                boiteEmploiConfirmer = '';
+                boiteSupprimerEmploi(confirme.getAttribute('data-emploi-confirmer').split(','));
+                return;
+            }
+            if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+            return;
+        }
+        var bouton = e.target && e.target.closest ? e.target.closest('[data-emploi-version]') : null;
+        if (!bouton) return;
+        var cle = bouton.getAttribute('data-emploi-version');
+        var numero = Number(cle);
+        if (cle !== 'courante' && (!Number.isInteger(numero) || !boiteEmploisVersionsAffichees[numero])) return;
+        boiteEmploiVersion = cle === 'courante' ? '' : boiteCleVersionEmploi(boiteEmploisVersionsAffichees[numero]);
+        boiteEmploiConfirmer = '';
+        if (boiteListesCache) boiteRendreEmplois(boiteListesCache);
+        if (boiteEmploiVersion) {
+            var historique = detailEmplois.querySelector('.emploi-atelier-historique');
+            if (historique) historique.open = true;
+        }
+    });
+    ['questionsListe', 'retoursListe'].forEach(function (id) {
+        var liste = document.getElementById(id);
+        if (!liste || liste.__boite) return;
+        liste.__boite = true;
+        liste.addEventListener('click', function (e) {
+            var force = e.target && e.target.closest ? e.target.closest('[data-repondre-quand-meme]') : null;
+            var btn = force || (e.target && e.target.closest ? e.target.closest('[data-repondre]') : null);
+            if (!btn) return;
+            boiteRepondre(btn.getAttribute('data-repondre') || btn.getAttribute('data-repondre-quand-meme'), btn, !!force);
+        });
+    });
+}
+
+function boiteNom() {
+    /* Un admin connecté avec son compte Google signe toujours du nom
+       gardé : un seul compte, une seule fiche, quel que soit l'appareil. */
+    var session = (typeof boiteSession === 'function') ? boiteSession() : null;
+    var garde = boiteEmailAdmin(session) ? String(session.name || session.given_name || '').trim() : '';
+    if (garde) return garde;
+    return (typeof userName !== 'undefined' && userName) ? String(userName).trim() : '';
+}
+
+function boiteDire(id, texte, erreur) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = texte;
+    el.style.color = erreur ? '#b45309' : '#047857';
+}
+
+function boiteSession() {
+    var session = window.compteSession;
+    if (!session || !session.sub) {
+        try {
+            var cle = typeof COMPTE_SESSION_KEY !== 'undefined' ? COMPTE_SESSION_KEY : 'studyPlanIB_googleSession';
+            session = JSON.parse(localStorage.getItem(cle) || 'null');
+            if (session && session.sub) window.compteSession = session;
+        } catch (e) {
+            session = null;
+        }
+    }
+    return (session && session.sub) ? session : null;
+}
+
+function boiteLierGoogle() {
+    return Promise.resolve(boiteSession());
+}
+
+function boiteQuestion(session) {
+    var texte = document.getElementById('aideTexte');
+    var valeur = texte ? texte.value.trim() : '';
+    if (valeur.length < 3) {
+        boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
+        return;
+    }
+    if (boiteEnvoiEnCours) return;
+    boiteEnvoiEnCours = true;
+    boiteDire('aideStatut', 'Envoi…', false);
+    var champMail = document.getElementById('aideEmail');
+    var emailSaisi = champMail ? String(champMail.value || '').trim() : '';
+    var email = boiteEmailValide(emailSaisi) ? emailSaisi : (session && session.email ? session.email : '');
+    if (!boiteEmailValide(email)) {
+        boiteEnvoiEnCours = false;
+        boiteDire('aideStatut', 'Indique ton e-mail pour recevoir la réponse.', true);
+        return;
+    }
+    var record;
+    try {
+        /* Ne plus mettre le planning ni le profil dans la question :
+           l'emploi du temps est envoyé dans sa propre collection. La
+           console Firebase affiche les champs par nom, d'où 01..04. */
+        var maintenant = new Date();
+        var compteGoogle = String(session && session.email || '').trim();
+        var gmail = /@gmail\.com$/i.test(compteGoogle) ? compteGoogle :
+            (/@gmail\.com$/i.test(email) ? email : '');
+        record = {
+            type: 'question',
+            id: boiteId('q'),
+            at: maintenant.toISOString(),
+            '01_heure_envoi': maintenant.toLocaleString('fr-FR', {
+                timeZone: 'Africa/Ouagadougou',
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit', hour12: false
+            }) + ' (Ouagadougou)',
+            '02_nom_utilisateur': boiteNom() || 'Sans nom',
+            '04_question': valeur.slice(0, 800),
+            z_email_reponse: email
+        };
+        if (gmail) record['03_compte_gmail'] = gmail;
+        if (compteGoogle) record.z_google_connecte = compteGoogle;
+        if (compteGoogle && session.name) record.z_google_nom = session.name;
+        /* L'emploi du temps part à part : s'il échoue, la question part quand même. */
+        try { boitePublierEmploi(true); } catch (e) {}
+    } catch (e) {
+        boiteEnvoiEnCours = false;
+        boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
+        return;
+    }
+    boiteEnvoyer(record).then(function () {
+        if (texte) texte.value = '';
+        var choix = document.getElementById('aideChoix');
+        if (choix) choix.style.display = 'none';
+        boiteDire('aideStatut', 'Question envoyée.', false);
+    }).catch(function () {
+        boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
+    }).then(function () {
+        boiteEnvoiEnCours = false;
+    });
+}
+
+function initAide() {
+    boiteMajMenu();
+    boiteReessayerUneFois();
+    var nom = document.getElementById('aideNom');
+    if (nom) nom.textContent = boiteNom() || 'Ton prénom';
+    var mailAide = document.getElementById('aideEmail');
+    var sessionAide = boiteSession();
+    if (mailAide && !mailAide.value && sessionAide && sessionAide.email) mailAide.value = sessionAide.email;
+    var choix = document.getElementById('aideChoix');
+    if (choix) choix.style.display = 'none';
+    if (aideBranchee) return;
+    aideBranchee = true;
+    var envoi = document.getElementById('aideEnvoi');
+    var avec = document.getElementById('aideAvecGoogle');
+    if (envoi) envoi.onclick = function () {
+        var texte = document.getElementById('aideTexte');
+        if (!texte || texte.value.trim().length < 3) {
+            boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
+            return;
+        }
+        if (choix) choix.style.display = 'none';
+        boiteQuestion(boiteSession());
+    };
+    if (avec) avec.onclick = function () {
+        if (choix) choix.style.display = 'none';
+        boiteQuestion(boiteSession());
+    };
+}
+
+function initFeedback() {
+    boiteMajMenu();
+    var nom = document.getElementById('feedbackNom');
+    if (nom) nom.textContent = boiteNom() || 'toi';
+    var email = document.getElementById('feedbackEmail');
+    var session = boiteSession();
+    if (email && !email.value && session && session.email) email.value = session.email;
+    if (feedbackBranche) return;
+    feedbackBranche = true;
+    var envoi = document.getElementById('feedbackEnvoi');
+    if (!envoi) return;
+    envoi.onclick = function () {
+        var champ = document.getElementById('feedbackTexte');
+        var mail = document.getElementById('feedbackEmail');
+        var texte = champ ? champ.value.trim() : '';
+        var adresse = mail ? mail.value.trim() : '';
+        if (!boiteEmailValide(adresse)) {
+            boiteDire('feedbackStatut', 'Indique un e-mail valide pour que la réponse puisse te revenir.', true);
+            return;
+        }
+        if (texte.length < 3) {
+            boiteDire('feedbackStatut', 'Écris ta suggestion avant de l\'envoyer.', true);
+            return;
+        }
+        if (boiteEnvoiEnCours) return;
+        boiteEnvoiEnCours = true;
+        boiteDire('feedbackStatut', 'Envoi…', false);
+        var sessionEnvoi = boiteSession();
+        var record;
+        try {
+            /* Les feedbacks ont la même fiche lisible que les questions.
+               Aucun planning n'est copié dans un avis. */
+            var maintenant = new Date();
+            var compteGoogle = String(sessionEnvoi && sessionEnvoi.email || '').trim();
+            var gmail = /@gmail\.com$/i.test(compteGoogle) ? compteGoogle :
+                (/@gmail\.com$/i.test(adresse) ? adresse : '');
+            record = {
+                type: 'feedback',
+                id: boiteId('f'),
+                at: maintenant.toISOString(),
+                '01_heure_envoi': maintenant.toLocaleString('fr-FR', {
+                    timeZone: 'Africa/Ouagadougou',
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit', hour12: false
+                }) + ' (Ouagadougou)',
+                '02_nom_utilisateur': boiteNom() || 'Sans nom',
+                '04_feedback': texte.slice(0, 800),
+                z_email_reponse: adresse.slice(0, 120)
+            };
+            if (gmail) record['03_compte_gmail'] = gmail;
+            if (compteGoogle) record.z_google_connecte = compteGoogle;
+            if (compteGoogle && sessionEnvoi.name) record.z_google_nom = sessionEnvoi.name;
+            try { boitePublierEmploi(true); } catch (e) {}
+        } catch (e) {
+            boiteEnvoiEnCours = false;
+            boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
+            return;
+        }
+        boiteEnvoyer(record).then(function () {
+            if (champ) champ.value = '';
+            boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
+        }).catch(function () {
+            boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
+        }).then(function () {
+            boiteEnvoiEnCours = false;
+        });
+    };
+}
+
+function boiteSnapshotEmploi() {
+    if (typeof generateDayEvents !== 'function') return null;
+    if (!boiteNom()) return null;
+    var noms = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+    var jours = [];
+    var i;
+    for (i = 0; i < 7; i++) {
+        var evs = [];
+        try { evs = generateDayEvents(i); } catch (e) { return null; }
+        if (!Array.isArray(evs)) return null;
+        var slots = [];
+        var k;
+        for (k = 0; k < evs.length; k++) {
+            var ev = evs[k];
+            if (!ev || !ev.title || !ev.startTime) continue;
+            if (i === 5 && (ev.id === 'eco' || boiteNormaliser(ev.title).indexOf('cours d economie') !== -1)) continue;
+            if (slots.length >= 120) return null; /* jamais tronquer une journée silencieusement */
+            slots.push({ d: ev.startTime, f: ev.endTime || '', t: String(ev.title).slice(0, 42) });
+        }
+        jours.push({ j: noms[i], s: slots });
+    }
+    var session = (typeof boiteSession === 'function' ? boiteSession() : null) || window.compteSession || {};
+    var matieres = [];
+    var liste = [];
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects)) liste = liste.concat(subjects);
+    if (typeof optionalSubjects !== 'undefined' && Array.isArray(optionalSubjects)) liste = liste.concat(optionalSubjects);
+    liste.forEach(function (s) {
+        if (!s || !s.name || matieres.length >= 6) return;
+        matieres.push((s.name + (s.level ? ' ' + s.level : '')).trim());
+    });
+    if (!jours.length && !matieres.length && !window.__profilComplet) return null;
+    return {
+        type: 'emploi',
+        id: 'e_' + boiteAppareil(),
+        appareil: boiteAppareil(),
+        at: new Date().toISOString(),
+        nom: boiteNom(),
+        classe: typeof ibYear !== 'undefined' ? (ibYear || '') : '',
+        email: session.email || '',
+        google: session.email || '',
+        googleNom: session.name || session.given_name || '',
+        googleSub: session.sub || '',
+        matieres: matieres,
+        jours: jours,
+        flammes: boiteFlammes(),
+        complet: 1,
+        schema: 2
+    };
+}
+
+var boiteStabiliseTimer = null;
+function boiteStabiliserComplet(record) {
+    if (!record) return record;
+    if (!(record.jours || []).length) {
+        record.complet = 0;
+        return record;
+    }
+    if (record.schema === 2 && record.jours.length === 7) {
+        record.complet = 1;
+        record.fige = 1;
+        return record;
+    }
+    var sig = boiteSignatureJours(record);
+    var deja = boiteLireJson('studyPlanIB_boiteEmploiStable') || {};
+    record.complet = (typeof emploiEstFige === 'function' && emploiEstFige()) || deja.sig === sig ? 1 : 0;
+    record.fige = record.complet ? 1 : 0;
+    if (!record.complet) {
+        boiteEcrireJson('studyPlanIB_boiteEmploiStable', { sig: sig, at: Date.now() });
+        clearTimeout(boiteStabiliseTimer);
+        boiteStabiliseTimer = setTimeout(function () { boiteVerifierFiche(); }, 1500);
+    }
+    return record;
+}
+
+function boiteInscrit() {
+    if (window.__profilComplet) return true;
+    if (typeof subjects !== 'undefined' && Array.isArray(subjects) && subjects.length > 0) return true;
+    var planning = document.getElementById('planningModal');
+    return !!(planning && planning.classList.contains('active') && boiteNom());
+}
+
+/* Seules les données du planning choisies par l'élève déclenchent une
+   nouvelle version. La date, la flamme, le jour consulté et le planning
+   recalculé automatiquement ne sont pas des modifications de l'élève. */
+function boiteFaitsEmploi() {
+    if (typeof memoireLireEtat !== 'function') return '';
+    var data;
+    try { data = memoireLireEtat(); } catch (e) { return ''; }
+    if (!data) return '';
+    var champs = [
+        'userName', 'ibYear', 'subjects', 'optionalSubjects', 'targetScore',
+        'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup', 'weekdaySleepHours',
+        'saturdaySleepHours', 'sundaySleepHours', 'transportMode', 'carDeparture',
+        'carToSchool', 'carFromSchool', 'motoDeparture', 'motoReturn',
+        'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates',
+        'holidayDroppedDates', 'sameFreeTime', 'freeTimeMinutes', 'freeTimeByDay',
+        'prepMatinMinutes', 'prepMatinDebut', 'prepMatinFin', 'prepSoirMinutes',
+        'prepSoirDebut', 'prepSoirFin', 'petitDejHeure', 'petitDejMinutes',
+        'dinerHeure', 'dinerMinutes', 'habitudesDefinies', 'phoneDays',
+        'samePhoneDuration', 'phoneDuration', 'phoneDayDurations', 'customEvents',
+        'emploiScolaire', 'devoirsStore', 'exercices',
+        'memoirLevel', 'iaLevel', 'iaLevels', 'memoirPlan', 'iaPlans'
+    ];
+    var faits = {};
+    champs.forEach(function (champ) { faits[champ] = data[champ]; });
+    if (faits.emploiScolaire) faits.emploiScolaire = { jours: faits.emploiScolaire.jours };
+    if (faits.devoirsStore) {
+        faits.devoirsStore = Object.assign({}, faits.devoirsStore);
+        delete faits.devoirsStore.bacDemande; /* version du dialogue, pas une réponse */
+    }
+    /* Le report automatique à la semaine suivante ne vaut pas édition. */
+    faits.customEvents = (data.customEvents || []).map(function (event) {
+        if (!event) return event;
+        var copie = Object.assign({}, event);
+        delete copie.reporte;
+        delete copie.depuisSemaine;
+        return copie;
+    });
+    /* La semaine fait partie de l'empreinte : une nouvelle semaine est une
+       nouvelle version, même sans modification de l'élève. */
+    return JSON.stringify(faits) + '|' + boiteSemaineCle(new Date());
+}
+
+/* La page Emploi du temps vérifie la réception dans Firestore, pas dans
+   localStorage ni à partir du contenu visible sur une autre page. Une
+   absence vérifiée relance l'envoi sans toucher aux anciennes versions. */
+var boiteControleReceptionEnCours = {};
+var boiteReceptionPresente = {};
+function boiteVerifierReceptionEmploi() {
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return Promise.resolve('ignore');
+    if (!window.__profilComplet && !(typeof emploiScolaireActif === 'function' && emploiScolaireActif())) return Promise.resolve('incomplet');
+    var record = boiteStabiliserComplet(boiteSnapshotEmploi());
+    if (!boiteEstComplet(record) || boiteEmploiRetire(record) ||
+        (!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record))) return Promise.resolve('incomplet');
+    var cle = boiteCleFileEmploi(record);
+    var faitsAuControle = boiteFaitsEmploi();
+    if (boiteControleReceptionEnCours[cle]) return boiteControleReceptionEnCours[cle];
+    var generation = boiteSessionGeneration;
+    var sub = window.compteSession && window.compteSession.sub || '';
+    function encoreCourant() {
+        return generation === boiteSessionGeneration &&
+            (window.compteSession && window.compteSession.sub || '') === sub;
+    }
+    var travail = boiteFirebasePret().then(function (user) {
+        var google = user && (user.providerData || []).filter(function (p) {
+            return p && p.providerId === 'google.com';
+        })[0];
+        if (!encoreCourant() || (google && record.googleSub !== google.uid) ||
+            (record.googleSub && (!google || google.uid !== record.googleSub))) return 'session';
+        var file = boiteLireEmploisEnAttente();
+        if (file[cle]) {
+            return boiteReessayer().then(function () {
+                return boiteLireEmploisEnAttente()[cle] ? 'attente' : verifier();
+            });
+        }
+        return verifier();
+        function verifier() {
+            if (!encoreCourant()) return 'session';
+            var ack = boiteLireAckEmploi(record);
+            var db = firebase.firestore();
+            function presente(type) {
+                if (!encoreCourant()) return 'session';
+                /* Le reçu prouve la version envoyée. Si l'élève a depuis
+                   enregistré de nouveaux faits, envoyer cette édition au
+                   lieu de confondre l'ancien reçu avec sa semaine actuelle. */
+                if (ack && ack.receptionId && ack.faits && faitsAuControle &&
+                    ack.faits !== faitsAuControle) {
+                    boitePublierEmploi(true, true);
+                    return 'edition';
+                }
+                boiteReceptionPresente[cle] = faitsAuControle;
+                return type;
+            }
+            function absente() {
+                if (!encoreCourant()) return 'session';
+                boitePublierEmploi(true, true); /* absence confirmée sur le serveur */
+                return 'renvoi';
+            }
+            if (ack && ack.receptionId) {
+                return db.collection('receptions_emplois').doc(ack.receptionId)
+                    .get({ source: 'server' }).then(function (doc) {
+                        return doc.exists ? presente('recu') : absente();
+                    });
+            }
+            if (user) {
+                /* Un ancien document sans accusé reste présent : ne pas le
+                   dupliquer. Le filtre UID est imposé par les règles serveur. */
+                return db.collection('emplois_du_temps')
+                    .where('z_donnees_techniques.firebaseUid', '==', user.uid)
+                    .limit(1).get({ source: 'server' }).then(function (snap) {
+                        return snap.empty || !(snap.docs || []).length ? absente() : presente('recu_ancien');
+                    });
+            }
+            /* Sans compte et sans ID de réception historique, personne ne
+               peut prouver l'absence d'un ancien document privé. Le garder
+               intact ; un nouvel élève sans ACK peut envoyer sa semaine. */
+            if (ack) return 'ancien_indeterminable';
+            return absente();
+        }
+    }).catch(function () { return 'indisponible'; });
+    boiteControleReceptionEnCours[cle] = travail;
+    travail.then(function () {
+        if (boiteControleReceptionEnCours[cle] === travail) delete boiteControleReceptionEnCours[cle];
+    });
+    return travail;
+}
+
+var boitePublicationsEnCours = {};
+function boitePublierEmploi(force, manqueConfirme) {
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return;
+    if (!boiteNom()) return;
+    if (!force && !boiteInscrit()) return;
+    var record = boiteStabiliserComplet(boiteSnapshotEmploi());
+    if ((!boiteEmploiAvecCreneaux(record) && !boiteEmploiVideAutorise(record)) || !boiteEstComplet(record) || boiteEmploiRetire(record)) return;
+    var faits = boiteFaitsEmploi();
+    var empreinte = JSON.stringify({
+        nom: record.nom,
+        classe: record.classe,
+        jours: record.jours,
+        matieres: record.matieres,
+        google: record.google,
+        googleSub: record.googleSub
+    });
+    var cle = boiteCleFileEmploi(record);
+    if (!manqueConfirme && (boiteControleReceptionEnCours[cle] ||
+        (faits && boiteReceptionPresente[cle] === faits))) return;
+    var deja = boiteLireAckEmploi(record);
+    /* Ancienne empreinte : ignorer seulement les champs de connexion.
+       Une même semaine déjà reçue n'a pas besoin d'une nouvelle version. */
+    var ancienne = null;
+    try { ancienne = deja && JSON.parse(deja.hash); } catch (e) {}
+    if (!manqueConfirme && deja && deja.cle === cle &&
+        ((faits && deja.faits === faits) ||
+         (!deja.faits && ancienne && JSON.stringify({
+             nom: ancienne.nom, classe: ancienne.classe, jours: ancienne.jours,
+             matieres: ancienne.matieres, google: ancienne.google,
+             googleSub: ancienne.googleSub
+         }) === empreinte))) {
+        if (faits && !deja.faits) boiteEcrireAckEmploi(record, { hash: empreinte, faits: faits,
+            cle: cle, at: deja.at, receptionId: deja.receptionId || '' });
+        return;
+    }
+    var signature = faits || empreinte;
+    if (boitePublicationsEnCours[cle] === signature) return;
+    boitePublicationsEnCours[cle] = signature;
+    /* Garder la signature à côté de la file jusqu'à l'ACK du serveur. Un
+       réessai ultérieur ne doit pas créer une autre version au prochain clic. */
+    boiteEcrireJson(BOITE_EMPLOI_HASH + ':attente:' + encodeURIComponent(cle), {
+        at: record.at, faits: faits, hash: empreinte
+    });
+    boiteEnvoyer(record).then(function (ok) {
+        if (ok) {
+            try { localStorage.setItem(BOITE_COMPLET, BOITE_COMPLET_VERSION); } catch (e) {}
+        }
+    }).catch(function () {}).then(function () {
+        if (boitePublicationsEnCours[cle] === signature) delete boitePublicationsEnCours[cle];
+    });
+}
+
+/* Vérification de la semaine sur le serveur : une fois par semaine et par
+   session, et à chaque connexion (forcer = true). Elle lit la synchronisation
+   et la fiche de la semaine ; si la fiche manque ou si la synchronisation
+   pointe une autre semaine, elle est renvoyée. */
+var boiteSemaineVerifiee = '';
+/* Réessai quand le nom, la connexion ou le serveur ne sont pas encore prêts :
+   la semaine n'est alors PAS marquée comme vérifiée. */
+function boiteReessayerSemaine(forcer, essai) {
+    if (essai >= 12) return Promise.resolve();
+    setTimeout(function () { boiteVerifierSemaine(forcer, essai + 1); }, 5000);
+    return Promise.resolve();
+}
+
+function boiteVerifierSemaine(forcer, essai) {
+    essai = essai || 0;
+    var semaine = boiteSemaineCle(new Date());
+    if (!forcer && boiteSemaineVerifiee === semaine) return Promise.resolve();
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E) return Promise.resolve();
+    if (!boiteNom()) return boiteReessayerSemaine(forcer, essai);
+    return boiteFirebasePret().then(function (user) {
+        if (!user || !user.uid) return boiteReessayerSemaine(forcer, essai);
+        var db = firebase.firestore();
+        return boiteIdEmploi(user.uid, semaine).then(function (id) {
+            if (!id) {
+                boiteSemaineVerifiee = semaine;
+                boitePublierEmploi(false);
+                return null;
+            }
+            return Promise.all([
+                db.collection('synchronisation').doc(user.uid).get({ source: 'server' }).then(function (snap) {
+                    return snap && snap.exists ? (snap.data() || {}) : null;
+                }, function () { return null; }),
+                db.collection('emplois_du_temps').doc(id).get({ source: 'server' }).then(function (snap) {
+                    return !!(snap && snap.exists);
+                }, function () { return false; })
+            ]).then(function (lus) {
+                if (!boiteSemaineARefaire(lus[0], lus[1], semaine)) {
+                    /* À jour sur le serveur : la semaine est vérifiée. */
+                    boiteSemaineVerifiee = semaine;
+                    boitePublierEmploi(false);
+                    return null;
+                }
+                /* Fiche ou liaison absente : on renvoie, puis on relit le serveur.
+                   La semaine reste non vérifiée tant que le serveur ne confirme pas. */
+                boitePublierEmploi(false, true);
+                if (essai < 4) setTimeout(function () { boiteVerifierSemaine(true, essai + 1); }, 8000);
+                return null;
+            });
+        });
+    }).catch(function () {
+        /* Hors ligne ou refus : la prochaine vérification recommencera. */
+        return boiteReessayerSemaine(forcer, essai);
+    });
+}
+
+var boiteEmploiTimer = null;
+var boiteReessaiFait = false;
+function boiteReessayerUneFois() {
+    if (boiteReessaiFait) return;
+    boiteReessaiFait = true;
+    boiteReessayer();
+}
+function boiteHeurePlus(heure, minutes) {
+    var parts = String(heure || '00:00').split(':');
+    var total = Number(parts[0]) * 60 + Number(parts[1] || 0) + minutes;
+    total = ((total % 1440) + 1440) % 1440;
+    return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0');
+}
+
+function boiteCopierEtat() {
+    if (typeof memoireLireEtat === 'function') {
+        try { return memoireLireEtat(); } catch (e) {}
+    }
+    return null;
+}
+
+function boitePoserEtat(data) {
+    if (!data) return;
+    if (typeof data.userName === 'string' && typeof userName !== 'undefined') userName = data.userName;
+    if (typeof weekdayWakeup !== 'undefined') weekdayWakeup = data.weekdayWakeup || '06:00';
+    if (typeof saturdayWakeup !== 'undefined') saturdayWakeup = data.saturdayWakeup || '07:00';
+    if (typeof sundayWakeup !== 'undefined') sundayWakeup = data.sundayWakeup || '08:00';
+    if (typeof subjects !== 'undefined') subjects = Array.isArray(data.subjects) ? data.subjects : [];
+    if (typeof optionalSubjects !== 'undefined') optionalSubjects = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    if (typeof emploiFige !== 'undefined') emploiFige = data.emploiFige && data.emploiFige.jours ? memoireSansSommeilFige(data.emploiFige) : null;
+    if (typeof selectedActivities !== 'undefined') selectedActivities = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
+    if (typeof customEvents !== 'undefined') customEvents = Array.isArray(data.customEvents) ? data.customEvents.slice() : [];
+    if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear || '';
+    if (typeof carToSchool !== 'undefined') carToSchool = data.carToSchool || 30;
+    if (typeof carFromSchool !== 'undefined') carFromSchool = data.carFromSchool || 40;
+    if (typeof motoToSchool !== 'undefined') motoToSchool = data.motoToSchool || 25;
+    if (typeof motoFromSchool !== 'undefined') motoFromSchool = data.motoFromSchool || 40;
+    if (typeof phoneDays !== 'undefined') phoneDays = Array.isArray(data.phoneDays) ? data.phoneDays : [];
+    if (typeof samePhoneDuration !== 'undefined' && typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
+    if (data.phoneDuration && typeof phoneDuration !== 'undefined') phoneDuration = data.phoneDuration;
+    if (data.phoneDayDurations && typeof phoneDayDurations !== 'undefined') phoneDayDurations = data.phoneDayDurations;
+    if (typeof setSleepHours === 'function') {
+        if (data.weekdaySleepHours != null) setSleepHours('weekday', data.weekdaySleepHours);
+        if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
+        if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
+    }
+}
+
+function boiteEmploiDepuisProfil(data, appareil) {
+    if (!data || typeof generateDayEvents !== 'function') return null;
+    var backup = boiteCopierEtat();
+    /* Simulation : le planning d'un autre élève passe un instant en mémoire.
+       Rien ne doit en être daté ni noté comme supprimé (lot 9). */
+    if (typeof syncDebutApplication === 'function') syncDebutApplication();
+    var record = null;
+    var ancienBrut = window.__emploiCalculBrut;
+    window.__emploiCalculBrut = true;
+    if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
+    try {
+        boitePoserEtat(data);
+        record = boiteSnapshotEmploi();
+    } catch (e) {
+        record = null;
+    }
+    window.__emploiCalculBrut = ancienBrut;
+    if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver = Math.max(0, emploiNePasSauver - 1);
+    if (backup) {
+        try { boitePoserEtat(backup); } catch (e2) {}
+    }
+    if (typeof syncFinApplication === 'function') syncFinApplication();
+    if (!record || !record.jours || !record.jours.length) return null;
+    record.appareil = appareil;
+    record.id = 'e_' + appareil;
+    if (data.google && data.google.email && !record.google) {
+        record.google = data.google.email;
+        record.email = data.google.email;
+        record.googleNom = data.google.name || '';
+        record.googleSub = data.google.sub || '';
+    }
+    record.flammes = Number(data.flammes || 0);
+    return record;
+}
+
+function boiteCleStable(texte) {
+    var h = 0;
+    var s = String(texte || '');
+    var i;
+    for (i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    return 'p' + Math.abs(h).toString(16);
+}
+
+function boiteProfilsLocaux() {
+    var out = [];
+    var vus = {};
+    function ajouter(cle, data) {
+        if (!data || typeof data !== 'object' || data.efface) return;
+        if (!data.userName && !(Array.isArray(data.subjects) && data.subjects.length)) return;
+        var id = cle + '|' + (data.userName || '') + '|' + (data.savedAt || '');
+        if (vus[id]) return;
+        vus[id] = 1;
+        out.push({ cle: String(cle), data: data });
+    }
+    try {
+        var i;
+        for (i = 0; i < localStorage.length; i++) {
+            var cle = localStorage.key(i);
+            if (!cle) continue;
+            if (cle !== 'studyPlanIB_profil' && cle.indexOf('studyPlanIB_profil:') !== 0 && cle.indexOf('studyPlanIB_sauvegarde:') !== 0) continue;
+            ajouter(cle, boiteLireJson(cle));
+        }
+    } catch (e) {}
+    return out;
+}
+
+function boiteIdbProfils() {
+    return new Promise(function (resolve) {
+        if (!window.indexedDB) return resolve([]);
+        var req = indexedDB.open('studyPlanIB', 1);
+        req.onerror = function () { resolve([]); };
+        req.onsuccess = function () {
+            var db = req.result;
+            if (!db.objectStoreNames.contains('sauvegardes')) return resolve([]);
+            var tx = db.transaction('sauvegardes', 'readonly');
+            var out = [];
+            var cur = tx.objectStore('sauvegardes').openCursor();
+            cur.onsuccess = function () {
+                var row = cur.result;
+                if (!row) return resolve(out);
+                out.push({ cle: 'idb:' + row.key, data: row.value });
+                row.continue();
+            };
+            cur.onerror = function () { resolve(out); };
+        };
+    });
+}
+
+var boiteRejeuFait = false;
+function boiteRejouerPasses() {
+    if (BOITE_EMPLOIS_SUSPENDUS) return;
+    if (boiteRejeuFait || typeof generateDayEvents !== 'function') return;
+    boiteRejeuFait = true;
+    var courant = boiteNormaliser(boiteNom());
+    function publier(liste) {
+        liste.forEach(function (item) {
+            var data = item.data;
+            if (!data || typeof data !== 'object') return;
+            var nom = boiteNormaliser(data.userName || '');
+            if (!nom || nom === courant) return;
+            var appareil = boiteCleStable(item.cle + '|' + nom);
+            var record = boiteEmploiDepuisProfil(data, appareil);
+            if (boiteEmploiAvecCreneaux(record)) boiteEnvoyer(record).catch(function () {});
+        });
+    }
+    publier(boiteProfilsLocaux());
+    boiteIdbProfils().then(publier).catch(function () {});
+}
+
+function boiteJourCle(date) {
+    var d = date || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function boiteJourAvant(cle) {
+    var parts = String(cle || '').split('-');
+    var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (isNaN(d.getTime())) return '';
+    d.setDate(d.getDate() - 1);
+    return boiteJourCle(d);
+}
+
+function boiteFlammes() {
+    var aujourd = boiteJourCle(new Date());
+    var n = 1;
+    try {
+        n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
+        if (!isFinite(n) || n < 0) n = 0;
+        var dernier = localStorage.getItem('studyPlanIB_flammeJour') || '';
+        if (!dernier) {
+            var ancien = localStorage.getItem('studyPlanIB_dernierJour') || '';
+            var parsed = ancien ? new Date(ancien) : null;
+            if (parsed && !isNaN(parsed.getTime())) dernier = boiteJourCle(parsed);
+        }
+        /* Une date stockée plus récente qu'aujourd'hui (horloge en retard) n'est jamais remplacée par une plus ancienne. */
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dernier) && dernier > aujourd) aujourd = dernier;
+        var parts = dernier.split('-');
+        var debut = parts.length === 3 ? new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])) : null;
+        var fin = new Date();
+        fin.setHours(0, 0, 0, 0);
+        var jours = debut && !isNaN(debut.getTime()) ? Math.round((fin - debut) / 86400000) : null;
+        if (jours === 0) {
+            /* Après une interruption, le retour reste à zéro ce jour-là. */
+            if (!localStorage.getItem('studyPlanIB_flammeJour') && !n) n = 1;
+        } else if (jours != null && jours > 0 && jours <= 3) {
+            /* Au plus deux journées manquées : la série continue. */
+            n = (n || 0) + 1;
+        } else if (jours != null && jours > 3) {
+            n = 0;
+        } else if (jours == null) {
+            n = 1;
+        }
+        /* Passage à un jour plus récent (ou valeur recalculée) : la série part vers le nuage. */
+        var changement = localStorage.getItem('studyPlanIB_flamme') !== String(n) || (localStorage.getItem('studyPlanIB_flammeJour') || '') < aujourd;
+        localStorage.setItem('studyPlanIB_flamme', String(n));
+        localStorage.setItem('studyPlanIB_flammeJour', aujourd);
+        /* Un nouveau jour (ou une valeur recalculée) doit atteindre le nuage, sinon les autres
+           téléphones gardent l'ancienne série. Seule la série est envoyée (voir compteFlammesPousser). */
+        if (changement && typeof compteFlammesPousser === 'function') compteFlammesPousser();
+    } catch (e) {
+        n = 1;
+    }
+    return n;
+}
+
+function boiteFicheCourante() {
+    var record = null;
+    try { record = boiteSnapshotEmploi(); } catch (e) { record = null; }
+    var session = (typeof boiteSession === 'function' ? boiteSession() : null) || window.compteSession || {};
+    if (!record) {
+        if (!boiteNom()) return null;
+        record = {
+            type: 'emploi',
+            id: 'e_' + boiteAppareil(),
+            appareil: boiteAppareil(),
+            at: new Date().toISOString(),
+            nom: boiteNom(),
+            classe: typeof ibYear !== 'undefined' ? (ibYear || '') : '',
+            email: session.email || '',
+            google: session.email || '',
+            googleNom: session.name || session.given_name || '',
+            googleSub: session.sub || '',
+            matieres: [],
+            jours: [],
+            complet: 0
+        };
+    }
+    record.flammes = boiteFlammes();
+    boiteStabiliserComplet(record);
+    record.at = new Date().toISOString();
+    if (!record.classe && typeof ibYear !== 'undefined') record.classe = ibYear || '';
+    if (!record.google && session.email) {
+        record.google = session.email;
+        record.email = record.email || session.email;
+        record.googleNom = record.googleNom || session.name || session.given_name || '';
+        record.googleSub = record.googleSub || session.sub || '';
+    }
+    return record;
+}
+
+function boiteFicheIncomplete(fusion, record) {
+    var trouve = null;
+    boitePersonnes(fusion || {}).some(function (item) {
+        if (boiteMemePersonne(item, record)) { trouve = item; return true; }
+        return false;
+    });
+    if (!trouve) return true;
+    if (boiteEstComplet(record) && boiteSignatureJours(record) !== boiteSignatureJours(trouve)) return true;
+    if ((record.jours || []).length && boiteRichesseEmploi(trouve) < boiteRichesseEmploi(record)) return true;
+    if (record.classe && !trouve.classe) return true;
+    if ((record.google || record.email) && !(trouve.google || trouve.email)) return true;
+    if (record.nom && !boiteNomUtile(trouve)) return true;
+    if (Number(record.flammes || 0) > 0 && Number(trouve.flammes || 0) !== Number(record.flammes)) return true;
+    return false;
+}
+
+var boiteVerifEnCours = false;
+var boiteVerifCle = '';
+function boiteVerifierFiche() {
+    if (BOITE_EMPLOIS_SUSPENDUS || window.__STUDYPLAN_E2E || !boiteNom()) return;
+    /* Le même chemin vérifie le cache, met en file puis attend l'ACK
+       Firestore pour les modifications du profil et du planning. */
+    boitePublierEmploi(false);
+}
+
+function boiteApresMemoire() {
+    boiteMajMenu();
+    boiteReessayerUneFois();
+    clearTimeout(boiteEmploiTimer);
+    boiteEmploiTimer = setTimeout(function () {
+        boiteVerifierFiche();
+        boiteVerifierSemaine(false);
+        /* Ne pas republier les anciens profils locaux avec l'emploi scolaire d'un autre compte. */
+    }, 1500);
+}
+
+var boiteVisiteAlertee = false;
+var boiteAlerteEnCours = false;
+var boiteAlerteApres = 0;
+
+function boiteCleAlertes() {
+    return 'studyPlanIB_alertesVues:' + boiteNormaliser(boiteNom());
+}
+
+function boiteAlertesVues() {
+    var doc = boiteLireJson(boiteCleAlertes());
+    if (!doc || typeof doc !== 'object' || !doc.ids) return {};
+    return doc.ids;
+}
+
+function boiteMarquerAlertes(ids) {
+    var vus = boiteAlertesVues();
+    (ids || []).forEach(function (id) { if (id) vus[id] = 1; });
+    var cles = Object.keys(vus);
+    if (cles.length > 400) {
+        var garde = {};
+        cles.slice(-300).forEach(function (cle) { garde[cle] = 1; });
+        vus = garde;
+    }
+    boiteEcrireJson(boiteCleAlertes(), { ids: vus });
+}
+
+function boitePhraseAlerte(groupe) {
+    var nom = groupe.nom;
+    var f = groupe.feedbacks;
+    var q = groupe.questions;
+    var feedback = f > 1 ? 'a fait des feedbacks' : 'a fait un feedback';
+    var question = q > 1 ? 'a des questions' : 'a une question';
+    var qui = nom + (groupe.email ? ' (' + groupe.email + ')' : '');
+    if (f && q) return qui + ' ' + feedback + ' et ' + question + '.';
+    if (f) return qui + ' ' + feedback + '.';
+    return qui + ' ' + question + '.';
+}
+
+/* Qui a vraiment envoyé un message. Le prénom tapé à l'accueil peut être
+   celui d'un autre sur un téléphone partagé : quand il ne cadre pas avec
+   le nom du compte Google connecté, c'est le compte Google qui fait foi.
+   L'adresse est rappelée pour vérification. */
+function boiteNomExpediteur(item) {
+    var nom = String(item && item.nom || '').trim();
+    var google = String(item && item.googleNom || '').trim();
+    var email = boiteMailPersonne(item);
+    var affiche = nom;
+    if (nom && google) {
+        var motsNom = boiteMots(nom);
+        var motsGoogle = boiteMots(google);
+        var commun = motsNom.some(function (mot) {
+            return mot.length >= 3 && motsGoogle.indexOf(mot) !== -1;
+        });
+        if (!commun) affiche = google;
+    } else if (!nom) {
+        affiche = google;
+    }
+    if (!affiche) affiche = email ? email.split('@')[0] : 'Un utilisateur';
+    return { nom: affiche, email: email };
+}
+
+function boiteNouveauxRetours(fusion) {
+    var vus = boiteAlertesVues();
+    var moi = boiteNormaliser(boiteNom());
+    var groupes = {};
+    var ordre = [];
+    var ids = [];
+    function ajouter(item, genre) {
+        if (!item || !item.id || vus[item.id]) return;
+        var qui = boiteNomExpediteur(item);
+        if (moi && boiteNormaliser(qui.nom) === moi) return;
+        ids.push(item.id);
+        var cle = (boiteNormaliser(qui.nom) || qui.nom) + '|' + qui.email;
+        if (!groupes[cle]) {
+            groupes[cle] = { nom: qui.nom, email: qui.email, feedbacks: 0, questions: 0 };
+            ordre.push(cle);
+        }
+        groupes[cle][genre] += 1;
+    }
+    (fusion && fusion.feedbacks || []).forEach(function (item) { ajouter(item, 'feedbacks'); });
+    (fusion && fusion.questions || []).forEach(function (item) { ajouter(item, 'questions'); });
+    return {
+        ids: ids,
+        lignes: ordre.map(function (cle) { return boitePhraseAlerte(groupes[cle]); }),
+        questions: ordre.some(function (cle) { return groupes[cle].questions > 0; }),
+        feedbacks: ordre.some(function (cle) { return groupes[cle].feedbacks > 0; })
+    };
+}
+
+function boiteFermerAlerte(ids) {
+    boiteMarquerAlertes(ids || []);
+    var el = document.getElementById('boiteAlerteRetours');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+function boiteOuvrirAlerte(neuf) {
+    if (!neuf || !neuf.lignes.length || !boiteEstAdmin()) return;
+    if (document.getElementById('boiteAlerteRetours')) return;
+    var page = neuf.feedbacks ? 'retours' : 'questions';
+    var el = document.createElement('div');
+    el.id = 'boiteAlerteRetours';
+    el.style.cssText = 'position:fixed;inset:0;z-index:220;background:rgba(17,24,39,0.55);display:flex;align-items:center;justify-content:center;padding:1rem;';
+    var lignes = neuf.lignes.slice(0, 8).map(function (ligne) {
+        return '<p style="margin:0.35rem 0;color:#1c1917;font-size:1rem;line-height:1.4;">' + boiteEchap(ligne) + '</p>';
+    }).join('');
+    if (neuf.lignes.length > 8) {
+        lignes += '<p style="margin:0.45rem 0 0;color:#78716c;font-size:0.88rem;">Et ' + (neuf.lignes.length - 8) + ' autre' + (neuf.lignes.length - 8 > 1 ? 's' : '') + '.</p>';
+    }
+    el.innerHTML = '<div style="max-width:26rem;width:100%;background:white;border-radius:1.25rem;padding:1.35rem 1.2rem;box-shadow:0 24px 60px rgba(0,0,0,0.18);">'
+        + '<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:#059669;">Studyplan</p>'
+        + '<h3 style="margin:0 0 0.7rem;font-size:1.22rem;color:#1c1917;">Nouveaux messages</h3>'
+        + lignes
+        + '<div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1.1rem;">'
+        + '<button type="button" id="boiteAlerteVoir" style="width:100%;border:none;background:#059669;color:white;border-radius:0.85rem;padding:0.8rem 1rem;font-weight:800;cursor:pointer;">Voir</button>'
+        + '<button type="button" id="boiteAlerteFermer" style="width:100%;border:1.5px solid #e7e5e4;background:white;color:#44403c;border-radius:0.85rem;padding:0.75rem 1rem;font-weight:700;cursor:pointer;">Fermer</button>'
+        + '</div></div>';
+    document.body.appendChild(el);
+    boiteMarquerAlertes(neuf.ids);
+    document.getElementById('boiteAlerteFermer').onclick = function () { boiteFermerAlerte(); };
+    document.getElementById('boiteAlerteVoir').onclick = function () {
+        boiteFermerAlerte();
+        if (typeof navigateTo === 'function') navigateTo(page);
+    };
+}
+
+function boiteSignalerOuverture(force) {
+    if ((boiteVisiteAlertee && !force) || boiteAlerteEnCours || Date.now() < boiteAlerteApres) return;
+    if (!boiteEstAdmin() || typeof document === 'undefined') return;
+    if (document.getElementById('boiteAlerteRetours')) return;
+    boiteAlerteEnCours = true;
+    boiteChargerListes(true).then(function (fusion) {
+        boiteAlerteEnCours = false;
+        boiteVisiteAlertee = true;
+        if (!boiteEstAdmin()) return;
+        boiteOuvrirAlerte(boiteNouveauxRetours(fusion));
+    }).catch(function () {
+        boiteAlerteEnCours = false;
+        boiteAlerteApres = Date.now() + 30000;
+    });
+}
+
+if (typeof document !== 'undefined') {
+    boiteMemoriserVus();
+    /* Les anciennes réponses en attente ne doivent plus rester lisibles. */
+    try { boiteEcrireJson(BOITE_FILE, boiteLireFile().filter(function (item) { return item && item.type !== 'reponse' && item.type !== 'emploi'; })); } catch (e) {}
+    boiteMajMenu();
+    /* Les scripts du planning se chargent avant celui de la boîte : rafraîchir
+       les trois compteurs avec la vraie série, distincte des jours cumulés. */
+    if (typeof compterJourConnecte === 'function') compterJourConnecte();
+    /* Un envoi raté reste dans la file : on le retente tant que la page
+       est ouverte, pas seulement à son ouverture. */
+    setInterval(function () {
+        try { boiteReessayer(); } catch (e) {}
+    }, 45000);
+    /* Pour un admin, la page surveille la boîte : une question ou une
+       suggestion qui arrive pendant que le site est ouvert fait surgir
+       le popup, sans attendre un rechargement. */
+    setInterval(function () {
+        try {
+            if (document.visibilityState === 'visible' && boiteEstAdmin()) boiteSignalerOuverture(true);
+        } catch (e) {}
+    }, 90000);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') {
+            boiteVisiteAlertee = false;
+            return;
+        }
+        boiteSignalerOuverture();
+        boiteVerifierFiche();
+        var panneau = document.getElementById('panelEmplois');
+        var retours = document.getElementById('panelRetours');
+        var questions = document.getElementById('panelQuestions');
+        if (boiteEstAdmin() && ((panneau && panneau.classList.contains('active')) ||
+            (retours && retours.classList.contains('active')) ||
+            (questions && questions.classList.contains('active')))) {
+            boiteChargerListes(true).then(function (fusion) {
+                if (panneau && panneau.classList.contains('active')) boiteRendreEmplois(fusion);
+                if (retours && retours.classList.contains('active')) boiteRendreRetours(fusion);
+                if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
+            }).catch(function () {});
+        }
+    });
+}

@@ -1,0 +1,37 @@
+<!-- ============================================================
+     PAGE : Aide
+     Question envoyée par n'importe qui.
+     Script : js/pages/boite.js
+     ============================================================ -->
+<div class="app-panel" id="panelAide">
+    <div style="max-width:480px;margin:0 auto;padding:0 1rem 4rem;">
+        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+                <div>
+                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Aide</h2>
+                    <p style="font-size:0.75rem;color:#6b7280;">Pose une question</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:1.25rem;padding:1.25rem 1.35rem;margin-bottom:1.25rem;color:white;">
+            <p style="font-size:0.8rem;opacity:0.85;margin-bottom:0.2rem;" id="aideNom"></p>
+            <p style="font-size:0.95rem;font-weight:650;line-height:1.45;">As-tu une question ? Si oui, renseigne-la ci-dessous.</p>
+        </div>
+
+        <label for="aideEmail" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ton e-mail</label>
+        <input id="aideEmail" type="email" autocomplete="email" maxlength="120" placeholder="prenom@email.com" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem 1rem;font:inherit;font-size:0.95rem;margin-bottom:0.35rem;">
+
+        <label for="aideTexte" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ta question</label>
+        <textarea id="aideTexte" maxlength="800" rows="6" placeholder="Écris ici…" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.85rem 1rem;font:inherit;font-size:0.95rem;resize:vertical;"></textarea>
+        <button type="button" id="aideEnvoi" style="width:100%;margin-top:0.85rem;padding:0.9rem 1rem;border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;font-size:0.95rem;cursor:pointer;">Envoyer</button>
+
+        <div id="aideChoix" style="display:none;margin-top:1rem;background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:1rem;padding:1rem;">
+            <p style="font-weight:800;color:#064e3b;margin-bottom:0.35rem;">Connecte-toi avec Google</p>
+            <p style="font-size:0.85rem;color:#065f46;line-height:1.45;margin-bottom:0.85rem;">Pour envoyer ta question, connecte-toi avec Google.</p>
+            <button type="button" id="aideAvecGoogle" style="width:100%;padding:0.85rem 1rem;border:none;border-radius:0.8rem;background:#059669;color:white;font-weight:800;cursor:pointer;">Se connecter avec Google</button>
+        </div>
+        <p id="aideStatut" style="min-height:1.25rem;margin-top:0.75rem;font-size:0.85rem;font-weight:650;color:#047857;"></p>
+    </div>
+</div>

@@ -1,0 +1,141 @@
+[
+  {
+    "rms": 0.0849,
+    "crete": 0.954,
+    "dynamique_db": 33.5,
+    "raccord": 0.04928,
+    "id": "bibliotheque",
+    "source": "pages-1 + pages-2",
+    "sources": [
+      "pages-1",
+      "pages-2"
+    ],
+    "canaux": "mono",
+    "duree_s": 300.0,
+    "octets": 3600867
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.597,
+    "dynamique_db": 17.3,
+    "raccord": 0.01436,
+    "id": "cafe",
+    "source": "cafe",
+    "debut_s": 3690.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.352,
+    "dynamique_db": 8.6,
+    "raccord": 0.00571,
+    "id": "concentration",
+    "source": "flowstate",
+    "debut_s": 3990.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.43,
+    "dynamique_db": 5.2,
+    "raccord": 0.00213,
+    "id": "gamma",
+    "source": "gamma",
+    "debut_s": 1680.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.0818,
+    "crete": 0.96,
+    "dynamique_db": 10.2,
+    "raccord": 0.00271,
+    "id": "matin",
+    "source": "matin-ville",
+    "debut_s": 0.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.948,
+    "dynamique_db": 10.8,
+    "raccord": 0.01301,
+    "id": "ocean",
+    "source": "ocean-vagues",
+    "debut_s": 0.0,
+    "canaux": "mono",
+    "duree_s": 300.0,
+    "octets": 3600867
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.872,
+    "dynamique_db": 21.9,
+    "raccord": 3e-05,
+    "id": "orage",
+    "source": "tonnerre-1 + tonnerre-4 + tonnerre-6",
+    "sources": [
+      "tonnerre-1",
+      "tonnerre-4",
+      "tonnerre-6"
+    ],
+    "canaux": "mono",
+    "duree_s": 300.0,
+    "octets": 3600867
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.818,
+    "dynamique_db": 19.6,
+    "raccord": 0.00538,
+    "id": "piano",
+    "source": "classique",
+    "debut_s": 1080.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.952,
+    "dynamique_db": 2.3,
+    "raccord": 0.02439,
+    "id": "pluie",
+    "source": "pluie",
+    "debut_s": 4860.0,
+    "canaux": "mono",
+    "duree_s": 300.0,
+    "octets": 3600867
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.951,
+    "dynamique_db": 8.4,
+    "raccord": 0.0105,
+    "id": "train",
+    "source": "locomotive-vapeur",
+    "debut_s": 0.0,
+    "canaux": "stereo",
+    "duree_s": 300.0,
+    "octets": 4801141
+  },
+  {
+    "rms": 0.085,
+    "crete": 0.694,
+    "dynamique_db": 9.3,
+    "raccord": 0.00129,
+    "id": "vent",
+    "source": "vents",
+    "debut_s": 2010.0,
+    "canaux": "mono",
+    "duree_s": 300.0,
+    "octets": 3600867
+  }
+]

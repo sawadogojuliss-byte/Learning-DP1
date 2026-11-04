@@ -1,0 +1,45 @@
+/* Contrat de présentation : mêmes rails et typographie, actions conservées.
+   Pas de compte ni de lecture/écriture distante. */
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const lire = file => fs.readFileSync(file, 'utf8');
+const boite = lire('pages/boite.html');
+const annonce = lire('pages/annonce.html');
+const css = lire('css/pages/admin-atelier.css');
+const logique = lire('js/pages/boite.js');
+const annonces = lire('js/pages/annonce.js');
+const pages = [
+    ['admin','panelAdmin',boite], ['annonce','panelAnnonce',annonce],
+    ['retours','panelRetours',boite], ['questions','panelQuestions',boite],
+    ['emplois','panelEmplois',boite], ['tutoriel','panelTutoriel',lire('pages/tutoriel.html')]
+];
+for (const [name,id,source] of pages) {
+    const panel = source.split('id="' + id + '"')[1].split(/<div class="app-panel"|<!-- ===/)[0];
+    assert.ok(panel, 'page manquante : ' + id);
+    assert.match(panel, /class="admin-nav(?: [^"]+)?"/);
+    assert.ok(panel.includes('onclick="navigateTo(\'admin\')"'));
+    for (const destination of ['admin','annonce','retours','questions','emplois','tutoriel']) {
+        assert.ok(panel.includes('onclick="navigateTo(\'' + destination + '\')"'), id + ' perd ' + destination);
+    }
+    assert.match(panel, new RegExp('aria-current="page"[^>]*>[^<]+</button>'));
+    assert.ok(css.includes('#164633') && css.includes('Georgia,serif'), 'typo ou rail Atelier absent');
+    if (name !== 'admin' && name !== 'emplois' && name !== 'tutoriel') assert.match(panel, /admin-page-entete/);
+}
+for (const id of ['annonceGarderBrouillon','annonceBadgePage','annonceComposer','annonceTitre','annonceTexte','annonceProgramme','annonceEnvoi','annonceAnalyse','annonceStatut','annonceListe']) {
+    assert.ok(annonce.includes('id="' + id + '"'), 'fonction Annonce perdue : ' + id);
+}
+for (const id of ['retoursRafraichir','retoursPartageTexte','retoursStatut','retoursListe','questionsRafraichir','questionsStatut','questionsListe','emploisRafraichir','emploisListe','emploisDetail']) {
+    assert.ok(boite.includes('id="' + id + '"'), 'fonction admin perdue : ' + id);
+}
+assert.match(logique, /function boiteOuvrirAdmin\(page\)/);
+assert.match(logique, /function boiteRendreQuestions\(fusion\)/);
+assert.match(annonces, /function annonceRendre\(\)/);
+assert.match(annonces, /panneau\.classList\.toggle\('annonce-public', !admin\)/);
+assert.match(css, /#panelAnnonce\.annonce-public \.admin-nav-prive[^\n]*display:none/);
+assert.match(css, /#panelAnnonce\.annonce-public \.admin-nav-lien\[aria-current="page"\][^\n]*display:grid/);
+assert.match(css, /@media\(max-width:750px\)/);
+assert.match(css, /\.admin-nav-liens\s*\{[^}]*background:transparent;backdrop-filter:none;/s,
+    'le fond blanc global de nav ne doit pas couvrir le rail vert');
+assert.match(css, /\.admin-nav \.admin-nav-lien\s*\{[^}]*background:rgba\(255,255,255,\.07\)/s,
+    'chaque icône du rail doit partager un fond discret');
+console.log('ok pages admin Atelier : rail uniforme, cinq accès dont Tutoriel, lecteur public conservé, actions préservées');

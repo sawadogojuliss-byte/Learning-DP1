@@ -1,0 +1,237 @@
+<!-- ============================================================
+     PAGE : Pomodoro — ouverte à tous
+     Le minuteur seul : la liste des séances est sur la page
+     « Séance de révision du jour ».
+     Script : js/pages/pomodoro-page.js
+     ============================================================ -->
+<div class="app-panel" id="panelPomodoro">
+    <div class="focus-page" id="focusPage" hidden>
+        <!-- L'image affichée ne change qu'une fois la suivante décodée : pas de
+             fondu, donc jamais l'ancienne image qui revient ni le planning. -->
+        <div class="focus-bg" id="focusBg"></div>
+        <div class="focus-shade"></div>
+        <header class="focus-top">
+            <div class="focus-haut-gauche">
+                <p class="focus-logo">Studyplan</p>
+            </div>
+            <p class="focus-quote" id="focusCitation"></p>
+        </header>
+        <main class="focus-center">
+            <label class="focus-sr" for="focusTache">Sur quoi veux-tu te concentrer ?</label>
+            <input id="focusTache" class="focus-question" maxlength="120" placeholder="Sur quoi veux-tu te concentrer ?" autocomplete="off">
+            <div class="focus-modes-zone">
+                <div class="focus-modes" role="tablist">
+                    <button type="button" id="focusModeFocus" class="is-on" aria-pressed="true" onclick="focusChoisirMode('focus')">CONCENTRATION</button>
+                    <button type="button" id="focusModeShort" aria-pressed="false" onclick="focusChoisirMode('short')">PAUSE COURTE</button>
+                    <button type="button" id="focusModeLong" aria-pressed="false" onclick="focusChoisirMode('long')">PAUSE LONGUE</button>
+                </div>
+                <!-- Compteur : une icône par séance choisie, les terminées sont allumées. Placé juste sous CONCENTRATION. -->
+                <div class="focus-compteur" id="focusCompteur"></div>
+            </div>
+            <p class="focus-time" id="focusTime">25:00</p>
+            <!-- Affichages du minuteur (style choisi dans Paramètres) : vides par défaut. -->
+            <div class="focus-visuel" id="focusVisuel" hidden></div>
+            <div class="focus-barre" id="focusBarre" hidden><i id="focusBarreRemplie"></i></div>
+            <div class="focus-controls">
+                <button type="button" id="focusPlay" class="focus-glass" onclick="focusBasculer()" aria-label="Démarrer">
+                    <svg id="focusIconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+                    <svg id="focusIconPause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>
+                </button>
+                <button type="button" class="focus-glass" onclick="focusRecommencer()" aria-label="Recommencer">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4.5V9h-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="focusBtnPip" class="focus-glass" onclick="focusImageDansImage()" aria-label="Image dans l'image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="11" width="7.5" height="5.2" rx="1" fill="currentColor"/></svg>
+                </button>
+            </div>
+            <p id="focusAstuce" class="focus-tip" hidden></p>
+        </main>
+        <div id="focusPipLocal" class="focus-pip" hidden>
+            <button type="button" class="focus-pip-fermer" onclick="focusFermerPip()" aria-label="Fermer">×</button>
+            <div class="focus-pip-scene" id="focusPipScene">
+                <p class="focus-pip-temps" id="focusPipTemps">25:00</p>
+                <button type="button" id="focusPipPlay" class="focus-pip-play" onclick="focusBasculer()" aria-label="Démarrer">
+                    <svg class="pip-ico-play" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+                    <svg class="pip-ico-pause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>
+                </button>
+                <span class="focus-pip-coin">
+                    <svg class="focus-pip-eclair" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f59e0b" d="M13 2 3.5 13.5h7.2L9.2 22 20.5 9.8h-7.2L13 2z"/></svg>
+                    <span class="focus-pip-points" aria-hidden="true"><i></i><i></i><i></i></span>
+                </span>
+            </div>
+        </div>
+        <div id="focusFonds" class="focus-fonds" hidden></div>
+        <aside id="focusTaches" class="focus-panneau focus-taches" hidden>
+            <div class="focus-taches-haut">
+                <span class="focus-taches-icone" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M8 7h11M8 12h11M8 17h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                </span>
+                <p class="focus-panneau-titre">Tâches</p>
+            </div>
+            <ul id="focusListe"></ul>
+            <form class="focus-ajout" onsubmit="return focusAjouterTache(event)">
+                <input id="focusNouvelle" maxlength="120" placeholder="Ta priorité" autocomplete="off">
+            </form>
+            <button type="button" class="focus-ajout-centre" onclick="focusAjouterDepuisBouton()">+ Ajouter une tâche</button>
+        </aside>
+        <!-- Paramètres : menu latéral (comme sur la capture) et une page par rubrique. -->
+        <div id="focusReglages" class="focus-tiroir" hidden role="dialog" aria-modal="true" aria-label="Paramètres">
+            <nav class="focus-tiroir-menu" aria-label="Rubriques des paramètres">
+                <button type="button" class="focus-tiroir-fermer" onclick="focusFermer('focusReglages')" aria-label="Fermer les paramètres">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <ul class="focus-tiroir-liste">
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="themes" onclick="focusChoisirOnglet('themes')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2"/></svg><span>Thèmes</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="horloge" onclick="focusChoisirOnglet('horloge')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Horloge</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="minuteur" onclick="focusChoisirOnglet('minuteur')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 9v4M10 2.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Minuteur</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="citations" onclick="focusChoisirOnglet('citations')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 16c-1.6 0-2.5-1-2.5-2.6S5.6 10.5 7.5 10.5V9M17 16c-1.6 0-2.5-1-2.5-2.6s1.1-2.9 3-2.9V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Citations</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="voix" onclick="focusChoisirOnglet('voix')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h3.5L12 18V6L7.5 10H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Voix</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="statistiques" onclick="focusChoisirOnglet('statistiques')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Statistiques</span></button></li>
+                </ul>
+            </nav>
+            <div class="focus-tiroir-contenu">
+                <section class="focus-tiroir-page" data-page="themes" hidden>
+                    <header class="focus-page-titre"><h2>Thèmes</h2><p>Choisis le décor du minuteur et de la séance de révision.</p></header>
+                    <div class="focus-carte focus-themes">
+                        <div class="focus-filtres" id="focusFiltresFonds" role="group" aria-label="Catégories de thèmes"></div>
+                        <div id="focusThemesCorps"></div>
+                    </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="horloge" hidden>
+                    <header class="focus-page-titre"><h2>Horloge</h2><p>Personnalise ton horloge et ton minuteur.</p></header>
+                    <div class="focus-carte">
+                        <h3>Taille de l'horloge et du minuteur</h3>
+                        <p>S'applique à l'horloge et au minuteur.</p>
+                        <div class="focus-grille-tuiles" id="focusChoixTaille"></div>
+                    </div>
+                    <div class="focus-carte">
+                        <h3>Police de l'horloge et du minuteur</h3>
+                        <p>Degular est utilisée par défaut quand ses fichiers sont installés.</p>
+                        <div class="focus-grille-tuiles" id="focusChoixPolice"></div>
+                    </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="minuteur" hidden>
+                    <header class="focus-page-titre"><h2>Minuteur</h2><p>Durées, style d'affichage et enchaînement.</p></header>
+                    <div class="focus-carte">
+                        <div class="focus-seances focus-seances-haut">
+                            <p class="focus-seances-question" id="focusSeancesQuestion">Combien de séances souhaites-tu faire ?</p>
+                            <div class="focus-stepper">
+                                <button type="button" onclick="focusAjusterSeances(-1)" aria-label="Une séance de moins">&minus;</button>
+                                <input id="focusDureeSeances" type="number" min="1" max="12" value="4" aria-labelledby="focusSeancesQuestion" onchange="focusSauverDurees()">
+                                <button type="button" onclick="focusAjusterSeances(1)" aria-label="Une séance de plus">+</button>
+                            </div>
+                        </div>
+                        <h3>Durées</h3>
+                        <div class="focus-durees">
+                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
+                        </div>
+                    </div>
+                    <div class="focus-carte">
+                        <h3>Style du minuteur</h3>
+                        <div class="focus-grille-tuiles" id="focusChoixStyle"></div>
+                    </div>
+                    <div class="focus-carte focus-compteurs-carte">
+                        <h3>Compteurs de minuterie</h3>
+                        <p>Chaque icône représente une concentration terminée. Il y en a autant que de séances choisies.</p>
+                        <div class="focus-compteur-choix">
+                            <span>Choisi : <strong id="focusCompteurNom">Points</strong></span>
+                            <button type="button" id="focusCompteurBouton" class="focus-compteur-bouton" onclick="focusBasculerCompteurs()" aria-expanded="true">Fait</button>
+                        </div>
+                        <div id="focusCompteurListe" class="focus-compteur-liste">
+                            <h4 class="focus-compteur-sous">Comptage statique</h4>
+                            <p class="focus-compteur-explic">La même icône se répète pour chaque minuteur.</p>
+                            <div id="focusCompteurStatique" class="focus-grille-tuiles"></div>
+                            <h4 class="focus-compteur-sous">Comptage dynamique</h4>
+                            <p class="focus-compteur-explic">Chaque minuteur a sa propre icône.</p>
+                            <div id="focusCompteurDynamique" class="focus-grille-tuiles"></div>
+                        </div>
+                    </div>
+                    <div class="focus-carte">
+                        <details class="focus-depliant">
+                            <summary><h3>Affichage</h3><span class="focus-depliant-fleche" aria-hidden="true"></span></summary>
+                            <div class="focus-depliant-contenu">
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptBarre" type="checkbox" onchange="focusChoisirOption('barre', this.checked)"><i></i></span><span>Afficher la barre de progression sous le minuteur</span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptNotif" type="checkbox" onchange="focusChoisirOption('notif', this.checked)"><i></i></span><span>Afficher une notification à la fin <em>(fonction bêta)</em></span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em></span></label>
+                            <p class="focus-statut-reglage" id="focusStatutReglage" role="status" aria-live="polite"></p>
+                            </div>
+                        </details>
+                    </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="citations" hidden>
+                    <header class="focus-page-titre"><h2>Citations</h2><p>Les citations se trouvent en haut à droite.</p></header>
+                    <div class="focus-carte">
+                        <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
+                        <label class="focus-interrupteur focus-citation-bouton"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
+                    </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="voix" hidden>
+                    <header class="focus-page-titre"><h2>Voix</h2><p>L'annonce vocale signale les changements de phase.</p></header>
+                    <div class="focus-carte">
+                        <h3>Annonce vocale</h3>
+                        <label class="focus-interrupteur"><span class="focus-switch"><input id="focusVoixActive" type="checkbox" checked onchange="chronoSauverReglagesVoix()"><i></i></span><span>Annonce vocale activée</span></label>
+                        <label for="focusVoixVolume">Volume de la voix</label>
+                        <input id="focusVoixVolume" type="range" min="0" max="100" value="70" oninput="chronoSauverReglagesVoix()">
+                    </div>
+                </section>
+                <section class="focus-tiroir-page" data-page="statistiques" hidden>
+                    <header class="focus-page-titre"><h2>Statistiques</h2><p>Tes minuteurs terminés, enregistrés sur cet appareil.</p></header>
+                    <div id="statsPeriodes" class="focus-filtres stats-periodes" role="group" aria-label="Période"></div>
+                    <p id="statsVide" class="stats-vide" hidden>Aucun minuteur terminé sur cette période. Lance une séance de révision pour voir tes chiffres ici.</p>
+                    <div id="statsCartes" class="stats-cartes"></div>
+                    <div id="statsSemaine" class="stats-semaine"></div>
+                </section>
+            </div>
+        </div>
+        <div id="focusSons" class="focus-sons" hidden onclick="focusFermerSonsSiFond(event)">
+            <div class="focus-sons-carte" role="dialog" aria-label="Sons">
+                <div class="focus-sons-haut">
+                    <p class="focus-sons-titre">Sons</p>
+                    <div class="focus-sons-actions">
+                        <button type="button" class="focus-sons-mini" onclick="focusPauseSon()" aria-label="Pause du son">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>
+                        </button>
+                        <button type="button" class="focus-sons-mini" onclick="focusReinitSon()" aria-label="Réinitialiser le son">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4.5V9h-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <select id="focusFiltreSon" onchange="focusFiltrerSons()" aria-label="Filtrer les sons">
+                            <option value="tous">Tous</option>
+                            <option value="nature">Nature</option>
+                            <option value="ville">Ville</option>
+                            <option value="concentration">Concentration</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="focusSonsGrille" class="focus-sons-grille"></div>
+            </div>
+        </div>
+        <p id="focusModeStatut" class="focus-sr" role="status" aria-live="polite"></p>
+        <footer class="focus-bottom">
+            <div class="focus-outils">
+                <button type="button" id="focusBtnTaches" class="focus-rond" onclick="focusBasculerTaches()" aria-label="Tâches">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 7h11M8 12h11M8 17h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" id="focusBtnSon" class="focus-rond" onclick="focusBasculerSons()" aria-label="Sons">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V6l10-2v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="18" r="2.2" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="16" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+            </div>
+            <div class="focus-outils">
+                <span class="focus-flamme" title="Jours d'affilée">🔥 <span id="focusFlamme">0</span></span>
+                <button type="button" class="focus-rond" onclick="focusMaison()" aria-label="Retour à l'emploi du temps">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-8.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="focusBtnAstuce" class="focus-rond focus-ampoule" onclick="focusBasculerAstuce()" aria-label="Conseil">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 14a5 5 0 1 1 8 0c-.8.9-1.5 1.6-1.5 2.5h-5C9.5 15.6 8.8 14.9 8 14z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="focusBtnReglages" class="focus-rond" onclick="focusBasculerReglages()" aria-label="Paramètres">
+                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M19.00 9.60 L21.85 10.28 L21.85 13.72 L19.00 14.40 L18.65 15.26 L20.18 17.75 L17.75 20.18 L15.26 18.65 L14.40 19.00 L13.72 21.85 L10.28 21.85 L9.60 19.00 L8.74 18.65 L6.25 20.18 L3.82 17.75 L5.35 15.26 L5.00 14.40 L2.15 13.72 L2.15 10.28 L5.00 9.60 L5.35 8.74 L3.82 6.25 L6.25 3.82 L8.74 5.35 L9.60 5.00 L10.28 2.15 L13.72 2.15 L14.40 5.00 L15.26 5.35 L17.75 3.82 L20.18 6.25 L18.65 8.74 Z M8.40 12.00 a3.6 3.6 0 1 0 7.2 0 a3.6 3.6 0 1 0 -7.2 0 Z"/></svg>
+                </button>
+                <button type="button" class="focus-rond" onclick="focusPleinEcran()" aria-label="Agrandir">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 5h5v5M10 19H5v-5M19 14v5h-5M5 10V5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+        </footer>
+    </div>
+</div>

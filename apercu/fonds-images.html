@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Les 6 arrière-plans blanc + vert</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0; padding: 1.5rem 1rem 3rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: #0f1f19;
+        background:
+            radial-gradient(80% 60% at 100% 0%, rgba(16, 185, 129, 0.08), transparent 60%),
+            linear-gradient(180deg, #f4f6f5 0%, #eef1ef 100%);
+    }
+    .tete { max-width: 1000px; margin: 0 auto 1.25rem; }
+    .sur { margin: 0 0 0.35rem; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; color: #10b981; }
+    h1 { margin: 0 0 0.5rem; font-size: clamp(1.35rem, 4.5vw, 2rem); letter-spacing: -0.02em; }
+    .sous { margin: 0; font-size: 0.92rem; line-height: 1.6; color: #5d6b66; }
+    .sous b { color: #0f1f19; }
+    .planche, .vignette { max-width: 1000px; margin: 0 auto; }
+    .planche img { width: 100%; height: auto; border-radius: 16px; border: 1px solid rgba(15,31,25,.08); display: block; }
+    .planche { margin-bottom: 1.75rem; }
+    figure { margin: 0 0 1.4rem; }
+    figure img { width: 100%; height: auto; border-radius: 14px; border: 1px solid rgba(15,31,25,.08); display: block; }
+    figcaption { display: flex; align-items: baseline; gap: 0.5rem; margin: 0 0 0.4rem; }
+    .num {
+        flex: 0 0 auto; width: 1.6rem; height: 1.6rem; border-radius: 50%;
+        background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 0.78rem; font-weight: 800;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    figcaption b { font-size: 1rem; }
+    figcaption span { font-size: 0.85rem; color: #5d6b66; }
+    details { margin-top: 0.35rem; }
+    summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; color: #047857; }
+    pre {
+        margin: 0.4rem 0 0; padding: 0.6rem 0.7rem; border-radius: 11px; overflow-x: auto;
+        background: #fff; border: 1px solid rgba(15,31,25,.07);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem; line-height: 1.6; color: #14532d;
+    }
+    .fin { max-width: 1000px; margin: 1rem auto 0; font-size: 0.85rem; line-height: 1.7; color: #5d6b66; }
+    .fin b { color: #0f1f19; }
+</style>
+</head>
+<body>
+    <header class="tete">
+        <p class="sur">Study Plan IB · propositions</p>
+        <h1>Les 6 arrière-plans blanc + vert</h1>
+        <p class="sous">
+            Chaque image montre une <b>vraie mini-page</b> posée sur le fond proposé : barre du haut, carte blanche,
+            bouton vert et petite tuile sombre du minuteur. <b>Rien n'est encore appliqué au site.</b>
+        </p>
+    </header>
+
+    <div class="planche">
+        <img src="fonds-6.png" alt="Les six propositions côte à côte">
+    </div>
+
+    <div class="vignette">
+        <figure>
+            <figcaption><span class="num">1</span><b>Brume verte</b><span>Le blanc descend vers un vert d'eau clair, halo émeraude en haut à droite.</span></figcaption>
+            <img src="fond-1.png" alt="Proposition 1 : Brume verte">
+            <details><summary>Le code exact</summary><pre>body {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(16,185,129,0.10), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f4fbf7 50%, #e9f8f1 100%);
+}</pre></details>
+        </figure>
+
+        <figure>
+            <figcaption><span class="num">2</span><b>Diagonale douce</b><span>Diagonale blanc → vert d'eau + fin filet vert en haut de page.</span></figcaption>
+            <img src="fond-2.png" alt="Proposition 2 : Diagonale douce">
+            <details><summary>Le code exact</summary><pre>body {
+  background: linear-gradient(135deg, #ffffff 0%, #f6fdfa 52%, #e6f7ef 100%);
+}
+/* + un filet de 3 px en haut, dégradé #10b981 → #059669 */</pre></details>
+        </figure>
+
+        <figure>
+            <figcaption><span class="num">3</span><b>Aurore</b><span>Blanc pur, deux lueurs vertes : discrète en haut à gauche, franche en bas à droite.</span></figcaption>
+            <img src="fond-3.png" alt="Proposition 3 : Aurore">
+            <details><summary>Le code exact</summary><pre>body {
+  background:
+    radial-gradient(55% 45% at 6% 2%, rgba(16,185,129,0.13), transparent 62%),
+    radial-gradient(70% 60% at 97% 98%, rgba(5,150,105,0.17), transparent 64%),
+    #ffffff;
+}</pre></details>
+        </figure>
+
+        <figure>
+            <figcaption><span class="num">4</span><b>Deux tons</b><span>Haut de page blanc, bas vert menthe : la séparation est bien visible.</span></figcaption>
+            <img src="fond-4.png" alt="Proposition 4 : Deux tons">
+            <details><summary>Le code exact</summary><pre>body {
+  background: linear-gradient(168deg, #ffffff 0%, #ffffff 34%, #ecfdf5 49%, #dcfce7 100%);
+}</pre></details>
+        </figure>
+
+        <figure>
+            <figcaption><span class="num">5</span><b>Verre</b><span>Vert menthe très pâle avec un fin quadrillage de points, cartes façon verre dépoli.</span></figcaption>
+            <img src="fond-5.png" alt="Proposition 5 : Verre">
+            <details><summary>Le code exact</summary><pre>body {
+  background:
+    radial-gradient(rgba(167,243,208,0.55) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    linear-gradient(180deg, #f7fdfa, #eefbf4);
+}</pre></details>
+        </figure>
+
+        <figure>
+            <figcaption><span class="num">6</span><b>Lumière</b><span>Blanc immaculé qui s'éclaire de vert en bas de page, comme la lumière du minuteur.</span></figcaption>
+            <img src="fond-6.png" alt="Proposition 6 : Lumière">
+            <details><summary>Le code exact</summary><pre>body {
+  background:
+    radial-gradient(90% 55% at 50% 118%, rgba(16,185,129,0.22), transparent 66%),
+    linear-gradient(180deg, #ffffff 0%, #fbfefc 58%, #f2fbf6 100%);
+}</pre></details>
+        </figure>
+    </div>
+
+    <p class="fin">
+        <b>À savoir :</b> dans les six, les cartes blanches, les boutons verts (#10b981 → #059669), le texte et la
+        tuile sombre du minuteur ne changent pas — seul le fond des pages bouge. Les trois halos flous déjà présents
+        restent, simplement accordés au vert. Dis-moi le numéro qui te plaît (ou un mélange, par exemple « 3 + 6 »)
+        et je l'applique partout.
+    </p>
+</body>
+</html>

@@ -1,0 +1,6 @@
+/* Les retours utilisent maintenant le même cadre Atelier que les emplois du
+   temps. Les contenus et les boutons restent produits par boite.js. */
+#panelRetours .admin-page-liste { display:grid;gap:.75rem; }
+#panelRetours .admin-page-liste article { margin-bottom:0 !important; }
+#panelRetours .admin-page-liste article textarea { resize:vertical; }
+#panelRetours .admin-page-liste article p[style*="b45309"] { color:#a45923 !important; }

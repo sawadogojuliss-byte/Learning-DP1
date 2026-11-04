@@ -1,0 +1,41 @@
+<!-- ============================================================
+     PAGE : Compte
+     Mémoire de l'appareil et connexion Google.
+     Script : js/compte.js
+     ============================================================ -->
+<div id="compteModal" class="compte-overlay" onclick="if (event.target === this) fermerCompte()">
+    <div class="compte-card" role="dialog" aria-labelledby="compteTitre">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;">
+            <div>
+                <p style="font-size:0.75rem;font-weight:700;color:#059669;letter-spacing:0.04em;text-transform:uppercase;margin:0;">Studyplan</p>
+                <h2 id="compteTitre">Mon compte</h2>
+            </div>
+            <button type="button" onclick="fermerCompte()" style="width:2rem;height:2rem;border:none;border-radius:50%;background:#f3f4f6;cursor:pointer;font-size:1rem;">✕</button>
+        </div>
+        <div id="compteProfil" class="compte-profil" hidden>
+            <img id="compteAvatar" alt="" width="40" height="40" hidden>
+            <div>
+                <p id="compteNom" style="font-weight:800;margin:0;"></p>
+                <p id="compteEmail" style="font-size:0.8rem;color:#6b7280;margin:0.15rem 0 0;"></p>
+            </div>
+        </div>
+
+        <div id="compteInvite" style="margin-top:1rem;">
+            <div id="googleBtnSlot" style="display:flex;justify-content:center;min-height:2.75rem;margin-bottom:0.75rem;"></div>
+            <p id="compteInviteTexte" style="font-size:0.8rem;color:#6b7280;text-align:center;margin:0 0 0.75rem;">Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.</p>
+        </div>
+
+        <div class="compte-actions">
+            <button type="button" onclick="fermerCompte()">Continuer</button>
+            <button type="button" id="compteDeconnectBtn" onclick="compteDeconnecter()" hidden>Se déconnecter de Google</button>
+            <div id="compteOutils" hidden>
+                <button type="button" onclick="compteImprimerSemaine()">Imprimer mon emploi du temps de la semaine</button>
+                <button type="button" onclick="memoireEffacer()" style="color:#b91c1c;border-color:#fecaca;">Effacer ma progression</button>
+                <button type="button" id="downloadWeekBtn" onclick="telechargerEmploiDuTemps()">Télécharger mon emploi du temps</button>
+            </div>
+        </div>
+
+        <p id="compteMessage" class="compte-msg" hidden></p>
+        <p style="font-size:0.75rem;color:#6b7280;text-align:center;margin:0.8rem 0 0;"><a href="confidentialite.html" style="color:#047857;">Règles de confidentialité</a> · <a href="conditions.html" style="color:#047857;">Conditions d’utilisation</a></p>
+    </div>
+</div>

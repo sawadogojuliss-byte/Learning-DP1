@@ -1,0 +1,5 @@
+Reconnaissance de texte (OCR) embarquee — fichiers venus de npm :
+- tesseract.js 5.1.1 (Apache-2.0) : tesseract.min.js, worker.min.js
+- tesseract.js-core 5.1.0 (Apache-2.0) : tesseract-core-lstm.wasm.js, tesseract-core-simd-lstm.wasm.js (wasm embarque en base64 dans la colle)
+- @tesseract.js-data/fra 1.0.0 (Apache-2.0) : langs/fra.traineddata.gz
+Tout est servi depuis le site lui-meme : aucune requete vers un serveur externe.

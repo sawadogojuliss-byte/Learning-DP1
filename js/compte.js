@@ -1,0 +1,2556 @@
+/* ============================================================
+   Compte — mémoire visible et connexion Google
+   La progression est sauvée sans compte, puis liée au Gmail.
+   Le même compte retrouve son nom et sa progression sur un autre
+   téléphone ou un autre navigateur.
+   ============================================================ */
+
+var COMPTE_SESSION_KEY = 'studyPlanIB_googleSession';
+var COMPTE_CLIENT_KEY = 'studyPlanIB_googleClientId';
+var compteGisPret = false;
+
+function compteClientId() {
+    var stocke = '';
+    try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
+    return String(window.STUDYPLAN_GOOGLE_CLIENT_ID || stocke || '').trim();
+}
+
+function compteDecoderJwt(token) {
+    var part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    var pad = part + '='.repeat((4 - part.length % 4) % 4);
+    var json = decodeURIComponent(Array.prototype.map.call(atob(pad), function (c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(json);
+}
+
+function compteMessage(texte) {
+    var el = document.getElementById('compteMessage');
+    if (!el) return;
+    el.hidden = !texte;
+    el.textContent = texte || '';
+}
+
+function compteChargerGIS() {
+    if (window.google && google.accounts && google.accounts.id) return Promise.resolve();
+    if (window.__gisPromise) return window.__gisPromise;
+    window.__gisPromise = new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = 'https://accounts.google.com/gsi/client';
+        s.async = true;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('Impossible de joindre Google. Réessaie dans un onglet.')); };
+        document.head.appendChild(s);
+    });
+    return window.__gisPromise;
+}
+
+function compteUtile(data) {
+    if (!data || typeof data !== 'object') return false;
+    if (data.profilComplet) return true;
+    if (data.userName) return true;
+    if (data.etape && data.etape !== 'accueil') return true;
+    if (Array.isArray(data.subjects) && data.subjects.length) return true;
+    return false;
+}
+
+/* Richesse du profil seulement (nom, classe, matières, profil complet). Les activités, les cours et
+   les exercices ne comptent pas : une suppression rendrait sinon une copie « plus pauvre » et l'ancienne
+   copie, qui contient encore l'élément supprimé, reprendrait le dessus au rechargement. Entre deux copies
+   de même profil, la plus récente gagne. */
+function compteRichesseProfil(data) {
+    if (!compteUtile(data)) return 0;
+    var n = data.profilComplet ? 40 : 0;
+    if (data.userName) n += 4;
+    if (data.ibYear) n += 2;
+    if (Array.isArray(data.subjects)) n += Math.min(data.subjects.length, 6) * 3;
+    if (Array.isArray(data.optionalSubjects)) n += Math.min(data.optionalSubjects.length, 6) * 2;
+    return n;
+}
+
+function compteRichesse(data) {
+    if (!compteUtile(data)) return 0;
+    var n = data.profilComplet ? 40 : 0;
+    if (data.userName) n += 4;
+    if (data.ibYear) n += 2;
+    if (Array.isArray(data.subjects)) n += Math.min(data.subjects.length, 6) * 3;
+    if (Array.isArray(data.optionalSubjects)) n += Math.min(data.optionalSubjects.length, 6) * 2;
+    if (Array.isArray(data.selectedActivities)) n += data.selectedActivities.length;
+    if (Array.isArray(data.customEvents)) n += Math.min(data.customEvents.length, 12);
+    if (Array.isArray(data.exercices)) n += Math.min(data.exercices.length, 8);
+    if (Array.isArray(data.memoirPlan) && data.memoirPlan.length) n += 2;
+    return n;
+}
+
+function compteChoisirProfil(a, b) {
+    var ua = compteUtile(a);
+    var ub = compteUtile(b);
+    if (ua && !ub) return a;
+    if (ub && !ua) return b;
+    if (!ua && !ub) return null;
+    var ra = compteRichesseProfil(a);
+    var rb = compteRichesseProfil(b);
+    if (ra !== rb) return ra > rb ? a : b;
+    var ca = !!(a && a.profilComplet);
+    var cb = !!(b && b.profilComplet);
+    if (ca && !cb) return a;
+    if (cb && !ca) return b;
+    var ta = Date.parse(a && a.savedAt) || 0;
+    var tb = Date.parse(b && b.savedAt) || 0;
+    if (ta !== tb) return ta > tb ? a : b;
+    return a;
+}
+
+
+function compteChampRempli(v) {
+    if (v == null || v === '') return false;
+    if (typeof v === 'number') return isFinite(v);
+    if (typeof v === 'boolean') return true;
+    if (Array.isArray(v)) return v.length > 0;
+    if (typeof v === 'object') return Object.keys(v).length > 0;
+    return true;
+}
+
+/* Fusion d'une liste d'objets par identifiant. La logique est dans
+   js/synchro.js (dates de modification, pierres tombales). */
+function compteUnionParId(listes, cle, evenementsDates, etatsExercices) {
+    return syncFusionnerListes(listes, '', null, { cle: cle, dates: evenementsDates, etats: etatsExercices });
+}
+
+function compteFusionnerObjets(a, b) {
+    var mix = Object.assign({}, b || {}, a && typeof a === 'object' ? a : {});
+    Object.keys(b || {}).forEach(function (k) {
+        if (!compteChampRempli(mix[k]) && compteChampRempli(b[k])) mix[k] = b[k];
+    });
+    return mix;
+}
+
+/* Série de flammes (jours d'affilée) : entre plusieurs copies, on garde la plus
+   récente. Une série d'un seul jour (appareil neuf) ne remplace pas une vraie série
+   de l'autre copie si elle date de trois jours au plus. Le résultat ne dépend pas
+   de l'ordre des copies. */
+function compteEcartJours(a, b) {
+    var pa = String(a).split('-');
+    var pb = String(b).split('-');
+    if (pa.length !== 3 || pb.length !== 3) return 99;
+    return Math.round((Date.UTC(+pb[0], +pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], +pa[1] - 1, +pa[2])) / 86400000);
+}
+
+function compteFlammeChoisie(copies) {
+    var liste = (copies || []).filter(function (c) {
+        return c && typeof c === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(c.flammeJour || ''));
+    }).map(function (c) {
+        return { flammeJour: String(c.flammeJour), flammes: Number(c.flammes) || 0 };
+    });
+    if (!liste.length) return null;
+    liste.sort(function (x, y) {
+        if (x.flammeJour !== y.flammeJour) return x.flammeJour > y.flammeJour ? -1 : 1;
+        return y.flammes - x.flammes;
+    });
+    var meilleure = liste[0];
+    if (meilleure.flammes <= 1) {
+        var serie = liste.filter(function (c) {
+            return c.flammes > 1 && Math.abs(compteEcartJours(c.flammeJour, meilleure.flammeJour)) <= 3;
+        })[0];
+        if (serie) meilleure = serie;
+    } else {
+        /* Un téléphone qui a calculé le jour d'après à partir d'une ancienne série donne une valeur
+           trop basse pour ce jour-là : une copie plus haute, datée d'un jour près, est la vraie série. */
+        var plusHaute = liste.filter(function (c) {
+            return c.flammes > meilleure.flammes && Math.abs(compteEcartJours(c.flammeJour, meilleure.flammeJour)) <= 1;
+        }).sort(function (x, y) { return y.flammes - x.flammes; })[0];
+        if (plusHaute) meilleure = plusHaute;
+    }
+    return meilleure;
+}
+
+function compteFusionnerProfils(copies) {
+    var tous = (copies || []).filter(function (c) { return c && typeof c === 'object' && !c.efface; });
+    var utiles = tous.filter(function (c) { return compteUtile(c); });
+    if (!utiles.length) return null;
+    utiles.sort(function (a, b) {
+        var ra = compteRichesseProfil(a);
+        var rb = compteRichesseProfil(b);
+        if (ra !== rb) return rb - ra;
+        return (Date.parse(b.savedAt) || 0) - (Date.parse(a.savedAt) || 0);
+    });
+    var base;
+    try { base = JSON.parse(JSON.stringify(utiles[0])); } catch (e) { base = utiles[0]; }
+    /* Les suppressions de toutes les copies, et celles de cet appareil, valent pour tout le profil. */
+    var registre = tous.reduce(function (acc, c) { return syncFusionnerRegistres(acc, c.suppressions); }, syncLireRegistre());
+    var tableaux = {
+        customEvents: 'id',
+        exercices: 'id',
+        memoirPlan: 'id',
+        iaDocs: 'nom'
+    };
+    utiles.slice(1).forEach(function (src) {
+        Object.keys(src).forEach(function (k) {
+            if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
+            var b = src[k];
+            /* L'emploi du temps se fusionne par cours (ET-16). */
+            if (k === 'emploiScolaire') {
+                base.emploiScolaire = syncFusionnerEmploi(base.emploiScolaire, b, registre) || base.emploiScolaire;
+                return;
+            }
+            /* Devoirs et examens se fusionnent par identifiant (DE-25). */
+            if (k === 'devoirsStore' && b && typeof b === 'object') {
+                base.devoirsStore = syncFusionnerStore(base.devoirsStore, b, registre);
+                return;
+            }
+            if (Array.isArray(b)) {
+                base[k] = syncFusionnerListes([base[k], b], k, registre, { cle: tableaux[k] || 'id', dates: k === 'customEvents', etats: k === 'exercices' });
+                return;
+            }
+            if (b && typeof b === 'object') {
+                base[k] = compteFusionnerObjets(base[k], b);
+                return;
+            }
+            if (!compteChampRempli(base[k]) && compteChampRempli(b)) base[k] = b;
+        });
+        if (src.profilComplet) {
+            base.profilComplet = true;
+            if (!base.etape || base.etape === 'accueil') base.etape = (src.etape && src.etape !== 'accueil') ? src.etape : 'planning';
+        }
+        if ((Date.parse(src.savedAt) || 0) > (Date.parse(base.savedAt) || 0)) base.savedAt = src.savedAt;
+        if (!base.google && src.google) base.google = src.google;
+        if (!base.utilisateurId && src.utilisateurId) base.utilisateurId = src.utilisateurId;
+    });
+    tous.forEach(function (src) {
+        Object.keys(tableaux).forEach(function (k) {
+            if (!Array.isArray(src[k]) || !src[k].length) return;
+            base[k] = syncFusionnerListes([base[k], src[k]], k, registre, { cle: tableaux[k], dates: k === 'customEvents', etats: k === 'exercices' });
+        });
+    });
+    var maxJours = 0;
+    var dernier = '';
+    tous.forEach(function (src) {
+        var n = Number(src.joursConnectes) || 0;
+        if (n > maxJours) {
+            maxJours = n;
+            if (src.dernierJour) dernier = src.dernierJour;
+        } else if (n === maxJours && src.dernierJour && String(src.dernierJour) > String(dernier)) {
+            dernier = src.dernierJour;
+        }
+    });
+    if (maxJours) base.joursConnectes = maxJours;
+    if (dernier) base.dernierJour = dernier;
+    var flammeChoisie = compteFlammeChoisie(tous);
+    if (flammeChoisie) {
+        base.flammeJour = flammeChoisie.flammeJour;
+        base.flammes = flammeChoisie.flammes;
+    }
+    if (!base.savedAt) base.savedAt = new Date().toISOString();
+    var sourceSujets = null;
+    var quandSujets = -1;
+    utiles.forEach(function (src) {
+        var n = (Array.isArray(src.subjects) ? src.subjects.length : 0) + (Array.isArray(src.optionalSubjects) ? src.optionalSubjects.length : 0);
+        if (!n) return;
+        var t = Date.parse(src.savedAt) || 0;
+        if (!sourceSujets || t >= quandSujets) {
+            sourceSujets = src;
+            quandSujets = t;
+        }
+    });
+    /* Les matières principales et optionnelles viennent ensemble de la copie la plus récente
+       qui en a : leur répartition est gardée (une optionnelle ne devient pas une principale). */
+    var valides = function (s) { return s && s.name; };
+    var principales = sourceSujets ? (sourceSujets.subjects || []) : (base.subjects || []);
+    var optionnelles = sourceSujets ? (sourceSujets.optionalSubjects || []) : (base.optionalSubjects || []);
+    principales = principales.filter(valides);
+    base.subjects = typeof plafonnerSujetsChoisis === 'function'
+        ? plafonnerSujetsChoisis(principales, sourceSujets || base)
+        : principales.slice(0, 6);
+    base.optionalSubjects = optionnelles.filter(valides);
+    var sourceFige = null;
+    var quandFige = -1;
+    utiles.forEach(function (src) {
+        if (!src.emploiFige || !src.emploiFige.jours) return;
+        var t = Date.parse(src.emploiFige.at || src.savedAt) || 0;
+        if (!sourceFige || t >= quandFige) {
+            sourceFige = src.emploiFige;
+            quandFige = t;
+        }
+    });
+    if (sourceFige) {
+        try { base.emploiFige = JSON.parse(JSON.stringify(sourceFige)); } catch (e) { base.emploiFige = sourceFige; }
+    }
+    /* Activités et jours de téléphone : la copie la plus récente qui en contient.
+       Une copie locale vide, datée d'aujourd'hui, ne doit pas effacer celles du compte. */
+    /* Activités : fusion par nom avec les suppressions datées (registre). Une copie vide
+       ou ancienne ne fait plus revenir une activité retirée par l'élève. */
+    base.selectedActivities = syncFusionnerActivites(tous, registre);
+    var copieAvecJours = null;
+    var quandJours = -1;
+    utiles.forEach(function (src) {
+        if (!Array.isArray(src.phoneDays) || !src.phoneDays.length) return;
+        var t = Date.parse(src.savedAt) || 0;
+        if (!copieAvecJours || t >= quandJours) {
+            copieAvecJours = src;
+            quandJours = t;
+        }
+    });
+    base.phoneDays = copieAvecJours ? copieAvecJours.phoneDays : (Array.isArray(base.phoneDays) ? base.phoneDays : []);
+    base.suppressions = registre;
+    /* Les réglages du minuteur : la version datée la plus récente, toutes copies et cet appareil. */
+    var focusChoisi = syncLireJson(SYNC_CLE_FOCUS, null);
+    tous.forEach(function (c) {
+        if (c.focusReglages && typeof c.focusReglages === 'object' && (!focusChoisi || syncNombre(c.focusReglages.modifieAt) > syncNombre(focusChoisi.modifieAt))) focusChoisi = c.focusReglages;
+    });
+    if (focusChoisi && typeof focusChoisi === 'object') base.focusReglages = syncCopier(focusChoisi);
+    return base;
+}
+
+function compteCleArchive(id) {
+    return 'studyPlanIB_archive:' + id;
+}
+
+function compteLireArchive(id) {
+    if (!id || typeof memoireJson !== 'function') return null;
+    return memoireJson(compteCleArchive(id));
+}
+
+function compteEcrireArchive(id, data) {
+    if (!id || !data) return;
+    var json = '';
+    try { json = JSON.stringify(data); } catch (e) { return; }
+    try {
+        localStorage.setItem(compteCleArchive(id), json);
+    } catch (e) {
+        try {
+            var leger = JSON.parse(json);
+            delete leger.iaDocs;
+            localStorage.setItem(compteCleArchive(id), JSON.stringify(leger));
+        } catch (e2) {}
+    }
+    if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal('archive-' + id, data, false);
+}
+
+function compteArchiverProgression(data) {
+    if (!data || !compteUtile(data)) return null;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data)); } catch (e) { return null; }
+    var session = window.compteSession;
+    if (session && session.sub && typeof compteEstampiller === 'function' && !(copie.google && copie.google.sub)) {
+        copie = compteEstampiller(copie, session);
+    }
+    var ids = [];
+    var sub = (copie.google && copie.google.sub) || copie.utilisateurId || (session && session.sub) || '';
+    if (sub && typeof compteCanonique === 'function') sub = compteCanonique(sub) || sub;
+    if (sub) ids.push(sub);
+    var email = typeof compteEmailCle === 'function' ? compteEmailCle((copie.google && copie.google.email) || (session && session.email) || '') : '';
+    if (email) ids.push('mail-' + email);
+    if (!sub) ids.push('locale');
+    var fusion = null;
+    ids.forEach(function (id) {
+        fusion = compteFusionnerProfils([compteLireArchive(id), copie]);
+        if (fusion) compteEcrireArchive(id, fusion);
+    });
+    return fusion;
+}
+
+function comptePeutJoindreLocal(data, session) {
+    if (!data || typeof data !== 'object' || data.efface) return false;
+    if (!session || !session.sub) return true;
+    if (data.google && data.google.sub && typeof compteMemeCompte === 'function' && !compteMemeCompte(data.google.sub, session.sub)) return false;
+    if (data.utilisateurId && data.google && data.google.sub && typeof compteMemeCompte === 'function' && !compteMemeCompte(data.utilisateurId, session.sub)) return false;
+    return true;
+}
+
+function compteCopiesLocales(session) {
+    var copies = [];
+    function add(item) {
+        if (item && typeof item === 'object' && !item.efface) copies.push(item);
+    }
+    var sub = session && session.sub;
+    var canon = sub && typeof compteCanonique === 'function' ? (compteCanonique(sub) || sub) : (sub || '');
+    if (canon) {
+        if (typeof compteLireDedie === 'function') add(compteLireDedie(canon));
+        add(compteLireArchive(canon));
+        if (sub && sub !== canon) add(compteLireArchive(sub));
+    }
+    var email = typeof compteEmailCle === 'function' ? compteEmailCle(session && session.email) : '';
+    if (email) {
+        var parMail = typeof compteSubDeEmail === 'function' ? compteSubDeEmail(email) : '';
+        if (parMail && parMail !== canon) {
+            if (typeof compteLireDedie === 'function') add(compteLireDedie(parMail));
+            add(compteLireArchive(parMail));
+        }
+        add(compteLireArchive('mail-' + email));
+    }
+    if (typeof memoireJson === 'function') {
+        var stocke = memoireJson(MEMOIRE_KEY);
+        if (comptePeutJoindreLocal(stocke, session)) add(stocke);
+        var locale = memoireJson('studyPlanIB_sauvegarde:locale');
+        if (comptePeutJoindreLocal(locale, session)) add(locale);
+        var archiveLocale = compteLireArchive('locale');
+        if (comptePeutJoindreLocal(archiveLocale, session)) add(archiveLocale);
+        if (comptePeutJoindreLocal(stocke, session)) {
+            add({
+                customEvents: memoireJson('studyPlanIB_customEvents_juliss') || [],
+                exercices: memoireJson('studyPlanIB_exercices') || []
+            });
+        }
+    }
+    return copies;
+}
+
+function compteRevendiquerArchiveLocale(session) {
+    if (!session || !session.sub) return;
+    var locale = compteLireArchive('locale');
+    if (!comptePeutJoindreLocal(locale, session) || !compteUtile(locale)) return;
+    compteArchiverProgression(compteEstampiller(locale, session));
+    try { localStorage.removeItem(compteCleArchive('locale')); } catch (e) {}
+}
+
+function compteDriveLister(token) {
+    var q = encodeURIComponent("name='" + COMPTE_DRIVE_NOM + "' and trashed=false");
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&pageSize=20&q=' + q, {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('drive');
+        return res.json();
+    }).then(function (data) {
+        var ids = [];
+        var connu = '';
+        try { connu = compteCleDrive() ? (localStorage.getItem(compteCleDrive()) || '') : ''; } catch (e) {}
+        if (connu) ids.push(connu);
+        ((data && data.files) || []).forEach(function (fichier) {
+            if (fichier && fichier.id && ids.indexOf(fichier.id) === -1) ids.push(fichier.id);
+        });
+        var cle = compteCleDrive();
+        if (ids[0] && cle) {
+            try { localStorage.setItem(cle, ids[0]); } catch (e) {}
+        }
+        return ids;
+    });
+}
+
+function compteSessionDepuisJeton(token) {
+    return fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('profil');
+        return res.json();
+    }).then(function (info) {
+        if (!info || !info.sub) throw new Error('profil');
+        return compteSessionDepuis(info);
+    });
+}
+
+function comptePageOuverte() {
+    if (typeof memoireEtapeActive !== 'function') return '';
+    var page = memoireEtapeActive();
+    if (!page || page === 'accueil') return '';
+    return page;
+}
+
+/* La classe (DP1/DP2) n'est jamais effacée par une copie reçue qui n'en a pas.
+   Sans elle, le planning renvoie au choix de la classe et l'écran est sauvegardé.
+   On garde la classe locale seulement si elle appartient au même compte. */
+/* Un profil complet a forcément une classe et des matières. Sans l'un des deux, la copie
+   est incomplète : elle ne doit jamais remplacer la bonne copie du nuage. */
+function compteProfilIncomplet(data) {
+    if (!data || !data.profilComplet) return false;
+    if (data.ibYear !== 'DP1' && data.ibYear !== 'DP2') return true;
+    return !(Array.isArray(data.subjects) && data.subjects.length);
+}
+
+/* Profil terminé (classe et matières présentes) : un retrait volontaire (activité,
+   exercice, etc.) doit passer, même si le profil devient « moins riche ». Jamais
+   pendant une restauration, jamais pour un profil en cours de création. */
+function compteRichesseLibre(data) {
+    return !!(data && data.profilComplet && compteUtile(data) && !compteProfilIncomplet(data)
+        && !window.compteRestaurationEnCours);
+}
+
+/* Matières d'un profil complet reçu sans matières : on reprend celles du même compte
+   présentes sur cet appareil (copie locale ou archive), la plus complète. */
+function compteMatieresAGarder(data) {
+    if (!data || !data.profilComplet) return null;
+    if (Array.isArray(data.subjects) && data.subjects.length) return null;
+    var session = window.compteSession || {};
+    var sub = session.sub || (data.google && data.google.sub) || '';
+    if (!sub || typeof compteCopiesLocales !== 'function' || typeof memoireJson !== 'function') return null;
+    var candidats = [memoireJson(MEMOIRE_KEY)].concat(compteCopiesLocales({ sub: sub, email: session.email || '' }));
+    var meilleur = null;
+    candidats.forEach(function (c) {
+        if (!c || typeof c !== 'object' || c.efface) return;
+        if (compteProfilEtranger(c, sub)) return;
+        if (!Array.isArray(c.subjects) || !c.subjects.length) return;
+        if (!meilleur || c.subjects.length > meilleur.subjects.length) meilleur = c;
+    });
+    return meilleur;
+}
+
+function compteClasseAGarder(data) {
+    if (!data || data.ibYear === 'DP1' || data.ibYear === 'DP2') return '';
+    if (typeof memoireJson !== 'function') return '';
+    var locale = memoireJson(MEMOIRE_KEY);
+    if (!locale || (locale.ibYear !== 'DP1' && locale.ibYear !== 'DP2')) return '';
+    var sub = (window.compteSession && window.compteSession.sub) || (data.google && data.google.sub) || '';
+    if (!sub) return '';
+    if (compteProfilEtranger(locale, sub)) return '';
+    return locale.ibYear;
+}
+
+/* Champs du profil qui ne doivent jamais être remis à leur valeur par défaut parce qu'une
+   donnée reçue ne les contient pas (réglages de sommeil, objectif, matières, activités,
+   emploi du temps figé, etc.). Une liste vide ou une valeur « non » reste une vraie valeur. */
+var COMPTE_CHAMPS_PROFIL = ['userName', 'targetScore', 'ibYear', 'memoirLevel', 'iaLevel', 'iaLevels', 'memoirPlan', 'iaPlans',
+    'eeVus', 'eeDemandes', 'transportMode', 'carDeparture', 'carToSchool', 'carFromSchool', 'motoDeparture', 'motoReturn',
+    'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates', 'holidayDroppedDates', 'sameFreeTime',
+    'freeTimeMinutes', 'freeTimeByDay', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup', 'weekdaySleepHours',
+    'saturdaySleepHours', 'sundaySleepHours', 'habitudesDefinies', 'prepMatinMinutes', 'prepMatinDebut', 'prepMatinFin',
+    'prepSoirMinutes', 'prepSoirDebut', 'prepSoirFin', 'petitDejHeure', 'petitDejMinutes', 'dinerHeure', 'dinerMinutes',
+    'phoneDays', 'samePhoneDuration', 'phoneDuration', 'phoneDayDurations', 'customEvents', 'exercices', 'devoirsStore',
+    'emploiScolaire', 'emploiFige', 'subjects', 'optionalSubjects', 'currentMood'];
+function compteCompleterReglages(data) {
+    if (!data || typeof data !== 'object' || typeof memoireJson !== 'function') return data;
+    /* Le profil enregistré porte l'identité de son compte ; l'état en mémoire, au démarrage, ne la porte pas. */
+    var courant = memoireJson(MEMOIRE_KEY);
+    if (!courant || !compteUtile(courant) || !comptePeutJoindreLocal(courant, window.compteSession)) return data;
+    var copie = Object.assign({}, data);
+    COMPTE_CHAMPS_PROFIL.forEach(function (cle) {
+        var absent = copie[cle] === undefined || copie[cle] === null || copie[cle] === '';
+        if (absent && courant[cle] !== undefined && courant[cle] !== null && courant[cle] !== '') copie[cle] = courant[cle];
+    });
+    return copie;
+}
+
+function compteAfficherProfil(data) {
+    if (!data || typeof memoireAppliquer !== 'function') return;
+    /* Pendant un changement de compte, la page ouverte appartient à l'autre compte : on ne la garde pas. */
+    var ouverte = window.compteChangementDeCompte ? '' : comptePageOuverte();
+    var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    /* Un profil complet restauré ouvre le planning, même si cet appareil était encore sur l'accueil. */
+    var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
+    var classeGardee = compteClasseAGarder(data);
+    if (classeGardee) data = Object.assign({}, data, { ibYear: classeGardee });
+    var matieresGardees = compteMatieresAGarder(data);
+    if (matieresGardees) {
+        data = Object.assign({}, data, {
+            subjects: matieresGardees.subjects,
+            optionalSubjects: (Array.isArray(data.optionalSubjects) && data.optionalSubjects.length) ? data.optionalSubjects : (matieresGardees.optionalSubjects || [])
+        });
+    }
+    data = compteCompleterReglages(data);
+    /* Le réglage de sommeil de l'élève sur cet appareil est gardé à travers la réinitialisation. */
+    var sommeilGarde = typeof sommeilCapturer === 'function' ? sommeilCapturer() : null;
+    if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
+    memoireAppliquer(data, { compte: true });
+    /* Même règle que memoireSommeilPeutAppliquer : le réglage gardé ne revient que s'il est plus récent que celui reçu. */
+    var dateRecue = typeof memoireDateSommeil === 'function' ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : (data.sommeilChoisiLe || '');
+    if (sommeilGarde && sommeilGarde.le && (!dateRecue || dateRecue < sommeilGarde.le) && typeof sommeilRestaurer === 'function') sommeilRestaurer(sommeilGarde);
+    if (data.profilComplet) window.__profilComplet = true;
+    var etape = ouverte || (accueilLocal ? 'accueil' : (data.profilComplet ? 'planning' : (data.etape || 'accueil')));
+    if (ouverte === 'pomodoro') etape = 'pomodoro';
+    if (typeof memoireAller === 'function' && ouverte !== 'pomodoro') memoireAller(etape);
+    if (data.profilComplet && typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    if (typeof majClasseAffichage === 'function') {
+        try { majClasseAffichage(); } catch (e) {}
+    }
+    if (typeof memoireMajIndicateur === 'function') memoireMajIndicateur();
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+}
+
+function compteEquivalent(a, b) {
+    if (!a || !b) return false;
+    function norm(d) {
+        var c = JSON.parse(JSON.stringify(d));
+        delete c.savedAt;
+        delete c.google;
+        delete c.etape;
+        return JSON.stringify(c);
+    }
+    try { return norm(a) === norm(b); } catch (e) { return false; }
+}
+
+function compteDoitGarderLie(ancien, courant) {
+    if (!compteUtile(ancien)) return false;
+    if (!compteUtile(courant)) return true;
+    if (compteRichesseProfil(ancien) > compteRichesseProfil(courant)) return true;
+    if (ancien.profilComplet && !courant.profilComplet) return true;
+    return false;
+}
+
+function compteProfilActuel() {
+    var sub = window.compteSession && window.compteSession.sub;
+    if (sub) {
+        var dedie = compteLireDedie(sub);
+        if (dedie && compteUtile(dedie)) return dedie;
+    }
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var locale = typeof memoireJson === 'function' ? memoireJson('studyPlanIB_sauvegarde:locale') : null;
+    var session = window.compteSession;
+    var candidats = [stocke, locale].filter(function (item) {
+        if (!sub) return item && !(item.google && item.google.sub);
+        return item && comptePeutRevendiquer(item, session);
+    });
+    var choisi = candidats.reduce(function (acc, item) {
+        return compteChoisirProfil(item, acc) || acc;
+    }, null);
+    if (choisi) return choisi;
+    if (!sub && typeof memoireLireEtat === 'function') {
+        var vivant = memoireLireEtat();
+        if (compteUtile(vivant) && !(vivant.google && vivant.google.sub)) return vivant;
+    }
+    return null;
+}
+
+function compteSourceNuage() {
+    var sub = window.compteSession && window.compteSession.sub;
+    var actuel = compteProfilActuel();
+    if (typeof memoireLireEtat !== 'function') return actuel;
+    var vivant = memoireLireEtat();
+    if (sub && vivant && vivant.google && vivant.google.sub && vivant.google.sub !== sub) vivant = null;
+    if (sub && vivant && compteProfilEtranger(vivant, sub) && vivant.google && vivant.google.sub) vivant = null;
+    if (!compteUtile(vivant)) return actuel;
+    if (!compteUtile(actuel) || !compteDoitGarderLie(actuel, vivant)) return vivant;
+    return actuel;
+}
+
+function compteRestaurerLocal() {
+    if (!window.compteSession || !window.compteSession.sub || typeof memoireJson !== 'function') return false;
+    var lie = compteLireDedie(window.compteSession.sub);
+    var stocke = memoireJson(MEMOIRE_KEY);
+    if (!lie || !compteUtile(lie) || compteEquivalent(lie, stocke)) return false;
+    if (stocke && stocke.google && stocke.google.sub && stocke.google.sub !== window.compteSession.sub) {
+        compteBasculer(lie, window.compteSession);
+        return true;
+    }
+    if (!comptePeutRevendiquer(stocke, window.compteSession) && compteUtile(lie)) {
+        compteBasculer(lie, window.compteSession);
+        return true;
+    }
+    return false;
+}
+
+var COMPTE_IDENTITE_SCOPE = 'openid email profile';
+var COMPTE_DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_RESTAURATION_SCOPE = 'openid email profile https://www.googleapis.com/auth/drive.appdata';
+var COMPTE_DRIVE_NOM = 'study-plan-ib-profil.json';
+var compteJeton = '';
+var compteJetonFin = 0;
+var compteNuageTimer = null;
+var compteNuageEnCours = false;
+
+function compteCleDrive() {
+    return window.compteSession && window.compteSession.sub ? 'studyPlanIB_driveFileId:' + window.compteSession.sub : '';
+}
+
+function compteDemanderJeton(prompt, scope) {
+    var invite = prompt || '';
+    var droits = scope || COMPTE_DRIVE_SCOPE;
+    if (!compteClientId()) return Promise.reject(new Error('client'));
+    return compteChargerGIS().then(function () {
+        if (!window.google || !google.accounts || !google.accounts.oauth2) return Promise.reject(new Error('google'));
+        return new Promise(function (resolve, reject) {
+            var fini = false;
+            function ok(token) { if (!fini) { fini = true; resolve(token); } }
+            function ko(err) { if (!fini) { fini = true; reject(err || new Error('jeton')); } }
+            var client = google.accounts.oauth2.initTokenClient({
+                client_id: compteClientId(),
+                scope: droits,
+                hint: (window.compteSession && window.compteSession.email) || '',
+                include_granted_scopes: false,
+                callback: function (resp) {
+                    if (resp && resp.access_token) {
+                        compteJeton = resp.access_token;
+                        compteJetonFin = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+                        try { localStorage.setItem('studyPlanIB_driveOk', (window.compteSession && window.compteSession.sub) || 'ok'); } catch (e) {}
+                        ok(compteJeton);
+                    } else ko(resp || new Error('jeton'));
+                },
+                error_callback: function (err) { ko(err || new Error('jeton')); }
+            });
+            try {
+                client.requestAccessToken({
+                    prompt: invite,
+                    hint: (window.compteSession && window.compteSession.email) || ''
+                });
+            } catch (e) { ko(e); }
+        });
+    });
+}
+
+function compteObtenirJeton(interactif) {
+    if (compteJeton && Date.now() < compteJetonFin - 60000) return Promise.resolve(compteJeton);
+    if (!interactif) return Promise.reject(new Error('silence'));
+    return compteDemanderJeton('consent', COMPTE_DRIVE_SCOPE);
+}
+
+function compteDriveTrouver(token) {
+    var cle = compteCleDrive();
+    var connu = '';
+    try { connu = cle ? localStorage.getItem(cle) || '' : ''; } catch (e) {}
+    if (connu) return Promise.resolve(connu);
+    var q = encodeURIComponent("name='" + COMPTE_DRIVE_NOM + "' and trashed=false");
+    return fetch('https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=' + q, {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (!res.ok) throw new Error('drive');
+        return res.json();
+    }).then(function (data) {
+        var id = data && data.files && data.files[0] && data.files[0].id;
+        if (id && cle) {
+            try { localStorage.setItem(cle, id); } catch (e) {}
+        }
+        return id || '';
+    });
+}
+
+function compteDriveLire(token, id) {
+    if (!id) return Promise.resolve(null);
+    return fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id) + '?alt=media', {
+        headers: { Authorization: 'Bearer ' + token }
+    }).then(function (res) {
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error('lecture');
+        return res.json();
+    });
+}
+
+function compteDriveEcrire(token, id, json) {
+    function media(fileId) {
+        return fetch('https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(fileId) + '?uploadType=media', {
+            method: 'PATCH',
+            headers: {
+                Authorization: 'Bearer ' + token,
+                'Content-Type': 'application/json; charset=UTF-8'
+            },
+            body: json
+        }).then(function (res) {
+            if (!res.ok) throw new Error('media');
+            return res.json();
+        });
+    }
+    if (id) return media(id);
+    return fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            name: COMPTE_DRIVE_NOM,
+            mimeType: 'application/json',
+            parents: ['appDataFolder']
+        })
+    }).then(function (res) {
+        if (!res.ok) throw new Error('creation');
+        return res.json();
+    }).then(function (fichier) {
+        if (!fichier || !fichier.id) throw new Error('creation');
+        if (compteCleDrive()) {
+            try { localStorage.setItem(compteCleDrive(), fichier.id); } catch (e) {}
+        }
+        return media(fichier.id);
+    });
+}
+
+function compteNuageFusionner(token) {
+    if (typeof syncPreparer === 'function') syncPreparer();
+    var session = window.compteSession;
+    return compteDriveLister(token).then(function (ids) {
+        return Promise.all((ids || []).map(function (id) {
+            return compteDriveLire(token, id).catch(function () { return null; });
+        })).then(function (nuages) {
+            var copies = compteCopiesLocales(session).concat(nuages || []);
+            var choisi = compteFusionnerProfils(copies);
+            if (session && session.sub && choisi) choisi = compteEstampiller(choisi, session);
+            var avant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+            var applique = false;
+            if (choisi && compteUtile(choisi) && !compteEquivalent(choisi, avant)) {
+                compteAfficherProfil(choisi);
+                applique = true;
+                compteArchiverProgression(choisi);
+            }
+            if (!compteUtile(choisi)) return 'empty';
+            var meilleurNuage = null;
+            (nuages || []).forEach(function (nuage) {
+                if (!compteUtile(nuage)) return;
+                if (!meilleurNuage || compteRichesse(nuage) > compteRichesse(meilleurNuage)) meilleurNuage = nuage;
+            });
+            if (meilleurNuage && compteEquivalent(meilleurNuage, choisi)) return applique ? 'restored' : 'same';
+            if (meilleurNuage && compteRichesse(choisi) < compteRichesse(meilleurNuage)) return applique ? 'restored' : 'same';
+            var id = (ids && ids[0]) || '';
+            return compteDriveEcrire(token, id, JSON.stringify(choisi)).then(function () {
+                return applique ? 'restored' : 'uploaded';
+            });
+        });
+    });
+}
+
+function compteNuageSynchroniser(interactif) {
+    if (!window.compteSession || !window.compteSession.sub || !compteClientId()) return Promise.resolve('skip');
+    if (!interactif && !(compteJeton && Date.now() < compteJetonFin - 60000)) return Promise.resolve('skip');
+    if (compteNuageEnCours) return Promise.resolve('busy');
+    compteNuageEnCours = true;
+    var etat = 'failed';
+    return compteChargerGIS().then(function () {
+        return compteObtenirJeton(!!interactif);
+    }).then(function (token) {
+        return compteNuageFusionner(token);
+    }).then(function (resultat) {
+        etat = resultat || 'ok';
+    }).catch(function () {
+        etat = 'failed';
+    }).then(function () {
+        compteNuageEnCours = false;
+        return etat;
+    });
+}
+
+function compteNuagePlanifier() {
+    if (compteNuageTimer) clearTimeout(compteNuageTimer);
+    compteNuageTimer = setTimeout(function () {
+        compteNuageTimer = null;
+        compteNuageSynchroniser(false);
+    }, 6000);
+}
+
+function compteNuageEffacer() {
+    if (!window.compteSession || !window.compteSession.sub) return Promise.resolve();
+    function supprimer(token) {
+        return compteDriveTrouver(token).then(function (id) {
+            if (!id) return null;
+            return fetch('https://www.googleapis.com/drive/v3/files/' + encodeURIComponent(id), {
+                method: 'DELETE',
+                headers: { Authorization: 'Bearer ' + token }
+            }).then(function () {
+                var cle = compteCleDrive();
+                if (cle) {
+                    try { localStorage.removeItem(cle); } catch (e) {}
+                }
+            });
+        });
+    }
+    return compteChargerGIS().then(function () {
+        return compteObtenirJeton();
+    }).then(supprimer).catch(function () { return null; });
+}
+
+/* Effacement de la progression par l'élève : ses fiches d'emploi du temps
+   restent dans la base, mais un indicateur les retire de la vue admin.
+   Rien n'est supprimé. Les règles permettent à l'élève de modifier sa
+   propre fiche seulement ; sans connexion Firebase, rien n'est marqué. */
+var COMPTE_FICHES_MAX = 60;
+
+function compteMasquerFichesEleve() {
+    if (!window.compteSession || !window.compteSession.sub) return Promise.resolve();
+    return compteChargerFirebase().then(function () {
+        return new Promise(function (resolve) {
+            var fini = false;
+            var timer = setTimeout(function () {
+                if (fini) return;
+                fini = true;
+                resolve((firebase.auth() && firebase.auth().currentUser) || null);
+            }, 6000);
+            firebase.auth().onAuthStateChanged(function (user) {
+                if (fini) return;
+                fini = true;
+                clearTimeout(timer);
+                resolve(user || null);
+            });
+        });
+    }).then(function (user) {
+        if (!user || !user.uid) return;
+        /* L'indicateur est posé sur la synchronisation d'abord : il suit l'élève
+           pour les semaines à venir, même si aucune fiche n'existe encore. */
+        return compteMarquerSynchro(user.uid).then(function () {
+            return compteMasquerFiche(user.uid, null, 0);
+        });
+    }).catch(function () {});
+}
+
+function compteMarquerSynchro(uid) {
+    return firebase.firestore().collection('synchronisation').doc(uid).set({
+        uid: uid,
+        effaceParEleve: true,
+        effaceLe: new Date().toISOString()
+    }, { merge: true }).catch(function (err) { console.warn('Synchronisation non marquée', err); });
+}
+
+function compteMasquerFiche(uid, apres, rang) {
+    if (rang >= COMPTE_FICHES_MAX) return Promise.resolve();
+    var requete = firebase.firestore().collection('emplois_du_temps')
+        .where('z_donnees_techniques.firebaseUid', '==', uid)
+        .orderBy(firebase.firestore.FieldPath.documentId())
+        .limit(1);
+    if (apres) requete = requete.startAfter(apres);
+    return requete.get().then(function (snap) {
+        if (!snap || snap.empty || !snap.docs.length) return null;
+        var doc = snap.docs[0];
+        var tech = (doc.data() || {}).z_donnees_techniques || {};
+        var travail = tech.effaceParEleve === true
+            ? Promise.resolve()
+            : doc.ref.update({
+                'z_donnees_techniques.effaceParEleve': true,
+                'z_donnees_techniques.effaceLe': new Date().toISOString()
+            }).catch(function (err) { console.warn('Fiche non masquée', err); });
+        return travail.then(function () { return compteMasquerFiche(uid, doc, rang + 1); });
+    });
+}
+
+var compteCopieEnAttente = false;
+var COMPTE_INVITE = 'Reconnecte-toi avec Google pour retrouver ton emploi du temps et tes informations.';
+
+function compteSessionDepuis(payload) {
+    return {
+        sub: payload.sub,
+        name: payload.name || '',
+        email: payload.email || '',
+        picture: payload.picture || '',
+        given_name: payload.given_name || payload.name || ''
+    };
+}
+
+var COMPTE_IDENTITES_KEY = 'studyPlanIB_identites';
+
+function compteNormaliserNom(nom) {
+    return String(nom || '').trim().replace(/\s+/g, ' ');
+}
+
+function compteEmailCle(email) {
+    return String(email || '').trim().toLowerCase();
+}
+
+function compteLireIdentites() {
+    var data = typeof memoireJson === 'function' ? memoireJson(COMPTE_IDENTITES_KEY) : null;
+    if (!data || typeof data !== 'object') data = { comptes: {}, emails: {}, alias: {} };
+    if (!data.comptes || typeof data.comptes !== 'object') data.comptes = {};
+    if (!data.emails || typeof data.emails !== 'object') data.emails = {};
+    if (!data.alias || typeof data.alias !== 'object') data.alias = {};
+    return data;
+}
+
+function compteEcrireIdentites(data) {
+    try { localStorage.setItem(COMPTE_IDENTITES_KEY, JSON.stringify(data)); } catch (e) {}
+}
+
+function compteCanonique(sub) {
+    var id = compteLireIdentites();
+    var vu = {};
+    var cur = sub || '';
+    while (cur && id.alias[cur] && id.alias[cur] !== cur && !vu[cur]) {
+        vu[cur] = true;
+        cur = id.alias[cur];
+    }
+    return cur || '';
+}
+
+function compteSubDeEmail(email) {
+    var cle = compteEmailCle(email);
+    if (!cle) return '';
+    return compteCanonique(compteLireIdentites().emails[cle] || '');
+}
+
+function compteNomLie(sub) {
+    var canon = compteCanonique(sub);
+    if (!canon) return '';
+    var row = compteLireIdentites().comptes[canon];
+    return row && row.userName ? String(row.userName) : '';
+}
+
+function compteLierCompte(session, nom, opts) {
+    if (!session || !session.sub) return '';
+    opts = opts || {};
+    var id = compteLireIdentites();
+    var email = compteEmailCle(session.email);
+    var canon = session.sub;
+    if (email && id.emails[email]) canon = compteCanonique(id.emails[email]) || id.emails[email];
+    else if (email) id.emails[email] = session.sub;
+    if (canon !== session.sub) id.alias[session.sub] = canon;
+    if (email) id.emails[email] = canon;
+    var row = id.comptes[canon] || { userId: canon, email: session.email || '', userName: '' };
+    row.userId = canon;
+    if (session.email) row.email = session.email;
+    var propre = compteNormaliserNom(nom);
+    if (propre && (!row.userName || opts.definir)) {
+        row.userName = propre;
+        row.at = new Date().toISOString();
+    } else if (!row.at) row.at = new Date().toISOString();
+    id.comptes[canon] = row;
+    compteEcrireIdentites(id);
+    return canon;
+}
+
+function compteLierNom(sub, nom, email, opts) {
+    return compteLierCompte({ sub: sub, email: email || '' }, nom, opts);
+}
+
+function compteOublierNom(sub) {
+    var canon = compteCanonique(sub);
+    if (!canon) return;
+    var id = compteLireIdentites();
+    Object.keys(id.emails).forEach(function (cle) {
+        if (compteCanonique(id.emails[cle]) === canon) delete id.emails[cle];
+    });
+    Object.keys(id.alias).forEach(function (cle) {
+        if (id.alias[cle] === canon || cle === canon) delete id.alias[cle];
+    });
+    delete id.comptes[canon];
+    compteEcrireIdentites(id);
+}
+
+function compteMemeCompte(a, b) {
+    if (!a || !b) return false;
+    var ca = compteCanonique(a);
+    var cb = compteCanonique(b);
+    return !!(ca && cb && ca === cb);
+}
+
+function compteProfilEtranger(data, sub) {
+    if (!data || typeof data !== 'object' || data.efface) return true;
+    var canon = compteCanonique(sub);
+    if (!canon) return true;
+    var dataSub = data.google && data.google.sub;
+    if (dataSub && !compteMemeCompte(dataSub, canon)) return true;
+    var dataId = data.utilisateurId;
+    if (dataId && !compteMemeCompte(dataId, canon)) return true;
+    var owner = compteSubDeEmail(data.google && data.google.email);
+    if (owner && !compteMemeCompte(owner, canon)) return true;
+    return false;
+}
+
+function comptePeutRevendiquer(data, session) {
+    if (!data || !session || !session.sub || data.efface) return false;
+    if (compteProfilEtranger(data, session.sub) && (data.google && data.google.sub || data.utilisateurId)) return false;
+    if (data.google && data.google.sub && !compteMemeCompte(data.google.sub, session.sub)) return false;
+    if (data.utilisateurId && !compteMemeCompte(data.utilisateurId, session.sub)) return false;
+    var owner = compteSubDeEmail(data.google && data.google.email);
+    if (owner && !compteMemeCompte(owner, session.sub)) return false;
+    return true;
+}
+
+function compteLireDedie(sub) {
+    var canon = compteCanonique(sub) || sub;
+    if (!canon || typeof memoireJson !== 'function') return null;
+    var cles = [canon];
+    if (sub && sub !== canon) cles.push(sub);
+    var choisi = null;
+    cles.forEach(function (id) {
+        var lie = memoireJson(MEMOIRE_KEY + ':' + id);
+        var precieux = memoireJson('studyPlanIB_sauvegarde:' + id);
+        var candidat = typeof compteChoisirProfil === 'function' ? compteChoisirProfil(precieux, lie) : (precieux || lie);
+        if (candidat && !compteProfilEtranger(candidat, canon)) {
+            choisi = typeof compteChoisirProfil === 'function' ? (compteChoisirProfil(candidat, choisi) || candidat) : (choisi || candidat);
+        }
+    });
+    return choisi;
+}
+
+/* Le compte auquel appartiennent les données de cet appareil, avant la connexion en cours.
+   compteSession est déjà le nouveau compte pendant une connexion : on ne le lit pas ici. */
+function compteProprietairePrecedent() {
+    if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+    try {
+        var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+        if (garde && garde.sub) return garde;
+    } catch (e) {}
+    if (typeof memoireJson === 'function') {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (data && data.google && data.google.sub) return data.google;
+    }
+    return null;
+}
+
+function compteProprietaireConnu() {
+    if (window.compteSession && window.compteSession.sub) return window.compteSession;
+    if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+    try {
+        var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+        if (garde && garde.sub) return garde;
+    } catch (e) {}
+    if (typeof memoireJson === 'function') {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (data && data.google && data.google.sub) return data.google;
+    }
+    return null;
+}
+
+function compteMemoriserProprietaire(session) {
+    window.compteProprietaire = session && session.sub ? session : null;
+    try {
+        if (session && session.sub) localStorage.setItem('studyPlanIB_proprietaire', JSON.stringify(session));
+        else localStorage.removeItem('studyPlanIB_proprietaire');
+    } catch (e) {}
+}
+
+function compteEstampiller(data, session) {
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data || {})); } catch (e) { copie = data || {}; }
+    var canon = compteLierCompte(session, copie.userName || '');
+    copie.utilisateurId = canon || session.sub;
+    copie.google = {
+        sub: canon || session.sub,
+        email: session.email || '',
+        name: session.name || '',
+        given_name: session.given_name || '',
+        picture: session.picture || ''
+    };
+    if (!copie.userName) copie.userName = compteNomLie(canon || session.sub) || '';
+    return copie;
+}
+
+function compteEtatVide(session) {
+    return {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        etape: 'prenom',
+        profilComplet: false,
+        userName: compteNomLie(session && session.sub) || '',
+        utilisateurId: session && session.sub ? (compteCanonique(session.sub) || session.sub) : '',
+        subjects: [],
+        optionalSubjects: [],
+        customEvents: [],
+        exercices: [],
+        selectedActivities: [],
+        google: session || null
+    };
+}
+
+function compteArchiverPour(sub, data) {
+    sub = compteCanonique(sub) || sub;
+    if (!sub || !data || typeof data !== 'object') return;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data)); } catch (e) { return; }
+    copie.utilisateurId = sub;
+    if (!copie.google || !compteMemeCompte(copie.google.sub, sub)) {
+        copie.google = { sub: sub, email: (copie.google && copie.google.email) || '' };
+    }
+    try { localStorage.setItem(MEMOIRE_KEY + ':' + sub, JSON.stringify(copie)); } catch (e) {}
+    if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(sub, copie, true);
+}
+
+function compteIndexerExistants() {
+    var id = compteLireIdentites();
+    var i, cle, data, sub;
+    try {
+        for (i = 0; i < localStorage.length; i++) {
+            cle = localStorage.key(i);
+            if (!cle || (cle.indexOf('studyPlanIB_profil:') !== 0 && cle.indexOf('studyPlanIB_sauvegarde:') !== 0)) continue;
+            if (cle.slice(-7) === ':locale') continue;
+            data = memoireJson(cle);
+            if (!data || !data.userName) continue;
+            sub = data.utilisateurId || (data.google && data.google.sub) || cle.split(':').pop();
+            sub = compteCanonique(sub) || sub;
+            if (!sub || sub === 'locale' || sub.length < 4) continue;
+            var email = compteEmailCle(data.google && data.google.email);
+            if (email && id.emails[email] && compteCanonique(id.emails[email]) !== sub) continue;
+            if (email && !id.emails[email]) id.emails[email] = sub;
+            if (!id.comptes[sub]) {
+                id.comptes[sub] = { userId: sub, userName: data.userName, email: (data.google && data.google.email) || '', at: data.savedAt || '' };
+            }
+        }
+        compteEcrireIdentites(id);
+    } catch (e) {}
+}
+
+function compteBasculer(data, session) {
+    if (session && session.sub) {
+        data = compteEstampiller(data || compteEtatVide(session), session);
+        if (data.userName) compteLierNom(session.sub, data.userName, session.email || '');
+    }
+    compteAfficherProfil(data || {});
+}
+
+function comptePoserBoutonCopie() {
+    if (window.compteSession && window.compteSession.sub) return;
+    var texte = document.getElementById('compteInviteTexte');
+    if (texte) texte.textContent = COMPTE_INVITE;
+    var invite = document.getElementById('compteInvite');
+    if (invite) invite.hidden = false;
+    var slot = document.getElementById('googleBtnSlot');
+    if (!slot) return;
+    slot.innerHTML = '';
+    compteAfficherBoutonGoogle();
+}
+
+function compteAfficherBoutonCopie() {
+    compteCopieEnAttente = true;
+    var modal = document.getElementById('compteModal');
+    if (modal) modal.classList.add('active');
+    comptePoserBoutonCopie();
+}
+
+function compteChargerCopieGoogle() {
+    compteAfficherBoutonGoogle();
+}
+
+function compteOuvrirPlanning() {
+    if (typeof memoireAller === 'function') memoireAller('planning');
+    if (typeof renderPlanning === 'function') {
+        try { renderPlanning(); } catch (e) {}
+    }
+    if (typeof renderEEia === 'function') {
+        try { renderEEia(); } catch (e) {}
+    }
+}
+
+function compteTerminerConnexion(session) {
+    return compteRestaurerTout(session, null);
+}
+
+function compteRelierNuage() {
+    return compteNuageSynchroniser(false).then(function (etat) {
+        if (etat === 'restored') {
+            compteCopieEnAttente = false;
+            fermerCompte();
+            return etat;
+        }
+        if (etat === 'failed') {
+            var profil = compteProfilActuel();
+            if (!profil || !profil.profilComplet) compteAfficherBoutonCopie();
+        }
+        return etat;
+    });
+}
+
+function compteMemoriserSession(session) {
+    localStorage.setItem(COMPTE_SESSION_KEY, JSON.stringify(session));
+    window.compteSession = session;
+}
+
+function compteMontrerProgression(data, forcer) {
+    if (!data || typeof data !== 'object' || data.efface) return false;
+    var stocke = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+    var applique = false;
+    if (!compteEquivalent(data, stocke) && typeof compteAfficherProfil === 'function') {
+        compteAfficherProfil(data);
+        applique = true;
+    }
+    var ouvrir = !!(data.profilComplet && (forcer || !stocke || !stocke.profilComplet));
+    if (ouvrir && comptePageOuverte() !== 'pomodoro' && comptePageOuverte() !== 'seances') {
+        compteOuvrirPlanning();
+        fermerCompte();
+    }
+    return applique || ouvrir;
+}
+
+function compteRestaurerTout(session, token, distantes, options) {
+    if (!session || !session.sub) return Promise.resolve('vide');
+    options = options || {};
+    distantes = distantes || [];
+    var ancien = compteProprietairePrecedent();
+    var vivant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+    /* Données d'un autre compte : archivées, elles ne doivent jamais rejoindre le compte qui se connecte. */
+    var vivantEtranger = false;
+    if (ancien && ancien.sub && !compteMemeCompte(ancien.sub, session.sub)) {
+        if (vivant) compteArchiverProgression(compteEstampiller(vivant, ancien));
+        compteArchiverPour(ancien.sub, vivant);
+        vivant = null;
+        vivantEtranger = true;
+    } else if (vivant && vivant.google && vivant.google.sub && !compteMemeCompte(vivant.google.sub, session.sub)) {
+        compteArchiverProgression(vivant);
+        compteArchiverPour(vivant.google.sub, vivant);
+        vivant = null;
+        vivantEtranger = true;
+    }
+    window.compteChangementDeCompte = vivantEtranger;
+    compteLierCompte(session, (vivant && vivant.userName) || '');
+    var canon = compteCanonique(session.sub) || session.sub;
+    compteMemoriserSession(session);
+    compteMemoriserProprietaire(session);
+    compteRevendiquerArchiveLocale(session);
+    /* nuageDeReference : la progression du nuage remplace la copie locale du même compte ;
+       les archives locales ne sont pas fusionnées (elles pourraient être plus anciennes). */
+    var archives = options.nuageDeReference ? [] : compteCopiesLocales(session);
+    var copies = archives.concat(distantes);
+    if (vivant && comptePeutJoindreLocal(vivant, session)) copies.push(vivant);
+    var choisi = compteFusionnerProfils(copies);
+    if (choisi && compteUtile(choisi)) {
+        compteBasculer(choisi, session);
+        compteArchiverProgression(compteEstampiller(choisi, session));
+    }
+    var suite = token
+        ? compteNuageFusionner(token).catch(function () { return 'echec'; })
+        : Promise.resolve(choisi && compteUtile(choisi) ? 'local' : 'vide');
+    return suite.then(function (etat) {
+        var apresCopies = archives.concat(distantes);
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (courant && !vivantEtranger && comptePeutJoindreLocal(courant, session)) apresCopies.push(courant);
+        var apres = compteFusionnerProfils(apresCopies);
+        if (apres && compteUtile(apres) && compteRichesse(apres) >= compteRichesse(courant)) {
+            if (!compteEquivalent(apres, courant)) {
+                compteBasculer(apres, session);
+                if (etat !== 'uploaded' && etat !== 'same') etat = 'restored';
+            }
+        } else if (!options.silencieux && !(choisi && compteUtile(choisi)) && etat !== 'restored') {
+            /* Un profil utilisable de ce compte n'est jamais remplacé par un profil vide :
+               il est archivé d'abord, puis gardé. */
+            var courantGarde = !!(courant && compteUtile(courant) && !vivantEtranger && comptePeutJoindreLocal(courant, session));
+            if (courantGarde) compteArchiverProgression(compteEstampiller(courant, session));
+            else compteBasculer(compteEtatVide(session), session);
+        }
+        var nom = compteFigerNom(session, apresCopies.concat([apres, courant])) || (typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || '';
+        var finalData = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (finalData && nom && compteNormaliserNom(finalData.userName) !== compteNormaliserNom(nom)) {
+            finalData.userName = nom;
+            compteBasculer(finalData, session);
+            finalData = typeof memoireLireEtat === 'function' ? memoireLireEtat() : finalData;
+        }
+        if (finalData && compteUtile(finalData)) {
+            var estampille = compteEstampiller(finalData, session);
+            compteArchiverProgression(estampille);
+            if (typeof sauvegardeEcrireLocal === 'function') sauvegardeEcrireLocal(canon, estampille, false);
+        }
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        if (typeof boitePublierEmploi === 'function') setTimeout(function () { boitePublierEmploi(true); }, 1200);
+        window.compteChangementDeCompte = false;
+        compteRafraichir();
+        compteCopieEnAttente = false;
+        if (window.__profilComplet) fermerCompte();
+        if (options.silencieux) return etat;
+        if (etat === 'restored' || etat === 'local') {
+            if (typeof v3Toast === 'function') v3Toast(nom ? ('Emploi du temps de ' + nom + '.') : 'Progression retrouvée.', 'success');
+        } else if (etat === 'uploaded' || etat === 'same') {
+            if (typeof v3Toast === 'function') v3Toast(nom ? (nom + ' est lié à ce compte Google.') : 'Sauvegarde liée à ton compte Google.', 'success');
+        } else if (etat === 'echec') {
+            if (choisi && compteUtile(choisi)) {
+                if (typeof v3Toast === 'function') v3Toast(nom ? ('Emploi du temps de ' + nom + '.') : 'Progression retrouvée.', 'success');
+            } else {
+                compteMessage('Connecté, mais la copie Google n’a pas pu être enregistrée. Réessaie.');
+            }
+        } else if (typeof v3Toast === 'function') {
+            v3Toast(nom ? ('Compte de ' + nom + '.') : 'Choisis ton prénom.', 'info');
+        }
+        return etat;
+    });
+}
+
+function compteOptionsBoutonGoogle(slot) {
+    var largeur = 280;
+    if (slot && slot.clientWidth) largeur = Math.max(200, Math.min(280, slot.clientWidth));
+    return {
+        type: 'standard',
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        logo_alignment: 'left',
+        width: largeur,
+        locale: 'fr'
+    };
+}
+
+function compteAfficherBoutonGoogle() {
+    if (window.compteSession && window.compteSession.sub) return Promise.resolve(false);
+    var slot = document.getElementById('googleBtnSlot');
+    if (!slot) return Promise.resolve(false);
+    return comptePreparerGoogle().then(function () {
+        if (window.compteSession && window.compteSession.sub) return false;
+        if (!window.google || !google.accounts || !google.accounts.id || !google.accounts.id.renderButton) {
+            compteMessage('La connexion Google n’a pas pu s’ouvrir. Réessaie.');
+            return false;
+        }
+        slot.innerHTML = '';
+        google.accounts.id.renderButton(slot, compteOptionsBoutonGoogle(slot));
+        return true;
+    }).catch(function () {
+        compteMessage('La connexion Google n’a pas pu s’ouvrir. Réessaie.');
+        return false;
+    });
+}
+
+function compteSansDocuments(data) {
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(data || {})); } catch (e) { return data || {}; }
+    delete copie.iaDocs;
+    return copie;
+}
+
+function compteAppartient(session, item) {
+    if (!session || !item) return false;
+    var mail = compteEmailCle(session.email);
+    var itemMail = compteEmailCle(item.email || item.google || (item.data && item.data.google && item.data.google.email) || (item.google && item.google.email));
+    var sub = session.sub;
+    var itemSub = item.googleSub || item.utilisateurId || (item.data && ((item.data.google && item.data.google.sub) || item.data.utilisateurId)) || (item.google && item.google.sub);
+    if (mail && itemMail && mail === itemMail) return true;
+    if (sub && itemSub && (sub === itemSub || compteMemeCompte(sub, itemSub))) return true;
+    return false;
+}
+
+/* Nom de référence : le userName de la progression du nuage (progressions/{uid}.progression.userName).
+   Il remplace les heuristiques de choix de nom : le nom affiché, le nom du menu et le nom envoyé au nuage
+   sont toujours les mêmes. Mémorisé par compte sur l'appareil. */
+var COMPTE_NOM_REFERENCE_KEY = 'studyPlanIB_nomReference';
+function compteNomReference(sub) {
+    if (!sub) return '';
+    try {
+        var r = JSON.parse(localStorage.getItem(COMPTE_NOM_REFERENCE_KEY) || 'null');
+        if (r && r.sub && compteMemeCompte(r.sub, sub)) {
+            var nom = compteNormaliserNom(r.nom);
+            if (nom && !compteNomInterdit(nom)) return nom;
+        }
+    } catch (e) {}
+    return '';
+}
+function compteNomReferenceEcrire(sub, nom) {
+    nom = compteNormaliserNom(nom);
+    if (!sub || !nom || compteNomInterdit(nom)) return;
+    try { localStorage.setItem(COMPTE_NOM_REFERENCE_KEY, JSON.stringify({ sub: sub, nom: nom })); } catch (e) {}
+}
+
+/* Saisie explicite du nom par l'élève (champ du nom validé, ou écran du prénom) : c'est le seul
+   moyen de changer la référence depuis l'appareil. Un ancien nom local ne peut plus revenir dans le nuage. */
+function compteSaisieNom(valeur) {
+    var nom = compteNormaliserNom(valeur);
+    if (!nom || compteNomInterdit(nom)) return;
+    var sub = window.compteSession && window.compteSession.sub;
+    if (sub) {
+        compteNomReferenceEcrire(sub, nom);
+        if (typeof compteLierNom === 'function') compteLierNom(sub, nom, window.compteSession.email || '');
+    }
+    if (typeof userName !== 'undefined') userName = nom;
+}
+if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('change', function (e) {
+        if (e && e.target && e.target.id === 'nameInput') compteSaisieNom(e.target.value);
+    }, true);
+}
+
+function compteChoisirNom(session, copies) {
+    var reference = session && session.sub ? compteNomReference(session.sub) : '';
+    if (reference) return reference;
+    var estampilles = [];
+    var libres = [];
+    (copies || []).forEach(function (data) {
+        if (!data || !compteNormaliserNom(data.userName) || compteNomInterdit(data.userName)) return;
+        var sub = (data.google && data.google.sub) || data.utilisateurId || data.googleSub;
+        var mail = compteEmailCle((data.google && data.google.email) || data.email || data.google);
+        if ((sub && session && compteMemeCompte(sub, session.sub)) || (mail && session && mail === compteEmailCle(session.email))) estampilles.push(data);
+        else if (!sub && !mail) libres.push(data);
+    });
+    var pool = estampilles.length ? estampilles : libres;
+    var meilleur = '';
+    var score = -1;
+    pool.forEach(function (data) {
+        var s = compteRichesse(data) * 1e15 + (Date.parse(data.savedAt) || 0);
+        if (s > score) {
+            score = s;
+            meilleur = compteNormaliserNom(data.userName);
+        }
+    });
+    pool.forEach(function (data) {
+        var nom = compteNormaliserNom(data.userName);
+        if (!nom || !meilleur) return;
+        if (meilleur.length < 3 && nom.length >= 3) meilleur = nom;
+        if (nom.toLowerCase().indexOf(meilleur.toLowerCase()) !== -1 && nom.length > meilleur.length && meilleur.length >= 3) meilleur = nom;
+        if (nom.indexOf(meilleur) === 0 && nom.length > meilleur.length) meilleur = nom;
+    });
+    return meilleur || (session ? compteNomLie(session.sub) : '');
+}
+
+function compteFigerNom(session, copies) {
+    if (!session || !session.sub) return '';
+    var nom = compteChoisirNom(session, copies || []);
+    if (!nom) return '';
+    compteLierCompte(session, nom, { definir: true });
+    if (typeof userName !== 'undefined' && compteNormaliserNom(userName) !== compteNormaliserNom(nom)) {
+        userName = nom;
+        if (typeof memoireSyncChamps === 'function') memoireSyncChamps();
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    }
+    return nom;
+}
+
+function compteReassembler(items, session) {
+    var groupes = {};
+    var copies = [];
+    (items || []).forEach(function (item) {
+        if (!item || item.type !== 'profilpart' || !compteAppartient(session, item)) return;
+        var id = item.profilId || item.id;
+        if (!id) return;
+        if (!groupes[id]) groupes[id] = { total: Number(item.total) || 0, parts: {} };
+        groupes[id].parts[item.index] = item.part || '';
+        if (item.total) groupes[id].total = Number(item.total);
+    });
+    Object.keys(groupes).forEach(function (id) {
+        var g = groupes[id];
+        if (!g.total) return;
+        var i;
+        var json = '';
+        for (i = 0; i < g.total; i++) {
+            if (typeof g.parts[i] !== 'string') return;
+            json += g.parts[i];
+        }
+        try {
+            var data = JSON.parse(json);
+            if (data && typeof data === 'object') copies.push(data);
+        } catch (e) {}
+    });
+    (items || []).forEach(function (item) {
+        if (!item || !compteAppartient(session, item)) return;
+        if (item.type === 'profil' && item.data) copies.push(item.data);
+        else if (item.userName || item.profilComplet || item.subjects) copies.push(item);
+    });
+    return copies;
+}
+
+function compteLireCopiesPartagees(session) {
+    /* La progression d'un élève ne circule plus par un fil public ni par
+       un fichier du dépôt : elle est dans son document Firestore
+       « comptes/{uid} », que lui seul peut lire. */
+    return Promise.resolve([]);
+}
+
+function comptePublierMorceaux(session, data) {
+    /* Plus rien n'est publié hors de « comptes/{uid} ». */
+    return Promise.resolve();
+}
+
+/* Progression dans comptes/{uid} : renvoyée après un changement réel (regroupé sur
+   3 s), pour qu'une connexion sur un autre appareil retrouve le planning et les
+   réglages. Un appareil sans données n'écrit rien ; un état identique n'est pas
+   réécrit (savedAt change à chaque sauvegarde locale, il est ignoré). Effacer
+   localement ne touche pas au nuage. */
+var compteProgressionTimer = null;
+var compteProgressionDerniere = '';
+
+/* Repère de synchronisation entre appareils (rechargement). Pour cet appareil, on garde seulement
+   des empreintes courtes : la version du nuage vue en dernier (texte reçu ou envoyé), et l'empreinte
+   du contenu local à ce moment. Au rechargement, le nuage n'est repris que si sa version a changé
+   depuis ce repère (modification faite sur un autre appareil) et si ce contenu local n'a pas changé. */
+var COMPTE_EMPREINTE_EXCLUS = ['savedAt', 'google', 'etape', 'joursConnectes', 'dernierJour', 'emploiFige'];
+function compteHachage(texte) {
+    var h = 2166136261;
+    texte = String(texte || '');
+    for (var i = 0; i < texte.length; i++) {
+        h ^= texte.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    return texte.length + ':' + h.toString(16);
+}
+/* Les dates de modification de chaque champ (modifieChamps, modifieAt) sont ajoutées au chargement
+   de la mémoire, pas par l'élève : elles ne comptent pas comme une modification locale. */
+function compteSansHorodatages(valeur) {
+    if (Array.isArray(valeur)) return valeur.map(compteSansHorodatages);
+    if (!valeur || typeof valeur !== 'object') return valeur;
+    var copie = {};
+    Object.keys(valeur).forEach(function (k) {
+        if (k === 'modifieChamps' || k === 'modifieAt') return;
+        copie[k] = compteSansHorodatages(valeur[k]);
+    });
+    return copie;
+}
+function compteEmpreinteLocale(data) {
+    try {
+        var copie = JSON.parse(JSON.stringify(data || {}));
+        COMPTE_EMPREINTE_EXCLUS.forEach(function (k) { delete copie[k]; });
+        return compteHachage(JSON.stringify(compteSansHorodatages(copie)));
+    } catch (e) { return ''; }
+}
+/* Ancienne empreinte (avec les dates de modification) : une empreinte enregistrée avant cette
+   correction reste reconnue, pour qu'aucun appareil ne prenne sa copie pour une modification. */
+function compteEmpreinteAvecHorodatages(data) {
+    try {
+        var copie = JSON.parse(JSON.stringify(data || {}));
+        COMPTE_EMPREINTE_EXCLUS.forEach(function (k) { delete copie[k]; });
+        return compteHachage(JSON.stringify(copie));
+    } catch (e) { return ''; }
+}
+function compteVueLire() {
+    try { return JSON.parse(localStorage.getItem('studyPlanIB_progressionVue') || 'null'); } catch (e) { return null; }
+}
+function compteVueEcrire(texteNuage, empreinteLocale) {
+    try {
+        localStorage.setItem('studyPlanIB_progressionVue', JSON.stringify({
+            nuage: compteHachage(texteNuage), local: empreinteLocale
+        }));
+    } catch (e) {}
+}
+function compteLocalModifie(data) {
+    var vue = compteVueLire();
+    if (!vue || !vue.local) return true;
+    return compteEmpreinteLocale(data) !== vue.local && compteEmpreinteAvecHorodatages(data) !== vue.local;
+}
+function compteTexteProgression(doc) {
+    if (!doc || doc.progression === undefined || doc.progression === null) return '';
+    return typeof doc.progression === 'string' ? doc.progression : JSON.stringify(doc.progression);
+}
+function compteNuageChangeAilleurs(texteNuage) {
+    var vue = compteVueLire();
+    if (!vue || !vue.nuage || !texteNuage) return false;
+    return vue.nuage !== compteHachage(texteNuage);
+}
+var compteDocumentsDerniers = '';
+function compteProgressionPlanifier() {
+    if (window.compteRestaurationEnCours) return;
+    if (!window.compteSession || !window.compteSession.sub) return;
+    /* Déjà prévu : l'envoi lira l'état au moment où il part. */
+    if (compteProgressionTimer) return;
+    compteProgressionTimer = setTimeout(function () {
+        compteProgressionTimer = null;
+        compteProgressionEnregistrer();
+    }, 3000);
+}
+
+/* Changement de série de flammes : seule la série part vers le nuage, sur la copie du nuage. Envoyer tout
+   le profil ici renverrait une copie peut-être plus ancienne (un autre téléphone a pu retirer une activité)
+   et l'écraserait. La copie du nuage gagne sauf si ce téléphone a une série plus haute pour le même jour. */
+function compteFlammesPousser() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.firestore) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid || !window.compteSession || !window.compteSession.sub) return;
+    var ref = firebase.firestore().collection('progressions').doc(user.uid);
+    ref.get().then(function (snap) {
+        var distant = snap && snap.exists ? snap.data() : null;
+        if (!distant || !distant.progression) return;
+        var texte = null;
+        try { texte = JSON.parse(distant.progression); } catch (e) { texte = null; }
+        if (!texte || typeof texte !== 'object') return;
+        var locale = { flammeJour: localStorage.getItem('studyPlanIB_flammeJour') || '', flammes: parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0 };
+        var choisie = typeof compteFlammeChoisie === 'function' ? compteFlammeChoisie([{ flammeJour: texte.flammeJour, flammes: texte.flammes }, locale]) : null;
+        if (!choisie) return;
+        /* Une date plus ancienne que celle du nuage ne remplace jamais le nuage (horloge en avance ailleurs). */
+        if (String(choisie.flammeJour) < String(texte.flammeJour || '')) { if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte); return; }
+        if (choisie.flammeJour === texte.flammeJour && choisie.flammes === texte.flammes) {
+            if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+            return;
+        }
+        texte.flammeJour = choisie.flammeJour;
+        texte.flammes = choisie.flammes;
+        return ref.set({
+            progression: JSON.stringify(texte),
+            progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+    }).catch(function (err) { console.warn('Série de flammes non envoyée', err); });
+}
+
+/* Avant chaque envoi, la série de flammes est comparée à celle du nuage. Sans cela, un téléphone qui
+   a recalculé le jour à partir d'une ancienne série écraserait la bonne valeur (ex. 8 au lieu de 11). */
+function compteProgressionEnregistrer() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid) return compteProgressionEnvoyer();
+    /* Copie du nuage déjà reçue en direct : envoi immédiat, sans attendre une lecture (sinon un envoi
+       plus ancien pourrait arriver après un retrait fait entre-temps). */
+    if (window.compteNuageVu && window.compteNuageVu.progression) {
+        compteFlammesDuNuage(window.compteNuageVu);
+        return compteProgressionEnvoyer();
+    }
+    return firebase.firestore().collection('progressions').doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) compteFlammesDuNuage(snap.data());
+    }).catch(function () {}).then(function () { compteProgressionEnvoyer(); });
+}
+
+/* Garde la série de flammes la plus juste entre ce téléphone et la copie du nuage (même règle que
+   compteFlammeChoisie), puis recalcule l'affichage si elle a changé. */
+function compteFlammesDuNuage(distant) {
+    if (!distant || !distant.progression) return;
+    var texte = null;
+    try { texte = JSON.parse(distant.progression); } catch (e) { texte = null; }
+    if (!texte || typeof texte !== 'object') return;
+    var avant = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+    if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+    var apres = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+    if (apres !== avant && typeof boiteFlammes === 'function') boiteFlammes();
+}
+
+function compteProgressionEnvoyer() {
+    if (window.compteRestaurationEnCours) return;
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid || typeof memoireLireEtat !== 'function') return;
+    var data = null;
+    try { data = memoireLireEtat(); } catch (e) { return; }
+    if (!data || !compteUtile(data)) return;
+    /* Profil « complet » sans classe ni matières : copie cassée, jamais envoyée pour remplacer le nuage. */
+    if (compteProfilIncomplet(data)) return;
+    /* Le stockage local suit ce qui est envoyé : un rechargement repart de l'état envoyé, jamais
+       d'une copie plus ancienne restée sur l'appareil après une restauration. */
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    var empreinteLocale = compteEmpreinteLocale(data);
+    var neuve = compteSansDocuments(data);
+    delete neuve.savedAt;
+    var empreinte = JSON.stringify(neuve);
+    var progressionChangee = empreinte !== compteProgressionDerniere;
+    var subEnvoi = window.compteSession && window.compteSession.sub;
+    var nom = (subEnvoi && compteNomReference(subEnvoi)) || compteNormaliserNom(data.userName) || (subEnvoi ? (compteNomLie(subEnvoi) || '') : '');
+    if (nom) neuve.userName = nom;
+    if (nom && !data.userName) data.userName = nom;
+    /* La date de sauvegarde reste dans le texte envoyé : sans elle, la copie du nuage
+       paraît « très ancienne » à la fusion des activités et perd celles qui ont une suppression
+       dans le registre (second téléphone sans activités). */
+    var texte = JSON.stringify(Object.assign({}, neuve, { savedAt: new Date().toISOString() }));
+    var ecritures = [];
+    if (progressionChangee) {
+        ecritures.push(firebase.firestore().collection('progressions').doc(user.uid).set({
+            /* Texte JSON : Firestore refuse les tableaux dans un tableau (planning figé
+               emploiFige.jours). compteProgressionFirebase relit le texte. */
+            progression: texte,
+            progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).then(function () {
+            compteProgressionDerniere = empreinte;
+            compteVueEcrire(texte, empreinteLocale);
+            if (nom && subEnvoi) compteNomReferenceEcrire(subEnvoi, nom);
+        }));
+    }
+    /* La fiche documents/{uid} suit chaque changement, indépendamment de la progression. */
+    ecritures.push(compteFicheEnregistrer(user, data));
+    Promise.all(ecritures).catch(function (err) { console.warn('Progression non enregistrée', err); });
+}
+
+/* Fiche de l'élève, collection documents/{uid} : ce qu'il a modifié, lisible par
+   l'administration. Chaque bloc complexe est un texte JSON (Firestore refuse les
+   tableaux dans un tableau). Les champs sont écrits à chaque changement, même vides,
+   pour qu'une suppression soit reflétée. Un bloc trop long est laissé vide plutôt
+   que de faire refuser toute la fiche par les règles. */
+var COMPTE_FICHE_MAX = {
+    matieresJson: 10000, activitesJson: 20000, exercicesJson: 200000,
+    devoirsJson: 100000, emploiScolaireJson: 150000, reglagesJson: 100000, iaDocs: 60000
+};
+var COMPTE_FICHE_EXCLUS = [
+    'v', 'savedAt', 'etape', 'profilComplet', 'userName', 'targetScore', 'subjects',
+    'optionalSubjects', 'ibYear', 'selectedActivities', 'exercices', 'devoirsStore',
+    'emploiScolaire', 'iaDocs', 'emploiFige', 'suppressions', 'iaPlans', 'memoirPlan',
+    'google', 'utilisateurId', 'flammes', 'flammeJour', 'joursConnectes', 'dernierJour', 'modifsSemaine'
+];
+var compteFicheDerniere = '';
+
+function compteFicheJson(valeur, max) {
+    var texte = '';
+    try { texte = JSON.stringify(valeur === undefined ? null : valeur) || ''; } catch (e) { texte = ''; }
+    return texte.length <= max ? texte : '';
+}
+
+function compteFicheDonnees(data, uid) {
+    var fiche = {
+        uid: uid,
+        nom: String(data.userName || '').slice(0, 120),
+        classe: (data.ibYear === 'DP1' || data.ibYear === 'DP2') ? data.ibYear : '',
+        flammes: Math.max(0, Math.min(100000, Number(data.flammes) || 0)),
+        flammeJour: String(data.flammeJour || '').slice(0, 20),
+        joursConnectes: Math.max(0, Math.min(1000000, Number(data.joursConnectes) || 0)),
+        dernierJour: String(data.dernierJour || '').slice(0, 20)
+    };
+    if (typeof data.targetScore === 'number') fiche.objectif = data.targetScore;
+
+    var obligatoires = Array.isArray(data.subjects) ? data.subjects : [];
+    var optionnelles = Array.isArray(data.optionalSubjects) ? data.optionalSubjects : [];
+    fiche.nbMatieres = Math.min(50, obligatoires.length + optionnelles.length);
+    fiche.matieresJson = compteFicheJson({ obligatoires: obligatoires, optionnelles: optionnelles }, COMPTE_FICHE_MAX.matieresJson);
+
+    var activites = Array.isArray(data.selectedActivities) ? data.selectedActivities : [];
+    fiche.nbActivites = Math.min(100, activites.length);
+    fiche.activitesJson = compteFicheJson(activites, COMPTE_FICHE_MAX.activitesJson);
+
+    var exos = Array.isArray(data.exercices) ? data.exercices : [];
+    fiche.nbExercices = Math.min(10000, exos.length);
+    fiche.exercicesJson = compteFicheJson(exos, COMPTE_FICHE_MAX.exercicesJson);
+    fiche.devoirsJson = compteFicheJson(data.devoirsStore || null, COMPTE_FICHE_MAX.devoirsJson);
+
+    fiche.emploiScolaireJson = compteFicheJson(data.emploiScolaire || null, COMPTE_FICHE_MAX.emploiScolaireJson);
+
+    /* Documents importés : écrits seulement s'il y en a localement (voir compteFirebaseLireDocuments). */
+    if (Array.isArray(data.iaDocs) && data.iaDocs.length) {
+        fiche.nbDocuments = Math.min(10, data.iaDocs.length);
+        fiche.iaDocs = compteFicheJson(data.iaDocs, COMPTE_FICHE_MAX.iaDocs);
+    }
+
+    /* Tous les autres réglages que l'élève a pu modifier (sommeil, transport, habitudes,
+       événements, humeur, bac, etc.). Le planning figé et les plans restent dans progressions. */
+    var reglages = {};
+    Object.keys(data).forEach(function (cle) {
+        if (COMPTE_FICHE_EXCLUS.indexOf(cle) === -1) reglages[cle] = data[cle];
+    });
+    fiche.reglagesJson = compteFicheJson(reglages, COMPTE_FICHE_MAX.reglagesJson);
+    return fiche;
+}
+
+function compteFicheEnregistrer(user, data) {
+    if (!user || !user.uid || !firebase.firestore) return Promise.resolve();
+    var fiche = compteFicheDonnees(data, user.uid);
+    var empreinte = JSON.stringify(fiche);
+    if (empreinte === compteFicheDerniere) return Promise.resolve();
+    fiche.misAJourLe = firebase.firestore.FieldValue.serverTimestamp();
+    return firebase.firestore().collection('documents').doc(user.uid).set(fiche, { merge: true })
+        .then(function () {
+            compteFicheDerniere = empreinte;
+            compteDocumentsDerniers = fiche.iaDocs || compteDocumentsDerniers;
+        }, function (err) {
+            console.warn('Fiche élève non enregistrée', err);
+        });
+}
+
+/* Documents IA de l'élève : collection documents/{uid}, texte JSON, même UID. */
+function compteFirebaseLireDocuments(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve([]);
+    return firebase.firestore().collection('documents').doc(user.uid).get().then(function (snap) {
+        if (!snap || !snap.exists) return [];
+        var liste = JSON.parse((snap.data() || {}).iaDocs || '[]');
+        return Array.isArray(liste) ? liste : [];
+    }).catch(function () { return []; });
+}
+
+function comptePublierProgression(session) {
+    if (window.compteRestaurationEnCours) return Promise.resolve();
+    compteProgressionPlanifier();
+    if (!session || !session.email || typeof memoireLireEtat !== 'function') return Promise.resolve();
+    var data = null;
+    try { data = memoireLireEtat(); } catch (e) { data = null; }
+    if (!data || !compteUtile(data)) return Promise.resolve();
+    if (compteProfilIncomplet(data)) return Promise.resolve();
+    data = compteEstampiller(compteSansDocuments(data), session);
+    var nom = compteNomLie(session.sub);
+    if (nom) data.userName = nom;
+    var empreinte = '';
+    try {
+        var nu = JSON.parse(JSON.stringify(data));
+        delete nu.savedAt;
+        delete nu.google;
+        delete nu.etape;
+        empreinte = JSON.stringify(nu);
+    } catch (e) { empreinte = String(Date.now()); }
+    var deja = null;
+    try { deja = JSON.parse(localStorage.getItem('studyPlanIB_partageHash') || 'null'); } catch (e2) {}
+    if (deja && deja.hash === empreinte && Date.now() - (deja.at || 0) < 6 * 60 * 60 * 1000) return Promise.resolve();
+    return comptePublierMorceaux(session, data).then(function () {
+        try { localStorage.setItem('studyPlanIB_partageHash', JSON.stringify({ hash: empreinte, at: Date.now() })); } catch (e) {}
+        return comptePublierPartage(session);
+    });
+}
+
+/* Listes complétées par le nuage, sans rien perdre ni faire revenir de supprimé (même fusion que
+   compteFusionnerProfils, qui s'appuie sur le registre des suppressions). Rien n'est daté : ce sont
+   des éléments reçus, pas des modifications de cet appareil. */
+function compteCompleterListes(locale, distante) {
+    try {
+        if (!locale || !distante) return;
+        /* La série de flammes suit la même règle que partout ailleurs : la plus récente, sinon la plus longue. */
+        var flammeAvant = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+        if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(distante);
+        var flammeApres = (localStorage.getItem('studyPlanIB_flamme') || '') + '|' + (localStorage.getItem('studyPlanIB_flammeJour') || '');
+        var changes = flammeApres !== flammeAvant;
+        var fusion = compteFusionnerProfils([locale, distante]);
+        if (!fusion) { if (changes && typeof memoireSauvegarder === 'function') memoireSauvegarder(); return; }
+        var acts = Array.isArray(fusion.selectedActivities) ? fusion.selectedActivities : null;
+        if (acts && JSON.stringify(acts) !== JSON.stringify(locale.selectedActivities || [])) {
+            selectedActivities = acts; changes = true;
+        }
+        var evts = Array.isArray(fusion.customEvents) ? fusion.customEvents : null;
+        if (evts && JSON.stringify(evts) !== JSON.stringify(locale.customEvents || [])) {
+            customEvents = evts; changes = true;
+        }
+        var exos = Array.isArray(fusion.exercices) ? fusion.exercices : null;
+        if (exos && JSON.stringify(exos) !== JSON.stringify(locale.exercices || [])) {
+            exercices = exos; changes = true;
+        }
+        if (!changes) return;
+        if (typeof memoireEcrireMiroir === 'function') memoireEcrireMiroir(customEvents, exercices);
+        if (typeof syncRecalerMemoire === 'function') syncRecalerMemoire();
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    } catch (e) {}
+}
+
+function compteRetrouverApresChargement(essai) {
+    var session = window.compteSession;
+    if (!session || !session.sub) return;
+    if (typeof boiteLireBoite !== 'function' && (essai || 0) < 24) {
+        setTimeout(function () { compteRetrouverApresChargement((essai || 0) + 1); }, 250);
+        return;
+    }
+    window.compteRestaurationEnCours = true;
+    var lireFirebase = compteChargerFirebase().then(function () {
+        return new Promise(function (resolve) {
+            var fini = false;
+            var timer = setTimeout(function () {
+                if (!fini) { fini = true; resolve(null); }
+            }, 4000);
+            firebase.auth().onAuthStateChanged(function (user) {
+                if (fini || !user) return;
+                fini = true;
+                clearTimeout(timer);
+                compteFirebaseLireProgression(user).then(resolve, function () { resolve(null); });
+            });
+        });
+    }).catch(function () { return null; });
+    lireFirebase.then(function (doc) {
+        var utilisateur = window.firebase && firebase.auth ? firebase.auth().currentUser : null;
+        return Promise.all([compteLireCopiesPartagees(session), compteFirebaseLireDocuments(utilisateur)]).then(function (lus) {
+            var distantes = lus[0];
+            var firebaseCopie = compteProgressionFirebase(doc);
+            if (firebaseCopie && lus[1].length) firebaseCopie.iaDocs = lus[1];
+            /* Au simple rechargement de la page, la copie de cet appareil reste celle qui s'affiche :
+               le nuage ne la remplace pas (il peut être plus ancien et faire changer l'emploi du temps
+               quelques secondes après l'affichage). Le nuage est repris à la connexion (compteOnCredential),
+               ou ici seulement si cet appareil n'a rien d'utilisable pour ce compte. */
+            var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+            if (locale && compteUtile(locale) && comptePeutJoindreLocal(locale, session)) {
+                /* Modification faite sur un autre appareil depuis le dernier rechargement de celui-ci,
+                   et aucune modification locale non envoyée : le nuage est repris (une seule fois). */
+                var changeAilleurs = !!firebaseCopie && compteNuageChangeAilleurs(compteTexteProgression(doc));
+                var etatLocal = null;
+                try { etatLocal = typeof memoireLireEtat === 'function' ? memoireLireEtat() : locale; } catch (e) { etatLocal = locale; }
+                if (!changeAilleurs || compteLocalModifie(etatLocal)) {
+                    /* On garde le profil de cet appareil, mais ses listes (activités, exercices, cours)
+                       sont complétées par celles du nuage : un téléphone sans activités ne doit pas
+                       effacer celles que le compte a déjà. */
+                    /* Le sommeil reçu n'écrase que les valeurs de base de cet appareil, jamais un réglage de l'élève plus récent. */
+                    var sommeilRecu = firebaseCopie ? memoireAppliquerSommeil(firebaseCopie) : false;
+                    if (firebaseCopie) compteCompleterListes(etatLocal, firebaseCopie);
+                    if (sommeilRecu && typeof memoireSauvegarder === 'function') memoireSauvegarder();
+                    return 'local';
+                }
+            }
+            if (firebaseCopie) {
+                compteBasculer(firebaseCopie, session);
+                distantes = [firebaseCopie];
+            }
+            if (distantes && distantes.length) return compteRestaurerTout(session, null, distantes, { silencieux: true, nuageDeReference: !!firebaseCopie });
+            return 'local';
+        });
+    }).then(function () {
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (courant) compteFigerNom(session, [courant]);
+        window.compteRestaurationEnCours = false;
+        compteEcouterNuage();
+        return comptePublierProgression(session);
+    }).catch(function () {
+        window.compteRestaurationEnCours = false;
+    });
+}
+
+/* Écoute en direct de progressions/{uid} : un changement fait sur un autre appareil arrive ici
+   sans attendre un rechargement. Même règle qu'au rechargement : la copie du nuage n'est appliquée
+   que si cet appareil n'a pas de modification locale non envoyée. Si une modification locale attend
+   son envoi, elle l'emporte (elle partira dans quelques secondes). */
+var compteEcouteArreter = null;
+var compteEcouteUid = '';
+function compteEcouterNuage() {
+    if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length || !firebase.firestore) return;
+    if (!window.compteSession || !window.compteSession.sub) return;
+    var user = firebase.auth().currentUser;
+    if (!user || !user.uid) return;
+    if (compteEcouteArreter && compteEcouteUid === user.uid) return;
+    compteEcouterArreter();
+    compteEcouteUid = user.uid;
+    try {
+        compteEcouteArreter = firebase.firestore().collection('progressions').doc(user.uid).onSnapshot(function (snap) {
+            if (!snap || !snap.exists) return;
+            var meta = snap.metadata || {};
+            /* Ce que cet appareil vient d'envoyer, et le cache local, ne sont pas un changement venu d'ailleurs. */
+            if (meta.hasPendingWrites || meta.fromCache) return;
+            window.compteNuageVu = snap.data();
+            compteAppliquerNuage(snap.data());
+        }, function (err) {
+            console.warn('Écoute du nuage interrompue', err);
+            compteEcouteArreter = null;
+            compteEcouteUid = '';
+        });
+    } catch (e) {
+        compteEcouteArreter = null;
+        compteEcouteUid = '';
+    }
+}
+function compteEcouterArreter() {
+    var arreter = compteEcouteArreter;
+    compteEcouteArreter = null;
+    compteEcouteUid = '';
+    if (typeof arreter === 'function') { try { arreter(); } catch (e) {} }
+}
+function compteAppliquerNuage(doc) {
+    if (window.compteRestaurationEnCours) return;
+    var session = window.compteSession;
+    if (!session || !session.sub) return;
+    var texte = compteTexteProgression(doc);
+    if (!texte) return;
+    var vue = compteVueLire();
+    if (vue && vue.nuage === compteHachage(texte)) return;   /* déjà connu de cet appareil */
+    if (compteProgressionTimer) return;                       /* un envoi local est prévu : il l'emporte */
+    var locale = null;
+    try { locale = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null; } catch (e) { locale = null; }
+    if (!locale || compteLocalModifie(locale)) return;        /* modification locale non envoyée */
+    var data = compteProgressionFirebase(doc);
+    if (!data) return;
+    window.compteRestaurationEnCours = true;
+    try {
+        compteBasculer(data, session);
+        /* Cette copie est maintenant la référence : elle ne sera pas renvoyée telle quelle. */
+        compteVueEcrire(texte, compteEmpreinteLocale(memoireLireEtat()));
+    } catch (e) {
+        console.warn('Copie du nuage non appliquée', e);
+    } finally {
+        window.compteRestaurationEnCours = false;
+    }
+}
+
+function comptePublierPartage(session) {
+    if (window.compteRestaurationEnCours) return Promise.resolve();
+    if (!session || !session.email || typeof boiteEnvoyer !== 'function' || typeof memoireLireEtat !== 'function') return Promise.resolve();
+    var data = null;
+    try { data = memoireLireEtat(); } catch (e) { data = null; }
+    if (!data || typeof compteUtile !== 'function' || !compteUtile(data)) return Promise.resolve();
+    data = compteEstampiller(compteSansDocuments(data), session);
+    if (compteNomLie(session.sub)) data.userName = compteNomLie(session.sub);
+    var record = {
+        type: 'profil',
+        id: 'p_' + compteEmailCle(session.email).replace(/[^a-z0-9]/g, '').slice(0, 48),
+        at: new Date().toISOString(),
+        email: session.email,
+        google: session.email,
+        googleSub: session.sub,
+        nom: data.userName || '',
+        data: data
+    };
+    return boiteEnvoyer(record).catch(function () {});
+}
+
+function compteRestaurerPartage(session) {
+    if (!session || !session.email || typeof boiteChargerListes !== 'function') return Promise.resolve('local');
+    return boiteChargerListes(true).then(function (fusion) {
+        var cle = compteEmailCle(session.email);
+        var meilleur = null;
+        (fusion.profils || []).forEach(function (item) {
+            if (!item || !item.data) return;
+            if (compteEmailCle(item.email || item.google) !== cle) return;
+            if (!meilleur || compteRichesse(item.data) > compteRichesse(meilleur)) meilleur = item.data;
+        });
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (meilleur && compteUtile(meilleur) && compteRichesse(meilleur) > compteRichesse(courant)) {
+            compteBasculer(compteEstampiller(meilleur, session), session);
+            return 'restored';
+        }
+        return 'local';
+    }).catch(function () { return 'local'; });
+}
+
+function compteConnexionGoogle() {
+    return compteAfficherBoutonGoogle();
+}
+
+function compteChargerScript(url) {
+    return new Promise(function (resolve, reject) {
+        var deja = document.querySelector('script[src="' + url + '"]');
+        if (deja) { resolve(); return; }
+        var s = document.createElement('script');
+        s.src = url;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error('script')); };
+        document.head.appendChild(s);
+    });
+}
+
+var compteFirebasePromesse = null;
+
+function compteChargerFirebase() {
+    if (window.firebase && firebase.apps && firebase.apps.length) return Promise.resolve(firebase);
+    /* Un seul chargement à la fois : deux appels simultanés voyaient le
+       script déjà posé, le croyaient chargé, et `firebase` n'existait
+       pas encore. */
+    if (compteFirebasePromesse) return compteFirebasePromesse;
+    var cfg = window.STUDYPLAN_FIREBASE_CONFIG;
+    if (!cfg || !cfg.apiKey) return Promise.reject(new Error('firebase'));
+    var base = 'https://www.gstatic.com/firebasejs/10.14.1/';
+    compteFirebasePromesse = compteChargerScript(base + 'firebase-app-compat.js')
+        .then(function () { return compteChargerScript(base + 'firebase-auth-compat.js'); })
+        .then(function () { return compteChargerScript(base + 'firebase-firestore-compat.js'); })
+        .then(function () { return compteChargerScript(base + 'firebase-storage-compat.js'); })
+        .then(function () {
+            if (!window.firebase) throw new Error('firebase');
+            if (!firebase.apps.length) firebase.initializeApp(cfg);
+            return firebase;
+        })
+        .catch(function (err) {
+            compteFirebasePromesse = null;
+            throw err;
+        });
+    return compteFirebasePromesse;
+}
+
+function compteNomInterdit(nom) {
+    var n = String(nom || '').toLowerCase();
+    return n.indexOf('accès bloqué') !== -1 || n.indexOf('acces bloque') !== -1
+        || n.indexOf("n'a pas terminé") !== -1 || n.indexOf('na pas termine') !== -1
+        || n.indexOf('validation de google') !== -1
+        || n.indexOf('access blocked') !== -1
+        || n.indexOf('has not completed') !== -1;
+}
+
+function compteGarderNom(stocke, candidat) {
+    if (compteNomInterdit(candidat)) candidat = '';
+    if (compteNomInterdit(stocke)) stocke = '';
+    var s = compteNormaliserNom(stocke);
+    var c = compteNormaliserNom(candidat);
+    if (!s) return c;
+    if (!c) return s;
+    var sl = s.toLowerCase();
+    var cl = c.toLowerCase();
+    if (sl.length < 3 && cl.length >= 3) return c;
+    if (cl.length < 3 && sl.length >= 3) return s;
+    if (sl.indexOf(cl) !== -1 && sl.length > cl.length && cl.length >= 3) return s;
+    if (cl.indexOf(sl) !== -1 && cl.length > sl.length && sl.length >= 3) return c;
+    if (cl.length + 3 < sl.length) return s;
+    return c;
+}
+
+function compteProgressionFirebase(doc) {
+    if (!doc || typeof doc !== 'object') return null;
+    var data = doc.progression;
+    if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch (e) { data = null; }
+    }
+    if (!data || typeof data !== 'object') return null;
+    var subLu = window.compteSession && window.compteSession.sub;
+    if (compteNormaliserNom(data.userName) && !compteNomInterdit(data.userName)) {
+        if (subLu) compteNomReferenceEcrire(subLu, data.userName);
+    } else {
+        data.userName = (subLu && compteNomReference(subLu)) || compteNormaliserNom(doc.nom) || '';
+    }
+    /* Copie écrite avant cette correction : la date d'écriture du serveur sert de date de sauvegarde. */
+    if (!data.savedAt && doc.progressionLe && typeof doc.progressionLe.toDate === 'function') {
+        try { data.savedAt = doc.progressionLe.toDate().toISOString(); } catch (e) {}
+    }
+    return compteUtile(data) ? data : null;
+}
+
+function compteFirebaseLireDoc(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve(null);
+    return firebase.firestore().collection('comptes').doc(user.uid).get().then(function (snap) {
+        return snap && snap.exists ? (snap.data() || null) : null;
+    }).catch(function () { return null; });
+}
+
+/* La progression vit dans progressions/{uid}, séparée de la fiche comptes/{uid}.
+   Repli : une ancienne copie restée dans comptes/{uid}.progression reste lisible. */
+function compteFirebaseLireProgression(user) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve(null);
+    return firebase.firestore().collection('progressions').doc(user.uid).get().then(function (snap) {
+        if (snap && snap.exists) return snap.data() || null;
+        return compteFirebaseLireDoc(user).then(function (ancien) {
+            return ancien && ancien.progression ? { progression: ancien.progression } : null;
+        });
+    }).catch(function () { return null; });
+}
+
+function compteFirebaseEcrire(user, nom, data) {
+    if (!user || !window.firebase || !firebase.firestore) return Promise.resolve();
+    var session = window.compteSession || {};
+    return Promise.all([compteFirebaseLireDoc(user), compteFirebaseLireProgression(user)]).then(function (lus) {
+        var deja = lus[0];
+        var ancienne = compteProgressionFirebase(lus[1]);
+        var nomGarde = compteNormaliserNom(nom) || compteNomReference(session.sub) || compteGarderNom(deja && deja.nom, '');
+        if (!nomGarde && ancienne && ancienne.userName) nomGarde = ancienne.userName;
+        var db = firebase.firestore();
+        var payload = {
+            email: user.email || session.email || (deja && deja.email) || '',
+            nom: nomGarde || (deja && deja.nom) || '',
+            googleNom: user.displayName || session.name || (deja && deja.googleNom) || '',
+            photo: user.photoURL || session.picture || (deja && deja.photo) || '',
+            fournisseur: 'google',
+            googleSub: session.sub || (deja && deja.googleSub) || '',
+            dernierAcces: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        var ecritures = [db.collection('comptes').doc(user.uid).set(payload, { merge: true })];
+        var neuve = data && compteUtile(data) ? compteSansDocuments(data) : null;
+        if (neuve) {
+            if (nomGarde) neuve.userName = nomGarde;
+            if (!neuve.savedAt) neuve.savedAt = new Date().toISOString();
+            if (!ancienne || compteRichesse(neuve) >= compteRichesse(ancienne)) {
+                ecritures.push(db.collection('progressions').doc(user.uid).set({
+                    progression: JSON.stringify(neuve),
+                    progressionLe: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true }));
+            }
+        }
+        if (data && Array.isArray(data.iaDocs) && data.iaDocs.length) {
+            ecritures.push(firebase.firestore().collection('documents').doc(user.uid).set({
+                iaDocs: JSON.stringify(data.iaDocs),
+                documentsLe: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true }));
+        }
+        return Promise.all(ecritures);
+    }).catch(function () {});
+}
+
+function compteFirebaseOuvrir(session, idToken) {
+    if (!idToken) return Promise.resolve(null);
+    return compteChargerFirebase().then(function () {
+        var cred = firebase.auth.GoogleAuthProvider.credential(idToken);
+        return firebase.auth().signInWithCredential(cred);
+    }).then(function (result) {
+        var user = result && result.user;
+        if (!user) return null;
+        /* Une connexion vient d'aboutir : la boîte peut vérifier si ce
+           compte est l'un des quatre admins (les règles décident). */
+        if (typeof boiteVerifierAdmin === 'function') {
+            try {
+                if (typeof boiteAdminTente !== 'undefined') boiteAdminTente = false;
+                boiteVerifierAdmin();
+            } catch (e) {}
+        }
+        /* Les fiches restées en attente (sans identité) peuvent partir maintenant. */
+        if (typeof boiteReessayer === 'function') {
+            setTimeout(function () { try { boiteReessayer(); } catch (e) {} }, 1500);
+        }
+        return compteFirebaseLireDoc(user).then(function (doc) {
+            return { user: user, doc: doc };
+        });
+    }).catch(function () { return null; });
+}
+
+function compteFirebaseEnregistrer(session, idToken) {
+    return compteFirebaseOuvrir(session, idToken).then(function (ouvert) {
+        if (!ouvert || !ouvert.user) return null;
+        var nom = (session && compteNomLie(session.sub)) || (typeof userName !== 'undefined' ? userName : '') || '';
+        return compteFirebaseEcrire(ouvert.user, nom).then(function () { return ouvert; });
+    });
+}
+
+function compteOnCredential(resp) {
+    if (!resp || !resp.credential) return;
+    var payload;
+    try {
+        payload = compteDecoderJwt(resp.credential);
+    } catch (e) {
+        compteMessage('Réponse Google illisible.');
+        return;
+    }
+    var session = compteSessionDepuis(payload);
+    if (typeof sauvegardeCapturer === 'function' && typeof sauvegardeEcrireLocal === 'function') {
+        var instant = sauvegardeCapturer();
+        if (instant) sauvegardeEcrireLocal('locale', instant, false);
+    }
+    compteMemoriserSession(session);
+    window.compteRestaurationEnCours = true;
+    compteFirebaseOuvrir(session, resp.credential).then(function (ouvert) {
+        return compteLireCopiesPartagees(session).then(function (distantes) {
+            return Promise.all([compteFirebaseLireProgression(ouvert && ouvert.user), compteFirebaseLireDocuments(ouvert && ouvert.user)]).then(function (lus) {
+                var firebaseCopie = compteProgressionFirebase(lus[0]);
+                if (firebaseCopie && lus[1].length) firebaseCopie.iaDocs = lus[1];
+                /* À chaque connexion, la progression de progressions/{uid} est rechargée :
+                   elle remplace la copie locale de ce compte, même si la locale est plus riche. */
+                if (firebaseCopie) {
+                    compteBasculer(firebaseCopie, session);
+                    distantes = [firebaseCopie];
+                }
+                return compteRestaurerTout(session, null, distantes, firebaseCopie ? { nuageDeReference: true } : null).then(function () {
+                    return ouvert;
+                });
+            });
+        });
+    }).then(function (ouvert) {
+        var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        var nomLie = compteFigerNom(session, courant ? [courant] : []);
+        var user = (ouvert && ouvert.user) || (window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser);
+        var suite = user ? compteFirebaseEcrire(user, nomLie, courant) : Promise.resolve();
+        return suite.then(function () {
+            window.compteRestaurationEnCours = false;
+            /* Le stockage local doit refléter ce qui vient d'être restauré : sinon un rechargement
+               relit l'ancienne copie et la renvoie au nuage. */
+            if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+            compteRafraichir();
+            compteEcouterNuage();
+            /* À chaque connexion : vérifier la fiche de la semaine dans Firebase. */
+            if (user && typeof boiteVerifierSemaine === 'function') {
+                setTimeout(function () { try { boiteVerifierSemaine(true); } catch (e) {} }, 2000);
+            }
+            return comptePublierProgression(session);
+        });
+    }).catch(function () {
+        window.compteRestaurationEnCours = false;
+    });
+}
+
+function comptePreparerGoogle() {
+    var id = compteClientId();
+    if (!id) return Promise.resolve(false);
+    return compteChargerGIS().then(function () {
+        if (!compteGisPret) {
+            google.accounts.id.initialize({
+                client_id: id,
+                callback: compteOnCredential,
+                auto_select: false,
+                cancel_on_tap_outside: true,
+                ux_mode: 'popup',
+                /* Bouton en mode FedCM (Chrome Android 128+ et Chrome bureau 125+) : le choix du
+                   compte passe par le navigateur, sans fenêtre ni cookies tiers. Pour tous les élèves,
+                   sans réglage de leur part. Les anciens navigateurs gardent le mode précédent. */
+                use_fedcm_for_button: true,
+                context: 'signin'
+            });
+            compteGisPret = true;
+        }
+        var texteInvite = document.getElementById('compteInviteTexte');
+        if (texteInvite && !compteCopieEnAttente) texteInvite.textContent = COMPTE_INVITE;
+        if (window.compteSession && window.compteSession.sub) {
+            var deja = document.getElementById('googleBtnSlot');
+            if (deja) deja.innerHTML = '';
+            return true;
+        }
+        return true;
+    });
+}
+
+function compteRafraichir() {
+    var session = window.compteSession || null;
+    var btn = document.getElementById('navCompteBtn');
+    if (btn) {
+        btn.textContent = '';
+        if (session && session.picture) {
+            var img = document.createElement('img');
+            img.alt = '';
+            img.referrerPolicy = 'no-referrer';
+            img.src = session.picture;
+            btn.appendChild(img);
+        }
+        var nomUtilisateur = (typeof userName !== 'undefined' && userName) || (session && compteNomLie(session.sub)) || '';
+        btn.appendChild(document.createTextNode(session ? (nomUtilisateur || session.given_name || 'Compte') : 'Se connecter'));
+    }
+    var profil = document.getElementById('compteProfil');
+    var invite = document.getElementById('compteInvite');
+    var deconnect = document.getElementById('compteDeconnectBtn');
+    var complet = !!window.__profilComplet;
+    try {
+        var mem = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+        if (mem && mem.profilComplet) complet = true;
+    } catch (e) {}
+    if (profil) profil.hidden = !session;
+    if (invite) invite.hidden = !!session;
+    if (deconnect) deconnect.hidden = !session;
+    var slotGoogle = document.getElementById('googleBtnSlot');
+    if (session && slotGoogle) slotGoogle.innerHTML = '';
+    var second = document.getElementById('googleBtnRestore');
+    if (second) second.remove();
+    if (session) {
+        var nom = document.getElementById('compteNom');
+        var email = document.getElementById('compteEmail');
+        var avatar = document.getElementById('compteAvatar');
+var nomLie = compteNomLie(session.sub) || (typeof userName !== 'undefined' ? userName : '');
+        if (nom) nom.textContent = nomLie || session.name || session.given_name || 'Compte Google';
+        if (email) email.textContent = session.email || '';
+        if (avatar) {
+            avatar.hidden = !session.picture;
+            if (session.picture) {
+                avatar.referrerPolicy = 'no-referrer';
+                avatar.src = session.picture;
+            }
+        }
+    }
+    var origine = document.getElementById('compteOrigine');
+    if (origine) origine.textContent = location.origin;
+    var input = document.getElementById('compteClientIdInput');
+    if (input && !input.value) input.value = compteClientId();
+    var menuNom = document.getElementById('menuCompteNom');
+    var menuDetail = document.getElementById('menuCompteDetail');
+    var nomMenu = session ? ((typeof userName !== 'undefined' && userName) || compteNomLie(session.sub) || session.given_name || 'Mon compte') : 'Mon compte';
+    if (menuNom) menuNom.textContent = nomMenu;
+    if (menuDetail) menuDetail.textContent = session ? (session.email || 'Connecté avec Google') : 'Connexion Google';
+    var setup = document.getElementById('compteSetup');
+    if (setup && !compteClientId()) setup.open = true;
+}
+
+function compteEmploiGenere() {
+    if (window.__profilComplet) return true;
+    var planning = document.getElementById('planningModal');
+    return !!(planning && planning.classList.contains('active'));
+}
+
+function comptePoserOutils(depuisSection) {
+    var outils = document.getElementById('compteOutils');
+    if (!outils) return;
+    outils.hidden = !(depuisSection && compteEmploiGenere());
+}
+
+function ouvrirCompte(depuisSection) {
+    var modal = document.getElementById('compteModal');
+    if (!modal) return;
+    comptePoserOutils(!!depuisSection);
+    modal.classList.add('active');
+    compteMessage('');
+    compteRafraichir();
+    if (compteCopieEnAttente) comptePoserBoutonCopie();
+    else if (!(window.compteSession && window.compteSession.sub)) compteAfficherBoutonGoogle();
+}
+
+function fermerCompte() {
+    var modal = document.getElementById('compteModal');
+    if (modal) modal.classList.remove('active');
+}
+
+function compteEnregistrerClientId() {
+    var input = document.getElementById('compteClientIdInput');
+    var id = (input && input.value || '').trim();
+    if (!id || id.indexOf('.apps.googleusercontent.com') === -1) {
+        compteMessage('L’ID doit se terminer par .apps.googleusercontent.com.');
+        return;
+    }
+    localStorage.setItem(COMPTE_CLIENT_KEY, id);
+    window.STUDYPLAN_GOOGLE_CLIENT_ID = id;
+    compteGisPret = false;
+    compteMessage('Client ID enregistré. Choisis ton compte Google.');
+    comptePreparerGoogle().catch(function () {});
+}
+
+function compteDeconnecter() {
+    if (window.compteSession && window.compteSession.sub) {
+        compteMemoriserProprietaire(window.compteSession);
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    }
+    compteEcouterArreter();
+    window.compteSession = null;
+    compteCopieEnAttente = false;
+    compteJeton = '';
+    compteJetonFin = 0;
+    localStorage.removeItem(COMPTE_SESSION_KEY);
+    if (window.google && google.accounts && google.accounts.id) {
+        try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    }
+    /* Quitter le compte Google doit aussi fermer la session Firebase :
+       sinon, sur un appareil partagé, l'élève suivant resterait reconnu
+       comme l'admin et pourrait lire la boîte. */
+    try {
+        if (window.firebase && firebase.apps && firebase.apps.length) firebase.auth().signOut();
+    } catch (e) {}
+    if (typeof boiteNettoyerSession === 'function') boiteNettoyerSession();
+    if (typeof boiteAdminVerifie !== 'undefined') {
+        boiteAdminVerifie = false;
+        boiteAdminTente = false;
+        if (typeof boiteListesCache !== 'undefined') boiteListesCache = null;
+        if (typeof boiteMajMenu === 'function') boiteMajMenu();
+    }
+    compteRafraichir();
+    if (typeof v3Toast === 'function') v3Toast('Compte Google déconnecté. Le nom et l’emploi du temps restent liés à ce compte.', 'info');
+}
+
+function compteImprimerSemaine() {
+    var bouton = document.querySelector('#compteOutils button[onclick="compteImprimerSemaine()"]');
+    if (bouton && bouton.disabled) return;
+    var libelle = 'Imprimer mon emploi du temps de la semaine';
+    if (bouton) {
+        bouton.disabled = true;
+        bouton.textContent = 'Préparation…';
+    }
+    var polices = Promise.resolve();
+    if (document.fonts && document.fonts.load) {
+        polices = Promise.all([
+            document.fonts.load('700 15px Inter'),
+            document.fonts.load('800 13px Inter'),
+            document.fonts.ready
+        ]).catch(function () { return null; });
+    }
+    polices.then(exportChargerLogo).then(function (logo) {
+        return exportDessinerSemaine(logo).toDataURL('image/png');
+    }).then(function (url) {
+        var ancienne = document.getElementById('impressionSemaine');
+        if (ancienne) ancienne.parentNode.removeChild(ancienne);
+        var zone = document.createElement('div');
+        zone.id = 'impressionSemaine';
+        var image = new Image();
+        image.alt = 'Emploi du temps de la semaine';
+        image.src = url;
+        zone.appendChild(image);
+        document.body.appendChild(zone);
+        var retirer = function () {
+            var z = document.getElementById('impressionSemaine');
+            if (z) z.parentNode.removeChild(z);
+            window.removeEventListener('afterprint', retirer);
+        };
+        window.addEventListener('afterprint', retirer);
+        var lancer = function () { window.print(); };
+        if (image.decode) image.decode().then(lancer, lancer);
+        else lancer();
+    }).catch(function (e) {
+        console.error(e);
+        if (typeof v3Toast === 'function') v3Toast('L’impression n’a pas pu être préparée.', 'info');
+    }).then(function () {
+        if (bouton) {
+            bouton.disabled = false;
+            bouton.textContent = libelle;
+        }
+    });
+}
+
+function compteImporterFichier(input) {
+    var fichier = input.files && input.files[0];
+    input.value = '';
+    if (!fichier) return;
+    var lecteur = new FileReader();
+    lecteur.onload = function () {
+        try {
+            var data = JSON.parse(String(lecteur.result || ''));
+            if (!data || typeof data !== 'object') throw new Error('fichier vide');
+            localStorage.setItem(MEMOIRE_KEY, JSON.stringify(data));
+            if (Array.isArray(data.customEvents)) {
+                localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(data.customEvents));
+            }
+            if (Array.isArray(data.exercices)) {
+                localStorage.setItem('studyPlanIB_exercices', JSON.stringify(data.exercices));
+            }
+            location.reload();
+        } catch (e) {
+            compteMessage('Ce fichier n’est pas une progression Studyplan.');
+        }
+    };
+    lecteur.readAsText(fichier);
+}
+
+function compteOuvrirOnglet() {
+    window.open(location.href, '_blank', 'noopener');
+}
+
+(function () {
+    try {
+        var sauve = JSON.parse(localStorage.getItem(COMPTE_SESSION_KEY) || 'null');
+if (sauve && sauve.sub) {
+            window.compteSession = sauve;
+            compteMemoriserProprietaire(sauve);
+        }
+    } catch (e) {}
+    try { compteIndexerExistants(); } catch (e) {}
+    var stocke = '';
+    try { stocke = localStorage.getItem(COMPTE_CLIENT_KEY) || ''; } catch (e) {}
+    if (stocke && !window.STUDYPLAN_GOOGLE_CLIENT_ID) window.STUDYPLAN_GOOGLE_CLIENT_ID = stocke;
+    compteRafraichir();
+    try {
+        var dejaLa = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
+        if (dejaLa && compteUtile(dejaLa)) compteArchiverProgression(dejaLa);
+    } catch (e) {}
+    if (window.compteSession && window.compteSession.sub) {
+        var sub = window.compteSession.sub;
+        var appliquer = function (data) {
+            if (!data || compteProfilEtranger(data, sub)) return;
+            var courant = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
+            var copies = [courant, data].concat(compteCopiesLocales(window.compteSession));
+            var fusion = compteFusionnerProfils(copies);
+            if (!fusion || !compteUtile(fusion) || compteProfilEtranger(fusion, sub)) return;
+            if (!compteEquivalent(fusion, courant)) {
+                var plus = compteRichesse(fusion) > compteRichesse(courant);
+                compteBasculer(fusion, window.compteSession);
+                compteArchiverProgression(fusion);
+                if (plus && typeof v3Toast === 'function') v3Toast('Progression retrouvée.', 'success');
+            }
+        };
+        try {
+            var dedie = compteLireDedie(sub);
+            if (dedie) appliquer(dedie);
+        } catch (e) {}
+        if (typeof sauvegardeMeilleure === 'function') {
+            sauvegardeMeilleure(sub).then(appliquer).catch(function () {});
+        }
+        setTimeout(function () { compteRetrouverApresChargement(0); }, 400);
+        setTimeout(function () {
+            compteChargerFirebase().then(function () {
+                firebase.auth().onAuthStateChanged(function (user) {
+                    if (!user || !window.compteSession) return;
+                    compteFirebaseEcrire(user, compteNomLie(window.compteSession.sub) || user.displayName || '');
+                });
+            }).catch(function () {});
+        }, 1200);
+    }
+    if (typeof openSideMenu === 'function' && !openSideMenu.__compte) {
+        var original = openSideMenu;
+        var wrapped = function () {
+            compteRafraichir();
+            return original.apply(this, arguments);
+        };
+        wrapped.__compte = true;
+        window.openSideMenu = wrapped;
+    }
+})();

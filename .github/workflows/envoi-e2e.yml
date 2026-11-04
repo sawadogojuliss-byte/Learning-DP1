@@ -1,0 +1,133 @@
+name: Envoi en vrai
+
+on:
+  push:
+    branches:
+      - arena/01a0bac7-learning-dp1
+    paths:
+      - 'js/**'
+      - 'pages/**'
+      - 'index.html'
+      - 'service-worker.js'
+      - 'app.webmanifest'
+      - 'css/**'
+      - 'style_*.css'
+      - 'tools/tester-hors-ligne.mjs'
+      - 'audio/voix/**'
+      - 'tools/tester-preparation.mjs'
+      - 'tools/tester-atelier.mjs'
+      - 'tools/tester-espace-admin.mjs'
+      - 'tools/tester-chevauchement.mjs'
+      - 'tools/tester-horaires.mjs'
+      - 'tools/tester-voix.mjs'
+      - 'tools/tester-accessibilite.cjs'
+      - 'tools/tester-upload-emploi.cjs'
+      - 'tools/tester-semaines.mjs'
+      - '.github/workflows/envoi-e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  navigateur:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Attendre que le site déployé rattrape ce commit
+        run: |
+          V=$(grep -o "2026[0-9a-z]*" js/boot.js | head -1)
+          echo "version attendue : $V"
+          for i in $(seq 1 30); do
+            D=$(curl -s "https://sawadogojuliss-byte.github.io/Learning-DP1/js/boot.js" | grep -o "$V" | head -1)
+            if [ "$D" = "$V" ]; then echo "site déployé à jour ($V)"; exit 0; fi
+            sleep 10
+          done
+          echo "le site déployé n'a pas rattrapé ce commit"
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+
+      - name: Vérifier le regroupement de l’espace admin sans compte réel
+        run: |
+          set -o pipefail
+          node tools/tester-espace-admin.mjs 2>&1 | tee /tmp/sortie-espace-admin.txt
+
+      - name: Vérifier la popup de chevauchement sans données réelles
+        run: |
+          set -o pipefail
+          node tools/tester-chevauchement.mjs 2>&1 | tee /tmp/sortie-chevauchement.txt
+
+      - name: Vérifier les horaires du planning sans données réelles
+        run: |
+          set -o pipefail
+          node tools/tester-horaires.mjs 2>&1 | tee /tmp/sortie-horaires.txt
+
+      - name: Vérifier en vrai navigateur la préparation des devoirs, examens et emploi du temps
+        run: |
+          set -o pipefail
+          node tools/tester-preparation.mjs 2>&1 | tee /tmp/sortie-preparation.txt
+
+      - name: Vérifier l’accessibilité et l’import non destructif sur téléphone
+        run: |
+          set -o pipefail
+          node tools/tester-accessibilite.cjs 2>&1 | tee /tmp/sortie-accessibilite.txt
+
+      - name: Vérifier l’upload de PDF, photo et scan sans enregistrement réel
+        run: |
+          set -o pipefail
+          node tools/tester-upload-emploi.cjs 2>&1 | tee /tmp/sortie-upload-emploi.txt
+
+      - name: Vérifier la présentation Atelier sans envoi réel
+        run: |
+          set -o pipefail
+          node tools/tester-atelier.mjs 2>&1 | tee /tmp/sortie-atelier.txt
+
+      - name: Vérifier les semaines du planning sans profil ni mail réels
+        run: |
+          set -o pipefail
+          node tools/tester-semaines.mjs 2>&1 | tee /tmp/sortie-semaines.txt
+
+      - name: Vérifier en vrai navigateur la fin de chronomètre (musique, bip, voix)
+        run: |
+          set -o pipefail
+          node tools/tester-voix.mjs 2>&1 | tee /tmp/sortie-voix.txt
+
+      - name: Vérifier le planning hors connexion et mesurer le démarrage
+        run: |
+          set -o pipefail
+          node tools/tester-hors-ligne.mjs 2>&1 | tee /tmp/sortie-hors-ligne.txt
+
+      - name: Publier le journal
+        if: always()
+        env:
+          JETON: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p /tmp/journal
+          cp /tmp/sortie-preparation.txt /tmp/journal/ 2>/dev/null || echo "le test de préparation n'a pas démarré" > /tmp/journal/sortie-preparation.txt
+          cp /tmp/sortie-accessibilite.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-upload-emploi.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-semaines.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-atelier.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-espace-admin.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-chevauchement.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-horaires.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-voix.txt /tmp/journal/ 2>/dev/null || true
+          cp /tmp/sortie-hors-ligne.txt /tmp/journal/ 2>/dev/null || true
+          cd /tmp/journal
+          git init -q .
+          git checkout -q -b tmp/e2e
+          git add -A
+          git -c user.name="Arena" -c user.email="arena@users.noreply.github.com" \
+              commit -q -m "Journal du test navigateur"
+          git push -q -f "https://x-access-token:${JETON}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/tmp/e2e

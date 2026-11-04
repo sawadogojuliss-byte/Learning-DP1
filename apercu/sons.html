@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sons du Pomodoro — version longue</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f6faf7; color: #0b1f18; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 1.5rem 1rem 4rem; }
+  h1 { font-size: 1.35rem; margin: 0 0 .35rem; }
+  .sous { color: #4b5563; font-size: .9rem; margin-bottom: 1.5rem; }
+  h2 { font-size: 1rem; margin: 2rem 0 .75rem; color: #065f46; text-transform: uppercase; letter-spacing: .06em; }
+  .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; }
+  .carte { background: #fff; border: 1.5px solid #e5f3ea; border-radius: 1rem; padding: .8rem .9rem; box-shadow: 0 6px 18px rgba(6,78,59,.05); }
+  .titre { display: flex; align-items: center; gap: .5rem; font-weight: 700; font-size: .95rem; margin-bottom: .3rem; }
+  .emoji { font-size: 1.5rem; line-height: 1; }
+  audio { width: 100%; height: 34px; }
+  .duree { font-size: .75rem; color: #6b7280; margin-bottom: .4rem; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .5rem; }
+  .compare .carte { border-color: #fde68a; }
+  .compare .carte.apres { border-color: #a7f3d0; }
+  .etiquette { font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; padding: .15rem .45rem; border-radius: .4rem; }
+  .avant { background: #fef3c7; color: #92400e; }
+  .apres { background: #d1fae5; color: #065f46; }
+  .note { margin-top: 2rem; background: #fff; border: 1.5px solid #e5f3ea; border-radius: 1rem; padding: 1rem; font-size: .88rem; line-height: 1.55; }
+  .note b { color: #065f46; }
+</style>
+</head>
+<body>
+  <h1>🎧 Les 11 sons du Pomodoro — version longue</h1>
+  <p class="sous">Chaque ambiance dure maintenant <b>5 minutes</b> et se referme sur elle-même par un fondu de 6 secondes : plus de redémarrage toutes les 8 secondes. Les musiques viennent toutes du dossier Study Plan.</p>
+
+  <h2>Piano : trois passages, à choisir à l'oreille</h2>
+  <p class="sous" style="margin:-.3rem 0 .6rem">Lequel sonne le plus « piano » ? Dis-moi A, B ou C — les deux autres seront retirés.</p>
+  <div class="grille" id="piano-tri">
+    <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano A<span class="etiquette apres">actuel</span></div>
+      <div class="duree">18 min du morceau · le plus régulier</div>
+      <audio controls preload="none" src="../audio/pomodoro/piano.mp3?v=20261017h"></audio></div>
+    <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano B</div>
+      <div class="duree">1 h 54 du morceau · le plus « frappé »</div>
+      <audio controls preload="none" src="../audio/pomodoro/piano-b.mp3?v=20261017h"></audio></div>
+    <div class="carte"><div class="titre"><span class="emoji">🎹</span>Piano C</div>
+      <div class="duree">43 min du morceau · plus de notes, plus d'écart</div>
+      <audio controls preload="none" src="../audio/pomodoro/piano-c.mp3?v=20261017h"></audio></div>
+  </div>
+
+  <h2>Avant / après</h2>
+  <div class="compare" id="compare"></div>
+
+  <h2>Nature</h2>
+  <div class="grille" id="nature"></div>
+  <h2>Ville</h2>
+  <div class="grille" id="ville"></div>
+  <h2>Concentration</h2>
+  <div class="grille" id="concentration"></div>
+
+  <div class="note">
+    <b>Ce qui a changé</b><br>
+    • <b>Longueur :</b> 7,91 s → <b>5 minutes</b>. Les deux extrémités se croisent sur 6 secondes à puissance constante, donc la fin se prolonge dans le début : pas de silence, pas de clic, pas de « ça recommence ».<br>
+    • <b>Pluie, pluie légère, forte pluie, orage :</b> extraits de « Pluie chill ». Le passage le plus chargé fait forte pluie, le plus calme fait pluie légère, celui qui contient le plus gros grondement fait orage.<br>
+    • <b>Café animé :</b> « Busy café ». <b>Bibliothèque</b> (le plus calme) et <b>Bureau</b> (le plus vivant) : « Musique classique ».<br>
+    • <b>Avion, train, matin en ville, océan :</b> quatre passages différents de « 8D ». <b>Bêta :</b> « Flowstate ». <b>Salle d'examen :</b> « Brain.fm ». <b>Gamma :</b> « Gamma Binaural Beats » (vrai binaural, une fréquence par oreille). <b>Vent :</b> « Vents ».<br>
+    • <b>Piano :</b> remplace « Bureau ». C'est toujours « Musique classique », mais un passage choisi pour sonner piano : peu de souffle, des harmoniques nettes, des notes frappées qui s'éteignent, presque rien au-dessus de 4 kHz — au lieu du passage le plus agité du morceau, qui partait dans le bruit.<br>
+    • <b>Matin en ville et Océan :</b> les deux sons ajoutés au Drive (rue d'Aubervilliers, petites vagues face océan). Ils durent quelques minutes : ils sont pavés bout à bout avec le même fondu de 6 s à puissance constante, puis refermés en boucle — comme tous les autres, 5 minutes sans que rien ne recommence de façon audible.<br>
+    • <b>Orage :</b> les trois enregistrements de tonnerre du Drive, superposés au même niveau. Chaque couche entre à un point différent à chaque répétition et les couches démarrent décalées : les coups de tonnerre ne tombent jamais deux fois au même endroit.<br>
+    • <b>Bibliothèque :</b> les deux sons de pages qu'on tourne du Drive, superposés de la même façon — un foisonnement de pages régulières, sans motif qui se répète.<br>
+    • <b>Train :</b> la locomotive à vapeur du Drive, pavée en boucle comme les autres — 5 minutes sans raccord audible.<br>
+    • <b>Concentration :</b> l'ancien « Bêta (Flowstate) », la même musique, simplement renommée.<br>
+    • <b>Cabine d'avion et salle d'examen :</b> retirées de la grille, à ta demande.<br>
+    • <b>Pluie légère, forte pluie, bruits blanc, rose, brun, cheminée et feu de camp :</b> retirés de la grille, à ta demande.<br>
+    • <b>Niveau sonore :</b> tous les sons sont alignés au même volume perçu, avec un limiteur doux pour les crêtes (la pluie en a de fortes).
+  </div>
+
+<script>
+var SONS = [
+  { id: 'pluie', nom: 'Pluie', emoji: '☂️', groupe: 'nature', source: 'Pluie chill' },
+  { id: 'ocean', nom: 'Océan', emoji: '🌊', groupe: 'nature', source: 'Vagues face océan (Drive)' },
+  { id: 'orage', nom: 'Orage', emoji: '⛈️', groupe: 'nature', source: 'Tonnerre 1 + 4 + 6 (Drive)' },
+  { id: 'vent', nom: 'Vent', emoji: '🌬️', groupe: 'nature', source: 'Vents' },
+  { id: 'cafe', nom: 'Café animé', emoji: '☕', groupe: 'ville', source: 'Busy café' },
+  { id: 'train', nom: 'Train', emoji: '🚆', groupe: 'ville', source: 'Locomotive à vapeur (Drive)' },
+  { id: 'bibliotheque', nom: 'Bibliothèque', emoji: '📚', groupe: 'ville', source: 'Pages qu’on tourne 1 + 2 (Drive)' },
+  { id: 'matin', nom: 'Matin en ville', emoji: '🚕', groupe: 'ville', source: 'Rue d’Aubervilliers (Drive)' },
+  { id: 'piano', nom: 'Piano', emoji: '🎹', groupe: 'ville', source: 'Musique classique' },
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵', groupe: 'concentration', source: 'Gamma Binaural Beats' },
+  { id: 'concentration', nom: 'Concentration', emoji: '🧑‍💻', groupe: 'concentration', source: 'Flowstate' }
+];
+var COMPARE = [
+  { id: 'orage', nom: 'Orage', emoji: '⛈️' },
+  { id: 'vent', nom: 'Vent', emoji: '🌬️' },
+  { id: 'gamma', nom: 'Binaural gamma', emoji: '😵' }
+];
+function carte(son, avant) {
+  var url = avant ? 'anciens/' + son.id + '-avant.wav' : '../audio/pomodoro/' + son.id + '.mp3?v=20261017h';
+  return '<div class="carte' + (avant ? '' : ' apres') + '">' +
+    '<div class="titre"><span class="emoji">' + son.emoji + '</span>' + son.nom +
+    '<span class="etiquette ' + (avant ? 'avant' : 'apres') + '">' + (avant ? 'avant' : 'après') + '</span></div>' +
+    '<div class="duree">' + (avant ? '7,9 s en boucle' : '5 min, fondu de 6 s' + (son.source ? ' · ' + son.source : '')) + '</div>' +
+    '<audio controls preload="none" src="' + url + '"></audio></div>';
+}
+COMPARE.forEach(function (son) {
+  document.getElementById('compare').insertAdjacentHTML('beforeend', carte(son, true) + carte(son, false));
+});
+SONS.forEach(function (son) {
+  document.getElementById(son.groupe).insertAdjacentHTML('beforeend', carte(son, false));
+});
+</script>
+</body>
+</html>

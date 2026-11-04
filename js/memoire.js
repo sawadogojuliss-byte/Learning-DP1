@@ -1,0 +1,1025 @@
+/* ============================================================
+   Mémoire — Studyplan
+   Enregistre le profil complet dans le navigateur.
+   Une actualisation reprend la dernière page, sans recommencer.
+   ============================================================ */
+
+var MEMOIRE_KEY = 'studyPlanIB_profil';
+var memoirePret = false;
+var memoireDernier = '';
+
+function memoireJson(key) {
+    try {
+        return JSON.parse(localStorage.getItem(key) || 'null');
+    } catch (e) {
+        return null;
+    }
+}
+
+var MEMOIRE_PAGES = {
+    panelSoutien: 'soutien',
+    panelExercices: 'exercices',
+    panelDevoirs: 'devoirs',
+    emploiModal: 'emploi',
+    panelLegende: 'legende',
+    panelEEia: 'eeia',
+    panelFeries: 'feries',
+    panelSeances: 'seances',
+    panelPomodoro: 'pomodoro',
+    panelTutoriel: 'tutoriel',
+    panelAide: 'aide',
+    panelFeedback: 'feedback',
+    panelAnnonce: 'annonce',
+    panelRetours: 'retours',
+    panelQuestions: 'questions',
+    panelEmplois: 'emplois',
+    panelAdmin: 'admin',
+    contextModal: 'prenom',
+    objectivesModal: 'objectif',
+    sleepModal: 'sommeil',
+    habitsModal: 'habitudes',
+    classeModal: 'classe',
+    subjectsModal: 'matieres',
+    travauxModal: 'travaux',
+    transportModal: 'transport',
+    carConfigModal: 'voiture',
+    motoConfigModal: 'moto',
+    activitiesModal: 'activites',
+    holidaysModal: 'feries',
+    freeTimeModal: 'libre',
+    screenTimeModal: 'ecran',
+    planningModal: 'planning'
+};
+
+function memoireEtapeActive() {
+    var panneaux = document.querySelectorAll('.app-panel.active');
+    var i, id;
+    for (i = panneaux.length - 1; i >= 0; i--) {
+        id = panneaux[i].id;
+        if (MEMOIRE_PAGES[id]) return MEMOIRE_PAGES[id];
+    }
+    var modales = document.querySelectorAll('.context-modal.active');
+    for (i = modales.length - 1; i >= 0; i--) {
+        id = modales[i].id;
+        if (MEMOIRE_PAGES[id]) return MEMOIRE_PAGES[id];
+    }
+    return 'accueil';
+}
+
+function memoireLireEtat() {
+    if (typeof syncPreparer === 'function') syncPreparer();
+    if (typeof eeNettoyerSuivi === 'function') eeNettoyerSuivi();
+    var champNom = document.getElementById('nameInput');
+    if (champNom && champNom.value.trim()) userName = champNom.value.trim().replace(/\s+/g, ' ');
+    if (!userName && typeof compteNomLie === 'function' && window.compteSession && window.compteSession.sub) {
+        userName = compteNomLie(window.compteSession.sub) || userName;
+    }
+
+    var etape = memoireEtapeActive();
+    if (etape === 'planning' || etape === 'soutien' || etape === 'exercices' || etape === 'devoirs' || etape === 'legende' || etape === 'eeia' || etape === 'feries') window.__profilComplet = true;
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
+
+    return {
+        v: 1,
+        savedAt: new Date().toISOString(),
+        etape: etape,
+        profilComplet: !!window.__profilComplet,
+        userName: userName,
+        targetScore: targetScore,
+        weekdayWakeup: weekdayWakeup,
+        saturdayWakeup: saturdayWakeup,
+        sundayWakeup: sundayWakeup,
+        subjects: subjects,
+        optionalSubjects: optionalSubjects,
+        ibYear: typeof ibYear !== 'undefined' ? ibYear : '',
+        memoirLevel: typeof memoirLevel !== 'undefined' ? memoirLevel : '',
+        iaLevel: typeof iaLevel !== 'undefined' ? iaLevel : '',
+        iaLevels: typeof iaLevels !== 'undefined' ? iaLevels : {},
+        memoirPlan: typeof memoirPlan !== 'undefined' ? memoirPlan : [],
+        iaPlans: typeof iaPlans !== 'undefined' ? iaPlans : {},
+        eeVus: typeof eeVus !== 'undefined' ? eeVus : {},
+        eeDemandes: typeof eeDemandes !== 'undefined' ? eeDemandes : {},
+        transportMode: typeof transportMode !== 'undefined' ? transportMode : '',
+        carDeparture: carDeparture,
+        carToSchool: carToSchool,
+        carFromSchool: carFromSchool,
+        motoDeparture: motoDeparture,
+        motoReturn: motoReturn,
+        motoToSchool: motoToSchool,
+        motoFromSchool: motoFromSchool,
+        selectedActivities: selectedActivities,
+        modifsSemaine: memoireArchiveSemaine(),
+        holidayDates: typeof holidayDates !== 'undefined' ? holidayDates : {},
+        holidayDroppedDates: typeof holidayDroppedDates !== 'undefined' ? holidayDroppedDates : {},
+        sameFreeTime: sameFreeTime,
+        freeTimeMinutes: freeTimeMinutes,
+        freeTimeByDay: freeTimeByDay,
+        weekdaySleepHours: weekdaySleepHours,
+        saturdaySleepHours: saturdaySleepHours,
+        sundaySleepHours: sundaySleepHours,
+        sommeilChoisiLe: memoireDateSommeilLocal(),
+        habitudesDefinies: typeof habitudesDefinies !== 'undefined' ? !!habitudesDefinies : false,
+        prepMatinMinutes: typeof prepMatinMinutes !== 'undefined' ? prepMatinMinutes : 30,
+        prepMatinDebut: typeof prepMatinDebut !== 'undefined' ? prepMatinDebut : '',
+        prepMatinFin: typeof prepMatinFin !== 'undefined' ? prepMatinFin : '',
+        prepSoirMinutes: typeof prepSoirMinutes !== 'undefined' ? prepSoirMinutes : 30,
+        prepSoirDebut: typeof prepSoirDebut !== 'undefined' ? prepSoirDebut : '',
+        prepSoirFin: typeof prepSoirFin !== 'undefined' ? prepSoirFin : '',
+        petitDejHeure: typeof petitDejHeure !== 'undefined' ? petitDejHeure : '',
+        petitDejMinutes: typeof petitDejMinutes !== 'undefined' ? petitDejMinutes : 30,
+        dinerHeure: typeof dinerHeure !== 'undefined' ? dinerHeure : '',
+        dinerMinutes: typeof dinerMinutes !== 'undefined' ? dinerMinutes : 45,
+        phoneDays: phoneDays,
+        samePhoneDuration: samePhoneDuration,
+        phoneDuration: phoneDuration,
+        phoneDayDurations: phoneDayDurations,
+        customEvents: customEvents,
+        /* Pierres tombales : les suppressions ne reviennent jamais (lot 9). */
+        suppressions: typeof syncLireRegistre === 'function' ? syncLireRegistre() : {},
+        /* Réglages du minuteur, datés (lot 9, point 5). */
+        focusReglages: typeof syncFocusCourant === 'function' ? syncFocusCourant() : null,
+        modifsSemaine: (function () {
+            try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
+        })(),
+        emploiFige: typeof emploiFige !== 'undefined' && emploiFige ? emploiFige : null,
+        exercices: typeof exercices !== 'undefined' ? exercices : [],
+        devoirsStore: typeof devoirsStoreCompact === 'function' ? devoirsStoreCompact() : null,
+        emploiScolaire: typeof emploiScolaireCompact === 'function' ? emploiScolaireCompact() : null,
+        currentMood: typeof currentMood !== 'undefined' ? currentMood : null,
+        joursConnectes: (function () {
+            var n = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
+            return isFinite(n) && n > 0 ? n : 0;
+        })(),
+        dernierJour: (function () {
+            try { return localStorage.getItem('studyPlanIB_dernierJour') || ''; } catch (e) { return ''; }
+        })(),
+        flammes: (function () {
+            var n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
+            return isFinite(n) && n > 0 ? n : 0;
+        })(),
+        flammeJour: (function () {
+            try { return localStorage.getItem('studyPlanIB_flammeJour') || ''; } catch (e) { return ''; }
+        })(),
+        iaDocs: (function () {
+            var out = [];
+            try {
+                var i, cle, docs;
+                for (i = 0; i < localStorage.length; i++) {
+                    cle = localStorage.key(i);
+                    if (!cle || cle.indexOf('ia-docs-') !== 0) continue;
+                    docs = JSON.parse(localStorage.getItem(cle) || '[]');
+                    if (Array.isArray(docs)) out = out.concat(docs);
+                }
+            } catch (e) {}
+            return out.slice(-4).map(function (doc) {
+                if (!doc || typeof doc !== 'object') return doc;
+                return {
+                    nom: doc.nom || '',
+                    texte: String(doc.texte || '').slice(0, 6000),
+                    quand: doc.quand || '',
+                    type: doc.type || '',
+                    taille: doc.taille || 0
+                };
+            });
+        })(),
+        utilisateurId: (function () {
+            var s = window.compteSession && window.compteSession.sub;
+            if (!s) return '';
+            return typeof compteCanonique === 'function' ? (compteCanonique(s) || s) : s;
+        })(),
+        google: (function () {
+            /* À qui appartiennent ces données : au compte enregistré sur l'appareil.
+               Pendant une connexion, compteSession est déjà le nouveau compte ; il ne doit
+               pas réattribuer les données de l'ancien. */
+            if (window.compteProprietaire && window.compteProprietaire.sub) return window.compteProprietaire;
+            try {
+                var garde = JSON.parse(localStorage.getItem('studyPlanIB_proprietaire') || 'null');
+                if (garde && garde.sub) return garde;
+            } catch (e) {}
+            if (window.compteSession && window.compteSession.sub) return window.compteSession;
+            return null;
+        })()
+    };
+}
+
+function memoireSet(id, value) {
+    var el = document.getElementById(id);
+    if (el && value != null && value !== '') el.value = value;
+}
+
+function memoireSyncChamps() {
+    memoireSet('nameInput', userName);
+    memoireSet('scoreValue', targetScore);
+    memoireSet('weekdayWakeupInput', weekdayWakeup);
+    memoireSet('saturdayWakeupInput', saturdayWakeup);
+    memoireSet('sundayWakeupInput', sundayWakeup);
+    memoireSet('carDepartureInput', carDeparture);
+    memoireSet('carToSchoolInput', carToSchool);
+    memoireSet('carFromSchoolInput', carFromSchool);
+    memoireSet('motoDepartureInput', motoDeparture);
+    memoireSet('motoReturnInput', motoReturn);
+    memoireSet('motoToSchoolInput', motoToSchool);
+    memoireSet('motoFromSchoolInput', motoFromSchool);
+    var cb = document.querySelector('#screenTimeModal input[type="checkbox"]');
+    if (cb) cb.checked = !!samePhoneDuration;
+    if (typeof updateBedtimes === 'function') {
+        try { updateBedtimes(); } catch (e) {}
+    }
+}
+
+/* Pendant l'application, rien n'est daté : l'état reçu devient la référence
+   à la fin (syncFinApplication). Voir js/synchro.js. */
+function memoireAppliquer(data, opts) {
+    if (!data || typeof data !== 'object') return;
+    if (typeof syncDebutApplication === 'function') syncDebutApplication();
+    try {
+        memoireAppliquerCorps(data, opts);
+    } finally {
+        if (typeof syncFinApplication === 'function') syncFinApplication();
+    }
+}
+
+/* La flamme (jours d'affilée) vient du profil enregistré : sur un autre
+   téléphone, elle reprend la valeur la plus récente, au lieu de repartir de zéro. */
+/* Décide si le sommeil et le réveil reçus peuvent remplacer ceux de cet appareil.
+   - rien de réglé ici : on reprend ce qui vient (premier chargement, anciens profils) ;
+   - un réglage de l'élève ici et rien de reçu : on garde le sien (une valeur de base ne le remplace pas) ;
+   - les deux : le réglage le plus récent gagne. */
+/* Applique le sommeil et les réveils reçus, seulement si memoireSommeilPeutAppliquer l'accepte.
+   Renvoie true si quelque chose a été appliqué. */
+function memoireAppliquerSommeil(data) {
+    if (!data || !memoireSommeilPeutAppliquer(data)) return false;
+    var avant = memoireEtatSommeil();
+    if (data.weekdayWakeup) weekdayWakeup = data.weekdayWakeup;
+    if (data.saturdayWakeup) saturdayWakeup = data.saturdayWakeup;
+    if (data.sundayWakeup) sundayWakeup = data.sundayWakeup;
+    if (typeof setSleepHours === 'function') {
+        if (data.weekdaySleepHours != null) setSleepHours('weekday', data.weekdaySleepHours);
+        if (data.saturdaySleepHours != null) setSleepHours('saturday', data.saturdaySleepHours);
+        if (data.sundaySleepHours != null) setSleepHours('sunday', data.sundaySleepHours);
+    }
+    if (typeof sommeilChoisiLe !== 'undefined' && data.sommeilChoisiLe && typeof data.sommeilChoisiLe === 'string') sommeilChoisiLe = data.sommeilChoisiLe;
+    /* Vrai seulement si quelque chose a réellement changé : rien à enregistrer sinon. */
+    return memoireEtatSommeil() !== avant;
+}
+
+/* Valeurs de base du sommeil et du réveil (celles de la première ouverture). */
+var MEMOIRE_SOMMEIL_BASE_HEURES = [8, 8, 8];
+var MEMOIRE_SOMMEIL_BASE_REVEILS = ['06:00', '07:00', '08:00'];
+
+/* Vrai si un sommeil ou un réveil diffère des valeurs de base. Un tel réglage ne peut venir
+   que de l'élève : il sert de choix même lorsqu'il n'a pas de date (anciens profils). */
+function memoireSommeilPersonnalise(heures, reveils) {
+    var h = heures || [], r = reveils || [];
+    for (var i = 0; i < 3; i++) {
+        if (h[i] != null && Number(h[i]) !== MEMOIRE_SOMMEIL_BASE_HEURES[i]) return true;
+        if (r[i] && r[i] !== MEMOIRE_SOMMEIL_BASE_REVEILS[i]) return true;
+    }
+    return false;
+}
+
+/* Date effective d'un réglage : la date du choix de l'élève ; sinon une date très ancienne si le
+   réglage n'est pas la base (choix fait avant les dates) ; sinon rien (valeurs de base). */
+function memoireDateSommeil(date, heures, reveils) {
+    if (typeof date === 'string' && date) return date;
+    return memoireSommeilPersonnalise(heures, reveils) ? '0000-00-00' : '';
+}
+
+/* Date du réglage de cet appareil : seulement un choix daté de l'élève. Un réglage sans date n'est
+   pas protégé ici, car rien ne dit à quel compte il appartient (il pourrait venir d'un autre compte). */
+function memoireDateSommeilLocal() {
+    return typeof sommeilChoisiLe !== 'undefined' ? sommeilChoisiLe || '' : '';
+}
+
+/* Empreinte de tout le sommeil de cet appareil (date et valeurs). */
+function memoireEtatSommeil() {
+    return JSON.stringify([memoireDateSommeilLocal(),
+        typeof weekdaySleepHours !== 'undefined' ? weekdaySleepHours : null,
+        typeof saturdaySleepHours !== 'undefined' ? saturdaySleepHours : null,
+        typeof sundaySleepHours !== 'undefined' ? sundaySleepHours : null,
+        typeof weekdayWakeup !== 'undefined' ? weekdayWakeup : null,
+        typeof saturdayWakeup !== 'undefined' ? saturdayWakeup : null,
+        typeof sundayWakeup !== 'undefined' ? sundayWakeup : null]);
+}
+
+/* Règle : une donnée reçue ne remplace le sommeil de cet appareil que si elle est plus récente.
+   - aucun réglage ici (valeurs de base, jamais choisies) : on reprend ce qui vient ;
+   - un réglage ici et une donnée sans date : la donnée ne remplace pas le réglage ;
+   - les deux datés : le plus récent gagne. */
+function memoireSommeilPeutAppliquer(data) {
+    var local = memoireDateSommeilLocal();
+    var recu = data ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : '';
+    if (!local) return true;
+    if (!recu) return false;
+    return recu >= local;
+}
+
+/* Archive des modifications de la semaine (reportées le lundi). Elle fait partie de l'état du compte,
+   pour que tous les téléphones reportent la même chose, une seule fois par semaine. */
+function memoireArchiveSemaine() {
+    try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
+}
+
+/* Si le nuage a déjà reporté les modifications de cette semaine, cet appareil reprend son archive
+   au lieu de reporter à partir de la sienne (ce qui donnait des résultats différents selon le téléphone). */
+function memoireAdopterArchive(distant) {
+    try {
+        var cle = cleSemaineCourante();
+        var local = memoireArchiveSemaine();
+        if (distant.semaine === cle && (!local || local.semaine !== cle)) {
+            localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify(distant));
+        }
+    } catch (e) {}
+}
+
+function memoireRestaurerFlamme(data) {
+    try {
+        if (!data || typeof data.flammeJour !== 'string' || !data.flammeJour) return;
+        var local = {
+            flammeJour: localStorage.getItem('studyPlanIB_flammeJour') || '',
+            flammes: parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0
+        };
+        var donnee = { flammeJour: data.flammeJour, flammes: Number(data.flammes) || 0 };
+        /* Même règle que la fusion des copies (compteFlammeChoisie). */
+        var choisie = typeof compteFlammeChoisie === 'function' ? compteFlammeChoisie([local, donnee]) : donnee;
+        if (!choisie) return;
+        if (choisie.flammeJour === local.flammeJour && choisie.flammes === local.flammes) return;
+        localStorage.setItem('studyPlanIB_flammeJour', choisie.flammeJour);
+        localStorage.setItem('studyPlanIB_flamme', String(choisie.flammes));
+    } catch (e) {}
+}
+
+function memoireAppliquerCorps(data, opts) {
+    var depuisCompte = !!(opts && opts.compte);
+    /* Les suppressions connues de la sauvegarde sont retenues ici. */
+    var registre = typeof syncIntegrerRegistre === 'function' ? syncIntegrerRegistre(data.suppressions) : {};
+    if (typeof data.userName === 'string') userName = data.userName;
+    if (typeof data.targetScore === 'number') targetScore = data.targetScore;
+    /* Les matières de l'élève sont reprises telles qu'elles sont enregistrées, quel que soit leur nombre. */
+    if (Array.isArray(data.subjects)) subjects = data.subjects;
+    if (Array.isArray(data.optionalSubjects)) optionalSubjects = data.optionalSubjects;
+    memoireRestaurerFlamme(data);
+    if (typeof enforceSubjectRules === 'function') enforceSubjectRules();
+    if (typeof ibYear !== 'undefined' && (data.ibYear === 'DP1' || data.ibYear === 'DP2' || data.ibYear === '')) ibYear = data.ibYear;
+    if (typeof majClasseAffichage === 'function') majClasseAffichage();
+    if (typeof majApparenceNotes === 'function') majApparenceNotes();
+    if (typeof data.memoirLevel === 'string') memoirLevel = data.memoirLevel;
+    if (typeof data.iaLevel === 'string') iaLevel = data.iaLevel;
+    if (typeof iaLevels !== 'undefined' && data.iaLevels && typeof data.iaLevels === 'object') iaLevels = data.iaLevels;
+    if (typeof memoirPlan !== 'undefined' && Array.isArray(data.memoirPlan)) {
+        var planRecu = typeof syncFiltrer === 'function' ? syncFiltrer(data.memoirPlan, 'memoirPlan', registre) : data.memoirPlan;
+        memoirPlan = typeof eeNormaliserPlan === 'function' ? eeNormaliserPlan(planRecu) : planRecu;
+    }
+    if (typeof iaPlans !== 'undefined' && data.iaPlans && typeof data.iaPlans === 'object') iaPlans = typeof eeNormaliserPlans === 'function' ? eeNormaliserPlans(data.iaPlans) : data.iaPlans;
+    if (typeof eeVus !== 'undefined' && data.eeVus && typeof data.eeVus === 'object') eeVus = data.eeVus;
+    if (typeof eeDemandes !== 'undefined' && data.eeDemandes && typeof data.eeDemandes === 'object') eeDemandes = data.eeDemandes;
+    if (typeof transportMode !== 'undefined' && typeof data.transportMode === 'string') transportMode = data.transportMode;
+    if (data.carDeparture) carDeparture = data.carDeparture;
+    if (data.carToSchool) carToSchool = data.carToSchool;
+    if (data.carFromSchool) carFromSchool = data.carFromSchool;
+    if (data.motoDeparture) motoDeparture = data.motoDeparture;
+    if (data.motoReturn) motoReturn = data.motoReturn;
+    if (data.motoToSchool) motoToSchool = data.motoToSchool;
+    if (data.motoFromSchool) motoFromSchool = data.motoFromSchool;
+    if (Array.isArray(data.selectedActivities)) selectedActivities = data.selectedActivities;
+    /* Les jours fériés sont des dates, une semaine chacun. Les vieux
+       profils portaient des jours de semaine répétés chaque semaine :
+       ils ne sont plus repris — la page Jours fériés repart à vide. */
+    if (data.holidayDates && typeof data.holidayDates === 'object') holidayDates = data.holidayDates;
+    if (data.holidayDroppedDates && typeof data.holidayDroppedDates === 'object') holidayDroppedDates = data.holidayDroppedDates;
+    if (typeof data.sameFreeTime === 'boolean') sameFreeTime = data.sameFreeTime;
+    if (data.freeTimeMinutes != null) freeTimeMinutes = Math.min(180, Math.max(0, Number(data.freeTimeMinutes) || 0));
+    if (data.freeTimeByDay && typeof data.freeTimeByDay === 'object') {
+        for (var jour = 0; jour < 7; jour++) {
+            var brut = data.freeTimeByDay[jour] != null ? data.freeTimeByDay[jour] : data.freeTimeByDay[String(jour)];
+            freeTimeByDay[jour] = Math.min(180, Math.max(0, Number(brut) || 0));
+        }
+    }
+    memoireAppliquerSommeil(data);
+    if (typeof appliquerHabitudes === 'function') appliquerHabitudes(data);
+    if (Array.isArray(data.phoneDays)) phoneDays = data.phoneDays;
+    if (typeof data.samePhoneDuration === 'boolean') samePhoneDuration = data.samePhoneDuration;
+    if (data.phoneDuration) phoneDuration = data.phoneDuration;
+    if (data.phoneDayDurations && typeof data.phoneDayDurations === 'object') phoneDayDurations = data.phoneDayDurations;
+    if (!window.__jourCourantPose && typeof indexJourCourant === 'function') selectedDay = indexJourCourant();
+    if (typeof currentMood !== 'undefined' && data.currentMood) currentMood = data.currentMood;
+    if (data.profilComplet) window.__profilComplet = true;
+    if (data.joursConnectes != null) {
+        var joursLocaux = parseInt(localStorage.getItem('studyPlanIB_joursConnectes') || '0', 10);
+        if (!isFinite(joursLocaux) || joursLocaux < 0) joursLocaux = 0;
+        var joursSauves = Number(data.joursConnectes) || 0;
+        if (joursSauves > joursLocaux) {
+            try {
+                localStorage.setItem('studyPlanIB_joursConnectes', String(joursSauves));
+                if (data.dernierJour) localStorage.setItem('studyPlanIB_dernierJour', data.dernierJour);
+            } catch (e) {}
+        }
+    }
+    if (Array.isArray(data.iaDocs) && data.iaDocs.length && data.userName) {
+        var cleDocs = 'ia-docs-' + String(data.userName).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').slice(0, 80);
+        try {
+            var docsDeja = JSON.parse(localStorage.getItem(cleDocs) || '[]');
+            var docsMap = {};
+            [].concat(Array.isArray(docsDeja) ? docsDeja : [], data.iaDocs).forEach(function (doc) {
+                if (doc && doc.nom) docsMap[doc.nom] = doc;
+            });
+            localStorage.setItem(cleDocs, JSON.stringify(Object.keys(docsMap).map(function (k) { return docsMap[k]; }).slice(-4)));
+        } catch (e) {}
+    }
+
+    if (data.modifsSemaine && data.modifsSemaine.semaine && Array.isArray(data.modifsSemaine.events)) {
+        try {
+            var archiveLocale = JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null');
+            if (!archiveLocale || !archiveLocale.events || archiveLocale.events.length < data.modifsSemaine.events.length) {
+                localStorage.setItem('studyPlanIB_modifsSemaine', JSON.stringify(data.modifsSemaine));
+            }
+        } catch (e) {}
+    }
+    var filtrer = function (liste, nom) {
+        return typeof syncFiltrer === 'function' ? syncFiltrer(liste, nom, registre) : liste;
+    };
+    if (depuisCompte && Array.isArray(data.customEvents)) customEvents = filtrer(data.customEvents, 'customEvents');
+    else if (!depuisCompte) {
+        var events = memoireJson('studyPlanIB_customEvents_juliss');
+        if (Array.isArray(events)) customEvents = filtrer(events, 'customEvents');
+        else if (Array.isArray(data.customEvents)) customEvents = filtrer(data.customEvents, 'customEvents');
+    }
+
+    if (depuisCompte && typeof emploiScolaireEcrire === 'function') {
+        /* L'emploi du temps scolaire revient avec le compte. */
+        /* Les cours sont fusionnés par identifiant : ceux de l'appareil ne sont
+           plus écrasés (ET-16). */
+        if (data.emploiScolaire && data.emploiScolaire.jours && typeof syncFusionnerEmploi === 'function') {
+            try {
+                var emploiFusionne = syncFusionnerEmploi(emploiScolaireLire(), data.emploiScolaire, registre);
+                emploiScolaireEcrire(emploiFusionne, { brut: true });
+                syncRecaler('cours', syncAplatirCours(emploiScolaireLire()));
+            } catch (e) {}
+        } /* Une ancienne copie sans champ emploiScolaire ne doit pas effacer les cours locaux. */
+    }
+    if (depuisCompte && data.devoirsStore && typeof devoirsEcrireStore === 'function' && typeof devoirsLireStore === 'function') {
+        /* Les devoirs, les examens et la réponse au bac national reviennent
+           avec le compte, fusionnés par identifiant (DE-25). */
+        var recu = data.devoirsStore;
+        if (recu && typeof recu === 'object') {
+            var actuel = devoirsLireStore();
+            var fusion = typeof syncFusionnerStore === 'function'
+                ? syncFusionnerStore(actuel, recu, registre)
+                : null;
+            devoirsEcrireStore({
+                bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
+                bacDemande: recu.bacDemande === 2 ? 2 : actuel.bacDemande,
+                devoirs: fusion ? fusion.devoirs : (Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs),
+                examens: fusion ? fusion.examens : (Array.isArray(recu.examens) ? recu.examens : actuel.examens)
+            }, { brut: true });
+            if (fusion) {
+                syncRecaler('devoirs', fusion.devoirs);
+                syncRecaler('examens', fusion.examens);
+            }
+        }
+    }
+    if (typeof syncFocusAppliquer === 'function' && depuisCompte && data.focusReglages) syncFocusAppliquer(data.focusReglages);
+    if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
+    else if (!depuisCompte) {
+        var exos = memoireJson('studyPlanIB_exercices');
+        if (Array.isArray(exos) && typeof exercices !== 'undefined') exercices = filtrer(exos, 'exercices');
+        else if (Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
+    }
+    if (depuisCompte) memoireEcrireMiroir(customEvents, typeof exercices !== 'undefined' ? exercices : []);
+    if (data.emploiFige && typeof data.emploiFige === 'object' && Array.isArray(data.emploiFige.jours)) {
+        emploiFige = memoireSansSommeilFige(data.emploiFige);
+    }
+    if (typeof verrouillerSujetsChoisis === 'function') {
+        try { verrouillerSujetsChoisis(); } catch (e) {}
+    }
+    if (depuisCompte && data.modifsSemaine && typeof data.modifsSemaine === 'object') memoireAdopterArchive(data.modifsSemaine);
+    if (typeof reporterModificationsSemaine === 'function') {
+        try {
+            if (reporterModificationsSemaine() && typeof emploiFige !== 'undefined') emploiFige = null;
+        } catch (e) {}
+    }
+
+    memoireSyncChamps();
+}
+
+/* Le sommeil de base n'est jamais restauré tel quel : un jour du planning figé qui contient un
+   coucher est laissé vide (null) et recalculé à partir des réglages de sommeil et de réveil
+   (genererJourBrut). Les autres jours restent figés. */
+function memoireSansSommeilFige(fige) {
+    if (!fige || !Array.isArray(fige.jours)) return fige;
+    var copie;
+    try { copie = JSON.parse(JSON.stringify(fige)); } catch (e) { return fige; }
+    copie.jours = copie.jours.map(function (jour) {
+        if (!Array.isArray(jour)) return jour;
+        var avecSommeil = jour.some(function (ev) { return ev && (ev.id === 'sleep' || ev.type === 'sleep'); });
+        return avecSommeil ? null : jour;
+    });
+    return copie;
+}
+
+function memoireEcrireMiroir(events, exos) {
+    try {
+        localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(events || []));
+        localStorage.setItem('studyPlanIB_exercices', JSON.stringify(exos || []));
+    } catch (e) {}
+}
+
+function memoireReinitialiser() {
+    /* Ce qui était en attente est daté avant d'être vidé ; le vidage lui-même
+       n'est pas une suppression (lot 9). */
+    if (typeof syncPreparer === 'function') syncPreparer();
+    userName = '';
+    targetScore = 40;
+    weekdayWakeup = '06:00';
+    saturdayWakeup = '07:00';
+    sundayWakeup = '08:00';
+    if (typeof setSleepHours === 'function') {
+        setSleepHours('weekday', 8);
+        setSleepHours('saturday', 8);
+        setSleepHours('sunday', 8);
+    } else {
+        weekdaySleepHours = 8;
+        saturdaySleepHours = 8;
+        sundaySleepHours = 8;
+    }
+    if (typeof sommeilChoisiLe !== 'undefined') sommeilChoisiLe = '';
+    subjects = [];
+    optionalSubjects = [];
+    if (typeof emploiFige !== 'undefined') emploiFige = null;
+    if (typeof ibYear !== 'undefined') ibYear = '';
+    if (typeof memoirLevel !== 'undefined') memoirLevel = '';
+    if (typeof iaLevel !== 'undefined') iaLevel = '';
+    if (typeof iaLevels !== 'undefined') iaLevels = {};
+    if (typeof memoirPlan !== 'undefined') memoirPlan = [];
+    if (typeof iaPlans !== 'undefined') iaPlans = {};
+    if (typeof eeVus !== 'undefined') eeVus = {};
+    if (typeof eeDemandes !== 'undefined') eeDemandes = {};
+    if (typeof transportMode !== 'undefined') transportMode = '';
+    carDeparture = '07:30';
+    carToSchool = 30;
+    carFromSchool = 40;
+    motoDeparture = '07:30';
+    motoReturn = '17:00';
+    motoToSchool = 25;
+    motoFromSchool = 25;
+    selectedActivities = [];
+    holidayDates = {};
+    holidayDroppedDates = {};
+    sameFreeTime = true;
+    freeTimeMinutes = 60;
+    freeTimeByDay = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
+    phoneDays = [0, 1, 2, 3, 4, 5, 6];
+    samePhoneDuration = true;
+    phoneDuration = 60;
+    phoneDayDurations = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };
+    selectedDay = 0;
+    window.__jourCourantPose = false;
+    window.__jourCourantCle = '';
+    customEvents = [];
+    try { localStorage.removeItem('studyPlanIB_modifsSemaine'); } catch (e) {}
+    if (typeof exercices !== 'undefined') exercices = [];
+    if (typeof currentMood !== 'undefined') currentMood = null;
+    window.__profilComplet = false;
+    if (typeof syncRemettreAZero === 'function') syncRemettreAZero();
+    memoireEcrireMiroir([], []);
+    memoireSyncChamps();
+}
+
+function memoireFermerVues() {
+    document.querySelectorAll('.context-modal').forEach(function (el) { el.classList.remove('active'); });
+    document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+}
+
+function memoireFermerCouches() {
+    if (typeof closeSideMenu === 'function') {
+        try { closeSideMenu(); } catch (e) {}
+    }
+    if (typeof fermerCompte === 'function') {
+        try { fermerCompte(); } catch (e) {}
+    }
+    if (typeof closeAddModal === 'function') {
+        try { closeAddModal(); } catch (e) {}
+    }
+    if (typeof closeEditModal === 'function') {
+        try { closeEditModal(); } catch (e) {}
+    }
+    if (typeof v3ClosePomodoro === 'function') {
+        try { v3ClosePomodoro(); } catch (e) {}
+    }
+}
+
+function memoireAller(etape) {
+    if (!etape || etape === 'accueil') {
+        memoireFermerVues();
+        return;
+    }
+    if (etape === 'travaux') etape = 'transport';
+    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin') {
+        /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
+           l'écran de classe ne doit jamais barrer leur route. */
+        if (etape !== 'seances' && etape !== 'pomodoro' &&
+            typeof demanderClasseSiBesoin === 'function' && demanderClasseSiBesoin()) return;
+        document.querySelectorAll('.context-modal').forEach(function (el) {
+            if (el.id !== 'planningModal') el.classList.remove('active');
+        });
+        var planning = document.getElementById('planningModal');
+        if (planning && !planning.classList.contains('active') && typeof generatePlanning === 'function') generatePlanning();
+        else if (planning) planning.classList.add('active');
+        if (etape === 'planning') {
+            document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+        } else if (typeof navigateTo === 'function') navigateTo(etape);
+        return;
+    }
+    memoireFermerVues();
+    var cibles = {
+        prenom: 'contextModal',
+        objectif: 'objectivesModal',
+        sommeil: 'sleepModal',
+        habitudes: 'habitsModal',
+        classe: 'classeModal',
+        matieres: 'subjectsModal',
+        travaux: 'travauxModal',
+        transport: 'transportModal',
+        voiture: 'carConfigModal',
+        moto: 'motoConfigModal',
+        activites: 'activitiesModal',
+        feries: 'holidaysModal',
+        libre: 'freeTimeModal',
+        ecran: 'screenTimeModal'
+    };
+    if (etape === 'matieres' && typeof showClassePage === 'function' && typeof ibYear !== 'undefined' && ibYear !== 'DP1' && ibYear !== 'DP2') {
+        classeRetour = '';
+        showClassePage();
+        return;
+    }
+    var el = document.getElementById(cibles[etape] || '');
+    if (el) el.classList.add('active');
+    try {
+        if (etape === 'objectif') updateScoreUI();
+        if (etape === 'sommeil') updateBedtimes();
+        if (etape === 'habitudes' && typeof renderHabitudes === 'function') renderHabitudes();
+        if (etape === 'classe' && typeof renderClasse === 'function') renderClasse();
+        if (etape === 'matieres') updateSubjectsUI();
+        if (etape === 'travaux' && typeof renderTravaux === 'function') renderTravaux();
+        if (etape === 'voiture') updateCarPrepTime();
+        if (etape === 'moto') updateMotoPrepTime();
+        if (etape === 'activites') renderActivities();
+        if (etape === 'feries' && typeof renderHolidays === 'function') renderHolidays();
+        if (etape === 'libre' && typeof renderFreeTime === 'function') renderFreeTime();
+        if (etape === 'ecran') renderScreenTime();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+var memoireNavPret = false;
+var memoireNavSilence = false;
+
+function memoireEtapeConnue(etape) {
+    var connues = {
+        accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
+        travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
+        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
+        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1,
+        seances: 1, pomodoro: 1
+    };
+    return !!connues[etape];
+}
+
+function memoirePoserHash(etape) {
+    var id = memoireEtapeConnue(etape) ? etape : 'accueil';
+    var next = '#' + id;
+    var state = { app: 'studyplan', etape: id };
+    var url = location.pathname + location.search + next;
+    var courant = history.state && history.state.app === 'studyplan' ? history.state.etape : '';
+    try {
+        if (courant === id && (location.hash === next || location.hash === '#' + id)) return;
+        if (!memoireNavPret || memoireNavSilence) {
+            history.replaceState(state, '', url);
+            return;
+        }
+        history.pushState(state, '', url);
+    } catch (e) {}
+}
+
+function memoireDepuisHistorique(etape) {
+    if (!memoireEtapeConnue(etape)) etape = memoireEtapeHash() || 'accueil';
+    if (!memoireEtapeConnue(etape)) etape = 'accueil';
+    memoireNavSilence = true;
+    try {
+        memoireFermerCouches();
+        memoireAller(etape);
+        if (memoireEtapeActive() !== etape && etape !== 'accueil') memoireAller(etape);
+    } catch (e) {
+        console.error(e);
+    }
+    try { memoireSauvegarder(); } catch (e) {}
+    memoireNavSilence = false;
+}
+
+function memoireEtapeHash() {
+    return decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
+}
+
+function memoirePagePrecedente(etape) {
+    if (etape === 'activites') {
+        if (typeof transportMode !== 'undefined' && transportMode === 'voiture') return 'voiture';
+        if (typeof transportMode !== 'undefined' && transportMode === 'moto') return 'moto';
+        return 'transport';
+    }
+    var prec = {
+        prenom: 'accueil',
+        classe: 'prenom',
+        objectif: 'classe',
+        matieres: 'objectif',
+        sommeil: 'matieres',
+        habitudes: 'sommeil',
+        transport: 'habitudes',
+        voiture: 'transport',
+        moto: 'transport',
+        ecran: 'activites',
+        libre: 'ecran',
+        emploi: 'libre',
+        planning: 'emploi',
+        soutien: 'planning',
+        exercices: 'planning',
+        legende: 'planning',
+        eeia: 'planning',
+        feries: 'planning',
+        seances: 'planning',
+        pomodoro: 'seances',
+        aide: 'planning',
+        feedback: 'planning',
+        annonce: 'planning',
+        admin: 'planning',
+        retours: 'planning',
+        questions: 'planning',
+        emplois: 'planning'
+    };
+    return prec[etape] || '';
+}
+
+function memoireHistoriqueSemer(etape) {
+    var chaine = [];
+    var garde = {};
+    var cur = memoireEtapeConnue(etape) ? etape : 'accueil';
+    while (cur && !garde[cur]) {
+        chaine.unshift(cur);
+        garde[cur] = true;
+        cur = memoirePagePrecedente(cur);
+    }
+    if (!chaine.length || chaine[0] !== 'accueil') chaine.unshift('accueil');
+    var i;
+    for (i = 0; i < chaine.length; i++) {
+        var id = chaine[i];
+        var url = location.pathname + location.search + '#' + id;
+        var state = { app: 'studyplan', etape: id };
+        if (i === 0) history.replaceState(state, '', url);
+        else history.pushState(state, '', url);
+    }
+}
+
+/* L'écran affiché est noté dès qu'il change, sans attendre la sauvegarde
+   périodique : un rechargement juste après un « Retour » ou un « Continuer »
+   doit rouvrir l'écran affiché, et non l'écran d'avant. */
+function memoireNoterEtape(etape) {
+    if (!memoirePret || !etape) return;
+    try {
+        var data = memoireJson(MEMOIRE_KEY);
+        if (!data || typeof data !== 'object') {
+            if (etape === 'accueil') return;
+            data = { v: 1, etape: etape };
+        } else if (data.etape === etape) {
+            return;
+        } else {
+            data.etape = etape;
+        }
+        localStorage.setItem(MEMOIRE_KEY, JSON.stringify(data));
+    } catch (e) {}
+}
+
+function memoireHistoriqueActiver() {
+    memoireNavSilence = true;
+    try { memoireHistoriqueSemer(memoireEtapeActive()); } catch (e) { memoirePoserHash(memoireEtapeActive()); }
+    memoireNavPret = true;
+    memoireNavSilence = false;
+    if (window.__memoireHistorique) return;
+    window.__memoireHistorique = true;
+    window.addEventListener('popstate', function () {
+        var etape = (history.state && history.state.etape) || memoireEtapeHash() || 'accueil';
+        memoireDepuisHistorique(etape);
+    });
+    window.addEventListener('hashchange', function () {
+        var etape = memoireEtapeHash();
+        if (!etape || etape === memoireEtapeActive()) return;
+        if (history.state && history.state.etape === etape) return;
+        memoireDepuisHistorique(etape);
+    });
+    window.addEventListener('pageshow', function (ev) {
+        if (!ev.persisted || !memoireNavPret) return;
+        memoireDepuisHistorique((history.state && history.state.etape) || memoireEtapeHash() || memoireEtapeActive());
+    });
+    var racine = document.getElementById('app-pages') || document.body;
+    if (racine && window.MutationObserver) {
+        var attente = null;
+        var obs = new MutationObserver(function () {
+            if (attente) clearTimeout(attente);
+            attente = setTimeout(function () {
+                attente = null;
+                if (!memoireNavPret || memoireNavSilence) return;
+                var etapeAffichee = memoireEtapeActive();
+                memoirePoserHash(etapeAffichee);
+                memoireNoterEtape(etapeAffichee);
+            }, 30);
+        });
+        obs.observe(racine, { subtree: true, attributes: true, attributeFilter: ['class'] });
+    }
+}
+
+function memoireMajIndicateur() {
+    var btn = document.getElementById('btnCommencer');
+    if (btn && window.__profilComplet) {
+        btn.textContent = 'Reprendre';
+        btn.onclick = function () { memoireAller('planning'); };
+    }
+}
+
+function memoireSauvegarder() {
+    if (!memoirePret) return;
+    try {
+        var data = memoireLireEtat();
+        var json = JSON.stringify(data);
+        /* savedAt est recalculé à chaque lecture : il ne doit pas faire croire à un changement, sinon
+           chaque sauvegarde relance l'envoi vers le nuage et l'écoute des autres appareils ne s'applique jamais. */
+        var sansDate = JSON.stringify(Object.assign({}, data, { savedAt: '' }));
+        if (sansDate === memoireDernier) return;
+        memoireDernier = sansDate;
+        localStorage.setItem(MEMOIRE_KEY, json);
+        localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(data.customEvents || []));
+        localStorage.setItem('studyPlanIB_exercices', JSON.stringify(data.exercices || []));
+        if (window.compteSession && window.compteSession.sub) {
+            var canon = typeof compteCanonique === 'function' ? (compteCanonique(window.compteSession.sub) || window.compteSession.sub) : window.compteSession.sub;
+            var cleLie = MEMOIRE_KEY + ':' + canon;
+            var ancienLie = memoireJson(cleLie);
+            var garder = typeof compteDoitGarderLie === 'function' && compteDoitGarderLie(ancienLie, data);
+            /* Retrait volontaire d'un profil terminé : la copie et la fiche suivent. */
+            if (garder && typeof compteRichesseLibre === 'function' && compteRichesseLibre(data)) garder = false;
+            var dataSub = data.google && (data.utilisateurId || data.google.sub);
+            if (!garder && dataSub && typeof compteMemeCompte === 'function' && !compteMemeCompte(dataSub, canon)) garder = true;
+            if (!garder) localStorage.setItem(cleLie, json);
+            if (!garder && typeof compteLierCompte === 'function') {
+                compteLierCompte(window.compteSession, data.userName || '', {
+                    definir: !!(data.profilComplet && data.userName && !window.compteRestaurationEnCours)
+                });
+            }
+            if (!garder && typeof compteNuagePlanifier === 'function') compteNuagePlanifier();
+            if (!garder && typeof compteProgressionPlanifier === 'function') compteProgressionPlanifier();
+        }
+        if (typeof compteArchiverProgression === 'function') compteArchiverProgression(data);
+        memoirePoserHash(data.etape);
+        memoireMajIndicateur();
+        if (typeof boiteApresMemoire === 'function') boiteApresMemoire();
+        if (typeof planningActualiser === 'function') planningActualiser();
+    } catch (e) {
+        console.error('Mémoire', e);
+    }
+}
+
+function memoireCleDuCompte(cle, sub) {
+    if (!cle) return false;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle.indexOf(sub) !== -1;
+}
+
+function memoireEffacerSuite() {
+    memoirePret = false;
+    window.__profilComplet = false;
+    var sub = (window.compteSession && window.compteSession.sub) || (window.compteProprietaire && window.compteProprietaire.sub) || '';
+    var emailEfface = '';
+    try { emailEfface = String((window.compteSession && window.compteSession.email) || '').trim().toLowerCase(); } catch (e) {}
+    window.compteSession = null;
+    window.compteProprietaire = null;
+    if (window.google && google.accounts && google.accounts.id) {
+        try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    }
+    var client = '';
+    try { client = localStorage.getItem('studyPlanIB_googleClientId') || ''; } catch (e) {}
+    var cles = [];
+    var i;
+    try {
+        for (i = 0; i < localStorage.length; i++) cles.push(localStorage.key(i));
+        cles.forEach(function (cle) {
+            if (!cle || cle.indexOf('studyPlanIB_') !== 0 || cle === 'studyPlanIB_googleClientId' || cle === 'studyPlanIB_identites') return;
+            if (sub) {
+                if (memoireCleDuCompte(cle, sub) || (emailEfface && cle === 'studyPlanIB_archive:mail-' + emailEfface)) localStorage.removeItem(cle);
+                return;
+            }
+            if (cle.indexOf('studyPlanIB_profil:') === 0 || cle.indexOf('studyPlanIB_driveFileId:') === 0) return;
+            if (cle.indexOf('studyPlanIB_sauvegarde:') === 0 && cle !== 'studyPlanIB_sauvegarde:locale') return;
+            localStorage.removeItem(cle);
+        });
+        if (client) localStorage.setItem('studyPlanIB_googleClientId', client);
+        if (sub && typeof compteOublierNom === 'function') compteOublierNom(sub);
+    } catch (e) {}
+    try { sessionStorage.clear(); } catch (e) {}
+    var propre = location.pathname.replace(/index\.html$/, '');
+    location.replace(propre + location.search);
+}
+
+function memoireEffacer() {
+    confirmerAction({
+        titre: 'Effacer la progression de cet appareil ?',
+        detail: 'Ton profil et les données enregistrées sur cet appareil seront supprimés. Cette action est irréversible.',
+        action: 'Effacer ma progression',
+        confirmer: memoireEffacerConfirme
+    });
+}
+
+function memoireEffacerConfirme() {
+    /* Pendant l'effacement, plus rien n'écrit les données : sinon la sauvegarde
+       de la page qui se ferme les remettrait au rechargement. */
+    window.__effacementEnCours = true;
+    var local = Promise.resolve();
+    if (typeof sauvegardeEffacerLocal === 'function') {
+        try { local = Promise.resolve(sauvegardeEffacerLocal()); } catch (e) {}
+    }
+    var nuage = typeof compteNuageEffacer === 'function' ? Promise.resolve(compteNuageEffacer()) : Promise.resolve();
+    /* Fiches d'emploi du temps retirées de la vue admin (gardées dans la base).
+       Lancé avant la fin de la session, qui vide l'identité locale. */
+    var fiches = typeof compteMasquerFichesEleve === 'function' ? Promise.resolve(compteMasquerFichesEleve()) : Promise.resolve();
+    var fait = false;
+    var fin = function () {
+        if (fait) return;
+        fait = true;
+        memoireEffacerSuite();
+    };
+    setTimeout(fin, 15000);
+    Promise.all([local.catch(function () {}), nuage.catch(function () {}), fiches.catch(function () {})]).then(fin, fin);
+}
+
+function memoireBrancher(nom) {
+    var fn = window[nom];
+    if (typeof fn !== 'function' || fn.__memoire) return;
+    var wrapped = function () {
+        var resultat = fn.apply(this, arguments);
+        memoireSauvegarder();
+        return resultat;
+    };
+    wrapped.__memoire = true;
+    window[nom] = wrapped;
+}
+
+function memoireDemarrer() {
+    var data = memoireJson(MEMOIRE_KEY);
+    var aRestaurer = !!(data && (data.userName || data.profilComplet || (data.etape && data.etape !== 'accueil')));
+    if (aRestaurer) {
+        memoireAppliquer(data);
+        if (data.google && data.google.sub && !window.compteSession) window.compteSession = data.google;
+    }
+    memoirePret = true;
+    /* Point de départ de la synchronisation : ce qui est chargé maintenant n'est pas une modification (lot 9). */
+    if (typeof syncRecalerMemoire === 'function') syncRecalerMemoire();
+    if (aRestaurer) {
+        var etape = data.etape || 'accueil';
+        try {
+            var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
+            if (hash === 'pomodoro') etape = 'pomodoro';
+            else if (hash === 'seances') etape = 'seances';
+        } catch (e) {}
+        if (etape === 'pomodoro') {
+            window.__memoirePomodoroEnAttente = true;
+        } else {
+            try { memoireAller(etape); } catch (e) { console.error(e); }
+        }
+    }
+    [
+        'handleContinue', 'validateObjective', 'validateSleep', 'validateHabits', 'showHabitsPage', 'setIbYear', 'validateClasse', 'validateSubjects',
+        'selectTransport', 'saveCarConfig', 'saveMotoConfig', 'goToScreenTime',
+        'generatePlanning', 'toggleActivity', 'addCustomActivity', 'removeActivity',
+        'toggleActivityDay', 'updateActivityTime', 'updateActivityDayTime', 'toggleSameTime',
+        'addOptionalSubject', 'removeOptionalSubject', 'updateSubjectLevel', 'updateSubjectGrade',
+        'setMemoirLevel', 'setIaStage', 'eeChoisirDebut', 'eeChoisirPlan', 'eeChoisirFinal',
+        'eeAjouterPartie', 'eeBasculerPartie', 'eeRetirerPartie', 'eeRepondreValidation',
+        'adjustScore', 'handleScoreInput', 'navigateTo', 'selectDay',
+        'confirmAddStudy', 'confirmAddActivity', 'saveEditedEvent', 'deleteEditedEvent',
+        'saveEditedEventCascade', 'addExercice', 'deleteExo', 'scheduleExo', 'selectMood',
+        'setPhoneDurationValue', 'togglePhoneDay', 'v3ResetDay', 'v3Save',
+        'adjustSleepHours', 'setBedtimeFromInput', 'holidayBasculerDate', 'holidayPoserMode', 'holidayDecocher', 'goToHolidays',
+        'adjustFreeTime', 'setSameFreeTime', 'goToFreeTime'
+    ].forEach(memoireBrancher);
+
+    setInterval(memoireSauvegarder, 1500);
+    window.addEventListener('beforeunload', memoireSauvegarder);
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') memoireSauvegarder();
+    });
+    if (aRestaurer || localStorage.getItem(MEMOIRE_KEY)) memoireMajIndicateur();
+}
+
+try {
+    memoireDemarrer();
+} catch (e) {
+    console.error(e);
+    memoirePret = true;
+}

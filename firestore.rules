@@ -1,0 +1,401 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* Les quatre comptes personnels et le compte de l'équipe. La décision
+       est prise par Firebase Authentication, jamais par le nom saisi sur
+       le site. L'adresse du compte d'équipe n'est pas dans la page. */
+    function estAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && (request.auth.uid in [
+              '116965022060639990571',
+              '110718856042093635641',
+              '107483800962626598897',
+              '108029295239679260667'
+            ]
+            || request.auth.token.email in [
+              'sawadogojuliss@gmail.com',
+              'faridsere86@gmail.com',
+              'ashleytamini10@gmail.com',
+              'rayyanouedraogo87@gmail.com',
+              'ibstudyplan@gmail.com'
+            ]);
+    }
+
+    function messageValide() {
+      return request.resource.data.type is string
+        && request.resource.data.at is string
+        && request.resource.data.id is string
+        && request.resource.data.size() < 80;
+    }
+
+    /* Nouveau format des questions/feedbacks : champs lisibles et
+       groupe technique privé. Les archives à plat restent lisibles,
+       mais plus aucun nouveau document à plat n'est accepté. */
+    function ficheValide(type, champTexte) {
+      return request.resource.data.keys().hasAll([
+               '01_heure_envoi', '02_nom_utilisateur', champTexte,
+               'z_donnees_techniques'
+             ])
+        && request.resource.data.keys().hasOnly([
+             '01_heure_envoi', '02_nom_utilisateur', '03_compte_gmail',
+             champTexte, 'z_donnees_techniques'
+           ])
+        && request.resource.data['01_heure_envoi'] is string
+        && request.resource.data['02_nom_utilisateur'] is string
+        && request.resource.data[champTexte] is string
+        && request.resource.data.z_donnees_techniques is map
+        && request.resource.data.z_donnees_techniques.keys().hasAll([
+             'type', 'at', 'id', 'email_reponse'
+           ])
+        && request.resource.data.z_donnees_techniques.keys().hasOnly([
+             'type', 'at', 'id', 'email_reponse',
+             'google_connecte', 'google_nom'
+           ])
+        && request.resource.data.z_donnees_techniques.type == type
+        && request.resource.data.z_donnees_techniques.at is string
+        && request.resource.data.z_donnees_techniques.id is string
+        && request.resource.data.z_donnees_techniques.email_reponse is string;
+    }
+
+    /* Archives : les anciens documents restent visibles pour les cinq
+       admins. Aucun ancien onglet ne peut plus y écrire de question ou
+       feedback à plat : après actualisation, le site reprend son envoi. */
+    match /boite/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide()
+        && request.resource.data.type in [
+             'profil', 'profilpart', 'connexion', 'reponse'
+           ]
+        && (request.resource.data.type != 'reponse' || estAdmin());
+      allow update: if false;
+      /* Suppression d'une semaine d'emploi depuis la vue admin, admins seulement. */
+      allow delete: if estAdmin() && resource.data.type == 'emploi';
+    }
+
+    /* Une collection par catégorie, avec la même protection serveur.
+       L'élève peut déposer ses données, jamais consulter celles d'autrui. */
+    match /questions/{message} {
+      allow read: if estAdmin();
+      allow create: if ficheValide('question', '04_question');
+      allow update, delete: if false;
+    }
+    match /feedbacks/{message} {
+      allow read: if estAdmin();
+      allow create: if ficheValide('feedback', '04_feedback');
+      allow update, delete: if false;
+    }
+    /* Une fiche par élève, identifiée par son UID (même identifiant que comptes/{uid}
+       et synchronisation/{uid}), remplacée chaque semaine : seul son propriétaire la
+       met à jour. Les admins lisent toutes les fiches ; un compte connecté ne peut
+       vérifier QUE ses propres documents via une requête filtrée par son UID. Jamais
+       de lecture d'emplois d'un autre élève, ni de liste publique. */
+    function emploiValide() {
+      return request.resource.data.keys().hasAll([
+               'type', 'id', 'at', '01_nom_utilisateur', '02_matieres',
+               '03_emploi_du_temps', 'z_donnees_techniques'
+             ])
+        && request.resource.data.keys().hasOnly([
+             'type', 'id', 'at', 'Semaine actuelle', '01_nom_utilisateur', '02_matieres',
+             '03_emploi_du_temps', 'z_donnees_techniques'
+           ])
+        /* Sous-section « Semaine actuelle » (titre du calendrier) : dates de la semaine,
+           mises à jour chaque lundi. Absente des anciennes fiches : elles restent valides. */
+        /* Semaine de la fiche (AAAA-MM-JJ, lundi) et identifiant de l'accusé : absents des anciennes fiches. */
+        && (!('semaine' in request.resource.data.z_donnees_techniques)
+            || (request.resource.data.z_donnees_techniques.semaine is string
+                && request.resource.data.z_donnees_techniques.semaine.size() <= 10))
+        && (!('accuse' in request.resource.data.z_donnees_techniques)
+            || (request.resource.data.z_donnees_techniques.accuse is string
+                && request.resource.data.z_donnees_techniques.accuse.size() <= 60))
+        && (!('Semaine actuelle' in request.resource.data)
+            || (request.resource.data['Semaine actuelle'] is map
+                && request.resource.data['Semaine actuelle'].dates is string
+                && request.resource.data['Semaine actuelle'].debut is string
+                && request.resource.data['Semaine actuelle'].fin is string
+                && request.resource.data['Semaine actuelle'].numero is int
+                && request.resource.data['Semaine actuelle'].annee is int))
+        && request.resource.data.type == 'emploi'
+        && request.resource.data.id is string
+        && request.resource.data.id.size() <= 100
+        && request.resource.data.at is string
+        && request.resource.data.at.size() <= 50
+        && request.resource.data['01_nom_utilisateur'] is string
+        && request.resource.data['01_nom_utilisateur'].size() > 0
+        && request.resource.data['01_nom_utilisateur'].size() <= 80
+        && request.resource.data['02_matieres'] is list
+        && request.resource.data['02_matieres'].size() <= 6
+        && request.resource.data['03_emploi_du_temps'] is map
+        && request.resource.data['03_emploi_du_temps'].size() <= 7
+        && request.resource.data.z_donnees_techniques is map
+        && request.resource.data.z_donnees_techniques.jours is list
+        && request.resource.data.z_donnees_techniques.jours.size() == 7
+        && request.resource.data.z_donnees_techniques.schema == 2
+        && request.resource.data.z_donnees_techniques.complet == 1
+        && request.resource.data.z_donnees_techniques.firebaseUid is string
+        && request.resource.data.z_donnees_techniques.googleSub is string
+        && request.resource.data.z_donnees_techniques.google is string
+        && request.resource.data.z_donnees_techniques.email is string
+        && (request.auth != null
+            ? (request.resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
+               && request.resource.data.z_donnees_techniques.google == request.resource.data.z_donnees_techniques.email
+               && (request.resource.data.z_donnees_techniques.email == ''
+                   || request.resource.data.z_donnees_techniques.email == request.auth.token.email))
+            : (request.resource.data.z_donnees_techniques.firebaseUid == ''
+               && request.resource.data.z_donnees_techniques.googleSub == ''
+               && request.resource.data.z_donnees_techniques.google == ''
+               && request.resource.data.z_donnees_techniques.email == ''));
+    }
+    match /emplois_du_temps/{message} {
+      allow get: if estAdmin() || (request.auth != null
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
+      allow list: if estAdmin() || (request.auth != null
+        && request.query.limit <= 1
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid);
+      /* Création seulement pour soi-même, et seulement si l'administration n'a pas
+         supprimé cette semaine-là (trace par semaine : UID_AAAA-MM-JJ). */
+      allow create: if (request.auth != null
+          && message == request.auth.uid
+          && request.resource.data.z_donnees_techniques.semaine is string
+          && emploiValide()
+          && !exists(/databases/$(database)/documents/suppressions_emplois/$(message + '_' + request.resource.data.z_donnees_techniques.semaine)))
+        /* Élève sans compte Google : identifiant aléatoire, fiche sans UID (comme avant). */
+        || (request.auth == null
+          && emploiValide()
+          && !exists(/databases/$(database)/documents/suppressions_emplois/$(message)));
+      /* Mise à jour de sa propre fiche, à chaque changement et chaque semaine. */
+      allow update: if request.auth != null
+        && message == request.auth.uid
+        && resource.data.z_donnees_techniques.firebaseUid == request.auth.uid
+        && emploiValide();
+      /* Suppression réservée aux cinq admins, depuis le bouton de la vue admin. */
+      allow delete: if estAdmin();
+    }
+    /* Accusé sans nom, UID ni créneaux. Son identifiant est aléatoire : il est rangé
+       dans la fiche privée (z_donnees_techniques.accuse), et seule une écriture atomique
+       de la fiche et de l'accusé peut le créer. Un visiteur peut connaître la réception
+       avec son identifiant, jamais parcourir la collection ni lire la semaine privée. */
+    match /receptions_emplois/{message} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if request.resource.data.keys().hasOnly(['recu'])
+        && request.resource.data.keys().hasAll(['recu'])
+        && request.resource.data.recu == true
+        && !exists(/databases/$(database)/documents/receptions_emplois/$(message))
+        && (
+          (request.auth != null
+            && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid))
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.type == 'emploi'
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.z_donnees_techniques.firebaseUid
+              == request.auth.uid
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(request.auth.uid)).data.z_donnees_techniques.accuse
+              == message)
+          || (request.auth == null
+            && existsAfter(/databases/$(database)/documents/emplois_du_temps/$(message))
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.type == 'emploi'
+            && getAfter(/databases/$(database)/documents/emplois_du_temps/$(message)).data.z_donnees_techniques.firebaseUid == ''));
+      allow update, delete: if false;
+    }
+    /* Trace d'une suppression faite par un admin : la fiche de cette semaine ne
+       peut plus être recréée par l'élève. Lecture par identifiant seulement,
+       jamais de liste. Personne ne peut la modifier ni l'effacer. */
+    match /suppressions_emplois/{message} {
+      /* Lecture par l'élève seulement pour ses propres traces (UID_semaine), et par l'admin. */
+      allow get: if estAdmin() || (request.auth != null && message.split('_')[0] == request.auth.uid);
+      allow list: if false;
+      allow create: if estAdmin()
+        && request.resource.data.keys().hasOnly(['supprime', 'at'])
+        && request.resource.data.supprime == true
+        && request.resource.data.at is string;
+      allow update, delete: if false;
+    }
+
+    /* Les collections de transition restent privées si elles existent.
+       Les nouveaux formulaires ne les utilisent plus. */
+    match /emplois/{message} {
+      allow read: if estAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if estAdmin() && resource.data.type == 'emploi';
+    }
+    match /profils/{message} {
+      allow read: if estAdmin();
+      allow create: if messageValide()
+        && request.resource.data.type in ['profil', 'profilpart'];
+      allow update, delete: if false;
+    }
+    match /connexions/{message} {
+      allow read: if estAdmin();
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type == 'connexion';
+      allow update, delete: if false;
+    }
+    match /reponses/{message} {
+      allow read: if estAdmin();
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type == 'reponse';
+      allow update, delete: if false;
+    }
+
+    /* Annonces et tutoriels : contenu public volontaire. */
+    match /publie/{message} {
+      allow read: if true;
+      allow create: if estAdmin() && messageValide()
+        && request.resource.data.type in ['annonce', 'tutoriel'];
+      allow update, delete: if false;
+    }
+
+    /* Secret mail : les cinq admins seulement ; écriture dans la console. */
+    match /config/{doc} {
+      allow read: if estAdmin();
+      allow write: if false;
+    }
+
+    /* Progression personnelle inchangée : un compte ne lit que la sienne.
+       Ni les autres élèves ni les admins ne lisent comptes/{uid} d'autrui. */
+    match /comptes/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    /* Progression personnelle, dans sa propre collection (séparée de comptes/{uid}).
+       Seul l'élève connecté lit et écrit son document ; personne d'autre, admins compris.
+       Une seule donnée : le texte JSON de sa progression, et l'heure de l'écriture. */
+    match /progressions/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['progression', 'progressionLe'])
+        && request.resource.data.progression is string
+        && request.resource.data.progression.size() <= 900000;
+      allow delete: if false;
+    }
+
+    /* Fiche de l'élève : documents/{uid}, même identifiant que progressions/{uid}.
+       L'élève lit et écrit SA fiche. Les administrateurs la lisent (présentation
+       dans l'espace admin) et ne la modifient jamais. Personne ne la supprime.
+
+       Contenu :
+       - identité : uid, nom, classe, objectif (points IB, 24 à 45)
+       - flammes : flammes, flammeJour, joursConnectes, dernierJour
+       - matières : nbMatieres (nombre) + matieresJson (liste en texte JSON)
+       - activités : nbActivites + activitesJson
+       - exercices et devoirs : nbExercices + exercicesJson, devoirsJson
+       - documents importés : nbDocuments + iaDocs (documents IA, texte JSON),
+         emploiScolaireJson (emploi du temps scolaire importé)
+       - autres réglages modifiés par l'élève : reglagesJson
+       - dates : documentsLe et misAJourLe (heure du serveur)
+       Les listes complexes restent en texte JSON : Firestore refuse les tableaux
+       dans un tableau. Les nombres restent lisibles directement dans la console. */
+    match /documents/{uid} {
+      allow read: if request.auth != null
+        && (request.auth.uid == uid || estAdmin());
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+             'uid', 'nom', 'classe', 'objectif',
+             'flammes', 'flammeJour', 'joursConnectes', 'dernierJour',
+             'nbMatieres', 'matieresJson',
+             'nbActivites', 'activitesJson',
+             'nbExercices', 'exercicesJson', 'devoirsJson',
+             'nbDocuments', 'iaDocs', 'emploiScolaireJson',
+             'reglagesJson',
+             'documentsLe', 'misAJourLe'
+           ])
+        && (!('uid' in request.resource.data) || request.resource.data.uid == uid)
+        && (!('nom' in request.resource.data)
+            || (request.resource.data.nom is string && request.resource.data.nom.size() <= 120))
+        && (!('classe' in request.resource.data)
+            || request.resource.data.classe in ['DP1', 'DP2', ''])
+        && (!('objectif' in request.resource.data)
+            || (request.resource.data.objectif is number
+                && request.resource.data.objectif >= 0
+                && request.resource.data.objectif <= 100))
+        && (!('flammes' in request.resource.data)
+            || (request.resource.data.flammes is number
+                && request.resource.data.flammes >= 0
+                && request.resource.data.flammes <= 100000))
+        && (!('flammeJour' in request.resource.data)
+            || (request.resource.data.flammeJour is string
+                && request.resource.data.flammeJour.size() <= 20))
+        && (!('joursConnectes' in request.resource.data)
+            || (request.resource.data.joursConnectes is number
+                && request.resource.data.joursConnectes >= 0
+                && request.resource.data.joursConnectes <= 1000000))
+        && (!('dernierJour' in request.resource.data)
+            || (request.resource.data.dernierJour is string
+                && request.resource.data.dernierJour.size() <= 20))
+        && (!('nbMatieres' in request.resource.data)
+            || (request.resource.data.nbMatieres is number
+                && request.resource.data.nbMatieres >= 0
+                && request.resource.data.nbMatieres <= 50))
+        && (!('matieresJson' in request.resource.data)
+            || (request.resource.data.matieresJson is string
+                && request.resource.data.matieresJson.size() <= 10000))
+        && (!('nbActivites' in request.resource.data)
+            || (request.resource.data.nbActivites is number
+                && request.resource.data.nbActivites >= 0
+                && request.resource.data.nbActivites <= 100))
+        && (!('activitesJson' in request.resource.data)
+            || (request.resource.data.activitesJson is string
+                && request.resource.data.activitesJson.size() <= 20000))
+        && (!('nbExercices' in request.resource.data)
+            || (request.resource.data.nbExercices is number
+                && request.resource.data.nbExercices >= 0
+                && request.resource.data.nbExercices <= 10000))
+        && (!('exercicesJson' in request.resource.data)
+            || (request.resource.data.exercicesJson is string
+                && request.resource.data.exercicesJson.size() <= 200000))
+        && (!('devoirsJson' in request.resource.data)
+            || (request.resource.data.devoirsJson is string
+                && request.resource.data.devoirsJson.size() <= 100000))
+        && (!('nbDocuments' in request.resource.data)
+            || (request.resource.data.nbDocuments is number
+                && request.resource.data.nbDocuments >= 0
+                && request.resource.data.nbDocuments <= 10))
+        && (!('iaDocs' in request.resource.data)
+            || (request.resource.data.iaDocs is string
+                && request.resource.data.iaDocs.size() <= 60000))
+        && (!('emploiScolaireJson' in request.resource.data)
+            || (request.resource.data.emploiScolaireJson is string
+                && request.resource.data.emploiScolaireJson.size() <= 150000))
+        && (!('reglagesJson' in request.resource.data)
+            || (request.resource.data.reglagesJson is string
+                && request.resource.data.reglagesJson.size() <= 100000))
+        && (!('misAJourLe' in request.resource.data)
+            || request.resource.data.misAJourLe == request.time);
+      allow delete: if false;
+    }
+
+    /* Synchronisation : un seul document par élève, identifiant = son UID.
+       Lu et écrit par lui seul ; jamais listé, jamais public, admins compris.
+       Il pointe vers sa semaine courante dans emplois_du_temps et porte
+       l'indicateur d'effacement qui suit l'élève d'une semaine à l'autre. */
+    match /synchronisation/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+             'uid', 'semaine', 'emploi', 'misAJourLe', 'effaceParEleve', 'effaceLe'
+           ])
+        && request.resource.data.uid == uid
+        && (!('semaine' in request.resource.data) || request.resource.data.semaine is string)
+        && (!('emploi' in request.resource.data) || request.resource.data.emploi is string)
+        && (!('effaceParEleve' in request.resource.data) || request.resource.data.effaceParEleve == true);
+      allow delete: if false;
+
+      /* Historique des synchronisations de l'élève : une entrée par écriture, datée
+         par l'heure du serveur. Lecture par l'élève seulement ; jamais modifiable ni
+         effaçable par lui (la conservation est décidée séparément). */
+      match /historique/{entree} {
+        allow get, list: if request.auth != null && request.auth.uid == uid;
+        allow create: if request.auth != null && request.auth.uid == uid
+          && request.resource.data.keys().hasOnly(['semaine', 'emploi', 'action', 'at'])
+          && request.resource.data.keys().hasAll(['semaine', 'emploi', 'action', 'at'])
+          && request.resource.data.semaine is string
+          && request.resource.data.emploi == uid
+          && request.resource.data.action in ['creation', 'mise_a_jour']
+          && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

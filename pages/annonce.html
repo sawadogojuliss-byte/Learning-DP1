@@ -1,0 +1,56 @@
+<!-- ============================================================
+     PAGE : Annonce
+     Rédaction réservée aux quatre comptes admin.
+     Lecture et boîte mail pour tout le monde.
+     Script : js/pages/annonce.js
+     ============================================================ -->
+<div class="app-panel annonce-public" id="panelAnnonce">
+    <div class="admin-page">
+        <aside class="admin-nav" aria-label="Navigation de l’espace admin">
+            <span class="admin-nav-marque" aria-hidden="true">S</span>
+            <button type="button" class="admin-nav-retour" onclick="navigateTo('planning')" aria-label="Retour au planning" title="Retour au planning"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+            <nav class="admin-nav-liens" aria-label="Sections administrateur">
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('admin')" aria-label="Espace admin" title="Espace admin">🗂️</button>
+                <span class="admin-nav-separation" aria-hidden="true"></span>
+                <button type="button" class="admin-nav-lien admin-nav-prive admin-nav-actif" onclick="navigateTo('annonce')" aria-label="Annonce" title="Annonce" aria-current="page">📣</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('retours')" aria-label="Retour des feedbacks" title="Retour des feedbacks">📬</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('questions')" aria-label="Questions des utilisateurs" title="Questions des utilisateurs">❓</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('emplois')" aria-label="Emplois du temps" title="Emplois du temps">📅</button>
+                <button type="button" class="admin-nav-lien admin-nav-prive" onclick="navigateTo('tutoriel')" aria-label="Tutoriel" title="Tutoriel">▶</button>
+            </nav>
+        </aside>
+        <main class="admin-page-main">
+            <header class="admin-page-entete">
+                <div>
+                    <p class="admin-page-chemin"><span class="admin-page-chemin-admin">ADMINISTRATION / ANNONCE</span><span class="admin-page-chemin-public">STUDYPLAN / ANNONCES</span></p>
+                    <p class="admin-page-surtitre">LE JOURNAL</p>
+                    <h2>Des nouvelles, <em>au bon moment.</em></h2>
+                    <p class="admin-page-sous-titre">Les messages publiés arrivent dans la boîte mail.</p>
+                </div>
+                <span id="annonceBadgePage" class="admin-page-badge" hidden>0</span>
+            </header>
+            <div class="admin-page-annonce">
+                <section id="annonceComposer" class="admin-page-carte" style="display:none;">
+                    <p class="admin-page-surtitre">RÉDIGER</p>
+                    <h3>Nouvelle annonce</h3>
+                    <p style="font-size:0.78rem;color:#6b7280;line-height:1.45;margin:0 0 0.85rem;">Un des quatre administrateurs personnels rédige. Les trois autres lisent et valident avant la publication. Le troisième accord déclenche la publication ou attend l’heure programmée. La distribution des e-mails dépend des adresses connues du site.</p>
+                    <label for="annonceTitre">Titre</label>
+                    <input id="annonceTitre" type="text" maxlength="80" placeholder="Titre de l'annonce">
+                    <label for="annonceTexte">Message</label>
+                    <textarea id="annonceTexte" maxlength="1500" rows="6" placeholder="Écris l'annonce…"></textarea>
+                    <label for="annonceProgramme">Programmer l'envoi (facultatif)</label>
+                    <input id="annonceProgramme" type="datetime-local">
+                    <p class="admin-page-note">Sans date, la publication part après le troisième accord. Avec une date, elle attend cette heure et un passage sur le site. Un brouillon privé ne demande aucun accord.</p>
+                    <div class="annonce-composer-actions"><button type="button" id="annonceNouveau" class="admin-page-actualiser">Nouvelle annonce</button><button type="button" id="annonceGarderBrouillon" class="admin-page-actualiser">Enregistrer un brouillon privé</button><button type="button" id="annonceEnvoi" class="admin-page-actualiser admin-page-primaire">Soumettre aux autres comptes</button></div>
+                    <div id="annonceAnalyse"></div>
+                    <p id="annonceStatut" class="admin-page-statut" role="status" aria-live="polite"></p>
+                </section>
+                <section class="admin-page-carte admin-page-annonces" aria-label="Annonces">
+                    <p class="admin-page-surtitre">HISTORIQUE</p>
+                    <h3>Annonces</h3>
+                    <div id="annonceListe" class="admin-page-liste"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+</div>
