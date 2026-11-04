@@ -199,16 +199,18 @@ function statsPeindreCartes(resume, serie) {
     });
 }
 
-/* Courbe lissée (Catmull-Rom converti en Bézier) des minuteurs de concentration
-   par jour de la semaine. Les jours à venir n'ont pas de point. */
-var STATS_COURBE = { largeur: 640, hauteur: 250, gauche: 40, droite: 600, base: 196, haut: 80 };
+/* Courbe lissée des minuteurs de concentration par jour de la semaine.
+   Graphique compact : une zone dégradée sous la ligne, un point par jour passé,
+   le jour en cours mis en valeur. Les jours à venir n'ont pas de point. */
+var STATS_COURBE = { largeur: 360, hauteur: 150, gauche: 16, droite: 344, haut: 40, base: 120 };
 
 function statsCourbeY(y) {
-    return Math.min(STATS_COURBE.base, Math.max(STATS_COURBE.haut - 12, y));
+    return Math.min(STATS_COURBE.base, Math.max(STATS_COURBE.haut, y));
 }
 
+/* Trajet lissé (Catmull-Rom converti en Bézier), borné entre le haut et la base. */
 function statsTrajet(points) {
-    var d = 'M' + points[0].x + ' ' + points[0].y;
+    var d = 'M' + points[0].x.toFixed(1) + ' ' + points[0].y.toFixed(1);
     for (var i = 0; i < points.length - 1; i++) {
         var p0 = points[i > 0 ? i - 1 : i];
         var p1 = points[i];
@@ -261,13 +263,21 @@ function statsPeindreSemaine(jours) {
         'aria-label': 'Concentration par jour : ' + resume });
     var defs = statsSvg('defs');
     var degrade = statsSvg('linearGradient', { id: 'statsAire', x1: '0', y1: '0', x2: '0', y2: '1' });
-    degrade.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.42' }));
+    degrade.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.28' }));
     degrade.appendChild(statsSvg('stop', { offset: '100%', 'stop-color': '#6ee7b7', 'stop-opacity': '0' }));
     defs.appendChild(degrade);
+    var halo = statsSvg('radialGradient', { id: 'statsHalo' });
+    halo.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.55' }));
+    halo.appendChild(statsSvg('stop', { offset: '100%', 'stop-color': '#6ee7b7', 'stop-opacity': '0' }));
+    defs.appendChild(halo);
     svg.appendChild(defs);
 
+    /* Repères discrets : ligne de base et une ligne médiane pointillée. */
+    var milieu = (c.haut + c.base) / 2;
+    svg.appendChild(statsSvg('line', { x1: c.gauche, y1: milieu, x2: c.droite, y2: milieu,
+        stroke: 'rgba(255,255,255,0.07)', 'stroke-width': '1', 'stroke-dasharray': '2 4' }));
     svg.appendChild(statsSvg('line', { x1: c.gauche, y1: c.base, x2: c.droite, y2: c.base,
-        stroke: 'rgba(255,255,255,0.14)', 'stroke-width': '1.5' }));
+        stroke: 'rgba(255,255,255,0.12)', 'stroke-width': '1' }));
 
     if (passes.length > 1) {
         var trajet = statsTrajet(passes);
@@ -275,29 +285,36 @@ function statsPeindreSemaine(jours) {
         var premierX = passes[0].x;
         svg.appendChild(statsSvg('path', { d: trajet + ' L' + dernierX + ' ' + c.base + ' L' + premierX + ' ' + c.base + ' Z',
             fill: 'url(#statsAire)' }));
-        svg.appendChild(statsSvg('path', { d: trajet, fill: 'none', stroke: '#6ee7b7', 'stroke-width': '3.5',
+        svg.appendChild(statsSvg('path', { d: trajet, fill: 'none', stroke: '#6ee7b7', 'stroke-width': '2.25',
             'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     }
 
+    /* Valeurs : pastille sombre au-dessus de chaque point, bornée aux bords. */
     passes.forEach(function (p) {
-        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: '6', fill: '#04140f', stroke: '#6ee7b7', 'stroke-width': '3' }));
-        /* Valeur sur une pastille sombre, décalée pour rester dans le graphique. */
+        var aujourdhui = p.j.aujourdhui;
+        if (aujourdhui) {
+            svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: '11', fill: 'url(#statsHalo)' }));
+        }
+        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: aujourdhui ? '4.5' : '3.5',
+            fill: aujourdhui ? '#6ee7b7' : '#04140f', stroke: '#6ee7b7', 'stroke-width': '2' }));
+
         var texte = statsDuree(p.j.minutes);
-        var largeur = Math.round(texte.length * 14.5 + 22);
-        var x = Math.max(6, Math.min(c.largeur - 6 - largeur, p.x - largeur / 2));
-        var y = Math.max(8, p.y - 52);
-        svg.appendChild(statsSvg('rect', { x: x, y: y, width: largeur, height: 38, rx: '11',
-            fill: 'rgba(4,20,16,0.9)', stroke: 'rgba(110,231,183,0.35)', 'stroke-width': '1.5' }));
-        var valeur = statsSvg('text', { x: x + largeur / 2, y: y + 27, 'text-anchor': 'middle',
-            fill: '#ffffff', 'font-size': '24', 'font-weight': '700' });
+        var largeur = Math.round(texte.length * 7.4 + 14);
+        var x = Math.max(2, Math.min(c.largeur - 2 - largeur, p.x - largeur / 2));
+        var y = Math.max(0, p.y - 30);
+        svg.appendChild(statsSvg('rect', { x: x, y: y, width: largeur, height: 20, rx: '10',
+            fill: 'rgba(4,20,16,0.88)', stroke: 'rgba(110,231,183,0.28)', 'stroke-width': '1' }));
+        var valeur = statsSvg('text', { x: x + largeur / 2, y: y + 14, 'text-anchor': 'middle',
+            fill: '#ffffff', 'font-size': '11', 'font-weight': '600' });
         valeur.textContent = texte;
         svg.appendChild(valeur);
     });
 
+    /* Jours de la semaine en abscisse. */
     points.forEach(function (p) {
-        var nom = statsSvg('text', { x: p.x, y: c.hauteur - 8, 'text-anchor': 'middle', 'font-size': '24',
-            'font-weight': p.j.aujourdhui ? '700' : '500',
-            fill: p.j.aujourdhui ? '#6ee7b7' : (p.j.futur ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.72)') });
+        var nom = statsSvg('text', { x: p.x, y: c.hauteur - 6, 'text-anchor': 'middle', 'font-size': '11',
+            'font-weight': p.j.aujourdhui ? '700' : '500', 'letter-spacing': '0.4',
+            fill: p.j.aujourdhui ? '#6ee7b7' : (p.j.futur ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.62)') });
         nom.textContent = p.j.nom;
         svg.appendChild(nom);
     });

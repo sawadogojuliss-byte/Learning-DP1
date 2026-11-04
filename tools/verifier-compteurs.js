@@ -113,7 +113,7 @@ ok(iStyle !== -1 && iCompteurs > iStyle && iAffichage > iCompteurs, 'la carte Co
 ['focusCompteur', 'focusCompteurNom', 'focusCompteurBouton', 'focusCompteurListe', 'focusCompteurStatique', 'focusCompteurDynamique'].forEach((id) => {
     ok(html.indexOf('id="' + id + '"') !== -1, 'élément manquant : ' + id);
 });
-ok(html.indexOf('id="focusTache"') < html.indexOf('id="focusCompteur"') && html.indexOf('id="focusCompteur"') < html.indexOf('class="focus-modes"'), 'le compteur doit être sous la question « Sur quoi veux-tu te concentrer ? », au-dessus des modes');
+ok(html.indexOf('class="focus-modes"') < html.indexOf('id="focusCompteur"') && html.indexOf('id="focusCompteur"') < html.indexOf('id="focusTime"'), 'le compteur doit être juste sous la rangée CONCENTRATION / PAUSE, au-dessus du temps');
 ok(parametres.indexOf('focusCompteurTuile') !== -1 && parametres.indexOf('focusMarquerCompteurs') !== -1, 'les grilles et la sélection des compteurs doivent être branchées');
 ok(minuteur.indexOf('focusPeindreCompteur()') !== -1, 'le minuteur doit peindre son compteur');
 ok(registre.indexOf("'js/pages/minuteur-compteurs.js'") !== -1, 'minuteur-compteurs.js doit être dans le registre');
