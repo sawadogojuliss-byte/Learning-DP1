@@ -263,21 +263,10 @@ function statsPeindreSemaine(jours) {
         'aria-label': 'Concentration par jour : ' + resume });
     var defs = statsSvg('defs');
     var degrade = statsSvg('linearGradient', { id: 'statsAire', x1: '0', y1: '0', x2: '0', y2: '1' });
-    degrade.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.28' }));
+    degrade.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.5' }));
     degrade.appendChild(statsSvg('stop', { offset: '100%', 'stop-color': '#6ee7b7', 'stop-opacity': '0' }));
     defs.appendChild(degrade);
-    var halo = statsSvg('radialGradient', { id: 'statsHalo' });
-    halo.appendChild(statsSvg('stop', { offset: '0%', 'stop-color': '#6ee7b7', 'stop-opacity': '0.55' }));
-    halo.appendChild(statsSvg('stop', { offset: '100%', 'stop-color': '#6ee7b7', 'stop-opacity': '0' }));
-    defs.appendChild(halo);
     svg.appendChild(defs);
-
-    /* Repères discrets : ligne de base et une ligne médiane pointillée. */
-    var milieu = (c.haut + c.base) / 2;
-    svg.appendChild(statsSvg('line', { x1: c.gauche, y1: milieu, x2: c.droite, y2: milieu,
-        stroke: 'rgba(255,255,255,0.07)', 'stroke-width': '1', 'stroke-dasharray': '2 4' }));
-    svg.appendChild(statsSvg('line', { x1: c.gauche, y1: c.base, x2: c.droite, y2: c.base,
-        stroke: 'rgba(255,255,255,0.12)', 'stroke-width': '1' }));
 
     if (passes.length > 1) {
         var trajet = statsTrajet(passes);
@@ -285,28 +274,19 @@ function statsPeindreSemaine(jours) {
         var premierX = passes[0].x;
         svg.appendChild(statsSvg('path', { d: trajet + ' L' + dernierX + ' ' + c.base + ' L' + premierX + ' ' + c.base + ' Z',
             fill: 'url(#statsAire)' }));
-        svg.appendChild(statsSvg('path', { d: trajet, fill: 'none', stroke: '#6ee7b7', 'stroke-width': '2.25',
+        svg.appendChild(statsSvg('path', { d: trajet, fill: 'none', stroke: '#6ee7b7', 'stroke-width': '2.5',
             'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     }
 
-    /* Valeurs : pastille sombre au-dessus de chaque point, bornée aux bords. */
+    /* Points simples ; valeur écrite en clair au-dessus de chaque point. */
     passes.forEach(function (p) {
-        var aujourdhui = p.j.aujourdhui;
-        if (aujourdhui) {
-            svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: '11', fill: 'url(#statsHalo)' }));
-        }
-        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: aujourdhui ? '4.5' : '3.5',
-            fill: aujourdhui ? '#6ee7b7' : '#04140f', stroke: '#6ee7b7', 'stroke-width': '2' }));
-
-        var texte = statsDuree(p.j.minutes);
-        var largeur = Math.round(texte.length * 7.4 + 14);
-        var x = Math.max(2, Math.min(c.largeur - 2 - largeur, p.x - largeur / 2));
-        var y = Math.max(0, p.y - 30);
-        svg.appendChild(statsSvg('rect', { x: x, y: y, width: largeur, height: 20, rx: '10',
-            fill: 'rgba(4,20,16,0.88)', stroke: 'rgba(110,231,183,0.28)', 'stroke-width': '1' }));
-        var valeur = statsSvg('text', { x: x + largeur / 2, y: y + 14, 'text-anchor': 'middle',
-            fill: '#ffffff', 'font-size': '11', 'font-weight': '600' });
-        valeur.textContent = texte;
+        svg.appendChild(statsSvg('circle', { cx: p.x, cy: p.y, r: p.j.aujourdhui ? '4.5' : '3.5', fill: '#6ee7b7' }));
+        /* Libellé au-dessus et décalé à droite : il ne croise pas la ligne qui descend vers le point. */
+        var aDroite = p.x > c.largeur - 60;
+        var valeur = statsSvg('text', { x: aDroite ? p.x - 7 : p.x + 7, y: Math.max(14, p.y - 9),
+            'text-anchor': aDroite ? 'end' : 'start',
+            fill: 'rgba(255,255,255,0.86)', 'font-size': '11', 'font-weight': p.j.aujourdhui ? '700' : '500' });
+        valeur.textContent = statsDuree(p.j.minutes);
         svg.appendChild(valeur);
     });
 
