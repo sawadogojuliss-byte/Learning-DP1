@@ -2,8 +2,9 @@
    COMPTEURS DE MINUTERIE — Paramètres > Minuteur > Compteurs
 
    Une icône par séance choisie (Durées > « Combien de séances »).
-   Une icône pleine = une concentration terminée dans le cycle en cours.
-   Le cycle recommence après la pause longue.
+   Série de révision : au lancement, la 1re icône s'allume dès que la
+   concentration démarre ; chaque séance terminée allume la suivante.
+   Les compteurs suivent la série (focusEtat.serie), pas le cumul de la journée.
 
    Deux familles :
      statique  : la même icône se répète pour chaque minuteur
@@ -65,17 +66,23 @@ function focusCompteurHtml(id, n, plein) {
     return html;
 }
 
-/* Combien d'icônes sont allumées dans le cycle en cours.
-   Concentration : les concentrations terminées depuis la dernière pause longue.
-   Après le dernier minuteur du cycle, la pause longue garde tout allumé. */
+/* Pause après la séance n° « serie » (1 = première) d'une série de révision :
+   une pause longue après chaque 3e séance, une pause courte sinon. */
+var FOCUS_PAUSE_LONGUE_APRES = 3;
+function focusPauseApres(serie) {
+    return serie > 0 && serie % FOCUS_PAUSE_LONGUE_APRES === 0 ? 'long' : 'short';
+}
+
+/* Combien d'icônes sont allumées.
+   Série de révision en cours : les séances terminées (focusEtat.serie), plus
+   la concentration en cours si elle a démarré (elle compte dès le départ).
+   Hors série, ou série finie : les séances terminées de la série, sans plus. */
 function focusCompteurEtat() {
     var n = typeof focusDurees === 'function' ? focusDurees().seances : 4;
-    var c = Math.max(0, Math.floor(Number(focusEtat.cycles) || 0));
-    var reste = c % n;
-    /* Dès qu'une séance de concentration démarre, son compteur s'allume (même avant la fin). */
-    var seanceCommencee = focusEtat.mode === 'focus' && (focusEtat.running || focusEtat.restant < focusEtat.total);
-    var plein = reste + (seanceCommencee ? 1 : 0);
-    if (focusEtat.mode === 'long' && c > 0 && reste === 0) plein = n;
+    var serie = Math.min(n, Math.max(0, Math.floor(Number(focusEtat.serie) || 0)));
+    var enCours = !!focusEtat.run && focusEtat.mode === 'focus' &&
+        (focusEtat.running || focusEtat.restant < focusEtat.total);
+    var plein = serie + (enCours ? 1 : 0);
     return { n: n, plein: Math.min(n, plein) };
 }
 

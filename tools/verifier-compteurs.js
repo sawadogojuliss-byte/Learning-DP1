@@ -1,6 +1,6 @@
 /* Vérifie les compteurs de minuterie :
    1. le nombre d'icônes = nombre de séances choisies, dans tous les cas ;
-   2. le remplissage suit le cycle (concentrations, pause courte, pause longue) ;
+   2. le remplissage suit la série de révision (une icône par séance terminée) ;
    3. les 18 compteurs sont là, statiques et dynamiques, sans badge PLUS ;
    4. le câblage (carte entre Style et Affichage, minuteur, registre, cache).
    Lancer : node tools/verifier-compteurs.js */
@@ -25,7 +25,7 @@ const sw = lire('service-worker.js');
 const contexte = {
     console, Math, Number, String, Array, Object,
     focusDurees: () => ({ focus: 25, short: 5, long: 15, seances: contexte.seances }),
-    focusEtat: { mode: 'focus', cycles: 0 },
+    focusEtat: { mode: 'focus', cycles: 0, serie: 0, run: false },
     seances: 4,
     document: { getElementById: () => null }
 };
@@ -71,36 +71,37 @@ ok(dyn && sixIcones.split('🥼').length - 1 === 2, 'au-delà de 4 minuteurs, le
 ok(contexte.focusCompteurHtml('points', 4, 1).indexOf('<svg') !== -1, 'le compteur Points doit être dessiné (point)');
 ok(contexte.focusCompteurHtml('coeurs', 4, 1).indexOf('<svg') !== -1, 'le compteur Cœurs doit être dessiné (cœur)');
 
-/* ── 2. Remplissage selon le cycle, en séances de 4 ─────────────────── */
-function etat(cycles, mode, seancesChoisies) {
+/* ── 2. Remplissage selon la série de révision, en séances de 4 ────── */
+function etat(f, seancesChoisies) {
     contexte.seances = seancesChoisies || 4;
-    contexte.focusEtat.cycles = cycles;
-    contexte.focusEtat.mode = mode;
+    contexte.focusEtat = Object.assign({ mode: 'focus', cycles: 0, serie: 0, run: false, running: false, restant: 1500, total: 1500 }, f);
     return contexte.focusCompteurEtat();
 }
 const attendu = [
-    // [cycles, mode, plein attendu] avec 4 séances
-    [0, 'focus', 0],   // début : tout éteint
-    [1, 'short', 1],   // 1re concentration finie → pause courte, 1 allumé
-    [1, 'focus', 1],   // concentration suivante, toujours 1
-    [2, 'short', 2],
-    [3, 'short', 3],
-    [4, 'long', 4],    // 4e concentration finie → pause longue, tout allumé
-    [4, 'focus', 0],   // après la pause longue : nouveau cycle, tout éteint
-    [5, 'short', 1]
+    // [réglages de l'état, plein attendu] avec 4 séances
+    [{ run: true, running: true, restant: 1400 }, 1],                       // 1re concentration lancée : 1 allumé
+    [{ run: true, mode: 'short', running: true, restant: 200, serie: 1 }, 1], // pause courte après la 1re
+    [{ run: true, running: true, restant: 1400, serie: 1 }, 2],             // 2e lancée
+    [{ run: true, mode: 'short', running: true, restant: 200, serie: 2 }, 2],
+    [{ run: true, running: true, restant: 1400, serie: 2 }, 3],             // 3e lancée
+    [{ run: true, mode: 'long', running: true, restant: 900, serie: 3 }, 3], // pause longue après la 3e
+    [{ run: true, running: true, restant: 1400, serie: 3 }, 4],            // 4e lancée
+    [{ run: false, running: false, restant: 1500, serie: 4 }, 4],          // série terminée : tout allumé
+    [{ run: true, running: false, restant: 1400, serie: 2 }, 3],           // 3e en pause manuelle : reste allumée
+    [{ run: true, running: false, restant: 1500, serie: 2 }, 2],           // 3e pas encore démarrée
+    [{ run: false, running: true, restant: 1400, serie: 0, cycles: 9 }, 0], // hors série : rien, même avec le cumul
+    [{ run: false, running: false, restant: 1500, serie: 0 }, 0],
 ];
-attendu.forEach(([c, m, p]) => {
-    const r = etat(c, m, 4);
-    ok(r.n === 4 && r.plein === p, 'cycle ' + c + ' (' + m + ') : ' + p + ' allumé(s) attendu(s), reçu ' + r.plein + ' sur ' + r.n);
+attendu.forEach(([f, p]) => {
+    const r = etat(f, 4);
+    ok(r.n === 4 && r.plein === p, 'série ' + JSON.stringify(f) + ' : ' + p + ' allumé(s) attendu(s), reçu ' + r.plein + ' sur ' + r.n);
 });
-const un = etat(1, 'long', 1);
-ok(un.n === 1 && un.plein === 1, 'une seule séance : la pause longue arrive après chaque concentration');
-const un2 = etat(1, 'focus', 1);
-ok(un2.plein === 0, 'une seule séance : la concentration suivante repart à zéro');
-const douze = etat(12, 'long', 12);
-ok(douze.n === 12 && douze.plein === 12, '12 séances : cycle complet allumé');
-const manuel = etat(2, 'long', 4);
-ok(manuel.plein === 2, 'une pause longue lancée à la main en plein cycle n’allume pas tout');
+const un = etat({ run: true, running: true, restant: 1400, serie: 0 }, 1);
+ok(un.n === 1 && un.plein === 1, 'une seule séance : la 1re s\'allume au lancement');
+const douze = etat({ run: false, running: false, restant: 1500, serie: 12 }, 12);
+ok(douze.n === 12 && douze.plein === 12, '12 séances : série terminée tout allumée');
+const plafond = etat({ run: true, running: true, restant: 900, serie: 9 }, 4);
+ok(plafond.plein === 4, 'jamais plus d’icônes allumées que de séances choisies');
 
 /* Réglage : valeur inconnue → Points. */
 ok(parametres.indexOf("compteur: dans(FOCUS_COMPTEURS, b.compteur, 'points')") !== -1, 'le réglage compteur doit revenir à Points si la valeur est inconnue');

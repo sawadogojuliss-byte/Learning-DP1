@@ -54,6 +54,9 @@ var focusEtat = {
     running: false,
     fin: 0,
     cycles: 0,
+    /* série de révision : séances terminées, et série en cours ou non */
+    serie: 0,
+    run: false,
     fond: 0,
     son: 'off',
     astuce: false
@@ -113,6 +116,8 @@ function focusSauverEtat() {
         running: !!focusEtat.running,
         fin: focusEtat.running ? focusEtat.fin : 0,
         cycles: focusEtat.cycles,
+        serie: focusEtat.serie,
+        run: !!focusEtat.run,
         date: new Date().toDateString()
     };
     var texte = JSON.stringify(donnees);
@@ -138,6 +143,8 @@ function focusRestaurerEtat() {
     focusEtat.mode = donnees.mode;
     focusEtat.total = total;
     focusEtat.cycles = Math.max(0, Math.floor(Number(donnees.cycles) || 0));
+    focusEtat.serie = Math.max(0, Math.floor(Number(donnees.serie) || 0));
+    focusEtat.run = !!donnees.run;
     if (donnees.running && Number(donnees.fin) > 0) {
         focusEtat.running = true;
         focusEtat.fin = Number(donnees.fin);
@@ -235,6 +242,8 @@ function focusOuvrirSeances() {
     var page = document.getElementById('focusPage');
     if (page) page.hidden = true;
     focusSeanceMinuteur = null;
+    focusEtat.run = false;
+    focusEtat.serie = 0;
     try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
     focusPeindreFlamme();
     focusPeindre();
@@ -268,6 +277,8 @@ function focusOuvrirMinuteur() {
     if (page) page.hidden = false;
     if (!focusEntreeDepuisSeance) {
         focusSeanceMinuteur = null;
+        focusEtat.run = false;
+        focusEtat.serie = 0;
         try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
     }
     focusEntreeDepuisSeance = false;
@@ -725,12 +736,18 @@ function focusBasculer() {
          focusMinutesMaintenant() < focusSeanceMinuteur.debut ||
          focusMinutesMaintenant() >= focusSeanceMinuteur.fin)) {
         focusSeanceMinuteur = null;
+        focusEtat.run = false;
+        focusEtat.serie = 0;
         try { sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours'); } catch (e) {}
         if (typeof memoireAller === 'function') memoireAller('seances');
         else if (typeof navigateTo === 'function') navigateTo('seances');
         return;
     }
     if (focusEtat.restant <= 0) focusEtat.restant = focusEtat.total;
+    if (focusEtat.mode === 'focus' && focusSeanceMinuteur && !focusEtat.run) {
+        focusEtat.run = true;
+        focusEtat.serie = 0;
+    }
     focusCompterLancement();
     focusEtat.running = true;
     focusEtat.fin = Date.now() + focusEtat.restant * 1000;
@@ -766,6 +783,18 @@ function focusRecommencer() {
     focusPeindre();
 }
 
+/* Une série de révision est en cours : les séances s'enchaînent seules. */
+function focusEnchainementSeance() {
+    return !!(focusEtat.run && focusSeanceMinuteur);
+}
+
+/* Lance la phase en cours (sa durée) tout de suite. */
+function focusLancerPhase() {
+    focusEtat.running = true;
+    focusEtat.fin = Date.now() + focusEtat.restant * 1000;
+    focusLancerIntervalle();
+}
+
 function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
     /* La phase qui se termine est notée pour les statistiques (une fois, ici seulement). */
@@ -773,13 +802,38 @@ function focusPhaseSuivante(silencieux) {
         statsEnregistrer({ k: fini, m: Math.round(focusEtat.total / 60),
             s: fini === 'focus' && focusSeanceMinuteur ? focusSeanceMinuteur.id : null });
     }
-    /* Le chronomètre s'arrête à la fin de la phase : la suivante est
-       proposée avec sa durée, jamais lancée. Personne ne se retrouve
-       dans une nouvelle concentration sans l'avoir demandée. */
     focusEtat.running = false;
     focusStopIntervalle();
+    var serie = focusEnchainementSeance() && !silencieux;
+    /* Hors série, le chronomètre s'arrête à la fin de la phase : la suivante est
+       proposée avec sa durée, jamais lancée (sauf option d'enchaînement). */
+
     if (fini === 'focus') {
         focusEtat.cycles += 1;
+        if (serie) {
+            focusEtat.serie = Math.min(focusDurees().seances, focusEtat.serie + 1);
+            if (focusEtat.serie >= focusDurees().seances) {
+                /* Dernière séance de la série : fin, sans pause. */
+                focusEtat.run = false;
+                focusChoisirMode('focus', false);
+                if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(2);
+                focusPeindre();
+                focusTitre();
+                if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
+                return;
+            }
+            /* Pause courte, sauf après la 3e séance : pause longue. La pause démarre seule. */
+            var pauseSerie = focusPauseApres(focusEtat.serie);
+            focusChoisirMode(pauseSerie, false);
+            if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(focusDurees()[pauseSerie]);
+            else focusBip(2);
+            focusLancerPhase();
+            focusPeindre();
+            focusTitre();
+            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
+            return;
+        }
+        /* Minuteur libre : comportement d'origine (la phase suivante est proposée). */
         var modePause = focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short';
         /* la pause annoncée est celle de la configuration de l'élève,
            pas une valeur écrite dans le site */
@@ -790,6 +844,16 @@ function focusPhaseSuivante(silencieux) {
         else focusBip(2);
     } else {
         focusChoisirMode('focus', false);
+        if (serie) {
+            /* Même son qu'à la fin d'une séance, puis la concentration reprend seule. */
+            if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(1);
+            focusLancerPhase();
+            if (typeof chronoRendreMusique === 'function') { try { chronoRendreMusique(); } catch (e) {} }
+            focusPeindre();
+            focusTitre();
+            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
+            return;
+        }
         if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
         else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
         else focusBip(1);
