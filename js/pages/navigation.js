@@ -22,10 +22,25 @@ function closeSideMenu() {
     document.getElementById('sideMenu').style.right = '-320px';
     document.getElementById('sideMenuOverlay').style.display = 'none';
 }
+function verrouillerDefilement(actif) {
+    if (actif) {
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
+    } else {
+        document.documentElement.style.overflow = '';
+        document.body.style.overflow = '';
+    }
+}
+
+function panneauxOuverts() {
+    return document.querySelectorAll('.app-panel.active').length > 0;
+}
+
 function navigateTo(page) {
     /* Le minuteur et la page des séances sont ouverts à tout le monde. */
     if (typeof focusFermerMusique === 'function') { try { focusFermerMusique(); } catch (e) {} }
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
+    verrouillerDefilement(false);
     if (page === 'soutien') {
         var soutien = document.getElementById('panelSoutien');
         if (typeof initSoutien === 'function') initSoutien();
@@ -84,4 +99,6 @@ function navigateTo(page) {
     } else if (page === 'retours' || page === 'questions' || page === 'emplois') {
         if (typeof boiteOuvrirAdmin === 'function') boiteOuvrirAdmin(page);
     }
+    /* Verrouiller le défilement du fond quand un panneau est ouvert, pour une seule barre. */
+    verrouillerDefilement(panneauxOuverts());
 }
