@@ -1,0 +1,43 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Une annonce attend votre validation/. Input:
+
+'📣 ANNONCE · VALIDATION\n' +
+  '\n' +
+  'Une annonce attend ta validation\n' +
+  '\n' +
+  'De Admin fictif\n' +
+  '\n' +
+  'Annonce à vérifier\n' +
+  '\n' +
+  'Le texte entier est disponible dans la popup.\n' +
+  '\n' +
+  'Lis l’annonce avant de donner ton accord. Il faut trois accords distincts. Le dernier déclenche la publication ou l’envoi programmé.\n' +
+  '\n' +
+  '✓ J’ai lu, je valide l’envoi\n' +
+  'Plus tard'
+
+    at file:///home/runner/work/Learning-DP1/Learning-DP1/tools/tester-espace-admin.mjs:98:12 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '📣 ANNONCE · VALIDATION\n' +
+    '\n' +
+    'Une annonce attend ta validation\n' +
+    '\n' +
+    'De Admin fictif\n' +
+    '\n' +
+    'Annonce à vérifier\n' +
+    '\n' +
+    'Le texte entier est disponible dans la popup.\n' +
+    '\n' +
+    'Lis l’annonce avant de donner ton accord. Il faut trois accords distincts. Le dernier déclenche la publication ou l’envoi programmé.\n' +
+    '\n' +
+    '✓ J’ai lu, je valide l’envoi\n' +
+    'Plus tard',
+  expected: /Une annonce attend votre validation/,
+  operator: 'match'
+}
+
+Node.js v20.20.2
