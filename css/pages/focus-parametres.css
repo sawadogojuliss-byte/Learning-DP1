@@ -752,13 +752,23 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 .focus-page .focus-compteur-sous { margin: 1.1rem 0 0.2rem; font-size: 1rem; font-weight: 700; color: #fff; }
 .focus-page .focus-compteur-explic { margin: 0 0 0.8rem; font-size: 0.84rem; color: rgba(255, 255, 255, 0.6); }
 
+/* Tuiles des compteurs : même photo « Lumière » que le minuteur, voile sombre pour la lisibilité. */
 .focus-page .focus-tuile-compteur {
-    background:
-        radial-gradient(120% 90% at 88% 0%, rgba(110, 231, 183, 0.32), transparent 60%),
-        linear-gradient(135deg, #04140f 0%, #065f46 55%, #10b981 100%);
+    background-image:
+        linear-gradient(180deg, rgba(2, 12, 9, 0.18) 0%, rgba(2, 12, 9, 0.5) 100%),
+        url('../../images/pomodoro/mini/lumiere.webp?v=20261015p');
+    background-size: cover; background-position: center;
     display: flex; align-items: center; justify-content: center;
 }
-.focus-page .focus-compteur-apercu { margin: 0; max-width: 94%; gap: 0.35rem; }
+/* Icônes regroupées dans une pastille translucide, bien centrée. */
+.focus-page .focus-compteur-apercu {
+    margin: 0; max-width: 94%; gap: 0.4rem;
+    padding: 0.5rem 0.95rem; border-radius: 999px;
+    background: rgba(4, 20, 16, 0.42);
+    border: 1px solid rgba(110, 231, 183, 0.22);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
 .focus-page .focus-compteur-apercu .focus-compteur-item { width: 1.7rem; height: 1.7rem; font-size: 0.95rem; }
 .focus-page .focus-compteur-apercu .focus-compteur-item svg { width: 0.85rem; height: 0.85rem; }
 
