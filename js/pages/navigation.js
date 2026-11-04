@@ -103,10 +103,34 @@ function navigateTo(page) {
     verrouillerDefilement(panneauxOuverts());
 }
 
-/* Au (re)chargement de la page, aucun panneau ne doit être actif par défaut :
-   ainsi seul le planning est visible et la page « Mes Exercices » ne s'affiche
-   pas par-dessus par erreur. */
-document.addEventListener('DOMContentLoaded', function () {
+/* ── Nettoyage au chargement / rechargement ──────────────────
+   Quand la page est (re)chargée, aucun panneau .app-panel ne
+   doit être actif : seul le planning doit être visible.
+   On vide aussi le hash de l'URL quand il pointe vers un
+   panneau, pour empêcher le mécanisme memoire.js de le
+   réactiver juste après. */
+
+function nettoyerPanneauxEtHash() {
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     verrouillerDefilement(false);
+
+    var hash = (location.hash || '').replace(/^#/, '').split('?')[0];
+    if (hash && hash !== 'planning' && hash !== 'accueil' && hash !== '') {
+        try {
+            history.replaceState(history.state || {}, '', location.pathname + location.search);
+        } catch (e) {}
+    }
+}
+
+/* Dès que le DOM est prêt, on nettoie. */
+document.addEventListener('DOMContentLoaded', nettoyerPanneauxEtHash);
+
+/* Et une seconde fois quand la page est complètement chargée
+   (après que memoire.js ait pu réactiver un panneau via le hash). */
+window.addEventListener('load', nettoyerPanneauxEtHash);
+
+/* Et aussi sur pageshow (rechargement depuis le cache navigateur). */
+window.addEventListener('pageshow', function (ev) {
+    if (!ev.persisted) return;
+    nettoyerPanneauxEtHash();
 });
