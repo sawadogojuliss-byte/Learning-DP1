@@ -24,7 +24,7 @@ body:has(.app-panel.active) {
 .exo-card:hover { border-color:#a7f3d0;box-shadow:0 8px 24px rgba(16,185,129,0.1); }
 
 /* ─── PAGE MES EXERCICES : esthétique améliorée ─── */
-.exo-page { max-width:560px;margin:0 auto;padding:0 1rem 4rem; }
+.exo-page { width:100%;height:100%;padding:0 1rem 4rem;box-sizing:border-box; }
 .exo-entete { position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.97);backdrop-filter:blur(12px);border-bottom:1px solid #e5e7eb;padding:0.875rem 0;margin-bottom:1.5rem; }
 .exo-entete-bar { display:flex;align-items:center;justify-content:space-between;gap:0.75rem; }
 .exo-entete-gauche { display:flex;align-items:center;gap:0.75rem; }
