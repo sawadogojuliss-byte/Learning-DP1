@@ -3,111 +3,110 @@
      Devoirs à ajouter et à planifier.
      Script : js/pages/exercices.js
      ============================================================ -->
-<div class="app-panel" id="panelExercices">
-        <div style="max-width:520px;margin:0 auto;padding:0 1rem 5rem;">
-            <!-- Header -->
-            <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.5rem;border-bottom:1px solid #f3f4f6;">
-                <div style="display:flex;align-items:center;justify-content:space-between;">
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-                        <div><h2 class="exo-entete-titre" style="font-size:1.1rem;font-weight:800;color:#111827;">Mes Exercices</h2><p style="font-size:0.75rem;color:#6b7280;">Planifie intelligemment tes devoirs</p></div>
-                    </div>
-                    <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.75rem;padding:0.375rem 0.75rem;">
-                        <span id="exoCountBadge" role="status" aria-live="polite" aria-atomic="true" style="font-size:0.8rem;font-weight:700;color:#059669;">0 exercice</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Onglets -->
-            <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1.5rem;">
-                <button id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" onclick="switchExoTab('ajouter')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:white;color:#059669;box-shadow:0 1px 3px rgba(0,0,0,0.1);">➕ Ajouter</button>
-                <button id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" onclick="switchExoTab('liste')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📋 Ma liste</button>
-                <button id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" onclick="switchExoTab('planifier')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;background:transparent;color:#6b7280;">📅 Planifier</button>
-            </div>
-
-            <!-- Tab: Ajouter -->
-            <div id="tabContentAjouter" role="tabpanel" aria-labelledby="tabAjouter">
-                <!-- Sélection matière -->
-                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
-                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📚 Matière concernée</label>
-                    <div id="exoSubjectGrid" role="group" aria-label="Matière de l’exercice" aria-describedby="exoSubjectErreur" tabindex="-1" style="display:flex;flex-wrap:wrap;gap:0.5rem;"></div>
-                    <p id="exoSubjectErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
-                </div>
-
-                <!-- Type d'exercice -->
-                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
-                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📝 Ajoute ton exercice</label>
-                    <!-- Zone drag & drop -->
-                    <div id="dragArea" class="drag-area" role="button" tabindex="0" aria-label="Choisir un nom de fichier comme référence ; le document ne sera pas conservé" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileUploadInput').click()}" onclick="if(event.target.id!=='fileUploadInput')document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)" style="margin-bottom:0.875rem;">
-                        <div style="font-size:2rem;margin-bottom:0.5rem;">📂</div>
-                        <p style="font-weight:700;color:#059669;font-size:0.9rem;">Indique un fichier comme référence</p>
-                        <p style="font-size:0.75rem;color:#6b7280;margin-top:0.25rem;">PDF, image ou Word : seul son nom sera conservé, pas le document. Clique ou appuie sur Entrée.</p>
-                        <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
-                    </div>
-                    <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;align-items:center;gap:0.5rem;"></div>
-
-                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
-                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
-                        <span style="font-size:0.75rem;color:#56665e;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
-                        <div style="flex:1;height:1px;background:#e5e7eb;"></div>
-                    </div>
-                    <textarea id="exoTextInput" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;font-family:inherit;line-height:1.5;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
-                    <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
-                </div>
-
-                <!-- Estimation temps + difficulté -->
-                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">
-                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">⏰ Durée estimée</label>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-bottom:0.75rem;" id="durationPresets">
-                        <button onclick="setExoDuration(30)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">30 min</button>
-                        <button onclick="setExoDuration(45)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">45 min</button>
-                        <button onclick="setExoDuration(60)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #10b981;background:#ecfdf5;font-weight:700;font-size:0.8rem;cursor:pointer;color:#059669;transition:all 0.2s;">1h</button>
-                        <button onclick="setExoDuration(90)" class="dur-btn" style="padding:0.625rem;border-radius:0.75rem;border:2px solid #e5e7eb;background:white;font-weight:700;font-size:0.8rem;cursor:pointer;color:#374151;transition:all 0.2s;">1h30</button>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:0.75rem;">
-                        <input type="range" id="exoDurationSlider" aria-label="Durée estimée de l’exercice" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)" style="flex:1;accent-color:#10b981;">
-                        <span id="exoDurationLabel" style="font-weight:800;color:#059669;font-size:1rem;min-width:3.5rem;text-align:right;">60 min</span>
-                    </div>
-                </div>
-
-                <!-- Deadline -->
-                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">
-                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.75rem;">📆 Date limite (deadline)</label>
-                    <input type="date" id="exoDeadline" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;font-weight:600;" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
-                    <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" style="margin:0.5rem 0 0;color:#b45309;font-size:0.8rem;font-weight:600;"></p>
-                </div>
-
-                <button type="button" onclick="exoBrouillonEffacer()" style="width:100%;padding:0.75rem;background:white;color:#374151;border:1px solid #d1d5db;border-radius:0.75rem;margin-bottom:0.75rem;cursor:pointer;">Effacer le brouillon</button>
-                <button onclick="addExercice()" style="width:100%;padding:1rem;background:linear-gradient(to right,#10b981,#059669);color:white;font-weight:800;border:none;border-radius:0.875rem;cursor:pointer;font-size:0.95rem;box-shadow:0 8px 20px rgba(16,185,129,0.3);transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
-                    ➕ Ajouter cet exercice
+<div class="app-panel exo-page" id="panelExercices">
+    <!-- Header -->
+    <div class="exo-entete">
+        <div class="exo-entete-bar">
+            <div class="exo-entete-gauche">
+                <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;">
+                    <svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
                 </button>
-            </div>
-
-            <!-- Tab: Liste -->
-            <div id="tabContentListe" role="tabpanel" aria-labelledby="tabListe" style="display:none;">
-                <div role="group" aria-label="Filtrer les exercices" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
-                    <button type="button" data-exo-filtre="tous" aria-pressed="true" onclick="filtrerExos('tous')" style="background:#ecfdf5;border:1px solid #10b981;color:#047857;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">Tous</button>
-                    <button type="button" data-exo-filtre="afaire" aria-pressed="false" onclick="filtrerExos('afaire')" style="background:white;border:1px solid #e5e7eb;color:#374151;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">À faire</button>
-                    <button type="button" data-exo-filtre="faits" aria-pressed="false" onclick="filtrerExos('faits')" style="background:white;border:1px solid #e5e7eb;color:#374151;border-radius:0.65rem;padding:0.5rem 0.75rem;font:inherit;font-size:0.8rem;font-weight:700;cursor:pointer;">Faits</button>
-                </div>
-                <div id="exoListContainer">
-                    <div style="text-align:center;padding:3rem 1rem;color:#56665e;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">📝</div>
-                        <p style="font-weight:600;">Aucun exercice pour l'instant</p>
-                        <p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l'onglet ➕</p>
-                    </div>
+                <div>
+                    <h2 class="exo-entete-titre">Mes Exercices</h2>
+                    <p class="exo-entete-sous">Planifie intelligemment tes devoirs</p>
                 </div>
             </div>
+            <div class="exo-badge" id="exoCountBadge" role="status" aria-live="polite" aria-atomic="true">0 exercice</div>
+        </div>
+    </div>
 
-            <!-- Tab: Planifier -->
-            <div id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" style="display:none;">
-                <div id="planifierContent">
-                    <div style="text-align:center;padding:3rem 1rem;color:#56665e;">
-                        <div style="font-size:3rem;margin-bottom:1rem;">📅</div>
-                        <p style="font-weight:600;">Ajoute d'abord des exercices</p>
-                        <p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l'onglet ➕ pour commencer</p>
-                    </div>
-                </div>
+    <!-- Onglets -->
+    <div class="exo-onglets">
+        <button id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" class="exo-onglet active" onclick="switchExoTab('ajouter')">➕ Ajouter</button>
+        <button id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-onglet" onclick="switchExoTab('liste')">📋 Ma liste</button>
+        <button id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" class="exo-onglet" onclick="switchExoTab('planifier')">📅 Planifier</button>
+    </div>
+
+    <!-- Tab: Ajouter -->
+    <div id="tabContentAjouter" role="tabpanel" aria-labelledby="tabAjouter">
+        <!-- Sélection matière -->
+        <div class="exo-section">
+            <span class="exo-label">📚 Matière concernée</span>
+            <div id="exoSubjectGrid" role="group" aria-label="Matière de l’exercice" aria-describedby="exoSubjectErreur" tabindex="-1" style="display:flex;flex-wrap:wrap;gap:0.5rem;"></div>
+            <p id="exoSubjectErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-erreur"></p>
+        </div>
+
+        <!-- Type d'exercice -->
+        <div class="exo-section">
+            <span class="exo-label">📝 Ajoute ton exercice</span>
+            <!-- Zone drag & drop -->
+            <div id="dragArea" class="exo-dropzone drag-area" role="button" tabindex="0" aria-label="Choisir un nom de fichier comme référence ; le document ne sera pas conservé" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileUploadInput').click()}" onclick="if(event.target.id!=='fileUploadInput')document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
+                <span class="exo-dropzone-icone">📂</span>
+                <span class="exo-dropzone-titre">Indique un fichier comme référence</span>
+                <span class="exo-dropzone-aide">PDF, image ou Word : seul son nom sera conservé, pas le document. Clique ou appuie sur Entrée.</span>
+                <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
+            </div>
+            <div id="uploadedFileName" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:0.75rem;padding:0.625rem 1rem;font-size:0.85rem;color:#059669;margin-bottom:0.875rem;align-items:center;gap:0.5rem;display:flex;"></div>
+
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
+                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+                <span style="font-size:0.75rem;color:#56665e;font-weight:600;">OU ÉCRIS TON EXERCICE</span>
+                <div style="flex:1;height:1px;background:#e5e7eb;"></div>
+            </div>
+            <textarea id="exoTextInput" class="exo-textarea" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+            <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-erreur"></p>
+        </div>
+
+        <!-- Estimation temps + difficulté -->
+        <div class="exo-section">
+            <span class="exo-label">⏰ Durée estimée</span>
+            <div class="exo-presets" id="durationPresets">
+                <button onclick="setExoDuration(30)" class="exo-preset" id="preset30">30 min</button>
+                <button onclick="setExoDuration(45)" class="exo-preset" id="preset45">45 min</button>
+                <button onclick="setExoDuration(60)" class="exo-preset active" id="preset60">1h</button>
+                <button onclick="setExoDuration(90)" class="exo-preset" id="preset90">1h30</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+                <input type="range" id="exoDurationSlider" class="exo-slider-range" aria-label="Durée estimée de l’exercice" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)">
+                <span id="exoDurationLabel" class="exo-slider-valeur">60 min</span>
+            </div>
+        </div>
+
+        <!-- Deadline -->
+        <div class="exo-section">
+            <span class="exo-label">📆 Date limite (deadline)</span>
+            <input type="date" id="exoDeadline" class="exo-input" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+            <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-erreur"></p>
+        </div>
+
+        <button type="button" class="exo-btn-secondaire" onclick="exoBrouillonEffacer()">Effacer le brouillon</button>
+        <button class="exo-btn-principal" onclick="addExercice()">➕ Ajouter cet exercice</button>
+    </div>
+
+    <!-- Tab: Liste -->
+    <div id="tabContentListe" role="tabpanel" aria-labelledby="tabListe" style="display:none;">
+        <div class="exo-filtres">
+            <button type="button" data-exo-filtre="tous" aria-pressed="true" class="exo-filtre active" onclick="filtrerExos('tous')">Tous</button>
+            <button type="button" data-exo-filtre="afaire" aria-pressed="false" class="exo-filtre" onclick="filtrerExos('afaire')">À faire</button>
+            <button type="button" data-exo-filtre="faits" aria-pressed="false" class="exo-filtre" onclick="filtrerExos('faits')">Faits</button>
+        </div>
+        <div id="exoListContainer">
+            <div class="exo-vide">
+                <span class="exo-vide-icone">📝</span>
+                <span class="exo-vide-titre">Aucun exercice pour l'instant</span>
+                <span class="exo-vide-aide">Ajoute ton premier exercice dans l'onglet ➕</span>
             </div>
         </div>
     </div>
+
+    <!-- Tab: Planifier -->
+    <div id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" style="display:none;">
+        <div id="planifierContent">
+            <div class="exo-vide">
+                <span class="exo-vide-icone">📅</span>
+                <span class="exo-vide-titre">Ajoute d'abord des exercices</span>
+                <span class="exo-vide-aide">Va dans l'onglet ➕ pour commencer</span>
+            </div>
+        </div>
+    </div>
+</div>
