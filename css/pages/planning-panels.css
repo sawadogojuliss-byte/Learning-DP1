@@ -1462,30 +1462,12 @@ body.v3-deplacement, body.v3-deplacement * {
 }
 
 /* ============================================================
-   PAGE MES EXERCICES — Design moderne et attrayant
+   PAGE MES EXERCICES — déplacée dans css/pages/exercices.css
+   (une barre oblique suivie d'une étoile, mal fermée plus bas,
+   avalait ce bloc ; la page
+   garde ici le strict minimum : le blanc plein écran du panneau).
    ============================================================ */
 
-/* Conteneur principal : couvre tout l'écran avec fond blanc opaque */
-.exo-page {
-    width: 100vw;
-    height: 100vh;
-    min-height: 100vh;
-    padding: 0 1rem 4rem;
-    box-sizing: border-box;
-    background: #fff;
-}
-
-/* Header sticky */
-.exo-header {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid #e5e7eb;
-    padding: 0.875rem 0;
-    margin-bottom: 1.5rem;
-}
 
 .exo-header-inner {
     max-width: 560px;
@@ -1690,7 +1672,7 @@ body.v3-deplacement, body.v3-deplacement * {
     font-weight: 600;
 }
 
-/ * Champs de saisie */
+/* Champs de saisie */
 .exo-textarea,
 .exo-input {
     width: 100%;

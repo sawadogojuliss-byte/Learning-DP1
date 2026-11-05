@@ -8,7 +8,9 @@ const values = {};
 const elements = {};
 function el(id) {
     return elements[id] ||= {
-        id, value: '', textContent: '', innerHTML: '', style: {}, attrs: {}, dataset: {},
+        id, value: '', textContent: '', innerHTML: '', style: {}, attrs: {}, dataset: {}, hidden: false,
+        /* La page manipule des classes (badge, progression) : le faux élément les accepte. */
+        classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
         getAttribute(k) { return this.attrs[k] || null; }, setAttribute(k, v) { this.attrs[k] = v; },
         removeAttribute(k) { delete this.attrs[k]; }, focus() {}, querySelector() { return null; },
         replaceChildren() {}, append() {}, addEventListener() {}, contains() { return true; }

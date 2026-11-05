@@ -2,13 +2,13 @@
      PAGE : Exercices
      Devoirs à ajouter et à planifier.
      Script : js/pages/exercices.js
+     Style : css/pages/exercices.css (chargé après planning-panels.css)
      ============================================================ -->
 <div class="app-panel exo-page" id="panelExercices">
-    <!-- Header -->
     <div class="exo-header">
         <div class="exo-header-inner">
             <div class="exo-header-left">
-                <button onclick="navigateTo('planning')" class="exo-back-btn">
+                <button type="button" onclick="navigateTo('planning')" class="exo-back-btn" aria-label="Revenir au planning">
                     <svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
                 </button>
                 <div class="exo-header-info">
@@ -18,30 +18,32 @@
             </div>
             <div class="exo-badge" id="exoCountBadge" role="status" aria-live="polite" aria-atomic="true">0 exercice</div>
         </div>
+        <div class="exo-resume" id="exoResume" hidden>
+            <span class="exo-resume-texte" id="exoResumeTexte">0 fait · 0 à faire</span>
+            <span class="exo-resume-barre" role="progressbar" aria-label="Exercices faits" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="exoResumeBarre">
+                <i id="exoResumeRemplissage" style="width:0%"></i>
+            </span>
+        </div>
     </div>
 
-    <!-- Onglets -->
-    <div class="exo-tabs">
-        <button id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" class="exo-tab active" onclick="switchExoTab('ajouter')">➕ Ajouter</button>
-        <button id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-tab" onclick="switchExoTab('liste')">📋 Ma liste</button>
-        <button id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" class="exo-tab" onclick="switchExoTab('planifier')">📅 Planifier</button>
+    <div class="exo-tabs" role="tablist" aria-label="Sections des exercices">
+        <button type="button" id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" class="exo-tab active" onclick="switchExoTab('ajouter')">➕ Ajouter</button>
+        <button type="button" id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-tab" onclick="switchExoTab('liste')">📋 Ma liste</button>
+        <button type="button" id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" class="exo-tab" onclick="switchExoTab('planifier')">📅 Planifier</button>
     </div>
 
     <!-- Tab: Ajouter -->
     <div id="tabContentAjouter" role="tabpanel" aria-labelledby="tabAjouter" class="exo-tabpanel">
-        <!-- Sélection matière -->
         <div class="exo-card">
             <label class="exo-label">📚 Matière concernée</label>
             <div id="exoSubjectGrid" role="group" aria-label="Matière de l’exercice" aria-describedby="exoSubjectErreur" tabindex="-1" class="exo-subject-grid"></div>
             <p id="exoSubjectErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-error"></p>
         </div>
 
-        <!-- Type d'exercice -->
         <div class="exo-card">
-            <label class="exo-label">📝 Ajoute ton exercice</label>
-            <!-- Zone drag & drop -->
+            <label class="exo-label" for="exoTextInput">📝 Ajoute ton exercice</label>
             <div id="dragArea" class="exo-dropzone" role="button" tabindex="0" aria-label="Choisir un nom de fichier comme référence ; le document ne sera pas conservé" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileUploadInput').click()}" onclick="if(event.target.id!=='fileUploadInput')document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
-                <div class="exo-dropzone-icon">📂</div>
+                <div class="exo-dropzone-icon" aria-hidden="true">📂</div>
                 <p class="exo-dropzone-title">Indique un fichier comme référence</p>
                 <p class="exo-dropzone-help">PDF, image ou Word : seul son nom sera conservé, pas le document. Clique ou appuie sur Entrée.</p>
                 <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
@@ -53,18 +55,17 @@
                 <span class="exo-divider-text">OU ÉCRIS TON EXERCICE</span>
                 <div class="exo-divider-line"></div>
             </div>
-            <textarea id="exoTextInput" class="exo-textarea" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+            <textarea id="exoTextInput" class="exo-textarea" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." rows="3"></textarea>
             <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-error"></p>
         </div>
 
-        <!-- Estimation temps + difficulté -->
         <div class="exo-card">
             <label class="exo-label">⏰ Durée estimée</label>
             <div class="exo-duration-presets" id="durationPresets">
-                <button onclick="setExoDuration(30)" class="exo-preset" id="preset30">30 min</button>
-                <button onclick="setExoDuration(45)" class="exo-preset" id="preset45">45 min</button>
-                <button onclick="setExoDuration(60)" class="exo-preset active" id="preset60">1h</button>
-                <button onclick="setExoDuration(90)" class="exo-preset" id="preset90">1h30</button>
+                <button type="button" onclick="setExoDuration(30)" class="exo-preset" id="preset30">30 min</button>
+                <button type="button" onclick="setExoDuration(45)" class="exo-preset" id="preset45">45 min</button>
+                <button type="button" onclick="setExoDuration(60)" class="exo-preset active" id="preset60">1h</button>
+                <button type="button" onclick="setExoDuration(90)" class="exo-preset" id="preset90">1h30</button>
             </div>
             <div class="exo-duration-slider-row">
                 <input type="range" id="exoDurationSlider" class="exo-slider" aria-label="Durée estimée de l’exercice" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)">
@@ -72,15 +73,14 @@
             </div>
         </div>
 
-        <!-- Deadline -->
         <div class="exo-card">
-            <label class="exo-label">📆 Date limite (deadline)</label>
-            <input type="date" id="exoDeadline" class="exo-input" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()" onfocus="this.style.borderColor='#10b981'" onblur="this.style.borderColor='#e5e7eb'">
+            <label class="exo-label" for="exoDeadline">📆 Date limite (deadline)</label>
+            <input type="date" id="exoDeadline" class="exo-input" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()">
             <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" class="exo-error"></p>
         </div>
 
+        <button type="button" class="exo-btn-add" onclick="addExercice()">➕ Ajouter cet exercice</button>
         <button type="button" class="exo-btn-clear" onclick="exoBrouillonEffacer()">Effacer le brouillon</button>
-        <button class="exo-btn-add" onclick="addExercice()">➕ Ajouter cet exercice</button>
     </div>
 
     <!-- Tab: Liste -->
@@ -92,9 +92,10 @@
         </div>
         <div id="exoListContainer" class="exo-list-container">
             <div class="exo-empty">
-                <div class="exo-empty-icon">📝</div>
+                <div class="exo-empty-icon" aria-hidden="true">📝</div>
                 <h3 class="exo-empty-title">Aucun exercice pour l'instant</h3>
-                <p class="exo-empty-text">Ajoute ton premier exercice dans l'onglet ➕</p>
+                <p class="exo-empty-text">Ajoute ton premier exercice : il apparaîtra ici, puis dans ton planning.</p>
+                <button type="button" class="exo-empty-action" onclick="switchExoTab('ajouter')">➕ Ajouter mon premier exercice</button>
             </div>
         </div>
     </div>
@@ -102,9 +103,10 @@
     <!-- Tab: Planifier -->
     <div id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" class="exo-tabpanel" style="display:none;">
         <div id="planifierContent" class="exo-empty">
-            <div class="exo-empty-icon">📅</div>
+            <div class="exo-empty-icon" aria-hidden="true">📅</div>
             <h3 class="exo-empty-title">Ajoute d'abord des exercices</h3>
-            <p class="exo-empty-text">Va dans l'onglet ➕ pour commencer</p>
+            <p class="exo-empty-text">Les créneaux libres de ton planning s'afficheront ici pour chaque exercice.</p>
+            <button type="button" class="exo-empty-action" onclick="switchExoTab('ajouter')">➕ Ajouter un exercice</button>
         </div>
     </div>
 </div>
