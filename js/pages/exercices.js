@@ -182,7 +182,7 @@ function setExoDuration(dur) {
     exoDuration = dur;
     document.getElementById('exoDurationSlider').value = dur;
     document.getElementById('exoDurationLabel').textContent = dur >= 60 ? Math.floor(dur/60)+'h'+(dur%60?dur%60+'min':'') : dur+'min';
-    document.querySelectorAll('.dur-btn').forEach(btn => {
+    document.querySelectorAll('.exo-preset').forEach(btn => {
         const isSel = btn.textContent.trim() === (dur===30?'30 min':dur===45?'45 min':dur===60?'1h':'1h30');
         btn.style.borderColor = isSel ? '#10b981' : '#e5e7eb';
         btn.style.background = isSel ? '#ecfdf5' : 'white';
@@ -195,7 +195,7 @@ function updateExoDurationFromSlider(val) {
     exoDuration = parseInt(val);
     const dur = exoDuration;
     document.getElementById('exoDurationLabel').textContent = dur >= 60 ? Math.floor(dur/60)+'h'+(dur%60?dur%60+'min':'') : dur+'min';
-    document.querySelectorAll('.dur-btn').forEach(btn => {
+    document.querySelectorAll('.exo-preset').forEach(btn => {
         const isSel = (dur===30&&btn.textContent.trim()==='30 min')||(dur===45&&btn.textContent.trim()==='45 min')||(dur===60&&btn.textContent.trim()==='1h')||(dur===90&&btn.textContent.trim()==='1h30');
         btn.style.borderColor = isSel ? '#10b981' : '#e5e7eb';
         btn.style.background = isSel ? '#ecfdf5' : 'white';
@@ -319,7 +319,7 @@ function renderExoList() {
         const legacy = !exo.done && exo.scheduledSlot && typeof customEvents !== 'undefined' &&
             customEvents.some(e => e && e.exoId === exo.id && !e.date);
         const note = exo.filename ? '📎 Référence : ' + exo.filename + ' (fichier non conservé)' : String(exo.text || '').substring(0, 85);
-        return '<div class="exo-card" style="margin-bottom:0.875rem;' + (exo.done ? 'background:#f0fdf4;border-color:#a7f3d0;' : '') + '">' +
+        return '<div class="exo-liste-carte" style="margin-bottom:0.875rem;' + (exo.done ? 'background:#f0fdf4;border-color:#a7f3d0;' : '') + '">' +
             '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;gap:0.5rem;">' +
             '<div style="display:flex;align-items:center;gap:0.625rem;min-width:0;">' +
             '<span style="font-size:1.5rem;">' + iconeHtml(exo.subjectIcon, '1.5rem') + '</span>' +

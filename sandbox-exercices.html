@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sandbox - Mes Exercices</title>
+    <style>
+        /* ── Fond simulateur du planning (derrière le panneau) ── */
+        body { margin:0; font-family: Inter, system-ui, sans-serif; background:#f3f4f6; }
+        .simul-planning {
+            position:relative; height:100vh; padding:2rem; box-sizing:border-box;
+            background:#f3f4f6;
+        }
+        .simul-planning h1 { color:#111827; }
+        .simul-planning .carte {
+            background:white;border:1px solid #e5e7eb;border-radius:1rem;padding:1rem;
+            margin-top:1rem;box-shadow:0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        /* ── PANNEAU EXERCICES ── */
+        .app-panel {
+            display:none; position:fixed; inset:0; z-index:9999; background:#fff;
+            overflow-y:auto; overscroll-behavior:contain;
+        }
+        .app-panel.active { display:block !important; }
+
+        /* Voile blanc opaque pour masquer totalement le planning derrière */
+        .app-panel.active::before {
+            content:'';
+            position:fixed; inset:0; z-index:-1; background:#fff; opacity:1;
+        }
+
+        /* ── Contenu du panneau (copié de exercices.html original) ── */
+        .exo-wrap { max-width:520px; margin:0 auto; padding:0 1rem 5rem; }
+        .exo-header {
+            position:sticky; top:0; z-index:10; background:rgba(255,255,255,0.95);
+            backdrop-filter:blur(8px); padding:0.875rem 0; margin-bottom:1.5rem;
+            border-bottom:1px solid #f3f4f6;
+        }
+        .exo-bar { display:flex; align-items:center; justify-content:space-between; gap:0.75rem; }
+        .exo-gauche { display:flex; align-items:center; gap:0.75rem; }
+        .exo-titre { font-size:1.1rem; font-weight:800; color:#111827; margin:0; }
+        .exo-sous { font-size:0.75rem; color:#6b7280; margin:0; }
+        .exo-badge { background:#ecfdf5; border:1.5px solid #a7f3d0; border-radius:0.75rem;
+            padding:0.375rem 0.75rem; font-size:0.8rem; font-weight:700; color:#059669; }
+
+        /* Onglets */
+        .exo-onglets { display:flex; background:#f3f4f6; border-radius:0.875rem;
+            padding:0.25rem; margin-bottom:1.5rem; }
+        .exo-onglet { flex:1; padding:0.625rem; border-radius:0.75rem; border:none;
+            font-weight:700; font-size:0.85rem; cursor:pointer; color:#6b7280;
+            background:transparent; }
+        .exo-onglet.active { background:white; color:#059669; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+
+        /* Sections */
+        .exo-section { background:white; border:1.5px solid #e5e7eb; border-radius:1rem;
+            padding:1.25rem; margin-bottom:1rem; }
+        .exo-label { font-size:0.85rem; font-weight:700; color:#374151;
+            display:block; margin-bottom:0.75rem; }
+
+        /* Carte liste */
+        .exo-carte { background:white; border:1.5px solid #e5e7eb; border-radius:1rem;
+            padding:1rem; margin-bottom:0.75rem; display:flex; align-items:center;
+            justify-content:space-between; }
+        .exo-carte:hover { border-color:#a7f3d0; box-shadow:0 4px 12px rgba(16,185,129,0.08); }
+
+        .btn-retour { width:2.25rem; height:2.25rem; background:#ecfdf5;
+            border:1.5px solid #a7f3d0; border-radius:0.625rem; cursor:pointer;
+            font-size:1rem; display:flex; align-items:center; justify-content:center;
+            color:#059669; }
+
+        .btn-ajouter { width:100%; padding:1rem; background:linear-gradient(to right,#10b981,#059669);
+            color:white; font-weight:800; border:none; border-radius:0.875rem;
+            cursor:pointer; font-size:0.95rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Simulation du planning en arrière-plan -->
+    <div class="simul-planning">
+        <h1>📅 Planning (en arrière-plan)</h1>
+        <p>Ceci est le planning. Quand vous ouvrez « Mes Exercices », ce planning NE DOIT PAS être visible derrière.</p>
+        <div class="carte">
+            <strong>Lundi 2 novembre</strong>
+            <ul>
+                <li>08:00 → 09:00 — Mathématiques</li>
+                <li>09:15 → 10:45 — Physique</li>
+                <li>14:00 → 15:30 — Anglais</li>
+            </ul>
+        </div>
+        <div class="carte">
+            <strong>Mardi 3 novembre</strong>
+            <ul>
+                <li>10:00 → 11:30 — Géographie</li>
+                <li>15:00 → 16:00 — Français</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- PANNEAU MES EXERCICES -->
+    <div class="app-panel active" id="panelExercices">
+        <div class="exo-wrap">
+            <div class="exo-header">
+                <div class="exo-bar">
+                    <div class="exo-gauche">
+                        <button class="btn-retour" onclick="fermer()"><span>←</span></button>
+                        <div>
+                            <h2 class="exo-titre">Mes Exercices</h2>
+                            <p class="exo-sous">Planifie intelligemment tes devoirs</p>
+                        </div>
+                    </div>
+                    <div class="exo-badge">0 exercice</div>
+                </div>
+            </div>
+
+            <!-- Onglets -->
+            <div class="exo-onglets">
+                <button class="exo-onglet active">➕ Ajouter</button>
+                <button class="exo-onglet">📋 Ma liste</button>
+                <button class="exo-onglet">📅 Planifier</button>
+            </div>
+
+            <!-- Tab: Ajouter -->
+            <div id="tabContentAjouter">
+                <div class="exo-section">
+                    <span class="exo-label">📚 Matière concernée</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
+                        <button style="background:#ecfdf5;border:1px solid #10b981;color:#047857;padding:0.5rem 1rem;border-radius:9999px;font-weight:700;">Mathématiques AA</button>
+                        <button style="background:white;border:1px solid #e5e7eb;color:#374151;padding:0.5rem 1rem;border-radius:9999px;">ESS</button>
+                        <button style="background:white;border:1px solid #e5e7eb;color:#374151;padding:0.5rem 1rem;border-radius:9999px;">Physique</button>
+                    </div>
+                </div>
+
+                <div class="exo-section">
+                    <span class="exo-label">📝 Ajoute ton exercice</span>
+                    <div style="border:2.5px dashed #a7f3d0;border-radius:1rem;padding:2rem 1.5rem;text-align:center;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);margin-bottom:1rem;">
+                        <div style="font-size:2rem;margin-bottom:0.5rem;">📂</div>
+                        <p style="font-weight:700;color:#059669;margin-bottom:0.5rem;">Indique un fichier comme référence</p>
+                        <p style="font-size:0.78rem;color:#6b7280;">PDF, image ou Word : seul son nom sera conservé</p>
+                    </div>
+                    <textarea placeholder="Ex: Exercice p.47 · Calcul de dérivées · 15 questions..." style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.9rem;resize:none;" rows="3"></textarea>
+                </div>
+
+                <div class="exo-section">
+                    <span class="exo-label">⏰ Durée estimée</span>
+                    <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <input type="range" min="15" max="180" step="15" value="60" style="flex:1;accent-color:#10b981;">
+                        <span style="font-weight:800;color:#059669;min-width:3.5rem;text-align:right;">60 min</span>
+                    </div>
+                </div>
+
+                <div class="exo-section">
+                    <span class="exo-label">📆 Date limite</span>
+                    <input type="date" style="width:100%;padding:0.75rem;border:2px solid #e5e7eb;border-radius:0.875rem;font-size:0.95rem;">
+                </div>
+
+                <button class="btn-ajouter">➕ Ajouter cet exercice</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fermer() {
+            document.getElementById('panelExercices').classList.remove('active');
+        }
+    </script>
+</body>
+</html>
