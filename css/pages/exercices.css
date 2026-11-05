@@ -1,0 +1,745 @@
+/* ============================================================
+   PAGE « MES EXERCICES »
+   Feuille dédiée : elle ne dépend plus du bon vouloir d'une
+   déclaration cassée dans planning-panels.css (une barre oblique
+   suivie d'une étoile y avalait tout le style de la page). Ici tout est
+   écrit proprement, vérifié par tools/verifier-exercices-page.js.
+
+   Couleurs du site : vert #10b981 / #059669 / #047857.
+   Chargée APRÈS planning-panels.css : ses règles l'emportent.
+   ============================================================ */
+
+#panelExercices.exo-page {
+    --exo-vert: #10b981;
+    --exo-vert-fonce: #059669;
+    --exo-vert-nuit: #064e3b;
+    --exo-trait: #e6ece9;
+    --exo-texte: #111827;
+    --exo-doux: #63736b;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    background:
+        radial-gradient(120% 60% at 100% 0%, #ecfdf5 0%, rgba(236, 253, 245, 0) 58%),
+        linear-gradient(180deg, #f8fbfa 0%, #ffffff 26%);
+    color: var(--exo-texte);
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    box-sizing: border-box;
+}
+
+/* Défilement de la page : le panneau n'a qu'une barre, fine. */
+#panelExercices.exo-page::-webkit-scrollbar { width: 8px; }
+#panelExercices.exo-page::-webkit-scrollbar-thumb { background: #cfe3da; border-radius: 999px; }
+#panelExercices.exo-page::-webkit-scrollbar-track { background: transparent; }
+
+#panelExercices.exo-page * { box-sizing: border-box; }
+
+/* ── En-tête ─────────────────────────────────────────────────── */
+#panelExercices .exo-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: .85rem 1rem .65rem;
+    margin: 0;
+    border-bottom: 1px solid var(--exo-trait);
+    background: rgba(255, 255, 255, .92);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    backdrop-filter: saturate(140%) blur(14px);
+}
+
+#panelExercices .exo-header-inner {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .7rem;
+}
+
+#panelExercices .exo-header-left {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    min-width: 0;
+}
+
+#panelExercices .exo-back-btn {
+    width: 2.45rem;
+    height: 2.45rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #cdeee0;
+    border-radius: .85rem;
+    background: #fff;
+    color: var(--exo-vert-fonce);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(6, 78, 59, .06);
+    transition: background .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+#panelExercices .exo-back-btn:hover { background: #ecfdf5; transform: translateX(-1px); }
+#panelExercices .exo-back-btn:active { transform: scale(.95); }
+
+#panelExercices .exo-back-btn .fleche-icone {
+    width: 1.05rem;
+    height: 1.05rem;
+    display: block;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+#panelExercices .exo-header-info { display: flex; flex-direction: column; min-width: 0; }
+
+#panelExercices .exo-title {
+    margin: 0;
+    font-size: 1.32rem;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -.025em;
+    background: linear-gradient(100deg, #047857, #10b981);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+#panelExercices .exo-subtitle {
+    margin: .1rem 0 0;
+    font-size: .76rem;
+    font-weight: 600;
+    color: var(--exo-doux);
+}
+
+#panelExercices .exo-badge {
+    flex-shrink: 0;
+    padding: .38rem .7rem;
+    border: 1px solid #a7f3d0;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: var(--exo-vert-nuit);
+    font-size: .74rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+#panelExercices .exo-badge.exo-badge-vide { border-color: var(--exo-trait); background: #f6f8f7; color: var(--exo-doux); }
+
+/* ── Progression du jour ─────────────────────────────────────── */
+#panelExercices .exo-resume {
+    max-width: 34rem;
+    margin: .7rem auto 0;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+}
+
+#panelExercices .exo-resume-texte {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--exo-doux);
+    white-space: nowrap;
+}
+
+#panelExercices .exo-resume-barre {
+    position: relative;
+    flex: 1;
+    height: .45rem;
+    border-radius: 999px;
+    background: #e8f0ec;
+    overflow: hidden;
+}
+
+#panelExercices .exo-resume-barre i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #34d399, #059669);
+    transition: width .45s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── Onglets ─────────────────────────────────────────────────── */
+#panelExercices .exo-tabs {
+    position: sticky;
+    top: 4.05rem;
+    z-index: 15;
+    max-width: 34rem;
+    margin: 0 auto .9rem;
+    padding: .28rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .25rem;
+    border: 1px solid var(--exo-trait);
+    border-radius: 1rem;
+    background: #f3f7f5;
+}
+
+#panelExercices .exo-tab {
+    min-height: 2.6rem;
+    padding: .45rem .35rem;
+    border: 0;
+    border-radius: .78rem;
+    background: transparent;
+    color: var(--exo-doux);
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background .2s ease, color .2s ease, box-shadow .2s ease;
+}
+
+#panelExercices .exo-tab:hover { color: var(--exo-vert-fonce); }
+
+#panelExercices .exo-tab.active {
+    background: #fff;
+    color: var(--exo-vert-fonce);
+    box-shadow: 0 2px 8px rgba(6, 78, 59, .10), 0 0 0 1px rgba(16, 185, 129, .16);
+}
+
+#panelExercices .exo-tabpanel {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding: 0 1rem 5.5rem;
+}
+
+/* ── Cartes de formulaire ────────────────────────────────────── */
+#panelExercices .exo-card {
+    position: relative;
+    margin: 0 0 .85rem;
+    padding: 1.05rem 1.05rem 1.1rem;
+    border: 1px solid var(--exo-trait);
+    border-radius: 1.15rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(6, 78, 59, .05), 0 10px 26px -18px rgba(6, 78, 59, .35);
+}
+
+#panelExercices .exo-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 1.05rem;
+    bottom: 1.05rem;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, #34d399, #059669);
+}
+
+#panelExercices .exo-label {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    margin: 0 0 .8rem;
+    font-size: .84rem;
+    font-weight: 800;
+    color: #1f2a26;
+    letter-spacing: -.01em;
+}
+
+/* ── Matières ────────────────────────────────────────────────── */
+#panelExercices .exo-subject-grid { display: flex; flex-wrap: wrap; gap: .45rem; }
+
+#panelExercices .exo-error {
+    margin: .55rem 0 0;
+    font-size: .78rem;
+    font-weight: 700;
+    color: #b45309;
+}
+
+#panelExercices .exo-error:empty { display: none; }
+
+/* ── Zone fichier ────────────────────────────────────────────── */
+#panelExercices .exo-dropzone {
+    margin: 0 0 .95rem;
+    padding: 1.35rem 1rem;
+    text-align: center;
+    border: 1.5px dashed #a7f3d0;
+    border-radius: 1rem;
+    background: linear-gradient(150deg, #f4fdf8, #ecfdf5);
+    cursor: pointer;
+    transition: border-color .2s ease, background .2s ease;
+}
+
+#panelExercices .exo-dropzone:hover,
+#panelExercices .exo-dropzone.dragging { border-color: var(--exo-vert); background: #e9fdf2; }
+
+#panelExercices .exo-dropzone-icon { font-size: 1.6rem; line-height: 1; margin-bottom: .45rem; }
+
+#panelExercices .exo-dropzone-title {
+    margin: 0;
+    font-size: .88rem;
+    font-weight: 800;
+    color: var(--exo-vert-fonce);
+}
+
+#panelExercices .exo-dropzone-help {
+    margin: .25rem 0 0;
+    font-size: .74rem;
+    line-height: 1.45;
+    color: var(--exo-doux);
+}
+
+#panelExercices .exo-file-info {
+    margin: 0 0 .95rem;
+    padding: .6rem .8rem;
+    border: 1px solid #a7f3d0;
+    border-radius: .85rem;
+    background: #ecfdf5;
+    color: var(--exo-vert-nuit);
+    font-size: .8rem;
+    font-weight: 600;
+}
+
+/* ── Séparateur ──────────────────────────────────────────────── */
+#panelExercices .exo-divider { display: flex; align-items: center; gap: .6rem; margin: 0 0 .8rem; }
+
+#panelExercices .exo-divider-line { flex: 1; height: 1px; background: var(--exo-trait); }
+
+#panelExercices .exo-divider-text {
+    font-size: .66rem;
+    font-weight: 800;
+    letter-spacing: .07em;
+    color: var(--exo-doux);
+    white-space: nowrap;
+}
+
+/* ── Champs ──────────────────────────────────────────────────── */
+#panelExercices .exo-textarea,
+#panelExercices .exo-input {
+    width: 100%;
+    padding: .8rem .9rem;
+    border: 1.5px solid #dfe7e3;
+    border-radius: .9rem;
+    background: #fff;
+    color: var(--exo-texte);
+    font: inherit;
+    font-size: .9rem;
+    line-height: 1.5;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+#panelExercices .exo-textarea { min-height: 6.5rem; resize: vertical; }
+#panelExercices .exo-input { min-height: 3rem; }
+
+#panelExercices .exo-textarea:focus,
+#panelExercices .exo-input:focus {
+    outline: none;
+    border-color: var(--exo-vert);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, .16);
+}
+
+#panelExercices .exo-textarea[aria-invalid='true'],
+#panelExercices .exo-input[aria-invalid='true'],
+#panelExercices .exo-subject-grid[aria-invalid='true'] { border-color: #f0b429; }
+
+/* ── Durée ───────────────────────────────────────────────────── */
+#panelExercices .exo-duration-presets {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .45rem;
+    margin: 0 0 .8rem;
+}
+
+#panelExercices .exo-preset {
+    min-height: 2.55rem;
+    padding: .45rem .3rem;
+    border: 1.5px solid #dfe7e3;
+    border-radius: .8rem;
+    background: #fff;
+    color: #374151;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#panelExercices .exo-preset:hover { border-color: #a7f3d0; color: var(--exo-vert-fonce); }
+
+#panelExercices .exo-preset.active {
+    border-color: var(--exo-vert);
+    background: #ecfdf5;
+    color: var(--exo-vert-fonce);
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, .25);
+}
+
+#panelExercices .exo-duration-slider-row { display: flex; align-items: center; gap: .75rem; }
+
+#panelExercices .exo-slider { flex: 1; min-width: 0; accent-color: var(--exo-vert); }
+
+#panelExercices .exo-slider-value {
+    min-width: 3.6rem;
+    text-align: right;
+    font-size: .95rem;
+    font-weight: 800;
+    color: var(--exo-vert-fonce);
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Boutons ─────────────────────────────────────────────────── */
+#panelExercices .exo-btn-add {
+    width: 100%;
+    min-height: 3.1rem;
+    padding: .85rem 1rem;
+    border: 0;
+    border-radius: .95rem;
+    background: linear-gradient(120deg, #10b981, #047857);
+    color: #fff;
+    font: inherit;
+    font-size: .95rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 12px 24px -12px rgba(5, 150, 105, .75);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+#panelExercices .exo-btn-add:hover { transform: translateY(-1px); filter: brightness(1.03); box-shadow: 0 16px 28px -12px rgba(5, 150, 105, .8); }
+#panelExercices .exo-btn-add:active { transform: translateY(0) scale(.995); }
+
+#panelExercices .exo-btn-clear {
+    width: 100%;
+    min-height: 2.6rem;
+    margin: 0 0 .55rem;
+    padding: .55rem 1rem;
+    border: 1px solid var(--exo-trait);
+    border-radius: .85rem;
+    background: #f8faf9;
+    color: #4b5563;
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .18s ease;
+}
+
+#panelExercices .exo-btn-clear:hover { background: #eef4f1; }
+
+/* ── Filtres ─────────────────────────────────────────────────── */
+#panelExercices .exo-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    margin: 0 0 .85rem;
+}
+
+#panelExercices .exo-filter {
+    min-height: 2.3rem;
+    padding: .35rem .8rem;
+    border: 1.5px solid #dfe7e3;
+    border-radius: 999px;
+    background: #fff;
+    color: #4b5563;
+    font: inherit;
+    font-size: .78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#panelExercices .exo-filter:hover { border-color: #a7f3d0; color: var(--exo-vert-fonce); }
+
+#panelExercices .exo-filter.active {
+    border-color: var(--exo-vert);
+    background: #ecfdf5;
+    color: var(--exo-vert-nuit);
+}
+
+/* ── Cartes d'exercice ───────────────────────────────────────── */
+#panelExercices .exo-list-container { display: flex; flex-direction: column; gap: .7rem; }
+
+#panelExercices .exo-liste-carte {
+    position: relative;
+    margin: 0;
+    padding: .95rem 1rem;
+    border: 1px solid var(--exo-trait);
+    border-radius: 1.1rem;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(6, 78, 59, .05), 0 12px 28px -22px rgba(6, 78, 59, .55);
+    transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+#panelExercices .exo-liste-carte:hover {
+    border-color: #c7ebda;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(6, 78, 59, .06), 0 18px 32px -22px rgba(6, 78, 59, .6);
+}
+
+#panelExercices .exo-liste-carte.exo-faite { background: linear-gradient(160deg, #f6fef9, #fff); border-color: #d7f2e3; }
+
+/* ── Résumé de planification ─────────────────────────────────── */
+#panelExercices .exo-resume-plan {
+    padding: 1.05rem;
+    border: 1px solid #a7f3d0;
+    border-radius: 1.15rem;
+    background: linear-gradient(145deg, #ecfdf5, #f7fefb);
+    box-shadow: 0 10px 26px -20px rgba(6, 78, 59, .6);
+}
+
+#panelExercices .exo-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .22rem .6rem;
+    border-radius: 999px;
+    font-size: .72rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+/* Les créneaux proposés gardent la pastille verte de la page. */
+#panelExercices .slot-chip {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .4rem;
+    width: 100%;
+    padding: .6rem .8rem;
+    border: 1.5px solid #a7f3d0;
+    border-radius: .85rem;
+    background: #fff;
+    color: var(--exo-vert-nuit);
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#panelExercices .slot-chip:hover {
+    border-color: var(--exo-vert);
+    background: #ecfdf5;
+    transform: translateX(2px);
+}
+
+
+/* ── Pastilles de matière ────────────────────────────────────── */
+#panelExercices .exo-sujet {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    max-width: 100%;
+    min-height: 2.6rem;
+    padding: .4rem .85rem;
+    border: 1.5px solid #dfe7e3;
+    border-radius: 999px;
+    background: #fff;
+    color: #2b3a33;
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#panelExercices .exo-sujet > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#panelExercices .exo-sujet:hover { border-color: #a7f3d0; background: #f7fdfa; }
+
+#panelExercices .exo-sujet.selectionne,
+#panelExercices .exo-sujet[aria-pressed='true'] {
+    border-color: var(--exo-vert);
+    background: #ecfdf5;
+    color: var(--exo-vert-nuit);
+    box-shadow: inset 0 0 0 1px rgba(16, 185, 129, .3);
+}
+
+/* ── Carte de la liste : tête, notes, étiquettes, actions ────── */
+#panelExercices .exo-liste-tete {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    margin-bottom: .7rem;
+}
+
+#panelExercices .exo-liste-icone {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid #e6f4ec;
+    border-radius: .8rem;
+    background: #f6fdf9;
+    font-size: 1.1rem;
+}
+
+#panelExercices .exo-liste-titres { flex: 1; min-width: 0; }
+
+#panelExercices .exo-liste-matiere {
+    margin: 0;
+    font-size: .9rem;
+    font-weight: 800;
+    letter-spacing: -.01em;
+    color: #1b2621;
+    overflow-wrap: anywhere;
+}
+
+#panelExercices .exo-liste-note {
+    margin: .1rem 0 0;
+    font-size: .76rem;
+    line-height: 1.4;
+    font-weight: 500;
+    color: var(--exo-doux);
+    overflow-wrap: anywhere;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+#panelExercices .exo-liste-supprimer {
+    flex-shrink: 0;
+    width: 2.2rem;
+    height: 2.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: .7rem;
+    background: #f8faf9;
+    color: #9aa8a1;
+    font: inherit;
+    font-size: .82rem;
+    cursor: pointer;
+    transition: all .18s ease;
+}
+
+#panelExercices .exo-liste-supprimer:hover { background: #fef2f2; color: #dc2626; }
+
+#panelExercices .exo-liste-pied {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+#panelExercices .exo-liste-etiquettes { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+
+#panelExercices .exo-liste-etiquettes-titre {
+    margin: 0 0 .5rem;
+    font-size: .78rem;
+    font-weight: 800;
+    color: #374151;
+}
+
+#panelExercices .exo-liste-actions { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+
+#panelExercices .exo-liste-bouton {
+    min-height: 2.4rem;
+    padding: .35rem .8rem;
+    border: 1px solid #d9e7e0;
+    border-radius: .75rem;
+    background: #fff;
+    color: var(--exo-vert-nuit);
+    font: inherit;
+    font-size: .76rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all .18s ease;
+    white-space: nowrap;
+}
+
+#panelExercices .exo-liste-bouton:hover { border-color: #a7f3d0; background: #f4fdf8; }
+
+#panelExercices .exo-liste-bouton-plein {
+    border-color: transparent;
+    background: linear-gradient(120deg, #10b981, #047857);
+    color: #fff;
+    box-shadow: 0 8px 18px -12px rgba(5, 150, 105, .9);
+}
+
+#panelExercices .exo-liste-bouton-plein:hover { filter: brightness(1.04); background: linear-gradient(120deg, #10b981, #047857); }
+
+#panelExercices .exo-chip-duree { background: #f4f6f5; color: #4b5563; }
+#panelExercices .exo-chip-fait { background: #dcfce7; color: #166534; }
+#panelExercices .exo-chip-planifie { background: #ecfdf5; color: var(--exo-vert-nuit); box-shadow: inset 0 0 0 1px #c7ebda; }
+#panelExercices .exo-chip-urgent { background: #fef2f2; color: #b91c1c; }
+#panelExercices .exo-chip-proche { background: #fffbeb; color: #92400e; }
+#panelExercices .exo-chip-calme { background: #ecfdf5; color: var(--exo-vert-fonce); }
+
+/* ── États vides ─────────────────────────────────────────────── */
+#panelExercices .exo-empty {
+    margin: 0;
+    padding: 2.4rem 1.2rem;
+    text-align: center;
+    border: 1px dashed #d9e7e0;
+    border-radius: 1.15rem;
+    background: linear-gradient(180deg, #fbfdfc, #fff);
+}
+
+#panelExercices .exo-empty-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    margin-bottom: .7rem;
+    border-radius: 1.05rem;
+    background: #ecfdf5;
+    box-shadow: inset 0 0 0 1px #d4f3e5;
+    font-size: 1.45rem;
+}
+
+#panelExercices .exo-empty-title {
+    margin: 0 0 .3rem;
+    font-size: .95rem;
+    font-weight: 800;
+    color: #1f2a26;
+}
+
+#panelExercices .exo-empty-text {
+    margin: 0 auto;
+    max-width: 20rem;
+    font-size: .8rem;
+    line-height: 1.5;
+    color: var(--exo-doux);
+}
+
+#panelExercices .exo-empty-action {
+    margin-top: .9rem;
+    min-height: 2.6rem;
+    padding: .5rem 1.1rem;
+    border: 0;
+    border-radius: .85rem;
+    background: #ecfdf5;
+    box-shadow: inset 0 0 0 1.5px #a7f3d0;
+    color: var(--exo-vert-nuit);
+    font: inherit;
+    font-size: .82rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+/* ── Petits écrans ───────────────────────────────────────────── */
+@media (max-width: 430px) {
+    #panelExercices .exo-tabpanel { padding: 0 .7rem 5rem; }
+    #panelExercices .exo-header { padding: .7rem .7rem .55rem; }
+    #panelExercices .exo-title { font-size: 1.18rem; }
+    #panelExercices .exo-subtitle { display: none; }
+    #panelExercices .exo-tabs { top: 3.7rem; }
+    #panelExercices .exo-duration-presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #panelExercices .exo-tab { font-size: .74rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #panelExercices.exo-page * { animation: none !important; transition: none !important; }
+}
