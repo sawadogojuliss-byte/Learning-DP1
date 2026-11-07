@@ -1,11 +1,5 @@
 [
   {
-    "id": "drive-parc-au-soleil",
-    "nom": "Parc au soleil",
-    "cat": "nature",
-    "original": "daniel-zopf-HPPgufLZdfc-unsplash.jpg"
-  },
-  {
     "id": "drive-banc-au-parc",
     "nom": "Banc au parc",
     "cat": "nature",
@@ -122,13 +116,13 @@
   {
     "id": "drive-champ-de-coquelicots",
     "nom": "Champ de coquelicots",
-    "cat": "nature",
+    "cat": "fleurs",
     "original": "pexels-pixabay-86588.jpg"
   },
   {
     "id": "drive-fleurs-en-noir-et-blanc",
     "nom": "Fleurs en noir et blanc",
-    "cat": "nature",
+    "cat": "fleurs",
     "original": "pexels-princess-2150885580-38186463.jpg"
   },
   {
@@ -140,7 +134,7 @@
   {
     "id": "drive-rose-pourpre",
     "nom": "Rose pourpre",
-    "cat": "nature",
+    "cat": "fleurs",
     "original": "pexels-shivaraj-s-197301-1248735.jpg"
   },
   {
@@ -152,7 +146,7 @@
   {
     "id": "drive-rose-perlee",
     "nom": "Rose perlée",
-    "cat": "nature",
+    "cat": "fleurs",
     "original": "pexels-wonderofhisworld-38975110.jpg"
   },
   {

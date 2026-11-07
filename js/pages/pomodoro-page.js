@@ -32,19 +32,19 @@ var FOCUS_FONDS = [
     { id: 'tunnel', cat: 'degrades', nom: 'Tunnel', src: 'images/pomodoro/tunnel.webp?v=20261015p', mini: 'images/pomodoro/mini/tunnel.webp?v=20261015p' },
     { id: 'stade', cat: 'degrades', nom: 'Stade', src: 'images/pomodoro/stade.webp?v=20261015p', mini: 'images/pomodoro/mini/stade.webp?v=20261015p' },
     /* Photos ajoutées en octobre 2026 : fleurs, montagnes, mer. */
-    { id: 'geraniums', cat: 'nature', nom: 'Géraniums', src: 'images/pomodoro/geraniums.webp?v=20261019d', mini: 'images/pomodoro/mini/geraniums.webp?v=20261019d' },
-    { id: 'chrysantheme', cat: 'nature', nom: 'Chrysanthème', src: 'images/pomodoro/chrysantheme.webp?v=20261019d', mini: 'images/pomodoro/mini/chrysantheme.webp?v=20261019d' },
+    { id: 'geraniums', cat: 'fleurs', nom: 'Géraniums', src: 'images/pomodoro/geraniums.webp?v=20261019d', mini: 'images/pomodoro/mini/geraniums.webp?v=20261019d' },
+    { id: 'chrysantheme', cat: 'fleurs', nom: 'Chrysanthème', src: 'images/pomodoro/chrysantheme.webp?v=20261019d', mini: 'images/pomodoro/mini/chrysantheme.webp?v=20261019d' },
     { id: 'lac-montagne', cat: 'paysages', nom: 'Lac de montagne', src: 'images/pomodoro/lac-montagne.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-montagne.webp?v=20261019d' },
     { id: 'arbre-couchant', cat: 'paysages', nom: 'Arbre au couchant', src: 'images/pomodoro/arbre-couchant.webp?v=20261019d', mini: 'images/pomodoro/mini/arbre-couchant.webp?v=20261019d' },
     { id: 'canyon', cat: 'paysages', nom: 'Canyon', src: 'images/pomodoro/canyon.webp?v=20261019d', mini: 'images/pomodoro/mini/canyon.webp?v=20261019d' },
     { id: 'lac-alpin', cat: 'paysages', nom: 'Lac alpin', src: 'images/pomodoro/lac-alpin.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-alpin.webp?v=20261019d' },
     { id: 'plage', cat: 'paysages', nom: 'Plage', src: 'images/pomodoro/plage.webp?v=20261019d', mini: 'images/pomodoro/mini/plage.webp?v=20261019d' },
     { id: 'mer-soleil', cat: 'paysages', nom: 'Mer au soleil', src: 'images/pomodoro/mer-soleil.webp?v=20261019d', mini: 'images/pomodoro/mini/mer-soleil.webp?v=20261019d' },
-    { id: 'marguerites', cat: 'nature', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' },
+    { id: 'marguerites', cat: 'fleurs', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' },
     /* Ajouté à la fin pour conserver les choix existants enregistrés par indice. */
     { id: 'chalet-neige-anime', cat: 'anime', nom: 'Chalet sous la neige', src: 'images/pomodoro/chalet-neige-anime.webp?v=20261107b', mini: 'images/pomodoro/mini/chalet-neige-anime.webp?v=20261107b', video: 'images/pomodoro/chalet-neige-anime.mp4?v=20261107b' },
     /* Photos du dossier StudyPlan / Image. Ajoutées après les anciens indices. */
-    { id: 'drive-parc-au-soleil', cat: 'nature', nom: 'Parc au soleil', src: 'images/pomodoro/drive-parc-au-soleil.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-parc-au-soleil.webp?v=20261107c', precharger: false },
+    { id: 'drive-parc-au-soleil', cat: 'retire', nom: 'Banc au parc', src: 'images/pomodoro/drive-banc-au-parc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-banc-au-parc.webp?v=20261107c', precharger: false, masque: true, remplacePar: 'drive-banc-au-parc' },
     { id: 'drive-banc-au-parc', cat: 'nature', nom: 'Banc au parc', src: 'images/pomodoro/drive-banc-au-parc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-banc-au-parc.webp?v=20261107c', precharger: false },
     { id: 'drive-stade-au-couchant', cat: 'sport', nom: 'Stade au couchant', src: 'images/pomodoro/drive-stade-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-stade-au-couchant.webp?v=20261107c', precharger: false },
     { id: 'drive-arbre-et-champs', cat: 'nature', nom: 'Arbre et champs', src: 'images/pomodoro/drive-arbre-et-champs.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-arbre-et-champs.webp?v=20261107c', precharger: false },
@@ -64,12 +64,12 @@ var FOCUS_FONDS = [
     { id: 'drive-panier-au-couchant', cat: 'sport', nom: 'Panier au couchant', src: 'images/pomodoro/drive-panier-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-panier-au-couchant.webp?v=20261107c', precharger: false },
     { id: 'drive-vallee-dans-les-nuages', cat: 'paysages', nom: 'Vallée dans les nuages', src: 'images/pomodoro/drive-vallee-dans-les-nuages.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-vallee-dans-les-nuages.webp?v=20261107c', precharger: false },
     { id: 'drive-torrent-alpin', cat: 'nature', nom: 'Torrent alpin', src: 'images/pomodoro/drive-torrent-alpin.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-torrent-alpin.webp?v=20261107c', precharger: false },
-    { id: 'drive-champ-de-coquelicots', cat: 'nature', nom: 'Champ de coquelicots', src: 'images/pomodoro/drive-champ-de-coquelicots.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-champ-de-coquelicots.webp?v=20261107c', precharger: false },
-    { id: 'drive-fleurs-en-noir-et-blanc', cat: 'nature', nom: 'Fleurs en noir et blanc', src: 'images/pomodoro/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', precharger: false },
+    { id: 'drive-champ-de-coquelicots', cat: 'fleurs', nom: 'Champ de coquelicots', src: 'images/pomodoro/drive-champ-de-coquelicots.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-champ-de-coquelicots.webp?v=20261107c', precharger: false },
+    { id: 'drive-fleurs-en-noir-et-blanc', cat: 'fleurs', nom: 'Fleurs en noir et blanc', src: 'images/pomodoro/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', precharger: false },
     { id: 'drive-lueurs-vives', cat: 'degrades', nom: 'Lueurs vives', src: 'images/pomodoro/drive-lueurs-vives.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-lueurs-vives.webp?v=20261107c', precharger: false },
-    { id: 'drive-rose-pourpre', cat: 'nature', nom: 'Rose pourpre', src: 'images/pomodoro/drive-rose-pourpre.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-pourpre.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-pourpre', cat: 'fleurs', nom: 'Rose pourpre', src: 'images/pomodoro/drive-rose-pourpre.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-pourpre.webp?v=20261107c', precharger: false },
     { id: 'drive-reflets-du-soir', cat: 'paysages', nom: 'Reflets du soir', src: 'images/pomodoro/drive-reflets-du-soir.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-reflets-du-soir.webp?v=20261107c', precharger: false },
-    { id: 'drive-rose-perlee', cat: 'nature', nom: 'Rose perlée', src: 'images/pomodoro/drive-rose-perlee.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-perlee.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-perlee', cat: 'fleurs', nom: 'Rose perlée', src: 'images/pomodoro/drive-rose-perlee.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-perlee.webp?v=20261107c', precharger: false },
     { id: 'drive-passerelle-en-foret', cat: 'nature', nom: 'Passerelle en forêt', src: 'images/pomodoro/drive-passerelle-en-foret.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-passerelle-en-foret.webp?v=20261107c', precharger: false },
     { id: 'drive-ballon-sur-le-terrain', cat: 'sport', nom: 'Ballon sur le terrain', src: 'images/pomodoro/drive-ballon-sur-le-terrain.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-ballon-sur-le-terrain.webp?v=20261107c', precharger: false },
     { id: 'drive-pelouse-du-stade', cat: 'sport', nom: 'Pelouse du stade', src: 'images/pomodoro/drive-pelouse-du-stade.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-pelouse-du-stade.webp?v=20261107c', precharger: false },
@@ -232,6 +232,11 @@ function focusCharger() {
         var choix = localStorage.getItem('studyPlanIB_focusFond');
         if (choix !== null && /^\d+$/.test(choix) && Number(choix) < FOCUS_FONDS.length) fond = Number(choix);
     } catch (e) {}
+    // Un ancien choix retiré pointe vers le décor conservé, sans décaler les indices.
+    if (FOCUS_FONDS[fond].remplacePar) {
+        fond = focusIndexParId(FOCUS_FONDS[fond].remplacePar);
+        try { localStorage.setItem('studyPlanIB_focusFond', String(fond)); } catch (e) {}
+    }
     focusEtat.fond = fond;
     var tache = '';
     try { tache = localStorage.getItem('studyPlanIB_focusTache') || ''; } catch (e) {}
@@ -773,6 +778,7 @@ function focusPreparerFonds() {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'focus-vignette';
+            btn.hidden = !!fond.masque; // conserve les indices des galeries historiques
             btn.setAttribute('aria-label', fond.nom);
             btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';
             btn.style.backgroundPosition = 'center center';
@@ -793,6 +799,7 @@ function focusPreparerFonds() {
    toute façon posée qu une fois décodée, donc jamais de trou dans le décor. */
 function focusPoserFond(index, immediat) {
     if (index < 0 || index >= FOCUS_FONDS.length) return;
+    if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
     focusEtat.fond = index;
     var fond = FOCUS_FONDS[index];
     try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}

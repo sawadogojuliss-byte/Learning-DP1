@@ -160,6 +160,7 @@ function accueilVignettesFonds() {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'focus-vignette';
+        btn.hidden = !!fond.masque; // garder les indices des sélections enregistrées
         btn.setAttribute('aria-label', fond.nom);
         btn.title = fond.nom;
         btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';

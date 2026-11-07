@@ -35,6 +35,7 @@ shutil.copytree(base, output)
 files = [
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js',
+    'js/pages/musique.js',
     'images/pomodoro/chalet-neige-anime.mp4',
     'images/pomodoro/chalet-neige-anime.webp',
     'images/pomodoro/mini/chalet-neige-anime.webp',
@@ -42,7 +43,7 @@ files = [
 # Liste explicite issue de l'inventaire du dossier Drive ; images et vignettes
 # locales, sans dépendre de permissions Drive ou charger les originaux lourds.
 images = json.loads((ROOT / 'livrables/publication-themes/images.json').read_text(encoding='utf-8'))
-if len(images) != 29 or len({image['id'] for image in images}) != len(images):
+if len(images) != 28 or len({image['id'] for image in images}) != len(images):
     raise SystemExit('Inventaire des thèmes inattendu')
 for image in images:
     identifiant = image['id']

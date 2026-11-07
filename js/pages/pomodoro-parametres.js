@@ -223,6 +223,7 @@ var FOCUS_CATEGORIES_FONDS = [
     { id: 'abstrait', nom: 'Abstrait' },
     { id: 'paysages', nom: 'Paysages' },
     { id: 'nature', nom: 'Nature' },
+    { id: 'fleurs', nom: 'Fleurs' },
     { id: 'urbain', nom: 'Urbain' },
     { id: 'interieur', nom: 'Intérieur' },
     { id: 'sport', nom: 'Sport' },

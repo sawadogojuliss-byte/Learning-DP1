@@ -8,16 +8,31 @@ const {chromium}=require('playwright');
 const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM ? null : require('@sparticuz/chromium').default;
 const site=process.env.STUDY_SITE || 'http://127.0.0.1:8518/';
 const inventory=JSON.parse(fs.readFileSync(new URL('../livrables/publication-themes/images.json', import.meta.url)));
-assert.equal(inventory.length,29);
+assert.equal(inventory.length,28);
 const browser=await chromium.launch(portable ? {executablePath:await portable.executablePath(),args:portable.args.filter(x=>x!=='--single-process')} : {});
 try {
  for (const viewport of [{width:320,height:568},{width:390,height:844},{width:1280,height:800}]) {
   const context=await browser.newContext({viewport}); const page=await context.newPage(); const errors=[]; page.on('pageerror',e=>errors.push(String(e)));
   await page.route('**/*',r=>r.request().url().startsWith(site)?r.continue():r.abort());
-  await page.addInitScript(()=>{window.__STUDYPLAN_E2E=true;if(!sessionStorage.getItem('__testThemeInit')){localStorage.setItem('studyPlanIB_focusFond','32');sessionStorage.setItem('__testThemeInit','1')}});
+  await page.addInitScript(()=>{window.__STUDYPLAN_E2E=true;if(!sessionStorage.getItem('__testThemeInit')){localStorage.setItem('studyPlanIB_focusFond','33');sessionStorage.setItem('__testThemeInit','1')}});
   await page.goto(site,{waitUntil:'domcontentloaded'}); await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('themes')});
-  assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),'chalet-neige-anime','ancien indice préservé');
+  assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),'drive-banc-au-parc','choix de l’image retirée migré');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('studyPlanIB_focusFond')), '34');
+  assert.equal(await page.locator('#focusThemesCorps .focus-tuile-theme').filter({hasText:'Parc au soleil'}).count(),0);
+  assert.equal(await page.locator('#focusThemesCorps .focus-tuile-theme').filter({hasText:'Banc au parc'}).count(),1);
+  await page.locator('#focusFiltresFonds [data-cat="fleurs"]').click();
+  assert.deepEqual(await page.locator('#focusThemesCorps .focus-tuile-nom').allTextContents(),['Géraniums','Chrysanthème','Marguerites','Champ de coquelicots','Fleurs en noir et blanc','Rose pourpre','Rose perlée']);
+  await page.locator('#focusFiltresFonds [data-cat="tout"]').click();
+  await page.evaluate(()=>{focusPreparerFonds();accueilVignettesFonds()});
+  assert.equal(await page.locator('#focusFonds .focus-vignette').nth(33).evaluate(e=>e.hidden),true);
+  assert.equal(await page.locator('#accueilFonds .focus-vignette').nth(33).evaluate(e=>e.hidden),true);
+  assert.equal(await page.locator('#focusFonds .focus-vignette').nth(34).evaluate(e=>e.hidden),false);
+  assert.equal(await page.locator('#accueilFonds .focus-vignette').nth(34).evaluate(e=>e.hidden),false);
+  await page.evaluate(()=>{focusPoserFond(33);accueilPeindreFonds()});
+  assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),'drive-banc-au-parc');
+  assert.equal(await page.locator('#accueilFonds .focus-vignette').nth(34).evaluate(e=>e.classList.contains('is-on')),true);
+  assert.equal(await page.locator('#focusFonds .focus-vignette').nth(34).evaluate(e=>e.classList.contains('is-on')),true);
   assert.equal(await page.locator('#focusThemesCorps .focus-rangee').last().locator('h4').innerText(),'Animé');
   for (const cat of [...new Set(inventory.map(i=>i.cat))]) {
    await page.locator(`#focusFiltresFonds [data-cat="${cat}"]`).click();
@@ -45,6 +60,6 @@ try {
   assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),selected,'nouveau thème restauré');
   await page.waitForFunction(id=>document.getElementById('focusBg').style.backgroundImage.includes(id+'.webp'),selected,{timeout:20000});
   await context.close();
-  assert.deepEqual(errors,[]);console.log('OK 29 thèmes, catégories, images et sélection : '+viewport.width+'×'+viewport.height);
+  assert.deepEqual(errors,[]);console.log('OK 28 thèmes, catégorie Fleurs, migration et sélection : '+viewport.width+'×'+viewport.height);
  }
 } finally {await browser.close()}
