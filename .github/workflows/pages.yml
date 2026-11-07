@@ -2,6 +2,9 @@ name: Publication contrôlée de Studyplan
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - arena/f4de29cb-learning-dp1
 
 permissions:
   contents: read
