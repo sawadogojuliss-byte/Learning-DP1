@@ -25,12 +25,16 @@ jobs:
         with:
           ref: 1efb82e236505af518b4e6fa3065b170ab1e2ae2
           path: base-publique
-      - name: Vérifier que la branche publique n'a pas changé
+      - name: Vérifier la configuration et la branche publique
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           actif=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/arena/b9e08b94-learning-dp1 | cut -f1)
           test "$actif" = "1efb82e236505af518b4e6fa3065b170ab1e2ae2" || { echo "La branche publique a changé : arrêt avant publication."; exit 1; }
+          type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type)
+          test "$type" = workflow || { echo "Configurer d'abord GitHub Pages sur GitHub Actions."; exit 1; }
       - name: Assembler seulement le chalet animé
         shell: bash
         run: |
