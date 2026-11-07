@@ -42,7 +42,37 @@ var FOCUS_FONDS = [
     { id: 'mer-soleil', cat: 'paysages', nom: 'Mer au soleil', src: 'images/pomodoro/mer-soleil.webp?v=20261019d', mini: 'images/pomodoro/mini/mer-soleil.webp?v=20261019d' },
     { id: 'marguerites', cat: 'nature', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' },
     /* Ajouté à la fin pour conserver les choix existants enregistrés par indice. */
-    { id: 'chalet-neige-anime', cat: 'anime', nom: 'Chalet sous la neige', src: 'images/pomodoro/chalet-neige-anime.webp?v=20261107b', mini: 'images/pomodoro/mini/chalet-neige-anime.webp?v=20261107b', video: 'images/pomodoro/chalet-neige-anime.mp4?v=20261107b' }
+    { id: 'chalet-neige-anime', cat: 'anime', nom: 'Chalet sous la neige', src: 'images/pomodoro/chalet-neige-anime.webp?v=20261107b', mini: 'images/pomodoro/mini/chalet-neige-anime.webp?v=20261107b', video: 'images/pomodoro/chalet-neige-anime.mp4?v=20261107b' },
+    /* Photos du dossier StudyPlan / Image. Ajoutées après les anciens indices. */
+    { id: 'drive-parc-au-soleil', cat: 'nature', nom: 'Parc au soleil', src: 'images/pomodoro/drive-parc-au-soleil.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-parc-au-soleil.webp?v=20261107c', precharger: false },
+    { id: 'drive-banc-au-parc', cat: 'nature', nom: 'Banc au parc', src: 'images/pomodoro/drive-banc-au-parc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-banc-au-parc.webp?v=20261107c', precharger: false },
+    { id: 'drive-stade-au-couchant', cat: 'sport', nom: 'Stade au couchant', src: 'images/pomodoro/drive-stade-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-stade-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-arbre-et-champs', cat: 'nature', nom: 'Arbre et champs', src: 'images/pomodoro/drive-arbre-et-champs.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-arbre-et-champs.webp?v=20261107c', precharger: false },
+    { id: 'drive-profondeurs-colorees', cat: 'degrades', nom: 'Profondeurs colorées', src: 'images/pomodoro/drive-profondeurs-colorees.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-profondeurs-colorees.webp?v=20261107c', precharger: false },
+    { id: 'drive-douceur-pastel', cat: 'degrades', nom: 'Douceur pastel', src: 'images/pomodoro/drive-douceur-pastel.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-douceur-pastel.webp?v=20261107c', precharger: false },
+    { id: 'drive-aurore-sur-le-lac', cat: 'paysages', nom: 'Aurore sur le lac', src: 'images/pomodoro/drive-aurore-sur-le-lac.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-aurore-sur-le-lac.webp?v=20261107c', precharger: false },
+    { id: 'drive-cascade-en-foret', cat: 'nature', nom: 'Cascade en forêt', src: 'images/pomodoro/drive-cascade-en-foret.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-cascade-en-foret.webp?v=20261107c', precharger: false },
+    { id: 'drive-clairiere-de-montagne', cat: 'paysages', nom: 'Clairière de montagne', src: 'images/pomodoro/drive-clairiere-de-montagne.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-clairiere-de-montagne.webp?v=20261107c', precharger: false },
+    { id: 'drive-voile-boreal', cat: 'paysages', nom: 'Voile boréal', src: 'images/pomodoro/drive-voile-boreal.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-voile-boreal.webp?v=20261107c', precharger: false },
+    { id: 'drive-montagnes-bleues', cat: 'paysages', nom: 'Montagnes bleues', src: 'images/pomodoro/drive-montagnes-bleues.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-montagnes-bleues.webp?v=20261107c', precharger: false },
+    { id: 'drive-feuilles-de-pluie', cat: 'nature', nom: 'Feuilles de pluie', src: 'images/pomodoro/drive-feuilles-de-pluie.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-feuilles-de-pluie.webp?v=20261107c', precharger: false },
+    { id: 'drive-horizon-au-couchant', cat: 'paysages', nom: 'Horizon au couchant', src: 'images/pomodoro/drive-horizon-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-horizon-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-stade-a-la-tombee-du-jour', cat: 'sport', nom: 'Stade à la tombée du jour', src: 'images/pomodoro/drive-stade-a-la-tombee-du-jour.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-stade-a-la-tombee-du-jour.webp?v=20261107c', precharger: false },
+    { id: 'drive-soleil-rouge', cat: 'paysages', nom: 'Soleil rouge', src: 'images/pomodoro/drive-soleil-rouge.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-soleil-rouge.webp?v=20261107c', precharger: false },
+    { id: 'drive-montagnes-etoilees', cat: 'paysages', nom: 'Montagnes étoilées', src: 'images/pomodoro/drive-montagnes-etoilees.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-montagnes-etoilees.webp?v=20261107c', precharger: false },
+    { id: 'drive-aurore-sur-la-rive', cat: 'paysages', nom: 'Aurore sur la rive', src: 'images/pomodoro/drive-aurore-sur-la-rive.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-aurore-sur-la-rive.webp?v=20261107c', precharger: false },
+    { id: 'drive-panier-au-couchant', cat: 'sport', nom: 'Panier au couchant', src: 'images/pomodoro/drive-panier-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-panier-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-vallee-dans-les-nuages', cat: 'paysages', nom: 'Vallée dans les nuages', src: 'images/pomodoro/drive-vallee-dans-les-nuages.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-vallee-dans-les-nuages.webp?v=20261107c', precharger: false },
+    { id: 'drive-torrent-alpin', cat: 'nature', nom: 'Torrent alpin', src: 'images/pomodoro/drive-torrent-alpin.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-torrent-alpin.webp?v=20261107c', precharger: false },
+    { id: 'drive-champ-de-coquelicots', cat: 'nature', nom: 'Champ de coquelicots', src: 'images/pomodoro/drive-champ-de-coquelicots.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-champ-de-coquelicots.webp?v=20261107c', precharger: false },
+    { id: 'drive-fleurs-en-noir-et-blanc', cat: 'nature', nom: 'Fleurs en noir et blanc', src: 'images/pomodoro/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', precharger: false },
+    { id: 'drive-lueurs-vives', cat: 'degrades', nom: 'Lueurs vives', src: 'images/pomodoro/drive-lueurs-vives.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-lueurs-vives.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-pourpre', cat: 'nature', nom: 'Rose pourpre', src: 'images/pomodoro/drive-rose-pourpre.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-pourpre.webp?v=20261107c', precharger: false },
+    { id: 'drive-reflets-du-soir', cat: 'paysages', nom: 'Reflets du soir', src: 'images/pomodoro/drive-reflets-du-soir.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-reflets-du-soir.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-perlee', cat: 'nature', nom: 'Rose perlée', src: 'images/pomodoro/drive-rose-perlee.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-perlee.webp?v=20261107c', precharger: false },
+    { id: 'drive-passerelle-en-foret', cat: 'nature', nom: 'Passerelle en forêt', src: 'images/pomodoro/drive-passerelle-en-foret.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-passerelle-en-foret.webp?v=20261107c', precharger: false },
+    { id: 'drive-ballon-sur-le-terrain', cat: 'sport', nom: 'Ballon sur le terrain', src: 'images/pomodoro/drive-ballon-sur-le-terrain.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-ballon-sur-le-terrain.webp?v=20261107c', precharger: false },
+    { id: 'drive-pelouse-du-stade', cat: 'sport', nom: 'Pelouse du stade', src: 'images/pomodoro/drive-pelouse-du-stade.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-pelouse-du-stade.webp?v=20261107c', precharger: false },
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -607,7 +637,7 @@ function focusAmorcerFonds() {
         }
         var fond = FOCUS_FONDS[ordre[rang]];
         rang += 1;
-        if (!fond || focusFondsPrets[fond.src]) {
+        if (!fond || fond.precharger === false || focusFondsPrets[fond.src]) {
             suivant();
             return;
         }

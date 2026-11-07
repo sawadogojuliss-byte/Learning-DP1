@@ -225,6 +225,7 @@ var FOCUS_CATEGORIES_FONDS = [
     { id: 'nature', nom: 'Nature' },
     { id: 'urbain', nom: 'Urbain' },
     { id: 'interieur', nom: 'Intérieur' },
+    { id: 'sport', nom: 'Sport' },
     { id: 'anime', nom: 'Animé' }
 ];
 var focusCategorieFonds = 'tout';

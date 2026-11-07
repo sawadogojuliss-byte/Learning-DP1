@@ -77,13 +77,20 @@ try {
   }
   // Légende : 12 catégories et couleurs d'origine, et retour au planning.
   await page.evaluate(()=>navigateTo('legende'));
-  const cards=page.locator('#panelLegende .lg-card'); assert.equal(await cards.count(),12);
-  const palette=await cards.evaluateAll(els=>els.map(e=>[e.querySelector('strong').textContent.trim(),e.style.getPropertyValue('--lg-color')]));
-  assert.deepEqual(Object.fromEntries(palette),{'Cours':'#60a5fa','Révision critique':'#ef4444','Révision à améliorer':'#f59e0b','Révision normale':'#fb923c','Évaluation interne':'#fb7185','Mémoire':'#4d63a1','Sommeil':'#818cf8','Activités':'#a78bfa','Transport':'#22d3ee','Repas':'#9ca3af','Téléphone':'#f472b6','Temps libre':'#4ade80'});
-  assert.equal(await page.locator('.lg-card-dashed strong').innerText(),'Mémoire');
+  const cards=page.locator('#panelLegende [style*="border-left:4px"]'); assert.equal(await cards.count(),12);
+  const palette=await cards.evaluateAll(els=>els.map(e=>[e.textContent.trim(),e.style.borderLeftColor,e.style.borderLeftStyle]));
+  assert.deepEqual(palette, [
+    ['😴 Sommeil','rgb(129, 140, 248)','solid'], ['🏫 Cours','rgb(96, 165, 250)','solid'],
+    ['🔴 Révision critique (≤2/7)','rgb(239, 68, 68)','solid'], ['🟠 Révision à améliorer (≤4/7)','rgb(245, 158, 11)','solid'],
+    ['📚 Révision normale','rgb(251, 146, 60)','solid'], ['🎯 Activités','rgb(167, 139, 250)','solid'],
+    ['🚗 Transport','rgb(34, 211, 238)','solid'], ['🍽️ Repas','rgb(156, 163, 175)','solid'],
+    ['📱 Téléphone','rgb(244, 114, 182)','solid'], ['🎮 Temps libre','rgb(74, 222, 128)','solid'],
+    ['📋 Évaluation interne','rgb(251, 113, 133)','solid'], ['📖 Mémoire','rgb(77, 99, 161)','dashed']
+  ]);
   assert.ok(await page.locator('#panelLegende').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
-  if(process.env.STUDY_TEST_CAPTURE){await page.locator('#panelLegende').evaluate(e=>e.scrollTop=0);await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/legende-finale-${viewport.width}.png`});}
-  await page.locator('.lg-back').click();assert.equal(await page.locator('#panelLegende').isVisible(),false);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'auto');
+  await scrollReach(page,'#panelLegende');
+  if(process.env.STUDY_TEST_CAPTURE){await page.locator('#panelLegende').evaluate(e=>e.scrollTop=0);await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/legende-ancienne-${viewport.width}.png`});}
+  await page.getByRole('button',{name:'Revenir au planning'}).click();assert.equal(await page.locator('#panelLegende').isVisible(),false);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'auto');
   // Séances longues : un seul défilement, tous les boutons restent atteignables.
   await page.evaluate(()=>{navigateTo('seances');const list=document.getElementById('focusAccueilListe');list.innerHTML=Array.from({length:18},(_,i)=>'<button class="focus-seance" type="button">Séance fictive '+(i+1)+'</button>').join('')});
   assert.equal(await page.locator('#focusAccueilListe').evaluate(e=>getComputedStyle(e).overflowY),'visible');await scrollReach(page,'#focusAccueil');

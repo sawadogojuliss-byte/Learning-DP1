@@ -6,6 +6,7 @@ BASE est un export du commit public validé par le workflow. SORTIE ne doit pas
 exister. La liste explicite empêche d'inclure les autres travaux de la branche.
 """
 import hashlib
+import json
 import re
 import shutil
 import sys
@@ -33,10 +34,21 @@ shutil.copytree(base, output)
 
 files = [
     'js/pages/pomodoro-page.js',
+    'js/pages/pomodoro-parametres.js',
     'images/pomodoro/chalet-neige-anime.mp4',
     'images/pomodoro/chalet-neige-anime.webp',
     'images/pomodoro/mini/chalet-neige-anime.webp',
 ]
+# Liste explicite issue de l'inventaire du dossier Drive ; images et vignettes
+# locales, sans dépendre de permissions Drive ou charger les originaux lourds.
+images = json.loads((ROOT / 'livrables/publication-themes/images.json').read_text(encoding='utf-8'))
+if len(images) != 29 or len({image['id'] for image in images}) != len(images):
+    raise SystemExit('Inventaire des thèmes inattendu')
+for image in images:
+    identifiant = image['id']
+    if not re.fullmatch(r'drive-[a-z0-9-]+', identifiant):
+        raise SystemExit('Identifiant de thème invalide')
+    files.extend([f'images/pomodoro/{identifiant}.webp', f'images/pomodoro/mini/{identifiant}.webp'])
 for rel in files:
     dest = output / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -58,7 +70,6 @@ path.write_text(text.replace(anchor, match.group(0) + anchor, 1), encoding='utf-
 shutil.copy2(ROOT / 'livrables/publication-exercices/exercices.html', output / 'pages/exercices.html')
 shutil.copy2(ROOT / 'livrables/publication-exercices/exercices-design.css', output / 'css/pages/exercices-design.css')
 shutil.copy2(ROOT / 'livrables/publication-legende/legende.html', output / 'pages/legende.html')
-shutil.copy2(ROOT / 'livrables/publication-legende/legende.css', output / 'css/pages/legende-design.css')
 shutil.copy2(ROOT / 'livrables/publication-legende/defilement.css', output / 'css/pages/defilement.css')
 
 # Modification strictement visuelle du rendu des créneaux du script public.
@@ -114,12 +125,12 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/legende-design.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/defilement.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/defilement.css?v=' + version + '">', 1)
     if rel == 'service-worker.js':
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')
-        text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/legende-design.css",\n    "css/pages/defilement.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         old = "        url.pathname.includes('/audio/')) return;"
         new = "        url.pathname.includes('/audio/') ||\n        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4')) return;"
         if text.count(old) != 1:
@@ -128,7 +139,7 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
     path.write_text(text, encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/legende-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'service-worker.js'])
+allowed = set(files + ['pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue
@@ -138,4 +149,4 @@ for path in base.rglob('*'):
         raise SystemExit('Fichier public perdu : ' + rel)
     if rel not in allowed and hashlib.sha256(path.read_bytes()).digest() != hashlib.sha256(other.read_bytes()).digest():
         raise SystemExit('Fichier public modifié hors périmètre : ' + rel)
-print('Publication préparée : chalet, Exercices, légende et défilement ; autres fichiers publics inchangés.')
+print('Publication préparée : chalet, thèmes, Exercices, légende et défilement ; autres fichiers publics inchangés.')
