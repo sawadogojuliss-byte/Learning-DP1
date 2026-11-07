@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
 const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM ? null : require('@sparticuz/chromium').default;
 const site=process.env.STUDY_SITE || 'http://127.0.0.1:8520/';
 const browser=await chromium.launch(portable ? {executablePath:await portable.executablePath(),args:portable.args.filter(x=>x!=='--single-process')} : {});
-const themes=[{id:'chalet-neige-anime',nom:'Chalet sous la neige'},{id:'dunes-lagunes-anime',nom:'Dunes et lagunes'},{id:'pluie-palmes-anime',nom:'Pluie sur les palmes'}];
+const themes=[{id:'chalet-neige-anime',nom:'Chalet sous la neige'},{id:'dunes-lagunes-anime',nom:'Dunes et lagunes'},{id:'pluie-palmes-anime',nom:'Pluie sur les palmes'},{id:'foret-automne-anime',nom:'Forêt d’automne'}];
 try {
  for(const viewport of [{width:320,height:568},{width:390,height:844},{width:1280,height:800}]) {
   const page=await browser.newPage({viewport});const erreurs=[];page.on('pageerror',e=>erreurs.push(String(e)));
@@ -46,18 +46,18 @@ try {
    assert.equal(await tuile.getAttribute('aria-pressed'),'true');
   }
   await page.locator('#focusFiltresFonds [data-cat="anime"]').click();
-  assert.equal(await page.locator('#focusThemesCorps .focus-grille-fonds .focus-tuile-theme').count(),3);
+  assert.equal(await page.locator('#focusThemesCorps .focus-grille-fonds .focus-tuile-theme').count(),4);
   await page.evaluate(()=>focusPoserFond(focusIndexParId('lumiere')));assert.equal(await page.locator('#focusBg video').count(),0);
   await page.waitForFunction(()=>document.querySelector('#focusBg').style.backgroundImage.includes('lumiere.webp'));
-  await page.evaluate(()=>focusPoserFond(focusIndexParId('pluie-palmes-anime')));
+  await page.evaluate(()=>focusPoserFond(focusIndexParId('foret-automne-anime')));
   await page.waitForFunction(()=>document.querySelector('#focusBg video')?.currentTime>.1,{timeout:30000});
   await page.reload({waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro')});
-  assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),'pluie-palmes-anime');
+  assert.equal(await page.evaluate(()=>FOCUS_FONDS[focusEtat.fond].id),'foret-automne-anime');
   await page.waitForFunction(()=>document.querySelector('#focusBg video')?.currentTime>.1,{timeout:30000});
   await page.evaluate(()=>navigateTo('seances'));
-  await page.waitForFunction(()=>!document.querySelector('#focusBg video')&&document.querySelector('#focusAccueilFond video')?.currentSrc.includes('pluie-palmes-anime.mp4'));
+  await page.waitForFunction(()=>!document.querySelector('#focusBg video')&&document.querySelector('#focusAccueilFond video')?.currentSrc.includes('foret-automne-anime.mp4'));
   await page.evaluate(()=>navigateTo('exercices'));await page.waitForFunction(()=>!document.querySelector('#focusAccueilFond video')&&!document.querySelector('#focusBg video'));
-  assert.deepEqual(erreurs,[]);console.log('OK trois thèmes animés, lecture, boucles, restauration et navigation : '+viewport.width+'×'+viewport.height);await page.close();
+  assert.deepEqual(erreurs,[]);console.log('OK quatre thèmes animés, lecture, boucles, restauration et navigation : '+viewport.width+'×'+viewport.height);await page.close();
  }
 } finally {await browser.close()}
