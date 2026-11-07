@@ -76,7 +76,7 @@ var FOCUS_FONDS = [
     /* Ajout à la fin : les indices sauvegardés des autres thèmes ne changent pas. */
     { id: 'dunes-lagunes-anime', cat: 'anime', nom: 'Dunes et lagunes', src: 'images/pomodoro/dunes-lagunes-anime.webp?v=20261107d', mini: 'images/pomodoro/mini/dunes-lagunes-anime.webp?v=20261107d', video: 'images/pomodoro/dunes-lagunes-anime.mp4?v=20261107d', precharger: false },
     { id: 'pluie-palmes-anime', cat: 'anime', nom: 'Pluie sur les palmes', src: 'images/pomodoro/pluie-palmes-anime.webp?v=20261107e', mini: 'images/pomodoro/mini/pluie-palmes-anime.webp?v=20261107e', video: 'images/pomodoro/pluie-palmes-anime.mp4?v=20261107e', precharger: false },
-    { id: 'foret-automne-anime', cat: 'anime', nom: 'Forêt d’automne', src: 'images/pomodoro/foret-automne-anime.webp?v=20261107f', mini: 'images/pomodoro/mini/foret-automne-anime.webp?v=20261107f', video: 'images/pomodoro/foret-automne-anime.mp4?v=20261107f', precharger: false },
+    { id: 'foret-automne-anime', cat: 'anime', nom: 'Forêt d’automne', src: 'images/pomodoro/foret-automne-anime.webp?v=20261107f', mini: 'images/pomodoro/mini/foret-automne-anime.webp?v=20261107f', video: 'images/pomodoro/foret-automne-anime.mp4?v=20261107h', precharger: false },
     { id: 'arbres-rivage-anime', cat: 'anime', nom: 'Arbres au bord de l’eau', src: 'images/pomodoro/arbres-rivage-anime.webp?v=20261107g', mini: 'images/pomodoro/mini/arbres-rivage-anime.webp?v=20261107g', video: 'images/pomodoro/arbres-rivage-anime.mp4?v=20261107g', precharger: false },
 ];
 var FOCUS_ASTUCES = {
@@ -716,6 +716,40 @@ function focusFondAccueil(src) {
     });
 }
 
+/* En cas d'autoplay refusé, de réseau coupé ou de chargement trop long, ne
+   pas laisser une image fixe sans explication. Le bouton fournit aussi un
+   vrai geste utilisateur aux navigateurs qui exigent une interaction. */
+function focusVideoRetirerAide(panel) {
+    if (!panel) return;
+    var aide = panel.querySelector('.focus-video-reessayer');
+    if (aide) aide.remove();
+}
+function focusVideoAide(video, texte) {
+    if (!video.isConnected) return;
+    var panel = video.closest('.app-panel');
+    if (!panel) return;
+    var aide = panel.querySelector('.focus-video-reessayer');
+    if (!aide) {
+        aide = document.createElement('button');
+        aide.type = 'button';
+        aide.className = 'focus-video-reessayer';
+        aide.onclick = function () { focusVideoLancer(video, true); };
+        panel.appendChild(aide);
+    }
+    aide.textContent = texte || 'Décor animé en pause — réessayer';
+}
+function focusVideoLancer(video, reessai) {
+    if (!video || !video.isConnected) return;
+    if (reessai && video.error) video.load();
+    video.muted = true;
+    try {
+        var lecture = video.play();
+        if (lecture && lecture.catch) lecture.catch(function () {
+            focusVideoAide(video, 'Décor animé en pause — réessayer');
+        });
+    } catch (e) { focusVideoAide(video, 'Décor animé en pause — réessayer'); }
+}
+
 /* Le poster reste visible tant que la vidéo ne joue pas (chargement, hors ligne,
    navigateur incompatible). Une seule vidéo tourne, uniquement sur la page
    visible ; elle est muette, sans commandes, et boucle indépendamment du chrono. */
@@ -734,6 +768,7 @@ function focusSynchroniserVideosFond() {
             !!page && !page.hidden && !document.hidden;
         if (!visible) {
             if (video) {
+                focusVideoRetirerAide(panel);
                 video.pause();
                 video.removeAttribute('src');
                 video.load();
@@ -742,7 +777,7 @@ function focusSynchroniserVideosFond() {
             return;
         }
         if (video && video.getAttribute('src') === fond.video) return;
-        if (video) { video.pause(); video.remove(); }
+        if (video) { focusVideoRetirerAide(panel); video.pause(); video.remove(); }
         video = document.createElement('video');
         video.className = 'focus-fond-video';
         video.muted = true;
@@ -751,15 +786,33 @@ function focusSynchroniserVideosFond() {
         video.autoplay = true;
         video.playsInline = true;
         video.preload = 'auto';
+        video.poster = fond.src;
         video.setAttribute('playsinline', '');
         video.setAttribute('aria-hidden', 'true');
         video.setAttribute('tabindex', '-1');
-        video.addEventListener('playing', function () { video.classList.add('is-visible'); });
-        video.addEventListener('error', function () { video.classList.remove('is-visible'); });
+        var attente;
+        function surveillerAttente() {
+            clearTimeout(attente);
+            attente = setTimeout(function () {
+                if (video.isConnected && (video.paused || video.readyState < 3))
+                    focusVideoAide(video, 'Chargement du décor — réessayer');
+            }, 10000);
+        }
+        video.addEventListener('playing', function () {
+            clearTimeout(attente);
+            video.classList.add('is-visible');
+            focusVideoRetirerAide(panel);
+        });
+        video.addEventListener('waiting', surveillerAttente);
+        video.addEventListener('error', function () {
+            clearTimeout(attente);
+            video.classList.remove('is-visible');
+            focusVideoAide(video, 'Décor animé indisponible — réessayer');
+        });
         video.src = fond.video;
         calque.appendChild(video);
-        var lecture = video.play();
-        if (lecture && lecture.catch) lecture.catch(function () { video.classList.remove('is-visible'); });
+        surveillerAttente();
+        focusVideoLancer(video, false);
     });
 }
 
@@ -774,6 +827,10 @@ function focusObserverVideosFond() {
         });
     }
     document.addEventListener('visibilitychange', focusSynchroniserVideosFond);
+    window.addEventListener('online', function () {
+        var video = document.querySelector('.app-panel.active .focus-fond-video');
+        if (video && (video.paused || video.error)) focusVideoLancer(video, true);
+    });
 }
 
 function focusPreparerFonds() {

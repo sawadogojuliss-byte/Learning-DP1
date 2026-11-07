@@ -33,6 +33,7 @@ if not actual.startswith(expected):
 shutil.copytree(base, output)
 
 files = [
+    'livrables/publication-pomodoro/videos.css',
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
@@ -136,6 +137,10 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
         if text.count(anchor) != 1:
             raise SystemExit('Chargement des styles public inattendu')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/exercices-design.css?v=' + version + '">', 1)
+        anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
+        if text.count(anchor) != 1:
+            raise SystemExit('Styles Pomodoro publics inattendus')
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -146,7 +151,9 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         old = "        url.pathname.includes('/audio/')) return;"
-        new = "        url.pathname.includes('/audio/') ||\n        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/dunes-lagunes-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/pluie-palmes-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/foret-automne-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/arbres-rivage-anime.mp4')) return;"
+        # Les médias et requêtes partielles ne doivent jamais passer par un
+        # cache-first, même pour un futur thème ajouté au catalogue.
+        new = "        url.pathname.includes('/audio/') ||\n        req.destination === 'video' || req.headers.has('range') ||\n        /\\.(mp4|webm|ogv)$/i.test(url.pathname)) return;"
         if text.count(old) != 1:
             raise SystemExit('Service worker public inattendu')
         text = text.replace(old, new, 1)

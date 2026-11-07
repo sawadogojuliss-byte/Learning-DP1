@@ -25,7 +25,12 @@ try {
    await page.waitForFunction(id=>{const v=document.querySelector('#focusBg video');return v&&v.currentSrc.includes(id+'.mp4')&&v.readyState>=2&&!v.paused&&v.currentTime>.1&&v.classList.contains('is-visible')},item.id,{timeout:30000});
    const state=await video.evaluate(v=>({loop:v.loop,muted:v.muted,inline:v.playsInline,duration:v.duration,time:v.currentTime}));
    assert.equal(state.loop,true);assert.equal(state.muted,true);assert.equal(state.inline,true);assert.ok(state.duration>3);
-   await page.waitForTimeout(550);assert.ok(await video.evaluate(v=>v.currentTime)>state.time);
+   assert.equal(await video.evaluate(v=>getComputedStyle(v).visibility),'visible');
+   // Vérifier des images réellement différentes, pas uniquement currentTime.
+   const avant=await video.evaluate(v=>{const c=document.createElement('canvas');c.width=160;c.height=90;const x=c.getContext('2d');x.drawImage(v,0,0,160,90);return Array.from(x.getImageData(0,0,160,90).data)});
+   await page.waitForTimeout(750);assert.ok(await video.evaluate(v=>v.currentTime)>state.time);
+   const variation=await video.evaluate((v,avant)=>{const c=document.createElement('canvas');c.width=160;c.height=90;const x=c.getContext('2d');x.drawImage(v,0,0,160,90);const apres=x.getImageData(0,0,160,90).data;let diff=0;for(let i=0;i<apres.length;i+=4)diff+=Math.abs(apres[i]-avant[i])+Math.abs(apres[i+1]-avant[i+1])+Math.abs(apres[i+2]-avant[i+2]);return diff/(160*90*3)},avant);
+   assert.ok(variation>.1,`${item.id} semble figée : variation ${variation}`);
    await video.evaluate(v=>{v.currentTime=v.duration-.4});
    await page.waitForFunction(()=>{const v=document.querySelector('#focusBg video');return v&&v.currentTime<2&&!v.paused},{timeout:15000});
    if (item.id==='pluie-palmes-anime') {
