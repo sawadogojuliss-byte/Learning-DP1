@@ -68,6 +68,7 @@ jobs:
           node travail/tools/tester-pomodoro-reprise.mjs
           node travail/tools/tester-pomodoro-cache.mjs
           node travail/tools/tester-themes-drive.mjs
+          node travail/tools/tester-rappels-activites.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -106,6 +107,7 @@ jobs:
           node tools/tester-pomodoro-reprise.mjs
           node tools/tester-pomodoro-cache.mjs
           node tools/tester-themes-drive.mjs
+          node tools/tester-rappels-activites.mjs
           node tools/tester-exercices-design.mjs
           node tools/tester-creneaux-exercices.mjs
           node tools/tester-defilement-legende.mjs

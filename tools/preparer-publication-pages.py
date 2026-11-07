@@ -34,6 +34,8 @@ shutil.copytree(base, output)
 
 files = [
     'livrables/publication-pomodoro/videos.css',
+    'livrables/publication-rappels/rappels.js',
+    'livrables/publication-rappels/rappels.css',
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
@@ -126,12 +128,13 @@ remplacer_unique('''            html += '<div style="display:flex;flex-direction
 path.write_text(text, encoding='utf-8')
 
 # Une version de cache propre évite de servir les anciens scripts après mise en ligne.
-for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
+for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
     path = output / rel
     text = path.read_text(encoding='utf-8')
-    if '20261104az' not in text:
-        raise SystemExit('Version publique inattendue dans ' + rel)
-    text = text.replace('20261104az', version)
+    if rel != 'js/registre.js':
+        if '20261104az' not in text:
+            raise SystemExit('Version publique inattendue dans ' + rel)
+        text = text.replace('20261104az', version)
     if rel == 'index.html':
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
@@ -141,15 +144,38 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro publics inattendus')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">', 1)
+        anchor = '    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">'
+        if text.count(anchor) != 1:
+            raise SystemExit('Styles Pomodoro introuvables')
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-rappels/rappels.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/defilement.css?v=' + version + '">', 1)
+    if rel == 'js/registre.js':
+        anchor = "    'js/pages/pomodoro-parametres.js'\n"
+        if text.count(anchor) != 1:
+            raise SystemExit('Registre public inattendu')
+        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
+        anchor = '    "css/pages/planning-panels.css",'
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",', 1)
+        text += '''
+self.addEventListener('notificationclick', function (event) {
+    if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;
+    event.notification.close();
+    event.waitUntil(clients.matchAll({type: 'window', includeUncontrolled: true}).then(function (fenetres) {
+        for (var i = 0; i < fenetres.length; i++) {
+            if (fenetres[i].url.startsWith(self.registration.scope)) return fenetres[i].focus();
+        }
+        return clients.openWindow(self.registration.scope);
+    }));
+});
+'''
         old = "        url.pathname.includes('/audio/')) return;"
         # Les médias et requêtes partielles ne doivent jamais passer par un
         # cache-first, même pour un futur thème ajouté au catalogue.
@@ -160,7 +186,7 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
     path.write_text(text, encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'service-worker.js'])
+allowed = set(files + ['pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue
