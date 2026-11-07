@@ -5,9 +5,10 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 const require = createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES, '../package.json') : import.meta.url);
 const { chromium } = require('playwright');
-const portable = require('@sparticuz/chromium').default;
+const portable = process.env.STUDY_PLAYWRIGHT_SYSTEM ? null : require('@sparticuz/chromium').default;
 const site = process.env.STUDY_SITE || 'http://127.0.0.1:8501/';
-const browser = await chromium.launch({executablePath: await portable.executablePath(), args: [...portable.args.filter(x => x !== '--single-process'), '--autoplay-policy=no-user-gesture-required']});
+const options = portable ? {executablePath: await portable.executablePath(), args: portable.args.filter(x => x !== '--single-process')} : {};
+const browser = await chromium.launch(options);
 try {
   for (const viewport of [{width:390,height:844},{width:1280,height:800}]) {
     const page = await browser.newPage({viewport}); const erreurs = [];

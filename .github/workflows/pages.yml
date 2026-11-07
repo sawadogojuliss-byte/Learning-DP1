@@ -62,3 +62,22 @@ jobs:
       - name: Publier le site testé
         id: deploiement
         uses: actions/deploy-pages@v4
+
+  verifier-en-ligne:
+    needs: publier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer les tests
+        uses: actions/checkout@v4
+      - name: Préparer le navigateur de test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/study-pomodoro-test playwright
+          /tmp/study-pomodoro-test/node_modules/.bin/playwright install --with-deps chromium
+      - name: Tester le thème sur le site public avec un profil vierge
+        env:
+          STUDY_SITE: https://sawadogojuliss-byte.github.io/Learning-DP1/
+          STUDY_TEST_MODULES: /tmp/study-pomodoro-test/node_modules
+          STUDY_PLAYWRIGHT_SYSTEM: '1'
+        run: node tools/tester-pomodoro-anime.mjs
