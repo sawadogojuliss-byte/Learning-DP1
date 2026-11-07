@@ -1,0 +1,39 @@
+/* Une seule surface principale défilante : la page active ou la fenêtre
+   au premier plan. Les surfaces sous-jacentes gardent leur position. */
+html:has(.context-modal.active), body:has(.context-modal.active),
+html:has(.compte-overlay.active), body:has(.compte-overlay.active) { overflow:hidden !important; }
+
+/* Une page de l'application recouvre le planning / l'emploi du temps. */
+body:has(.app-panel.active) .context-modal.active,
+body:has(.compte-overlay.active) .context-modal.active,
+body:has(.compte-overlay.active) .app-panel.active { overflow:hidden !important; }
+
+/* Les volets et fenêtres du planning défilent à la place du fond. */
+#planningModal:has(#sideMenuOverlay[style*="display: block"]),
+#planningModal:has(#addEventModal[style*="display: flex"]),
+#planningModal:has(#editEventModal[style*="display: flex"]),
+body:has(#chevauchementPopup) .context-modal.active,
+body:has(#chevauchementPopup) #addEventModal,
+body:has(#chevauchementPopup) #editEventModal > div { overflow:hidden !important; }
+
+/* La liste de matières appartient au formulaire qui défile déjà ; idem pour
+   les propositions de la fenêtre de conflit. On ne cache aucun contenu. */
+#subjectPickerGrid { max-height:none !important; overflow:visible !important; }
+#chevauchementPopup .chev-propositions { max-height:none; overflow:visible; }
+
+/* Les fenêtres Devoirs sont placées devant la page ; le dialogue seul
+   défile et les pages derrière restent à leur place. */
+body:has(:is(#devoirsEditionModal,#seancesQuestionModal,#seancesEditModal,#bacQuestionModal)) :is(.app-panel.active,.context-modal.active) { overflow:hidden !important; }
+:is(#devoirsEditionModal,#seancesQuestionModal,#seancesEditModal,#bacQuestionModal) { z-index:100001 !important; }
+:is(#seancesQuestionModal,#seancesEditModal,#bacQuestionModal) > div { max-height:calc(100dvh - 2rem); overflow-y:auto; }
+
+/* La page Séance défile entièrement au lieu d'imbriquer une liste défilante.
+   Les marges automatiques centrent les contenus courts sans couper les longs. */
+#panelSeances .focus-accueil { align-items:flex-start; }
+#panelSeances .focus-accueil-boite { margin-block:auto; }
+#panelSeances .focus-accueil-liste { max-height:none; overflow:visible; }
+
+/* Les détails d'une annonce et les listes de l'atelier font partie du
+   conteneur principal, plutôt qu'une seconde fenêtre verticale. */
+.annonce-validation-lecture { max-height:none; overflow:visible; }
+#panelEmplois .emploi-atelier-liste { max-height:none; overflow-y:visible; }

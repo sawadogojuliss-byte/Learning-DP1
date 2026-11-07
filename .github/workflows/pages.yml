@@ -38,7 +38,7 @@ jobs:
           test "$actif" = "1efb82e236505af518b4e6fa3065b170ab1e2ae2" || { echo "La branche publique a changé : arrêt avant publication."; exit 1; }
           type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type)
           test "$type" = workflow || { echo "Configurer d'abord GitHub Pages sur GitHub Actions."; exit 1; }
-      - name: Assembler le chalet animé et la présentation Exercices
+      - name: Assembler les changements publiés et la légende
         shell: bash
         run: |
           set -euo pipefail
@@ -63,6 +63,7 @@ jobs:
           trap 'kill "$serveur"' EXIT
           node travail/tools/tester-exercices-design.mjs
           node travail/tools/tester-creneaux-exercices.mjs
+          node travail/tools/tester-defilement-legende.mjs
           node travail/tools/tester-pomodoro-anime.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
@@ -92,7 +93,7 @@ jobs:
           set -euo pipefail
           npm install --prefix /tmp/study-pomodoro-test playwright
           /tmp/study-pomodoro-test/node_modules/.bin/playwright install --with-deps chromium
-      - name: Tester le thème et les exercices sur le site public avec des profils fictifs
+      - name: Tester le site public avec des profils fictifs
         env:
           STUDY_SITE: https://sawadogojuliss-byte.github.io/Learning-DP1/
           STUDY_TEST_MODULES: /tmp/study-pomodoro-test/node_modules
@@ -101,3 +102,4 @@ jobs:
           node tools/tester-pomodoro-anime.mjs
           node tools/tester-exercices-design.mjs
           node tools/tester-creneaux-exercices.mjs
+          node tools/tester-defilement-legende.mjs
