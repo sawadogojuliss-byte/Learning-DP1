@@ -77,6 +77,7 @@ var FOCUS_FONDS = [
     { id: 'dunes-lagunes-anime', cat: 'anime', nom: 'Dunes et lagunes', src: 'images/pomodoro/dunes-lagunes-anime.webp?v=20261107d', mini: 'images/pomodoro/mini/dunes-lagunes-anime.webp?v=20261107d', video: 'images/pomodoro/dunes-lagunes-anime.mp4?v=20261107d', precharger: false },
     { id: 'pluie-palmes-anime', cat: 'anime', nom: 'Pluie sur les palmes', src: 'images/pomodoro/pluie-palmes-anime.webp?v=20261107e', mini: 'images/pomodoro/mini/pluie-palmes-anime.webp?v=20261107e', video: 'images/pomodoro/pluie-palmes-anime.mp4?v=20261107e', precharger: false },
     { id: 'foret-automne-anime', cat: 'anime', nom: 'Forêt d’automne', src: 'images/pomodoro/foret-automne-anime.webp?v=20261107f', mini: 'images/pomodoro/mini/foret-automne-anime.webp?v=20261107f', video: 'images/pomodoro/foret-automne-anime.mp4?v=20261107f', precharger: false },
+    { id: 'arbres-rivage-anime', cat: 'anime', nom: 'Arbres au bord de l’eau', src: 'images/pomodoro/arbres-rivage-anime.webp?v=20261107g', mini: 'images/pomodoro/mini/arbres-rivage-anime.webp?v=20261107g', video: 'images/pomodoro/arbres-rivage-anime.mp4?v=20261107g', precharger: false },
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
