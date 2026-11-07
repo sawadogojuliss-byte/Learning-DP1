@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Assemble le thème animé sur une copie de la version publique, sans fusion.
+"""Assemble le chalet et la présentation Exercices sur la version publique, sans fusion.
 
 Usage : python3 tools/preparer-publication-pages.py BASE SORTIE VERSION
 BASE est un export du commit public validé par le workflow. SORTIE ne doit pas
@@ -53,6 +53,11 @@ if text.count(anchor) != 1 or '.focus-fond-video' in text:
     raise SystemExit('Feuille publique inattendue')
 path.write_text(text.replace(anchor, match.group(0) + anchor, 1), encoding='utf-8')
 
+# La page et sa feuille dédiées utilisent le JS public inchangé. En particulier,
+# ne pas copier les versions de travail de pages/ ou js/pages/exercices.js.
+shutil.copy2(ROOT / 'livrables/publication-exercices/exercices.html', output / 'pages/exercices.html')
+shutil.copy2(ROOT / 'livrables/publication-exercices/exercices-design.css', output / 'css/pages/exercices-design.css')
+
 # Une version de cache propre évite de servir les anciens scripts après mise en ligne.
 for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
     path = output / rel
@@ -60,7 +65,16 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
     if '20261104az' not in text:
         raise SystemExit('Version publique inattendue dans ' + rel)
     text = text.replace('20261104az', version)
+    if rel == 'index.html':
+        anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
+        if text.count(anchor) != 1:
+            raise SystemExit('Chargement des styles public inattendu')
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/exercices-design.css?v=' + version + '">', 1)
     if rel == 'service-worker.js':
+        anchor = '    "css/pages/planning-panels.css",'
+        if text.count(anchor) != 1:
+            raise SystemExit('Liste hors-ligne publique inattendue')
+        text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",', 1)
         old = "        url.pathname.includes('/audio/')) return;"
         new = "        url.pathname.includes('/audio/') ||\n        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4')) return;"
         if text.count(old) != 1:
@@ -69,7 +83,7 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
     path.write_text(text, encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'service-worker.js'])
+allowed = set(files + ['pages/exercices.html', 'css/pages/exercices-design.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue
@@ -79,4 +93,4 @@ for path in base.rglob('*'):
         raise SystemExit('Fichier public perdu : ' + rel)
     if rel not in allowed and hashlib.sha256(path.read_bytes()).digest() != hashlib.sha256(other.read_bytes()).digest():
         raise SystemExit('Fichier public modifié hors périmètre : ' + rel)
-print('Publication préparée : chalet animé uniquement ; autres fichiers publics inchangés.')
+print('Publication préparée : chalet et présentation Exercices ; autres fichiers publics inchangés.')

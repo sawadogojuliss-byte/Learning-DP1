@@ -38,7 +38,7 @@ jobs:
           test "$actif" = "1efb82e236505af518b4e6fa3065b170ab1e2ae2" || { echo "La branche publique a changé : arrêt avant publication."; exit 1; }
           type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type)
           test "$type" = workflow || { echo "Configurer d'abord GitHub Pages sur GitHub Actions."; exit 1; }
-      - name: Assembler seulement le chalet animé
+      - name: Assembler le chalet animé et la présentation Exercices
         shell: bash
         run: |
           set -euo pipefail
@@ -47,6 +47,21 @@ jobs:
           node --check site/js/pages/pomodoro-page.js
           node --check site/service-worker.js
           node site/tools/verifier-pomodoro.js
+      - name: Tester le site assemblé avant publication
+        shell: bash
+        env:
+          STUDY_SITE: http://127.0.0.1:8508/
+          STUDY_TEST_MODULES: /tmp/study-test/node_modules
+          STUDY_PLAYWRIGHT_SYSTEM: '1'
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/study-test playwright
+          /tmp/study-test/node_modules/.bin/playwright install --with-deps chromium
+          python3 -m http.server 8508 --directory site &
+          serveur=$!
+          trap 'kill "$serveur"' EXIT
+          node travail/tools/tester-exercices-design.mjs
+          node travail/tools/tester-pomodoro-anime.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -75,9 +90,11 @@ jobs:
           set -euo pipefail
           npm install --prefix /tmp/study-pomodoro-test playwright
           /tmp/study-pomodoro-test/node_modules/.bin/playwright install --with-deps chromium
-      - name: Tester le thème sur le site public avec un profil vierge
+      - name: Tester le thème et les exercices sur le site public avec des profils fictifs
         env:
           STUDY_SITE: https://sawadogojuliss-byte.github.io/Learning-DP1/
           STUDY_TEST_MODULES: /tmp/study-pomodoro-test/node_modules
           STUDY_PLAYWRIGHT_SYSTEM: '1'
-        run: node tools/tester-pomodoro-anime.mjs
+        run: |
+          node tools/tester-pomodoro-anime.mjs
+          node tools/tester-exercices-design.mjs

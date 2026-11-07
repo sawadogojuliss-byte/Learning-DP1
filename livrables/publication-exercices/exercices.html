@@ -1,0 +1,91 @@
+<!-- Présentation de Mes Exercices : les identifiants et actions restent ceux du site publié. -->
+<div class="app-panel ed-page" id="panelExercices">
+  <div class="ed-topbar">
+    <div class="ed-topbar-inner">
+      <button type="button" class="ed-back" onclick="navigateTo('planning')" aria-label="Revenir au planning">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg>
+      </button>
+      <div class="ed-brand"><span class="ed-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Zm0 0V21m3-14h9m-9 4h7"/></svg></span><span><strong>Studyplan</strong><small>MON ESPACE D’ÉTUDE</small></span></div>
+      <span class="ed-topbar-label">Un pas à la fois <span aria-hidden="true">✦</span></span>
+    </div>
+  </div>
+
+  <div class="ed-shell">
+    <header class="ed-hero">
+      <div class="ed-hero-copy">
+        <p class="ed-eyebrow"><span></span> TON ESPACE D’ORGANISATION</p>
+        <h1>Mes <em>exercices</em></h1>
+        <p>Rassemble tes exercices, garde le cap et trouve le bon moment pour avancer.</p>
+      </div>
+      <div class="ed-hero-aside">
+        <span class="ed-aside-symbol" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 10h16m-12 5 2 2 4-4"/></svg></span>
+        <div><span class="ed-aside-kicker">TON SUIVI</span><strong id="exoCountBadge" role="status" aria-live="polite" aria-atomic="true">0 exercice</strong><span>Chaque progrès compte.</span></div>
+        <span class="ed-aside-spark" aria-hidden="true">✳</span>
+      </div>
+    </header>
+
+    <nav class="ed-tabs" role="tablist" aria-label="Sections des exercices">
+      <button type="button" id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" class="exo-tab" onclick="switchExoTab('ajouter')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter</span></button>
+      <button type="button" id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-tab" onclick="switchExoTab('liste')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h10M9 12h10M9 18h10M5 6h.01M5 12h.01M5 18h.01"/></svg><span>Ma liste</span></button>
+      <button type="button" id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" class="exo-tab" onclick="switchExoTab('planifier')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg><span>Planifier</span></button>
+    </nav>
+
+    <main class="ed-main">
+      <section id="tabContentAjouter" role="tabpanel" aria-labelledby="tabAjouter">
+        <div class="ed-section-heading"><div><p class="ed-overline">NOUVEL EXERCICE</p><h2>Prépare ta prochaine session</h2><p>Quelques détails suffisent pour commencer.</p></div><span class="ed-section-step">01 <i>/</i> 03</span></div>
+        <div class="ed-form-grid">
+          <div class="ed-form-primary">
+            <div class="ed-card ed-subject-card">
+              <div class="ed-card-heading"><span class="ed-icon ed-icon-mint" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Zm0 0V21m3-14h9m-9 4h7"/></svg></span><div><h3>Matière concernée</h3><p>À quelle matière appartient cet exercice ?</p></div></div>
+              <div id="exoSubjectGrid" role="group" aria-label="Matière de l’exercice" aria-describedby="exoSubjectErreur" tabindex="-1" class="ed-subjects"></div>
+              <p id="exoSubjectErreur" role="status" aria-live="polite" aria-atomic="true" class="ed-error"></p>
+            </div>
+            <div class="ed-card ed-content-card">
+              <div class="ed-card-heading"><span class="ed-icon ed-icon-lavender" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m14 5 5 5M5 19l3.5-.7L19 7.8 16.2 5 5.7 15.5 5 19Z"/></svg></span><div><h3>Ton exercice</h3><p>Décris ce que tu souhaites travailler.</p></div></div>
+              <label class="ed-field-label" for="exoTextInput">Description</label>
+              <textarea id="exoTextInput" class="ed-textarea" aria-describedby="exoContenuErreur" oninput="exoEffacerErreur('contenu');exoBrouillonSauver()" placeholder="Par exemple : exercices p. 47, calcul de dérivées…" rows="4"></textarea>
+              <p id="exoContenuErreur" role="status" aria-live="polite" aria-atomic="true" class="ed-error"></p>
+              <div class="ed-or"><span></span><small>OU AJOUTE UNE RÉFÉRENCE</small><span></span></div>
+              <div id="dragArea" class="ed-dropzone" role="button" tabindex="0" aria-label="Choisir un nom de fichier comme référence ; le document ne sera pas conservé" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('fileUploadInput').click()}" onclick="if(event.target.id!=='fileUploadInput')document.getElementById('fileUploadInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
+                <span class="ed-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
+                <span><strong>Choisir un fichier</strong><small>PDF, image ou Word · seul le nom sera conservé</small></span>
+                <span class="ed-upload-arrow" aria-hidden="true">↗</span>
+                <input type="file" id="fileUploadInput" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx" onchange="handleFileSelect(event)" style="display:none;">
+              </div>
+              <div id="uploadedFileName" class="ed-uploaded" style="display:none;"></div>
+            </div>
+          </div>
+          <aside class="ed-form-side">
+            <div class="ed-card ed-detail-card">
+              <div class="ed-card-heading"><span class="ed-icon ed-icon-peach" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg></span><div><h3>Organise ton temps</h3><p>Avance à ton rythme.</p></div></div>
+              <label class="ed-field-label" for="exoDurationSlider">Durée estimée</label>
+              <div class="ed-presets" id="durationPresets">
+                <button type="button" onclick="setExoDuration(30)" class="exo-preset">30 min</button><button type="button" onclick="setExoDuration(45)" class="exo-preset">45 min</button><button type="button" onclick="setExoDuration(60)" class="exo-preset" id="preset60">1h</button><button type="button" onclick="setExoDuration(90)" class="exo-preset" id="preset90">1h30</button>
+              </div>
+              <div class="ed-slider-row"><input type="range" id="exoDurationSlider" aria-label="Durée estimée de l’exercice" min="15" max="180" step="15" value="60" oninput="updateExoDurationFromSlider(this.value)"><span id="exoDurationLabel">60 min</span></div>
+              <div class="ed-separator"></div>
+              <label class="ed-field-label" for="exoDeadline">Date limite</label>
+              <p class="ed-field-help">Pour savoir quand cet exercice doit être terminé.</p>
+              <input type="date" id="exoDeadline" class="ed-date" aria-describedby="exoDeadlineErreur" oninput="exoEffacerErreur('date');exoBrouillonSauver()">
+              <p id="exoDeadlineErreur" role="status" aria-live="polite" aria-atomic="true" class="ed-error"></p>
+              <button type="button" class="ed-submit" onclick="addExercice()"><span>Ajouter l’exercice</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button>
+              <button type="button" class="ed-clear" onclick="exoBrouillonEffacer()">Effacer le brouillon</button>
+            </div>
+            <div class="ed-tip"><span aria-hidden="true">✦</span><p><strong>Un exercice à la fois.</strong><br>Chaque petit pas te rapproche de ton objectif.</p></div>
+          </aside>
+        </div>
+      </section>
+
+      <section id="tabContentListe" role="tabpanel" aria-labelledby="tabListe" style="display:none;">
+        <div class="ed-section-heading"><div><p class="ed-overline">TA PROGRESSION</p><h2>Ta liste d’exercices</h2><p>Retrouve tout ce que tu as prévu de travailler.</p></div><span class="ed-section-step">02 <i>/</i> 03</span></div>
+        <div class="ed-list-card"><div class="ed-filters"><button type="button" data-exo-filtre="tous" aria-pressed="true" class="exo-filter" onclick="filtrerExos('tous')">Tous</button><button type="button" data-exo-filtre="afaire" aria-pressed="false" class="exo-filter" onclick="filtrerExos('afaire')">À faire</button><button type="button" data-exo-filtre="faits" aria-pressed="false" class="exo-filter" onclick="filtrerExos('faits')">Faits</button></div><div id="exoListContainer" class="ed-list-content"></div></div>
+      </section>
+
+      <section id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" style="display:none;">
+        <div class="ed-section-heading"><div><p class="ed-overline">TON PLANNING</p><h2>Fais une place à tes exercices</h2><p>Choisis un créneau qui s’accorde avec ton emploi du temps.</p></div><span class="ed-section-step">03 <i>/</i> 03</span></div>
+        <div class="ed-list-card"><div id="planifierContent" class="ed-planning-content"></div></div>
+      </section>
+    </main>
+    <p class="ed-footer"><span aria-hidden="true">✦</span> Avance à ton rythme, l’essentiel est de commencer.</p>
+  </div>
+</div>
