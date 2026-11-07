@@ -36,6 +36,7 @@ files = [
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
+    'videos/arbres-au-bord-de-leau-assemblage.mp4',
     'images/pomodoro/chalet-neige-anime.mp4',
     'images/pomodoro/chalet-neige-anime.webp',
     'images/pomodoro/mini/chalet-neige-anime.webp',
