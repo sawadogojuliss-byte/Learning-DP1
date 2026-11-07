@@ -103,6 +103,39 @@ body:has(#panelExercices.active) > .suppression-toast { z-index:100001 !importan
 #panelExercices .ed-filters button[aria-pressed=true] { background:#e9f6ed !important; border-color:#b9ddc5 !important; color:#277854 !important; }
 #panelExercices .exo-liste-carte { display:block; padding:17px; border:1px solid #e5eee7; border-radius:13px; background:#fbfdfb; }
 #panelExercices .ed-planning-content .exo-card { border:1px solid #e5eee7; border-radius:13px; background:#fbfdfb; }
+/* Créneaux : des séances distinctes, et des propositions longues repliables. */
+#panelExercices .ed-scheduled { margin:4px 0 23px; padding:17px; border:1px solid #c9e6d3; border-radius:13px; background:#f1faf3; }
+#panelExercices .ed-scheduled-head { display:flex; gap:10px; align-items:center; margin-bottom:14px; }
+#panelExercices .ed-scheduled-check { display:grid; place-items:center; flex:none; width:32px; height:32px; border-radius:10px; background:#d9f1df; color:#24835a; font-weight:800; }
+#panelExercices .ed-scheduled-head strong, #panelExercices .ed-slot-option-head strong { display:block; color:#285341; font-size:13px; line-height:1.3; }
+#panelExercices .ed-scheduled-head small, #panelExercices .ed-slot-option-head small { display:block; margin-top:3px; color:#718b7b; font-size:11px; font-weight:500; line-height:1.4; }
+#panelExercices .ed-slot-parts { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:8px; min-width:0; }
+#panelExercices .ed-slot-part { display:flex; align-items:center; gap:9px; min-width:0; padding:10px; border:1px solid #e1eee5; border-radius:9px; background:#fff; text-align:left; }
+#panelExercices .ed-slot-number { display:grid; place-items:center; flex:none; width:26px; height:26px; border-radius:8px; background:#edf7f0; color:#468b67; font-size:11px; font-weight:800; }
+#panelExercices .ed-slot-part-info { display:block; min-width:0; color:#789084; font-size:11px; line-height:1.4; overflow-wrap:anywhere; }
+#panelExercices .ed-slot-part-info strong { display:block; margin-bottom:2px; color:#3b5d4b; font-size:12px; font-weight:700; }
+#panelExercices .ed-slot-part-info>span { display:block; white-space:nowrap; }
+#panelExercices .ed-slot-fallback { margin:0; color:#3b5d4b; font-size:12px; line-height:1.55; overflow-wrap:anywhere; }
+#panelExercices .ed-slots-heading { margin:0 0 10px; color:#355746; font-size:12px; font-weight:750; }
+#panelExercices .ed-no-alternative { margin:0; padding:13px 14px; border-radius:10px; background:#f7faf8; color:#728579; font-size:12px; line-height:1.5; }
+#panelExercices .ed-slot-note { margin:0 0 10px; padding:10px 12px; border-radius:9px; background:#f2f7f2; color:#61806b; font-size:11px; line-height:1.45; }
+#panelExercices .ed-slot-options { display:grid; gap:9px; }
+#panelExercices .ed-slot-option, #panelExercices .ed-slot-details { width:100%; padding:14px; border:1px solid #e2ebe5; border-radius:12px; background:#fff; color:#355746; text-align:left; }
+#panelExercices .ed-slot-option:hover { transform:none; background:#f8fcf9; border-color:#abd8bd; color:#355746; }
+#panelExercices .ed-slot-details[open] { border-color:#abd8bd; background:#f9fcfa; }
+#panelExercices .ed-slot-option-head { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; }
+#panelExercices summary.ed-slot-option-head { cursor:pointer; list-style:none; min-height:35px; }
+#panelExercices summary.ed-slot-option-head::-webkit-details-marker { display:none; }
+#panelExercices summary.ed-slot-option-head:focus-visible { outline:3px solid #54af8c; outline-offset:4px; border-radius:5px; }
+#panelExercices .ed-slot-choose, #panelExercices .ed-slot-expand { flex:none; color:#30845c; font-size:11px; font-weight:750; }
+#panelExercices .ed-slot-expand .ed-expand-open, #panelExercices .ed-slot-expand .ed-expand-short { display:none; }
+#panelExercices .ed-slot-details[open] .ed-expand-closed { display:none; }
+#panelExercices .ed-slot-details[open] .ed-expand-open { display:inline; }
+#panelExercices .ed-slot-expand .ed-expand-arrow { display:inline-block; font-size:16px; transition:transform .2s; }
+#panelExercices .ed-slot-details[open] .ed-expand-arrow { transform:rotate(180deg); }
+#panelExercices .ed-slot-option .ed-slot-parts, #panelExercices .ed-slot-details-body { margin-top:12px; }
+#panelExercices .ed-slot-confirm { display:block; min-height:42px; margin:13px 0 0 auto; padding:0 15px; border:0; border-radius:9px; background:#237d5b; color:white; font-size:12px !important; font-weight:750 !important; }
+#panelExercices .ed-slot-confirm:hover { background:#19694a; }
 #panelExercices .ed-footer { margin:30px 0 0; text-align:center; color:#a3b4a8; font-size:11px; }
 #panelExercices .ed-footer span { color:#8fb79a; padding-right:4px; }
 @media (max-width:700px) {
@@ -122,6 +155,12 @@ body:has(#panelExercices.active) > .suppression-toast { z-index:100001 !importan
   #panelExercices .ed-form-grid { grid-template-columns:minmax(0,1fr); gap:14px; }
   #panelExercices .ed-form-primary, #panelExercices .ed-form-side { gap:14px; }
   #panelExercices .ed-card, #panelExercices .ed-list-card { padding:19px; border-radius:15px; }
+  #panelExercices .ed-slot-parts { grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); }
+  #panelExercices .ed-slot-expand .ed-expand-closed { display:none; }
+  #panelExercices .ed-slot-details:not([open]) .ed-expand-short { display:inline; }
+  #panelExercices .ed-slot-part { gap:5px; padding:8px 6px; }
+  #panelExercices .ed-slot-number { display:none; }
+  #panelExercices .ed-slot-part-info, #panelExercices .ed-slot-part-info strong { font-size:11px; }
 }
 @media (max-width:360px) {
   #panelExercices .ed-topbar-label { display:none; }

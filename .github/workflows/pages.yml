@@ -45,6 +45,7 @@ jobs:
           rm -rf base-publique/.git
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
           node --check site/js/pages/pomodoro-page.js
+          node --check site/js/pages/exercices.js
           node --check site/service-worker.js
           node site/tools/verifier-pomodoro.js
       - name: Tester le site assemblé avant publication
@@ -61,6 +62,7 @@ jobs:
           serveur=$!
           trap 'kill "$serveur"' EXIT
           node travail/tools/tester-exercices-design.mjs
+          node travail/tools/tester-creneaux-exercices.mjs
           node travail/tools/tester-pomodoro-anime.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
@@ -98,3 +100,4 @@ jobs:
         run: |
           node tools/tester-pomodoro-anime.mjs
           node tools/tester-exercices-design.mjs
+          node tools/tester-creneaux-exercices.mjs
