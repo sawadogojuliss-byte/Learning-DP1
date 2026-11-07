@@ -75,6 +75,7 @@ var FOCUS_FONDS = [
     { id: 'drive-pelouse-du-stade', cat: 'sport', nom: 'Pelouse du stade', src: 'images/pomodoro/drive-pelouse-du-stade.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-pelouse-du-stade.webp?v=20261107c', precharger: false },
     /* Ajout à la fin : les indices sauvegardés des autres thèmes ne changent pas. */
     { id: 'dunes-lagunes-anime', cat: 'anime', nom: 'Dunes et lagunes', src: 'images/pomodoro/dunes-lagunes-anime.webp?v=20261107d', mini: 'images/pomodoro/mini/dunes-lagunes-anime.webp?v=20261107d', video: 'images/pomodoro/dunes-lagunes-anime.mp4?v=20261107d', precharger: false },
+    { id: 'pluie-palmes-anime', cat: 'anime', nom: 'Pluie sur les palmes', src: 'images/pomodoro/pluie-palmes-anime.webp?v=20261107e', mini: 'images/pomodoro/mini/pluie-palmes-anime.webp?v=20261107e', video: 'images/pomodoro/pluie-palmes-anime.mp4?v=20261107e', precharger: false },
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',

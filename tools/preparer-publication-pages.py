@@ -42,6 +42,9 @@ files = [
     'images/pomodoro/dunes-lagunes-anime.mp4',
     'images/pomodoro/dunes-lagunes-anime.webp',
     'images/pomodoro/mini/dunes-lagunes-anime.webp',
+    'images/pomodoro/pluie-palmes-anime.mp4',
+    'images/pomodoro/pluie-palmes-anime.webp',
+    'images/pomodoro/mini/pluie-palmes-anime.webp',
 ]
 # Liste explicite issue de l'inventaire du dossier Drive ; images et vignettes
 # locales, sans dépendre de permissions Drive ou charger les originaux lourds.
@@ -136,7 +139,7 @@ for rel in ('index.html', 'js/boot.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         old = "        url.pathname.includes('/audio/')) return;"
-        new = "        url.pathname.includes('/audio/') ||\n        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/dunes-lagunes-anime.mp4')) return;"
+        new = "        url.pathname.includes('/audio/') ||\n        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/dunes-lagunes-anime.mp4') ||\n        url.pathname.endsWith('/images/pomodoro/pluie-palmes-anime.mp4')) return;"
         if text.count(old) != 1:
             raise SystemExit('Service worker public inattendu')
         text = text.replace(old, new, 1)
