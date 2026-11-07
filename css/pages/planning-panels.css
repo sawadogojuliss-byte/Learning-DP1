@@ -526,6 +526,18 @@ body:has(.app-panel.active) {
     background-position: center center;
     transition: none;
 }
+/* Le décor statique reste sous la vidéo et sert de repli si elle ne joue pas. */
+.focus-fond-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    visibility: hidden;
+}
+.focus-fond-video.is-visible { visibility: visible; }
+
 .focus-shade {
     background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);
     pointer-events: none;

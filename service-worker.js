@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261105a';
+const VERSION = '20261107b';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -126,7 +126,10 @@ self.addEventListener('fetch', function (event) {
         !url.pathname.startsWith(new URL('./', self.registration.scope).pathname)) return;
     if (url.pathname.includes('/data/') || url.pathname.includes('/api/') ||
         url.pathname.endsWith('.json') || url.pathname.includes('/lib/') ||
-        url.pathname.includes('/audio/')) return;
+        url.pathname.includes('/audio/') ||
+        /* Le navigateur gère les requêtes Range de la vidéo ; Cache API ne
+           sait pas stocker une réponse partielle 206. Le poster reste affiché. */
+        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4')) return;
     var navigation = req.mode === 'navigate';
     var versionCheck = url.pathname.endsWith('/js/boot.js') && !url.search;
     if (navigation || versionCheck) {

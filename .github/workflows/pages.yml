@@ -1,20 +1,57 @@
-name: Lien public
+name: Publication contrôlée de Studyplan
 
 on:
   workflow_dispatch:
 
 permissions:
   contents: read
-  checks: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publication-pages
+  cancel-in-progress: false
 
 jobs:
-  partager:
+  construire:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
     steps:
-      - uses: actions/checkout@v4
-      - name: Ouvrir un lien public
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: ${{ github.sha }}
-        run: python3 tools/share-public.py
+      - name: Récupérer le travail de la branche courante
+        uses: actions/checkout@v4
+        with:
+          path: travail
+      - name: Récupérer la base exacte du site publié
+        uses: actions/checkout@v4
+        with:
+          ref: 1efb82e236505af518b4e6fa3065b170ab1e2ae2
+          path: base-publique
+      - name: Vérifier que la branche publique n'a pas changé
+        shell: bash
+        run: |
+          set -euo pipefail
+          actif=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/arena/b9e08b94-learning-dp1 | cut -f1)
+          test "$actif" = "1efb82e236505af518b4e6fa3065b170ab1e2ae2" || { echo "La branche publique a changé : arrêt avant publication."; exit 1; }
+      - name: Assembler seulement le chalet animé
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf base-publique/.git
+          python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
+          node --check site/js/pages/pomodoro-page.js
+          node --check site/service-worker.js
+          node site/tools/verifier-pomodoro.js
+      - name: Préparer le paquet Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publier:
+    needs: construire
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - name: Publier le site testé
+        id: deploiement
+        uses: actions/deploy-pages@v4

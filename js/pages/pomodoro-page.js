@@ -40,7 +40,9 @@ var FOCUS_FONDS = [
     { id: 'lac-alpin', cat: 'paysages', nom: 'Lac alpin', src: 'images/pomodoro/lac-alpin.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-alpin.webp?v=20261019d' },
     { id: 'plage', cat: 'paysages', nom: 'Plage', src: 'images/pomodoro/plage.webp?v=20261019d', mini: 'images/pomodoro/mini/plage.webp?v=20261019d' },
     { id: 'mer-soleil', cat: 'paysages', nom: 'Mer au soleil', src: 'images/pomodoro/mer-soleil.webp?v=20261019d', mini: 'images/pomodoro/mini/mer-soleil.webp?v=20261019d' },
-    { id: 'marguerites', cat: 'nature', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' }
+    { id: 'marguerites', cat: 'nature', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' },
+    /* Ajouté à la fin pour conserver les choix existants enregistrés par indice. */
+    { id: 'chalet-neige-anime', cat: 'anime', nom: 'Chalet sous la neige', src: 'images/pomodoro/chalet-neige-anime.webp?v=20261107b', mini: 'images/pomodoro/mini/chalet-neige-anime.webp?v=20261107b', video: 'images/pomodoro/chalet-neige-anime.mp4?v=20261107b' }
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -210,6 +212,7 @@ function focusCharger() {
     if (typeof chronoChargerReglagesVoix === 'function') chronoChargerReglagesVoix();
     focusTaches = focusLireJson('studyPlanIB_focusTaches', []);
     if (!Array.isArray(focusTaches)) focusTaches = [];
+    focusObserverVideosFond();
     focusPreparerFonds();
     focusPoserFond(focusEtat.fond, true);
     focusRestaurerEtat();
@@ -636,7 +639,12 @@ function focusPeindreCalque(el, src) {
    nouvelle se charge, puis la nouvelle est posée d'un coup : aucun fondu, donc
    jamais l'ancienne image qui réapparaît ni le planning derrière. */
 function focusFondPage(src) {
-    if (!src || src === focusFondActif) return;
+    if (!src) return;
+    if (src === focusFondActif) {
+        focusFondDemande = '';
+        focusPeindreFonds();
+        return;
+    }
     var bg = document.getElementById('focusBg');
     if (!bg) {
         focusFondActif = src;
@@ -645,6 +653,8 @@ function focusFondPage(src) {
     focusFondDemande = src;
     focusPeindreFonds();
     focusDecoderImage(src, function (ok) {
+        /* Un décodage plus ancien ne doit pas écraser le dernier choix. */
+        if ((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
         focusFondDemande = '';
         focusPeindreFonds();
         if (!ok) return;
@@ -660,10 +670,70 @@ function focusFondAccueil(src) {
     var el = document.getElementById('focusAccueilFond');
     if (!el || !src || focusAccueilActif === src) return;
     focusDecoderImage(src, function (ok) {
-        if (!ok) return;
+        if (!ok || (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
         focusAccueilActif = src;
         focusPeindreCalque(el, src);
     });
+}
+
+/* Le poster reste visible tant que la vidéo ne joue pas (chargement, hors ligne,
+   navigateur incompatible). Une seule vidéo tourne, uniquement sur la page
+   visible ; elle est muette, sans commandes, et boucle indépendamment du chrono. */
+function focusSynchroniserVideosFond() {
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    [
+        { panneau: 'panelPomodoro', page: 'focusPage', calque: 'focusBg' },
+        { panneau: 'panelSeances', page: 'focusAccueil', calque: 'focusAccueilFond' }
+    ].forEach(function (cible) {
+        var panel = document.getElementById(cible.panneau);
+        var page = document.getElementById(cible.page);
+        var calque = document.getElementById(cible.calque);
+        if (!calque) return;
+        var video = calque.querySelector('.focus-fond-video');
+        var visible = !!fond.video && !!panel && panel.classList.contains('active') &&
+            !!page && !page.hidden && !document.hidden;
+        if (!visible) {
+            if (video) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+                video.remove();
+            }
+            return;
+        }
+        if (video && video.getAttribute('src') === fond.video) return;
+        if (video) { video.pause(); video.remove(); }
+        video = document.createElement('video');
+        video.className = 'focus-fond-video';
+        video.muted = true;
+        video.defaultMuted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.setAttribute('playsinline', '');
+        video.setAttribute('aria-hidden', 'true');
+        video.setAttribute('tabindex', '-1');
+        video.addEventListener('playing', function () { video.classList.add('is-visible'); });
+        video.addEventListener('error', function () { video.classList.remove('is-visible'); });
+        video.src = fond.video;
+        calque.appendChild(video);
+        var lecture = video.play();
+        if (lecture && lecture.catch) lecture.catch(function () { video.classList.remove('is-visible'); });
+    });
+}
+
+function focusObserverVideosFond() {
+    if (focusObserverVideosFond.pret) return;
+    focusObserverVideosFond.pret = true;
+    if (typeof MutationObserver === 'function') {
+        var observateur = new MutationObserver(focusSynchroniserVideosFond);
+        ['panelPomodoro', 'panelSeances'].forEach(function (id) {
+            var panneau = document.getElementById(id);
+            if (panneau) observateur.observe(panneau, { attributes: true, attributeFilter: ['class'] });
+        });
+    }
+    document.addEventListener('visibilitychange', focusSynchroniserVideosFond);
 }
 
 function focusPreparerFonds() {
@@ -699,6 +769,7 @@ function focusPoserFond(index, immediat) {
     focusPeindreFonds();
     focusFondPage(fond.src);
     focusFondAccueil(fond.src);
+    focusSynchroniserVideosFond();
     focusPipMaj();
 }
 
