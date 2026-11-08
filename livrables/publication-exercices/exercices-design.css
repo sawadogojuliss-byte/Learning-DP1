@@ -173,3 +173,41 @@ body:has(#panelExercices.active) > .suppression-toast { z-index:100001 !importan
 /* La marque officielle, commune aux espaces d'étude. */
 #panelExercices .ed-brand-mark { width:42px; height:42px; background:transparent; border-radius:12px; overflow:hidden; }
 #panelExercices .ed-brand-mark img { width:100%; height:100%; object-fit:cover; display:block; }
+/* Parcours de planification : choisir un exercice, préparer ses séances, confirmer. */
+#panelExercices .epn-intro { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:20px; }
+#panelExercices .epn-intro span:not(.epn-count),#panelExercices .epn-selected small { display:block; color:#63a684; font-size:9px; font-weight:800; letter-spacing:.13em; }
+#panelExercices .epn-intro h3,#panelExercices .epn-setup h3,#panelExercices .epn-results h3 { margin:6px 0; color:#254c39; font-size:17px; letter-spacing:-.025em; }
+#panelExercices .epn-intro p,#panelExercices .epn-setup p,#panelExercices .epn-results p { margin:0; color:#748c7e; font-size:12px; line-height:1.6; }
+#panelExercices .epn-count { white-space:nowrap; padding:7px 10px; border-radius:100px; background:#eff8f0; color:#32845e; font-size:11px; font-weight:750; }
+#panelExercices .epn-list { display:grid; gap:10px; }
+#panelExercices .epn-exercice { display:flex; align-items:center; gap:14px; width:100%; min-width:0; padding:16px; text-align:left; border:1px solid #e5eee7; border-radius:14px; background:#fbfdfb; cursor:pointer; }
+#panelExercices .epn-exercice:hover { border-color:#9bcfb0; background:#f4faf5; }
+#panelExercices .epn-exo-icon,#panelExercices .epn-selected-icon { flex:none; display:grid; place-items:center; width:45px; height:45px; border-radius:13px; background:#e8f5eb; }
+#panelExercices .epn-exo-info { flex:1; min-width:0; display:grid; gap:5px; color:#526f5d; font-size:12px; overflow-wrap:anywhere; }
+#panelExercices .epn-exo-info strong { color:#234b37; font-size:14px; }.epn-exo-info small { color:#83998b; font-size:11px; line-height:1.4; }
+#panelExercices .epn-exo-right { display:grid; justify-items:end; gap:8px; color:#3d9670; }.epn-exo-right small { white-space:nowrap; font-size:10px; }.epn-exo-right b { font-size:18px; }
+#panelExercices .epn-back { border:0; background:transparent; padding:0 0 18px; color:#568d6d; font-size:12px; font-weight:750; cursor:pointer; }
+#panelExercices .epn-selected { display:flex; align-items:center; gap:14px; margin-bottom:20px; padding:18px; background:#f0f8f0; border:1px solid #deeee0; border-radius:15px; }
+#panelExercices .epn-selected h3 { margin:4px 0; color:#234b37; font-size:16px; }#panelExercices .epn-selected p { margin:0; color:#708a7a; font-size:12px; overflow-wrap:anywhere; }
+#panelExercices .epn-setup { padding:22px; border:1px solid #e4ece7; border-radius:16px; background:#fff; }
+#panelExercices .epn-setup-heading,#panelExercices .epn-results-head { display:flex; align-items:flex-start; gap:12px; }
+#panelExercices .epn-setup-heading>span,#panelExercices .epn-results-head>span { flex:none; display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:#eaf6ed; color:#39946b; font-size:11px; font-weight:800; }
+#panelExercices .epn-setup-heading h3,#panelExercices .epn-results-head h3 { margin:0 0 4px; }
+#panelExercices .epn-fields { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:20px 0 12px; }
+#panelExercices .epn-fields label { min-width:0; color:#456253; font-size:12px; font-weight:750; }
+#panelExercices .epn-fields input,#panelExercices .epn-fields select { display:block; width:100%; min-width:0; height:46px; margin-top:8px; padding:0 12px; border:1px solid #dae9dd; border-radius:10px; background:#fbfdfb; color:#264b38; font:inherit; }
+#panelExercices .epn-hint { color:#809387!important; font-size:11px!important; }
+#panelExercices .epn-error { color:#b74440!important; font-weight:700; }#panelExercices .epn-error:not(:empty) { margin:10px 0; }
+#panelExercices .epn-setup-actions { display:flex; gap:10px; margin-top:18px; }
+#panelExercices .epn-primary,#panelExercices .epn-secondary,#panelExercices .epn-empty button { min-height:44px; padding:10px 16px; border-radius:10px; font-size:12px; font-weight:750; cursor:pointer; }
+#panelExercices .epn-primary,#panelExercices .epn-empty button { border:1px solid #16815d; color:#fff; background:#16815d; }
+#panelExercices .epn-secondary { border:1px solid #d6eadb; color:#287756; background:#f4faf5; }
+#panelExercices .epn-results { margin-top:26px; }#panelExercices .epn-results-note { margin:14px 0!important; }
+#panelExercices .epn-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+#panelExercices .epn-option { min-width:0; padding:16px; border:1px solid #e2eee5; border-radius:14px; background:#fbfdfb; }
+#panelExercices .epn-option-top { display:flex; justify-content:space-between; gap:10px; align-items:center; margin-bottom:12px; }
+#panelExercices .epn-option-top span { color:#66a784; font-size:9px; font-weight:800; letter-spacing:.12em; }#panelExercices .epn-option-top strong { color:#355c46; font-size:12px; }
+#panelExercices .epn-option .epn-primary { width:100%; margin-top:14px; }#panelExercices .epn-no-slot,#panelExercices .epn-success { padding:15px; border-radius:12px; background:#f2f8f2; color:#56735e!important; font-size:12px; line-height:1.6; }
+#panelExercices .epn-success { margin:16px 0; }#panelExercices .epn-success strong { color:#207751; }#panelExercices .epn-success p { margin:5px 0 0; }
+#panelExercices .epn-empty { text-align:center; padding:35px 15px; color:#728a7b; }#panelExercices .epn-empty>span { display:grid; place-items:center; width:46px; height:46px; border-radius:14px; margin:auto; background:#eaf6ed; color:#5da47c; }#panelExercices .epn-empty h3 { color:#284d39; margin:15px 0 7px; font-size:16px; }#panelExercices .epn-empty p { font-size:12px; line-height:1.5; }#panelExercices .epn-empty button { margin-top:15px; }
+@media(max-width:600px) { #panelExercices .epn-setup { padding:17px; } #panelExercices .epn-options { grid-template-columns:1fr; } #panelExercices .epn-setup-actions { flex-direction:column; } #panelExercices .epn-exercice { padding:12px; gap:10px; } #panelExercices .epn-exo-right small { display:none; } }

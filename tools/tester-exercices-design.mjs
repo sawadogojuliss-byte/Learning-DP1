@@ -8,7 +8,7 @@ const portable = process.env.STUDY_PLAYWRIGHT_SYSTEM ? null : require('@sparticu
 const site = process.env.STUDY_SITE || 'http://127.0.0.1:8508/';
 const browser = await chromium.launch(portable ? {executablePath:await portable.executablePath(),args:portable.args.filter(x=>x!=='--single-process')} : {});
 async function boot(page) {
-  await page.waitForFunction(()=>window.__STUDYPLAN_READY && !document.body.classList.contains('booting'),{timeout:60000});
+  await page.waitForFunction(()=>window.__STUDYPLAN_READY && !document.body.classList.contains('booting'),null,{timeout:60000});
   await page.evaluate(()=>{
     document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));
     document.getElementById('planningModal').classList.add('active');
@@ -64,17 +64,15 @@ try {
     await page.locator('[data-exo-filtre=tous]').click();
     await page.locator('[data-exo-action=planifier]').click();
     assert.equal(await page.locator('#tabPlanifier').getAttribute('aria-selected'),'true');
-    assert.match(await page.locator('#planifierContent').innerText(),/Résumé global/);
-    // Le profil vierge génère une journée entièrement occupée. Simuler un
-    // planning vide pour exercer aussi la sélection et la sauvegarde d'un créneau.
-    if (!(await page.locator('[data-exo-action=creneau]').count())) {
-      assert.match(await page.locator('#planifierContent').innerText(),/Aucun créneau complet/);
-      await page.evaluate(()=>{ generateDayEvents = () => []; renderPlanifier(); });
-    }
-    assert.ok(await page.locator('[data-exo-action=creneau]').count()>0,'des créneaux fictifs doivent être proposés');
+    assert.doesNotMatch(await page.locator('#planifierContent').innerText(),/Résumé global/);
+    assert.match(await page.locator('#planifierContent').innerText(),/Combien|Comment veux-tu avancer/);
+    // Planning fictif vide : inclut les séances datées après confirmation.
+    await page.evaluate(()=>{ generateDayEvents = (day,date) => customEvents.filter(e=>e && e.date && date && e.date===exoDateLocale(date) && e.day===day && !e.deleted); renderPlanifier(); });
+    await page.locator('[data-exo-action=auto]').click();
+    assert.ok(await page.locator('[data-exo-action=choisir]').count()>0,'des séances fictives doivent être proposées');
     await noOverflow(page);
     if(process.env.STUDY_TEST_CAPTURE) await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/exercices-planifier-${viewport.width}.png`});
-    await page.locator('[data-exo-action=creneau]').first().click();
+    await page.locator('[data-exo-action=choisir]').first().click();
     saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('studyPlanIB_exercices')));
     assert.ok(saved[0].scheduledSlot); assert.ok(await page.evaluate(()=>customEvents.some(e=>e.exoId===exercices[0].id)));
     await page.locator('#tabListe').click(); await page.locator('[data-exo-action=supprimer]').click();

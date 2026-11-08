@@ -49,3 +49,28 @@
 #chevauchementPopup .chev-bouton[data-autre-creneau],#chevauchementPopup .chev-bouton[data-deplacer],#chevauchementPopup .chev-bouton[data-remplacer] { text-align:left; }
 #chevauchementPopup :is(button,input,select):focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
 @media(max-width:500px) { #editEventModal.ep-voile,#chevauchementPopup.chev-voile { padding:10px; } #editEventModal .ep-dialogue,#chevauchementPopup .chev-dialogue { max-height:92dvh; border-radius:18px; } #editEventModal .ep-header,#editEventModal .ep-body,#chevauchementPopup .chev-dialogue { padding:18px; } }
+/* Alerte calme et parcours explicatif des chevauchements. */
+#chevauchementJour.cv-alerte { display:flex; align-items:center; gap:13px; margin:0 0 14px; padding:14px 16px; border:1px solid #cce8d4; border-radius:16px; background:#edf8ef; color:#245a3f; font-family:Inter,system-ui,sans-serif; }
+.cv-alerte-icone { flex:none; width:39px; height:39px; display:grid; place-items:center; background:#d9f0df; color:#16815d; border-radius:12px; font-size:20px; font-weight:800; }
+.cv-alerte-texte { flex:1; min-width:0; display:grid; gap:4px; }
+.cv-alerte-texte strong { font-size:13px; line-height:1.3; }.cv-alerte-texte span { color:#60806c; font-size:11px; line-height:1.45; overflow-wrap:anywhere; }
+.cv-voir { flex:none; min-height:38px; padding:0 13px; border:1px solid #c6e4ce; border-radius:10px; background:#fff; color:#197450; font:inherit; font-size:12px; font-weight:750; cursor:pointer; }
+.cv-explication-voile { position:fixed; inset:0; z-index:450; display:flex; align-items:center; justify-content:center; padding:16px; background:#10271fc0; backdrop-filter:blur(4px); }
+.cv-explication,.cv-explication * { box-sizing:border-box; }
+.cv-explication { width:min(100%,490px); max-height:90dvh; overflow:auto; border-radius:22px; padding:25px; background:white; color:#274939; font-family:Inter,system-ui,sans-serif; box-shadow:0 24px 80px #102b2060; }
+.cv-explication-entete { display:flex; align-items:flex-start; gap:13px; }
+.cv-explication-entete>span { flex:none; display:grid; place-items:center; width:46px; height:46px; border-radius:14px; background:#e7f5ea; color:#258760; font-size:23px; font-weight:800; }
+.cv-explication-entete div { flex:1; }.cv-explication-entete small { color:#559875; font-size:9px; letter-spacing:.14em; font-weight:800; }.cv-explication-entete h2 { margin:6px 0 0; color:#173d2f; font-size:21px; line-height:1.2; letter-spacing:-.035em; }
+.cv-fermer { flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; background:white; color:#6b8274; font-size:24px; cursor:pointer; }
+.cv-explication>p { color:#61796b; font-size:13px; line-height:1.6; margin:18px 0; }
+.cv-evenement { display:flex; align-items:center; gap:10px; padding:13px; margin:7px 0; border:1px solid #e0eee3; border-radius:12px; background:#f7fbf7; font-size:12px; }.cv-evenement strong { flex:1; overflow-wrap:anywhere; }.cv-evenement span:last-child { color:#64816d; white-space:nowrap; }.cv-point { width:8px; height:8px; border-radius:50%; background:#5aac7b; flex:none; }
+.cv-explication .cv-indication { padding:12px 14px; border-radius:12px; background:#edf8ef; color:#52705d; font-size:12px; }
+.cv-resoudre,.cv-annuler { display:block; width:100%; min-height:44px; border-radius:10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }.cv-resoudre { border:0; background:#16815d; color:white; }.cv-annuler { margin-top:8px; border:1px solid #e2ebe4; background:#fff; color:#6b8274; }
+.cv-explication button:focus-visible,.cv-voir:focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+@media(max-width:400px) { #chevauchementJour.cv-alerte { gap:9px; padding:12px; }.cv-explication { padding:19px; }.cv-evenement { flex-wrap:wrap; }.cv-evenement span:last-child { margin-left:18px; } }
+/* Le conflit lui-même reste dans la palette verte ; les confirmations de
+   retrait essentiel conservent leur signal de prudence distinct. */
+#chevauchementPopup .chev-carte-deja { background:#f4faf5; border-color:#d5ebd9; }
+#chevauchementPopup .chev-proposition-occupee { background:#f5faf5; border-color:#cfe7d4; color:#345f47; }
+#chevauchementPopup .chev-proposition-occupee:hover { background:#eaf7ec; border-color:#83bd94; }
+#chevauchementPopup .chev-proposition-occupee .chev-proposition-effet { color:#607c67; }

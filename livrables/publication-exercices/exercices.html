@@ -26,8 +26,8 @@
 
     <nav class="ed-tabs" role="tablist" aria-label="Sections des exercices">
       <button type="button" id="tabAjouter" role="tab" aria-controls="tabContentAjouter" aria-selected="true" class="exo-tab" onclick="switchExoTab('ajouter')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Ajouter</span></button>
-      <button type="button" id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-tab" onclick="switchExoTab('liste')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h10M9 12h10M9 18h10M5 6h.01M5 12h.01M5 18h.01"/></svg><span>Ma liste</span></button>
       <button type="button" id="tabPlanifier" role="tab" aria-controls="tabContentPlanifier" aria-selected="false" class="exo-tab" onclick="switchExoTab('planifier')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg><span>Planifier</span></button>
+      <button type="button" id="tabListe" role="tab" aria-controls="tabContentListe" aria-selected="false" class="exo-tab" onclick="switchExoTab('liste')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h10M9 12h10M9 18h10M5 6h.01M5 12h.01M5 18h.01"/></svg><span>Ma liste</span></button>
     </nav>
 
     <main class="ed-main">
@@ -77,12 +77,12 @@
       </section>
 
       <section id="tabContentListe" role="tabpanel" aria-labelledby="tabListe" style="display:none;">
-        <div class="ed-section-heading"><div><p class="ed-overline">TA PROGRESSION</p><h2>Ta liste d’exercices</h2><p>Retrouve tout ce que tu as prévu de travailler.</p></div><span class="ed-section-step">02 <i>/</i> 03</span></div>
+        <div class="ed-section-heading"><div><p class="ed-overline">TA PROGRESSION</p><h2>Ta liste d’exercices</h2><p>Retrouve tout ce que tu as prévu de travailler.</p></div><span class="ed-section-step">03 <i>/</i> 03</span></div>
         <div class="ed-list-card"><div class="ed-filters"><button type="button" data-exo-filtre="tous" aria-pressed="true" class="exo-filter" onclick="filtrerExos('tous')">Tous</button><button type="button" data-exo-filtre="afaire" aria-pressed="false" class="exo-filter" onclick="filtrerExos('afaire')">À faire</button><button type="button" data-exo-filtre="faits" aria-pressed="false" class="exo-filter" onclick="filtrerExos('faits')">Faits</button></div><div id="exoListContainer" class="ed-list-content"></div></div>
       </section>
 
       <section id="tabContentPlanifier" role="tabpanel" aria-labelledby="tabPlanifier" style="display:none;">
-        <div class="ed-section-heading"><div><p class="ed-overline">TON PLANNING</p><h2>Fais une place à tes exercices</h2><p>Choisis un créneau qui s’accorde avec ton emploi du temps.</p></div><span class="ed-section-step">03 <i>/</i> 03</span></div>
+        <div class="ed-section-heading"><div><p class="ed-overline">TON PLANNING</p><h2>Fais une place à tes exercices</h2><p>Organise tes séances en fonction de ton emploi du temps.</p></div><span class="ed-section-step">02 <i>/</i> 03</span></div>
         <div class="ed-list-card"><div id="planifierContent" class="ed-planning-content"></div></div>
       </section>
     </main>

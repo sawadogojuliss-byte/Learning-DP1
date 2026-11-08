@@ -7,7 +7,7 @@ const {chromium}=require('playwright');
 const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM?null:require('@sparticuz/chromium').default;
 const site=process.env.STUDY_SITE||'http://127.0.0.1:8525/';
 const browser=await chromium.launch(portable?{executablePath:await portable.executablePath(),args:portable.args.filter(x=>x!=='--single-process')}:{});
-const ready=async page=>{await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});};
+const ready=async page=>{await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),null,{timeout:60000});};
 try {
  for(const viewport of [{width:320,height:568},{width:390,height:844},{width:1280,height:800}]) {
   const context=await browser.newContext({viewport,serviceWorkers:'block'});
