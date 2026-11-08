@@ -1,0 +1,30 @@
+        <!-- Fenêtre de modification : les identifiants et actions du planning restent inchangés. -->
+        <div id="editEventModal" class="ep-voile" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+          <div class="ep-dialogue">
+            <div class="ep-header">
+              <span class="ep-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m15 5 4 4M5 19l3.5-.7L19 7.8 16.2 5 5.7 15.5 5 19Z"/></svg></span>
+              <div><p class="ep-kicker">MON PLANNING</p><h3 id="editModalTitle">Modifier l’activité</h3><p>Adapte ce moment à ton emploi du temps.</p></div>
+              <button type="button" class="ep-close" onclick="closeEditModal()" aria-label="Fermer sans enregistrer">×</button>
+            </div>
+            <div class="ep-body">
+              <label class="ep-label" for="editEventTitle">Nom de l’activité</label>
+              <input type="text" id="editEventTitle" class="ep-input" placeholder="Nom de l’activité">
+              <div class="ep-duration">
+                <div><span class="ep-label">Durée</span><p>Par pas de 15 minutes</p></div>
+                <div class="ep-duration-control"><button type="button" onclick="adjustEditDuration(-15)" aria-label="Réduire la durée de 15 minutes">−</button><strong id="editDurationDisplay">60 min</strong><button type="button" onclick="adjustEditDuration(15)" aria-label="Augmenter la durée de 15 minutes">+</button></div>
+              </div>
+              <div class="ep-times">
+                <div><label class="ep-label" for="editEventStart">Début</label><input type="time" id="editEventStart" class="ep-input" onchange="syncEditEndFromStart()"></div>
+                <div><label class="ep-label" for="editEventEnd">Fin</label><input type="time" id="editEventEnd" class="ep-input" onchange="syncEditDurationFromTimes()"></div>
+              </div>
+              <p id="editPinHint" class="ep-hint" style="display:none;"></p>
+              <div id="editCascadeInfo" class="ep-info">Les autres activités seront réajustées si nécessaire.</div>
+              <p id="editTimeError" class="ep-error" role="alert" style="display:none;"></p>
+              <div class="ep-actions">
+                <button type="button" id="editSaveButton" class="ep-save" onclick="saveEditedEventCascade()">Enregistrer &amp; réajuster</button>
+                <button type="button" class="ep-delete" onclick="deleteEditedEvent()">Supprimer l’activité</button>
+                <button type="button" class="ep-cancel" onclick="closeEditModal()">Annuler</button>
+              </div>
+            </div>
+          </div>
+        </div>

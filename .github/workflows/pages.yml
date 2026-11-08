@@ -47,6 +47,10 @@ jobs:
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js
           node --check site/js/pages/exercices.js
+          node --check site/js/pages/planning-interface.js
+          node --check site/js/pages/devoirs.js
+          node site/tools/verifier-devoirs.js
+          node site/tools/verifier-devoirs-edition.js
           node --check site/service-worker.js
           node site/tools/verifier-pomodoro.js
       - name: Tester le site assemblé avant publication
@@ -62,6 +66,7 @@ jobs:
           python3 -m http.server 8508 --directory site &
           serveur=$!
           trap 'kill "$serveur"' EXIT
+          node travail/tools/tester-nouveau-design.mjs
           node travail/tools/tester-exercices-design.mjs
           node travail/tools/tester-creneaux-exercices.mjs
           node travail/tools/tester-defilement-legende.mjs
@@ -114,6 +119,7 @@ jobs:
           node tools/tester-pomodoro-cache.mjs
           node tools/tester-themes-drive.mjs
           node tools/tester-rappels-activites.mjs
+          node tools/tester-nouveau-design.mjs
           node tools/tester-exercices-design.mjs
           node tools/tester-creneaux-exercices.mjs
           node tools/tester-defilement-legende.mjs

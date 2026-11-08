@@ -33,6 +33,15 @@ if not actual.startswith(expected):
 boite_actual = subprocess.check_output(['git', 'hash-object', str(base / 'js/pages/boite.js')], text=True).strip()
 if not boite_actual.startswith('d5ad249'):
     raise SystemExit('La boîte publique a changé : réconcilier avant publication')
+for rel, expected_hash in {
+    'js/pages/planning-interface.js': '91dcc0a4eafa879ec119363ba35d7c455f444fe4',
+    'pages/planning.html': '5d479c0b95d409c573ecc3ebbfa38058e44e3a77',
+    'pages/devoirs.html': '71e0fa0c1f9cf5ea3ccf10586d06a12af818f5a6',
+    'js/pages/devoirs.js': 'cf3824b3b0ff7d7bdd77580bffeb93366f4563f2',
+}.items():
+    found = subprocess.check_output(['git', 'hash-object', str(base / rel)], text=True).strip()
+    if found != expected_hash:
+        raise SystemExit('Base publique modifiée : réconcilier ' + rel)
 shutil.copytree(base, output)
 
 files = [
@@ -41,6 +50,8 @@ files = [
     'js/pages/boite.js',
     'livrables/publication-rappels/rappels.js',
     'livrables/publication-rappels/rappels.css',
+    'livrables/publication-planning/planning-design.css',
+    'livrables/publication-devoirs/devoirs-design.css',
     'js/pages/pomodoro-page.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
@@ -91,6 +102,23 @@ path.write_text(text.replace(anchor, match.group(0) + anchor, 1), encoding='utf-
 
 # La page et sa feuille sont dédiées à la publication. Ne pas copier la version
 # de travail distincte de pages/ ou js/pages/exercices.js.
+# Overlays isolés : pas les travaux de planning encore en cours dans le checkout.
+shutil.copy2(ROOT / 'livrables/publication-devoirs/devoirs.html', output / 'pages/devoirs.html')
+shutil.copy2(ROOT / 'livrables/publication-planning/planning-interface.js', output / 'js/pages/planning-interface.js')
+path = output / 'pages/planning.html'
+text = path.read_text(encoding='utf-8')
+start = text.index('        <div id="editEventModal"')
+end = text.index('    </div><!-- fin planningModal -->', start)
+text = text[:start] + (ROOT / 'livrables/publication-planning/edition.html').read_text(encoding='utf-8') + '\n' + text[end:]
+path.write_text(text, encoding='utf-8')
+path = output / 'js/pages/devoirs.js'
+text = path.read_text(encoding='utf-8')
+anchor_devoirs = "        if (bouton) {\n            bouton.style.background = g === genre"
+if text.count(anchor_devoirs) != 1:
+    raise SystemExit('Onglets Devoirs publics inattendus')
+text = text.replace(anchor_devoirs, "        if (bouton) {\n            bouton.setAttribute('aria-selected', g === genre ? 'true' : 'false');\n            bouton.style.background = g === genre", 1)
+path.write_text(text, encoding='utf-8')
+
 shutil.copy2(ROOT / 'livrables/publication-exercices/exercices.html', output / 'pages/exercices.html')
 shutil.copy2(ROOT / 'livrables/publication-exercices/exercices-design.css', output / 'css/pages/exercices-design.css')
 shutil.copy2(ROOT / 'livrables/publication-legende/legende.html', output / 'pages/legende.html')
@@ -159,6 +187,8 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if text.count(anchor) != 1:
             raise SystemExit('Styles des rappels introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
+        anchor = '    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">'
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -174,7 +204,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;
@@ -197,7 +227,7 @@ self.addEventListener('notificationclick', function (event) {
     path.write_text(text, encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
+allowed = set(files + ['pages/devoirs.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue

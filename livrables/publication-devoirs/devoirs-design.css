@@ -1,0 +1,51 @@
+#panelDevoirs.dd-page { --dd-ink:#18392f; --dd-green:#16815d; color:var(--dd-ink); font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:#f5f8f4!important; }
+#panelDevoirs.dd-page.active::before { background:#f5f8f4!important; }
+#panelDevoirs.dd-page * { box-sizing:border-box; }
+#panelDevoirs.dd-page button,#panelDevoirs.dd-page input,#panelDevoirs.dd-page select,#panelDevoirs.dd-page textarea { font-family:inherit; }
+#panelDevoirs.dd-page button { cursor:pointer; }
+#panelDevoirs.dd-page :is(button,input,textarea,select,[role=button]):focus-visible { outline:3px solid #54af8c; outline-offset:3px; }
+#panelDevoirs .dd-topbar { background:rgba(255,255,255,.92); border-bottom:1px solid #e4ece7; }
+#panelDevoirs .dd-topbar-inner { max-width:1176px; min-height:75px; padding:0 28px; margin:auto; display:flex; align-items:center; gap:18px; }
+#panelDevoirs .dd-back { display:grid; place-items:center; width:40px; height:40px; border:1px solid #e2ebe5; border-radius:12px; background:#fff; color:#345a4b; }
+#panelDevoirs .dd-back:hover { background:#edf7f0; }
+#panelDevoirs svg { width:20px; height:20px; display:block; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+#panelDevoirs .dd-brand { display:flex; gap:10px; align-items:center; }
+#panelDevoirs .dd-brand-mark { display:block; width:42px; height:42px; border-radius:12px; overflow:hidden; }
+#panelDevoirs .dd-brand-mark img { display:block; width:100%; height:100%; object-fit:cover; }
+#panelDevoirs .dd-brand strong { display:block; color:#173b2d; line-height:1.1; font-size:15px; letter-spacing:-.04em; }
+#panelDevoirs .dd-brand small { display:block; color:#93a59a; font-size:8px; font-weight:800; letter-spacing:.12em; margin-top:4px; }
+#panelDevoirs .dd-top-note { margin-left:auto; color:#8a9d91; font-size:12px; font-weight:600; }
+#panelDevoirs .dd-top-note span { padding-left:5px; color:#a7bfac; }
+#panelDevoirs .dd-shell { max-width:1176px; margin:0 auto; padding:47px 28px 55px; }
+#panelDevoirs .dd-hero { display:flex; justify-content:space-between; align-items:center; gap:30px; margin-bottom:37px; }
+#panelDevoirs .dd-eyebrow { display:flex; align-items:center; gap:8px; margin:0 0 13px; color:#459675; font-size:10px; font-weight:800; letter-spacing:.16em; }
+#panelDevoirs .dd-eyebrow span { width:7px; height:7px; background:#56b992; border-radius:50%; box-shadow:0 0 0 4px #e2f3e9; }
+#panelDevoirs .dd-hero h1 { margin:0; color:#173d2f; font-size:clamp(36px,4vw,51px); letter-spacing:-.055em; line-height:1.1; font-weight:750; }
+#panelDevoirs .dd-hero h1 em { color:#479b77; font-style:normal; }
+#panelDevoirs .dd-hero p:last-child { margin:13px 0 0; color:#71857a; font-size:14px; line-height:1.65; }
+#panelDevoirs .dd-hero-aside { display:flex; align-items:center; gap:14px; min-width:270px; padding:19px; border:1px solid #d7e8dc; border-radius:18px; background:linear-gradient(115deg,#ecf7ef,#f6faf3); }
+#panelDevoirs .dd-aside-icon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:white; color:#58a781; }
+#panelDevoirs .dd-hero-aside small { display:block; color:#8ba696; font-size:9px; font-weight:800; letter-spacing:.12em; margin-bottom:5px; }
+#panelDevoirs .dd-hero-aside strong { display:block; font-size:15px; color:#24533e; }
+#panelDevoirs .dd-hero-aside div>span { display:block; font-size:11px; color:#789587; margin-top:4px; }
+#panelDevoirs .dd-tabs { display:flex; gap:5px; padding:6px; width:max-content; max-width:100%; background:#eaf1eb; border:1px solid #e2ebe4; border-radius:15px; margin-bottom:30px; }
+#panelDevoirs .dd-tabs button { min-height:45px; min-width:145px; padding:0 20px!important; border:0!important; border-radius:10px!important; background:transparent!important; color:#72877b!important; font-size:13px!important; font-weight:700!important; }
+#panelDevoirs .dd-tabs button[aria-selected=true] { background:#fff!important; color:#1d7955!important; box-shadow:0 3px 10px #224b3112; }
+#panelDevoirs .dd-content:not([style*="none"]) { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:18px; }
+#panelDevoirs .dd-content > div { min-width:0; margin:0!important; padding:23px!important; background:white!important; border:1px solid #e4ece7!important; border-radius:18px!important; box-shadow:0 8px 30px #325b3d08; }
+#panelDevoirs .dd-content > div:first-child { grid-column:1/-1; background:#edf7ef!important; border-color:#d8ecdd!important; padding:16px 20px!important; color:#426854!important; font-size:13px!important; line-height:1.65!important; }
+#panelDevoirs .dd-content > div:last-child { grid-column:1/-1; }
+#panelDevoirs .dd-content > div > label:first-child,#panelDevoirs .dd-content > div > p:first-child { color:#294739!important; font-size:15px!important; font-weight:750!important; letter-spacing:-.015em; margin:0 0 17px!important; }
+#panelDevoirs .dd-content [role=button] { border:1.5px dashed #a2cfb4!important; border-radius:14px!important; padding:22px 12px!important; background:#f8fcf9!important; }
+#panelDevoirs .dd-content [role=button]:hover { border-color:#4ca27b!important; background:#eff9f2!important; }
+#panelDevoirs .dd-content textarea,#panelDevoirs .dd-content input:not([type=file]),#panelDevoirs .dd-content select { min-width:0; min-height:43px; border:1px solid #dfeae2!important; border-radius:10px!important; background:#fbfdfb!important; color:#284838; padding:10px 12px!important; }
+#panelDevoirs .dd-content textarea { line-height:1.5; }
+#panelDevoirs .dd-content button:not([data-devoir-action]) { border-radius:10px!important; min-height:42px; }
+#panelDevoirs .dd-content > div > button { background:#18815c!important; color:#fff!important; border:0!important; }
+#panelDevoirs .dd-content > div > button:hover { background:#116c4b!important; }
+@media(max-width:700px) { #panelDevoirs .dd-shell { padding:30px 18px 40px; } #panelDevoirs .dd-topbar-inner { padding:0 18px; min-height:68px; gap:12px; } #panelDevoirs .dd-top-note,#panelDevoirs .dd-hero-aside { display:none; } #panelDevoirs .dd-hero { margin-bottom:26px; } #panelDevoirs .dd-content:not([style*="none"]) { grid-template-columns:minmax(0,1fr); } #panelDevoirs .dd-content > div { padding:19px!important; } #panelDevoirs .dd-tabs { width:100%; } #panelDevoirs .dd-tabs button { min-width:0; } }
+
+#panelDevoirs .dd-upload-icon { display:grid; place-items:center; width:40px; height:40px; margin:0 auto 6px; border-radius:12px; color:#4c9c78; background:#e9f6ed; }
+#panelDevoirs .dd-upload-icon svg { width:21px; height:21px; }
+/* L'annulation de suppression doit rester cliquable au-dessus du panneau plein écran. */
+body:has(#panelDevoirs.active) > .suppression-toast { z-index:100001!important; }

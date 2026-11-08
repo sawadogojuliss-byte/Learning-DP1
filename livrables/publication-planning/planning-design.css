@@ -1,0 +1,51 @@
+/* Fenêtre de modification : présentation isolée, sans changer la logique. */
+#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:rgba(13,39,30,.58); backdrop-filter:blur(5px); }
+#editEventModal * { box-sizing:border-box; }
+#editEventModal .ep-dialogue { width:min(100%,500px); max-height:min(90dvh,850px); overflow:auto; background:#fff; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; font-family:Inter,system-ui,sans-serif; color:#244638; }
+#editEventModal .ep-header { display:flex; gap:14px; align-items:flex-start; padding:24px 24px 20px; border-bottom:1px solid #e9f0eb; background:linear-gradient(130deg,#f6fbf6,#fff); }
+#editEventModal .ep-icon { flex:none; width:46px; height:46px; border-radius:14px; display:grid; place-items:center; color:#238562; background:#e4f4e9; }
+#editEventModal .ep-icon svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+#editEventModal .ep-kicker { margin:1px 0 6px; color:#579a79; font-size:9px; letter-spacing:.14em; font-weight:800; }
+#editEventModal .ep-header h3 { margin:0; color:#173d2f; font-size:21px; line-height:1.2; letter-spacing:-.035em; }
+#editEventModal .ep-header div>p:last-child { margin:6px 0 0; color:#71877a; font-size:12px; line-height:1.45; }
+#editEventModal .ep-close { margin-left:auto; flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; color:#6b8274; background:#fff; font-size:24px; line-height:1; cursor:pointer; }
+#editEventModal .ep-body { padding:22px 24px 24px; }
+#editEventModal .ep-label { display:block; margin:0 0 8px; color:#456253; font-size:12px; font-weight:750; }
+#editEventModal .ep-input { display:block; width:100%; min-width:0; min-height:46px; padding:10px 13px; border:1px solid #dce9df; border-radius:10px; background:#fbfdfb; color:#264636; font:inherit; font-size:14px; }
+#editEventModal .ep-duration { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:19px 0; }
+#editEventModal .ep-duration .ep-label { margin-bottom:4px; }
+#editEventModal .ep-duration p { margin:0; color:#879a8e; font-size:11px; }
+#editEventModal .ep-duration-control { display:flex; align-items:center; gap:10px; }
+#editEventModal .ep-duration-control button { width:38px; height:38px; border:1px solid #deebe1; border-radius:10px; background:#f2f9f3; color:#28805d; font-size:20px; font-weight:700; cursor:pointer; }
+#editEventModal .ep-duration-control strong { min-width:59px; text-align:center; font-size:14px; }
+#editEventModal .ep-times { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#editEventModal .ep-hint,#editEventModal .ep-info { margin:14px 0 0; padding:12px 14px; border-radius:11px; background:#eff8f1; color:#527261; font-size:12px; line-height:1.55; }
+#editEventModal .ep-error { color:#b54440; font-size:12px; font-weight:700; line-height:1.5; }
+#editEventModal .ep-actions { display:grid; gap:9px; margin-top:18px; }
+#editEventModal .ep-actions>button { width:100%; min-height:44px; padding:10px; border-radius:10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }
+#editEventModal .ep-save { border:1px solid #16815d; background:#16815d; color:#fff; }
+#editEventModal .ep-delete { border:1px solid #f1dfdc; background:#fff9f8; color:#bd5a53; }
+#editEventModal .ep-cancel { border:0; background:transparent; color:#758b7e; }
+#editEventModal button:focus-visible,#editEventModal input:focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+#editEventModal .rappel-activite { margin-bottom:3px; }
+#chevauchementPopup.chev-voile { padding:18px; background:rgba(13,39,30,.58); backdrop-filter:blur(5px); }
+#chevauchementPopup .chev-dialogue { width:min(100%,560px); max-height:90dvh; padding:25px; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; color:#244638; font-family:Inter,system-ui,sans-serif; }
+#chevauchementPopup .chev-entete { align-items:flex-start; gap:14px; }
+#chevauchementPopup .chev-symbole { width:46px; height:46px; border-radius:14px; background:#e7f5ea; color:#258760; font-size:23px; }
+#chevauchementPopup .chev-kicker { display:block; margin:2px 0 6px; color:#559875; font-size:9px; font-weight:800; letter-spacing:.14em; }
+#chevauchementPopup .chev-entete h2 { color:#173d2f; letter-spacing:-.035em; font-size:21px; line-height:1.2; }
+#chevauchementPopup .chev-close { margin-left:auto; flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; background:#fff; color:#6b8274; font-size:24px; line-height:1; cursor:pointer; }
+#chevauchementPopup .chev-intro { color:#60796b; line-height:1.6; font-size:13px; }
+#chevauchementPopup .chev-section { margin-top:20px; color:#758d7c; font-size:10px; letter-spacing:.1em; }
+#chevauchementPopup .chev-carte { border-radius:14px; padding:13px; }
+#chevauchementPopup .chev-carte-moi { background:#eff8f1; border-color:#c9e9d2; }
+#chevauchementPopup .chev-carte-deja { background:#fffbf5; border-color:#f2e4cd; }
+#chevauchementPopup .chev-carte-corps strong { color:#274737; }
+#chevauchementPopup .chev-actions { gap:9px; }
+#chevauchementPopup .chev-bouton { border-radius:11px; padding:12px 14px; line-height:1.45; }
+#chevauchementPopup .chev-bouton-vert { background:#16815d; border-color:#16815d; }
+#chevauchementPopup .chev-bouton-clair { color:#2a6248; border-color:#dcebe0; background:#f8fbf8; }
+#chevauchementPopup .chev-bouton small { display:block; margin-top:4px; font-size:11px; line-height:1.4; font-weight:500; text-align:left; }
+#chevauchementPopup .chev-bouton[data-autre-creneau],#chevauchementPopup .chev-bouton[data-deplacer],#chevauchementPopup .chev-bouton[data-remplacer] { text-align:left; }
+#chevauchementPopup :is(button,input,select):focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+@media(max-width:500px) { #editEventModal.ep-voile,#chevauchementPopup.chev-voile { padding:10px; } #editEventModal .ep-dialogue,#chevauchementPopup .chev-dialogue { max-height:92dvh; border-radius:18px; } #editEventModal .ep-header,#editEventModal .ep-body,#chevauchementPopup .chev-dialogue { padding:18px; } }
