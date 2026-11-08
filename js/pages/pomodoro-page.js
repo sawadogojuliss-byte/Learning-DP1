@@ -94,6 +94,7 @@ var focusEtat = {
     /* série de révision : séances terminées, et série en cours ou non */
     serie: 0,
     run: false,
+    pauseFinale: false,
     fond: 0,
     son: 'off',
     astuce: false
@@ -155,6 +156,7 @@ function focusSauverEtat() {
         cycles: focusEtat.cycles,
         serie: focusEtat.serie,
         run: !!focusEtat.run,
+        pauseFinale: !!focusEtat.pauseFinale,
         date: new Date().toDateString()
     };
     var texte = JSON.stringify(donnees);
@@ -182,6 +184,7 @@ function focusRestaurerEtat() {
     focusEtat.cycles = Math.max(0, Math.floor(Number(donnees.cycles) || 0));
     focusEtat.serie = Math.max(0, Math.floor(Number(donnees.serie) || 0));
     focusEtat.run = !!donnees.run;
+    focusEtat.pauseFinale = !!donnees.pauseFinale && donnees.mode !== 'focus';
     if (donnees.running && Number(donnees.fin) > 0) {
         focusEtat.running = true;
         focusEtat.fin = Number(donnees.fin);
@@ -929,6 +932,8 @@ function focusPoserFond(index, immediat) {
 function focusChoisirMode(mode, enchainement) {
     if (mode !== 'focus' && mode !== 'short' && mode !== 'long') return;
     if (!enchainement && focusEtat.running && focusEtat.mode !== mode) focusPause();
+    // Un choix manuel ouvre une nouvelle phase ; il ne prolonge pas une fin de série.
+    if (enchainement !== false) focusEtat.pauseFinale = false;
     focusEtat.mode = mode;
     var minutes = focusDurees()[mode];
     focusEtat.total = minutes * 60;
@@ -1040,37 +1045,26 @@ function focusPhaseSuivante(silencieux) {
             focusEtat.serie = Math.min(focusDurees().seances, focusEtat.serie + 1);
             if (focusEtat.serie >= focusDurees().seances) focusEtat.run = false;
         }
-        if (chaine) {
-            if (!focusEtat.run) {
-                /* Dernière séance de la série : fin, sans pause. */
-                focusChoisirMode('focus', false);
-                if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(2);
-                focusPeindre();
-                focusTitre();
-                if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-                return;
-            }
-            /* Pause courte, sauf après la 3e séance : pause longue. La pause démarre seule. */
-            var pauseSerie = focusPauseApres(focusEtat.serie);
-            focusChoisirMode(pauseSerie, false);
-            if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(focusDurees()[pauseSerie]);
-            else focusBip(2);
-            focusLancerPhase();
-            focusPeindre();
-            focusTitre();
-            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-            return;
-        }
-        /* Minuteur libre : la phase suivante est proposée, jamais lancée d'elle-même. */
-        var modePause = focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short';
-        /* la pause annoncée est celle de la configuration de l'élève,
-           pas une valeur écrite dans le site */
+        /* Chaque concentration terminée donne une pause, même la dernière
+           d'une série. Sa fin ne doit toutefois pas relancer une série finie. */
+        var modePause = chaine ? focusPauseApres(focusEtat.serie) :
+            (focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short');
         var minutesPause = focusDurees()[modePause];
         focusChoisirMode(modePause, false);
-        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
-        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
-        else focusBip(2);
+        focusEtat.pauseFinale = chaine && !focusEtat.run;
+        if (!silencieux) {
+            // Démarrer le compte à rebours au même changement de phase que l'annonce.
+            focusLancerPhase();
+            if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
+            else focusBip(2);
+        }
+        focusPeindre();
+        focusTitre();
+        if (!silencieux && typeof focusNotifierFin === 'function') focusNotifierFin(fini);
+        return;
     } else {
+        var pauseFinale = focusEtat.pauseFinale;
+        focusEtat.pauseFinale = false;
         focusChoisirMode('focus', false);
         if (chaine) {
             /* Même son qu'à la fin d'une séance, puis la concentration reprend seule. */
@@ -1090,9 +1084,10 @@ function focusPhaseSuivante(silencieux) {
     focusTitre();
     /* Options du panneau Paramètres : notification de fin, enchaînement automatique.
        Un rattrapage au rechargement ne déclenche rien. */
-    if (!silencieux && typeof focusNotifierFin === 'function') {
-        focusNotifierFin(fini);
-        if (focusLireReglages().auto) focusDemarrerEnchainement();
+    if (!silencieux) {
+        if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
+        if (!pauseFinale && typeof focusLireReglages === 'function' && focusLireReglages().auto &&
+            typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
     }
 }
 

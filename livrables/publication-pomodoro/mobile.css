@@ -1,0 +1,33 @@
+/* Sur téléphone, la barre d'outils reste accessible même si le navigateur
+   réduit la hauteur visible ou si le contenu central est plus haut. */
+@media (max-width: 720px), (max-height: 500px) {
+    #panelPomodoro.app-panel.active {
+        height: 100dvh !important;
+        min-height: 100dvh !important;
+    }
+    #focusPage {
+        height: 100%;
+        min-height: 0;
+    }
+    #focusPage .focus-top .focus-quote {
+        max-width: 48%;
+        font-size: clamp(0.72rem, 3.4vw, 0.95rem);
+        overflow-wrap: anywhere;
+    }
+    #focusPage .focus-top,
+    #focusPage .focus-bottom {
+        flex: 0 0 auto;
+    }
+    #focusPage .focus-center {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    #focusPage .focus-bottom {
+        z-index: 3;
+        padding-bottom: max(0.7rem, env(safe-area-inset-bottom));
+    }
+}
+@media (max-height: 550px) {
+    #focusPage .focus-center { justify-content: flex-start; }
+}

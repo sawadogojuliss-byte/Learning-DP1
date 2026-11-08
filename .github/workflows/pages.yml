@@ -82,6 +82,8 @@ jobs:
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
           node travail/tools/tester-pomodoro-reprise.mjs
           node travail/tools/tester-lancement-minuteur.mjs
+          node travail/tools/tester-pause-mobile.mjs
+          node travail/tools/tester-voix.mjs
           node travail/tools/tester-pomodoro-cache.mjs
           node travail/tools/tester-themes-drive.mjs
           node travail/tools/tester-rappels-activites.mjs
@@ -125,6 +127,8 @@ jobs:
           node tools/tester-images-feedback.mjs
           node tools/tester-pomodoro-reprise.mjs
           node tools/tester-lancement-minuteur.mjs
+          node tools/tester-pause-mobile.mjs
+          node tools/tester-voix.mjs
           node tools/tester-pomodoro-cache.mjs
           node tools/tester-themes-drive.mjs
           node tools/tester-rappels-activites.mjs

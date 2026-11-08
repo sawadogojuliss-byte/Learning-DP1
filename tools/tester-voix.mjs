@@ -8,9 +8,13 @@
  * écoute ce que le navigateur reçoit vraiment : les sons programmés
  * dans l'AudioContext, et l'état des lecteurs d'ambiance.
  */
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+const require = createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES, '../package.json') : import.meta.url);
+const { chromium } = require('playwright');
+const portable = process.env.STUDY_TEST_MODULES && !process.env.STUDY_PLAYWRIGHT_SYSTEM ? require('@sparticuz/chromium').default : null;
 
-const SITE_OK = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
+const SITE_OK = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 
 function echec(message) {
     console.error('ECHEC ' + message);
@@ -19,7 +23,8 @@ function echec(message) {
 
 const browser = await chromium.launch({
     headless: true,
-    args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio']
+    ...(portable ? { executablePath: await portable.executablePath() } : {}),
+    args: [...(portable ? portable.args.filter(x => x !== '--single-process') : []), '--autoplay-policy=no-user-gesture-required', '--mute-audio']
 });
 const page = await browser.newPage();
 await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; }); /* profil de test local seulement */
@@ -145,7 +150,7 @@ const fin = await page.evaluate(function () {
     };
 });
 
-if (fin.enMarche !== false) echec('le chronomètre continue tout seul après la fin de la concentration');
+if (fin.enMarche !== true || !(fin.restant < 7 * 60)) echec('la pause ne démarre pas pendant l’annonce : ' + JSON.stringify(fin));
 if (fin.mode !== 'short') echec('la phase suivante doit être une pause courte, trouvée : ' + fin.mode);
 if (fin.ambianceEncore !== false) echec('la musique d\'ambiance continue pendant la pause');
 if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : ' + fin.oscillateurs + ')');
@@ -237,6 +242,6 @@ if (erreurs.length) echec('erreurs JavaScript : ' + erreurs.join(' | '));
 
 console.log('ok fin de chronomètre en vrai navigateur : '
     + fin.sons.length + ' sons (' + total.toFixed(1) + ' s), bip ' + fin.oscillateurs
-    + ', musique arrêtée, pause ' + fin.mode + ' proposée');
+    + ', musique arrêtée, pause ' + fin.mode + ' lancée');
 
 await browser.close();

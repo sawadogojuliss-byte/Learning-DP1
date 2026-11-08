@@ -47,6 +47,7 @@ shutil.copytree(base, output)
 
 files = [
     'livrables/publication-pomodoro/videos.css',
+    'livrables/publication-pomodoro/mobile.css',
     'livrables/publication-retours/images.css',
     'js/pages/boite.js',
     'livrables/publication-rappels/rappels.js',
@@ -120,6 +121,15 @@ if text.count(ancien) != 1:
     raise SystemExit('Gestion des dialogues publique inattendue')
 path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
 
+# La pause démarre toujours ; ce réglage concerne la reprise en minuteur libre.
+path = output / 'pages/pomodoro.html'
+text = path.read_text(encoding='utf-8')
+ancien = 'Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em>'
+nouveau = 'Lancer automatiquement la concentration après la pause <em>(minuteur libre)</em>'
+if text.count(ancien) != 1:
+    raise SystemExit('Réglage Pomodoro public inattendu')
+path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
+
 shutil.copy2(ROOT / 'livrables/publication-devoirs/devoirs.html', output / 'pages/devoirs.html')
 shutil.copy2(ROOT / 'livrables/publication-planning/planning-interface.js', output / 'js/pages/planning-interface.js')
 path = output / 'pages/planning.html'
@@ -190,7 +200,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro publics inattendus')
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-pomodoro/mobile.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro introuvables')
@@ -216,7 +226,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;
@@ -239,7 +249,7 @@ self.addEventListener('notificationclick', function (event) {
     path.write_text(text, encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['pages/devoirs.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'js/accessibilite.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
+allowed = set(files + ['pages/devoirs.html', 'pages/pomodoro.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'js/accessibilite.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue

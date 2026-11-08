@@ -184,8 +184,14 @@ function minutes(sec) { return Math.round(sec / 60); }
   ctx.focusBasculer();
   monde.now += 25 * 60 * 1000;
   ctx.focusTick();
-  ok(ctx.focusEtat.mode === 'short' && ctx.focusEtat.running === false, '7 : la fin de la concentration doit proposer la pause');
+  ok(ctx.focusEtat.mode === 'short' && ctx.focusEtat.running === true, '7 : la fin de la concentration doit démarrer la pause');
   ok(monde.annonces.length === 1 && monde.annonces[0] === 'pause 5', '7 : la pause doit être annoncée une fois : ' + monde.annonces.join(','));
+  monde.now += 30 * 1000;
+  ctx.focusTick();
+  ok(ctx.focusEtat.restant === 270, '7 : le temps de pause doit diminuer pendant l’annonce');
+  const apres = rouvrir(monde);
+  ok(apres.focusEtat.mode === 'short' && apres.focusEtat.running && apres.focusEtat.restant === 270,
+    '7 : le rechargement doit conserver la pause en cours sans la réinitialiser');
 }
 
 if (echecs.length) {

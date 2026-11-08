@@ -177,16 +177,18 @@ ok(/function chronoAnnoncerPause[\s\S]{0,220}chronoCouperMusique\(\)/.test(modul
     'la musique doit être coupée AVANT que la voix parle');
 ok(page.indexOf('else focusBip(2)') !== -1 && page.indexOf('else focusBip(1)') !== -1,
     'le bip doit rester quand la voix n\'est pas disponible');
-/* Rien ne se relance tout seul : la phase suivante est proposée, pas lancée. */
-ok(page.indexOf('focusEtat.running = false;\n    focusStopIntervalle();') !== -1,
-    'la fin de phase doit arrêter le chronomètre');
-ok(page.indexOf("focusChoisirMode(modePause, false)") !== -1,
-    'la pause doit être proposée sans démarrer');
-ok(page.indexOf("focusChoisirMode('focus', false)") !== -1,
-    'la concentration suivante doit être proposée sans démarrer');
-ok(page.indexOf('focusChoisirMode(modePause, true)') === -1 &&
-   page.indexOf("focusChoisirMode('focus', true)") === -1,
-    'plus aucune phase ne doit s\'enchaîner automatiquement');
+/* La pause démarre avec l'annonce. La concentration suivante reste soumise
+   au réglage de reprise ou à la série ; une série terminée ne redémarre pas. */
+const transition = page.slice(page.indexOf('function focusPhaseSuivante'), page.indexOf('function focusTick'));
+ok(transition.indexOf('focusEtat.running = false;\n    focusStopIntervalle();') !== -1,
+    'la phase précédente doit être arrêtée avant la suivante');
+ok(transition.indexOf('focusChoisirMode(modePause, false)') !== -1 &&
+   transition.indexOf('focusLancerPhase()') < transition.indexOf('chronoAnnoncerPause(minutesPause)') &&
+   transition.indexOf('focusLancerPhase()') > transition.indexOf('focusChoisirMode(modePause, false)'),
+    'la pause doit démarrer avant son annonce');
+ok(transition.indexOf('focusEtat.pauseFinale = chaine && !focusEtat.run') !== -1 &&
+   transition.indexOf('!pauseFinale') !== -1,
+    'la dernière pause ne doit pas lancer une série supplémentaire');
 
 /* Une pause réglée à 15 minutes doit être dite « quinze minutes » :
    le nombre suit la configuration, jamais une valeur écrite à part. */
