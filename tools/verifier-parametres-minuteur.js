@@ -35,11 +35,13 @@ var vm = require('vm');
 var blocCitations = (script.match(/var FOCUS_CATEGORIES_CITATIONS[\s\S]*?\n\};/) || [])[0] || '';
 var contexteCitations = {};
 try { vm.runInNewContext(blocCitations + '\nthis.C = FOCUS_CITATIONS; this.K = FOCUS_CATEGORIES_CITATIONS;', contexteCitations); } catch (e) { contexteCitations = {}; }
-var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre'];
-var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être'];
+var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre', 'personnelle'];
+var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être', 'Ma citation'];
 var listeCategories = contexteCitations.K || [];
-ok(listeCategories.length === 4 && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
-    'les 4 catégories doivent exister avec leurs libellés français (sans Gratitude)');
+ok(listeCategories.length === categoriesAttendues.length && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
+    'les catégories initiales et Ma citation doivent exister avec leurs libellés français (sans Gratitude)');
+ok(minuteur.includes('id="focusCitationPersonnelle"') && script.includes('focusSauverCitationPersonnelle'),
+    'la citation personnelle doit être saisissable et enregistrée');
 var lesCitations = contexteCitations.C || {};
 ['motivation', 'inspiration', 'bien-etre'].forEach(function (id) {
     var liste = lesCitations[id] || [];
