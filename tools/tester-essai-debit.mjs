@@ -24,6 +24,18 @@ try {
     });
     assert.equal(resultats.length, 2);
     for (const r of resultats) { assert.equal(r.ok, true); assert.equal(r.accessible, true); assert.ok(r.secondes > 3 && r.secondes < 8); }
+    const pageTraitement = new URL('livrables/publication-voix/essai-traitement/', site).href;
+    assert.equal((await page.goto(pageTraitement)).status(), 200);
+    const audiosTraites = await page.evaluate(async () => {
+      const contexte = new (window.AudioContext || window.webkitAudioContext)();
+      return await Promise.all(Array.from(document.querySelectorAll('audio')).map(async el => {
+        const r = await fetch(el.src); const data = await contexte.decodeAudioData(await r.arrayBuffer());
+        const b = el.getBoundingClientRect();
+        return { ok: r.ok, secondes: data.duration, accessible: el.controls && b.left >= 0 && b.right <= innerWidth };
+      }));
+    });
+    assert.equal(audiosTraites.length, 2);
+    for (const r of audiosTraites) { assert.equal(r.ok, true); assert.equal(r.accessible, true); assert.ok(r.secondes > 4 && r.secondes < 12); }
     await page.close();
   }
   console.log('OK lecteur Studyplan : essai fluide et reprise de référence décodés sur mobile et ordinateur');

@@ -7,6 +7,7 @@ exister. La liste explicite empêche d'inclure les autres travaux de la branche.
 """
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
@@ -54,6 +55,7 @@ files = [
     'livrables/publication-voix/essai-annonce-masculine.mp3',
     'livrables/publication-voix/essai-debit.html',
     'livrables/publication-voix/essai-fluide-5-minutes.mp3',
+    'livrables/publication-voix/essai-traitement/index.html',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
     'livrables/stock-voix/messages/annonce-de-pause.wav',
@@ -110,6 +112,14 @@ for rel in files:
     dest = output / rel
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / rel, dest)
+
+# Moteur de traitement vocal à la construction : une phrase complète par
+# durée est calculée à partir des prises existantes. Ces essais ne remplacent
+# pas encore les annonces du minuteur avant leur validation à l'écoute.
+subprocess.run([sys.executable, str(ROOT / 'tools/preparer-annonces-fluides.py'),
+    '--ffmpeg', os.environ.get('STUDY_FFMPEG', 'ffmpeg'),
+    '--sortie', str(output / 'livrables/publication-voix/essai-traitement'),
+    *map(str, range(1, 61))], check=True)
 
 css = (ROOT / 'css/pages/planning-panels.css').read_text(encoding='utf-8')
 match = re.search(r'/\* Le décor statique reste sous la vidéo.*?\.focus-fond-video\.is-visible \{ visibility: visible; \}\n', css, flags=re.S)
