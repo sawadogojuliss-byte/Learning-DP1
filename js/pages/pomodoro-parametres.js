@@ -15,7 +15,8 @@ var FOCUS_CATEGORIES_CITATIONS = [
     { id: 'toutes', nom: 'Toutes les citations' },
     { id: 'motivation', nom: 'Motivation' },
     { id: 'inspiration', nom: 'Inspiration' },
-    { id: 'bien-etre', nom: 'Bien-être' }
+    { id: 'bien-etre', nom: 'Bien-être' },
+    { id: 'personnelle', nom: 'Ma citation' }
 ];
 
 /* Citations courtes, simples, sans point final. « a » = auteur (non affiché). */
@@ -108,6 +109,7 @@ function focusNormaliserReglages(brut) {
         auto: b.auto === true,
         citation: b.citation !== false,
         citationCategorie: dans(FOCUS_CATEGORIES_CITATIONS, b.citationCategorie, 'toutes'),
+        citationPersonnelle: typeof b.citationPersonnelle === 'string' ? b.citationPersonnelle.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').slice(0, 140) : '',
         police: dans(FOCUS_POLICES, b.police, 'gras'),
         taille: dans(FOCUS_TAILLES, b.taille, 'normale'),
         compteur: dans(FOCUS_COMPTEURS, b.compteur, 'points')
@@ -152,7 +154,10 @@ function focusCitationDuJour(date) {
     var d = date || new Date();
     var debut = new Date(d.getFullYear(), 0, 0);
     var jour = Math.floor((d - debut) / 86400000);
-    var liste = focusCitationsDeCategorie(focusLireReglages().citationCategorie);
+    var reglages = focusLireReglages();
+    var personnelle = reglages.citationPersonnelle.trim();
+    if (reglages.citationCategorie === 'personnelle' && personnelle) return '\u201C' + personnelle + '\u201D';
+    var liste = focusCitationsDeCategorie(reglages.citationCategorie);
     var citation = liste[jour % liste.length];
     return '\u201C' + citation.t.replace(/\.\s*$/, '') + '\u201D';
 }
@@ -178,6 +183,22 @@ function focusChoisirCategorieCitation(categorie) {
     focusPeindre();
 }
 
+/* L'écriture choisit la citation personnelle, sans perturber la saisie
+   lors des rafraîchissements du minuteur. Vide : citation du jour. */
+function focusSauverCitationPersonnelle(champ) {
+    var r = focusLireReglages();
+    var copie = {};
+    Object.keys(r).forEach(function (cle) { copie[cle] = r[cle]; });
+    copie.citationPersonnelle = champ.value;
+    copie.citationCategorie = 'personnelle';
+    if (champ.value.trim()) copie.citation = true;
+    focusEcrireReglages(copie);
+    focusPeindreCitation();
+    focusPeindreCategorieCitation(focusLireReglages());
+    var option = document.getElementById('focusOptCitation');
+    if (option) option.checked = focusLireReglages().citation;
+}
+
 function focusPeindreCitation() {
     var texte = focusCitationDuJour();
     var visible = focusLireReglages().citation;
@@ -186,6 +207,10 @@ function focusPeindreCitation() {
         if (!el) return;
         if (el.textContent !== texte) el.textContent = texte;
         if (el.hidden !== !visible) el.hidden = !visible;
+        /* Sur un écran très court la citation peut défiler : la rendre aussi
+           accessible au clavier uniquement lorsqu'elle déborde réellement. */
+        if (visible && el.scrollHeight > el.clientHeight + 1) el.setAttribute('tabindex', '0');
+        else el.removeAttribute('tabindex');
     });
 }
 
@@ -407,6 +432,8 @@ function focusPeindreParametres() {
     });
 
     focusPeindreCategorieCitation(r);
+    var citationPersonnelle = document.getElementById('focusCitationPersonnelle');
+    if (citationPersonnelle && document.activeElement !== citationPersonnelle && citationPersonnelle.value !== r.citationPersonnelle) citationPersonnelle.value = r.citationPersonnelle;
     focusPeindreCitation();
     focusPeindreStyleTemps(r);
     focusAfficherOnglet();

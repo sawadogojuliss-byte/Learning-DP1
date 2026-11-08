@@ -36,6 +36,12 @@ try {
     });
     assert.equal(audiosTraites.length, 2);
     for (const r of audiosTraites) { assert.equal(r.ok, true); assert.equal(r.accessible, true); assert.ok(r.secondes > 4 && r.secondes < 12); }
+    const nouvellePrise = await page.evaluate(async url => {
+      const r = await fetch(url); if (!r.ok) return null;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      return (await ctx.decodeAudioData(await r.arrayBuffer())).duration;
+    }, new URL('livrables/publication-voix/essai-prononciation-claire-5.mp3', site).href);
+    assert.ok(nouvellePrise > 3 && nouvellePrise < 8, 'essai de prononciation absent ou illisible');
     await page.close();
   }
   console.log('OK lecteur Studyplan : essai fluide et reprise de référence décodés sur mobile et ordinateur');

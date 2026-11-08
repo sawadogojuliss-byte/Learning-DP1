@@ -62,6 +62,17 @@ try:
     assert mesures['lent'] > mesures['normal'] > mesures['rapide'], mesures
     print('Débits de la phrase finale (secondes) :', mesures)
 
+    # Nouvelle prise complète réservée à l'écoute, sans raccord à l'intérieur
+    # des mots signalés. On ne retire que le centre du silence entre phrases.
+    source = ROOT / 'livrables/stock-voix/messages/essai-clair-5.wav'
+    intervalle = service.audio.silence_interne(service.FFMPEG, source, 1.7, 3.1, .5)
+    brut = service.audio.extraire(service.FFMPEG, source)
+    traite = service.audio.compresser_pause(brut, intervalle, cible=.35)
+    assert traite[:round(intervalle[0] * service.audio.RATE)] == brut[:round(intervalle[0] * service.audio.RATE)]
+    assert traite[-round((len(brut) / service.audio.RATE - intervalle[1]) * service.audio.RATE):] == brut[-round((len(brut) / service.audio.RATE - intervalle[1]) * service.audio.RATE):]
+    statut, _, essai = requete('/v1/audio?message=essai-clair&debit=normal')
+    assert statut == 200 and 3 < duree(essai) < len(brut) / service.audio.RATE
+
     # Phrase complète pour les deux extrêmes et 21, y compris la fin de série.
     for n, finale in ((1, 0), (5, 0), (21, 0), (21, 1), (60, 0)):
         statut, headers, corps = requete(f'/v1/audio?message=pause&minutes={n}&debit=normal&finale={finale}')

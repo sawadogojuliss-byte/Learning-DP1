@@ -785,3 +785,14 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
     position: absolute; left: 0; bottom: 0.4rem; top: auto; margin: 0; max-width: none;
     justify-content: flex-start; gap: 0.3rem;
 }
+
+/* Citation personnelle : même carte et mêmes tons que les autres réglages. */
+.focus-citation-personnelle { display: grid; gap: .5rem; margin-top: 1.25rem; }
+.focus-citation-personnelle label { color: #e5f8ed; font-weight: 750; font-size: 1rem; }
+.focus-citation-personnelle p { margin: 0; color: #b9d2c2; font-size: .85rem; line-height: 1.45; }
+.focus-citation-personnelle textarea { width: 100%; min-height: 5.8rem; resize: vertical; padding: .8rem .9rem; border: 1px solid rgba(110,231,183,.28); border-radius: .8rem; background: rgba(4,30,24,.6); color: #effcf4; font: inherit; line-height: 1.4; }
+.focus-citation-personnelle textarea::placeholder { color: #a6c3b1; opacity: 1; }
+.focus-citation-personnelle textarea:focus-visible { outline: 2px solid #a6ecc7; outline-offset: 2px; }
+.focus-citation-personnelle small { color: #abc9b5; font-size: .75rem; }
+.focus-top .focus-quote { overflow-wrap: anywhere; }
+.focus-top .focus-quote:focus-visible { outline: 2px solid #a6ecc7; outline-offset: 3px; border-radius: .25rem; }

@@ -126,7 +126,7 @@ try {
 
   // Les boutons doivent être dans la zone visible et réellement cliquables,
   // même sur petits téléphones et en paysage.
-  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 400 }, { width: 375, height: 667 }, { width: 844, height: 390 }, { width: 1280, height: 800 }]) {
+  for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 400 }, { width: 375, height: 667 }, { width: 760, height: 600 }, { width: 844, height: 390 }, { width: 1024, height: 768 }, { width: 1280, height: 800 }]) {
     ({ page, errors } = await pagePour(viewport));
     // Le panneau entre avec une animation : mesurer seulement une fois posé.
     await page.waitForFunction(() => {
@@ -151,9 +151,13 @@ try {
     await page.locator('#focusBtnSon').click(); assert.equal(await page.locator('#focusSons').isVisible(), true);
     await page.locator('#focusBtnSon').click();
     await page.locator('#focusBtnAstuce').click(); assert.equal(await page.locator('#focusAstuce').isVisible(), true);
+    const avant = await page.locator('#focusTime').boundingBox();
     await page.evaluate(() => { focusEtat.run = true; focusEtat.objectif = 4; focusEtat.serie = 1; focusEtat.transition = 'attente-reprise'; focusEtat.repriseMasquee = false; focusPeindre(); });
     const popup = page.locator('#focusReprise'); assert.equal(await popup.isVisible(), true);
+    const apresPopup = await page.locator('#focusTime').boundingBox();
+    for (const k of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(avant[k] - apresPopup[k]) < 1, `le minuteur a bougé (${viewport.width}×${viewport.height}, ${k})`);
     const rect = await popup.boundingBox();
+    assert.ok(rect.x >= apresPopup.x + apresPopup.width || rect.x + rect.width <= apresPopup.x || rect.y >= apresPopup.y + apresPopup.height || rect.y + rect.height <= apresPopup.y, 'la fenêtre recouvre le minuteur');
     assert.ok(rect && rect.x >= -1 && rect.y >= -1 && rect.x + rect.width <= viewport.width + 1 && rect.y + rect.height <= viewport.height + 1, 'fenêtre hors écran : ' + JSON.stringify(rect));
     for (const button of await popup.locator('button').all()) {
       const b = await button.boundingBox(); assert.ok(b && b.width >= 44 && b.height >= 40, 'action inaccessible');
@@ -173,19 +177,24 @@ try {
     if (process.env.STUDY_CAPTURE_DIR) await page.screenshot({ path: `${process.env.STUDY_CAPTURE_DIR}/popup-${viewport.width}x${viewport.height}.png` });
     // Le contenu central peut défiler sur les très petits écrans : chaque
     // commande doit rester accessible sans passer sous la fenêtre ou le rappel.
-    async function verifierCentre() {
+    async function verifierCentre(surcouche) {
       for (const el of await page.locator('#focusPage .focus-center button, #focusTache').all()) {
         if (!await el.isVisible()) continue;
         await el.scrollIntoViewIfNeeded();
+        const b = await el.boundingBox(), couche = await surcouche.boundingBox();
+        assert.ok(b.x >= couche.x + couche.width || b.x + b.width <= couche.x || b.y >= couche.y + couche.height || b.y + b.height <= couche.y, 'une partie de la commande centrale est recouverte');
         await el.evaluate(e => { const r = e.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!e.contains(hit)) throw new Error('Commande centrale recouverte ou inaccessible : ' + (e.id || e.textContent)); });
       }
     }
-    await verifierCentre();
+    await verifierCentre(popup);
+    const avantRappel = await page.locator('#focusTime').boundingBox();
     await page.locator('.focus-reprise-attendre').click();
     const rappel = page.locator('#focusRepriseRappel'); assert.equal(await rappel.isVisible(), true);
+    const apresRappel = await page.locator('#focusTime').boundingBox();
+    for (const k of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(avantRappel[k] - apresRappel[k]) < 1, `le rappel déplace le minuteur (${k})`);
     await verifierBarre(rappel);
     if (process.env.STUDY_CAPTURE_DIR) await page.screenshot({ path: `${process.env.STUDY_CAPTURE_DIR}/rappel-${viewport.width}x${viewport.height}.png` });
-    await verifierCentre();
+    await verifierCentre(rappel);
     await terminer(page, errors);
     console.log(`OK outils Pomodoro ${viewport.width}×${viewport.height}`);
   }

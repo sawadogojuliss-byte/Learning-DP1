@@ -56,6 +56,7 @@ files = [
     'livrables/publication-voix/essai-debit.html',
     'livrables/publication-voix/essai-fluide-5-minutes.mp3',
     'livrables/publication-voix/fin-serie-essai.mp3',
+    'livrables/publication-voix/essai-prononciation-claire-5.mp3',
     'livrables/publication-voix/essai-backend/index.html',
     'livrables/publication-voix/essai-traitement/index.html',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
@@ -169,6 +170,10 @@ nouveau = 'Lancer automatiquement la concentration après une pause manuelle'
 if text.count(ancien) != 1:
     raise SystemExit('Réglage Pomodoro public inattendu')
 text = text.replace(ancien, nouveau, 1)
+ancre_citation = '                        <label class="focus-interrupteur focus-citation-bouton">'
+if text.count(ancre_citation) != 1:
+    raise SystemExit('Réglage de citation public inattendu')
+text = text.replace(ancre_citation, (ROOT / 'livrables/publication-pomodoro/citation-personnelle.html').read_text(encoding='utf-8') + ancre_citation, 1)
 ancre_voix = '                        <label for="focusVoixVolume">Volume de la voix</label>'
 if text.count(ancre_voix) != 1:
     raise SystemExit('Réglage vocal public inattendu')

@@ -36,6 +36,7 @@ MAX_CACHE = 96
 SOURCES = {
     ROOT / 'livrables/stock-voix/messages/annonce-debut.wav': '86d2aa33a4aa7fd774f7251ccb0184b5dd45dffe28edf863b3438313b43dca91',
     ROOT / 'livrables/stock-voix/messages/annonce-de-pause.wav': '0a9bb04c742d64cceff6e83681667239b82f8398127ed84157221822e0af1f47',
+    ROOT / 'livrables/stock-voix/messages/essai-clair-5.wav': '401b69f4ea25ec4a266642de7501500ef97c013b2529abf03bc8731d85afe2ff',
 }
 
 
@@ -80,6 +81,13 @@ def generer(message, debit, minutes=None, finale=False):
     if message == 'fin-serie':
         prise = audio.extraire(FFMPEG, ROOT / 'livrables/stock-voix/messages/fin-serie.wav')
         return encoder(changer_debit(prise, debit))
+    if message == 'essai-clair':
+        # Prise d'une phrase complète : aucun raccord autour de « maintenant »
+        # ou « de ». Seul le long silence entre les deux phrases est réduit.
+        fichier = ROOT / 'livrables/stock-voix/messages/essai-clair-5.wav'
+        intervalle = audio.silence_interne(FFMPEG, fichier, 1.7, 3.1, .5)
+        prise = audio.compresser_pause(audio.extraire(FFMPEG, fichier), intervalle, cible=.35)
+        return encoder(changer_debit(prise, debit))
     debut = ROOT / 'livrables/stock-voix/messages/annonce-debut.wav'
     fin = ROOT / 'livrables/stock-voix/messages/annonce-de-pause.wav'
     # Ces paramètres sont les mêmes que pour l'essai antérieur, non validé.
@@ -107,9 +115,9 @@ def lire_parametres(chemin):
         raise ValueError('Paramètres inconnus ou répétés')
     message = params.get('message', [''])[0]
     debit = params.get('debit', ['normal'])[0]
-    if message not in ('fin-serie', 'pause') or debit not in DEBITS:
+    if message not in ('fin-serie', 'pause', 'essai-clair') or debit not in DEBITS:
         raise ValueError('Message ou débit non reconnu')
-    if message == 'fin-serie':
+    if message in ('fin-serie', 'essai-clair'):
         if 'minutes' in params or 'finale' in params:
             raise ValueError('Paramètres inutiles pour ce message')
         return (message, debit, None, False)

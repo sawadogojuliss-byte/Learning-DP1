@@ -27,9 +27,12 @@ try {
   await page.clock.fastForward(60000); await page.clock.fastForward(1000); await page.clock.fastForward(60000);
   assert.equal(await page.evaluate(() => focusEtat.transition), 'reprise-annonce');
   assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  const minuteurAvant = await page.locator('#focusTime').boundingBox();
   await page.clock.fastForward(1000);
   assert.equal(await page.evaluate(() => focusEtat.transition), 'attente-reprise');
   assert.equal(await page.locator('#focusReprise').isVisible(), true);
+  const minuteurApres = await page.locator('#focusTime').boundingBox();
+  for (const k of ['x', 'y', 'width', 'height']) assert.ok(Math.abs(minuteurAvant[k] - minuteurApres[k]) < 1, 'le plein écran ne doit pas déplacer le minuteur : ' + k);
   assert.equal(await page.locator('#focusRepriseCompte').innerText(), 'Séance 2 sur 4');
   assert.equal(await page.evaluate(() => document.fullscreenElement.contains(document.getElementById('focusReprise'))), true, 'la fenêtre doit être dans la zone plein écran');
   async function verifierPied(element) {

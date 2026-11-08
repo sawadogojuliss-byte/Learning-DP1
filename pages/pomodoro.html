@@ -164,6 +164,12 @@
                     <header class="focus-page-titre"><h2>Citations</h2><p>Les citations se trouvent en haut à droite.</p></header>
                     <div class="focus-carte">
                         <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
+                        <div class="focus-citation-personnelle">
+                            <label for="focusCitationPersonnelle">Ma citation</label>
+                            <p id="focusCitationPersonnelleAide">Écris quelques mots : ils apparaîtront en haut du minuteur. Laisse vide pour retrouver une citation du jour.</p>
+                            <textarea id="focusCitationPersonnelle" rows="3" maxlength="140" placeholder="Écris ta citation ici…" aria-describedby="focusCitationPersonnelleAide" oninput="focusSauverCitationPersonnelle(this)"></textarea>
+                            <small>140 caractères maximum · enregistrée sur cet appareil</small>
+                        </div>
                         <label class="focus-interrupteur focus-citation-bouton"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
                     </div>
                 </section>

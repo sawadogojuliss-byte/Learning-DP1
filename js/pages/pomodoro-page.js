@@ -1068,19 +1068,6 @@ function focusPlacerReprise() {
         if (bas === null) el.style.removeProperty('--focus-reprise-bas');
         else el.style.setProperty('--focus-reprise-bas', bas + 'px');
     });
-    var fenetre = document.getElementById('focusReprise');
-    var rappel = document.getElementById('focusRepriseRappel');
-    var visible = fenetre && !fenetre.hidden ? fenetre : rappel && !rappel.hidden ? rappel : null;
-    if (page && page.style && page.style.setProperty) {
-        if (bas !== null && visible && visible.getBoundingClientRect) {
-            var zone = visible.getBoundingClientRect();
-            page.style.setProperty('--focus-reprise-reserve', Math.ceil(zone.height + 12) + 'px');
-            page.style.setProperty('--focus-reprise-largeur', Math.ceil(window.innerWidth - zone.left + 12) + 'px');
-        } else {
-            page.style.removeProperty('--focus-reprise-reserve');
-            page.style.removeProperty('--focus-reprise-largeur');
-        }
-    }
 }
 
 function focusPeindreReprise() {
@@ -1099,8 +1086,6 @@ function focusPeindreReprise() {
     var attend = focusEtat.transition === 'attente-reprise';
     if (fenetre) fenetre.hidden = !attend || focusEtat.repriseMasquee;
     if (rappel) rappel.hidden = !attend || !focusEtat.repriseMasquee;
-    var page = document.getElementById('focusPage');
-    if (page && page.classList) page.classList.toggle('focus-reprise-active', attend);
     focusPlacerReprise();
     if (!attend) return;
     var total = focusEtat.objectif || focusDurees().seances;
