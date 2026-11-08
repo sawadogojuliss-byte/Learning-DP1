@@ -49,8 +49,7 @@ jobs:
           node --check site/js/pages/exercices.js
           node --check site/js/pages/planning-interface.js
           node --check site/js/pages/devoirs.js
-          node site/tools/verifier-devoirs.js
-          node site/tools/verifier-devoirs-edition.js
+          (cd site && node tools/verifier-devoirs.js && node tools/verifier-devoirs-edition.js)
           node --check site/service-worker.js
           node site/tools/verifier-pomodoro.js
       - name: Tester le site assemblé avant publication
