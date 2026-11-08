@@ -25,7 +25,7 @@ function ok(cond, message) {
 
 /* Horloge et stockage partagés entre les « chargements » de la page. */
 function nouveauMonde(init) {
-  const monde = { now: new Date(2026, 10, 3, 10, 0, 0).getTime(), store: Object.assign({}, init || {}), annonces: [], intervalles: 0 };
+  const monde = { now: new Date(2026, 10, 3, 10, 0, 0).getTime(), store: Object.assign({}, init || {}), annonces: [], suites: [], intervalles: 0 };
   return monde;
 }
 
@@ -63,8 +63,8 @@ function chargerPage(monde) {
     alert() {}, confirm: () => true, prompt: () => null,
     setInterval: () => { monde.intervalles++; return monde.intervalles; }, clearInterval() {},
     /* les annonces vocales sont notées, pour vérifier qu'elles sont (ou non) faites */
-    chronoAnnoncerPause: m => monde.annonces.push('pause ' + m),
-    chronoAnnoncerReprise: () => monde.annonces.push('reprise'),
+    chronoAnnoncerPause: (m, suite) => { monde.annonces.push('pause ' + m); monde.suites.push(suite); },
+    chronoAnnoncerReprise: suite => { monde.annonces.push('reprise'); monde.suites.push(suite); },
     chronoRendreMusique() {}, chronoVoixPreparer() {}, chronoChargerReglagesVoix() {},
     navigateTo() {}, memoireAller() {},
   };
@@ -127,7 +127,7 @@ function minutes(sec) { return Math.round(sec / 60); }
   ctx.focusBasculer();
   monde.now += 30 * 60 * 1000;               // les 25 minutes sont passées, page fermée
   const ctx2 = rouvrir(monde);
-  ok(ctx2.focusEtat.running === false, '3 : la phase terminée ne doit pas tourner toute seule');
+  ok(ctx2.focusEtat.running === true, '3 : la pause récupérée doit démarrer sans bloquer');
   ok(ctx2.focusEtat.mode === 'short', '3 : la pause courte doit être proposée : ' + ctx2.focusEtat.mode);
   ok(ctx2.focusEtat.restant === 5 * 60, '3 : la pause proposée doit avoir sa durée (5 min) : ' + ctx2.focusEtat.restant);
   ok(ctx2.focusEtat.cycles === 1, '3 : le cycle terminé doit être compté : ' + ctx2.focusEtat.cycles);
@@ -184,14 +184,32 @@ function minutes(sec) { return Math.round(sec / 60); }
   ctx.focusBasculer();
   monde.now += 25 * 60 * 1000;
   ctx.focusTick();
-  ok(ctx.focusEtat.mode === 'short' && ctx.focusEtat.running === true, '7 : la fin de la concentration doit démarrer la pause');
+  ok(ctx.focusEtat.mode === 'short' && ctx.focusEtat.running === false && ctx.focusEtat.transition === 'pause-annonce', '7 : la pause attend la fin de l’annonce');
   ok(monde.annonces.length === 1 && monde.annonces[0] === 'pause 5', '7 : la pause doit être annoncée une fois : ' + monde.annonces.join(','));
+  monde.now += 10 * 1000;
+  ok(ctx.focusEtat.restant === 300 && !ctx.focusEtat.running, '7 : l’annonce ne doit pas décompter la pause');
+  monde.suites.shift()();
+  ok(ctx.focusEtat.running && ctx.focusEtat.restant === 300, '7 : la pause démarre à la fin de l’annonce');
   monde.now += 30 * 1000;
   ctx.focusTick();
-  ok(ctx.focusEtat.restant === 270, '7 : le temps de pause doit diminuer pendant l’annonce');
+  ok(ctx.focusEtat.restant === 270, '7 : le temps de pause diminue après l’annonce');
   const apres = rouvrir(monde);
   ok(apres.focusEtat.mode === 'short' && apres.focusEtat.running && apres.focusEtat.restant === 270,
     '7 : le rechargement doit conserver la pause en cours sans la réinitialiser');
+}
+
+/* Une annonce interrompue par un rechargement ne bloque pas le cycle. */
+{
+  const monde = nouveauMonde();
+  const ctx = rouvrir(monde);
+  ctx.focusBasculer();
+  monde.now += 25 * 60 * 1000;
+  ctx.focusTick();
+  ok(ctx.focusEtat.transition === 'pause-annonce' && !ctx.focusEtat.running, '8 : annonce attendue avant la pause');
+  const apres = rouvrir(monde);
+  ok(apres.focusEtat.transition === '' && apres.focusEtat.running && apres.focusEtat.mode === 'short', '8 : rechargement pendant l’annonce : pause relancée');
+  monde.suites.shift()();
+  ok(apres.focusEtat.running && apres.focusEtat.restant === 300, '8 : le callback ancien ne doit pas modifier la nouvelle page');
 }
 
 if (echecs.length) {

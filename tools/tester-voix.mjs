@@ -150,7 +150,7 @@ const fin = await page.evaluate(function () {
     };
 });
 
-if (fin.enMarche !== true || !(fin.restant < 7 * 60)) echec('la pause ne démarre pas pendant l’annonce : ' + JSON.stringify(fin));
+if (fin.enMarche !== false || fin.restant !== 7 * 60) echec('la pause doit attendre la fin de l’annonce : ' + JSON.stringify(fin));
 if (fin.mode !== 'short') echec('la phase suivante doit être une pause courte, trouvée : ' + fin.mode);
 if (fin.ambianceEncore !== false) echec('la musique d\'ambiance continue pendant la pause');
 if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : ' + fin.oscillateurs + ')');
@@ -158,6 +158,9 @@ if (fin.sons.length < 3) echec('la voix n\'a pas été programmée (sons : ' + J
 const total = fin.sons.reduce(function (s, x) { return s + (x.duree || 0); }, 0);
 if (total < 6) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
 if (!fin.sons.some(s => s.septCorrige)) echec('Pomodoro ne lit pas le fichier corrigé de « sept »');
+await page.waitForFunction(() => focusEtat.running && focusEtat.mode === 'short' && focusEtat.transition === '', null, { timeout: 20000 });
+const apresAnnonce = await page.evaluate(() => focusEtat.restant);
+if (apresAnnonce < 7 * 60 - 2) echec('la pause a perdu du temps pendant l’annonce : ' + apresAnnonce);
 
 /* Le lancement depuis « Séance de révision du jour » mène au même minuteur.
    Une séance fictive du moment ne quitte jamais ce navigateur, et ne modifie
@@ -171,6 +174,8 @@ const seance = await page.evaluate(() => {
     ] : [];
     focusMinutesMaintenant = () => 12 * 60 + 30;
     focusChoisirMode('focus', false);
+    focusEtat.run = false;
+    focusEtat.serie = 0;
     focusEtat.cycles = 0;
     navigateTo('seances');
     const accessible = !document.getElementById('focusAccueilContinuer').disabled;

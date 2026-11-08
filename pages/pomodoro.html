@@ -124,8 +124,8 @@
                         <h3>Durées</h3>
                         <div class="focus-durees">
                             <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" oninput="chronoPreparerDureeSaisie(this)" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" oninput="chronoPreparerDureeSaisie(this)" onchange="focusSauverDurees()"><small>min</small></span></label>
                         </div>
                     </div>
                     <div class="focus-carte">
@@ -154,7 +154,7 @@
                             <div class="focus-depliant-contenu">
                             <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptBarre" type="checkbox" onchange="focusChoisirOption('barre', this.checked)"><i></i></span><span>Afficher la barre de progression sous le minuteur</span></label>
                             <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptNotif" type="checkbox" onchange="focusChoisirOption('notif', this.checked)"><i></i></span><span>Afficher une notification à la fin <em>(fonction bêta)</em></span></label>
-                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la concentration après la pause <em>(minuteur libre)</em></span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la concentration après une pause manuelle</span></label>
                             <p class="focus-statut-reglage" id="focusStatutReglage" role="status" aria-live="polite"></p>
                             </div>
                         </details>
@@ -215,6 +215,15 @@
                 <div id="focusSonsGrille" class="focus-sons-grille"></div>
             </div>
         </div>
+        <aside id="focusReprise" class="focus-reprise" role="region" aria-live="polite" aria-labelledby="focusRepriseTitre" aria-describedby="focusRepriseDetail" hidden>
+            <div class="focus-reprise-entete">
+                <span class="focus-reprise-icone" aria-hidden="true">✦</span>
+                <div><p class="focus-reprise-label">Pause terminée</p><h2 id="focusRepriseTitre">Es-tu prêt à reprendre ?</h2><p id="focusRepriseDetail">Ta prochaine séance de concentration t’attend.</p></div>
+            </div>
+            <div class="focus-reprise-progression"><div id="focusRepriseBarres" class="focus-reprise-barres" aria-hidden="true"></div><span id="focusRepriseCompte"></span></div>
+            <div class="focus-reprise-actions"><button type="button" class="focus-reprise-oui" onclick="focusConfirmerReprise()">Oui, je reprends <span aria-hidden="true">→</span></button><button type="button" class="focus-reprise-attendre" onclick="focusReporterReprise()">Pas encore</button></div>
+        </aside>
+        <button type="button" id="focusRepriseRappel" class="focus-reprise-rappel" onclick="focusMontrerReprise()" hidden>Reprendre quand tu veux <span aria-hidden="true">↗</span></button>
         <p id="focusModeStatut" class="focus-sr" role="status" aria-live="polite"></p>
         <footer class="focus-bottom">
             <div class="focus-outils">

@@ -26,67 +26,78 @@ async function pagePour(viewport, seances = 2) {
     customEvents = [{ id: 'serie-test', day: 6, date: '2031-06-15', title: 'Physique — séance', startTime: '09:30', endTime: '11:30', type: 'study', source: 'custom', pinned: true, timestamp: Date.now() }];
     emploiFige = null; v3Save(); navigateTo('pomodoro');
     window.__annonces = [];
-    const originale = chronoAnnoncerPause;
-    chronoAnnoncerPause = function (minutes) {
+    // Une annonce contrôlable avec l'horloge de test : le vrai audio est
+    // vérifié séparément dans tester-voix et tester-choix-voix.
+    chronoAnnoncerPause = function (minutes, suite) {
       window.__annonces.push({ minutes, mode: focusEtat.mode, running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin });
-      return originale(minutes);
+      setTimeout(suite, 2000);
     };
+    chronoAnnoncerReprise = function (suite) { window.__reprises = (window.__reprises || 0) + 1; setTimeout(suite, 2000); };
   });
   return { page, errors };
 }
 async function terminer(page, errors) { assert.deepEqual(errors, []); await page.close(); }
 async function avance(page, ms) { await page.clock.fastForward(ms); }
-async function etat(page) { return page.evaluate(() => ({ mode: focusEtat.mode, running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin, serie: focusEtat.serie, run: focusEtat.run, pauseFinale: focusEtat.pauseFinale, annonces: window.__annonces })); }
+async function etat(page) { return page.evaluate(() => ({ mode: focusEtat.mode, running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin, serie: focusEtat.serie, run: focusEtat.run, pauseFinale: focusEtat.pauseFinale, transition: focusEtat.transition, annonces: window.__annonces })); }
 
 try {
-  // Minuteur libre : pause automatique, voix lancée au même changement et reprise manuelle par défaut.
+  // Minuteur libre : l'annonce se termine avant le démarrage de la pause.
   let { page, errors } = await pagePour({ width: 390, height: 844 });
-  await page.locator('#focusPlay').click();
-  await avance(page, 60000);
+  await page.locator('#focusPlay').click(); await avance(page, 60000);
   let s = await etat(page);
-  assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.ok(s.restant >= 59 && s.restant <= 60);
-  assert.deepEqual(s.annonces.map(a => [a.minutes, a.mode, a.running, a.restant]), [[1, 'short', true, 60]]);
-  await avance(page, 3000); assert.ok((await etat(page)).restant >= 55 && (await etat(page)).restant <= 57);
-  const fin = (await etat(page)).fin;
+  assert.equal(s.mode, 'short'); assert.equal(s.running, false); assert.equal(s.transition, 'pause-annonce'); assert.equal(s.restant, 60);
+  assert.deepEqual(s.annonces.map(a => [a.minutes, a.mode, a.running, a.restant]), [[1, 'short', false, 60]]);
+  await avance(page, 2000); s = await etat(page); assert.equal(s.running, true); assert.ok(s.restant >= 59 && s.restant <= 60);
+  await avance(page, 3000); s = await etat(page); assert.ok(s.restant >= 55 && s.restant <= 57);
+  const fin = s.fin;
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
   await page.evaluate(() => { document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro'); });
   s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.fin, fin); assert.ok(s.restant > 0 && s.restant <= 57);
-  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false);
   await terminer(page, errors);
 
-  // Couper la voix ne bloque pas la pause automatique.
+  // Une voix désactivée laisse quand même la pause démarrer après le signal.
   ({ page, errors } = await pagePour({ width: 390, height: 844 }));
   await page.evaluate(() => localStorage.setItem('studyPlanIB_voixActive', 'false'));
   await page.locator('#focusPlay').click(); await avance(page, 60000);
-  s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.annonces.length, 1);
+  s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, false); assert.equal(s.annonces.length, 1);
+  await avance(page, 2000); assert.equal((await etat(page)).running, true);
   await terminer(page, errors);
 
-  // Le réglage facultatif ne commande que la reprise après la pause.
+  // Une seule séance : même avec l'option automatique, pas de fenêtre ni de redémarrage après la pause finale.
   ({ page, errors } = await pagePour({ width: 390, height: 844 }, 1));
   await page.evaluate(() => focusMajReglage('auto', true));
-  await page.locator('#focusPlay').click(); await avance(page, 60000);
+  await page.locator('#focusPlay').click(); await avance(page, 60000); await avance(page, 2000);
   s = await etat(page); assert.equal(s.mode, 'long'); assert.equal(s.running, true); assert.equal(s.annonces[0].minutes, 2);
-  await avance(page, 120000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, true);
+  await avance(page, 120000); s = await etat(page); assert.equal(s.transition, 'reprise-annonce'); assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.transition, ''); assert.equal(await page.locator('#focusReprise').isVisible(), false);
   await terminer(page, errors);
 
-  // Séance planifiée : reprise automatique entre deux concentrations, mais
-  // une vraie pause après la dernière sans redémarrer une série de trop.
+  // Séance planifiée : confirmation après l'annonce de reprise, puis pause finale sans boucle.
   ({ page, errors } = await pagePour({ width: 390, height: 844 }));
   await page.evaluate(() => { focusMajReglage('auto', true); navigateTo('seances'); });
   await page.locator('#focusAccueilListe .focus-seance').filter({ hasText: 'Physique — séance' }).click();
   await page.locator('#focusAccueilContinuer').click();
-  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.serie, 1); assert.equal(s.pauseFinale, false);
-  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, true);
-  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.serie, 2); assert.equal(s.pauseFinale, true);
-  const finFinale = s.fin;
+  await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'pause-annonce'); assert.equal(s.serie, 1);
+  await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true);
+  await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'reprise-annonce'); assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  await avance(page, 2000); s = await etat(page); assert.equal(s.transition, 'attente-reprise'); assert.equal(s.running, false);
+  assert.equal(await page.locator('#focusReprise').isVisible(), true); assert.equal(await page.locator('#focusRepriseCompte').innerText(), 'Séance 2 sur 2');
+  await page.locator('.focus-reprise-attendre').click(); assert.equal(await page.locator('#focusRepriseRappel').isVisible(), true); assert.equal((await etat(page)).running, false);
+  await page.locator('#focusRepriseRappel').click(); await page.locator('.focus-reprise-oui').click();
+  s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, true);
+  await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'pause-annonce'); assert.equal(s.serie, 2); assert.equal(s.pauseFinale, true);
+  await avance(page, 2000); s = await etat(page); assert.equal(s.running, true); const finFinale = s.fin;
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
   await page.evaluate(() => { document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro'); });
   s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.pauseFinale, true); assert.equal(s.fin, finFinale);
-  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.serie, 2);
+  // Après rechargement, on simule le signal audio pour l'horloge virtuelle.
+  await page.evaluate(() => { chronoAnnoncerReprise = suite => setTimeout(suite, 2000); });
+  await avance(page, 60000); await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.serie, 2); assert.equal(s.transition, '');
+  assert.equal(await page.locator('#focusReprise').isVisible(), false);
   await terminer(page, errors);
-  console.log('OK pause, voix, durée, reprise et fin de série après rechargement');
+  console.log('OK pause après annonce, confirmation, durée et fin de série après rechargement');
 
   // Les boutons doivent être dans la zone visible et réellement cliquables,
   // même sur petits téléphones et en paysage.
@@ -115,6 +126,14 @@ try {
     await page.locator('#focusBtnSon').click(); assert.equal(await page.locator('#focusSons').isVisible(), true);
     await page.locator('#focusBtnSon').click();
     await page.locator('#focusBtnAstuce').click(); assert.equal(await page.locator('#focusAstuce').isVisible(), true);
+    await page.evaluate(() => { focusEtat.run = true; focusEtat.objectif = 4; focusEtat.serie = 1; focusEtat.transition = 'attente-reprise'; focusEtat.repriseMasquee = false; focusPeindre(); });
+    const popup = page.locator('#focusReprise'); assert.equal(await popup.isVisible(), true);
+    const rect = await popup.boundingBox();
+    assert.ok(rect && rect.x >= -1 && rect.y >= -1 && rect.x + rect.width <= viewport.width + 1 && rect.y + rect.height <= viewport.height + 1, 'fenêtre hors écran : ' + JSON.stringify(rect));
+    for (const button of await popup.locator('button').all()) {
+      const b = await button.boundingBox(); assert.ok(b && b.width >= 44 && b.height >= 40, 'action inaccessible');
+      await button.evaluate(el => { const r = el.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!el.contains(hit)) throw new Error('Action de reprise recouverte'); });
+    }
     if (process.env.STUDY_CAPTURE && viewport.width === 320) await page.screenshot({ path: process.env.STUDY_CAPTURE });
     await terminer(page, errors);
     console.log(`OK outils Pomodoro ${viewport.width}×${viewport.height}`);

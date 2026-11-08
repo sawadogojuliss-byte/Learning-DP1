@@ -45,11 +45,11 @@ try {
           chronoVoixJouerTampons(noms, ok => resolve({ ok, noms, sources: chronoVoixSources.length }));
         });
       });
-      assert.equal(joue.ok, true); assert.equal(joue.sources >= 3, true);
+      assert.equal(joue.ok, true); assert.equal(joue.sources, 0, 'les sources terminées doivent être libérées');
       await page.evaluate(() => {
         window.__dernierEssai = null;
         const original = chronoVoixJouerTampons;
-        chronoVoixJouerTampons = function (noms, suite) { window.__dernierEssai = noms.slice(); return original(noms, suite); };
+        chronoVoixJouerTampons = function (noms, suite, options) { window.__dernierEssai = noms.slice(); return original(noms, suite, options); };
         chronoAnnoncerPause(60);
       });
       await page.waitForFunction(() => window.__dernierEssai !== null, null, { timeout: 10000 });

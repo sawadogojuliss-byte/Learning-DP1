@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261108b';
+const VERSION = '20261108c';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -18,6 +18,7 @@ const FICHIERS = [
     "css/pages/admin-atelier.css",
     "css/pages/focus-parametres.css",
     "livrables/publication-pomodoro/mobile.css",
+    "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
     "css/accessibilite.css",
     "js/accessibilite.js",

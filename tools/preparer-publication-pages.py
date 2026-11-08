@@ -55,11 +55,13 @@ files = [
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
     'livrables/stock-voix/messages/annonce-de-pause.wav',
+    'livrables/stock-voix/messages/reprise-proposition.wav',
     'js/pages/chrono-voix.js',
     'css/pages/focus-parametres.css',
     'js/synchro.js',
     'livrables/publication-pomodoro/videos.css',
     'livrables/publication-pomodoro/mobile.css',
+    'livrables/publication-pomodoro/reprise.css',
     'livrables/publication-retours/images.css',
     'js/pages/boite.js',
     'livrables/publication-rappels/rappels.js',
@@ -141,7 +143,7 @@ path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
 path = output / 'pages/pomodoro.html'
 text = path.read_text(encoding='utf-8')
 ancien = 'Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em>'
-nouveau = 'Lancer automatiquement la concentration après la pause <em>(minuteur libre)</em>'
+nouveau = 'Lancer automatiquement la concentration après une pause manuelle'
 if text.count(ancien) != 1:
     raise SystemExit('Réglage Pomodoro public inattendu')
 text = text.replace(ancien, nouveau, 1)
@@ -149,6 +151,15 @@ ancre_voix = '                        <label for="focusVoixVolume">Volume de la 
 if text.count(ancre_voix) != 1:
     raise SystemExit('Réglage vocal public inattendu')
 text = text.replace(ancre_voix, (ROOT / 'livrables/publication-voix/choix.html').read_text(encoding='utf-8') + ancre_voix, 1)
+for identifiant in ('focusDureeShort', 'focusDureeLong'):
+    ancien_input = 'id="' + identifiant + '" type="number" min="1" max="60"'
+    if text.count(ancien_input) != 1:
+        raise SystemExit('Champ de durée public inattendu : ' + identifiant)
+    text = text.replace(ancien_input, ancien_input + ' oninput="chronoPreparerDureeSaisie(this)"', 1)
+ancre_reprise = '        <p id="focusModeStatut" class="focus-sr" role="status" aria-live="polite"></p>'
+if text.count(ancre_reprise) != 1:
+    raise SystemExit('Emplacement de reprise public inattendu')
+text = text.replace(ancre_reprise, (ROOT / 'livrables/publication-pomodoro/reprise.html').read_text(encoding='utf-8') + ancre_reprise, 1)
 path.write_text(text, encoding='utf-8')
 
 shutil.copy2(ROOT / 'livrables/publication-devoirs/devoirs.html', output / 'pages/devoirs.html')
@@ -221,7 +232,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro publics inattendus')
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-pomodoro/mobile.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-pomodoro/mobile.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-pomodoro/reprise.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-pomodoro/videos.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro introuvables')
@@ -247,7 +258,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;

@@ -1,0 +1,20 @@
+/* Fenêtre de reprise : maquette 01, avec progression de la maquette 02. */
+.focus-reprise[hidden], .focus-reprise-rappel[hidden] { display: none !important; }
+.focus-reprise, .focus-reprise-rappel { position: fixed; z-index: 100000; right: max(1.5rem, env(safe-area-inset-right)); bottom: max(1.5rem, env(safe-area-inset-bottom)); font-family: var(--focus-degular, system-ui, sans-serif); }
+.focus-reprise { width: min(24rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: 1.3rem; border: 1px solid rgba(172,237,196,.3); border-radius: 14px; background: rgba(9,31,23,.97); box-shadow: 0 18px 55px rgba(0,0,0,.38); color: #f2fbf5; backdrop-filter: blur(15px); }
+.focus-reprise-entete { display: flex; align-items: flex-start; gap: .75rem; }
+.focus-reprise-icone { display: grid; place-items: center; flex: 0 0 2.5rem; width: 2.5rem; height: 2.5rem; border-radius: .75rem; background: #204b37; color: #a1e9bd; }
+.focus-reprise-label { margin: 0 0 .3rem; color: #9cddb3; font-size: .64rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.focus-reprise h2 { margin: 0; color: #f2fbf5; font-size: 1.27rem; line-height: 1.2; letter-spacing: -.025em; }
+.focus-reprise #focusRepriseDetail { margin: .5rem 0 0; color: #bdcec3; font-size: .84rem; line-height: 1.48; }
+.focus-reprise-progression { display: flex; align-items: center; flex-wrap: wrap; gap: .55rem; margin: 1rem 0 0; color: #b6cfc0; font-size: .75rem; }
+.focus-reprise-barres { display: flex; gap: .28rem; }
+.focus-reprise-barres i { display: block; width: clamp(.55rem, 3vw, 1.6rem); height: .28rem; border-radius: 1rem; background: rgba(212,232,219,.25); }
+.focus-reprise-barres i.is-on { background: #65d79a; }
+.focus-reprise-actions { display: flex; gap: .55rem; margin-top: 1rem; }
+.focus-reprise-actions button, .focus-reprise-rappel { min-height: 42px; border-radius: 8px; padding: 0 .8rem; font: 700 .8rem var(--focus-degular, system-ui, sans-serif); cursor: pointer; }
+.focus-reprise-oui { flex: 1; border: 0; background: #a6ecc7; color: #103826; }
+.focus-reprise-attendre { border: 1px solid rgba(255,255,255,.18); background: transparent; color: #d1e6d8; }
+.focus-reprise-rappel { border: 1px solid #70c393; background: #173d2b; color: #e5f8eb; box-shadow: 0 8px 25px #0005; }
+.focus-reprise button:focus-visible, .focus-reprise-rappel:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+@media (max-width: 600px), (max-height: 500px) { .focus-reprise, .focus-reprise-rappel { right: max(.75rem, env(safe-area-inset-right)); bottom: max(.75rem, env(safe-area-inset-bottom)); } .focus-reprise { width: min(24rem, calc(100vw - 1.5rem)); padding: 1rem; } }

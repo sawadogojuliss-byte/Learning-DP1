@@ -95,6 +95,9 @@ var focusEtat = {
     serie: 0,
     run: false,
     pauseFinale: false,
+    objectif: 0,
+    transition: '',
+    repriseMasquee: false,
     fond: 0,
     son: 'off',
     astuce: false
@@ -157,6 +160,9 @@ function focusSauverEtat() {
         serie: focusEtat.serie,
         run: !!focusEtat.run,
         pauseFinale: !!focusEtat.pauseFinale,
+        objectif: focusEtat.objectif,
+        transition: focusEtat.transition,
+        repriseMasquee: !!focusEtat.repriseMasquee,
         date: new Date().toDateString()
     };
     var texte = JSON.stringify(donnees);
@@ -184,7 +190,10 @@ function focusRestaurerEtat() {
     focusEtat.cycles = Math.max(0, Math.floor(Number(donnees.cycles) || 0));
     focusEtat.serie = Math.max(0, Math.floor(Number(donnees.serie) || 0));
     focusEtat.run = !!donnees.run;
+    focusEtat.objectif = focusBorner(donnees.objectif || focusDurees().seances, focusDurees().seances, 1, 12);
     focusEtat.pauseFinale = !!donnees.pauseFinale && donnees.mode !== 'focus';
+    focusEtat.transition = ['pause-annonce', 'reprise-annonce', 'attente-reprise'].indexOf(donnees.transition) !== -1 ? donnees.transition : '';
+    focusEtat.repriseMasquee = !!donnees.repriseMasquee && focusEtat.transition === 'attente-reprise';
     if (donnees.running && Number(donnees.fin) > 0) {
         focusEtat.running = true;
         focusEtat.fin = Number(donnees.fin);
@@ -260,6 +269,14 @@ function focusCharger() {
     focusPoserFond(focusEtat.fond, true);
     focusRestaurerEtat();
     focusEtatRestaure = true;
+    /* Un rechargement interrompt la lecture audio. On ne laisse jamais une
+       transition bloquée : la pause démarre ou la confirmation réapparaît. */
+    if (focusEtat.transition === 'pause-annonce') {
+        focusEtat.transition = '';
+        focusLancerPhase();
+    } else if (focusEtat.transition === 'reprise-annonce') {
+        focusEtat.transition = focusEtat.run && focusEtat.objectif > 1 && focusEtat.serie < focusEtat.objectif ? 'attente-reprise' : '';
+    }
     focusSauverEtat();
     focusBrancher();
     /* un chrono qui tournait avant le rechargement repart tout seul :
@@ -606,7 +623,7 @@ function focusValiderSeance(choisie, objectif) {
     else focusOuvrirMinuteur();
     // Le bouton annonce un lancement : démarrer après l'ouverture, sans
     // interrompre ni remettre à zéro un minuteur qui tourne déjà.
-    if (!focusEtat.running) focusBasculer();
+    if (!focusEtat.running && !focusEtat.transition) focusBasculer();
 }
 
 function focusDecoderImage(src, suite) {
@@ -931,6 +948,7 @@ function focusPoserFond(index, immediat) {
 
 function focusChoisirMode(mode, enchainement) {
     if (mode !== 'focus' && mode !== 'short' && mode !== 'long') return;
+    if (enchainement !== false && focusEtat.transition) focusAnnulerTransition();
     if (!enchainement && focusEtat.running && focusEtat.mode !== mode) focusPause();
     // Un choix manuel ouvre une nouvelle phase ; il ne prolonge pas une fin de série.
     if (enchainement !== false) focusEtat.pauseFinale = false;
@@ -956,6 +974,8 @@ function focusBasculer() {
     var panel = document.getElementById('panelPomodoro');
     if (!panel || !panel.classList.contains('active')) return;
     focusCharger();
+    if (focusEtat.transition === 'attente-reprise') { focusConfirmerReprise(); return; }
+    if (focusEtat.transition) return; /* ne pas couper l'annonce en cours */
     if (focusEtat.running) {
         focusPause();
         return;
@@ -978,6 +998,7 @@ function focusBasculer() {
     if (focusEtat.mode === 'focus' && !focusEtat.run) {
         focusEtat.run = true;
         focusEtat.serie = 0;
+        focusEtat.objectif = focusDurees().seances;
     }
     focusCompterLancement();
     focusEtat.running = true;
@@ -1008,13 +1029,81 @@ function focusPause() {
 }
 
 function focusRecommencer() {
+    if (focusEtat.transition) focusAnnulerTransition();
     focusPause();
     focusEtat.restant = focusDurees()[focusEtat.mode] * 60;
     focusEtat.total = focusEtat.restant;
     focusPeindre();
 }
 
-/* Une série de révision est en cours : les séances s'enchaînent seules. */
+/* Les callbacks audio ne peuvent agir après une action manuelle. */
+var focusTransitionGeneration = 0;
+function focusAnnulerTransition() {
+    ++focusTransitionGeneration;
+    if (typeof chronoInterrompreAnnonce === 'function') chronoInterrompreAnnonce(false);
+    focusEtat.transition = '';
+    focusEtat.repriseMasquee = false;
+    focusEtat.run = false;
+    focusEtat.serie = 0;
+    focusEtat.pauseFinale = false;
+}
+
+function focusPeindreReprise() {
+    var fenetre = document.getElementById('focusReprise');
+    var rappel = document.getElementById('focusRepriseRappel');
+    /* Le minuteur continue même si l'on quitte sa page : ses actions de
+       reprise doivent donc rester accessibles depuis le reste du site. */
+    if (document.body && document.body.appendChild) {
+        if (fenetre && fenetre.parentNode !== document.body) document.body.appendChild(fenetre);
+        if (rappel && rappel.parentNode !== document.body) document.body.appendChild(rappel);
+    }
+    var attend = focusEtat.transition === 'attente-reprise';
+    if (fenetre) fenetre.hidden = !attend || focusEtat.repriseMasquee;
+    if (rappel) rappel.hidden = !attend || !focusEtat.repriseMasquee;
+    if (!attend) return;
+    var total = focusEtat.objectif || focusDurees().seances;
+    var numero = Math.min(total, focusEtat.serie + 1);
+    var compte = document.getElementById('focusRepriseCompte');
+    if (compte) compte.textContent = 'Séance ' + numero + ' sur ' + total;
+    var barres = document.getElementById('focusRepriseBarres');
+    if (barres) {
+        barres.innerHTML = '';
+        for (var i = 0; i < total; i++) {
+            var barre = document.createElement('i');
+            if (i < numero) barre.className = 'is-on';
+            barres.appendChild(barre);
+        }
+    }
+}
+function focusReporterReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    focusEtat.repriseMasquee = true;
+    focusPeindre();
+    var rappel = document.getElementById('focusRepriseRappel');
+    if (rappel && rappel.focus) rappel.focus();
+}
+function focusMontrerReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    focusEtat.repriseMasquee = false;
+    focusPeindre();
+    var bouton = document.querySelector('#focusReprise .focus-reprise-oui');
+    if (bouton && bouton.focus) bouton.focus();
+}
+function focusConfirmerReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    var panel = document.getElementById('panelPomodoro');
+    if (panel && !panel.classList.contains('active')) {
+        if (typeof memoireAller === 'function') memoireAller('pomodoro');
+        else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+        if (!panel.classList.contains('active')) return;
+    }
+    focusEtat.transition = '';
+    focusEtat.repriseMasquee = false;
+    focusPeindre();
+    focusBasculer();
+}
+
+/* Une série de révision est en cours : le type de pause reste celui prévu. */
 function focusEnchainementSeance() {
     return !!(focusEtat.run && focusSeanceMinuteur);
 }
@@ -1028,67 +1117,64 @@ function focusLancerPhase() {
 
 function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
-    /* La phase qui se termine est notée pour les statistiques (une fois, ici seulement). */
     if (typeof statsEnregistrer === 'function') {
         statsEnregistrer({ k: fini, m: Math.round(focusEtat.total / 60),
             s: fini === 'focus' && focusSeanceMinuteur ? focusSeanceMinuteur.id : null });
     }
     focusEtat.running = false;
     focusStopIntervalle();
-    /* Enchaînement automatique : séance de révision seulement, et pas au rattrapage. */
-    var chaine = focusEnchainementSeance() && !silencieux;
+    var chaine = focusEnchainementSeance();
+    var generation = ++focusTransitionGeneration;
 
     if (fini === 'focus') {
         focusEtat.cycles += 1;
-        /* La série compte chaque concentration terminée, minuteur libre compris. */
-        if (focusEtat.run) {
-            focusEtat.serie = Math.min(focusDurees().seances, focusEtat.serie + 1);
-            if (focusEtat.serie >= focusDurees().seances) focusEtat.run = false;
+        var serieEnCours = focusEtat.run;
+        var objectif = focusEtat.objectif || focusDurees().seances;
+        if (serieEnCours) {
+            focusEtat.serie = Math.min(objectif, focusEtat.serie + 1);
+            if (focusEtat.serie >= objectif) focusEtat.run = false;
         }
-        /* Chaque concentration terminée donne une pause, même la dernière
-           d'une série. Sa fin ne doit toutefois pas relancer une série finie. */
         var modePause = chaine ? focusPauseApres(focusEtat.serie) :
-            (focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short');
+            (focusEtat.cycles % objectif === 0 ? 'long' : 'short');
         var minutesPause = focusDurees()[modePause];
         focusChoisirMode(modePause, false);
-        focusEtat.pauseFinale = chaine && !focusEtat.run;
-        if (!silencieux) {
-            // Démarrer le compte à rebours au même changement de phase que l'annonce.
-            focusLancerPhase();
-            if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
-            else focusBip(2);
-        }
+        focusEtat.pauseFinale = serieEnCours && !focusEtat.run;
+        focusEtat.transition = 'pause-annonce';
+        focusEtat.repriseMasquee = false;
         focusPeindre();
-        focusTitre();
-        if (!silencieux && typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-        return;
+        function demarrerPause() {
+            if (generation !== focusTransitionGeneration || focusEtat.transition !== 'pause-annonce') return;
+            focusEtat.transition = '';
+            focusLancerPhase();
+            focusPeindre();
+        }
+        if (silencieux) demarrerPause();
+        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause);
+        else { focusBip(2); setTimeout(demarrerPause, 800); }
     } else {
         var pauseFinale = focusEtat.pauseFinale;
         focusEtat.pauseFinale = false;
         focusChoisirMode('focus', false);
-        if (chaine) {
-            /* Même son qu'à la fin d'une séance, puis la concentration reprend seule. */
-            if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(1);
-            focusLancerPhase();
-            if (typeof chronoRendreMusique === 'function') { try { chronoRendreMusique(); } catch (e) {} }
+        var demander = focusEtat.run && focusEtat.objectif > 1 && focusEtat.serie < focusEtat.objectif && !pauseFinale;
+        focusEtat.transition = 'reprise-annonce';
+        focusEtat.repriseMasquee = false;
+        focusPeindre();
+        function reprisePrete() {
+            if (generation !== focusTransitionGeneration || focusEtat.transition !== 'reprise-annonce') return;
+            focusEtat.transition = demander ? 'attente-reprise' : '';
             focusPeindre();
-            focusTitre();
-            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-            return;
+            /* L'option historique ne concerne plus les séries qui demandent
+               confirmation, ni une série finie, mais les pauses manuelles. */
+            if (!demander && !pauseFinale && !focusEtat.run && !silencieux &&
+                typeof focusLireReglages === 'function' && focusLireReglages().auto &&
+                typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
         }
-        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
-        else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
-        else focusBip(1);
+        if (silencieux) reprisePrete();
+        else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise(reprisePrete);
+        else { focusBip(1); setTimeout(reprisePrete, 800); }
     }
-    focusPeindre();
     focusTitre();
-    /* Options du panneau Paramètres : notification de fin, enchaînement automatique.
-       Un rattrapage au rechargement ne déclenche rien. */
-    if (!silencieux) {
-        if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-        if (!pauseFinale && typeof focusLireReglages === 'function' && focusLireReglages().auto &&
-            typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
-    }
+    if (!silencieux && typeof focusNotifierFin === 'function') focusNotifierFin(fini);
 }
 
 function focusTick() {
@@ -1137,6 +1223,7 @@ function focusPeindre() {
     focusTitre();
     focusPipMaj();
     if (typeof focusPeindreCompteur === 'function') focusPeindreCompteur();
+    focusPeindreReprise();
     if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
     focusSauverEtat();
     /* style d'affichage, police, heure et citation : js/pages/pomodoro-parametres.js */
@@ -1463,7 +1550,10 @@ function focusSauverDurees() {
     };
     try { localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify(durees)); } catch (e) {}
     focusPeindreSeances(durees.seances);
-    if (!focusEtat.running) {
+    if (typeof chronoVoixPreparer === 'function') {
+        try { chronoVoixPreparer([durees.short, durees.long]); } catch (e) {}
+    }
+    if (!focusEtat.running && !focusEtat.transition) {
         focusEtat.total = durees[focusEtat.mode] * 60;
         focusEtat.restant = focusEtat.total;
         focusPeindre();
