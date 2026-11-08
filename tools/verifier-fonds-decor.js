@@ -124,6 +124,8 @@ function creerContexte(typeReseau) {
         },
         setInterval: function () { return 1; },
         clearInterval: function () {},
+        addEventListener: function () {},
+        removeEventListener: function () {},
         requestAnimationFrame: function (fn) { return sandbox.setTimeout(fn, 16); },
         location: { href: 'https://exemple.test/index.html', origin: 'https://exemple.test' },
         URL: URL
@@ -236,12 +238,26 @@ function creerContexte(typeReseau) {
     var rapide = creerContexte('4g');
     rapide.contexte.focusCharger();
     await rapide.drainer();
-    var restantes = rapide.contexte.FOCUS_FONDS.filter(function (f) {
-        return !rapide.contexte.focusFondsPrets[f.src];
+    var fonds = rapide.contexte.FOCUS_FONDS;
+    var precharges = fonds.filter(function (f) { return f.precharger !== false; });
+    var restantes = precharges.filter(function (f) { return !rapide.contexte.focusFondsPrets[f.src]; });
+    ok(restantes.length === 0, 'les images à précharger doivent être préparées (' + restantes.length + ' restantes)');
+    var differees = fonds.filter(function (f) {
+        return f.precharger === false && !precharges.some(function (p) { return p.src === f.src; });
     });
-    ok(restantes.length === 0, 'toutes les images doivent être préparées (' + restantes.length + ' restantes)');
-    ok(Object.keys(rapide.contexte.focusFondsPrets).length === rapide.contexte.FOCUS_FONDS.length,
-        'chaque fond doit être prêt (' + rapide.contexte.FOCUS_FONDS.length + ')');
+    ok(differees.length > 0 && differees.every(function (f) { return !rapide.contexte.focusFondsPrets[f.src]; }),
+        'les images différées ne doivent pas être téléchargées sans demande');
+    var differee = differees.find(function (f) { return !f.masque && !f.video; });
+    ok(!!differee, 'un décor différé statique doit être disponible');
+    if (differee) {
+        var avantDifferee = rapide.element('focusBg').style.backgroundImage;
+        rapide.contexte.focusPoserFond(fonds.indexOf(differee));
+        ok(rapide.element('focusBg').style.backgroundImage === avantDifferee,
+            'un décor différé ne doit pas être peint avant son décodage');
+        await rapide.drainer();
+        ok(!!rapide.contexte.focusFondsPrets[differee.src] && rapide.element('focusBg').style.backgroundImage.indexOf(differee.src) !== -1,
+            'un décor différé doit être chargé et affiché sur demande');
+    }
 
     /* Image déjà prête : le changement doit être immédiat, sans aucun délai. */
     var journalAvant = rapide.journal('focusBg').length;

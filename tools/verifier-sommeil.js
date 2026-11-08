@@ -141,6 +141,12 @@ const FULL = {
 
 /* ── Outils de scénario ─────────────────────────────────────────────── */
 const attendre = (ms) => new Promise(r => setTimeout(r, ms));
+/* La connexion et l'écoute du nuage sont asynchrones : attendre l'état attendu,
+   avec une limite, plutôt que supposer qu'un délai fixe suffit sur chaque CI. */
+async function attendreEtat(condition, limite = 12000) {
+  const fin = Date.now() + limite;
+  while (!condition() && Date.now() < fin) await attendre(100);
+}
 const verifs = [];
 const verif = (nom, obtenu, attendu) => {
   const r = JSON.stringify(obtenu) === JSON.stringify(attendu);
@@ -272,10 +278,18 @@ async function scenarioSommeil() {
   await connecter(d);
   lire(d, "adjustSleepHours('saturday', 1); if (typeof sommeilMarquerChoix === 'function') sommeilMarquerChoix(); updateBedtimes();");
   const nouveau = sommeil(d);
+  const dateNouveau = lire(d, 'sommeilChoisiLe');
   await envoyer(d); await attendre(300); figer(d);
+  verif('sommeil : le nouveau réglage est bien envoyé au nuage',
+    [nuageSommeil(nuage).saturdaySleepHours, nuageSommeil(nuage).sommeilChoisiLe], [nouveau[1], dateNouveau]);
   const a2 = nouvelAppareilAJour(nuage, Object.assign({}, a1.__store), 2);
+  await attendreEtat(() => egaux(sommeil(a2), nouveau) && lire(a2, 'sommeilChoisiLe') === dateNouveau);
+  // Laisser les écoutes et les envois des autres appareils se terminer :
+  // un état correct mais aussitôt écrasé ne doit pas faire réussir le test.
   await attendre(4000); figer(a2);
-  verif('sommeil : le réglage plus récent de l\'élève arrive sur A', sommeil(a2)[1], nouveau[1]);
+  verif('sommeil : le réglage plus récent de l\'élève arrive sur A et reste dans le nuage',
+    [sommeil(a2), lire(a2, 'sommeilChoisiLe'), nuageSommeil(nuage).saturdaySleepHours, nuageSommeil(nuage).sommeilChoisiLe],
+    [nouveau, dateNouveau, nouveau[1], dateNouveau]);
 }
 
 async function scenarioSommeilBase() {
