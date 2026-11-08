@@ -83,7 +83,10 @@ try {
   // Si l'utilisateur change de mode pendant la voix, aucun callback ancien
   // ne doit relancer la pause une fois la nouvelle sélection effectuée.
   await page.evaluate(() => { window.__horlogeAudio = { oscillateurs: [], sources: [] }; focusEtat.fin = Date.now() - 1; focusTick(); });
-  await page.waitForFunction(() => window.__horlogeAudio.sources.length === 3, null, { timeout: 10000 });
+  await page.waitForFunction(() => window.__horlogeAudio.sources.length === 4, null, { timeout: 10000 });
+  const finale = await page.evaluate(() => window.__horlogeAudio.sources);
+  assert.deepEqual(finale.map(s => s.nom), ['masculine-fin-serie', 'masculine-debut', 'masculine-n-15', 'masculine-pause']);
+  assert.ok(Math.abs(finale[1].quand - finale[0].quand - finale[0].duree - 0.3) < 0.001, 'respiration après le message final');
   await page.evaluate(() => focusChoisirMode('focus'));
   await page.waitForTimeout(1500);
   assert.deepEqual(await page.evaluate(() => [focusEtat.mode, focusEtat.running, focusEtat.transition]), ['focus', false, '']);

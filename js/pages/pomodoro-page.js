@@ -1049,6 +1049,40 @@ function focusAnnulerTransition() {
     focusEtat.pauseFinale = false;
 }
 
+/* Garde la fenêtre juste au-dessus des outils, y compris en plein écran et
+   lorsque la barre se replie sur téléphone. Hors minuteur, position normale. */
+function focusPlacerReprise() {
+    var panel = document.getElementById('panelPomodoro');
+    var page = document.getElementById('focusPage');
+    var pied = page && page.querySelector ? page.querySelector('.focus-bottom') : null;
+    var bas = null;
+    if (panel && panel.classList.contains('active') && page && !page.hidden && pied && pied.getBoundingClientRect) {
+        var rect = pied.getBoundingClientRect();
+        if (rect.height > 0 && rect.top >= 0 && rect.top < window.innerHeight) {
+            bas = Math.ceil(window.innerHeight - rect.top + 12);
+        }
+    }
+    ['focusReprise', 'focusRepriseRappel'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || !el.style || !el.style.setProperty) return;
+        if (bas === null) el.style.removeProperty('--focus-reprise-bas');
+        else el.style.setProperty('--focus-reprise-bas', bas + 'px');
+    });
+    var fenetre = document.getElementById('focusReprise');
+    var rappel = document.getElementById('focusRepriseRappel');
+    var visible = fenetre && !fenetre.hidden ? fenetre : rappel && !rappel.hidden ? rappel : null;
+    if (page && page.style && page.style.setProperty) {
+        if (bas !== null && visible && visible.getBoundingClientRect) {
+            var zone = visible.getBoundingClientRect();
+            page.style.setProperty('--focus-reprise-reserve', Math.ceil(zone.height + 12) + 'px');
+            page.style.setProperty('--focus-reprise-largeur', Math.ceil(window.innerWidth - zone.left + 12) + 'px');
+        } else {
+            page.style.removeProperty('--focus-reprise-reserve');
+            page.style.removeProperty('--focus-reprise-largeur');
+        }
+    }
+}
+
 function focusPeindreReprise() {
     var fenetre = document.getElementById('focusReprise');
     var rappel = document.getElementById('focusRepriseRappel');
@@ -1065,6 +1099,9 @@ function focusPeindreReprise() {
     var attend = focusEtat.transition === 'attente-reprise';
     if (fenetre) fenetre.hidden = !attend || focusEtat.repriseMasquee;
     if (rappel) rappel.hidden = !attend || !focusEtat.repriseMasquee;
+    var page = document.getElementById('focusPage');
+    if (page && page.classList) page.classList.toggle('focus-reprise-active', attend);
+    focusPlacerReprise();
     if (!attend) return;
     var total = focusEtat.objectif || focusDurees().seances;
     var numero = Math.min(total, focusEtat.serie + 1);
@@ -1157,7 +1194,7 @@ function focusPhaseSuivante(silencieux) {
             focusPeindre();
         }
         if (silencieux) demarrerPause();
-        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause);
+        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause, focusEtat.pauseFinale);
         else { focusBip(2); setTimeout(demarrerPause, 800); }
     } else {
         var pauseFinale = focusEtat.pauseFinale;
@@ -2202,6 +2239,8 @@ function focusRestaurerEnArrierePlan() {
    recalculer tout de suite son échéance lorsqu'il revient au premier plan. */
 document.addEventListener('fullscreenchange', focusPeindreReprise);
 document.addEventListener('webkitfullscreenchange', focusPeindreReprise);
+window.addEventListener('resize', focusPlacerReprise);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', focusPlacerReprise);
 document.addEventListener('visibilitychange', function () {
     if (!document.hidden && focusPret && focusEtat.running) focusTick();
 });

@@ -28,8 +28,8 @@ async function pagePour(viewport, seances = 2) {
     window.__annonces = [];
     // Une annonce contrôlable avec l'horloge de test : le vrai audio est
     // vérifié séparément dans tester-voix et tester-choix-voix.
-    chronoAnnoncerPause = function (minutes, suite) {
-      window.__annonces.push({ minutes, mode: focusEtat.mode, running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin });
+    chronoAnnoncerPause = function (minutes, suite, derniereSeance) {
+      window.__annonces.push({ minutes, derniereSeance, mode: focusEtat.mode, running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin });
       setTimeout(suite, 2000);
     };
     chronoAnnoncerReprise = function (suite) { window.__reprises = (window.__reprises || 0) + 1; setTimeout(suite, 2000); };
@@ -104,6 +104,7 @@ try {
   await page.locator('#focusPlay').click();
   for (let numero = 1; numero <= 4; numero++) {
     await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'pause-annonce');
+    assert.equal(s.annonces.at(-1).derniereSeance, numero === 4, 'seule la dernière concentration annonce la fin de série');
     await avance(page, 2000); s = await etat(page); assert.equal(s.running, true);
     await avance(page, numero === 4 ? 120000 : 60000);
     if (numero < 4) {
@@ -158,7 +159,33 @@ try {
       const b = await button.boundingBox(); assert.ok(b && b.width >= 44 && b.height >= 40, 'action inaccessible');
       await button.evaluate(el => { const r = el.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!el.contains(hit)) throw new Error('Action de reprise recouverte'); });
     }
-    if (process.env.STUDY_CAPTURE && viewport.width === 320) await page.screenshot({ path: process.env.STUDY_CAPTURE });
+    async function verifierBarre(surcouche) {
+      const superpose = await surcouche.boundingBox();
+      const pied = await page.locator('#focusPage .focus-bottom').boundingBox();
+      assert.ok(superpose.y + superpose.height <= pied.y + 1, 'fenêtre doit rester au-dessus de la barre');
+      for (const el of await page.locator('#focusPage .focus-bottom button, #focusPage .focus-flamme').all()) {
+        const b = await el.boundingBox();
+        assert.ok(b && b.y >= 0 && b.y + b.height <= viewport.height + 1, 'outil ou flamme hors écran');
+        await el.evaluate(e => { const r = e.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!e.contains(hit)) throw new Error('Outil ou flamme recouvert : ' + (e.getAttribute('aria-label') || e.className)); });
+      }
+    }
+    await verifierBarre(popup);
+    if (process.env.STUDY_CAPTURE_DIR) await page.screenshot({ path: `${process.env.STUDY_CAPTURE_DIR}/popup-${viewport.width}x${viewport.height}.png` });
+    // Le contenu central peut défiler sur les très petits écrans : chaque
+    // commande doit rester accessible sans passer sous la fenêtre ou le rappel.
+    async function verifierCentre() {
+      for (const el of await page.locator('#focusPage .focus-center button, #focusTache').all()) {
+        if (!await el.isVisible()) continue;
+        await el.scrollIntoViewIfNeeded();
+        await el.evaluate(e => { const r = e.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!e.contains(hit)) throw new Error('Commande centrale recouverte ou inaccessible : ' + (e.id || e.textContent)); });
+      }
+    }
+    await verifierCentre();
+    await page.locator('.focus-reprise-attendre').click();
+    const rappel = page.locator('#focusRepriseRappel'); assert.equal(await rappel.isVisible(), true);
+    await verifierBarre(rappel);
+    if (process.env.STUDY_CAPTURE_DIR) await page.screenshot({ path: `${process.env.STUDY_CAPTURE_DIR}/rappel-${viewport.width}x${viewport.height}.png` });
+    await verifierCentre();
     await terminer(page, errors);
     console.log(`OK outils Pomodoro ${viewport.width}×${viewport.height}`);
   }

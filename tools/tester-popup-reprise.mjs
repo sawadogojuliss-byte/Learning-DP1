@@ -32,12 +32,21 @@ try {
   assert.equal(await page.locator('#focusReprise').isVisible(), true);
   assert.equal(await page.locator('#focusRepriseCompte').innerText(), 'Séance 2 sur 4');
   assert.equal(await page.evaluate(() => document.fullscreenElement.contains(document.getElementById('focusReprise'))), true, 'la fenêtre doit être dans la zone plein écran');
+  async function verifierPied(element) {
+    const surcouche = await element.boundingBox(), pied = await page.locator('#focusPage .focus-bottom').boundingBox();
+    assert.ok(surcouche.y + surcouche.height <= pied.y + 1, 'la reprise ne doit pas recouvrir la barre en plein écran');
+    for (const cible of await page.locator('#focusPage .focus-bottom button, #focusPage .focus-flamme').all()) {
+      await cible.evaluate(el => { const r = el.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); if (!el.contains(hit)) throw new Error('outil plein écran recouvert'); });
+    }
+  }
+  await verifierPied(page.locator('#focusReprise'));
   const bouton = page.locator('.focus-reprise-attendre');
   await bouton.evaluate(el => { const r = el.getBoundingClientRect(); const cible = document.elementFromPoint(r.x + r.width/2, r.y + r.height/2); if (!el.contains(cible)) throw new Error('la fenêtre est invisible ou recouverte en plein écran'); });
   const attente = await page.evaluate(() => ({mode: focusEtat.mode, restant: focusEtat.restant, serie: focusEtat.serie, objectif: focusEtat.objectif}));
   await bouton.click();
   assert.equal(await page.evaluate(() => focusEtat.running), false);
   assert.equal(await page.locator('#focusRepriseRappel').isVisible(), true);
+  await verifierPied(page.locator('#focusRepriseRappel'));
   await page.clock.fastForward(30000);
   assert.equal(await page.evaluate(() => focusEtat.running), false, 'Pas encore ne doit pas redémarrer');
   assert.deepEqual(await page.evaluate(() => ({mode: focusEtat.mode, restant: focusEtat.restant, serie: focusEtat.serie, objectif: focusEtat.objectif})), attente, 'Pas encore ne modifie ni la durée ni la progression');
