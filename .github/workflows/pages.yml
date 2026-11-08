@@ -44,6 +44,7 @@ jobs:
           set -euo pipefail
           rm -rf base-publique/.git
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
+          python3 travail/tools/verifier-stock-voix.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js
           node --check site/js/pages/exercices.js

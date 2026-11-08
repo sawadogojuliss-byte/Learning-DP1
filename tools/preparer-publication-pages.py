@@ -77,6 +77,9 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
+# Essais à écouter séparément, sans les intégrer au minuteur.
+files.extend(f'livrables/publication-voix/essai-{n:02d}-minutes.mp3' for n in range(50, 61))
+
 # Liste explicite issue de l'inventaire du dossier Drive ; images et vignettes
 # locales, sans dépendre de permissions Drive ou charger les originaux lourds.
 images = json.loads((ROOT / 'livrables/publication-themes/images.json').read_text(encoding='utf-8'))
