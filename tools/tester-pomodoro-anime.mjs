@@ -22,7 +22,7 @@ try {
   for(const item of themes) {
    const tuile=section.locator('.focus-tuile-theme').filter({hasText:item.nom});await tuile.click();
    const video=page.locator('#focusBg video');
-   await page.waitForFunction(id=>{const v=document.querySelector('#focusBg video');return v&&v.currentSrc.includes(id+'.mp4')&&v.readyState>=2&&!v.paused&&v.currentTime>.1&&v.classList.contains('is-visible')},item.id,{timeout:30000});
+   await page.waitForFunction(id=>{const v=document.querySelector('#focusBg video');return v&&v.currentSrc.includes(id)&&v.readyState>=2&&!v.paused&&v.currentTime>.1&&v.classList.contains('is-visible')},item.id,{timeout:30000});
    const state=await video.evaluate(v=>({loop:v.loop,muted:v.muted,inline:v.playsInline,duration:v.duration,time:v.currentTime}));
    assert.equal(state.loop,true);assert.equal(state.muted,true);assert.equal(state.inline,true);assert.ok(state.duration>3);
    assert.equal(await video.evaluate(v=>getComputedStyle(v).visibility),'visible');

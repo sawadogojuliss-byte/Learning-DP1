@@ -30,10 +30,15 @@ import subprocess
 actual = subprocess.check_output(['git', 'hash-object', str(script)], text=True).strip()
 if not actual.startswith(expected):
     raise SystemExit('Le Pomodoro public a changé : réconcilier avant publication')
+boite_actual = subprocess.check_output(['git', 'hash-object', str(base / 'js/pages/boite.js')], text=True).strip()
+if not boite_actual.startswith('d5ad249'):
+    raise SystemExit('La boîte publique a changé : réconcilier avant publication')
 shutil.copytree(base, output)
 
 files = [
     'livrables/publication-pomodoro/videos.css',
+    'livrables/publication-retours/images.css',
+    'js/pages/boite.js',
     'livrables/publication-rappels/rappels.js',
     'livrables/publication-rappels/rappels.css',
     'js/pages/pomodoro-page.js',
@@ -50,6 +55,8 @@ files = [
     'images/pomodoro/pluie-palmes-anime.webp',
     'images/pomodoro/mini/pluie-palmes-anime.webp',
     'images/pomodoro/foret-automne-anime.mp4',
+    'images/pomodoro/foret-automne-anime-4k.mp4',
+    'images/pomodoro/foret-automne-anime-leger.mp4',
     'images/pomodoro/foret-automne-anime.webp',
     'images/pomodoro/mini/foret-automne-anime.webp',
     'images/pomodoro/arbres-rivage-anime.mp4',
@@ -148,6 +155,10 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if text.count(anchor) != 1:
             raise SystemExit('Styles Pomodoro introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-rappels/rappels.css?v=' + version + '">', 1)
+        anchor = '    <link rel="stylesheet" href="livrables/publication-rappels/rappels.css?v=' + version + '">'
+        if text.count(anchor) != 1:
+            raise SystemExit('Styles des rappels introuvables')
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -163,7 +174,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;

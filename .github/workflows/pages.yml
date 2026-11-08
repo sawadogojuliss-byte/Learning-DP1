@@ -45,6 +45,7 @@ jobs:
           rm -rf base-publique/.git
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
           node --check site/js/pages/pomodoro-page.js
+          node --check site/js/pages/boite.js
           node --check site/js/pages/exercices.js
           node --check site/service-worker.js
           node site/tools/verifier-pomodoro.js
@@ -65,6 +66,9 @@ jobs:
           node travail/tools/tester-creneaux-exercices.mjs
           node travail/tools/tester-defilement-legende.mjs
           node travail/tools/tester-pomodoro-anime.mjs
+          node travail/tools/tester-foret-adaptive.mjs
+          node travail/tools/tester-images-feedback.mjs
+          (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
           node travail/tools/tester-pomodoro-reprise.mjs
           node travail/tools/tester-pomodoro-cache.mjs
           node travail/tools/tester-themes-drive.mjs
@@ -104,6 +108,8 @@ jobs:
           STUDY_PLAYWRIGHT_SYSTEM: '1'
         run: |
           node tools/tester-pomodoro-anime.mjs
+          node tools/tester-foret-adaptive.mjs
+          node tools/tester-images-feedback.mjs
           node tools/tester-pomodoro-reprise.mjs
           node tools/tester-pomodoro-cache.mjs
           node tools/tester-themes-drive.mjs
