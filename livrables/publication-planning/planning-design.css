@@ -1,8 +1,8 @@
 /* Fenêtre de modification : présentation isolée, sans changer la logique. */
-#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:rgba(13,39,30,.58); backdrop-filter:blur(5px); }
+#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:#fff; }
 #editEventModal * { box-sizing:border-box; }
 #editEventModal .ep-dialogue { width:min(100%,500px); max-height:min(90dvh,850px); overflow:auto; background:#fff; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; font-family:Inter,system-ui,sans-serif; color:#244638; }
-#editEventModal .ep-header { display:flex; gap:14px; align-items:flex-start; padding:24px 24px 20px; border-bottom:1px solid #e9f0eb; background:linear-gradient(130deg,#f6fbf6,#fff); }
+#editEventModal .ep-header { display:flex; gap:14px; align-items:flex-start; padding:24px 24px 20px; border-bottom:1px solid #e9f0eb; background:#fff; }
 #editEventModal .ep-icon { flex:none; width:46px; height:46px; border-radius:14px; display:grid; place-items:center; color:#238562; background:#e4f4e9; }
 #editEventModal .ep-icon svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 #editEventModal .ep-kicker { margin:1px 0 6px; color:#579a79; font-size:9px; letter-spacing:.14em; font-weight:800; }
@@ -74,3 +74,8 @@
 #chevauchementPopup .chev-proposition-occupee { background:#f5faf5; border-color:#cfe7d4; color:#345f47; }
 #chevauchementPopup .chev-proposition-occupee:hover { background:#eaf7ec; border-color:#83bd94; }
 #chevauchementPopup .chev-proposition-occupee .chev-proposition-effet { color:#607c67; }
+
+.cv-sommeil-avertissement { margin:0 0 14px; padding:14px; border:1px solid #e7dcb5; border-radius:14px; background:#fffbef; color:#574a23; font-size:13px; line-height:1.5; }
+.cv-sommeil-avertissement p { margin:5px 0; }
+.cv-sommeil-avertissement div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; }
+.cv-sommeil-avertissement button { border:1px solid #bda963; border-radius:8px; background:#fff; color:#574a23; padding:6px 10px; cursor:pointer; }

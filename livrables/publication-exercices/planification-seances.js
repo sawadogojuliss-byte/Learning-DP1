@@ -25,6 +25,7 @@ function exoPlanPropositions(exo, nombre, minutes) {
         for (const gap of getRealFreeSlots(planDay, minutes, date, exo.id)) {
             const debut = Math.ceil(gap.startMins / 15) * 15;
             for (let m = debut; m + minutes <= gap.endMins; m += 15) {
+                if (typeof v3SommeilInterdit === 'function' && v3SommeilInterdit(m, m + minutes, planDay)) continue;
                 candidats.push({dateKey, planDay, dateStr, startTime:addMinutes('00:00',m), endTime:addMinutes('00:00',m + minutes), duration:minutes, startMins:m});
             }
         }

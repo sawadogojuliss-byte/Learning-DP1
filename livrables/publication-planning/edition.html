@@ -18,11 +18,11 @@
                 <div><label class="ep-label" for="editEventEnd">Fin</label><input type="time" id="editEventEnd" class="ep-input" onchange="syncEditDurationFromTimes()"></div>
               </div>
               <p id="editPinHint" class="ep-hint" style="display:none;"></p>
-              <div id="editCascadeInfo" class="ep-info">Les autres activités seront réajustées si nécessaire.</div>
+              <div id="editCascadeInfo" class="ep-info">Les autres créneaux gardent leurs horaires.</div>
               <p id="editTimeError" class="ep-error" role="alert" style="display:none;"></p>
               <div class="ep-actions">
-                <button type="button" id="editSaveButton" class="ep-save" onclick="saveEditedEventCascade()">Enregistrer &amp; réajuster</button>
-                <button type="button" class="ep-delete" onclick="deleteEditedEvent()">Supprimer l’activité</button>
+                <button type="button" id="editSaveButton" class="ep-save" onclick="saveEditedEventCascade()">Enregistrer pour cette date</button>
+                <button type="button" class="ep-delete" onclick="deleteEditedEvent()">Supprimer pour cette date</button>
                 <button type="button" class="ep-cancel" onclick="closeEditModal()">Annuler</button>
               </div>
             </div>

@@ -46,14 +46,14 @@ try {
   const context=await browser.newContext({viewport:{width:1280,height:800},serviceWorkers:'block'});
   const page=await context.newPage();
   await page.route('**/*',r=>r.request().url().startsWith(site)?r.continue():r.abort());
-  await page.clock.install({time:new Date('2031-06-09T10:00:00')});
+  await page.clock.install({time:new Date('2031-06-15T10:00:00')});
   await page.addInitScript(mode=>{
    window.__STUDYPLAN_E2E=true;window.__notifications=[];
    window.Notification=class {static permission=mode==='permission'?'denied':'granted';static requestPermission(){return Promise.resolve(this.permission)} constructor(title,options){window.__notifications.push({title,options})}};
    if(mode==='service-worker') Object.defineProperty(navigator.serviceWorker,'getRegistration',{value:async()=>({showNotification:async(title,options)=>window.__notifications.push({title,options})})});
   },mode);
   await page.goto(site,{waitUntil:'domcontentloaded'});await ready(page);
-  await page.evaluate(()=>{document.getElementById('planningModal').classList.add('active');selectedDay=indexJourCourant();planningDecalageSemaine=0;customEvents=[{id:'rappel-test',day:selectedDay,title:'Réviser les maths',startTime:'10:07',endTime:'10:37',type:'activity',icon:'📚',source:'custom',pinned:true}];v3Save();renderPlanning();v3OpenEditByIndex(v3LastRendered.findIndex(e=>e.id==='rappel-test'))});
+  await page.evaluate(()=>{document.getElementById('planningModal').classList.add('active');selectedDay=indexJourCourant();planningDecalageSemaine=0;sundayWakeup='08:00';sundaySleepHours=8;customEvents=[{id:'mask-early',day:selectedDay,date:'2031-06-15',replacesId:'revgap-520',deleted:true,timestamp:1},{id:'mask-free',day:selectedDay,date:'2031-06-15',replacesId:'libre-autre-6',deleted:true,timestamp:2},{id:'rappel-test',day:selectedDay,title:'Réviser les maths',startTime:'10:07',endTime:'10:40',type:'activity',icon:'📚',source:'custom',pinned:true}];v3Save();renderPlanning();v3OpenEditByIndex(v3LastRendered.findIndex(e=>e.id==='rappel-test'))});
   const bouton=page.locator('#rappelActiviteBouton');await bouton.click();
   if(mode==='permission') {
    assert.equal(await bouton.getAttribute('aria-pressed'),'false');assert.match(await page.locator('#rappelActiviteMessage').innerText(),/Autorise les notifications/);
@@ -62,7 +62,7 @@ try {
    assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('studyPlanIB_rappelsActivites_v1'))),[]);
   } else if(mode==='deplace') {
    await page.locator('#editEventTitle').fill('Réviser la physique');await page.locator('#editEventStart').fill('10:10');await page.locator('#editEventEnd').fill('10:40');
-   await page.evaluate(()=>{window.__ignorerChevauchementActivite=true;window.__ignorerDecalagePlanning=true;saveEditedEventCascade()});
+   await page.locator('#editSaveButton').click();
    assert.equal(await page.locator('#editEventModal').isVisible(),false);
    await page.clock.fastForward('02:10');assert.equal(await page.evaluate(()=>window.__notifications.length),0);
    await page.clock.fastForward('03:00');await page.waitForFunction(()=>window.__notifications.length===1);

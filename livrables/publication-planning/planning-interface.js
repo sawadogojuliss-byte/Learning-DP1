@@ -15,6 +15,88 @@
 var v3LastRendered = [];
 var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];
 
+/* La nuit est une limite absolue, pas un créneau remplaçable. Les anciennes
+   données sont conservées ; un bloc hors limite est signalé, pas déplacé. */
+function v3BornesSommeil(day) {
+    var reveil = typeof planningReveilDuJour === 'function' ? planningReveilDuJour(day) : (day === 5 ? saturdayWakeup : day === 6 ? sundayWakeup : weekdayWakeup);
+    var coucher = day === 5 && typeof devoirsFaitBac === 'function' && devoirsFaitBac()
+        ? calculateBedtime(reveil, saturdaySleepHours) : bedtimeForDay(day);
+    return { reveil: timeToMinutes(reveil), coucher: timeToMinutes(coucher), reveilTexte: reveil, coucherTexte: coucher };
+}
+function v3DureeHoraire(debut, fin) {
+    var duree = timeToMinutes(fin) - timeToMinutes(debut);
+    return duree < 0 ? duree + 1440 : duree;
+}
+function syncEditDurationFromTimes() {
+    var s = document.getElementById('editEventStart').value, e = document.getElementById('editEventEnd').value;
+    if (!s || !e) return;
+    var duree = v3DureeHoraire(s, e);
+    if (duree > 0) { editCurrentDuration = duree; updateEditDurationDisplay(); }
+}
+function v3SommeilInterdit(debut, fin, day) {
+    var b = v3BornesSommeil(day), s = typeof debut === 'number' ? debut : timeToMinutes(debut), e = typeof fin === 'number' ? fin : timeToMinutes(fin);
+    if (!isFinite(s) || !isFinite(e) || !isFinite(b.reveil) || !isFinite(b.coucher)) return true;
+    if (e <= s) e += 1440;
+    if (e - s >= 1440) return true;
+    var lit = b.coucher, r = b.reveil;
+    var nuits = lit < r ? [[lit, r]] : [[lit, 1440], [0, r]];
+    return nuits.some(function (n) { return [0, 1440].some(function (offset) { return s < n[1] + offset && n[0] + offset < e; }); });
+}
+var v3ValidationAvantSommeil = validateNewEventTime;
+validateNewEventTime = function (debut, fin, day) {
+    if (v3SommeilInterdit(debut, fin, day)) return {valid:false, error:'Ce créneau tombe pendant le sommeil. Choisis un horaire entre le réveil et le coucher.'};
+    var s = timeToMinutes(debut), e = timeToMinutes(fin);
+    if (e < s) {
+        if (day < 5 && s < COURS_FIN && COURS_DEBUT < 1440) return {valid:false,error:'Ce créneau traverse les heures de cours.'};
+        return {valid:true, error:''};
+    }
+    return v3ValidationAvantSommeil(debut, fin, day);
+};
+// Ne jamais décaler silencieusement les anciens horaires lors du calcul.
+planningRegleReveil = function (evenements) { return evenements || []; };
+// Certains blocs automatiques partagent leur identifiant (plusieurs temps
+// libres). Une exception précise cible aussi les horaires d'origine, sans
+// renommer ni déplacer les autres occurrences portant le même identifiant.
+var v3AppliquerDateOriginal = planningAppliquerDate;
+planningAppliquerDate = function (events, jour, date) {
+    var tous = customEvents, cible = date instanceof Date ? date : getWeekDates(new Date())[jour].date;
+    var cle = planningCleDate(cible), precis = tous.filter(function (e) { return e && e.date === cle && e.day === jour && e.cibleDebut && e.cibleFin && e.replacesId; });
+    if (!precis.length) return v3AppliquerDateOriginal(events, jour, date);
+    var resultat;
+    try { customEvents = tous.filter(function (e) { return !e || !e.cibleDebut || !e.cibleFin; }); resultat = v3AppliquerDateOriginal(events, jour, date); }
+    finally { customEvents = tous; }
+    var reset = tous.reduce(function (m,e) { return e && e.day === jour && e.date === cle && e.resetDate ? Math.max(m,Number(e.timestamp)||0) : m; },0);
+    precis = precis.filter(function (e) { return !reset || Number(e.timestamp) > reset; }).sort(function (a,b) { return (Number(a.timestamp)||0)-(Number(b.timestamp)||0); });
+    return resultat.map(function (ev) {
+        var modification = precis.filter(function (e) { return e.replacesId === ev.id && e.cibleDebut === ev.startTime && e.cibleFin === ev.endTime; }).slice(-1)[0];
+        if (!modification) return ev;
+        if (modification.deleted) return null;
+        return Object.assign({},ev,{title:modification.title,startTime:modification.startTime,endTime:modification.endTime,
+            icon:modification.icon || ev.icon,kind:modification.pinned ? 'pinned' : ev.kind,
+            _v3CibleDebut:modification.cibleDebut,_v3CibleFin:modification.cibleFin});
+    }).filter(Boolean);
+};
+var v3GenererJourOriginal = generateDayEvents;
+var v3SommeilHorsPlanning = [];
+generateDayEvents = function (day, date) {
+    var events = v3GenererJourOriginal(day, date) || [], b = v3BornesSommeil(day);
+    var reveil = events.find(function (e) { return e && (e.id === 'wakeup' || e.type === 'wakeup'); });
+    var coucher = events.find(function (e) { return e && (e.id === 'sleep' || e.type === 'sleep'); });
+    if (!reveil) reveil = {id:'wakeup',title:'Réveil',startTime:b.reveilTexte,endTime:addMinutes(b.reveilTexte,10),type:'wakeup',icon:'🌅',editable:false,kind:'fixed'};
+    if (!coucher) coucher = {id:'sleep',title:'Coucher',startTime:b.coucherTexte,endTime:b.reveilTexte,type:'sleep',icon:'😴',editable:false,kind:'fixed'};
+    var hors = [], milieu = events.filter(function (e) {
+        if (!e || e.id === reveil.id || e.id === coucher.id || e.type === 'wakeup' || e.type === 'sleep') return false;
+        if (!e.startTime || !e.endTime || v3SommeilInterdit(e.startTime, e.endTime, day)) { hors.push(e); return false; }
+        return true;
+    });
+    milieu.sort(function (a, c) {
+        function ordre(e) { var m = timeToMinutes(e.startTime); return m < b.reveil ? m + 1440 : m; }
+        return ordre(a) - ordre(c);
+    });
+    v3SommeilHorsPlanning = hors;
+    return [reveil].concat(milieu, [coucher]);
+};
+
 function v3PorteeEvenement(e, day) {
     var date = planningDateEdition(day);
     return !!(e && e.day === day && (date ? e.date === date : !e.date));
@@ -109,21 +191,19 @@ function renderPlanning() {
         ? generateDayEvents(selectedDay) : generateDayEvents(selectedDay, dateAffichee);
     v3LastRendered = events;
     const addBtn = document.getElementById('addPlanningBtn');
-    if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'free' &&
-        !customEvents.some(e => e && e.date === planningCleDate(dateAffichee) && e.day === selectedDay && !e.deleted && !e.resetDate)) {
-        if (addBtn) addBtn.style.display = planningJourModifiable(selectedDay) ? 'flex' : 'none';
-        document.getElementById('eventsContainer').innerHTML = v3LibreVertical();
-        document.getElementById('statScore').textContent = targetScore;
-        document.getElementById('statSubjects').textContent = subjects.length + optionalSubjects.length;
-        document.getElementById('statActivities').textContent = selectedActivities.length;
-        v3PeindreIconeActivites();
-        if (typeof majClasseAffichage === 'function') majClasseAffichage();
-        if (typeof eeSuiviPlanning === 'function') eeSuiviPlanning();
-        return;
-    }
+    const jourLibre = typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'free' &&
+        !customEvents.some(e => e && e.date === planningCleDate(dateAffichee) && e.day === selectedDay && !e.deleted && !e.resetDate);
+    const horsSommeil = v3SommeilHorsPlanning.slice();
+    window.__v3HorsSommeilAffiche = horsSommeil;
     if (addBtn) addBtn.style.display = planningJourModifiable(selectedDay) ? 'flex' : 'none';
     if (planningJourModifiable(selectedDay)) v3SignalerChevauchementJour(events, selectedDay);
     let eventsHtml = '';
+    if (horsSommeil.length) {
+        eventsHtml += '<div class="cv-sommeil-avertissement" role="status"><strong>Le sommeil est protégé</strong><p>Ces anciens créneaux tombent pendant le sommeil. Ils sont conservés mais retirés de la journée tant que leurs horaires ne sont pas corrigés :</p>' + horsSommeil.map(function (ev, index) {
+            return '<div><span>' + v3Escape(ev.title || 'Créneau') + ' · ' + v3Escape(ev.startTime || '') + ' → ' + v3Escape(ev.endTime || '') + '</span>' +
+                (planningJourModifiable(selectedDay) && ev.editable ? '<button type="button" onclick="v3ModifierHorsSommeil(' + index + ')">Modifier</button>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
     if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'keep') {
         eventsHtml += '<div style="margin-bottom: 0.75rem; padding: 0.75rem 1rem; border-radius: 0.85rem; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.85rem; font-weight: 600;">🎉 Jour férié — emploi du temps conservé</div>';
     } else if (typeof holidayMode === 'function' && holidayMode(selectedDay, dateAffichee) === 'light') {
@@ -140,7 +220,7 @@ function renderPlanning() {
         const bColor = borderColorMap[borderStyle] || '#9ca3af';
         const bBg = bgColorMap[bgStyle] || '#f9fafb';
 
-        const durMins = timeToMinutes(event.endTime) - timeToMinutes(event.startTime);
+        const durMins = v3DureeHoraire(event.startTime, event.endTime);
         const durH = Math.floor(durMins / 60), durM = durMins % 60;
         const durLabel = durMins > 0 ? (durH > 0 ? durH + 'h' : '') + (durM > 0 ? durM + 'min' : '') : '';
 
@@ -180,6 +260,7 @@ function renderPlanning() {
             '<div style="width:1.15rem;flex-shrink:0;margin-left:0.25rem;text-align:center;color:#d1d5db;' + (modifiable ? '' : 'visibility:hidden;') + '"><span style="font-size:0.8rem;">✏️</span></div>' +
         '</div>' + (avecAvant || avecApres ? '' : chainLine);
         if (avecAvant && !avecApres) eventsHtml += '</div>' + chainLine;
+        if (jourLibre && event.id === 'wakeup') eventsHtml += v3LibreVertical();
     });
 
     // Lien discret pour revenir au planning automatique du jour (si modifié)
@@ -210,6 +291,13 @@ function v3OpenEditByIndex(idx) {
     const ev = v3LastRendered[idx];
     if (!planningJourModifiable(selectedDay) || !ev || !ev.editable) return;
     openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
+}
+
+function v3ModifierHorsSommeil(index) {
+    var ev = (window.__v3HorsSommeilAffiche || [])[index];
+    if (!ev || !ev.editable || !planningJourModifiable(selectedDay)) return;
+    openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
+    if (editingEvent) editingEvent.horsSommeil = ev;
 }
 
 function v3ResetDay() {
@@ -252,39 +340,28 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
         id, title, startTime, endTime, type,
         icon: icon || (evt && evt.icon) || (record && record.icon) || '📌',
         kind: evt ? evt.kind : (record ? 'pinned' : 'flex'),
+        cibleDebut: evt && evt._v3CibleDebut, cibleFin: evt && evt._v3CibleFin,
         isCustom: !!record
     };
     document.getElementById('editEventTitle').value = title;
     document.getElementById('editEventStart').value = startTime;
     document.getElementById('editEventEnd').value = endTime;
     editCurrentDuration = timeToMinutes(endTime) - timeToMinutes(startTime);
-    if (editCurrentDuration <= 0) editCurrentDuration = 30;
+    if (editCurrentDuration < 0) editCurrentDuration += 1440;
+    if (!editCurrentDuration) editCurrentDuration = 30;
     updateEditDurationDisplay();
     var info = document.getElementById('editCascadeInfo');
     var bouton = document.getElementById('editSaveButton');
-    if (info) info.innerHTML = dateEdition
-        ? '📅 <strong>Pour cette date seulement :</strong> les autres créneaux gardent leurs horaires. Aucune autre semaine ne sera modifiée.'
-        : '🔗 <strong>Réajustement automatique :</strong> les activités suivantes seront décalées en conséquence.';
-    if (bouton) bouton.textContent = dateEdition ? '✅ Enregistrer pour cette date' : '✅ Enregistrer & réajuster';
+    if (info) info.innerHTML = '📅 <strong>Pour cette date seulement :</strong> les autres créneaux gardent leurs horaires. Aucune autre semaine ne sera modifiée.';
+    if (bouton) bouton.textContent = 'Enregistrer pour cette date';
     document.getElementById('editTimeError').style.display = 'none';
     v3UpdateEditPinHint();
     document.getElementById('editEventModal').style.display = 'flex';
 }
 
 function v3UpdateEditPinHint() {
-    const hint = document.getElementById('editPinHint');
-    if (!hint || !editingEvent) return;
-    const start = document.getElementById('editEventStart').value;
-    const changed = start && start !== editingEvent.startTime;
-    if (editingEvent.kind === 'pinned') {
-        hint.textContent = '📌 Ce créneau garde l\'heure de début que tu as choisie' + (changed ? ' (' + start + ')' : '') + '.';
-        hint.style.display = 'block';
-    } else if (changed) {
-        hint.textContent = '📌 Nouvelle heure de début : ce créneau sera fixé à ' + start + '. Les créneaux automatiques s\'organiseront autour.';
-        hint.style.display = 'block';
-    } else {
-        hint.style.display = 'none';
-    }
+    var hint = document.getElementById('editPinHint');
+    if (hint) hint.style.display = 'none';
 }
 
 function saveEditedEventCascade() {
@@ -296,124 +373,72 @@ function saveEditedEventCascade() {
     const showErr = (m) => { errEl.textContent = m; errEl.style.display = 'block'; };
 
     if (!newStart || !newEnd) { showErr('Remplis les horaires.'); return; }
-    const newDur = timeToMinutes(newEnd) - timeToMinutes(newStart);
-    if (newDur <= 0) { showErr("L'heure de fin doit être après le début."); return; }
+    let newDur = timeToMinutes(newEnd) - timeToMinutes(newStart);
+    if (newDur < 0) newDur += 1440;
+    if (!newDur) { showErr("L'heure de fin doit être après le début."); return; }
     errEl.style.display = 'none';
 
     const day = selectedDay;
     if (!planningJourModifiable(day)) return;
-    if (!window.__ignorerChevauchementActivite) {
-        var voisines = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);
-        if (voisines.length) {
-            v3OuvrirChoixChevauchement({
-                mode: 'edition',
-                day: day,
-                title: newTitle,
-                icon: editingEvent.icon,
-                type: editingEvent.type,
-                start: newStart,
-                end: newEnd,
-                origineStart: editingEvent.startTime,
-                origineEnd: editingEvent.endTime,
-                excludeIds: [editingEvent.id],
-                conflits: voisines
-            });
-            return;
-        }
+    if (v3SommeilInterdit(newStart, newEnd, day)) { showErr('Ce créneau tombe pendant le sommeil. Choisis un horaire entre le réveil et le coucher.'); return; }
+    const memeHoraire = newStart === editingEvent.startTime && newEnd === editingEvent.endTime;
+    const ctx = { mode:'edition', day:day, title:newTitle, icon:editingEvent.icon, type:editingEvent.type,
+        start:newStart, end:newEnd, origineStart:editingEvent.startTime, origineEnd:editingEvent.endTime,
+        excludeIds:[editingEvent.id], conflits:[], resolutionDate:planningCleDate(planningDateSelectionnee(day)),
+        renommageSeul:memeHoraire, directEdition:true };
+    if (!memeHoraire) {
+        ctx.conflits = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);
+        if (ctx.conflits.length) { v3OuvrirChoixChevauchement(ctx); return; }
     }
-    const startChanged = newStart !== editingEvent.startTime;
-    const customIdx = customEvents.findIndex(e => e && e.id === editingEvent.id && !e.replacesId && v3PorteeEvenement(e, day));
-    const isCustom = customIdx !== -1;
-    const existingOv = isCustom ? null : customEvents.find(e => v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id);
-    const willBePinned = isCustom || !!(existingOv && existingOv.pinned && !existingOv.deleted) || startChanged;
-
-    // Un créneau à heure fixée ne doit pas chevaucher les cours / trajets / autres créneaux fixés
-    if (willBePinned && !window.__ignorerChevauchementActivite) {
-        const conflict = v3FindConflict(day, newStart, newEnd, [editingEvent.id]);
-        if (conflict) { showErr(v3ConflictMessage(conflict)); return; }
-    }
-
-    const overlapsBefore = v3OverlapWarnings(day);
-    const oldDur = timeToMinutes(editingEvent.endTime) - timeToMinutes(editingEvent.startTime);
-    const delta = newDur - oldDur;
-    let recordId;
-
-    if (isCustom) {
-        customEvents[customIdx] = v3RecordDate({ ...customEvents[customIdx], title: newTitle, startTime: newStart, endTime: newEnd, timestamp: Date.now(), resteEcole: false }, day);
-        recordId = customEvents[customIdx].id;
-    } else {
-        // Une seule modification par créneau généré et par jour (la 2e modification remplace la 1re)
-        customEvents = customEvents.filter(e => !(v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id));
-        const rec = v3RecordDate({
-            id: generateEventId(editingEvent.type, newTitle, day),
-            day, title: newTitle, startTime: newStart, endTime: newEnd,
-            type: editingEvent.type, icon: editingEvent.icon || '📌',
-            source: 'custom', replacesId: editingEvent.id, pinned: willBePinned, timestamp: Date.now(),
-            resteEcole: false
-        }, day);
-        customEvents.push(rec);
-        recordId = rec.id;
-    }
-
-    // Réajustement : les créneaux fixés qui suivent sont décalés de la variation de durée
-    if (delta !== 0 && !planningDateEdition(day) && !window.__ignorerDecalagePlanning) {
-        const editStartMins = timeToMinutes(newStart);
-        customEvents = customEvents.map(ev => {
-            if (!v3PorteeEvenement(ev, day) || ev.id === recordId || !v3IsPinnedRecord(ev)) return ev;
-            const evStart = timeToMinutes(ev.startTime);
-            if (evStart <= editStartMins) return ev;
-            const evDur = timeToMinutes(ev.endTime) - evStart;
-            return { ...ev, startTime: v3M2T(evStart + delta), endTime: v3M2T(evStart + delta + evDur) };
-        });
-    }
-
-    v3Save();
-    closeEditModal();
-    renderPlanning();
-
-    if (planningDateEdition(day)) {
-        v3Toast('✅ Modification enregistrée pour le ' + planningDateEdition(day), 'success');
-    } else if (delta !== 0) {
-        v3Toast('🔗 Planning synchronisé — ' + (delta > 0 ? '+' : '') + delta + ' min sur les activités suivantes', 'success');
-    } else {
-        v3Toast('✅ Modification enregistrée', 'success');
-    }
+    v3AppliquerResolutionDate(ctx, {type:'deplacer', utilisateur:{start:newStart,end:newEnd}, supprimerIds:[]});
 }
 
 function saveEditedEvent() { saveEditedEventCascade(); }
 
 function deleteEditedEvent() {
-    if (!editingEvent) return;
-    const day = selectedDay;
-    if (!planningJourModifiable(day)) return;
-    const dateEdition = planningDateEdition(day);
-    const snapshot = customEvents.slice();
-    const title = editingEvent.title;
-    const isCustom = customEvents.some(e => e.id === editingEvent.id && !e.replacesId && v3PorteeEvenement(e, day));
-    if (isCustom) {
-        customEvents = customEvents.filter(e => !(e.id === editingEvent.id && v3PorteeEvenement(e, day)));
-        if (dateEdition) {
-            var marqueur = v3RecordDate({
-                id: generateEventId('date-delete', title, day), day: day, title: title,
-                replacesId: editingEvent.id, deleted: true, timestamp: Date.now()
-            }, day);
-            marqueur.date = dateEdition;
-            customEvents.push(marqueur);
-        }
-    } else {
-        // Seul le jour daté est masqué ; l'habitude hebdomadaire reste.
-        customEvents = customEvents.filter(e => !(v3PorteeEvenement(e, day) && e.replacesId === editingEvent.id));
-        customEvents.push(v3RecordDate({
-            id: generateEventId(editingEvent.type, title, day), day, title,
-            startTime: editingEvent.startTime, endTime: editingEvent.endTime, type: editingEvent.type,
-            icon: editingEvent.icon || '📌', source: 'custom', replacesId: editingEvent.id, deleted: true, timestamp: Date.now()
-        }, day));
+    if (!editingEvent || !planningJourModifiable(selectedDay)) return;
+    const day = selectedDay, date = planningCleDate(planningDateSelectionnee(day));
+    const snapshot = customEvents.slice(), title = editingEvent.title;
+    const before = v3EvenementsJour(day);
+    const matches = before.filter(function (e) { return e.id === editingEvent.id && e.startTime === editingEvent.startTime && e.endTime === editingEvent.endTime; });
+    const erreur = document.getElementById('editTimeError');
+    if (matches.length > 1) {
+        erreur.textContent = 'Ces créneaux ont le même horaire et ne peuvent pas être distingués sans risque. Rien n’a été changé.'; erreur.style.display = 'block'; return;
     }
-    v3Save();
-    v3SyncExoLabels();
-    closeEditModal();
-    renderPlanning();
-    v3Toast('🗑️ « ' + title + ' » retiré du planning de ' + V3_DAY_NAMES[day], 'info', {
+    const original = matches[0] || editingEvent.horsSommeil;
+    if (!original) { erreur.textContent = 'Ce créneau a changé. Ferme la fenêtre et réessaie.'; erreur.style.display = 'block'; return; }
+    const precise = !!original._v3CibleDebut || before.filter(function (e) { return e.id === original.id; }).length > 1;
+    const cibleDebut = original._v3CibleDebut || original.startTime, cibleFin = original._v3CibleFin || original.endTime;
+    const temps = Math.max(Date.now(), snapshot.reduce(function (max,e) { return e && e.day === day && e.date === date ? Math.max(max,Number(e.timestamp)||0) : max; },0) + 1);
+    let sauvegarde;
+    try { sauvegarde = localStorage.getItem('studyPlanIB_customEvents_juliss'); }
+    catch (e) { erreur.textContent = 'Le stockage est indisponible. Rien n’a été changé.'; erreur.style.display = 'block'; return; }
+    try {
+        customEvents = customEvents.filter(function (e) {
+            if (!e || e.day !== day || e.date !== date) return true;
+            if (!e.replacesId && e.id === original.id) return false;
+            if (e.replacesId !== original.id) return true;
+            return precise ? !(e.cibleDebut === cibleDebut && e.cibleFin === cibleFin) : !!e.cibleDebut;
+        });
+        const marqueur = {id:generateEventId('date-delete',title,day),day:day,date:date,title:title,
+            startTime:original.startTime,endTime:original.endTime,type:original.type,icon:original.icon,
+            replacesId:original.id,deleted:true,timestamp:temps};
+        if (precise) { marqueur.cibleDebut = cibleDebut; marqueur.cibleFin = cibleFin; }
+        customEvents.push(marqueur);
+        if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
+        var apres;
+        try { apres = v3EvenementsJour(day); } finally { if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver--; }
+        if (apres.some(function (e) { return e.id === original.id && e.startTime === original.startTime && e.endTime === original.endTime; }) ||
+            before.some(function (e) { return e !== original && !apres.some(function (x) { return x.id === e.id && x.startTime === e.startTime && x.endTime === e.endTime && x.title === e.title; }); }) ||
+            apres.some(function (e) { return !before.some(function (x) { return x.id === e.id && x.startTime === e.startTime && x.endTime === e.endTime && x.title === e.title; }); })) throw new Error('Modification inattendue');
+        v3Save();
+    } catch (e) {
+        customEvents = snapshot;
+        try { if (sauvegarde === null) localStorage.removeItem('studyPlanIB_customEvents_juliss'); else localStorage.setItem('studyPlanIB_customEvents_juliss',sauvegarde); } catch (ignore) {}
+        erreur.textContent = 'Impossible de retirer ce créneau sans modifier le reste. Rien n’a été changé.'; erreur.style.display = 'block'; return;
+    }
+    v3SyncExoLabels(); closeEditModal(); renderPlanning();
+    v3Toast('🗑️ « ' + title + ' » retiré pour le ' + date, 'info', {
         undo: function () { customEvents = snapshot; v3Save(); v3SyncExoLabels(); renderPlanning(); v3Toast('↩ « ' + title + ' » rétabli', 'success'); }
     });
 }
@@ -558,7 +583,8 @@ function confirmAddActivity() {
     if (!name) { showErr('Merci d\'entrer un nom d\'activité.'); return; }
     if (!startTime || !endTime) { showErr('Remplis les horaires.'); return; }
     if (timeToMinutes(endTime) <= timeToMinutes(startTime)) { showErr("L'heure de fin doit être après le début."); return; }
-    // D'abord montrer le conflit, même pendant les cours ou le sommeil :
+    if (v3SommeilInterdit(startTime, endTime, selectedDay)) { showErr('Ce créneau tombe pendant le sommeil. Choisis un horaire entre le réveil et le coucher.'); return; }
+    // D'abord montrer le conflit, même pendant les cours :
     // seul un retrait explicite (et confirmé deux fois) pourra alors déroger
     // à la protection habituelle de ces horaires.
     if (!window.__ignorerChevauchementActivite) {
@@ -637,8 +663,10 @@ function v3IntervallesSeCroisent(debut, fin, autreDebut, autreFin) {
     var e = timeToMinutes(fin);
     var os = timeToMinutes(autreDebut);
     var oe = timeToMinutes(autreFin);
-    if (!(e > s) || !(oe > os)) return false;
-    return s < oe && os < e;
+    if (!isFinite(s) || !isFinite(e) || !isFinite(os) || !isFinite(oe) || e === s || oe === os) return false;
+    if (e < s) e += 1440;
+    if (oe < os) oe += 1440;
+    return [-1440, 0, 1440].some(function (delta) { return s < oe + delta && os + delta < e; });
 }
 
 function v3ActivitesChevauchees(day, start, end, excludeIds) {
@@ -702,12 +730,7 @@ function v3ConflitsCreneau(day, start, end, excludeIds) {
     function ajouter(ev) {
         if (!ev || !ev.id || exclus.has(ev.id) || vus.has(ev.id)) return;
         if (!ev.startTime || !ev.endTime) return;
-        var debutEv = timeToMinutes(ev.startTime), finEv = timeToMinutes(ev.endTime);
-        // Si le coucher est à minuit, 00:00 → 08:00 ne couvre pas toute
-        // la journée. L'union de deux intervalles ne vaut qu'en cas de passage à minuit.
-        var croise = ev.id === 'sleep' && finEv < debutEv
-            ? (timeToMinutes(start) < finEv || timeToMinutes(end) > debutEv)
-            : v3IntervallesSeCroisent(start, end, ev.startTime, ev.endTime);
+        var croise = v3IntervallesSeCroisent(start, end, ev.startTime, ev.endTime);
         if (!croise) return;
         vus.add(ev.id);
         out.push(ev);
@@ -738,10 +761,16 @@ function v3VerifierChoixChevauchement(ctx, choix) {
         return { valid: false, error: 'Cette modification a changé. Ouvre à nouveau le créneau.' };
     }
     var utilisateur = choix.utilisateur;
-    var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    if (v3SommeilInterdit(utilisateur.start, utilisateur.end, ctx.day) ||
+        (choix.autre && v3SommeilInterdit(choix.autre.start, choix.autre.end, ctx.day)) ||
+        (choix.supprimerIds || []).indexOf('sleep') !== -1 || (choix.supprimerIds || []).indexOf('wakeup') !== -1) {
+        return {valid:false, error:'Le sommeil et le réveil sont protégés. Choisis un autre horaire.'};
+    }
+    var duree = v3DureeHoraire(ctx.start, ctx.end);
     var start = timeToMinutes(utilisateur.start), end = timeToMinutes(utilisateur.end);
+    if (end < start) end += 1440;
     var retirer = Array.isArray(choix.supprimerIds) ? choix.supprimerIds : [];
-    if (!(start >= 0 && end < 1440 && end > start &&
+    if (!(start >= 0 && end < 2880 && end > start &&
         (choix.type === 'remplacerExact' || end - start === duree))) {
         return { valid: false, error: 'Choisis une heure et une durée valides, sans dépasser minuit.' };
     }
@@ -777,7 +806,7 @@ function v3VerifierChoixChevauchement(ctx, choix) {
             return { valid: false, error: 'Cette activité a changé. Ferme la fenêtre et réessaie.' };
         }
         var as = timeToMinutes(choix.autre.start), ae = timeToMinutes(choix.autre.end);
-        var ancien = timeToMinutes(autre.endTime) - timeToMinutes(autre.startTime);
+        var ancien = v3DureeHoraire(autre.startTime, autre.endTime);
         if (!(as >= 0 && ae < 1440 && ae > as && ae - as === ancien)) {
             return { valid: false, error: 'La durée de « ' + autre.title + ' » doit rester la même.' };
         }
@@ -798,11 +827,11 @@ function v3FinJourChevauchement(day) {
     var reveil = day === 5 ? saturdayWakeup : day === 6 ? sundayWakeup : weekdayWakeup;
     var debut = timeToMinutes(reveil || '06:00');
     var fin = timeToMinutes(bedtimeForDay(day));
-    return Number.isFinite(fin) && fin > debut ? Math.min(1439, fin) : 1439;
+    return Number.isFinite(fin) && fin > debut ? Math.min(1440, fin) : 1440;
 }
 
 function v3PropositionsCreneau(ctx) {
-    var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    var duree = v3DureeHoraire(ctx.start, ctx.end);
     var reveil = ctx.day === 5 ? saturdayWakeup : ctx.day === 6 ? sundayWakeup : weekdayWakeup;
     var bas = Math.max(0, timeToMinutes(reveil || '06:00'));
     var haut = v3FinJourChevauchement(ctx.day);
@@ -836,7 +865,7 @@ function v3PropositionsCreneau(ctx) {
 
 function v3DestinationDeplacement(ctx, conflit) {
     if (ctx.conflits.length !== 1 || !v3PeutDeplacerChevauchement(conflit)) return null;
-    var duree = timeToMinutes(conflit.endTime) - timeToMinutes(conflit.startTime);
+    var duree = v3DureeHoraire(conflit.startTime, conflit.endTime);
     if (!(duree > 0)) return null;
     var finJour = v3FinJourChevauchement(ctx.day);
     for (var debut = Math.ceil(Math.max(timeToMinutes(ctx.end), timeToMinutes(conflit.endTime)) / 15) * 15;
@@ -883,6 +912,10 @@ function v3FermerChoixChevauchement() {
 function v3DireChevauchement(message) {
     var erreur = document.getElementById('chevauchementErreur');
     if (erreur) erreur.textContent = message || '';
+    else {
+        erreur = document.getElementById('editTimeError');
+        if (erreur) { erreur.textContent = message || ''; erreur.style.display = message ? 'block' : 'none'; }
+    }
 }
 
 function v3AppliquerChoixChevauchement(ctx, choix) {
@@ -993,13 +1026,16 @@ function v3AppliquerResolutionDate(ctx, choix) {
         ctx.resolutionDate !== planningCleDate(planningDateSelectionnee(ctx.day))) {
         v3DireChevauchement('La date a changé. Ferme la fenêtre et recommence.'); return false;
     }
-    var verdict = v3VerifierChoixChevauchement(ctx, choix);
+    var verdict = ctx.renommageSeul ? {valid:true} : v3VerifierChoixChevauchement(ctx, choix);
+    if (v3SommeilInterdit(choix.utilisateur.start, choix.utilisateur.end, ctx.day)) verdict = {valid:false,error:'Ce créneau tombe pendant le sommeil.'};
     if (!verdict.valid) { v3DireChevauchement(verdict.error); return false; }
     var avant = customEvents.slice();
     var stockageAvant = null;
     try { stockageAvant = localStorage.getItem('studyPlanIB_customEvents_juliss'); } catch (ignore) {}
     var jourAvant = v3EvenementsJour(ctx.day);
     var retires = choix.supprimerIds || [];
+    var occurrences = jourAvant.filter(function (ev) { return ev.id === editingEvent.id && ev.startTime === editingEvent.startTime && ev.endTime === editingEvent.endTime; });
+    if (occurrences.length > 1) { v3DireChevauchement('Ces créneaux ont le même horaire et ne peuvent pas être distingués sans risque. Rien n’a été changé.'); return false; }
     // Un identifiant partagé peut désigner plusieurs blocs automatiques : ne
     // pas en supprimer deux alors que l'aperçu n'en montrait qu'un seul.
     if (retires.some(function (id) { return jourAvant.filter(function (ev) { return ev.id === id; }).length !== 1; })) {
@@ -1017,13 +1053,18 @@ function v3AppliquerResolutionDate(ctx, choix) {
                 startTime:plage.start, endTime:plage.end, pinned:true, timestamp:timestamp++});
             return;
         }
+        var precise = !!(ev._v3CibleDebut || (jourAvant.filter(function (item) { return item.id === ev.id; }).length > 1));
+        var debutCible = ev._v3CibleDebut || ev.startTime, finCible = ev._v3CibleFin || ev.endTime;
         customEvents = customEvents.filter(function (record) {
-            return !(record && record.date === ctx.resolutionDate && record.day === ctx.day && record.replacesId === ev.id);
+            if (!(record && record.date === ctx.resolutionDate && record.day === ctx.day && record.replacesId === ev.id)) return true;
+            return precise ? !(record.cibleDebut === debutCible && record.cibleFin === finCible) : !!record.cibleDebut;
         });
-        customEvents.push({id:generateEventId(ev.type || 'activity', ev.title || 'activite', ctx.day),
+        var record = {id:generateEventId(ev.type || 'activity', ev.title || 'activite', ctx.day),
             day:ctx.day,date:ctx.resolutionDate,title:ev.title,startTime:plage.start,endTime:plage.end,
             type:ev.type || 'activity',icon:ev.icon || '📌',source:'custom',replacesId:ev.id,
-            pinned:!supprime,deleted:!!supprime,timestamp:timestamp++});
+            pinned:!supprime,deleted:!!supprime,timestamp:timestamp++};
+        if (precise) { record.cibleDebut = debutCible; record.cibleFin = finCible; }
+        customEvents.push(record);
     }
     try {
         retires.forEach(function (id) {
@@ -1032,27 +1073,28 @@ function v3AppliquerResolutionDate(ctx, choix) {
             exception(ev,{start:ev.startTime,end:ev.endTime},true);
         });
         if (choix.conflitId) exception(ctx.conflits[0],choix.autre,false);
-        var original = jourAvant.find(function (ev) { return ev.id === editingEvent.id; });
+        var original = jourAvant.find(function (ev) { return ev.id === editingEvent.id && ev.startTime === editingEvent.startTime && ev.endTime === editingEvent.endTime; }) || editingEvent.horsSommeil;
         if (!original) throw new Error('Activité introuvable');
         exception(Object.assign({}, original, {title:ctx.title}),choix.utilisateur,false);
         if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
         var apres;
         try { apres = v3EvenementsJour(ctx.day); }
         finally { if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver--; }
-        var cible = apres.find(function (ev) { return ev.id === original.id; });
-        if (!cible || cible.startTime !== choix.utilisateur.start || cible.endTime !== choix.utilisateur.end ||
+        var cibles = apres.filter(function (ev) { return ev.id === original.id && ev.startTime === choix.utilisateur.start && ev.endTime === choix.utilisateur.end && ev.title === ctx.title; });
+        var cible = cibles[0];
+        if (cibles.length !== 1 ||
             jourAvant.some(function (ev) {
-                if (ev.id === original.id || ev.id === choix.conflitId || retires.indexOf(ev.id) !== -1) return false;
+                if (ev === original || ev.id === choix.conflitId || retires.indexOf(ev.id) !== -1) return false;
                 return !apres.some(function (a) { return a.id === ev.id && a.startTime === ev.startTime && a.endTime === ev.endTime; });
             }) || apres.some(function (ev) {
-                if (ev.id === original.id || ev.id === choix.conflitId) return false;
+                if (ev === cible || ev.id === choix.conflitId) return false;
                 return !jourAvant.some(function (old) { return old.id === ev.id && old.startTime === ev.startTime && old.endTime === ev.endTime; });
             }) || retires.some(function (id) { return apres.some(function (ev) { return ev.id === id; }); }) ||
             (choix.conflitId && (!apres.some(function (ev) { return ev.id === choix.conflitId && ev.startTime === choix.autre.start && ev.endTime === choix.autre.end; }) ||
                 apres.some(function (ev) { return ev.id !== choix.conflitId && ev.id !== 'sleep' && ev.id !== 'wakeup' &&
                     v3IntervallesSeCroisent(choix.autre.start, choix.autre.end, ev.startTime, ev.endTime); }))) ||
-            apres.some(function (ev) { return ev.id !== original.id && ev.id !== 'sleep' && ev.id !== 'wakeup' &&
-                v3IntervallesSeCroisent(choix.utilisateur.start, choix.utilisateur.end, ev.startTime, ev.endTime); })) {
+            (!ctx.renommageSeul && apres.some(function (ev) { return ev !== cible && ev.id !== 'sleep' && ev.id !== 'wakeup' &&
+                v3IntervallesSeCroisent(choix.utilisateur.start, choix.utilisateur.end, ev.startTime, ev.endTime); }))) {
             throw new Error('Le résultat ne correspond pas à l’aperçu');
         }
         v3Save();
@@ -1065,7 +1107,7 @@ function v3AppliquerResolutionDate(ctx, choix) {
     v3FermerChoixChevauchement(); closeEditModal();
     if (typeof v3SyncExoLabels === 'function') v3SyncExoLabels();
     renderPlanning();
-    v3Toast('✅ Chevauchement résolu pour le ' + ctx.resolutionDate + '.', 'success');
+    v3Toast(ctx.directEdition ? '✅ Modification enregistrée pour le ' + ctx.resolutionDate + '.' : '✅ Chevauchement résolu pour le ' + ctx.resolutionDate + '.', 'success');
     return true;
 }
 
@@ -1182,7 +1224,7 @@ function v3OuvrirChoixChevauchement(ctx) {
     window.__chevauchementCtx = ctx;
     window.__chevauchementRetourFocus = document.activeElement;
     var jour = V3_DAY_NAMES[ctx.day] || 'ce jour';
-    var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
+    var duree = v3DureeHoraire(ctx.start, ctx.end);
     var peutDeplacer = ctx.conflits.length === 1 ? v3DestinationDeplacement(ctx, ctx.conflits[0]) : null;
     var premier = ctx.conflits[0];
     var titre = ctx.selectionne ? 'Ton créneau choisi' :
@@ -1194,7 +1236,7 @@ function v3OuvrirChoixChevauchement(ctx) {
             '<span class="chev-icone" aria-hidden="true">' + iconeHtml(ev.icon || '📌', '1.4rem') + '</span>' +
             '<div class="chev-carte-corps"><span class="chev-etiquette">' + type + ' déjà prévu</span>' +
             '<strong>' + v3Escape(ev.title) + '</strong><span>' + v3Escape(ev.startTime) + ' → ' +
-            v3Escape(ev.endTime) + ' · ' + v3DureeCourte(timeToMinutes(ev.endTime) - timeToMinutes(ev.startTime)) + '</span></div></div>';
+            v3Escape(ev.endTime) + ' · ' + v3DureeCourte(v3DureeHoraire(ev.startTime, ev.endTime)) + '</span></div></div>';
     }).join('');
     var explication = ctx.selectionne
         ? 'Tu as choisi ' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' pour « ' + v3Escape(ctx.title) + ' ». Les activités déjà prévues ne changent que si tu choisis leur déplacement ou leur retrait.'
@@ -1372,7 +1414,7 @@ function v3OuvrirChoixChevauchement(ctx) {
     } else {
         var sourceInitiale = ctx.conflits[Number(source.value)];
         el.querySelector('#chevExactExemple').textContent = ' (' + sourceInitiale.startTime + ' → ' +
-            sourceInitiale.endTime + ' · ' + v3DureeCourte(timeToMinutes(sourceInitiale.endTime) - timeToMinutes(sourceInitiale.startTime)) + ')';
+            sourceInitiale.endTime + ' · ' + v3DureeCourte(v3DureeHoraire(sourceInitiale.startTime, sourceInitiale.endTime)) + ')';
     }
     var mode = function () { return el.querySelector('input[name="chevMode"]:checked').value; };
     function choixRetrait() {
@@ -1389,7 +1431,7 @@ function v3OuvrirChoixChevauchement(ctx) {
         if (source.options.length) {
             var selectionne = ctx.conflits[Number(source.value)];
             el.querySelector('#chevExactExemple').textContent = ' (' + selectionne.startTime + ' → ' +
-                selectionne.endTime + ' · ' + v3DureeCourte(timeToMinutes(selectionne.endTime) - timeToMinutes(selectionne.startTime)) + ')';
+                selectionne.endTime + ' · ' + v3DureeCourte(v3DureeHoraire(selectionne.startTime, selectionne.endTime)) + ')';
         }
         el.querySelector('#chevSourceGroupe').hidden = !exact;
         el.querySelector('#chevResultat').textContent = '« ' + ctx.title + ' » : ' + plage.start + ' → ' + plage.end +
@@ -1717,12 +1759,13 @@ function v3DonnerHoraireCible(sourceIdx, cibleIdx) {
     var cible = v3EvenementAffiche(cibleIdx);
     if (!voulu || !cible || !voulu.editable) return false;
     if (voulu.startTime === cible.startTime) return false;
-    var duree = timeToMinutes(voulu.endTime) - timeToMinutes(voulu.startTime);
+    var duree = v3DureeHoraire(voulu.startTime, voulu.endTime);
     if (!(duree > 0)) return false;
     var debut = cible.startTime;
     var finMins = timeToMinutes(debut) + duree;
     if (finMins >= 1440) return false;
     var fin = addMinutes('00:00', finMins);
+    if (v3SommeilInterdit(debut, fin, selectedDay)) { v3Toast('Le sommeil est protégé : choisis un autre horaire.', 'warn'); return false; }
     var conflits = v3ConflitsCreneau(selectedDay, debut, fin, [voulu.id]);
     if (conflits.length) {
         editingEvent = { id: voulu.id, title: voulu.title, startTime: voulu.startTime,
@@ -1779,3 +1822,67 @@ if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', v3PeindreIconeActivites);
     else v3PeindreIconeActivites();
 }
+
+/* Les choix d'activités de l'inscription respectent la même limite que le
+   planning, y compris les échanges dans leur fenêtre de chevauchement. */
+(function v3ProtegerActivitesSommeil() {
+    function interdit(start, end, day) { return !start || !end || timeToMinutes(end) <= timeToMinutes(start) || v3SommeilInterdit(start, end, day); }
+    function avertir() {
+        var cible = document.getElementById('schoolWarning');
+        if (!cible) return;
+        var message = document.createElement('div');
+        message.id = 'activiteSommeilWarning'; message.setAttribute('role', 'alert');
+        message.style.cssText = 'position:fixed;top:1rem;left:50%;transform:translateX(-50%);z-index:500;background:#fff8e8;border:2px solid #edcf84;color:#634b1e;padding:1rem;border-radius:1rem;max-width:90%;';
+        message.textContent = 'Choisis une heure de fin après le début, entre le réveil et le coucher : le sommeil est protégé.';
+        var ancien = document.getElementById(message.id); if (ancien) ancien.remove();
+        document.body.appendChild(message); setTimeout(function () { message.remove(); }, 5000);
+    }
+    var toggleJour = window.toggleActivityDay;
+    window.toggleActivityDay = function (name, day) {
+        var act = selectedActivities.find(function (e) { return e.name === name; });
+        if (act && !act.days.includes(day)) { var slot = creneauActivite(act, day); if (slot && interdit(slot.start, slot.end, day)) { avertir(); return; } }
+        return toggleJour.apply(this, arguments);
+    };
+    var update = window.updateActivityTime;
+    window.updateActivityTime = function (name, field, value, days) {
+        var act = selectedActivities.find(function (e) { return e.name === name; });
+        if (act) {
+            var s = field === 'startTime' ? value : act.startTime, e = field === 'endTime' ? value : act.endTime;
+            if (((days && days.length) ? days : act.days).some(function (day) { return interdit(s,e,day); })) { avertir(); renderActivities(); return; }
+        }
+        return update.apply(this, arguments);
+    };
+    var updateJour = window.updateActivityDayTime;
+    window.updateActivityDayTime = function (name, day, field, value) {
+        var act = selectedActivities.find(function (e) { return e.name === name; });
+        if (act) {
+            var slot = act.dayTimes[day] || {start:act.startTime || '17:00',end:act.endTime || '19:00'};
+            if (interdit(field === 'start' ? value : slot.start, field === 'end' ? value : slot.end, day)) { avertir(); renderActivities(); return; }
+        }
+        return updateJour.apply(this, arguments);
+    };
+    var toggleMeme = window.toggleSameTime;
+    window.toggleSameTime = function (name) {
+        var act = selectedActivities.find(function (e) { return e.name === name; });
+        if (act && !act.sameTime && act.days.some(function (day) { return interdit(act.startTime,act.endTime,day); })) { avertir(); return; }
+        return toggleMeme.apply(this, arguments);
+    };
+    var placer = window.poserCreneauActivite;
+    window.poserCreneauActivite = function (act, day, start, end) { if (interdit(start,end,day)) { avertir(); return; } return placer.apply(this, arguments); };
+    var appliquer = window.appliquerCreneauActivite;
+    window.appliquerCreneauActivite = function (start, end) {
+        var ctx = window.__activiteChevauchement;
+        if (ctx && interdit(start,end,ctx.day)) { direChevauchementActivite('Le sommeil est protégé : choisis un autre horaire.'); return; }
+        return appliquer.apply(this, arguments);
+    };
+    var remplacer = window.remplacerActiviteChevauchee;
+    window.remplacerActiviteChevauchee = function (conflit) {
+        var ctx = window.__activiteChevauchement;
+        if (ctx && conflit && (interdit(ctx.start,ctx.end,ctx.day) || interdit(conflit.start,conflit.end,ctx.day))) {
+            direChevauchementActivite('Le sommeil est protégé : choisis un autre horaire.'); return;
+        }
+        return remplacer.apply(this, arguments);
+    };
+    var propositions = window.propositionsCreneauActivite;
+    window.propositionsCreneauActivite = function (day) { return propositions.apply(this, arguments).filter(function (p) { return !interdit(p.start,p.end,day); }); };
+})();

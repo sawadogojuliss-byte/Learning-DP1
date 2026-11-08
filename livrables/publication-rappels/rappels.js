@@ -42,7 +42,7 @@
         b.textContent = existant ? '🔔 Rappel activé — désactiver' : '🔔 Me rappeler 5 minutes avant';
         if (existant && (!('Notification' in window) || Notification.permission !== 'granted'))
             message('Rappel sauvegardé, mais les notifications sont bloquées dans ce navigateur. Autorise-les dans ses réglages.');
-        else message(existant ? 'Rappel activé pour cette date sur cet appareil. Garde Studyplan ouvert.' : 'Pour cette date, sur cet appareil. Garde Studyplan ouvert pour recevoir le rappel.');
+        else message('Garde Studyplan ouvert pour recevoir le rappel.');
     }
     function installerUI() {
         var bouton = document.getElementById('editSaveButton');
