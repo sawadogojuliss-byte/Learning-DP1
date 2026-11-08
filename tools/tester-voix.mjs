@@ -172,7 +172,7 @@ const seance = await page.evaluate(() => {
     focusEntrerPiece();
     const liee = !!focusSeanceMinuteur && focusSeanceMinuteur.id === 'voix-session';
     const minuteur = document.getElementById('panelPomodoro').classList.contains('active');
-    if (liee && minuteur) document.getElementById('focusPlay').click();
+    // Le bouton d'entrée lance déjà le compte à rebours.
     return { accessible, liee, minuteur, lancee: focusEtat.running };
 });
 if (!Object.values(seance).every(Boolean)) echec('impossible de lancer la séance témoin : ' + JSON.stringify(seance));

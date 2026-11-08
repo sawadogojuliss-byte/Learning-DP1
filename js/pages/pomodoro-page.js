@@ -393,6 +393,8 @@ function focusSeancesJour() {
         if (!estEtude) return;
         var debut = focusMinutesHeure(ev.startTime);
         var fin = focusMinutesHeure(ev.endTime);
+        // Une séance qui finit à minuit se termine à la fin de la journée.
+        if (fin === 0 && debut > 0 && ev.endTime === '00:00') fin = 24 * 60;
         if (!(fin > debut)) return;
         seances.push({
             id: String(ev.id),
@@ -562,6 +564,7 @@ function focusEntrerPiece(libre) {
         focusPeindreAccueil();
         return;
     }
+    choisie.dateSelection = new Date().toDateString();
     var objectif = document.getElementById('focusTache');
     var saisi = objectif ? objectif.value.trim() : '';
     if (saisi && saisi !== choisie.titre && typeof confirmerAction === 'function') {
@@ -570,6 +573,10 @@ function focusEntrerPiece(libre) {
             annulerTexte: 'Garder mon objectif', annuler: function () { focusValiderSeance(choisie, saisi); },
             action: 'Accoler la séance', confirmer: function () { focusValiderSeance(choisie, saisi + ' · ' + choisie.titre); }
         });
+        // Le dialogue partagé est attaché au body ; il doit passer au-dessus
+        // du panneau de séance plein écran, sinon ses boutons sont invisibles.
+        var dialogue = document.getElementById('confirmationAction');
+        if (dialogue) dialogue.style.zIndex = '100001';
         return;
     }
     focusValiderSeance(choisie, choisie.titre);
@@ -577,7 +584,10 @@ function focusEntrerPiece(libre) {
 
 function focusValiderSeance(choisie, objectif) {
     /* Le créneau peut expirer pendant que l'élève choisit son objectif. */
-    if (focusEtatSeance(choisie).cle !== 'encours') { focusPeindreAccueil(); return; }
+    if (choisie.dateSelection !== new Date().toDateString() || focusEtatSeance(choisie).cle !== 'encours') {
+        focusPeindreAccueil();
+        return;
+    }
     focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin,
         date: new Date().toDateString() };
     focusEntreeDepuisSeance = true;
@@ -591,6 +601,9 @@ function focusValiderSeance(choisie, objectif) {
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
     else focusOuvrirMinuteur();
+    // Le bouton annonce un lancement : démarrer après l'ouverture, sans
+    // interrompre ni remettre à zéro un minuteur qui tourne déjà.
+    if (!focusEtat.running) focusBasculer();
 }
 
 function focusDecoderImage(src, suite) {
