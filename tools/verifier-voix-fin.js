@@ -76,7 +76,7 @@ ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en 
 ok(moduleSrc.indexOf('function chronoVoixJouerTampons') !== -1, 'le premier chemin (AudioContext) manque');
 ok(moduleSrc.indexOf('function chronoVoixJouerLecteurs') !== -1, 'le second chemin (lecteurs audio) manque');
 const moteurAnnonce = moduleSrc.slice(moduleSrc.indexOf('function chronoLancerAnnonce'), moduleSrc.indexOf('/* Fin de concentration'));
-ok(moteurAnnonce.includes('chronoVoixJouerTampons(noms') && moteurAnnonce.includes('chronoVoixJouerLecteurs(noms') && moteurAnnonce.includes('chronoVoixSynthese(phrase'),
+ok(moteurAnnonce.includes('chronoVoixJouerTampons(noms') && moteurAnnonce.includes('chronoVoixJouerLecteurs(options && options.nomsSecours || noms') && moteurAnnonce.includes('chronoVoixSynthese(phrase'),
     'la voix doit garder le décodage, le lecteur et la synthèse de secours');
 ok(moteurAnnonce.includes("typeVoix === 'feminine'") && moteurAnnonce.includes('20000'),
     'une panne ne doit ni mélanger les voix ni bloquer indéfiniment le minuteur');

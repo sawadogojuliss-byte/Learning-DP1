@@ -17,3 +17,5 @@ Pour assembler tout le site avec une autre installation FFmpeg :
 ```sh
 STUDY_FFMPEG=/chemin/vers/ffmpeg python3 tools/preparer-publication-pages.py BASE SORTIE VERSION
 ```
+
+Un service HTTP expérimental distinct est maintenant disponible pour comparer des débits et produire la piste à la demande : voir [service-voix-pomodoro.md](service-voix-pomodoro.md). Il n'est pas hébergé ni activé sur le minuteur public et n'a pas encore été approuvé à l'écoute.

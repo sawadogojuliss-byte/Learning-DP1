@@ -56,6 +56,7 @@ files = [
     'livrables/publication-voix/essai-debit.html',
     'livrables/publication-voix/essai-fluide-5-minutes.mp3',
     'livrables/publication-voix/fin-serie-essai.mp3',
+    'livrables/publication-voix/essai-backend/index.html',
     'livrables/publication-voix/essai-traitement/index.html',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
@@ -96,6 +97,11 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
+# Échantillons servis par le backend en local, publiés uniquement pour écoute.
+files.extend(f'livrables/publication-voix/essai-backend/{message}-{debit}.mp3'
+             for message in ('fin-serie', 'pause-05', 'pause-21')
+             for debit in ('lent', 'normal', 'rapide'))
+
 # Voix masculine choisie : durées enregistrées en entier, sans assemblage de nombres.
 files.extend(f'livrables/stock-voix/durees/{n:02d}-minutes.wav' for n in range(1, 50))
 files.extend(f'livrables/publication-voix/essai-{n:02d}-minutes.mp3' for n in range(50, 61))

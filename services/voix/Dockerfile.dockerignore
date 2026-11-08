@@ -1,0 +1,14 @@
+*
+!services/
+!services/voix/
+!services/voix/serveur.py
+!tools/
+!tools/preparer-annonces-fluides.py
+!livrables/
+!livrables/stock-voix/
+!livrables/stock-voix/messages/
+!livrables/stock-voix/messages/*.wav
+!livrables/stock-voix/durees/
+!livrables/stock-voix/durees/*
+!livrables/publication-voix/
+!livrables/publication-voix/essai-*-minutes.mp3

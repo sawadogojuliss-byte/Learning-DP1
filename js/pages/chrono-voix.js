@@ -141,7 +141,27 @@ function chronoVoixMorceauxNombre(nombre) {
     return null;
 }
 
+/* Service facultatif : il n'est utilisé qu'après configuration explicite et
+   validation à l'écoute. Sans lui, les prises existantes restent prioritaires. */
+function chronoVoixServiceBase() {
+    var base = window.STUDYPLAN_VOIX_BACKEND;
+    if (typeof base !== 'string' || !base.trim()) return null;
+    try {
+        var url = new URL(base.trim(), window.location.href);
+        if ((url.protocol !== 'https:' && url.origin !== window.location.origin) || url.username || url.password || url.search || url.hash) return null;
+        return url.href.replace(/\/$/, '');
+    } catch (e) { return null; }
+}
+function chronoVoixServiceNom(minutes, finale) {
+    if (!chronoVoixServiceBase() || chronoVoixType() !== 'masculine') return null;
+    var debit = window.STUDYPLAN_VOIX_DEBIT;
+    if (['lent', 'normal', 'rapide'].indexOf(debit) === -1) return null;
+    return 'service-pause-' + minutes + '-' + debit + '-' + (finale ? '1' : '0');
+}
+
 function chronoVoixUrl(nom) {
+    var service = /^service-pause-([1-9]|[1-5][0-9]|60)-(lent|normal|rapide)-([01])$/.exec(nom);
+    if (service && chronoVoixServiceBase()) return chronoVoixServiceBase() + '/v1/audio?message=pause&minutes=' + service[1] + '&debit=' + service[2] + '&finale=' + service[3];
     var male = /^masculine-n-(\d+)$/.exec(nom);
     if (male) {
         var n = Number(male[1]);
@@ -266,6 +286,16 @@ function chronoVoixPreparer(minutes) {
     noms.forEach(function (nom) {
         chronoVoixCharger(nom).catch(function () {});
         chronoVoixLecteur(nom);
+    });
+    /* Le résultat serveur doit être entièrement décodé avant la fin du
+       minuteur. S'il tarde ou échoue, on utilise les sons actuels. */
+    if (chronoVoixActive()) pauses.forEach(function (m) {
+        var n = Math.round(Number(m));
+        if (!isFinite(n) || n < 1 || n > 60) return;
+        [false, true].forEach(function (finale) {
+            var nom = chronoVoixServiceNom(n, finale);
+            if (nom) chronoVoixCharger(nom).catch(function () {});
+        });
     });
 }
 
@@ -549,11 +579,11 @@ function chronoLancerAnnonce(noms, typeVoix, phrase, suite, options) {
             else fini();
             return;
         }
-        chronoVoixJouerLecteurs(noms, function (ok) {
+        chronoVoixJouerLecteurs(options && options.nomsSecours || noms, function (ok) {
             if (!valide()) return;
             if (!ok && typeVoix === 'feminine' && phrase) chronoVoixSynthese(phrase, fini);
             else fini();
-        }, { generation: generation, pauseApresPremier: !!(options && options.pauseApresPremier) });
+        }, { generation: generation, pauseApresPremier: !!(options && (options.nomsSecours ? options.pauseSecours : options.pauseApresPremier)) });
     }
     if (!noms || !noms.length) { setTimeout(secours, delaiBip); return; }
     chronoVoixJouerTampons(noms, function (ok) {
@@ -573,7 +603,12 @@ function chronoAnnoncerPause(minutes, suite, derniereSeance) {
         noms.unshift('masculine-fin-serie');
         texte = 'Tes séances de révisions sont terminées. ' + texte;
     }
-    chronoLancerAnnonce(noms, chronoVoixType(), texte, suite, { pauseApresPremier: !!derniereSeance });
+    var nomService = chronoVoixServiceNom(n, !!derniereSeance);
+    if (nomService && chronoVoixTampons[nomService]) {
+        chronoLancerAnnonce([nomService], chronoVoixType(), texte, suite, { nomsSecours: noms, pauseSecours: !!derniereSeance });
+    } else {
+        chronoLancerAnnonce(noms, chronoVoixType(), texte, suite, { pauseApresPremier: !!derniereSeance });
+    }
 }
 
 /* Fin de pause : la phrase demandée est toujours la voix masculine choisie. */

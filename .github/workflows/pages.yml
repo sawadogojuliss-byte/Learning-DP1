@@ -49,6 +49,7 @@ jobs:
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
           python3 travail/tools/tester-preparation-annonces.py site/livrables/publication-voix/essai-traitement
           python3 travail/tools/verifier-stock-voix.py
+          python3 travail/tests/voix/test_serveur.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js
           node --check site/js/pages/exercices.js
@@ -106,6 +107,7 @@ jobs:
           executer_test travail/tools/tester-voix.mjs
           executer_test travail/tools/tester-choix-voix.mjs
           executer_test travail/tools/tester-transitions-voix.mjs
+          executer_test travail/tests/voix/test_client.mjs
           executer_test travail/tools/tester-popup-reprise.mjs
           executer_test travail/tools/tester-essai-debit.mjs
           executer_test travail/tools/tester-propositions-reprise.mjs
