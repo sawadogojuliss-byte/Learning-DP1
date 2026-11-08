@@ -58,6 +58,8 @@ files = [
     'livrables/publication-voix/fin-serie-essai.mp3',
     'livrables/publication-voix/essai-prononciation-claire-5.mp3',
     'livrables/publication-voix/essai-backend/index.html',
+    'livrables/publication-voix/essai-prises-continues/index.html',
+    'livrables/publication-voix/essai-prises-continues/manifest.json',
     'livrables/publication-voix/essai-traitement/index.html',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
@@ -102,6 +104,9 @@ files = [
 files.extend(f'livrables/publication-voix/essai-backend/{message}-{debit}.mp3'
              for message in ('fin-serie', 'pause-05', 'pause-21')
              for debit in ('lent', 'normal', 'rapide'))
+
+files.extend(f'livrables/publication-voix/essai-prises-continues/{n:02d}.mp3'
+             for n in (1, 2, 3, 4, 6, 10, 15, 16, 19, 21))
 
 # Voix masculine choisie : durées enregistrées en entier, sans assemblage de nombres.
 files.extend(f'livrables/stock-voix/durees/{n:02d}-minutes.wav' for n in range(1, 50))

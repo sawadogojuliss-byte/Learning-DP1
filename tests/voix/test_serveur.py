@@ -78,6 +78,11 @@ try:
         statut, headers, corps = requete(f'/v1/audio?message=pause&minutes={n}&debit=normal&finale={finale}')
         assert statut == 200 and 4 < duree(corps) < 20, (n, finale)
         assert int(headers['Content-Length']) == len(corps)
+        if n == 5:
+            assert corps == (ROOT / 'livrables/publication-voix/essai-prononciation-claire-5.mp3').read_bytes()
+    for debit, finale in (('normal', 1), ('lent', 0), ('rapide', 0)):
+        statut, _, corps = requete(f'/v1/audio?message=pause&minutes=5&debit={debit}&finale={finale}')
+        assert statut == 200 and duree(corps) > 3
 
     # Vérifie avant encodage et en dehors du fondu que la durée approuvée ne
     # subit pas le changement de débit, pour les trois réglages.

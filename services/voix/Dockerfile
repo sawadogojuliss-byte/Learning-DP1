@@ -8,6 +8,7 @@ COPY tools/preparer-annonces-fluides.py tools/preparer-annonces-fluides.py
 COPY livrables/stock-voix/messages/ livrables/stock-voix/messages/
 COPY livrables/stock-voix/durees/ livrables/stock-voix/durees/
 COPY livrables/publication-voix/essai-*-minutes.mp3 livrables/publication-voix/
+COPY livrables/publication-voix/essai-prononciation-claire-5.mp3 livrables/publication-voix/
 USER voix
 ENV PORT=8080 PYTHONUNBUFFERED=1
 EXPOSE 8080

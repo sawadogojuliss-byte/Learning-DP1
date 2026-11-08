@@ -61,21 +61,18 @@ try {
   await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
   assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-21-lent-1']);
   await page.waitForFunction(() => window.__finVoixService, null, { timeout: 25000 });
-  // Si le serveur n'a pas répondu avant la fin, les prises historiques
-  // prennent le relais, y compris la phrase finale, sans deuxième bip.
+  // La prise de cinq minutes, approuvée et publiée sur le site, reste
+  // prioritaire même quand un service est configuré puis indisponible.
+  await page.waitForFunction(() => !!chronoVoixTampons['masculine-complet-5'], null, { timeout: 30000 });
   enPanne = true;
-  await page.evaluate(async () => {
-    delete chronoVoixTampons['service-pause-5-lent-1'];
-    delete chronoVoixChargements['service-pause-5-lent-1'];
-    try { await chronoVoixCharger('service-pause-5-lent-1'); } catch (_) {}
-    window.__sourcesService = []; chronoAnnoncerPause(5, () => {}, true);
-  });
-  await page.waitForFunction(() => window.__sourcesService.length === 4, null, { timeout: 10000 });
-  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-debut','masculine-n-5','masculine-pause']);
+  await page.evaluate(() => { window.__sourcesService = []; chronoAnnoncerPause(5, () => {}, true); });
+  await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
+  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
   // Si l'AudioContext échoue après préchargement, le lecteur de secours
   // utilise aussi les prises historiques et non le service indisponible.
   const secours = await page.evaluate(async () => {
+    window.__jouerLecteursOriginal = chronoVoixJouerLecteurs;
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoVoixJouerLecteurs = (n, cb, options) => { window.__secours = { n, pause: options.pauseApresPremier }; cb(true); };
     chronoAnnoncerPause(21, () => {}, true);
@@ -83,6 +80,51 @@ try {
     return window.__secours;
   });
   assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-21','masculine-pause'], pause: true });
+  // Sans AudioContext, des lecteurs réels (simulés ici seulement côté
+  // périphérique) tentent la prise complète, puis les fragments si besoin.
+  const scenarios = await page.evaluate(async () => {
+    const jouerLecteurs = window.__jouerLecteursOriginal;
+    // La fonction originale a été sauvegardée avant instrumentation.
+    chronoVoixJouerLecteurs = jouerLecteurs;
+    chronoVoixJouerTampons = (n, cb) => cb(false);
+    chronoBipDoux = () => null;
+    const essais = [];
+    for (const scenario of ['normal', 'finale', 'finale-echec-complet', 'finale-echec-fin', 'annulation', 'muet']) {
+      const lus = []; let fin = 0;
+      const avant = chronoVoixLecteur;
+      chronoVoixLecteur = nom => ({
+        addEventListener(type, callback) { this[type] = callback; },
+        play() { lus.push(nom); setTimeout(() => {
+          if ((scenario === 'finale-echec-complet' && nom === 'masculine-complet-5') ||
+              (scenario === 'finale-echec-fin' && nom === 'masculine-fin-serie' && lus.length === 1)) this.error();
+          else this.ended();
+        }, 5); return Promise.resolve(); },
+        pause() {}, set currentTime(v) {}, set volume(v) {}
+      });
+      localStorage.setItem('studyPlanIB_voixActive', scenario === 'muet' ? 'false' : 'true');
+      chronoAnnoncerPause(5, () => { fin++; }, scenario.startsWith('finale'));
+      if (scenario === 'annulation') setTimeout(() => chronoInterrompreAnnonce(false), 100);
+      await new Promise(resolve => setTimeout(resolve, scenario === 'annulation' ? 1100 : 2000));
+      chronoVoixLecteur = avant; chronoInterrompreAnnonce(false);
+      essais.push({ scenario, lus, fin });
+    }
+    localStorage.setItem('studyPlanIB_voixActive', 'true');
+    localStorage.setItem('studyPlanIB_voixType', 'feminine');
+    const feminine = chronoVoixPhrasePause(5);
+    localStorage.setItem('studyPlanIB_voixType', 'masculine');
+    return { essais, feminine, vingtEtUn: chronoVoixPhrasePause(21), reprise: chronoVoixUrl('masculine-reprise') };
+  });
+  assert.deepEqual(scenarios.essais, [
+    { scenario: 'normal', lus: ['masculine-complet-5'], fin: 1 },
+    { scenario: 'finale', lus: ['masculine-fin-serie', 'masculine-complet-5'], fin: 1 },
+    { scenario: 'finale-echec-complet', lus: ['masculine-fin-serie', 'masculine-complet-5', 'masculine-debut', 'masculine-n-5', 'masculine-pause'], fin: 1 },
+    { scenario: 'finale-echec-fin', lus: ['masculine-fin-serie', 'masculine-fin-serie', 'masculine-debut', 'masculine-n-5', 'masculine-pause'], fin: 1 },
+    { scenario: 'annulation', lus: [], fin: 0 },
+    { scenario: 'muet', lus: [], fin: 1 }
+  ]);
+  assert.ok(!scenarios.feminine.includes('masculine-complet-5'));
+  assert.deepEqual(scenarios.vingtEtUn, ['masculine-debut', 'masculine-n-21', 'masculine-pause']);
+  assert.ok(scenarios.reprise.includes('reprise-proposition.wav'));
   const limites = await page.evaluate(() => {
     localStorage.setItem('studyPlanIB_voixType', 'feminine');
     const feminine = chronoVoixServiceNom(21, true);

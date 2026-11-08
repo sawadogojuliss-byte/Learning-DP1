@@ -37,6 +37,7 @@ SOURCES = {
     ROOT / 'livrables/stock-voix/messages/annonce-debut.wav': '86d2aa33a4aa7fd774f7251ccb0184b5dd45dffe28edf863b3438313b43dca91',
     ROOT / 'livrables/stock-voix/messages/annonce-de-pause.wav': '0a9bb04c742d64cceff6e83681667239b82f8398127ed84157221822e0af1f47',
     ROOT / 'livrables/stock-voix/messages/essai-clair-5.wav': '401b69f4ea25ec4a266642de7501500ef97c013b2529abf03bc8731d85afe2ff',
+    ROOT / 'livrables/publication-voix/essai-prononciation-claire-5.mp3': 'ab979aaeae858c2ee8da999e4e6ae843349fb4348afa2529b3607bd80fc99e9c',
 }
 
 
@@ -88,6 +89,17 @@ def generer(message, debit, minutes=None, finale=False):
         intervalle = audio.silence_interne(FFMPEG, fichier, 1.7, 3.1, .5)
         prise = audio.compresser_pause(audio.extraire(FFMPEG, fichier), intervalle, cible=.35)
         return encoder(changer_debit(prise, debit))
+    if minutes == 5:
+        # Prise complète acceptée : aucun raccord devant le nombre. Le débit
+        # normal et la pause non finale renvoient exactement le MP3 approuvé.
+        approuve = ROOT / 'livrables/publication-voix/essai-prononciation-claire-5.mp3'
+        if debit == 'normal' and not finale:
+            return approuve.read_bytes()
+        phrase = changer_debit(audio.extraire(FFMPEG, approuve), debit)
+        if finale:
+            final = audio.rogner_bords(audio.extraire(FFMPEG, ROOT / 'livrables/stock-voix/messages/fin-serie.wav'))
+            phrase = changer_debit(final, debit) + array('h', [0]) * round(.3 * audio.RATE) + phrase
+        return encoder(phrase)
     debut = ROOT / 'livrables/stock-voix/messages/annonce-debut.wav'
     fin = ROOT / 'livrables/stock-voix/messages/annonce-de-pause.wav'
     # Ces paramètres sont les mêmes que pour l'essai antérieur, non validé.
