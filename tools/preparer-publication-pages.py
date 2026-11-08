@@ -52,6 +52,8 @@ files = [
     'livrables/propositions-pomodoro/index.html',
     'livrables/publication-voix/vingte-une-minute-essai.mp3',
     'livrables/publication-voix/essai-annonce-masculine.mp3',
+    'livrables/publication-voix/essai-debit.html',
+    'livrables/publication-voix/essai-fluide-5-minutes.mp3',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
     'livrables/stock-voix/messages/annonce-de-pause.wav',

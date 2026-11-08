@@ -1170,6 +1170,9 @@ function focusPhaseSuivante(silencieux) {
                 typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
         }
         if (silencieux) reprisePrete();
+        /* À la fin de la série il n'y a pas de nouvelle séance à annoncer.
+           Garder un signal de fin, mais jamais le message de reprise trompeur. */
+        else if (pauseFinale) { focusBip(1); reprisePrete(); }
         else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise(reprisePrete);
         else { focusBip(1); setTimeout(reprisePrete, 800); }
     }

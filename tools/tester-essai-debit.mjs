@@ -1,0 +1,30 @@
+/* La page Studyplan doit permettre d'écouter l'essai et la référence inchangée. */
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+const require = createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES, '../package.json') : import.meta.url);
+const { chromium } = require('playwright');
+const portable = process.env.STUDY_PLAYWRIGHT_SYSTEM ? null : require('@sparticuz/chromium').default;
+const site = process.env.STUDY_SITE || 'http://127.0.0.1:8599/';
+const browser = await chromium.launch({ ...(portable ? { executablePath: await portable.executablePath() } : {}), args: [...(portable ? portable.args.filter(x => x !== '--single-process') : []), '--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
+try {
+  for (const viewport of [{width: 320, height: 568}, {width: 1280, height: 800}]) {
+    const page = await browser.newPage({ viewport, serviceWorkers: 'block' });
+    const response = await page.goto(new URL('livrables/publication-voix/essai-debit.html', site).href);
+    assert.equal(response.status(), 200);
+    const resultats = await page.evaluate(async () => {
+      const context = new (window.AudioContext || window.webkitAudioContext)();
+      const lectures = Array.from(document.querySelectorAll('audio'));
+      return await Promise.all(lectures.map(async el => {
+        const reponse = await fetch(el.src);
+        const son = await context.decodeAudioData(await reponse.arrayBuffer());
+        const b = el.getBoundingClientRect();
+        return { ok: reponse.ok, secondes: son.duration, accessible: el.controls && b.left >= 0 && b.right <= innerWidth };
+      }));
+    });
+    assert.equal(resultats.length, 2);
+    for (const r of resultats) { assert.equal(r.ok, true); assert.equal(r.accessible, true); assert.ok(r.secondes > 3 && r.secondes < 8); }
+    await page.close();
+  }
+  console.log('OK lecteur Studyplan : essai fluide et reprise de référence décodés sur mobile et ordinateur');
+} finally { await browser.close(); }

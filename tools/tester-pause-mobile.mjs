@@ -69,8 +69,8 @@ try {
   await page.evaluate(() => focusMajReglage('auto', true));
   await page.locator('#focusPlay').click(); await avance(page, 60000); await avance(page, 2000);
   s = await etat(page); assert.equal(s.mode, 'long'); assert.equal(s.running, true); assert.equal(s.annonces[0].minutes, 2);
-  await avance(page, 120000); s = await etat(page); assert.equal(s.transition, 'reprise-annonce'); assert.equal(await page.locator('#focusReprise').isVisible(), false);
-  await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.transition, ''); assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  await avance(page, 120000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.transition, ''); assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  assert.equal(await page.evaluate(() => window.__reprises || 0), 0, 'pas d’annonce promettant une nouvelle séance après la dernière');
   await terminer(page, errors);
 
   // Séance planifiée : confirmation après l'annonce de reprise, puis pause finale sans boucle.
@@ -93,11 +93,35 @@ try {
   await page.evaluate(() => { document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro'); });
   s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true); assert.equal(s.pauseFinale, true); assert.equal(s.fin, finFinale);
   // Après rechargement, on simule le signal audio pour l'horloge virtuelle.
-  await page.evaluate(() => { chronoAnnoncerReprise = suite => setTimeout(suite, 2000); });
-  await avance(page, 60000); await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.serie, 2); assert.equal(s.transition, '');
-  assert.equal(await page.locator('#focusReprise').isVisible(), false);
+  await page.evaluate(() => { window.__reprises = 0; chronoAnnoncerReprise = suite => { window.__reprises++; setTimeout(suite, 2000); }; });
+  await avance(page, 60000); s = await etat(page); assert.equal(s.mode, 'focus'); assert.equal(s.running, false); assert.equal(s.serie, 2); assert.equal(s.transition, '');
+  assert.equal(await page.locator('#focusReprise').isVisible(), false); assert.equal(await page.evaluate(() => window.__reprises), 0);
   await terminer(page, errors);
   console.log('OK pause après annonce, confirmation, durée et fin de série après rechargement');
+
+  // Reproduit le cas signalé : quatre séances, trois confirmations puis fin.
+  ({ page, errors } = await pagePour({ width: 1280, height: 800 }, 4));
+  await page.locator('#focusPlay').click();
+  for (let numero = 1; numero <= 4; numero++) {
+    await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'pause-annonce');
+    await avance(page, 2000); s = await etat(page); assert.equal(s.running, true);
+    await avance(page, numero === 4 ? 120000 : 60000);
+    if (numero < 4) {
+      assert.equal((await etat(page)).transition, 'reprise-annonce');
+      assert.equal(await page.locator('#focusReprise').isVisible(), false);
+      await avance(page, 2000);
+      assert.equal(await page.locator('#focusReprise').isVisible(), true, 'fenêtre absente après la séance ' + numero);
+      assert.equal(await page.locator('#focusRepriseCompte').innerText(), `Séance ${numero + 1} sur 4`);
+      await page.locator('.focus-reprise-oui').click();
+      assert.equal((await etat(page)).running, true);
+    } else {
+      assert.equal(await page.locator('#focusReprise').isVisible(), false, 'pas de fenêtre après la dernière séance');
+      s = await etat(page); assert.equal(s.running, false); assert.equal(s.transition, '');
+      assert.equal(await page.evaluate(() => window.__reprises), 3, 'pas d’annonce de nouvelle séance après la quatrième');
+    }
+  }
+  await terminer(page, errors);
+  console.log('OK quatre séances : fenêtres 2/4, 3/4 et 4/4, aucune reprise annoncée à la fin');
 
   // Les boutons doivent être dans la zone visible et réellement cliquables,
   // même sur petits téléphones et en paysage.
