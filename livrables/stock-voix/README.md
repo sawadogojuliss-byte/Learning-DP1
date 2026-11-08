@@ -1,6 +1,6 @@
 # Stock des annonces vocales pour utilisation ultérieure
 
-Ces fichiers sont conservés dans le dépôt : ils ne sont pas encore utilisés par le minuteur ni présentés comme une base de données applicative. Ne pas remplacer les annonces existantes avant validation et intégration explicite.
+Ces fichiers sont conservés dans le dépôt. Les durées de 1 à 60 sont utilisées par la voix masculine du minuteur ; la voix féminine existante reste inchangée. Ce stockage n'est pas une base de données applicative.
 
 ## Durées
 
@@ -16,5 +16,6 @@ Ces fichiers sont conservés dans le dépôt : ils ne sont pas encore utilisés 
 - `reprise-proposition.wav` : « Ta pause est terminée. C’est parti pour une nouvelle séance de concentration ! » ; voix choisie pour les nouveaux extraits, pas encore validée à l'écoute.
 - `fin-seance-proposition.wav` : proposition « Ta séance de révision est terminée. Tu as droit maintenant à une pause. » avec cette même voix ; formulation et prononciation à valider avant utilisation.
 - `fin-seance-test-masculine-2-original.mp3` : extrait original du test Masculine 2, conservé à titre de référence. Il ne faut pas le présenter comme la même voix que celle sélectionnée pour les nouveaux enregistrements : leur identité exacte n'a pas pu être garantie.
+- `annonce-debut.wav` et `annonce-de-pause.wav` : nouveaux morceaux utilisés avec les durées ; leur rendu global n'a pas encore été validé à l'écoute.
 
-Les essais 50 à 60 sont conservés à part dans `livrables/publication-voix/essai-XX-minutes.mp3` pour écoute ; ils ne sont pas validés ni intégrés au minuteur.
+Les fichiers 50 à 60, validés par l'utilisateur, sont conservés dans `livrables/publication-voix/essai-XX-minutes.mp3`.

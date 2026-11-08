@@ -390,7 +390,25 @@
     font: inherit;
 }
 .focus-page input[type="range"] { width: 100%; accent-color: var(--focus-vert); }
-#focusReglages label[for="focusVoixVolume"] { display: block; margin: 0.8rem 0 0.4rem; font-size: 0.86rem; color: #fff; }
+#focusReglages label[for="focusVoixVolume"] { display: block; margin: 1.15rem 0 0.4rem; font-size: 0.86rem; color: #fff; }
+
+/* Voix : deux choix lisibles, accessibles au clavier et accordés au tiroir. */
+.focus-voix-choix { min-width: 0; margin: 1.1rem 0 0; padding: 0; border: 0; }
+.focus-voix-choix legend { padding: 0; color: #fff; font-size: .91rem; font-weight: 650; }
+.focus-voix-choix p { margin: .35rem 0 .8rem; color: rgba(255,255,255,.66); font-size: .8rem; line-height: 1.45; }
+.focus-voix-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.focus-voix-option { position: relative; min-width: 0; cursor: pointer; }
+.focus-voix-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.focus-voix-tuile { display: flex; align-items: center; gap: .65rem; min-height: 4.3rem; box-sizing: border-box; padding: .7rem; border: 1px solid rgba(255,255,255,.13); border-radius: .85rem; background: rgba(255,255,255,.045); color: #fff; transition: border-color .18s, background .18s; }
+.focus-voix-icone { display: grid; place-items: center; flex: 0 0 2.15rem; width: 2.15rem; height: 2.15rem; border-radius: .7rem; background: rgba(110,231,183,.11); color: var(--focus-menthe); font-size: 1.1rem; }
+.focus-voix-tuile strong, .focus-voix-tuile small { display: block; }
+.focus-voix-tuile strong { font-size: .83rem; line-height: 1.25; }
+.focus-voix-tuile small { margin-top: .2rem; color: rgba(255,255,255,.62); font-size: .7rem; line-height: 1.25; }
+.focus-voix-coche { margin-left: auto; color: var(--focus-menthe); opacity: 0; }
+.focus-voix-option input:checked + .focus-voix-tuile { border-color: rgba(110,231,183,.8); background: rgba(16,185,129,.14); }
+.focus-voix-option input:checked + .focus-voix-tuile .focus-voix-coche { opacity: 1; }
+.focus-voix-option input:focus-visible + .focus-voix-tuile { outline: 2px solid #fff; outline-offset: 3px; }
+@media (max-width: 360px) { .focus-voix-grille { grid-template-columns: 1fr; } }
 
 /* Interrupteurs */
 .focus-interrupteur {

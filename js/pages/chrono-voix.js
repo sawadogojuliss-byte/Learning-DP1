@@ -27,10 +27,22 @@ function chronoVoixActive() {
 function chronoVoixVolume() {
     try { var lu = localStorage.getItem('studyPlanIB_voixVolume'); if (lu === null) return 0.7; var v = Number(lu); return isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; } catch (e) { return 0.7; }
 }
+function chronoVoixType() {
+    try { return localStorage.getItem('studyPlanIB_voixType') === 'masculine' ? 'masculine' : 'feminine'; } catch (e) { return 'feminine'; }
+}
 function chronoChargerReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
     if (active) active.checked = chronoVoixActive();
     if (volume) volume.value = String(Math.round(chronoVoixVolume() * 100));
+    var choix = document.querySelectorAll('input[name="focusVoixType"]');
+    for (var i = 0; i < choix.length; i++) choix[i].checked = choix[i].value === chronoVoixType();
+}
+function chronoChoisirVoix(type) {
+    if (type !== 'feminine' && type !== 'masculine') return;
+    try { localStorage.setItem('studyPlanIB_voixType', type); } catch (e) {}
+    chronoChargerReglagesVoix();
+    /* Préparer les sons pendant l'interaction, sans jouer d'annonce. */
+    if (chronoVoixActive()) chronoVoixPreparer();
 }
 function chronoSauverReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
@@ -121,6 +133,17 @@ function chronoVoixMorceauxNombre(nombre) {
 }
 
 function chronoVoixUrl(nom) {
+    var male = /^masculine-n-(\d+)$/.exec(nom);
+    if (male) {
+        var n = Number(male[1]);
+        if (n >= 1 && n <= 49) {
+            var fichier = n === 21 ? '21-minutes-approuve.mp3' : String(n).padStart(2, '0') + '-minutes.wav';
+            return 'livrables/stock-voix/durees/' + fichier + '?v=' + CHRONO_VOIX_VERSION;
+        }
+        if (n >= 50 && n <= 60) return 'livrables/publication-voix/essai-' + n + '-minutes.mp3?v=' + CHRONO_VOIX_VERSION;
+    }
+    if (nom === 'masculine-debut') return 'livrables/stock-voix/messages/annonce-debut.wav?v=' + CHRONO_VOIX_VERSION;
+    if (nom === 'masculine-pause') return 'livrables/stock-voix/messages/annonce-de-pause.wav?v=' + CHRONO_VOIX_VERSION;
     return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;
 }
 
@@ -210,7 +233,7 @@ function chronoVoixLecteur(nom) {
    annonce la longue sans avoir le temps de la télécharger. */
 function chronoVoixPreparer(minutes) {
     chronoVoixContexte();
-    var noms = ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et'];
+    var noms = chronoVoixType() === 'masculine' ? ['masculine-debut', 'masculine-pause'] : ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et'];
     var pauses = [];
     if (Array.isArray(minutes)) pauses = minutes.slice();
     else if (minutes != null) pauses = [minutes];
@@ -221,8 +244,12 @@ function chronoVoixPreparer(minutes) {
         }
     } catch (e) {}
     pauses.forEach(function (m) {
-        var nombre = chronoVoixMorceauxNombre(m);
-        if (nombre) noms = noms.concat(nombre);
+        var n = Math.round(Number(m));
+        if (chronoVoixType() === 'masculine' && isFinite(n) && n >= 1 && n <= 60) noms.push('masculine-n-' + n);
+        else if (chronoVoixType() === 'feminine') {
+            var nombre = chronoVoixMorceauxNombre(m);
+            if (nombre) noms = noms.concat(nombre);
+        }
     });
     noms.forEach(function (nom) {
         chronoVoixCharger(nom).catch(function () {});
@@ -413,6 +440,10 @@ function chronoPhrasePause(minutes) {
 function chronoVoixPhrasePause(minutes) {
     var n = Math.round(Number(minutes));
     if (!isFinite(n) || n < 1) return null;
+    if (chronoVoixType() === 'masculine') {
+        if (n > 60) return null;
+        return ['masculine-debut', 'masculine-n-' + n, 'masculine-pause'];
+    }
     var nombre = chronoVoixMorceauxNombre(n);
     if (!nombre) return null;
     return ['seance-fin'].concat(nombre, [n > 1 ? 'minutes-de-pause' : 'minute-de-pause']);
@@ -427,14 +458,17 @@ function chronoAnnoncerPause(minutes) {
     chronoAnnonceEnCours = true;
     chronoCouperMusique();
     chronoBipDoux();
+    var typeVoix = chronoVoixType();
     var noms = chronoVoixPhrasePause(n);
     setTimeout(function () {
         if (generation !== chronoAnnonceGeneration) return;
         chronoVoixArreter();
         if (!chronoVoixActive()) { chronoFinAnnonce(generation); return; }
         if (!noms) {
-            chronoVoixSynthese(chronoPhrasePause(n));
-            setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
+            if (typeVoix === 'feminine') {
+                chronoVoixSynthese(chronoPhrasePause(n));
+                setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
+            } else chronoFinAnnonce(generation);
             return;
         }
         chronoVoixJouerTampons(noms, function (ok) {
@@ -442,8 +476,8 @@ function chronoAnnoncerPause(minutes) {
             if (ok) { chronoFinAnnonce(generation); return; }
             chronoVoixJouerLecteurs(noms, function (ok2) {
                 if (generation !== chronoAnnonceGeneration) return;
-                if (!ok2) chronoVoixSynthese(chronoPhrasePause(n));
-                if (ok2) chronoFinAnnonce(generation);
+                if (!ok2 && typeVoix === 'feminine') chronoVoixSynthese(chronoPhrasePause(n));
+                if (ok2 || typeVoix === 'masculine') chronoFinAnnonce(generation);
                 else setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
             });
         });

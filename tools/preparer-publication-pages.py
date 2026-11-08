@@ -39,6 +39,9 @@ for rel, expected_hash in {
     'pages/devoirs.html': '71e0fa0c1f9cf5ea3ccf10586d06a12af818f5a6',
     'js/pages/devoirs.js': 'cf3824b3b0ff7d7bdd77580bffeb93366f4563f2',
     'js/accessibilite.js': '26665dd3d801395941440d417377896a24eaf1a9',
+    'js/pages/chrono-voix.js': '97854c5a6e81d2e1056632af72afbc6d154f6798',
+    'css/pages/focus-parametres.css': '0c9093c628fa9760c16a4e8ea7c205b2a50f3795',
+    'js/synchro.js': 'b872031f3b925ac4961b97fa6993506023f121a6',
 }.items():
     found = subprocess.check_output(['git', 'hash-object', str(base / rel)], text=True).strip()
     if found != expected_hash:
@@ -47,6 +50,13 @@ shutil.copytree(base, output)
 
 files = [
     'livrables/publication-voix/vingte-une-minute-essai.mp3',
+    'livrables/publication-voix/essai-annonce-masculine.mp3',
+    'livrables/stock-voix/durees/21-minutes-approuve.mp3',
+    'livrables/stock-voix/messages/annonce-debut.wav',
+    'livrables/stock-voix/messages/annonce-de-pause.wav',
+    'js/pages/chrono-voix.js',
+    'css/pages/focus-parametres.css',
+    'js/synchro.js',
     'livrables/publication-pomodoro/videos.css',
     'livrables/publication-pomodoro/mobile.css',
     'livrables/publication-retours/images.css',
@@ -77,7 +87,8 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
-# Essais à écouter séparément, sans les intégrer au minuteur.
+# Voix masculine choisie : durées enregistrées en entier, sans assemblage de nombres.
+files.extend(f'livrables/stock-voix/durees/{n:02d}-minutes.wav' for n in range(1, 50))
 files.extend(f'livrables/publication-voix/essai-{n:02d}-minutes.mp3' for n in range(50, 61))
 
 # Liste explicite issue de l'inventaire du dossier Drive ; images et vignettes
@@ -132,7 +143,12 @@ ancien = 'Lancer automatiquement la phase suivante <em>(concentration puis pause
 nouveau = 'Lancer automatiquement la concentration après la pause <em>(minuteur libre)</em>'
 if text.count(ancien) != 1:
     raise SystemExit('Réglage Pomodoro public inattendu')
-path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
+text = text.replace(ancien, nouveau, 1)
+ancre_voix = '                        <label for="focusVoixVolume">Volume de la voix</label>'
+if text.count(ancre_voix) != 1:
+    raise SystemExit('Réglage vocal public inattendu')
+text = text.replace(ancre_voix, (ROOT / 'livrables/publication-voix/choix.html').read_text(encoding='utf-8') + ancre_voix, 1)
+path.write_text(text, encoding='utf-8')
 
 shutil.copy2(ROOT / 'livrables/publication-devoirs/devoirs.html', output / 'pages/devoirs.html')
 shutil.copy2(ROOT / 'livrables/publication-planning/planning-interface.js', output / 'js/pages/planning-interface.js')

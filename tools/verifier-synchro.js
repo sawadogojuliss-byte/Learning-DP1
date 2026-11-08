@@ -236,10 +236,11 @@ const ids = (liste) => liste.map((x) => x.id).sort();
     run(B, `localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify({ focus: 25, short: 5, long: 15 })); syncFocusCourant();`);
     synchroniser(A, B);
     clock.t += 1000;
-    run(A, `localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify({ focus: 40, short: 10, long: 20 })); localStorage.setItem('studyPlanIB_focusFond', '3'); syncFocusCourant();`);
+    run(A, `localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify({ focus: 40, short: 10, long: 20 })); localStorage.setItem('studyPlanIB_focusFond', '3'); localStorage.setItem('studyPlanIB_voixType', 'masculine'); syncFocusCourant();`);
     synchroniser(A, B);
     assert.deepStrictEqual(run(B, "JSON.parse(localStorage.getItem('studyPlanIB_focusDurees'))"), { focus: 40, short: 10, long: 20 }, 'S7 : durées non reçues');
     assert.strictEqual(run(B, "localStorage.getItem('studyPlanIB_focusFond')"), '3', 'S7 : fond non reçu');
+    assert.strictEqual(run(B, "localStorage.getItem('studyPlanIB_voixType')"), 'masculine', 'S7 : choix de voix non reçu');
     assert.strictEqual(run(A, "localStorage.getItem('studyPlanIB_focusReglages') !== null"), true);
 }
 

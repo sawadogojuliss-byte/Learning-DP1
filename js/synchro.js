@@ -515,12 +515,14 @@ function syncFocusLire() {
         taches: syncLireJson('studyPlanIB_focusTaches', null),
         volumes: {},
         voixActive: null,
-        voixVolume: null
+        voixVolume: null,
+        voixType: null
     };
     try {
         r.fond = localStorage.getItem('studyPlanIB_focusFond');
         r.voixActive = localStorage.getItem('studyPlanIB_voixActive');
         r.voixVolume = localStorage.getItem('studyPlanIB_voixVolume');
+        r.voixType = localStorage.getItem('studyPlanIB_voixType');
         for (var i = 0; i < localStorage.length; i++) {
             var cle = localStorage.key(i);
             if (cle && cle.indexOf('studyPlanIB_focusVol_') === 0) {
@@ -540,7 +542,8 @@ function syncFocusEmpreinte(o) {
         taches: o.taches == null ? null : o.taches,
         volumes: o.volumes || {},
         voixActive: o.voixActive == null ? null : o.voixActive,
-        voixVolume: o.voixVolume == null ? null : o.voixVolume
+        voixVolume: o.voixVolume == null ? null : o.voixVolume,
+        voixType: o.voixType == null ? null : o.voixType
     });
 }
 
@@ -580,6 +583,7 @@ function syncFocusAppliquer(recu) {
     }
     if (recu.voixActive === 'true' || recu.voixActive === 'false') ecrire('studyPlanIB_voixActive', recu.voixActive);
     if (typeof recu.voixVolume === 'string' && isFinite(Number(recu.voixVolume))) ecrire('studyPlanIB_voixVolume', recu.voixVolume);
+    if (recu.voixType === 'feminine' || recu.voixType === 'masculine') ecrire('studyPlanIB_voixType', recu.voixType);
     /* On garde ce qui est réellement écrit sur l'appareil, pas ce qui a été reçu :
        un réglage absent de la sauvegarde reste celui de l'appareil. */
     var applique = syncFocusLire();

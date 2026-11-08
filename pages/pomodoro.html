@@ -172,6 +172,14 @@
                     <div class="focus-carte">
                         <h3>Annonce vocale</h3>
                         <label class="focus-interrupteur"><span class="focus-switch"><input id="focusVoixActive" type="checkbox" checked onchange="chronoSauverReglagesVoix()"><i></i></span><span>Annonce vocale activée</span></label>
+                        <fieldset class="focus-voix-choix">
+                            <legend>Choisis ta voix</legend>
+                            <p>Elle annoncera la fin de ta séance et la durée de ta pause.</p>
+                            <div class="focus-voix-grille">
+                                <label class="focus-voix-option"><input type="radio" name="focusVoixType" value="feminine" onchange="chronoChoisirVoix(this.value)"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix féminine</strong><small>Douce et apaisante</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
+                                <label class="focus-voix-option"><input type="radio" name="focusVoixType" value="masculine" onchange="chronoChoisirVoix(this.value)"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix masculine</strong><small>Calme et chaleureuse</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
+                            </div>
+                        </fieldset>
                         <label for="focusVoixVolume">Volume de la voix</label>
                         <input id="focusVoixVolume" type="range" min="0" max="100" value="70" oninput="chronoSauverReglagesVoix()">
                     </div>
