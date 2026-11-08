@@ -128,7 +128,9 @@ path.write_text(text.replace(anchor, match.group(0) + anchor, 1), encoding='utf-
 # Les dialogues créés sous body doivent recevoir le focus avant le grand
 # dialogue du planning. Le gestionnaire partagé ne suit pas leurs attributs.
 path = output / 'js/accessibilite.js'
-text = path.read_text(encoding='utf-8')
+# Inclure la prise en charge clavier de la fenêtre de reprise, puis conserver
+# l'adaptation des dialogues propre au site publié.
+text = (ROOT / 'js/accessibilite.js').read_text(encoding='utf-8')
 ancien = "            m.addedNodes.forEach(function (noeud) { if (noeud.nodeType === 1) { traiter(noeud); lireSource(noeud); changer = true; } });"
 nouveau = """            m.addedNodes.forEach(function (noeud) {
                 if (noeud.nodeType !== 1) return;

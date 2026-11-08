@@ -970,6 +970,7 @@ function focusCompterLancement() {
     if (focusEtat.mode === 'focus' && focusEtat.restant >= focusEtat.total) statsEnregistrer({ k: 'lance' });
 }
 
+var focusAutoriserRepriseConfirmee = false;
 function focusBasculer() {
     var panel = document.getElementById('panelPomodoro');
     if (!panel || !panel.classList.contains('active')) return;
@@ -980,7 +981,7 @@ function focusBasculer() {
         focusPause();
         return;
     }
-    if (focusEtat.mode === 'focus' && focusSeanceMinuteur &&
+    if (!focusAutoriserRepriseConfirmee && focusEtat.mode === 'focus' && focusSeanceMinuteur &&
         (focusSeanceMinuteur.date !== new Date().toDateString() ||
          focusMinutesMaintenant() < focusSeanceMinuteur.debut ||
          focusMinutesMaintenant() >= focusSeanceMinuteur.fin)) {
@@ -1051,11 +1052,15 @@ function focusAnnulerTransition() {
 function focusPeindreReprise() {
     var fenetre = document.getElementById('focusReprise');
     var rappel = document.getElementById('focusRepriseRappel');
-    /* Le minuteur continue même si l'on quitte sa page : ses actions de
-       reprise doivent donc rester accessibles depuis le reste du site. */
-    if (document.body && document.body.appendChild) {
-        if (fenetre && fenetre.parentNode !== document.body) document.body.appendChild(fenetre);
-        if (rappel && rappel.parentNode !== document.body) document.body.appendChild(rappel);
+    /* Hors plein écran, la fenêtre suit le minuteur sur tout le site. En
+       plein écran, les éléments hors de ce sous-arbre ne sont pas rendus,
+       quel que soit leur z-index : les placer DANS le panneau agrandi. */
+    var pleinEcran = document.fullscreenElement || document.webkitFullscreenElement;
+    var panel = document.getElementById('panelPomodoro');
+    var cible = pleinEcran === panel ? panel : document.body;
+    if (cible && cible.appendChild) {
+        if (fenetre && fenetre.parentNode !== cible) cible.appendChild(fenetre);
+        if (rappel && rappel.parentNode !== cible) cible.appendChild(rappel);
     }
     var attend = focusEtat.transition === 'attente-reprise';
     if (fenetre) fenetre.hidden = !attend || focusEtat.repriseMasquee;
@@ -1100,7 +1105,10 @@ function focusConfirmerReprise() {
     focusEtat.transition = '';
     focusEtat.repriseMasquee = false;
     focusPeindre();
-    focusBasculer();
+    /* Le créneau a pu expirer pendant une pause ou une attente volontaire.
+       Une série déjà commencée reste reprenable sur confirmation explicite. */
+    focusAutoriserRepriseConfirmee = true;
+    try { focusBasculer(); } finally { focusAutoriserRepriseConfirmee = false; }
 }
 
 /* Une série de révision est en cours : le type de pause reste celui prévu. */
@@ -2158,8 +2166,10 @@ function focusReprendreApresRafraichissement() {
     try {
         var liee = JSON.parse(sessionStorage.getItem('studyPlanIB_focusSeanceEnCours') || 'null');
         if (liee && liee.id) {
-            if (liee.date !== new Date().toDateString() ||
-                focusMinutesMaintenant() < liee.debut || focusMinutesMaintenant() >= liee.fin) {
+            var etatSauve = focusLireJson('studyPlanIB_focusEtat', null);
+            var serieDejaCommencee = etatSauve && etatSauve.run && etatSauve.date === new Date().toDateString();
+            if (!serieDejaCommencee && (liee.date !== new Date().toDateString() ||
+                focusMinutesMaintenant() < liee.debut || focusMinutesMaintenant() >= liee.fin)) {
                 sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours');
                 if (typeof memoireAller === 'function') memoireAller('seances');
                 else if (typeof navigateTo === 'function') navigateTo('seances');
@@ -2175,5 +2185,29 @@ function focusReprendreApresRafraichissement() {
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
 }
 
+/* Restaurer un chrono actif même si le rechargement rouvre une autre page.
+   Sinon il ne repartirait qu'après une nouvelle visite du minuteur. */
+function focusRestaurerEnArrierePlan() {
+    if (focusPret) return;
+    var sauve = focusLireJson('studyPlanIB_focusEtat', null);
+    if (!sauve || sauve.date !== new Date().toDateString() || (!sauve.running && !sauve.transition)) return;
+    try {
+        var liee = JSON.parse(sessionStorage.getItem('studyPlanIB_focusSeanceEnCours') || 'null');
+        if (sauve.run && liee && liee.id) focusSeanceMinuteur = liee;
+    } catch (e) {}
+    focusCharger();
+}
+
+/* Le plein écran peut changer pendant l'attente ; un onglet suspendu doit
+   recalculer tout de suite son échéance lorsqu'il revient au premier plan. */
+document.addEventListener('fullscreenchange', focusPeindreReprise);
+document.addEventListener('webkitfullscreenchange', focusPeindreReprise);
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && focusPret && focusEtat.running) focusTick();
+});
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted && focusPret && focusEtat.running) focusTick();
+});
 focusAfficherEntree();
 focusReprendreApresRafraichissement();
+focusRestaurerEnArrierePlan();

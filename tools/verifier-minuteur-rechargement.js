@@ -212,6 +212,20 @@ function minutes(sec) { return Math.round(sec / 60); }
   ok(apres.focusEtat.running && apres.focusEtat.restant === 300, '8 : le callback ancien ne doit pas modifier la nouvelle page');
 }
 
+/* Une page différente du minuteur doit aussi relire l'état actif. */
+{
+  const monde = nouveauMonde();
+  const ctx = rouvrir(monde);
+  ctx.focusBasculer();
+  monde.now += 25 * 60 * 1000;
+  ctx.focusTick();
+  monde.suites.shift()();
+  monde.now += 6 * 60 * 1000;
+  const apres = chargerPage(monde); // aucun appel à focusOuvrirMinuteur
+  ok(apres.focusPret && apres.focusEtat.transition === 'attente-reprise', '9 : la pause terminée est récupérée même hors du minuteur');
+  ok(!apres.focusEtat.running && apres.focusEtat.serie === 1 && apres.focusEtat.objectif === 4, '9 : la série attend sans démarrer la concentration');
+}
+
 if (echecs.length) {
   console.log('Minuteur après rechargement : ' + echecs.length + ' échec(s) sur ' + verifications);
   echecs.forEach(e => console.log(' - ' + e));
