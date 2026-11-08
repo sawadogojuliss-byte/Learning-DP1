@@ -1,5 +1,5 @@
 /* Fenêtre de modification : présentation isolée, sans changer la logique. */
-#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:#fff; }
+#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:rgba(13,39,30,.38); backdrop-filter:blur(3px); }
 #editEventModal * { box-sizing:border-box; }
 #editEventModal .ep-dialogue { width:min(100%,500px); max-height:min(90dvh,850px); overflow:auto; background:#fff; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; font-family:Inter,system-ui,sans-serif; color:#244638; }
 #editEventModal .ep-header { display:flex; gap:14px; align-items:flex-start; padding:24px 24px 20px; border-bottom:1px solid #e9f0eb; background:#fff; }

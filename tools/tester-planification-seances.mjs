@@ -21,12 +21,12 @@ try{for(const width of widths){const page=await browser.newPage({viewport:{width
  await page.locator('.epn-exercice').first().click();assert.match(await page.locator('#planifierContent').innerText(),/Comment veux-tu avancer/);
  // L'option automatique adapte la durée si les séances conseillées ne rentrent pas.
  await page.evaluate(()=>{window.__fakeGenerate=generateDayEvents;generateDayEvents=(day,date)=>[{startTime:'06:00',endTime:'13:00'},{startTime:'13:30',endTime:'22:30'}].concat(customEvents.filter(e=>e && e.date && date && e.date===exoDateLocale(date) && e.day===day && !e.deleted));});
- await page.locator('[data-exo-action=auto]').click();assert.match(await page.locator('.epn-results-head').innerText(),/3 séances de 30 min/);assert.ok(await page.locator('[data-exo-action=choisir]').count());
+ await page.locator('[data-exo-action=auto]').click();assert.match(await page.locator('.epn-results-head').innerText(),/3 séances de 25 min/);assert.ok(await page.locator('[data-exo-action=choisir]').count());
  await page.evaluate(()=>{generateDayEvents=()=>[{startTime:'06:00',endTime:'22:30'}]});await page.locator('[data-exo-action=auto]').click();assert.match(await page.locator('.epn-no-slot').innerText(),/Aucune proposition complète/);assert.equal(await page.evaluate(()=>customEvents.filter(e=>e.exoId==='exo-a').length),0);
  await page.evaluate(()=>{generateDayEvents=window.__fakeGenerate});
  await page.locator('#exoPlanNombre').fill('0');await page.locator('[data-exo-action=calcul]').click();assert.match(await page.locator('#exoPlanErreur').innerText(),/entre 1 et 8/);
- await page.locator('#exoPlanNombre').fill('3');await page.locator('#exoPlanMinutes').selectOption('30');await page.locator('[data-exo-action=calcul]').click();
- assert.match(await page.locator('.epn-results-head').innerText(),/3 séances de 30 min.*1 h 30 min/s);assert.equal(await page.locator('.epn-option').first().locator('.ed-slot-part').count(),3);
+ await page.locator('#exoPlanNombre').fill('3');await page.locator('#exoPlanMinutes').selectOption('25');await page.locator('[data-exo-action=calcul]').click();
+ assert.match(await page.locator('.epn-results-head').innerText(),/3 séances de 25 min.*1 h 15 min/s);assert.equal(await page.locator('.epn-option').first().locator('.ed-slot-part').count(),3);
  assert.equal(await page.evaluate(()=>customEvents.filter(e=>e.exoId==='exo-a').length),0);
  if(process.env.STUDY_TEST_CAPTURE) {await page.locator('.epn-option').first().scrollIntoViewIfNeeded();await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/propositions-${width}.png`});}
  const before=await page.evaluate(()=>JSON.stringify(customEvents));
@@ -35,14 +35,14 @@ try{for(const width of widths){const page=await browser.newPage({viewport:{width
  await page.evaluate(sig=>{const [date,period]=sig.split('|')[0].split('@');const [startTime,endTime]=period.split('-');const d=exoLireDate(date);customEvents.push({id:'conflit-imprevu',date,day:(d.getDay()+6)%7,startTime,endTime,title:'Ajout imprévu'})},first);
  await page.locator('[data-exo-action=choisir]').first().click();assert.match(await page.locator('#exoPlanErreur').innerText(),/plus disponibles/);assert.equal(await page.evaluate(()=>customEvents.some(e=>e.exoId==='exo-a')),false);
  await page.evaluate(()=>customEvents=customEvents.filter(e=>e.id!=='conflit-imprevu'));assert.equal(await page.evaluate(()=>JSON.stringify(customEvents)),before);
- await page.locator('[data-exo-action=auto]').click();assert.match(await page.locator('.epn-results-head').innerText(),/Suggestion Studyplan.*2 séances de 45 min.*1 h 30 min/s);
+ await page.locator('[data-exo-action=auto]').click();assert.match(await page.locator('.epn-results-head').innerText(),/Suggestion Studyplan.*1 séance de 37 min et 1 séance de 38 min.*1 h 15 min/s);
  await page.locator('[data-exo-action=choisir]').first().click();assert.match(await page.locator('.epn-success').innerText(),/enregistrées/);
- let state=await page.evaluate(()=>({exo:exercices[0],events:customEvents.filter(e=>e.exoId==='exo-a'),other:customEvents.some(e=>e.id==='autre')}));assert.equal(state.events.length,2);assert.equal(state.exo.duration,75);assert.equal(state.exo.planMinutes,90);assert.equal(state.other,true);
+ let state=await page.evaluate(()=>({exo:exercices[0],events:customEvents.filter(e=>e.exoId==='exo-a'),other:customEvents.some(e=>e.id==='autre')}));assert.equal(state.events.length,2);assert.equal(state.exo.duration,75);assert.equal(state.exo.planMinutes,75);assert.equal(state.other,true);
  assert.ok(state.events.every(e=>e.date && e.startTime && e.endTime && e.planVersion===state.exo.planVersion));
  await page.locator('#tabListe').click();await page.locator('#tabPlanifier').click();assert.equal(await page.locator('.epn-exercice').count(),2);await page.locator('.epn-exercice').first().click();
- await page.locator('#exoPlanNombre').fill('1');await page.locator('#exoPlanMinutes').selectOption('60');await page.locator('[data-exo-action=calcul]').click();await page.locator('[data-exo-action=choisir]').last().click();
- state=await page.evaluate(()=>({exo:exercices[0],events:customEvents.filter(e=>e.exoId==='exo-a'),other:customEvents.some(e=>e.id==='autre')}));assert.equal(state.events.length,1);assert.equal(state.exo.planMinutes,60);assert.equal(state.other,true);
- await page.reload({waitUntil:'domcontentloaded'});await boot(page);await page.locator('.epn-exercice').first().click();assert.equal(await page.locator('.ed-scheduled').count(),1);assert.equal(await page.evaluate(()=>exercices[0].planMinutes),60);
+ await page.locator('#exoPlanNombre').fill('1');await page.locator('#exoPlanMinutes').selectOption('75');await page.locator('[data-exo-action=calcul]').click();await page.locator('[data-exo-action=choisir]').last().click();
+ state=await page.evaluate(()=>({exo:exercices[0],events:customEvents.filter(e=>e.exoId==='exo-a'),other:customEvents.some(e=>e.id==='autre')}));assert.equal(state.events.length,1);assert.equal(state.exo.planMinutes,75);assert.equal(state.other,true);
+ await page.reload({waitUntil:'domcontentloaded'});await boot(page);await page.locator('.epn-exercice').first().click();assert.equal(await page.locator('.ed-scheduled').count(),1);assert.equal(await page.evaluate(()=>exercices[0].planMinutes),75);
  const ancien='P1 7 novembre 13:30–13:55 · P2 9 novembre 17:35–18:00 (50/50 min)';await page.evaluate(s=>{exercices[0].scheduledSlot=s;renderPlanifier()},ancien);assert.equal(await page.locator('.ed-scheduled .ed-slot-part').count(),2);
  const attaque='<img src=x onerror="window.__injection=true"> ancien';await page.evaluate(s=>{exercices[0].scheduledSlot=s;renderPlanifier()},attaque);assert.equal(await page.locator('.ed-slot-fallback').innerText(),attaque);assert.equal(await page.evaluate(()=>!!window.__injection),false);
  assert.ok(await page.locator('#panelExercices').evaluate(e=>e.scrollWidth<=e.clientWidth+1));assert.deepEqual(errors,[]);console.log(`OK séances : choix, proposition auto, validation, conflits et persistance ${width}px`);await page.close();

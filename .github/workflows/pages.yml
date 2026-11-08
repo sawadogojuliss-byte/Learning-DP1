@@ -71,6 +71,7 @@ jobs:
           node travail/tools/tester-alerte-moteur.mjs
           node travail/tools/tester-crayon-sommeil.mjs
           node travail/tools/tester-planification-seances.mjs
+          node travail/tools/tester-duree-planification.mjs
           node travail/tools/tester-seances-moteur.mjs
           node travail/tools/tester-exercices-design.mjs
           node travail/tools/tester-creneaux-exercices.mjs
@@ -130,6 +131,7 @@ jobs:
           node tools/tester-alerte-moteur.mjs
           node tools/tester-crayon-sommeil.mjs
           node tools/tester-planification-seances.mjs
+          node tools/tester-duree-planification.mjs
           node tools/tester-seances-moteur.mjs
           node tools/tester-exercices-design.mjs
           node tools/tester-creneaux-exercices.mjs

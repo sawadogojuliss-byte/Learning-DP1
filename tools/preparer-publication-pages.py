@@ -145,6 +145,12 @@ shutil.copy2(ROOT / 'livrables/publication-legende/defilement.css', output / 'cs
 # le parcours de présentation/confirmation est remplacé sur la base publique.
 path = output / 'js/pages/exercices.js'
 text = path.read_text(encoding='utf-8')
+# Une durée personnalisée ne doit pas allumer le préréglage 1 h 30.
+ancien_preset = "(dur===30?'30 min':dur===45?'45 min':dur===60?'1h':'1h30')"
+nouveau_preset = "(dur===30?'30 min':dur===45?'45 min':dur===60?'1h':dur===90?'1h30':'')"
+if text.count(ancien_preset) != 1:
+    raise SystemExit('Préréglages de durée publics inattendus')
+text = text.replace(ancien_preset, nouveau_preset, 1)
 helper = (ROOT / 'livrables/publication-exercices/planification-design.js').read_text(encoding='utf-8')
 parcours = (ROOT / 'livrables/publication-exercices/planification-seances.js').read_text(encoding='utf-8')
 a = text.index('function renderPlanifier() {')
