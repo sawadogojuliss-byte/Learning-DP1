@@ -32,10 +32,15 @@ try {
       const fichiers = await page.evaluate(async () => {
         const noms = ['masculine-debut', 'masculine-pause'];
         for (let n = 1; n <= 60; n++) noms.push('masculine-n-' + n);
-        const resultats = await Promise.all(noms.map(async nom => {
-          try { const b = await chronoVoixCharger(nom); return { nom, duree: b.duration }; }
-          catch (e) { return { nom, erreur: String(e) }; }
-        }));
+        // Éviter 62 téléchargements simultanés : GitHub Pages peut limiter
+        // une telle rafale, contrairement au préchargement réel de quelques fichiers.
+        const resultats = [];
+        for (let i = 0; i < noms.length; i += 5) {
+          resultats.push(...await Promise.all(noms.slice(i, i + 5).map(async nom => {
+            try { const b = await chronoVoixCharger(nom); return { nom, duree: b.duration }; }
+            catch (e) { return { nom, erreur: String(e) }; }
+          })));
+        }
         return resultats.filter(x => x.erreur || x.duree < .25);
       });
       assert.deepEqual(fichiers, [], 'tous les fichiers masculins doivent être disponibles et décodables');
