@@ -63,30 +63,45 @@ jobs:
           set -euo pipefail
           npm install --prefix /tmp/study-test playwright
           /tmp/study-test/node_modules/.bin/playwright install --with-deps chromium
+          executer_test() {
+            local fichier="$1" journal detail
+            journal=$(mktemp)
+            if node "$fichier" 2>&1 | tee "$journal"; then
+              rm -f "$journal"
+              return 0
+            fi
+            detail=$(tail -n 25 "$journal")
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Échec du test::$fichier%0A$detail"
+            rm -f "$journal"
+            return 1
+          }
           python3 -m http.server 8508 --directory site &
           serveur=$!
           trap 'kill "$serveur"' EXIT
-          node travail/tools/tester-nouveau-design.mjs
-          node travail/tools/tester-alerte-chevauchement.mjs
-          node travail/tools/tester-alerte-moteur.mjs
-          node travail/tools/tester-crayon-sommeil.mjs
-          node travail/tools/tester-planification-seances.mjs
-          node travail/tools/tester-duree-planification.mjs
-          node travail/tools/tester-seances-moteur.mjs
-          node travail/tools/tester-exercices-design.mjs
-          node travail/tools/tester-creneaux-exercices.mjs
-          node travail/tools/tester-defilement-legende.mjs
-          node travail/tools/tester-pomodoro-anime.mjs
-          node travail/tools/tester-foret-adaptive.mjs
-          node travail/tools/tester-images-feedback.mjs
+          executer_test travail/tools/tester-nouveau-design.mjs
+          executer_test travail/tools/tester-alerte-chevauchement.mjs
+          executer_test travail/tools/tester-alerte-moteur.mjs
+          executer_test travail/tools/tester-crayon-sommeil.mjs
+          executer_test travail/tools/tester-planification-seances.mjs
+          executer_test travail/tools/tester-duree-planification.mjs
+          executer_test travail/tools/tester-seances-moteur.mjs
+          executer_test travail/tools/tester-exercices-design.mjs
+          executer_test travail/tools/tester-creneaux-exercices.mjs
+          executer_test travail/tools/tester-defilement-legende.mjs
+          executer_test travail/tools/tester-pomodoro-anime.mjs
+          executer_test travail/tools/tester-foret-adaptive.mjs
+          executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
-          node travail/tools/tester-pomodoro-reprise.mjs
-          node travail/tools/tester-lancement-minuteur.mjs
-          node travail/tools/tester-pause-mobile.mjs
-          node travail/tools/tester-voix.mjs
-          node travail/tools/tester-pomodoro-cache.mjs
-          node travail/tools/tester-themes-drive.mjs
-          node travail/tools/tester-rappels-activites.mjs
+          executer_test travail/tools/tester-pomodoro-reprise.mjs
+          executer_test travail/tools/tester-lancement-minuteur.mjs
+          executer_test travail/tools/tester-pause-mobile.mjs
+          executer_test travail/tools/tester-voix.mjs
+          executer_test travail/tools/tester-pomodoro-cache.mjs
+          executer_test travail/tools/tester-themes-drive.mjs
+          executer_test travail/tools/tester-rappels-activites.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -122,23 +137,38 @@ jobs:
           STUDY_PLAYWRIGHT_SYSTEM: '1'
         run: |
           set -euo pipefail
-          node tools/tester-pomodoro-anime.mjs
-          node tools/tester-foret-adaptive.mjs
-          node tools/tester-images-feedback.mjs
-          node tools/tester-pomodoro-reprise.mjs
-          node tools/tester-lancement-minuteur.mjs
-          node tools/tester-pause-mobile.mjs
-          node tools/tester-voix.mjs
-          node tools/tester-pomodoro-cache.mjs
-          node tools/tester-themes-drive.mjs
-          node tools/tester-rappels-activites.mjs
-          node tools/tester-nouveau-design.mjs
-          node tools/tester-alerte-chevauchement.mjs
-          node tools/tester-alerte-moteur.mjs
-          node tools/tester-crayon-sommeil.mjs
-          node tools/tester-planification-seances.mjs
-          node tools/tester-duree-planification.mjs
-          node tools/tester-seances-moteur.mjs
-          node tools/tester-exercices-design.mjs
-          node tools/tester-creneaux-exercices.mjs
-          node tools/tester-defilement-legende.mjs
+          executer_test() {
+            local fichier="$1" journal detail
+            journal=$(mktemp)
+            if node "$fichier" 2>&1 | tee "$journal"; then
+              rm -f "$journal"
+              return 0
+            fi
+            detail=$(tail -n 25 "$journal")
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Échec du test::$fichier%0A$detail"
+            rm -f "$journal"
+            return 1
+          }
+          executer_test tools/tester-pomodoro-anime.mjs
+          executer_test tools/tester-foret-adaptive.mjs
+          executer_test tools/tester-images-feedback.mjs
+          executer_test tools/tester-pomodoro-reprise.mjs
+          executer_test tools/tester-lancement-minuteur.mjs
+          executer_test tools/tester-pause-mobile.mjs
+          executer_test tools/tester-voix.mjs
+          executer_test tools/tester-pomodoro-cache.mjs
+          executer_test tools/tester-themes-drive.mjs
+          executer_test tools/tester-rappels-activites.mjs
+          executer_test tools/tester-nouveau-design.mjs
+          executer_test tools/tester-alerte-chevauchement.mjs
+          executer_test tools/tester-alerte-moteur.mjs
+          executer_test tools/tester-crayon-sommeil.mjs
+          executer_test tools/tester-planification-seances.mjs
+          executer_test tools/tester-duree-planification.mjs
+          executer_test tools/tester-seances-moteur.mjs
+          executer_test tools/tester-exercices-design.mjs
+          executer_test tools/tester-creneaux-exercices.mjs
+          executer_test tools/tester-defilement-legende.mjs
