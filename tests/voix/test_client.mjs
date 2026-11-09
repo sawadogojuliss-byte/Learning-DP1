@@ -53,13 +53,13 @@ try {
   await page.evaluate(() => {
     document.querySelectorAll('.context-modal.active').forEach(e => e.classList.remove('active'));
     document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro');
-    chronoVoixPreparer([5, 21]);
+    chronoVoixPreparer([5, 20, 21]);
   });
-  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-21-lent-1'], null, { timeout: 30000 });
-  assert.ok(demandes.some(x => x.includes('minutes=21') && x.includes('finale=1')));
-  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(21, () => { window.__finVoixService = true; }, true); });
+  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-20-lent-1'], null, { timeout: 30000 });
+  assert.ok(demandes.some(x => x.includes('minutes=20') && x.includes('finale=1')));
+  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(20, () => { window.__finVoixService = true; }, true); });
   await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
-  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-21-lent-1']);
+  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-20-lent-1']);
   await page.waitForFunction(() => window.__finVoixService, null, { timeout: 25000 });
   // La prise de cinq minutes, approuvée et publiée sur le site, reste
   // prioritaire même quand un service est configuré puis indisponible.
@@ -69,19 +69,29 @@ try {
   await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
   assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
+  for (const n of [1, 2, 3, 4, 5, 10, 15, 21]) {
+    await page.evaluate(n => chronoVoixPreparer(n), n);
+    await page.waitForFunction(n => !!chronoVoixTampons['masculine-complet-' + n], n, { timeout: 30000 });
+    await page.evaluate(n => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, false); }, n);
+    await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
+    assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-complet-' + n]);
+    await page.evaluate(() => chronoInterrompreAnnonce(false));
+  }
+  assert.ok(!demandes.some(x => /minutes=(1|2|3|4|5|10|15|21)(&|$)/.test(x)));
+  for (const n of [6, 16, 19]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
   // Si l'AudioContext échoue après préchargement, le lecteur de secours
   // utilise aussi les prises historiques et non le service indisponible.
   const secours = await page.evaluate(async () => {
     window.__jouerLecteursOriginal = chronoVoixJouerLecteurs;
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoVoixJouerLecteurs = (n, cb, options) => { window.__secours = { n, pause: options.pauseApresPremier }; cb(true); };
-    chronoAnnoncerPause(21, () => {}, true);
+    chronoAnnoncerPause(20, () => {}, true);
     await new Promise(resolve => setTimeout(resolve, 1200));
     return window.__secours;
   });
-  assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-21','masculine-pause'], pause: true });
+  assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-20','masculine-pause'], pause: true });
   // Sans AudioContext, des lecteurs réels (simulés ici seulement côté
-  // périphérique) tentent la prise complète, puis les fragments si besoin.
+  // périphérique) tentent la prise complète sans rejouer les anciens fragments.
   const scenarios = await page.evaluate(async () => {
     const jouerLecteurs = window.__jouerLecteursOriginal;
     // La fonction originale a été sauvegardée avant instrumentation.
@@ -117,13 +127,13 @@ try {
   assert.deepEqual(scenarios.essais, [
     { scenario: 'normal', lus: ['masculine-complet-5'], fin: 1 },
     { scenario: 'finale', lus: ['masculine-fin-serie', 'masculine-complet-5'], fin: 1 },
-    { scenario: 'finale-echec-complet', lus: ['masculine-fin-serie', 'masculine-complet-5', 'masculine-debut', 'masculine-n-5', 'masculine-pause'], fin: 1 },
-    { scenario: 'finale-echec-fin', lus: ['masculine-fin-serie', 'masculine-fin-serie', 'masculine-debut', 'masculine-n-5', 'masculine-pause'], fin: 1 },
+    { scenario: 'finale-echec-complet', lus: ['masculine-fin-serie', 'masculine-complet-5'], fin: 1 },
+    { scenario: 'finale-echec-fin', lus: ['masculine-fin-serie'], fin: 1 },
     { scenario: 'annulation', lus: [], fin: 0 },
     { scenario: 'muet', lus: [], fin: 1 }
   ]);
   assert.ok(!scenarios.feminine.includes('masculine-complet-5'));
-  assert.deepEqual(scenarios.vingtEtUn, ['masculine-debut', 'masculine-n-21', 'masculine-pause']);
+  assert.deepEqual(scenarios.vingtEtUn, ['masculine-complet-21']);
   assert.ok(scenarios.reprise.includes('reprise-proposition.wav'));
   const limites = await page.evaluate(() => {
     localStorage.setItem('studyPlanIB_voixType', 'feminine');

@@ -76,7 +76,7 @@ ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en 
 ok(moduleSrc.indexOf('function chronoVoixJouerTampons') !== -1, 'le premier chemin (AudioContext) manque');
 ok(moduleSrc.indexOf('function chronoVoixJouerLecteurs') !== -1, 'le second chemin (lecteurs audio) manque');
 const moteurAnnonce = moduleSrc.slice(moduleSrc.indexOf('function chronoLancerAnnonce'), moduleSrc.indexOf('/* Fin de concentration'));
-ok(moteurAnnonce.includes('chronoVoixJouerTampons(noms') && moteurAnnonce.includes('chronoVoixJouerLecteurs(liste') && moteurAnnonce.includes('chronoVoixJouerLecteurs(repli') && moteurAnnonce.includes('chronoVoixSynthese(phrase'),
+ok(moteurAnnonce.includes('chronoVoixJouerTampons(noms') && moteurAnnonce.includes('chronoVoixJouerLecteurs(options && options.nomsSecours || noms') && moteurAnnonce.includes('chronoVoixSynthese(phrase'),
     'la voix doit garder le décodage, le lecteur et la synthèse de secours');
 ok(moteurAnnonce.includes("typeVoix === 'feminine'") && moteurAnnonce.includes('20000'),
     'une panne ne doit ni mélanger les voix ni bloquer indéfiniment le minuteur');
@@ -173,9 +173,20 @@ for (const type of ['feminine', 'masculine']) {
     ok(!annonceCapturee.noms.includes('masculine-fin-serie') && !annonceCapturee.options.pauseApresPremier, 'message final entendu sur une séance intermédiaire');
 }
 bac.chronoVoixType = () => 'masculine';
-bac.chronoAnnoncerPause(5, function () {}, false);
-ok(memeListe(annonceCapturee.noms, ['masculine-complet-5']) && annonceCapturee.options.lirePrincipal, 'la prise complète de cinq minutes doit être prioritaire');
-ok(memeListe(annonceCapturee.options.nomsSecours, ['masculine-debut', 'masculine-n-5', 'masculine-pause']), 'le repli de cinq minutes doit rester disponible');
+const approuves = [1, 2, 3, 4, 5, 10, 15, 21];
+for (let n = 1; n <= 60; n++) {
+    for (const finale of [false, true]) {
+        bac.chronoAnnoncerPause(n, function () {}, finale);
+        const attendu = approuves.includes(n) ? ['masculine-complet-' + n] : ['masculine-debut', 'masculine-n-' + n, 'masculine-pause'];
+        if (finale) attendu.unshift('masculine-fin-serie');
+        ok(memeListe(annonceCapturee.noms, attendu), 'annonce inattendue pour ' + n + ' minutes, finale=' + finale);
+        if (approuves.includes(n)) {
+            ok(!annonceCapturee.options.nomsSecours, 'ne pas rejouer les fragments pour la prise approuvée ' + n);
+            const url = bac.chronoVoixUrl('masculine-complet-' + n).split('?')[0];
+            ok(fs.existsSync(path.join(racine, url)), 'prise approuvée absente : ' + url);
+        }
+    }
+}
 bac.chronoLancerAnnonce = lancerOriginal;
 bac.chronoVoixType = () => 'feminine';
 

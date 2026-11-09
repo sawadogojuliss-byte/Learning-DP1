@@ -159,6 +159,12 @@ function chronoVoixServiceNom(minutes, finale) {
     return 'service-pause-' + minutes + '-' + debit + '-' + (finale ? '1' : '0');
 }
 
+/* Phrases entières écoutées et approuvées. Les prises 6, 16 et 19
+   restent exclues jusqu'à ce que leur prononciation soit corrigée. */
+function chronoVoixCompleteApprouvee(minutes) {
+    return [1, 2, 3, 4, 5, 10, 15, 21].indexOf(minutes) !== -1;
+}
+
 function chronoVoixUrl(nom) {
     var service = /^service-pause-([1-9]|[1-5][0-9]|60)-(lent|normal|rapide)-([01])$/.exec(nom);
     if (service && chronoVoixServiceBase()) return chronoVoixServiceBase() + '/v1/audio?message=pause&minutes=' + service[1] + '&debit=' + service[2] + '&finale=' + service[3];
@@ -175,7 +181,11 @@ function chronoVoixUrl(nom) {
     if (nom === 'masculine-pause') return 'livrables/stock-voix/messages/annonce-de-pause.wav?v=' + CHRONO_VOIX_VERSION;
     if (nom === 'masculine-reprise') return 'livrables/stock-voix/messages/reprise-proposition.wav?v=' + CHRONO_VOIX_VERSION;
     if (nom === 'masculine-fin-serie') return 'livrables/stock-voix/messages/fin-serie.wav?v=' + CHRONO_VOIX_VERSION;
-    if (nom === 'masculine-complet-5') return 'livrables/publication-voix/essai-prononciation-claire-5.mp3?v=' + CHRONO_VOIX_VERSION;
+    var complet = /^masculine-complet-(\d+)$/.exec(nom);
+    if (complet && chronoVoixCompleteApprouvee(Number(complet[1]))) {
+        if (Number(complet[1]) === 5) return 'livrables/publication-voix/essai-prononciation-claire-5.mp3?v=' + CHRONO_VOIX_VERSION;
+        return 'livrables/publication-voix/essai-prises-continues/' + complet[1].padStart(2, '0') + '.mp3?v=' + CHRONO_VOIX_VERSION;
+    }
     return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;
 }
 
@@ -279,8 +289,7 @@ function chronoVoixPreparer(minutes) {
     pauses.forEach(function (m) {
         var n = Math.round(Number(m));
         if (chronoVoixType() === 'masculine' && isFinite(n) && n >= 1 && n <= 60) {
-            noms.push('masculine-n-' + n);
-            if (n === 5) noms.push('masculine-complet-5');
+            noms.push(chronoVoixCompleteApprouvee(n) ? 'masculine-complet-' + n : 'masculine-n-' + n);
         }
         else if (chronoVoixType() === 'feminine') {
             var nombre = chronoVoixMorceauxNombre(m);
@@ -295,7 +304,7 @@ function chronoVoixPreparer(minutes) {
        minuteur. S'il tarde ou échoue, on utilise les sons actuels. */
     if (chronoVoixActive()) pauses.forEach(function (m) {
         var n = Math.round(Number(m));
-        if (!isFinite(n) || n < 1 || n > 60 || n === 5) return;
+        if (!isFinite(n) || n < 1 || n > 60 || chronoVoixCompleteApprouvee(n)) return;
         [false, true].forEach(function (finale) {
             var nom = chronoVoixServiceNom(n, finale);
             if (nom) chronoVoixCharger(nom).catch(function () {});
@@ -459,14 +468,14 @@ function chronoVoixJouerLecteurs(noms, suite, options) {
         if (options && options.generation != null && (options.generation !== chronoAnnonceGeneration || !chronoAnnonceEnCours)) return;
         if (i >= noms.length) { if (suite) suite(true); return; }
         var son = chronoVoixLecteur(noms[i++]);
-        if (!son) { if (suite) suite(false, i - 1); return; }
+        if (!son) { if (suite) suite(false); return; }
         var fini = false;
         function apres(ok) {
             if (fini) return;
             fini = true;
             if (ok && i === 1 && options && options.pauseApresPremier) setTimeout(suivant, 300);
             else if (ok) suivant();
-            else if (suite) suite(false, i - 1);
+            else if (suite) suite(false);
         }
         try {
             son.addEventListener('ended', function () { apres(true); }, { once: true });
@@ -536,8 +545,7 @@ function chronoVoixPhrasePause(minutes) {
     if (!isFinite(n) || n < 1) return null;
     if (chronoVoixType() === 'masculine') {
         if (n > 60) return null;
-        /* La prise complète de cinq minutes a été approuvée à l'écoute. */
-        if (n === 5) return ['masculine-complet-5'];
+        if (chronoVoixCompleteApprouvee(n)) return ['masculine-complet-' + n];
         return ['masculine-debut', 'masculine-n-' + n, 'masculine-pause'];
     }
     var nombre = chronoVoixMorceauxNombre(n);
@@ -585,23 +593,11 @@ function chronoLancerAnnonce(noms, typeVoix, phrase, suite, options) {
             else fini();
             return;
         }
-        var lirePrincipal = !!(options && options.lirePrincipal);
-        var liste = !lirePrincipal && options && options.nomsSecours || noms;
-        var respiration = options && (liste === noms ? options.pauseApresPremier : options.pauseSecours);
-        function terminerLecture(ok) {
+        chronoVoixJouerLecteurs(options && options.nomsSecours || noms, function (ok) {
             if (!valide()) return;
             if (!ok && typeVoix === 'feminine' && phrase) chronoVoixSynthese(phrase, fini);
             else fini();
-        }
-        chronoVoixJouerLecteurs(liste, function (ok, morceauRate) {
-            if (!valide()) return;
-            if (!ok && lirePrincipal && options.nomsSecours) {
-                /* Si l'annonce finale a déjà été lue, ne pas la répéter. */
-                var finDejaLue = !!options.pauseApresPremier && morceauRate > 0;
-                var repli = finDejaLue ? options.nomsSecours.slice(1) : options.nomsSecours;
-                chronoVoixJouerLecteurs(repli, terminerLecture, { generation: generation, pauseApresPremier: !!options.pauseSecours && !finDejaLue });
-            } else terminerLecture(ok);
-        }, { generation: generation, pauseApresPremier: !!respiration });
+        }, { generation: generation, pauseApresPremier: !!(options && (options.nomsSecours ? options.pauseSecours : options.pauseApresPremier)) });
     }
     if (!noms || !noms.length) { setTimeout(secours, delaiBip); return; }
     chronoVoixJouerTampons(noms, function (ok) {
@@ -621,10 +617,10 @@ function chronoAnnoncerPause(minutes, suite, derniereSeance) {
         noms.unshift('masculine-fin-serie');
         texte = 'Tes séances de révisions sont terminées. ' + texte;
     }
-    if (n === 5 && chronoVoixType() === 'masculine') {
-        var repli = ['masculine-debut', 'masculine-n-5', 'masculine-pause'];
-        if (derniereSeance) repli.unshift('masculine-fin-serie');
-        chronoLancerAnnonce(noms, 'masculine', texte, suite, { lirePrincipal: true, nomsSecours: repli, pauseSecours: !!derniereSeance, pauseApresPremier: !!derniereSeance });
+    if (chronoVoixCompleteApprouvee(n) && chronoVoixType() === 'masculine') {
+        /* Ne jamais rejouer l'ancienne phrase assemblée pour ces durées,
+           même si la prise ne peut pas être lue : la transition continue. */
+        chronoLancerAnnonce(noms, 'masculine', texte, suite, { pauseApresPremier: !!derniereSeance });
         return;
     }
     var nomService = chronoVoixServiceNom(n, !!derniereSeance);

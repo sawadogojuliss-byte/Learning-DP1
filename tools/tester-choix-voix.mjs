@@ -33,13 +33,14 @@ try {
     }
     await options.nth(1).click();
     assert.equal(await masculine.isChecked(), true); assert.equal(await page.evaluate(() => localStorage.getItem('studyPlanIB_voixType')), 'masculine');
-    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(21)), ['masculine-debut', 'masculine-n-21', 'masculine-pause']);
-    assert.ok((await page.evaluate(() => chronoVoixUrl('masculine-n-21'))).includes('21-minutes-approuve.mp3'));
-    // Le navigateur décode les vraies ressources et programme les trois morceaux dans l'AudioContext.
+    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(21)), ['masculine-complet-21']);
+    assert.ok((await page.evaluate(() => chronoVoixUrl('masculine-complet-21'))).includes('essai-prises-continues/21.mp3'));
+    // Le navigateur décode les vraies ressources et programme la prise approuvée dans l'AudioContext.
     if (viewport.width === 1280) {
       const fichiers = await page.evaluate(async () => {
         const noms = ['masculine-debut', 'masculine-pause'];
         for (let n = 1; n <= 60; n++) noms.push('masculine-n-' + n);
+        for (const n of [1, 2, 3, 4, 5, 10, 15, 21]) noms.push('masculine-complet-' + n);
         // Éviter 62 téléchargements simultanés : GitHub Pages peut limiter
         // une telle rafale, contrairement au préchargement réel de quelques fichiers.
         const resultats = [];
