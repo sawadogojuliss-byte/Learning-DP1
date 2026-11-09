@@ -116,10 +116,10 @@ var focusPip = null;
 var focusBruit = null;
 var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Studyplan';
 var focusPret = false;
-/* Fonds : le décor affiché ne change qu'une fois la nouvelle image décodée,
-   et il change d'un coup (sinon le planning apparaissait dessous, ou bien
-   l'ancienne image revenait pendant le fondu). */
+/* Fonds : chaque image est décodée avant d'être posée sans fondu.
+   Une miniature rapide peut précéder l'image complète du même décor. */
 var focusFondsPrets = {};
+var focusFondsEnCours = {};
 var focusFondActif = '';
 var focusFondDemande = '';
 var focusAccueilActif = '';
@@ -635,15 +635,22 @@ function focusDecoderImage(src, suite) {
         if (suite) suite(true);
         return;
     }
+    /* Une image demandée simultanément par les deux pages ou par le
+       préchargement n'est téléchargée et décodée qu'une seule fois. */
+    if (focusFondsEnCours[src]) {
+        if (suite) focusFondsEnCours[src].push(suite);
+        return;
+    }
+    focusFondsEnCours[src] = suite ? [suite] : [];
     var img = new Image();
     var fait = false;
     var finir = function (ok) {
         if (fait) return;
         fait = true;
-        /* On garde l'image décodée en mémoire : le clic suivant la pose alors
-           sans le moindre délai. */
         if (ok) focusFondsPrets[src] = img;
-        if (suite) suite(!!ok);
+        var suites = focusFondsEnCours[src] || [];
+        delete focusFondsEnCours[src];
+        suites.forEach(function (rappel) { try { rappel(!!ok); } catch (e) {} });
     };
     img.onload = function () {
         if (img.decode) img.decode().then(function () { finir(true); }, function () { finir(true); });
@@ -708,13 +715,14 @@ function focusPeindreCalque(el, src) {
     el.style.backgroundRepeat = 'no-repeat';
 }
 
-/* Change le décor. L'ancienne image reste affichée telle quelle pendant que la
-   nouvelle se charge, puis la nouvelle est posée d'un coup : aucun fondu, donc
-   jamais l'ancienne image qui réapparaît ni le planning derrière. */
+/* Change le décor sans fondu ni fond transparent : une miniature décodée
+   précède si possible l'image complète, sans écraser un choix plus récent. */
 function focusFondPage(src) {
     if (!src) return;
     if (src === focusFondActif) {
         focusFondDemande = '';
+        /* Annule aussi l'aperçu provisoire d'un autre choix. */
+        focusPeindreCalque(document.getElementById('focusBg'), src);
         focusPeindreFonds();
         return;
     }
@@ -725,6 +733,12 @@ function focusFondPage(src) {
     }
     focusFondDemande = src;
     focusPeindreFonds();
+    /* La petite image déjà visible dans la galerie donne un retour rapide,
+       tout en gardant l'ancien décor jusqu'à ce qu'elle soit décodée. */
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    if (fond.mini && fond.mini !== src) focusDecoderImage(fond.mini, function (ok) {
+        if (ok && focusFondDemande === src && (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src === src) focusPeindreCalque(bg, fond.mini);
+    });
     focusDecoderImage(src, function (ok) {
         /* Un décodage plus ancien ne doit pas écraser le dernier choix. */
         if ((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
@@ -741,7 +755,12 @@ function focusFondPage(src) {
 
 function focusFondAccueil(src) {
     var el = document.getElementById('focusAccueilFond');
-    if (!el || !src || focusAccueilActif === src) return;
+    if (!el || !src) return;
+    if (focusAccueilActif === src) { focusPeindreCalque(el, src); return; }
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    if (fond.mini && fond.mini !== src) focusDecoderImage(fond.mini, function (ok) {
+        if (ok && focusAccueilActif !== src && (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src === src) focusPeindreCalque(el, fond.mini);
+    });
     focusDecoderImage(src, function (ok) {
         if (!ok || (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
         focusAccueilActif = src;
@@ -931,8 +950,8 @@ function focusPreparerFonds() {
     focusAmorcerFonds();
 }
 
-/* Le second paramètre reste accepté (ouverture du panneau) : l image n est de
-   toute façon posée qu une fois décodée, donc jamais de trou dans le décor. */
+/* Le second paramètre reste accepté ; les images sont posées après décodage
+   sans jamais créer de trou transparent dans le décor. */
 function focusPoserFond(index, immediat) {
     if (index < 0 || index >= FOCUS_FONDS.length) return;
     if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
@@ -1765,6 +1784,7 @@ var FOCUS_SONS = [
     { id: 'concentration', nom: 'Concentration', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/concentration.mp3?v=20261017k' }
 ];
 var focusLecteurs = {};
+var focusSonAmorce = null;
 var focusVolumes = {};
 var focusListeEdition = null;
 
@@ -1806,6 +1826,22 @@ function focusSonActif(id) {
     return !!(audio && !audio.paused);
 }
 
+/* Ne prépare que le son que l'élève survole, touche ou atteint au clavier.
+   Aucun son ne démarre sans clic et les réseaux économes sont respectés. */
+function focusPrechargerSon(id) {
+    if (!focusAmorcageUtile() || focusLecteurs[id] || (focusSonAmorce && focusSonAmorce.id === id)) return;
+    var son = focusSonParId(id);
+    if (!son) return;
+    if (focusSonAmorce) {
+        try { focusSonAmorce.audio.removeAttribute('src'); focusSonAmorce.audio.load(); } catch (e) {}
+    }
+    var audio = new Audio();
+    audio.preload = 'metadata';
+    audio.src = son.fichier;
+    focusSonAmorce = { id: id, audio: audio };
+    audio.load();
+}
+
 function focusLireSon(id) {
     if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours) {
         if (typeof chronoMettreSonEnAttente === 'function') chronoMettreSonEnAttente(id);
@@ -1814,7 +1850,8 @@ function focusLireSon(id) {
     var son = focusSonParId(id);
     if (!son) return;
     if (!focusLecteurs[id]) {
-        var audio = new Audio(son.fichier);
+        var audio = focusSonAmorce && focusSonAmorce.id === id ? focusSonAmorce.audio : new Audio(son.fichier);
+        if (focusSonAmorce && focusSonAmorce.id === id) focusSonAmorce = null;
         audio.loop = true;
         audio.preload = 'auto';
         focusLecteurs[id] = audio;
@@ -1900,6 +1937,9 @@ function focusPeindreSons() {
         nom.textContent = son.nom;
         btn.appendChild(icone);
         btn.appendChild(nom);
+        btn.addEventListener('pointerenter', function () { focusPrechargerSon(son.id); });
+        btn.addEventListener('pointerdown', function () { focusPrechargerSon(son.id); });
+        btn.addEventListener('focus', function () { focusPrechargerSon(son.id); });
         btn.onclick = function () { focusChoisirSon(son.id); };
         var volume = document.createElement('input');
         volume.type = 'range';

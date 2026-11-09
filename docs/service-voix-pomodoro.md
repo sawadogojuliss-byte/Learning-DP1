@@ -55,4 +55,6 @@ Le service non hébergé renvoie le MP3 de cinq minutes approuvé à l'identique
 
 Le choix reste visible dans les réglages mais son bouton est désactivé. Le minuteur utilise la voix masculine, même si une préférence féminine a été mémorisée ou synchronisée ; cette ancienne préférence n'est pas effacée. Le code et les enregistrements féminins sont conservés pour une éventuelle réactivation.
 
-Dans le deuxième lot, 6, 7, 8, 9, 11, 12, 13 et 16 minutes ont été validées puis intégrées. Les prises de 14 et 19 sont refusées. Le troisième lot reprend 14 et 19 et propose 17, 18, 20 et 22 à 26 minutes ; ces dix prises attendent l'écoute et ne sont pas intégrées. La demande de 30 nouvelles durées a été commencée par huit prises, il en reste 22 à générer pour ce lot, et 34 durées restent sans nouvelle prise complète au total.
+Dans le deuxième lot, 6, 7, 8, 9, 11, 12, 13 et 16 minutes ont été validées puis intégrées. Les prises de 14 et 19 sont refusées. Le troisième lot reprend 14 et 19 et propose 17, 18, 20 et 22 à 26 minutes ; ces dix prises attendent l'écoute et ne sont pas intégrées. Après ce troisième lot, huit des 30 nouvelles durées demandées avaient été générées ; 34 durées restaient alors sans nouvelle prise complète au total.
+
+Le quatrième lot contient de nouvelles prises pour 17, 18 et 19 minutes après le retour sur leur prononciation, puis 27 à 33 minutes. Elles attendent une validation auditive et ne sont pas utilisées sur le minuteur. Quinze des trente nouvelles durées demandées ont été générées ; quinze restent à produire dans de prochains tours.

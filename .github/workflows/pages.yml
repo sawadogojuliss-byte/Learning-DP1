@@ -51,6 +51,7 @@ jobs:
           python3 travail/tools/verifier-stock-voix.py
           python3 travail/tools/verifier-prises-lot2.py site
           python3 travail/tools/verifier-prises-lot3.py site
+          python3 travail/tools/verifier-prises-lot4.py site
           python3 travail/tests/voix/test_serveur.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js
@@ -99,6 +100,7 @@ jobs:
           executer_test travail/tools/tester-exercices-design.mjs
           executer_test travail/tools/tester-creneaux-exercices.mjs
           executer_test travail/tools/tester-defilement-legende.mjs
+          executer_test travail/tools/tester-latence-pomodoro.mjs
           executer_test travail/tools/tester-pomodoro-anime.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs

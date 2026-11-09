@@ -276,6 +276,12 @@ function focusTuileTheme(item, index) {
     bouton.setAttribute('data-index', String(index));
     bouton.setAttribute('aria-pressed', 'false');
     bouton.innerHTML = '<span class="focus-tuile-image focus-tuile-photo" style="background-image:url(\'' + item.mini + '\')"></span>' + focusTuileNom(item.nom);
+    var anticiper = function () {
+        if (typeof focusAmorcageUtile === 'function' && focusAmorcageUtile() && typeof focusDecoderImage === 'function') focusDecoderImage(item.src);
+    };
+    bouton.addEventListener('pointerenter', anticiper);
+    bouton.addEventListener('pointerdown', anticiper);
+    bouton.addEventListener('focus', anticiper);
     bouton.onclick = function () {
         if (typeof focusPoserFond === 'function') focusPoserFond(index);
         focusPeindreParametres();
