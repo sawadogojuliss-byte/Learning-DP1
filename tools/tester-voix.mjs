@@ -46,7 +46,7 @@ await page.addInitScript(function () {
             const vraiStart = source.start;
             source.start = function (quand) {
                 window.__sonsProgrammes.push({ quand: quand, duree: source.buffer ? source.buffer.duration : 0,
-                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['n-7']) });
+                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['masculine-n-7']) });
                 return vraiStart.apply(source, arguments);
             };
             return source;
@@ -119,7 +119,7 @@ await page.evaluate(function () {
 });
 await page.waitForFunction(function () {
     return [2, 6, 7, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].every(function (n) {
-        return !!chronoVoixTampons['n-' + n];
+        return !!chronoVoixTampons[(chronoVoixCompleteApprouvee(n) ? 'masculine-complet-' : 'masculine-n-') + n];
     });
 }, null, { timeout: 30000 });
 
@@ -196,10 +196,10 @@ await page.waitForTimeout(1800);
 const sonSeance = await page.evaluate(() => ({
     mode: focusEtat.mode,
     sons: window.__sonsProgrammes,
-    url: chronoVoixUrl('n-7')
+    url: chronoVoixUrl('masculine-n-7')
 }));
 if (sonSeance.mode !== 'short' || !sonSeance.sons.some(s => s.septCorrige) ||
-    !sonSeance.url.includes('/n-7.wav?v='))
+    !sonSeance.url.includes('/07-minutes.wav?v='))
     echec('la séance de révision ne joue pas le même « sept » que Pomodoro : ' + JSON.stringify(sonSeance));
 await page.evaluate(() => {
     generateDayEvents = window.__voixGenerationOrig;
