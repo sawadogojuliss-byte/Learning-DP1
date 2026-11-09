@@ -45,7 +45,7 @@ Le minuteur précharge les deux pauses possibles et leurs variantes finales, sau
 
 ### Phrases complètes approuvées
 
-Pour la voix masculine, les pauses de 1 à 13, 15, 16 et 21 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les seize prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
+Pour la voix masculine, les pauses de 1 à 13, 15, 16, 21, 27 à 30, 32 et 33 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les vingt-deux prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
 
 Les prises de 14 et 19 minutes du deuxième lot n'ont pas été retenues ; de nouveaux essais figurent dans le troisième lot. Pour ces durées et les autres durées sans nouvelle prise approuvée, l'annonce actuelle reste provisoirement en place. Le MP3 de durée de 21 minutes antérieurement approuvé reste conservé.
 
@@ -57,4 +57,4 @@ Le choix reste visible dans les réglages mais son bouton est désactivé. Le mi
 
 Dans le deuxième lot, 6, 7, 8, 9, 11, 12, 13 et 16 minutes ont été validées puis intégrées. Les prises de 14 et 19 sont refusées. Le troisième lot reprend 14 et 19 et propose 17, 18, 20 et 22 à 26 minutes ; ces dix prises attendent l'écoute et ne sont pas intégrées. Après ce troisième lot, huit des 30 nouvelles durées demandées avaient été générées ; 34 durées restaient alors sans nouvelle prise complète au total.
 
-Le quatrième lot contient de nouvelles prises pour 17, 18 et 19 minutes après le retour sur leur prononciation, puis 27 à 33 minutes. Elles attendent une validation auditive et ne sont pas utilisées sur le minuteur. Quinze des trente nouvelles durées demandées ont été générées ; quinze restent à produire dans de prochains tours.
+Le quatrième lot contient de nouvelles prises pour 17, 18 et 19 minutes après le retour sur leur prononciation, puis 27 à 33 minutes. Les prises 27, 28, 29, 30, 32 et 33 ont été validées et intégrées ; les prises 17, 18, 19 et 31 ne sont pas retenues. Quinze des trente nouvelles durées demandées ont été générées ; quinze restent à produire dans de prochains tours.

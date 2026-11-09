@@ -161,10 +161,9 @@ function chronoVoixServiceNom(minutes, finale) {
     return 'service-pause-' + minutes + '-' + debit + '-' + (finale ? '1' : '0');
 }
 
-/* Phrases entières écoutées et approuvées ; 14 et 19 attendent
-   encore la validation de leur nouvelle prononciation. */
+/* Phrases entières écoutées et approuvées ; les essais refusés restent exclus. */
 function chronoVoixCompleteApprouvee(minutes) {
-    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 21].indexOf(minutes) !== -1;
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 21, 27, 28, 29, 30, 32, 33].indexOf(minutes) !== -1;
 }
 
 function chronoVoixUrl(nom) {
@@ -187,7 +186,8 @@ function chronoVoixUrl(nom) {
     if (complet && chronoVoixCompleteApprouvee(Number(complet[1]))) {
         var minute = Number(complet[1]);
         if (minute === 5) return 'livrables/publication-voix/essai-prononciation-claire-5.mp3?v=' + CHRONO_VOIX_VERSION;
-        var lot = [6, 7, 8, 9, 11, 12, 13, 16].indexOf(minute) !== -1 ? 'essai-prises-lot2' : 'essai-prises-continues';
+        var lot = [27, 28, 29, 30, 32, 33].indexOf(minute) !== -1 ? 'essai-prises-lot4' :
+            ([6, 7, 8, 9, 11, 12, 13, 16].indexOf(minute) !== -1 ? 'essai-prises-lot2' : 'essai-prises-continues');
         return 'livrables/publication-voix/' + lot + '/' + complet[1].padStart(2, '0') + '.mp3?v=' + CHRONO_VOIX_VERSION;
     }
     return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;
