@@ -1,8 +1,8 @@
 /* Vérifie le changement de décor Pomodoro :
    - le planning ne peut jamais apparaître (aucune baisse d'opacité) ;
    - l'ancienne image ne revient jamais (aucun fondu) ;
-   - l'image choisie est posée d'un coup, dès qu'elle est décodée ;
-   - les images sont préparées en avance pour que le clic soit instantané. */
+   - une miniature décodée du thème choisi peut précéder l'image complète ;
+   - les images sont préparées en avance sans retour à l'ancien décor. */
 var fs = require('fs');
 var path = require('path');
 var vm = require('vm');
@@ -191,8 +191,8 @@ function creerContexte(typeReseau) {
     ok(String(lent.vignettes()[0].style.backgroundImage).indexOf('mini/lumiere.webp') !== -1,
         'les vignettes doivent utiliser les petites images');
     ok(contexte.focusFondActif === source(0), 'le décor doit s ouvrir sur la lumière');
-    ok(lent.journal('focusBg').length === 1 && lent.journal('focusBg')[0].indexOf('lumiere.webp') !== -1,
-        'la lumière doit être peinte une seule fois');
+    ok(lent.journal('focusBg').length === 2 && lent.journal('focusBg')[0].includes('/mini/lumiere.webp') && lent.journal('focusBg')[1].includes('/pomodoro/lumiere.webp'),
+        'la miniature puis la lumière complète doivent être peintes');
     var ancienne = bg.style.backgroundImage;
 
     /* Clic sur « Chalet » : tant que l'image n'est pas décodée, le décor ne bouge pas. */
@@ -201,7 +201,7 @@ function creerContexte(typeReseau) {
         'le décor ne doit pas être modifié avant que la nouvelle image soit prête');
     ok(bg.style.opacity === undefined,
         'le décor ne doit jamais baisser d opacité (le planning apparaîtrait)');
-    ok(lent.journal('focusBg').length === 1, 'aucune image intermédiaire ne doit être peinte');
+    ok(lent.journal('focusBg').length === 2, 'aucune image non décodée ne doit être peinte');
     ok(lent.vignettes()[5].classList.contains('is-chargement'),
         'la vignette cliquée doit indiquer le chargement');
     ok(lent.vignettes()[5].getAttribute('aria-busy') === 'true', 'la vignette doit être marquée occupée');
@@ -210,10 +210,8 @@ function creerContexte(typeReseau) {
     ok(bg.style.backgroundImage.indexOf('chalet.webp') !== -1,
         'la nouvelle image doit être posée dès qu elle est décodée');
     ok(bg.style.opacity === undefined, 'le décor doit rester pleinement opaque');
-    ok(lent.journal('focusBg').length === 2, 'le décor ne doit être peint qu une fois par changement');
-    ok(lent.journal('focusBg')[0].indexOf('lumiere') !== -1 &&
-        lent.journal('focusBg')[1].indexOf('chalet') !== -1,
-        'l ancienne image ne doit jamais réapparaître après la nouvelle');
+    ok(lent.journal('focusBg').length === 4 && lent.journal('focusBg')[2].includes('/mini/chalet.webp') && lent.journal('focusBg')[3].includes('/pomodoro/chalet.webp'),
+        'la miniature du nouveau décor précède uniquement son image complète');
     ok(!lent.vignettes()[5].classList.contains('is-chargement'),
         'l indicateur de chargement doit disparaître');
     ok(contexte.focusFondActif === source(5), 'le décor actif doit être le chalet');
@@ -225,7 +223,7 @@ function creerContexte(typeReseau) {
         'le décor garde l image précédente pendant le chargement');
     await lent.drainer();
     ok(bg.style.backgroundImage.indexOf('sentier.webp') !== -1, 'le nouveau décor doit être posé directement');
-    ok(lent.journal('focusBg').length === 3, 'toujours une seule peinture par changement');
+    ok(lent.journal('focusBg').length === 6 && lent.journal('focusBg')[4].includes('/mini/sentier.webp') && lent.journal('focusBg')[5].includes('/pomodoro/sentier.webp'), 'la miniature précède le décor complet sans ancien fond');
     ok(String(lent.element('focusAccueilFond').style.backgroundImage).indexOf('sentier.webp') !== -1,
         'le fond de l accueil doit suivre le décor choisi');
 
