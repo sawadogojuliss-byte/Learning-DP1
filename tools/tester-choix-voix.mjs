@@ -15,11 +15,18 @@ try {
     await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
     await page.evaluate(() => { document.querySelectorAll('.context-modal.active').forEach(e => e.classList.remove('active')); document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro'); });
-    await page.waitForFunction(() => {
+    const attendrePanneau = () => page.waitForFunction(() => {
       const panel = document.getElementById('panelPomodoro'), page = document.getElementById('focusPage');
       const b = panel.getBoundingClientRect();
       return panel.classList.contains('active') && !page.hidden && Math.abs(b.left) < 1 && Math.abs(b.width - innerWidth) < 1;
-    }, null, { timeout: 10000 });
+    }, null, { timeout: 20000 });
+    try { await attendrePanneau(); }
+    catch (erreur) {
+      // Une navigation tardive du démarrage peut refermer le panneau :
+      // réessayer une fois, sans relâcher les assertions de géométrie.
+      await page.evaluate(() => { document.querySelectorAll('.context-modal.active').forEach(e => e.classList.remove('active')); document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro'); });
+      await attendrePanneau();
+    }
     await page.locator('#focusBtnReglages').click();
     await page.locator('#focusReglages [data-onglet="voix"]').click();
     await page.locator('.focus-voix-option').first().waitFor({ state: 'visible' });
