@@ -31,7 +31,9 @@ function chronoVoixVolume() {
     try { var lu = localStorage.getItem('studyPlanIB_voixVolume'); if (lu === null) return 0.7; var v = Number(lu); return isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; } catch (e) { return 0.7; }
 }
 function chronoVoixType() {
-    try { return localStorage.getItem('studyPlanIB_voixType') === 'masculine' ? 'masculine' : 'feminine'; } catch (e) { return 'feminine'; }
+    /* La préférence féminine conservée n'est pas effacée, mais cette voix
+       est temporairement indisponible : seule la masculine est active. */
+    return 'masculine';
 }
 function chronoChargerReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
@@ -41,7 +43,7 @@ function chronoChargerReglagesVoix() {
     for (var i = 0; i < choix.length; i++) choix[i].checked = choix[i].value === chronoVoixType();
 }
 function chronoChoisirVoix(type) {
-    if (type !== 'feminine' && type !== 'masculine') return;
+    if (type !== 'masculine') { chronoChargerReglagesVoix(); return; }
     try { localStorage.setItem('studyPlanIB_voixType', type); } catch (e) {}
     chronoChargerReglagesVoix();
     /* Préparer les sons pendant l'interaction, sans jouer d'annonce. */

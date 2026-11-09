@@ -47,6 +47,12 @@ Le minuteur précharge les deux pauses possibles et leurs variantes finales, sau
 
 Pour la voix masculine, les pauses de 1, 2, 3, 4, 5, 10, 15 et 21 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine et l'annonce de reprise sont inchangées. Les huit prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
 
-Les nouvelles prises de 6, 16 et 19 minutes n'ont pas été retenues à cause de leur prononciation ; pour elles et les autres durées sans nouvelle prise approuvée, l'annonce actuelle reste provisoirement en place. 49 durées n'ont pas encore de nouvelle prise complète, et 3 prises sont à corriger. Le MP3 de durée de 21 minutes antérieurement approuvé reste conservé, même si la phrase complète nouvellement approuvée est désormais prioritaire.
+Les nouvelles prises de 6, 16 et 19 minutes n'ont pas été retenues à cause de leur prononciation ; pour elles et les autres durées sans nouvelle prise approuvée, l'annonce actuelle reste provisoirement en place. Le deuxième lot présenté ci-dessous propose de nouvelles prises pour ces trois durées. Le MP3 de durée de 21 minutes antérieurement approuvé reste conservé, même si la phrase complète nouvellement approuvée est désormais prioritaire.
 
 Le service non hébergé renvoie le MP3 de cinq minutes approuvé à l'identique pour `message=pause&minutes=5&debit=normal&finale=0`. Pour les autres durées, il compose encore les anciennes prises et ne remplace pas les phrases complètes choisies par le minuteur. Les variantes finales ou à un autre débit nécessitent une écoute. `message=essai-clair` reste l'ancien endpoint expérimental.
+
+### Voix féminine temporairement indisponible
+
+Le choix reste visible dans les réglages mais son bouton est désactivé. Le minuteur utilise la voix masculine, même si une préférence féminine a été mémorisée ou synchronisée ; cette ancienne préférence n'est pas effacée. Le code et les enregistrements féminins sont conservés pour une éventuelle réactivation.
+
+Un deuxième lot de dix prises complètes (6, 16, 19, 7, 8, 9, 11, 12, 13 et 14 minutes) est publié pour écoute uniquement. Les trois premières remplaceraient des essais non approuvés ; aucune nouvelle prise du lot n'est intégrée avant validation. Après ce lot, 42 durées n'ont pas encore de nouvelle prise complète.

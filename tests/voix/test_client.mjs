@@ -132,7 +132,7 @@ try {
     { scenario: 'annulation', lus: [], fin: 0 },
     { scenario: 'muet', lus: [], fin: 1 }
   ]);
-  assert.ok(!scenarios.feminine.includes('masculine-complet-5'));
+  assert.deepEqual(scenarios.feminine, ['masculine-complet-5']);
   assert.deepEqual(scenarios.vingtEtUn, ['masculine-complet-21']);
   assert.ok(scenarios.reprise.includes('reprise-proposition.wav'));
   const limites = await page.evaluate(() => {
@@ -145,7 +145,7 @@ try {
     const debitInconnu = chronoVoixServiceNom(21, true);
     return { feminine, nonSecurise, debitInconnu };
   });
-  assert.deepEqual(limites, { feminine: null, nonSecurise: null, debitInconnu: null });
+  assert.deepEqual(limites, { feminine: 'service-pause-21-lent-1', nonSecurise: null, debitInconnu: null });
   const ecoute = new URL('livrables/publication-voix/essai-backend/', site).href;
   await page.goto(ecoute);
   assert.equal(await page.locator('audio').count(), 9);

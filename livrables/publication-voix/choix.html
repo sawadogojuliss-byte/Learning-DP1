@@ -2,7 +2,7 @@
                             <legend>Choisis ta voix</legend>
                             <p>Elle annoncera la fin de ta séance et la durée de ta pause.</p>
                             <div class="focus-voix-grille">
-                                <label class="focus-voix-option"><input type="radio" name="focusVoixType" value="feminine" onchange="chronoChoisirVoix(this.value)"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix féminine</strong><small>Douce et apaisante</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
+                                <label class="focus-voix-option is-indisponible"><input type="radio" name="focusVoixType" value="feminine" disabled aria-describedby="focusVoixFeminineAide"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix féminine</strong><small id="focusVoixFeminineAide">Indisponible pour le moment</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
                                 <label class="focus-voix-option"><input type="radio" name="focusVoixType" value="masculine" onchange="chronoChoisirVoix(this.value)"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix masculine</strong><small>Calme et chaleureuse</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
                             </div>
                         </fieldset>

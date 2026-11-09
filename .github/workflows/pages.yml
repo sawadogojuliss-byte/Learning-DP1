@@ -49,6 +49,7 @@ jobs:
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
           python3 travail/tools/tester-preparation-annonces.py site/livrables/publication-voix/essai-traitement
           python3 travail/tools/verifier-stock-voix.py
+          python3 travail/tools/verifier-prises-lot2.py site
           python3 travail/tests/voix/test_serveur.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js

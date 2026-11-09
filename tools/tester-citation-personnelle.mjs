@@ -61,10 +61,18 @@ try {
       document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro');
       focusMajReglage('citationPersonnelle', 'A'.repeat(140)); focusMajReglage('citationCategorie', 'personnelle'); focusPeindre();
     });
-    await page.waitForFunction(() => Math.abs(document.getElementById('panelPomodoro').getBoundingClientRect().left) < 1);
+    await page.waitForFunction(() => {
+      const panel = document.getElementById('panelPomodoro'), focus = document.getElementById('focusTime');
+      const b = panel.getBoundingClientRect();
+      return panel.classList.contains('active') && b.width > 0 && Math.abs(b.left) < 1 && focus.getClientRects().length > 0;
+    }, null, { timeout: 30000 });
+    await page.locator('#focusTime').waitFor({ state: 'visible' });
     const avant = await page.locator('#focusTime').boundingBox();
+    assert.ok(avant, 'le minuteur doit être visible avant la comparaison');
     await page.evaluate(() => { focusEtat.run = true; focusEtat.objectif = 4; focusEtat.serie = 1; focusEtat.transition = 'attente-reprise'; focusPeindre(); });
+    await page.locator('#focusReprise').waitFor({ state: 'visible' });
     const apres = await page.locator('#focusTime').boundingBox(), fenetre = await page.locator('#focusReprise').boundingBox();
+    assert.ok(apres, 'le minuteur doit rester visible après la transition');
     for (const k of ['x','y','width','height']) assert.ok(Math.abs(avant[k] - apres[k]) < 1, `citation longue : déplacement ${k}`);
     for (const element of await page.locator('#focusPage .focus-center button').all()) {
       if (!await element.isVisible()) continue;

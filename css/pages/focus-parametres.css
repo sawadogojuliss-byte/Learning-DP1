@@ -408,6 +408,9 @@
 .focus-voix-option input:checked + .focus-voix-tuile { border-color: rgba(110,231,183,.8); background: rgba(16,185,129,.14); }
 .focus-voix-option input:checked + .focus-voix-tuile .focus-voix-coche { opacity: 1; }
 .focus-voix-option input:focus-visible + .focus-voix-tuile { outline: 2px solid #fff; outline-offset: 3px; }
+.focus-voix-option.is-indisponible { cursor: not-allowed; }
+.focus-voix-option input:disabled + .focus-voix-tuile { border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.025); color: rgba(255,255,255,.65); }
+.focus-voix-option input:disabled + .focus-voix-tuile .focus-voix-icone { color: rgba(255,255,255,.55); background: rgba(255,255,255,.06); }
 @media (max-width: 360px) { .focus-voix-grille { grid-template-columns: 1fr; } }
 
 /* Interrupteurs */
