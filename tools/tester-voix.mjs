@@ -46,7 +46,7 @@ await page.addInitScript(function () {
             const vraiStart = source.start;
             source.start = function (quand) {
                 window.__sonsProgrammes.push({ quand: quand, duree: source.buffer ? source.buffer.duration : 0,
-                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['masculine-n-7']) });
+                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['masculine-complet-7']) });
                 return vraiStart.apply(source, arguments);
             };
             return source;
@@ -154,9 +154,9 @@ if (fin.enMarche !== false || fin.restant !== 7 * 60) echec('la pause doit atten
 if (fin.mode !== 'short') echec('la phase suivante doit être une pause courte, trouvée : ' + fin.mode);
 if (fin.ambianceEncore !== false) echec('la musique d\'ambiance continue pendant la pause');
 if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : ' + fin.oscillateurs + ')');
-if (fin.sons.length < 3) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
+if (fin.sons.length !== 1) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
 const total = fin.sons.reduce(function (s, x) { return s + (x.duree || 0); }, 0);
-if (total < 6) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
+if (total < 3) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
 if (!fin.sons.some(s => s.septCorrige)) echec('Pomodoro ne lit pas le fichier corrigé de « sept »');
 await page.waitForFunction(() => focusEtat.running && focusEtat.mode === 'short' && focusEtat.transition === '', null, { timeout: 20000 });
 const apresAnnonce = await page.evaluate(() => focusEtat.restant);
@@ -196,10 +196,10 @@ await page.waitForTimeout(1800);
 const sonSeance = await page.evaluate(() => ({
     mode: focusEtat.mode,
     sons: window.__sonsProgrammes,
-    url: chronoVoixUrl('masculine-n-7')
+    url: chronoVoixUrl('masculine-complet-7')
 }));
 if (sonSeance.mode !== 'short' || !sonSeance.sons.some(s => s.septCorrige) ||
-    !sonSeance.url.includes('/07-minutes.wav?v='))
+    !sonSeance.url.includes('/essai-prises-lot2/07.mp3?v='))
     echec('la séance de révision ne joue pas le même « sept » que Pomodoro : ' + JSON.stringify(sonSeance));
 await page.evaluate(() => {
     generateDayEvents = window.__voixGenerationOrig;

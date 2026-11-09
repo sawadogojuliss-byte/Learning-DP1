@@ -57,7 +57,7 @@ try {
       const fichiers = await page.evaluate(async () => {
         const noms = ['masculine-debut', 'masculine-pause'];
         for (let n = 1; n <= 60; n++) noms.push('masculine-n-' + n);
-        for (const n of [1, 2, 3, 4, 5, 10, 15, 21]) noms.push('masculine-complet-' + n);
+        for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 21]) noms.push('masculine-complet-' + n);
         // Éviter 62 téléchargements simultanés : GitHub Pages peut limiter
         // une telle rafale, contrairement au préchargement réel de quelques fichiers.
         const resultats = [];
