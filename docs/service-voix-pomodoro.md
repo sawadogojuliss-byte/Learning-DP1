@@ -60,3 +60,5 @@ Dans le deuxième lot, 6, 7, 8, 9, 11, 12, 13 et 16 minutes ont été validées 
 Le quatrième lot contient de nouvelles prises pour 17, 18 et 19 minutes après le retour sur leur prononciation, puis 27 à 33 minutes. Les prises 27, 28, 29, 30, 32 et 33 ont été validées et intégrées ; les prises 17, 18, 19 et 31 ne sont pas retenues. Quinze des trente nouvelles durées demandées ont été générées ; quinze restent à produire dans de prochains tours.
 
 Le cinquième lot reprend les annonces 14, 17, 18, 19, 20, 22 à 25 et 31 pour écoute. Ces prises ne sont pas activées sans validation ; les durées déjà approuvées ne changent pas. Les références phonétiques de [France Podcasts](https://www.francepodcasts.com/2019/04/14/les-nombres-de-10-a-19/) indiquent notamment /disɛt/, /dizɥit/ et /diznœf/ pour 17, 18 et 19. La génération et le contrôle d'intégrité ne garantissent pas la prononciation : une écoute humaine reste indispensable.
+
+Sur demande, un sixième lot reprend 17, 18 et 19 sans tiret dans le texte, ainsi que 31 avec les mots exacts « trente une minute ». Les quatre nouvelles prises sont à écouter, sans activation avant validation.
