@@ -267,6 +267,7 @@ function focusCharger() {
     focusObserverVideosFond();
     focusPreparerFonds();
     focusPoserFond(focusEtat.fond, true);
+    focusPersonnelInitialiser();
     focusRestaurerEtat();
     focusEtatRestaure = true;
     /* Un rechargement interrompt la lecture audio. On ne laisse jamais une
@@ -967,9 +968,18 @@ function focusPoserFond(index, immediat) {
     if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
     focusEtat.fond = index;
     var fond = FOCUS_FONDS[index];
-    if (typeof syncFocusCourant === 'function') syncFocusCourant();
-    try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
-    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
+    if (fond.id === 'personnel-local') {
+        try { localStorage.setItem('studyPlanIB_themePersonnelActif', '1'); } catch (e) {}
+    } else {
+        if (!immediat) {
+            focusPersonnelSelectionRevision++;
+            try { localStorage.removeItem('studyPlanIB_themePersonnelActif'); } catch (e) {}
+        }
+        if (typeof syncFocusCourant === 'function') syncFocusCourant();
+        try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
+        if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
+    }
+    focusPersonnelPeindre();
     focusPeindreFonds();
     focusFondPage(fond.src);
     focusFondAccueil(fond.src);
@@ -2330,6 +2340,229 @@ document.addEventListener('visibilitychange', function () {
 window.addEventListener('pageshow', function (event) {
     if (event.persisted && focusPret && focusEtat.running) focusTick();
 });
+/* Photo personnelle : uniquement dans IndexedDB de cet appareil. Les thèmes
+   prédéfinis gardent leurs indices ; l'entrée locale n'existe qu'en mémoire. */
+var focusPersonnelRevision = 0;
+var focusPersonnelSelectionRevision = 0;
+var focusPersonnelOccupe = false;
+var focusPersonnelDemarre = false;
+var focusPersonnelUrl = '';
+var FOCUS_PERSONNEL_MAX = 10 * 1024 * 1024;
+
+function focusPersonnelBase() {
+    return new Promise(function (resolve, reject) {
+        if (typeof indexedDB === 'undefined') { reject(new Error('stockage indisponible')); return; }
+        var req;
+        try { req = indexedDB.open('studyplan-themes-personnels', 1); }
+        catch (e) { reject(e); return; }
+        req.onupgradeneeded = function () { if (!req.result.objectStoreNames.contains('images')) req.result.createObjectStore('images'); };
+        req.onerror = function () { reject(req.error || new Error('stockage indisponible')); };
+        req.onblocked = function () { reject(new Error('stockage bloqué')); };
+        req.onsuccess = function () { resolve(req.result); };
+    });
+}
+function focusPersonnelStocker(action, blob) {
+    return focusPersonnelBase().then(function (db) {
+        return new Promise(function (resolve, reject) {
+            var tx, req, resultat;
+            try {
+                tx = db.transaction('images', action === 'lire' ? 'readonly' : 'readwrite');
+                var store = tx.objectStore('images');
+                req = action === 'lire' ? store.get('photo') : action === 'effacer' ? store.delete('photo') : store.put(blob, 'photo');
+                req.onsuccess = function () { resultat = req.result; };
+                tx.oncomplete = function () { db.close(); resolve(resultat); };
+                tx.onerror = tx.onabort = function () { var e = tx.error || new Error('stockage impossible'); db.close(); reject(e); };
+            } catch (e) { db.close(); reject(e); }
+        });
+    });
+}
+function focusPersonnelVerifierFormat(fichier) {
+    return fichier.slice(0, 12).arrayBuffer().then(function (buffer) {
+        var b = new Uint8Array(buffer);
+        var jpeg = b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+        var png = b.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every(function (n, i) { return b[i] === n; });
+        var webp = b.length >= 12 && b[0] === 82 && b[1] === 73 && b[2] === 70 && b[3] === 70 && b[8] === 87 && b[9] === 69 && b[10] === 66 && b[11] === 80;
+        if (!((fichier.type === 'image/jpeg' && jpeg) || (fichier.type === 'image/png' && png) || (fichier.type === 'image/webp' && webp))) throw new Error('format');
+    });
+}
+function focusPersonnelDecoder(blob) {
+    return new Promise(function (resolve, reject) {
+        var url;
+        try { url = URL.createObjectURL(blob); } catch (e) { reject(e); return; }
+        var img = new Image();
+        img.onload = function () {
+            if (!img.naturalWidth || img.naturalWidth <= img.naturalHeight) {
+                URL.revokeObjectURL(url);
+                reject(new Error('orientation'));
+                return;
+            }
+            resolve({ url: url, image: img });
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('illisible')); };
+        img.src = url;
+    });
+}
+function focusPersonnelInstaller(decoded) {
+    var ancien = focusPersonnelUrl;
+    focusPersonnelUrl = decoded.url;
+    var i = focusIndexParId('personnel-local');
+    /* focusIndexParId renvoie 0 quand un id est absent : vérifier l'id. */
+    if (!FOCUS_FONDS[i] || FOCUS_FONDS[i].id !== 'personnel-local') {
+        i = FOCUS_FONDS.length;
+        FOCUS_FONDS.push({ id: 'personnel-local', cat: 'personnel', nom: 'Ma photo', src: decoded.url, mini: decoded.url, masque: true, precharger: false });
+    } else {
+        FOCUS_FONDS[i].src = decoded.url;
+        FOCUS_FONDS[i].mini = decoded.url;
+    }
+    focusFondsPrets[decoded.url] = decoded.image;
+    focusPersonnelPeindre();
+    return { index: i, ancien: ancien };
+}
+function focusPersonnelLiberer(url) {
+    if (!url || url === focusPersonnelUrl) return;
+    delete focusFondsPrets[url];
+    try { URL.revokeObjectURL(url); } catch (e) {}
+}
+function focusPersonnelPeindre() {
+    var apercu = document.getElementById('focusPersonnelApercu');
+    var vide = document.getElementById('focusPersonnelVide');
+    var secondaire = document.getElementById('focusPersonnelSecondaires');
+    var texte = document.getElementById('focusPersonnelBoutonTexte');
+    var utiliser = document.getElementById('focusPersonnelUtiliser');
+    var fond = FOCUS_FONDS[focusEtat.fond];
+    var actif = !!(fond && fond.id === 'personnel-local' && focusPersonnelUrl);
+    if (apercu) {
+        apercu.style.backgroundImage = focusPersonnelUrl ? 'url("' + focusPersonnelUrl + '")' : '';
+        apercu.classList.toggle('has-image', !!focusPersonnelUrl);
+        apercu.setAttribute('aria-label', focusPersonnelUrl ? 'Aperçu de ta photo personnelle' : 'Aucune photo personnelle importée');
+    }
+    if (vide) vide.hidden = !!focusPersonnelUrl;
+    if (secondaire) secondaire.hidden = !focusPersonnelUrl;
+    if (texte) texte.textContent = focusPersonnelUrl ? 'Changer de photo' : 'Choisir une photo';
+    if (utiliser) { utiliser.textContent = actif ? 'Décor utilisé ✓' : 'Utiliser ce décor'; utiliser.disabled = actif || focusPersonnelOccupe; }
+}
+function focusPersonnelStatut(texte) {
+    var el = document.getElementById('focusPersonnelStatut');
+    if (el) el.textContent = texte || '';
+}
+function focusPersonnelAfficherErreur(texte) {
+    var dialog = document.getElementById('focusPersonnelErreur');
+    var message = document.getElementById('focusPersonnelErreurTexte');
+    if (message) message.textContent = texte;
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) dialog.showModal();
+    } else dialog.setAttribute('open', '');
+}
+function focusPersonnelFermerErreur() {
+    var dialog = document.getElementById('focusPersonnelErreur');
+    if (!dialog) return;
+    if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+}
+function focusPersonnelInitialiser() {
+    if (focusPersonnelDemarre) return;
+    focusPersonnelDemarre = true;
+    focusPersonnelOccupe = true;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    if (bouton) bouton.disabled = true;
+    var revision = focusPersonnelRevision;
+    var selection = focusPersonnelSelectionRevision;
+    focusPersonnelStocker('lire').then(function (blob) {
+        if (!blob || revision !== focusPersonnelRevision) return null;
+        return focusPersonnelDecoder(blob);
+    }).then(function (decoded) {
+        if (!decoded) return;
+        if (revision !== focusPersonnelRevision) { URL.revokeObjectURL(decoded.url); return; }
+        var pose = focusPersonnelInstaller(decoded);
+        var actif = false;
+        try { actif = localStorage.getItem('studyPlanIB_themePersonnelActif') === '1'; } catch (e) {}
+        if (actif && selection === focusPersonnelSelectionRevision) focusPoserFond(pose.index);
+        focusPersonnelLiberer(pose.ancien);
+    }).catch(function () { focusPersonnelStatut('Photo enregistrée indisponible sur cet appareil.'); }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; focusPersonnelPeindre(); });
+}
+function focusPersonnelChoisir(input) {
+    var fichier = input && input.files && input.files[0];
+    if (input) input.value = ''; // Rechoisir le même fichier reste possible.
+    if (!fichier || focusPersonnelOccupe) return;
+    var selection = focusPersonnelSelectionRevision;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    var types = ['image/jpeg', 'image/png', 'image/webp'];
+    if (types.indexOf(String(fichier.type).toLowerCase()) === -1) {
+        focusPersonnelAfficherErreur('Ce format de fichier n’est pas pris en charge.');
+        return;
+    }
+    if (!fichier.size || fichier.size > FOCUS_PERSONNEL_MAX) {
+        focusPersonnelAfficherErreur('Ce fichier est vide ou dépasse la taille autorisée.');
+        return;
+    }
+    var revision = ++focusPersonnelRevision;
+    focusPersonnelOccupe = true;
+    if (bouton) bouton.disabled = true;
+    var supprimer = document.querySelector('#focusPersonnelSecondaires button:last-child');
+    if (supprimer) supprimer.disabled = true;
+    focusPersonnelPeindre();
+    focusPersonnelStatut('Préparation de ta photo…');
+    var decoded;
+    focusPersonnelVerifierFormat(fichier).then(function () { return focusPersonnelDecoder(fichier); }).then(function (d) {
+        decoded = d;
+        if (revision !== focusPersonnelRevision) return false;
+        return focusPersonnelStocker('ecrire', fichier).then(function () { return true; });
+    }).then(function (enregistre) {
+        if (!enregistre || revision !== focusPersonnelRevision) {
+            if (decoded) URL.revokeObjectURL(decoded.url);
+            return;
+        }
+        var pose = focusPersonnelInstaller(decoded);
+        if (selection === focusPersonnelSelectionRevision) focusPoserFond(pose.index);
+        focusPersonnelLiberer(pose.ancien);
+        if (typeof focusPeindreParametres === 'function') focusPeindreParametres();
+        focusPersonnelStatut(selection === focusPersonnelSelectionRevision ? 'Ta photo est maintenant utilisée comme décor.' : 'Ta photo est prête à être utilisée.');
+    }).catch(function (e) {
+        if (decoded) URL.revokeObjectURL(decoded.url);
+        if (revision !== focusPersonnelRevision) return;
+        var raison = e && e.message;
+        focusPersonnelStatut('');
+        focusPersonnelAfficherErreur(raison === 'orientation' ? 'Cette photo est verticale ou carrée.' : raison === 'illisible' ? 'Cette image ne peut pas être lue.' : raison === 'format' ? 'Ce format de fichier n’est pas pris en charge.' : 'La photo n’a pas pu être enregistrée sur cet appareil. Vérifie l’espace disponible et les autorisations de stockage.');
+    }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; if (supprimer) supprimer.disabled = false; focusPersonnelPeindre(); });
+}
+function focusPersonnelUtiliser() {
+    if (focusPersonnelOccupe || !focusPersonnelUrl) return;
+    var i = focusIndexParId('personnel-local');
+    if (!FOCUS_FONDS[i] || FOCUS_FONDS[i].id !== 'personnel-local') return;
+    focusPersonnelRevision++;
+    focusPoserFond(i);
+    if (typeof focusPeindreParametres === 'function') focusPeindreParametres();
+    focusPersonnelStatut('Ta photo est maintenant utilisée comme décor.');
+}
+function focusPersonnelSupprimer() {
+    if (focusPersonnelOccupe) return;
+    focusPersonnelOccupe = true;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    var supprimer = document.querySelector('#focusPersonnelSecondaires button:last-child');
+    if (bouton) bouton.disabled = true;
+    if (supprimer) supprimer.disabled = true;
+    focusPersonnelPeindre();
+    var revision = ++focusPersonnelRevision;
+    focusPersonnelStocker('effacer').then(function () {
+        if (revision !== focusPersonnelRevision) return;
+        var fond = FOCUS_FONDS[focusEtat.fond];
+        if (fond && fond.id === 'personnel-local') {
+            var precedent = 0;
+            try { precedent = Number(localStorage.getItem('studyPlanIB_focusFond')) || 0; } catch (e) {}
+            if (!FOCUS_FONDS[precedent] || FOCUS_FONDS[precedent].id === 'personnel-local') precedent = 0;
+            focusPoserFond(precedent);
+        }
+        try { localStorage.removeItem('studyPlanIB_themePersonnelActif'); } catch (e) {}
+        var ancien = focusPersonnelUrl;
+        focusPersonnelUrl = '';
+        focusPersonnelPeindre();
+        focusPersonnelLiberer(ancien);
+        focusPersonnelStatut('Photo supprimée de cet appareil.');
+    }).catch(function () { focusPersonnelStatut('La photo n’a pas pu être supprimée sur cet appareil.'); }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; if (supprimer) supprimer.disabled = false; focusPersonnelPeindre(); });
+}
+
+/* Les restaurations peuvent charger le minuteur : initialiser d'abord les variables de la photo. */
 focusAfficherEntree();
 focusReprendreApresRafraichissement();
 focusRestaurerEnArrierePlan();

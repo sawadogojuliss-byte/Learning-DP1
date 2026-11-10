@@ -209,6 +209,10 @@ nouveau = 'Lancer automatiquement la concentration après une pause manuelle'
 if text.count(ancien) != 1:
     raise SystemExit('Réglage Pomodoro public inattendu')
 text = text.replace(ancien, nouveau, 1)
+ancre_themes = '                        <div id="focusThemesCorps"></div>\n                    </div>\n                </section>'
+if text.count(ancre_themes) != 1:
+    raise SystemExit('Emplacement des thèmes personnel public inattendu')
+text = text.replace(ancre_themes, '                        <div id="focusThemesCorps"></div>\n                    </div>\n' + (ROOT / 'livrables/publication-pomodoro/theme-personnel.html').read_text(encoding='utf-8') + '                </section>', 1)
 ancre_citation = '                        <label class="focus-interrupteur focus-citation-bouton">'
 if text.count(ancre_citation) != 1:
     raise SystemExit('Réglage de citation public inattendu')

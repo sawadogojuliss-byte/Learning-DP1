@@ -128,6 +128,7 @@ jobs:
           executer_test travail/tools/tester-propositions-reprise.mjs
           executer_test travail/tools/tester-pomodoro-cache.mjs
           executer_test travail/tools/tester-themes-drive.mjs
+          executer_test travail/tools/tester-theme-personnel.mjs
           executer_test travail/tools/tester-rappels-activites.mjs
       - name: Préparer le paquet Pages
         uses: actions/upload-pages-artifact@v3
@@ -198,6 +199,7 @@ jobs:
           executer_test tools/tester-propositions-reprise.mjs
           executer_test tools/tester-pomodoro-cache.mjs
           executer_test tools/tester-themes-drive.mjs
+          executer_test tools/tester-theme-personnel.mjs
           executer_test tools/tester-rappels-activites.mjs
           executer_test tools/tester-nouveau-design.mjs
           executer_test tools/tester-alerte-chevauchement.mjs
