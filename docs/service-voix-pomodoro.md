@@ -45,7 +45,7 @@ Le minuteur précharge les deux pauses possibles et leurs variantes finales, sau
 
 ### Phrases complètes approuvées
 
-Pour la voix masculine, les pauses de 1 à 13, 15, 16, 21, 27 à 30, 32 et 33 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les vingt-deux prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
+Pour la voix masculine, les pauses de 1 à 13, 15 à 19, 21 et 27 à 33 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les vingt-six prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
 
 Les prises de 14 et 19 minutes du deuxième lot n'ont pas été retenues ; de nouveaux essais figurent dans le troisième lot. Pour ces durées et les autres durées sans nouvelle prise approuvée, l'annonce actuelle reste provisoirement en place. Le MP3 de durée de 21 minutes antérieurement approuvé reste conservé.
 
@@ -61,4 +61,6 @@ Le quatrième lot contient de nouvelles prises pour 17, 18 et 19 minutes après 
 
 Le cinquième lot reprend les annonces 14, 17, 18, 19, 20, 22 à 25 et 31 pour écoute. Ces prises ne sont pas activées sans validation ; les durées déjà approuvées ne changent pas. Les références phonétiques de [France Podcasts](https://www.francepodcasts.com/2019/04/14/les-nombres-de-10-a-19/) indiquent notamment /disɛt/, /dizɥit/ et /diznœf/ pour 17, 18 et 19. La génération et le contrôle d'intégrité ne garantissent pas la prononciation : une écoute humaine reste indispensable.
 
-Sur demande, un sixième lot reprend 17, 18 et 19 sans tiret dans le texte, ainsi que 31 avec les mots exacts « trente une minute ». Les quatre nouvelles prises sont à écouter, sans activation avant validation.
+Sur demande, un sixième lot reprend 17, 18 et 19 sans tiret dans le texte, ainsi que 31 avec les mots exacts « trente une minute ». Les quatre prises ont été validées puis activées.
+
+Le septième lot contient les prises 26 et 34 à 42, en attente de validation. Les prises 14, 20 et 22 à 25 restent également à écouter ; 43 à 60 restent à générer en phrases complètes.

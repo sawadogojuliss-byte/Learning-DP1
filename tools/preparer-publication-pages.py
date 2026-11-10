@@ -70,6 +70,8 @@ files = [
     'livrables/publication-voix/essai-prises-lot5/manifest.json',
     'livrables/publication-voix/essai-prises-lot6/index.html',
     'livrables/publication-voix/essai-prises-lot6/manifest.json',
+    'livrables/publication-voix/essai-prises-lot7/index.html',
+    'livrables/publication-voix/essai-prises-lot7/manifest.json',
     'livrables/publication-voix/essai-traitement/index.html',
     'livrables/stock-voix/durees/21-minutes-approuve.mp3',
     'livrables/stock-voix/messages/annonce-debut.wav',
@@ -127,6 +129,8 @@ files.extend(f'livrables/publication-voix/essai-prises-lot5/{n:02d}.mp3'
              for n in (14, 17, 18, 19, 31, 20, 22, 23, 24, 25))
 files.extend(f'livrables/publication-voix/essai-prises-lot6/{n:02d}.mp3'
              for n in (17, 18, 19, 31))
+files.extend(f'livrables/publication-voix/essai-prises-lot7/{n:02d}.mp3'
+             for n in (26, 34, 35, 36, 37, 38, 39, 40, 41, 42))
 
 # Voix masculine choisie : durées enregistrées en entier, sans assemblage de nombres.
 files.extend(f'livrables/stock-voix/durees/{n:02d}-minutes.wav' for n in range(1, 50))

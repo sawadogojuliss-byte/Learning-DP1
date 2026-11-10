@@ -173,7 +173,7 @@ for (const type of ['feminine', 'masculine']) {
     ok(!annonceCapturee.noms.includes('masculine-fin-serie') && !annonceCapturee.options.pauseApresPremier, 'message final entendu sur une séance intermédiaire');
 }
 bac.chronoVoixType = () => 'masculine';
-const approuves = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 21, 27, 28, 29, 30, 32, 33];
+const approuves = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 21, 27, 28, 29, 30, 31, 32, 33];
 for (let n = 1; n <= 60; n++) {
     for (const finale of [false, true]) {
         bac.chronoAnnoncerPause(n, function () {}, finale);

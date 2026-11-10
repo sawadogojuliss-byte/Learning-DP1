@@ -54,6 +54,7 @@ jobs:
           python3 travail/tools/verifier-prises-lot4.py site
           python3 travail/tools/verifier-prises-lot5.py site
           python3 travail/tools/verifier-prises-lot6.py site
+          python3 travail/tools/verifier-prises-lot7.py site
           python3 travail/tests/voix/test_serveur.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js

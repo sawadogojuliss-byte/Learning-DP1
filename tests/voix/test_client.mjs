@@ -69,7 +69,7 @@ try {
   await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
   assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
-  for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 21, 27, 28, 29, 30, 32, 33]) {
+  for (const n of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 21, 27, 28, 29, 30, 31, 32, 33]) {
     await page.evaluate(n => chronoVoixPreparer(n), n);
     await page.waitForFunction(n => !!chronoVoixTampons['masculine-complet-' + n], n, { timeout: 30000 });
     await page.evaluate(n => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, false); }, n);
@@ -77,8 +77,9 @@ try {
     assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-complet-' + n]);
     await page.evaluate(() => chronoInterrompreAnnonce(false));
   }
-  assert.ok(!demandes.some(x => /minutes=(1|2|3|4|5|6|7|8|9|10|11|12|13|15|16|21|27|28|29|30|32|33)(&|$)/.test(x)));
-  for (const n of [14, 17, 18, 19, 31]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
+  assert.ok(!demandes.some(x => /minutes=(1|2|3|4|5|6|7|8|9|10|11|12|13|15|16|17|18|19|21|27|28|29|30|31|32|33)(&|$)/.test(x)));
+  for (const n of [14, 20, 22, 23, 24, 25, 26, 34, 35, 36, 37, 38, 39, 40, 41, 42]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
+  for (const n of [17, 18, 19, 31]) assert.ok((await page.evaluate(n => chronoVoixUrl('masculine-complet-' + n), n)).includes('/essai-prises-lot6/' + n + '.mp3?v='));
   // Si l'AudioContext échoue après préchargement, le lecteur de secours
   // utilise aussi les prises historiques et non le service indisponible.
   const secours = await page.evaluate(async () => {
