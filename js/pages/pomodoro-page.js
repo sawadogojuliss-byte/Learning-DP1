@@ -967,7 +967,9 @@ function focusPoserFond(index, immediat) {
     if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
     focusEtat.fond = index;
     var fond = FOCUS_FONDS[index];
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusPeindreFonds();
     focusFondPage(fond.src);
     focusFondAccueil(fond.src);
@@ -1458,7 +1460,9 @@ function focusChoisirTache(id) {
 }
 
 function focusSauverTaches() {
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusTaches', JSON.stringify(focusTaches.slice(-40))); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
 }
 
 function focusPeindreTaches() {
@@ -1634,7 +1638,9 @@ function focusSauverDurees() {
         long: focusBorner(document.getElementById('focusDureeLong') && document.getElementById('focusDureeLong').value, 15, 1, 60),
         seances: focusBorner(document.getElementById('focusDureeSeances') && document.getElementById('focusDureeSeances').value, 4, 1, 12)
     };
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify(durees)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusPeindreSeances(durees.seances);
     if (typeof chronoVoixPreparer === 'function') {
         try { chronoVoixPreparer([durees.short, durees.long]); } catch (e) {}
@@ -1855,7 +1861,9 @@ function focusVolume(id) {
 }
 
 function focusSauverVolume(id) {
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusVol_' + id, String(focusVolumes[id])); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
 }
 
 function focusLireListes() {
@@ -2016,7 +2024,9 @@ function focusChoisirSon(id) {
     }
     focusAmbianceChoisie = Object.keys(focusLecteurs).filter(focusSonActif);
     if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours && focusAmbianceChoisie.indexOf(id) === -1) focusAmbianceChoisie.push(id);
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusPeindreSons();
     focusPeindreSonBouton();
 }
@@ -2061,7 +2071,9 @@ function focusJouerListe(liste) {
         if (focusSonParId(id)) focusLireSon(id);
     });
     focusAmbianceChoisie = (liste.sons || []).filter(focusSonParId);
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusEtat.enPause = false;
     focusPeindreSonBouton();
     focusPeindreListes();

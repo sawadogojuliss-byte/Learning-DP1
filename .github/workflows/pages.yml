@@ -59,6 +59,10 @@ jobs:
           python3 travail/tools/verifier-prises-lot8.py site
           python3 travail/tools/verifier-prises-lot9.py site
           python3 travail/tests/voix/test_serveur.py
+          node --check site/js/compte.js
+          node --check site/js/synchro.js
+          cmp travail/js/compte.js site/js/compte.js
+          cmp travail/js/synchro.js site/js/synchro.js
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js
           node --check site/js/pages/exercices.js

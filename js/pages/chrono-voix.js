@@ -44,17 +44,21 @@ function chronoChargerReglagesVoix() {
 }
 function chronoChoisirVoix(type) {
     if (type !== 'masculine') { chronoChargerReglagesVoix(); return; }
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_voixType', type); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     chronoChargerReglagesVoix();
     /* Préparer les sons pendant l'interaction, sans jouer d'annonce. */
     if (chronoVoixActive()) chronoVoixPreparer();
 }
 function chronoSauverReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try {
         if (active) localStorage.setItem('studyPlanIB_voixActive', String(active.checked));
         if (volume) localStorage.setItem('studyPlanIB_voixVolume', String(Math.min(1, Math.max(0, Number(volume.value) / 100))));
     } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     if (!chronoVoixActive() && chronoAnnonceEnCours) chronoInterrompreAnnonce(true);
     else if (!chronoVoixActive()) chronoVoixArreter();
 }

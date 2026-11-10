@@ -43,6 +43,7 @@ for rel, expected_hash in {
     'js/pages/chrono-voix.js': '97854c5a6e81d2e1056632af72afbc6d154f6798',
     'css/pages/focus-parametres.css': '0c9093c628fa9760c16a4e8ea7c205b2a50f3795',
     'js/synchro.js': 'b872031f3b925ac4961b97fa6993506023f121a6',
+    'js/compte.js': '3978b067fe612c92a6a35e4266abc31cf86c9892',
 }.items():
     found = subprocess.check_output(['git', 'hash-object', str(base / rel)], text=True).strip()
     if found != expected_hash:
@@ -85,6 +86,7 @@ files = [
     'js/pages/chrono-voix.js',
     'css/pages/focus-parametres.css',
     'js/synchro.js',
+    'js/compte.js',
     'livrables/publication-pomodoro/videos.css',
     'livrables/publication-pomodoro/mobile.css',
     'livrables/publication-pomodoro/reprise.css',

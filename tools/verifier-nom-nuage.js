@@ -77,6 +77,7 @@ function creerNuage() {
     };
   }
   const db = { collection: (c) => ({ doc: (id) => doc(c, id), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }), where: () => ({ get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }) };
+  require('./nuage-factice.cjs')(db);
   return { docs, journal, db, cle };
 }
 function firebaseFactice(nuage, uid, user) {

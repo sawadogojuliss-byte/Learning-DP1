@@ -125,8 +125,10 @@ function focusLireReglages() {
 }
 
 function focusEcrireReglages(reglages) {
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     focusReglagesVus = focusNormaliserReglages(reglages);
     try { localStorage.setItem(FOCUS_REGLAGES_CLE, JSON.stringify(focusReglagesVus)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
 }
 
 /* Change un seul réglage et garde les autres. */

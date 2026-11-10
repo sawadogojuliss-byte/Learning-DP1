@@ -29,16 +29,18 @@ function creerContexte(init) {
     querySelector() { return null; }, querySelectorAll() { return []; }, focus() {}, blur() {}, click() {}, remove() {}, getContext() { return null; } });
   const document = { readyState: 'complete', title: '', body: el(), documentElement: el(), head: el(), getElementById: () => null, querySelector: () => null,
     querySelectorAll: () => [], createElement: el, addEventListener() {}, removeEventListener() {}, createTextNode: () => el() };
+  const listeners = {};
   const ctx = {
     console, setTimeout, clearTimeout, setInterval() { return 0; }, clearInterval() {}, Date, Math, JSON, Promise, Object, Array, String, Number, Boolean,
     RegExp, Error, Set, Map, URL, Intl, Symbol, Uint8Array, ArrayBuffer, Buffer,
     localStorage: ls, sessionStorage: ls, document, navigator: { onLine: true, userAgent: 'test' },
     location: { hash: '', href: 'https://test/', search: '', pathname: '/' }, history: { replaceState() {}, pushState() {} },
-    addEventListener() {}, removeEventListener() {}, requestAnimationFrame: () => 0, fetch: () => Promise.reject(new Error('reseau coupe')),
+    addEventListener(type, fn) { (listeners[type] ||= []).push(fn); }, removeEventListener() {}, requestAnimationFrame: () => 0, fetch: () => Promise.reject(new Error('reseau coupe')),
     alert() {}, confirm: () => true, prompt: () => null, getComputedStyle: () => ({}), atob: b => Buffer.from(b, 'base64').toString('binary'),
     btoa: b => Buffer.from(b, 'binary').toString('base64'), TextEncoder, TextDecoder,
   };
   ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; ctx.__store = store;
+  ctx.__evenement = type => (listeners[type] || []).forEach(fn => fn({ type }));
   vm.createContext(ctx);
   return ctx;
 }
@@ -110,6 +112,7 @@ function creerNuage() {
   }
   const db = { collection: (c) => ({ doc: (id) => doc(c, id), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }),
     where: () => ({ orderBy: () => ({ limit: () => ({ get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }) };
+  require('./nuage-factice.cjs')(db);
   return { docs, journal, ecoutes, db };
 }
 function firebaseFactice(nuage, uid, user) {
@@ -278,11 +281,79 @@ async function ouvrirEnDirect(c, nuage) {
   /* Fin : le nuage et les deux téléphones doivent concorder après un dernier envoi de B. */
   await envoyer(b); await attendre(800);
   verif('10 après envoi, A et B identiques', memes(a, b), true);
+  verif('10b modification de A conservée malgré la modification non envoyée de B', emploi(b).cours.some(x => x[4] === 'Atelier-A'), true);
+  verif('10c modification locale de B conservée', emploi(b).cours.some(x => x[4] === 'Brouillon-B'), true);
 
   /* ── 11. Le nuage contient exactement l'emploi envoyé ── */
   const enNuage = JSON.parse(nuage.docs['progressions/UID-FARID'].progression);
   verif('11 le nuage porte les cours de l\'emploi', enNuage.customEvents.map(x => x.title).sort().join(','),
     emploi(b).cours.map(x => x[4]).sort().join(','));
+
+  /* Suppression concurrente avec un ajout sur l'autre appareil. */
+  ajouterCours(b, ev('c15', 4, '11:00', '12:00', 'Ajout-hors-ligne', 'course'));
+  retirerActivite(a, 'Natation');
+  await envoyer(a); await attendre(300); await envoyer(b); await attendre(800);
+  verif('12 suppression concurrente : l’activité ne revient pas', emploi(b).activites.some(x => x[0] === 'Natation'), false);
+  verif('12b ajout concurrent préservé', emploi(a).cours.some(x => x[4] === 'Ajout-hors-ligne'), true);
+
+  /* Ré-ajouter explicitement une activité reste possible après suppression. */
+  geste(b, `selectedActivities.push({ name: 'Natation', days: [1], startTime: '15:00', endTime: '16:00' }); memoireSauvegarder();`);
+  await envoyer(b); await attendre(800);
+  verif('13 activité réajoutée explicitement', emploi(a).activites.some(x => x[0] === 'Natation'), true);
+
+  /* Deux écritures simultanées sont fusionnées atomiquement. */
+  ajouterCours(a, ev('c16', 0, '10:00', '11:00', 'Simultané-A', 'course'));
+  ajouterCours(b, ev('c17', 0, '11:00', '12:00', 'Simultané-B', 'course'));
+  const avantReprises = nuage.db.transactionRetries;
+  await Promise.all([envoyer(a), envoyer(b)]); await attendre(1000);
+  verif('14 une transaction concurrente est relue après conflit', nuage.db.transactionRetries > avantReprises, true);
+  verif('14 les deux écritures simultanées sont conservées', ['Simultané-A', 'Simultané-B'].every(t => emploi(a).cours.some(x => x[4] === t)), true);
+  verif('14b appareils convergents', memes(a, b), true);
+
+  /* L'élève écrit encore pendant que sa transaction attend le réseau. */
+  const transaction = nuage.db.runTransaction;
+  let debloquer;
+  nuage.db.runTransaction = fn => new Promise(resolve => { debloquer = resolve; }).then(() => transaction(fn));
+  ajouterCours(b, ev('c18', 0, '12:00', '13:00', 'Avant-réseau', 'course'));
+  const envoiAttente = envoyer(b);
+  await attendre(30);
+  ajouterCours(b, ev('c19', 0, '13:00', '14:00', 'Pendant-réseau', 'course'));
+  nuage.db.runTransaction = transaction; debloquer();
+  await envoiAttente; await envoyer(b); await attendre(800);
+  verif('15 modification pendant transaction conservée sur les deux appareils', ['Avant-réseau', 'Pendant-réseau'].every(t => emploi(a).cours.some(x => x[4] === t) && emploi(b).cours.some(x => x[4] === t)), true);
+
+  /* Échec réseau : rien n'est marqué envoyé ; une nouvelle tentative reprend. */
+  nuage.db.runTransaction = () => Promise.reject(new Error('réseau indisponible (test)'));
+  ajouterCours(b, ev('c20', 0, '14:00', '15:00', 'Hors-ligne', 'course'));
+  await envoyer(b);
+  verif('16 échec réseau : modification gardée localement', emploi(b).cours.some(x => x[4] === 'Hors-ligne'), true);
+  nuage.db.runTransaction = transaction; b.__evenement('online'); await attendre(4000);
+  verif('16b nouvelle tentative au retour du réseau : modification reçue sur A', emploi(a).cours.some(x => x[4] === 'Hors-ligne'), true);
+
+  /* Reconnexion du même compte avec un travail non envoyé. */
+  ajouterCours(b, ev('c21', 0, '15:00', '16:00', 'Avant-reconnexion', 'course'));
+  figer(b); b.compteOnCredential({ credential }); await attendre(3500); figer(b);
+  verif('17 reconnexion : travail local non envoyé conservé', emploi(b).cours.some(x => x[4] === 'Avant-reconnexion'), true);
+  await envoyer(b); await attendre(800);
+  verif('17b reconnexion : travail publié et reçu', emploi(a).cours.some(x => x[4] === 'Avant-reconnexion'), true);
+
+  /* Une sauvegarde illisible sur le serveur ne doit jamais être écrasée. */
+  const sauvegardeNuage = nuage.docs['progressions/UID-FARID'].progression;
+  nuage.docs['progressions/UID-FARID'].progression = '{invalide';
+  ajouterCours(b, ev('c22', 0, '16:00', '17:00', 'Après-erreur', 'course'));
+  await envoyer(b);
+  verif('18 sauvegarde distante illisible : pas d’écrasement', nuage.docs['progressions/UID-FARID'].progression, '{invalide');
+  verif('18b modification conservée localement', emploi(b).cours.some(x => x[4] === 'Après-erreur'), true);
+  nuage.docs['progressions/UID-FARID'].progression = sauvegardeNuage;
+  await envoyer(b); await attendre(800);
+  verif('18c après correction, modification transmise', emploi(a).cours.some(x => x[4] === 'Après-erreur'), true);
+
+  /* Les paramètres du minuteur seuls déclenchent une sauvegarde : citation
+     personnelle incluse, sans attendre une autre modification du planning. */
+  geste(b, `focusEcrireReglages({ citation: true, citationCategorie: 'personnelle', citationPersonnelle: 'Avance à ton rythme' });`);
+  await attendre(4500);
+  verif('19 citation personnelle seule synchronisée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, 'Avance à ton rythme');
+  verif('19b citation personnelle reçue par l’autre appareil', a.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
 
   /* ── Aucune écriture de test vers Firestore réel : tout est dans le faux nuage ── */
   const tout = verifs.every(Boolean);
