@@ -192,7 +192,7 @@ function focusRestaurerEtat() {
     focusEtat.run = !!donnees.run;
     focusEtat.objectif = focusBorner(donnees.objectif || focusDurees().seances, focusDurees().seances, 1, 12);
     focusEtat.pauseFinale = !!donnees.pauseFinale && donnees.mode !== 'focus';
-    focusEtat.transition = ['pause-annonce', 'reprise-annonce', 'attente-reprise'].indexOf(donnees.transition) !== -1 ? donnees.transition : '';
+    focusEtat.transition = ['pause-annonce', 'reprise-annonce', 'attente-reprise', 'fin-annonce'].indexOf(donnees.transition) !== -1 ? donnees.transition : '';
     focusEtat.repriseMasquee = !!donnees.repriseMasquee && focusEtat.transition === 'attente-reprise';
     if (donnees.running && Number(donnees.fin) > 0) {
         focusEtat.running = true;
@@ -271,11 +271,21 @@ function focusCharger() {
     focusEtatRestaure = true;
     /* Un rechargement interrompt la lecture audio. On ne laisse jamais une
        transition bloquée : la pause démarre ou la confirmation réapparaît. */
-    if (focusEtat.transition === 'pause-annonce') {
+    if (focusEtat.pauseFinale) {
+        // Migration des anciennes pauses finales déjà enregistrées : elles ne
+        // continuent plus automatiquement après le rechargement.
+        focusEtat.running = false;
+        focusEtat.fin = 0;
+        focusEtat.pauseFinale = false;
+        focusEtat.transition = '';
+        focusChoisirMode('focus', false);
+    } else if (focusEtat.transition === 'pause-annonce') {
         focusEtat.transition = '';
         focusLancerPhase();
     } else if (focusEtat.transition === 'reprise-annonce') {
         focusEtat.transition = focusEtat.run && focusEtat.objectif > 1 && focusEtat.serie < focusEtat.objectif ? 'attente-reprise' : '';
+    } else if (focusEtat.transition === 'fin-annonce') {
+        focusEtat.transition = ''; // l'audio interrompu n'est pas rejoué
     }
     focusSauverEtat();
     focusBrancher();
@@ -1164,6 +1174,30 @@ function focusLancerPhase() {
     focusLancerIntervalle();
 }
 
+/* Arrête la série sans lancer de pause. Un changement de réglage pendant
+   une annonce invalide son callback avant d'annoncer la fin de série. */
+function focusTerminerSerie(silencieux) {
+    var generation = ++focusTransitionGeneration;
+    if (typeof chronoInterrompreAnnonce === 'function') chronoInterrompreAnnonce(false);
+    focusEtat.running = false;
+    focusEtat.fin = 0;
+    focusStopIntervalle();
+    focusEtat.run = false;
+    focusEtat.pauseFinale = false;
+    focusEtat.repriseMasquee = false;
+    focusChoisirMode('focus', false);
+    focusEtat.transition = 'fin-annonce';
+    focusPeindre();
+    function terminer() {
+        if (generation !== focusTransitionGeneration || focusEtat.transition !== 'fin-annonce') return;
+        focusEtat.transition = '';
+        focusPeindre();
+    }
+    if (silencieux) terminer();
+    else if (typeof chronoAnnoncerFinSerie === 'function') chronoAnnoncerFinSerie(terminer);
+    else { focusBip(1); setTimeout(terminer, 800); }
+}
+
 function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
     if (typeof statsEnregistrer === 'function') {
@@ -1171,6 +1205,7 @@ function focusPhaseSuivante(silencieux) {
             s: fini === 'focus' && focusSeanceMinuteur ? focusSeanceMinuteur.id : null });
     }
     focusEtat.running = false;
+    focusEtat.fin = 0;
     focusStopIntervalle();
     var chaine = focusEnchainementSeance();
     var generation = ++focusTransitionGeneration;
@@ -1179,48 +1214,46 @@ function focusPhaseSuivante(silencieux) {
         focusEtat.cycles += 1;
         var serieEnCours = focusEtat.run;
         var objectif = focusEtat.objectif || focusDurees().seances;
-        if (serieEnCours) {
-            focusEtat.serie = Math.min(objectif, focusEtat.serie + 1);
-            if (focusEtat.serie >= objectif) focusEtat.run = false;
-        }
-        var modePause = chaine ? focusPauseApres(focusEtat.serie) :
-            (focusEtat.cycles % objectif === 0 ? 'long' : 'short');
-        var minutesPause = focusDurees()[modePause];
-        focusChoisirMode(modePause, false);
-        focusEtat.pauseFinale = serieEnCours && !focusEtat.run;
-        focusEtat.transition = 'pause-annonce';
-        focusEtat.repriseMasquee = false;
-        focusPeindre();
-        function demarrerPause() {
-            if (generation !== focusTransitionGeneration || focusEtat.transition !== 'pause-annonce') return;
-            focusEtat.transition = '';
-            focusLancerPhase();
+        if (serieEnCours) focusEtat.serie += 1;
+        if (serieEnCours && focusEtat.serie >= objectif) {
+            focusTerminerSerie(silencieux);
+        } else {
+            var modePause = chaine ? focusPauseApres(focusEtat.serie) :
+                (focusEtat.cycles % objectif === 0 ? 'long' : 'short');
+            var minutesPause = focusDurees()[modePause];
+            focusChoisirMode(modePause, false);
+            focusEtat.pauseFinale = false;
+            focusEtat.transition = 'pause-annonce';
+            focusEtat.repriseMasquee = false;
             focusPeindre();
+            function demarrerPause() {
+                if (generation !== focusTransitionGeneration || focusEtat.transition !== 'pause-annonce') return;
+                focusEtat.transition = '';
+                focusLancerPhase();
+                focusPeindre();
+            }
+            if (silencieux) demarrerPause();
+            else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause, false);
+            else { focusBip(2); setTimeout(demarrerPause, 800); }
         }
-        if (silencieux) demarrerPause();
-        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause, focusEtat.pauseFinale);
-        else { focusBip(2); setTimeout(demarrerPause, 800); }
     } else {
         var pauseFinale = focusEtat.pauseFinale;
         focusEtat.pauseFinale = false;
         focusChoisirMode('focus', false);
-        var demander = focusEtat.run && focusEtat.objectif > 1 && focusEtat.serie < focusEtat.objectif && !pauseFinale;
         focusEtat.transition = 'reprise-annonce';
         focusEtat.repriseMasquee = false;
         focusPeindre();
         function reprisePrete() {
             if (generation !== focusTransitionGeneration || focusEtat.transition !== 'reprise-annonce') return;
+            // L'objectif a pu changer pendant la voix de reprise.
+            var demander = focusEtat.run && focusEtat.serie < focusEtat.objectif && !pauseFinale;
             focusEtat.transition = demander ? 'attente-reprise' : '';
             focusPeindre();
-            /* L'option historique ne concerne plus les séries qui demandent
-               confirmation, ni une série finie, mais les pauses manuelles. */
             if (!demander && !pauseFinale && !focusEtat.run && !silencieux &&
                 typeof focusLireReglages === 'function' && focusLireReglages().auto &&
                 typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
         }
         if (silencieux) reprisePrete();
-        /* À la fin de la série il n'y a pas de nouvelle séance à annoncer.
-           Garder un signal de fin, mais jamais le message de reprise trompeur. */
         else if (pauseFinale) { focusBip(1); reprisePrete(); }
         else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise(reprisePrete);
         else { focusBip(1); setTimeout(reprisePrete, 800); }
@@ -1594,6 +1627,7 @@ function focusAjusterSeances(pas) {
 }
 
 function focusSauverDurees() {
+    var anciennes = focusDurees();
     var durees = {
         focus: focusBorner(document.getElementById('focusDureeFocus') && document.getElementById('focusDureeFocus').value, 25, 1, 180),
         short: focusBorner(document.getElementById('focusDureeShort') && document.getElementById('focusDureeShort').value, 5, 1, 60),
@@ -1605,11 +1639,23 @@ function focusSauverDurees() {
     if (typeof chronoVoixPreparer === 'function') {
         try { chronoVoixPreparer([durees.short, durees.long]); } catch (e) {}
     }
-    if (!focusEtat.running && !focusEtat.transition) {
+    if (focusEtat.run) {
+        focusEtat.objectif = durees.seances;
+        // Si les séances déjà achevées suffisent, une pause en cours ou une
+        // reprise en attente n'a plus lieu d'être. Une concentration déjà
+        // commencée reste cependant intacte jusqu'à sa fin.
+        var entreSeances = focusEtat.mode !== 'focus' ||
+            focusEtat.transition === 'reprise-annonce' || focusEtat.transition === 'attente-reprise';
+        if (entreSeances && focusEtat.serie >= focusEtat.objectif) {
+            focusTerminerSerie(false);
+            return;
+        }
+    }
+    if (!focusEtat.running && !focusEtat.transition && anciennes[focusEtat.mode] !== durees[focusEtat.mode]) {
         focusEtat.total = durees[focusEtat.mode] * 60;
         focusEtat.restant = focusEtat.total;
-        focusPeindre();
     }
+    focusPeindre(); // conserve aussi l'objectif actualisé au rechargement
 }
 
 function focusMemoriserObjectif() {

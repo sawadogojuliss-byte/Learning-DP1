@@ -59,19 +59,19 @@ try {
     chronoVoixCompleteApprouvee = n => n === 53 ? false : window.__completeOriginal(n);
     chronoVoixPreparer([5, 53, 21]);
   });
-  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-53-lent-1'], null, { timeout: 30000 });
-  assert.ok(demandes.some(x => x.includes('minutes=53') && x.includes('finale=1')));
-  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(53, () => { window.__finVoixService = true; }, true); });
+  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-53-lent-0'], null, { timeout: 30000 });
+  assert.ok(demandes.some(x => x.includes('minutes=53') && x.includes('finale=0')));
+  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(53, () => { window.__finVoixService = true; }, false); });
   await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
-  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-53-lent-1']);
+  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-53-lent-0']);
   await page.waitForFunction(() => window.__finVoixService, null, { timeout: 25000 });
   // La prise de cinq minutes, approuvée et publiée sur le site, reste
   // prioritaire même quand un service est configuré puis indisponible.
   await page.waitForFunction(() => !!chronoVoixTampons['masculine-complet-5'], null, { timeout: 30000 });
   enPanne = true;
   await page.evaluate(() => { window.__sourcesService = []; chronoAnnoncerPause(5, () => {}, true); });
-  await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
-  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
+  await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
+  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
   await page.evaluate(() => { chronoVoixCompleteApprouvee = window.__completeOriginal; });
   demandes = [];
@@ -82,9 +82,9 @@ try {
     await page.waitForFunction(n => !!chronoVoixTampons['masculine-complet-' + n], n, { timeout: 30000 });
     for (const finale of [false, true]) {
       await page.evaluate(({ n, finale }) => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, finale); }, { n, finale });
-      const nombreAttendu = finale ? 2 : 1;
+      const nombreAttendu = 1;
       await page.waitForFunction(count => window.__sourcesService.length >= count, nombreAttendu, { timeout: 10000 });
-      const attendu = finale ? ['masculine-fin-serie', 'masculine-complet-' + n] : ['masculine-complet-' + n];
+      const attendu = finale ? ['masculine-fin-serie'] : ['masculine-complet-' + n];
       assert.deepEqual(await page.evaluate(() => window.__sourcesService), attendu, `${n} minutes, finale=${finale}`);
       await page.evaluate(() => chronoInterrompreAnnonce(false));
     }
@@ -101,12 +101,12 @@ try {
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoVoixJouerLecteurs = (n, cb, options) => { window.__secours = { n, pause: options.pauseApresPremier }; cb(true); };
     chronoVoixCompleteApprouvee = n => n === 53 ? false : window.__completeOriginal(n);
-    chronoAnnoncerPause(53, () => {}, true);
+    chronoAnnoncerPause(53, () => {}, false);
     await new Promise(resolve => setTimeout(resolve, 1200));
     chronoVoixCompleteApprouvee = window.__completeOriginal;
     return window.__secours;
   });
-  assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-53','masculine-pause'], pause: true });
+  assert.deepEqual(secours, { n: ['masculine-debut','masculine-n-53','masculine-pause'], pause: false });
   // Sans AudioContext, des lecteurs réels (simulés ici seulement côté
   // périphérique) tentent la prise complète sans rejouer les anciens fragments.
   const scenarios = await page.evaluate(async () => {
@@ -116,13 +116,13 @@ try {
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoBipDoux = () => null;
     const essais = [];
-    for (const scenario of ['normal', 'finale', 'finale-echec-complet', 'finale-echec-fin', 'annulation', 'muet']) {
+    for (const scenario of ['normal', 'finale', 'echec-complet', 'finale-echec-fin', 'annulation', 'muet']) {
       const lus = []; let fin = 0;
       const avant = chronoVoixLecteur;
       chronoVoixLecteur = nom => ({
         addEventListener(type, callback) { this[type] = callback; },
         play() { lus.push(nom); setTimeout(() => {
-          if ((scenario === 'finale-echec-complet' && nom === 'masculine-complet-5') ||
+          if ((scenario === 'echec-complet' && nom === 'masculine-complet-5') ||
               (scenario === 'finale-echec-fin' && nom === 'masculine-fin-serie' && lus.length === 1)) this.error();
           else this.ended();
         }, 5); return Promise.resolve(); },
@@ -143,8 +143,8 @@ try {
   });
   assert.deepEqual(scenarios.essais, [
     { scenario: 'normal', lus: ['masculine-complet-5'], fin: 1 },
-    { scenario: 'finale', lus: ['masculine-fin-serie', 'masculine-complet-5'], fin: 1 },
-    { scenario: 'finale-echec-complet', lus: ['masculine-fin-serie', 'masculine-complet-5'], fin: 1 },
+    { scenario: 'finale', lus: ['masculine-fin-serie'], fin: 1 },
+    { scenario: 'echec-complet', lus: ['masculine-complet-5'], fin: 1 },
     { scenario: 'finale-echec-fin', lus: ['masculine-fin-serie'], fin: 1 },
     { scenario: 'annulation', lus: [], fin: 0 },
     { scenario: 'muet', lus: [], fin: 1 }

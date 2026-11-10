@@ -616,27 +616,32 @@ function chronoLancerAnnonce(noms, typeVoix, phrase, suite, options) {
     }, { debut: finBip, generation: generation, pauseApresPremier: !!(options && options.pauseApresPremier) });
 }
 
-/* Fin de concentration : annonce la durée exacte choisie. */
+/* La fin de série est un message autonome : aucune annonce de pause. */
+function chronoAnnoncerFinSerie(suite) {
+    chronoLancerAnnonce(['masculine-fin-serie'], 'masculine',
+        'Tes séances de révisions sont terminées.', suite);
+}
+
+/* Fin de concentration intermédiaire : annonce la durée exacte choisie. */
 function chronoAnnoncerPause(minutes, suite, derniereSeance) {
+    // Compatibilité avec les anciens appelants : ne jamais ajouter une pause
+    // à la fin de la série, même si une durée est encore transmise.
+    if (derniereSeance) { chronoAnnoncerFinSerie(suite); return; }
     var n = Math.round(Number(minutes));
     if (!isFinite(n) || n < 1 || n > 60) n = 5;
     var noms = chronoVoixPhrasePause(n);
     var texte = chronoPhrasePause(n);
-    if (derniereSeance && noms) {
-        noms.unshift('masculine-fin-serie');
-        texte = 'Tes séances de révisions sont terminées. ' + texte;
-    }
     if (chronoVoixCompleteApprouvee(n) && chronoVoixType() === 'masculine') {
         /* Ne jamais rejouer l'ancienne phrase assemblée pour ces durées,
            même si la prise ne peut pas être lue : la transition continue. */
-        chronoLancerAnnonce(noms, 'masculine', texte, suite, { pauseApresPremier: !!derniereSeance });
+        chronoLancerAnnonce(noms, 'masculine', texte, suite);
         return;
     }
-    var nomService = chronoVoixServiceNom(n, !!derniereSeance);
+    var nomService = chronoVoixServiceNom(n, false);
     if (nomService && chronoVoixTampons[nomService]) {
-        chronoLancerAnnonce([nomService], chronoVoixType(), texte, suite, { nomsSecours: noms, pauseSecours: !!derniereSeance });
+        chronoLancerAnnonce([nomService], chronoVoixType(), texte, suite, { nomsSecours: noms });
     } else {
-        chronoLancerAnnonce(noms, chronoVoixType(), texte, suite, { pauseApresPremier: !!derniereSeance });
+        chronoLancerAnnonce(noms, chronoVoixType(), texte, suite);
     }
 }
 

@@ -158,33 +158,29 @@ for (let n = 21; n <= 30; n++) {
 ok(memeListe(bac.chronoVoixMorceauxNombre(45), ['n-40', 'n-5']),
     'quarante-cinq se compose de « quarante » et « cinq » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(45)));
 
-/* La fin de série précède l'annonce de pause sans modifier le réglage de
-   voix de cette dernière. Les séances intermédiaires restent inchangées. */
+/* La fin de série est seule ; les autres pauses restent inchangées. */
 ok(fs.existsSync(path.join(racine, 'livrables/stock-voix/messages/fin-serie.wav')), 'prise de fin de série manquante');
 const lancerOriginal = bac.chronoLancerAnnonce;
 let annonceCapturee;
-bac.chronoLancerAnnonce = function (noms, type, phrase, suite, options) { annonceCapturee = { noms, type, phrase, options }; };
+bac.chronoLancerAnnonce = function (noms, type, phrase, suite, options) { annonceCapturee = { noms, type, phrase, options: options || {} }; };
 for (const type of ['feminine', 'masculine']) {
     bac.chronoVoixType = () => type;
     bac.chronoAnnoncerPause(21, function () {}, true);
-    ok(annonceCapturee.noms[0] === 'masculine-fin-serie' && annonceCapturee.type === type, 'message final ou voix de pause incorrects : ' + type);
-    ok(annonceCapturee.phrase.startsWith('Tes séances de révisions sont terminées. ') && annonceCapturee.options.pauseApresPremier, 'texte ou respiration du message final incorrects');
+    ok(memeListe(annonceCapturee.noms, ['masculine-fin-serie']) && annonceCapturee.type === 'masculine', 'fin de série seule attendue : ' + type);
+    ok(annonceCapturee.phrase === 'Tes séances de révisions sont terminées.', 'texte de fin incorrect');
     bac.chronoAnnoncerPause(21, function () {}, false);
-    ok(!annonceCapturee.noms.includes('masculine-fin-serie') && !annonceCapturee.options.pauseApresPremier, 'message final entendu sur une séance intermédiaire');
+    ok(!annonceCapturee.noms.includes('masculine-fin-serie'), 'message final entendu sur une séance intermédiaire');
 }
 bac.chronoVoixType = () => 'masculine';
 const approuves = Array.from({ length: 60 }, (_, i) => i + 1);
 for (let n = 1; n <= 60; n++) {
     for (const finale of [false, true]) {
         bac.chronoAnnoncerPause(n, function () {}, finale);
-        const attendu = approuves.includes(n) ? ['masculine-complet-' + n] : ['masculine-debut', 'masculine-n-' + n, 'masculine-pause'];
-        if (finale) attendu.unshift('masculine-fin-serie');
+        const attendu = finale ? ['masculine-fin-serie'] : ['masculine-complet-' + n];
         ok(memeListe(annonceCapturee.noms, attendu), 'annonce inattendue pour ' + n + ' minutes, finale=' + finale);
-        if (approuves.includes(n)) {
-            ok(!annonceCapturee.options.nomsSecours, 'ne pas rejouer les fragments pour la prise approuvée ' + n);
-            const url = bac.chronoVoixUrl('masculine-complet-' + n).split('?')[0];
-            ok(fs.existsSync(path.join(racine, url)), 'prise approuvée absente : ' + url);
-        }
+        ok(!annonceCapturee.options.nomsSecours, 'ne pas rejouer les fragments pour la prise approuvée ' + n);
+        const url = bac.chronoVoixUrl('masculine-complet-' + n).split('?')[0];
+        ok(fs.existsSync(path.join(racine, url)), 'prise approuvée absente : ' + url);
     }
 }
 bac.chronoLancerAnnonce = lancerOriginal;
@@ -200,7 +196,7 @@ ok(phrase1 && phrase1[phrase1.length - 1] === 'minute-de-pause',
 /* ── 4. Le minuteur s'en sert, avec la pause configurée ─────────────── */
 const page = lire('js/pages/pomodoro-page.js');
 ok(page.indexOf('function focusPhaseSuivante') !== -1, 'la fin de phase du minuteur n\'existe plus');
-ok(page.indexOf('chronoAnnoncerPause(minutesPause, demarrerPause, focusEtat.pauseFinale)') !== -1,
+ok(page.indexOf('chronoAnnoncerPause(minutesPause, demarrerPause, false)') !== -1,
     'la fin de concentration doit annoncer la pause');
 ok(page.indexOf('var minutesPause = focusDurees()[modePause];') !== -1,
     'la pause annoncée doit venir de la configuration de l\'élève');
@@ -215,16 +211,16 @@ ok(page.includes('focusBip(2)') && page.includes('focusBip(1)') && moteurAnnonce
 /* La pause démarre après l'annonce ; les séries restantes attendent une
    confirmation, et une série terminée ne redémarre pas. */
 const transition = page.slice(page.indexOf('function focusPhaseSuivante'), page.indexOf('function focusTick'));
-ok(transition.indexOf('focusEtat.running = false;\n    focusStopIntervalle();') !== -1,
+ok(transition.includes('focusEtat.running = false;') && transition.includes('focusStopIntervalle();'),
     'la phase précédente doit être arrêtée avant la suivante');
 ok(transition.includes("focusEtat.transition = 'pause-annonce'") &&
-   transition.includes('chronoAnnoncerPause(minutesPause, demarrerPause, focusEtat.pauseFinale)') &&
+   transition.includes('chronoAnnoncerPause(minutesPause, demarrerPause, false)') &&
    /function demarrerPause\(\)[\s\S]*?focusLancerPhase\(\)/.test(transition),
-    'la pause doit attendre la fin de son annonce avant de démarrer');
-ok(transition.includes('focusEtat.pauseFinale = serieEnCours && !focusEtat.run') &&
-   transition.includes('!pauseFinale') && transition.includes('focusEtat.objectif > 1') &&
+    'la pause intermédiaire doit attendre son annonce');
+ok(transition.includes('focusEtat.serie >= objectif') && transition.includes('focusTerminerSerie(silencieux)') &&
+   page.includes("focusEtat.transition = 'fin-annonce'") && page.includes('chronoAnnoncerFinSerie(terminer)') &&
    transition.includes("'attente-reprise'"),
-    'une série terminée ne doit pas reprendre et une autre séance doit attendre confirmation');
+    'la fin de série doit s arrêter sans pause et la reprise doit attendre confirmation');
 
 /* Une pause réglée à 15 minutes doit être dite « quinze minutes » :
    le nombre suit la configuration, jamais une valeur écrite à part. */
