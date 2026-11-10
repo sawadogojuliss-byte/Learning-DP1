@@ -163,7 +163,7 @@ function chronoVoixServiceNom(minutes, finale) {
 
 /* Phrases entières écoutées et approuvées ; les essais refusés restent exclus. */
 function chronoVoixCompleteApprouvee(minutes) {
-    return Number.isInteger(minutes) && minutes >= 1 && minutes <= 52;
+    return Number.isInteger(minutes) && minutes >= 1 && minutes <= 60;
 }
 
 function chronoVoixUrl(nom) {
@@ -186,12 +186,13 @@ function chronoVoixUrl(nom) {
     if (complet && chronoVoixCompleteApprouvee(Number(complet[1]))) {
         var minute = Number(complet[1]);
         if (minute === 5) return 'livrables/publication-voix/essai-prononciation-claire-5.mp3?v=' + CHRONO_VOIX_VERSION;
-        var lot = minute >= 43 && minute <= 52 ? 'essai-prises-lot8' :
+        var lot = minute >= 53 && minute <= 60 ? 'essai-prises-lot9' :
+            (minute >= 43 && minute <= 52 ? 'essai-prises-lot8' :
             ([26, 34, 35, 36, 37, 38, 39, 40, 41, 42].indexOf(minute) !== -1 ? 'essai-prises-lot7' :
             ([14, 20, 22, 23, 24, 25].indexOf(minute) !== -1 ? 'essai-prises-lot5' :
             ([17, 18, 19, 31].indexOf(minute) !== -1 ? 'essai-prises-lot6' :
             ([27, 28, 29, 30, 32, 33].indexOf(minute) !== -1 ? 'essai-prises-lot4' :
-            ([6, 7, 8, 9, 11, 12, 13, 16].indexOf(minute) !== -1 ? 'essai-prises-lot2' : 'essai-prises-continues')))));
+            ([6, 7, 8, 9, 11, 12, 13, 16].indexOf(minute) !== -1 ? 'essai-prises-lot2' : 'essai-prises-continues'))))));
         return 'livrables/publication-voix/' + lot + '/' + complet[1].padStart(2, '0') + '.mp3?v=' + CHRONO_VOIX_VERSION;
     }
     return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;

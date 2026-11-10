@@ -84,7 +84,7 @@ try {
         chronoAnnoncerPause(60);
       });
       await page.waitForFunction(() => window.__dernierEssai !== null, null, { timeout: 10000 });
-      assert.deepEqual(await page.evaluate(() => window.__dernierEssai), ['masculine-debut', 'masculine-n-60', 'masculine-pause']);
+      assert.deepEqual(await page.evaluate(() => window.__dernierEssai), ['masculine-complet-60']);
       await page.evaluate(() => { chronoAnnonceGeneration++; chronoVoixArreter(); });
     }
     await page.reload({ waitUntil: 'domcontentloaded' });

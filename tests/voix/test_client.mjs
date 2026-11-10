@@ -53,6 +53,10 @@ try {
   await page.evaluate(() => {
     document.querySelectorAll('.context-modal.active').forEach(e => e.classList.remove('active'));
     document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro');
+    // Simuler une durée non approuvée uniquement pour conserver la couverture
+    // du service optionnel et de son secours, désormais inutilisés en production.
+    window.__completeOriginal = chronoVoixCompleteApprouvee;
+    chronoVoixCompleteApprouvee = n => n === 53 ? false : window.__completeOriginal(n);
     chronoVoixPreparer([5, 53, 21]);
   });
   await page.waitForFunction(() => !!chronoVoixTampons['service-pause-53-lent-1'], null, { timeout: 30000 });
@@ -69,18 +73,25 @@ try {
   await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
   assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
-  for (const n of Array.from({ length: 52 }, (_, i) => i + 1)) {
+  await page.evaluate(() => { chronoVoixCompleteApprouvee = window.__completeOriginal; });
+  demandes = [];
+  // Pour chacune des 60 durées, décodage réel et programmation audio normale
+  // et de dernière séance ; aucune requête au service ni anciens fragments.
+  for (const n of Array.from({ length: 60 }, (_, i) => i + 1)) {
     await page.evaluate(n => chronoVoixPreparer(n), n);
     await page.waitForFunction(n => !!chronoVoixTampons['masculine-complet-' + n], n, { timeout: 30000 });
-    await page.evaluate(n => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, false); }, n);
-    await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
-    assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-complet-' + n]);
-    await page.evaluate(() => chronoInterrompreAnnonce(false));
+    for (const finale of [false, true]) {
+      await page.evaluate(({ n, finale }) => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, finale); }, { n, finale });
+      const nombreAttendu = finale ? 2 : 1;
+      await page.waitForFunction(count => window.__sourcesService.length >= count, nombreAttendu, { timeout: 10000 });
+      const attendu = finale ? ['masculine-fin-serie', 'masculine-complet-' + n] : ['masculine-complet-' + n];
+      assert.deepEqual(await page.evaluate(() => window.__sourcesService), attendu, `${n} minutes, finale=${finale}`);
+      await page.evaluate(() => chronoInterrompreAnnonce(false));
+    }
   }
-  assert.ok(!demandes.some(x => { const n = Number(new URLSearchParams(x).get('minutes')); return n >= 1 && n <= 52; }));
-  for (const n of [53, 54, 55, 59, 60]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
+  assert.deepEqual(demandes, [], 'aucune annonce approuvée ne doit demander le service');
   for (const n of [17, 18, 19, 31]) assert.ok((await page.evaluate(n => chronoVoixUrl('masculine-complet-' + n), n)).includes('/essai-prises-lot6/' + n + '.mp3?v='));
-  for (const [lot, numeros] of [[5, [14, 20, 22, 23, 24, 25]], [7, [26, 34, 35, 36, 37, 38, 39, 40, 41, 42]], [8, [43, 44, 45, 46, 47, 48, 49, 50, 51, 52]]]) {
+  for (const [lot, numeros] of [[5, [14, 20, 22, 23, 24, 25]], [7, [26, 34, 35, 36, 37, 38, 39, 40, 41, 42]], [8, [43, 44, 45, 46, 47, 48, 49, 50, 51, 52]], [9, [53, 54, 55, 56, 57, 58, 59, 60]]]) {
     for (const n of numeros) assert.ok((await page.evaluate(n => chronoVoixUrl('masculine-complet-' + n), n)).includes('/essai-prises-lot' + lot + '/' + n + '.mp3?v='));
   }
   // Si l'AudioContext échoue après préchargement, le lecteur de secours
@@ -89,8 +100,10 @@ try {
     window.__jouerLecteursOriginal = chronoVoixJouerLecteurs;
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoVoixJouerLecteurs = (n, cb, options) => { window.__secours = { n, pause: options.pauseApresPremier }; cb(true); };
+    chronoVoixCompleteApprouvee = n => n === 53 ? false : window.__completeOriginal(n);
     chronoAnnoncerPause(53, () => {}, true);
     await new Promise(resolve => setTimeout(resolve, 1200));
+    chronoVoixCompleteApprouvee = window.__completeOriginal;
     return window.__secours;
   });
   assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-53','masculine-pause'], pause: true });
@@ -158,7 +171,7 @@ try {
     assert.equal(r.status(), 200); assert.ok((await r.body()).length > 5000);
   }
   assert.deepEqual(errors, []);
-  console.log('OK service HTTP préchargé, clip unique, panne et secours du minuteur');
+  console.log('OK 60 annonces normales et finales, décodage, service facultatif et secours du minuteur');
 } finally {
   if (browser) await browser.close();
   server.kill('SIGTERM');
