@@ -45,7 +45,7 @@ Le minuteur précharge les deux pauses possibles et leurs variantes finales, sau
 
 ### Phrases complètes approuvées
 
-Pour la voix masculine, les pauses de 1 à 42 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les quarante-deux prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
+Pour la voix masculine, les pauses de 1 à 52 minutes utilisent leurs phrases complètes approuvées : aucun assemblage devant le nombre. En dernière séance, le message de fin précède la prise. Si la prise ne peut pas être lue, le minuteur poursuit la transition sans rejouer les anciens fragments pour ces durées. La voix féminine demeure visible mais indisponible, et l'annonce de reprise est inchangée. Les cinquante-deux prises sont prioritaires même lorsqu'un backend et un débit différent sont configurés, afin de conserver le rythme approuvé.
 
 Les prises de 14 et 19 minutes du deuxième lot n'ont pas été retenues ; des prises ultérieures ont depuis été validées. Pour les durées sans nouvelle prise approuvée, l'annonce actuelle reste provisoirement en place. Le MP3 de durée de 21 minutes antérieurement approuvé reste conservé.
 
@@ -63,4 +63,4 @@ Le cinquième lot reprend les annonces 14, 17, 18, 19, 20, 22 à 25 et 31 pour �
 
 Sur demande, un sixième lot reprend 17, 18 et 19 sans tiret dans le texte, ainsi que 31 avec les mots exacts « trente une minute ». Les quatre prises ont été validées puis activées.
 
-Les prises 14, 20, 22 à 26 et 34 à 42 ont été validées puis activées. Le huitième lot propose 43 à 52 pour écoute, sans activation avant validation ; les phrases complètes de 53 à 60 restent à générer.
+Les prises 14, 20, 22 à 26 et 34 à 42 ont été validées puis activées. Les prises 43 à 52 du huitième lot ont été validées et activées. Le neuvième lot propose les phrases complètes de 53 à 60 pour écoute ; elles ne sont pas activées avant validation.

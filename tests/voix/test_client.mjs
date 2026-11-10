@@ -53,13 +53,13 @@ try {
   await page.evaluate(() => {
     document.querySelectorAll('.context-modal.active').forEach(e => e.classList.remove('active'));
     document.getElementById('planningModal').classList.add('active'); navigateTo('pomodoro');
-    chronoVoixPreparer([5, 43, 21]);
+    chronoVoixPreparer([5, 53, 21]);
   });
-  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-43-lent-1'], null, { timeout: 30000 });
-  assert.ok(demandes.some(x => x.includes('minutes=43') && x.includes('finale=1')));
-  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(43, () => { window.__finVoixService = true; }, true); });
+  await page.waitForFunction(() => !!chronoVoixTampons['service-pause-53-lent-1'], null, { timeout: 30000 });
+  assert.ok(demandes.some(x => x.includes('minutes=53') && x.includes('finale=1')));
+  await page.evaluate(() => { window.__sourcesService = []; window.__finVoixService = false; chronoAnnoncerPause(53, () => { window.__finVoixService = true; }, true); });
   await page.waitForFunction(() => window.__sourcesService.length === 1, null, { timeout: 10000 });
-  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-43-lent-1']);
+  assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['service-pause-53-lent-1']);
   await page.waitForFunction(() => window.__finVoixService, null, { timeout: 25000 });
   // La prise de cinq minutes, approuvée et publiée sur le site, reste
   // prioritaire même quand un service est configuré puis indisponible.
@@ -69,7 +69,7 @@ try {
   await page.waitForFunction(() => window.__sourcesService.length === 2, null, { timeout: 10000 });
   assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-fin-serie','masculine-complet-5']);
   await page.evaluate(() => chronoInterrompreAnnonce(false));
-  for (const n of Array.from({ length: 42 }, (_, i) => i + 1)) {
+  for (const n of Array.from({ length: 52 }, (_, i) => i + 1)) {
     await page.evaluate(n => chronoVoixPreparer(n), n);
     await page.waitForFunction(n => !!chronoVoixTampons['masculine-complet-' + n], n, { timeout: 30000 });
     await page.evaluate(n => { window.__sourcesService = []; chronoAnnoncerPause(n, () => {}, false); }, n);
@@ -77,10 +77,10 @@ try {
     assert.deepEqual(await page.evaluate(() => window.__sourcesService), ['masculine-complet-' + n]);
     await page.evaluate(() => chronoInterrompreAnnonce(false));
   }
-  assert.ok(!demandes.some(x => { const n = Number(new URLSearchParams(x).get('minutes')); return n >= 1 && n <= 42; }));
-  for (const n of [43, 44, 50, 52, 60]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
+  assert.ok(!demandes.some(x => { const n = Number(new URLSearchParams(x).get('minutes')); return n >= 1 && n <= 52; }));
+  for (const n of [53, 54, 55, 59, 60]) assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['masculine-debut', 'masculine-n-' + n, 'masculine-pause']);
   for (const n of [17, 18, 19, 31]) assert.ok((await page.evaluate(n => chronoVoixUrl('masculine-complet-' + n), n)).includes('/essai-prises-lot6/' + n + '.mp3?v='));
-  for (const [lot, numeros] of [[5, [14, 20, 22, 23, 24, 25]], [7, [26, 34, 35, 36, 37, 38, 39, 40, 41, 42]]]) {
+  for (const [lot, numeros] of [[5, [14, 20, 22, 23, 24, 25]], [7, [26, 34, 35, 36, 37, 38, 39, 40, 41, 42]], [8, [43, 44, 45, 46, 47, 48, 49, 50, 51, 52]]]) {
     for (const n of numeros) assert.ok((await page.evaluate(n => chronoVoixUrl('masculine-complet-' + n), n)).includes('/essai-prises-lot' + lot + '/' + n + '.mp3?v='));
   }
   // Si l'AudioContext échoue après préchargement, le lecteur de secours
@@ -89,11 +89,11 @@ try {
     window.__jouerLecteursOriginal = chronoVoixJouerLecteurs;
     chronoVoixJouerTampons = (n, cb) => cb(false);
     chronoVoixJouerLecteurs = (n, cb, options) => { window.__secours = { n, pause: options.pauseApresPremier }; cb(true); };
-    chronoAnnoncerPause(43, () => {}, true);
+    chronoAnnoncerPause(53, () => {}, true);
     await new Promise(resolve => setTimeout(resolve, 1200));
     return window.__secours;
   });
-  assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-43','masculine-pause'], pause: true });
+  assert.deepEqual(secours, { n: ['masculine-fin-serie','masculine-debut','masculine-n-53','masculine-pause'], pause: true });
   // Sans AudioContext, des lecteurs réels (simulés ici seulement côté
   // périphérique) tentent la prise complète sans rejouer les anciens fragments.
   const scenarios = await page.evaluate(async () => {

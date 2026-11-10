@@ -13,11 +13,12 @@ permissions:
 
 concurrency:
   group: publication-pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   construire:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Récupérer le travail de la branche courante
         uses: actions/checkout@v4
@@ -56,6 +57,7 @@ jobs:
           python3 travail/tools/verifier-prises-lot6.py site
           python3 travail/tools/verifier-prises-lot7.py site
           python3 travail/tools/verifier-prises-lot8.py site
+          python3 travail/tools/verifier-prises-lot9.py site
           python3 travail/tests/voix/test_serveur.py
           node --check site/js/pages/pomodoro-page.js
           node --check site/js/pages/boite.js

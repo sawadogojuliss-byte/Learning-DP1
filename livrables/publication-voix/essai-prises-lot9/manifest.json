@@ -1,0 +1,50 @@
+[
+  {
+    "minutes": 53,
+    "wav_sha256": "b383e4e90d7f10760cd026a9cfe9067766a03ba4b0591b028b77dbc9d1492cc4",
+    "mp3_sha256": "3f88f01f37e7f5cbd058b9d764792230688f381b53d7e44a1a7fb5a381c1a3d9",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 54,
+    "wav_sha256": "67042781ec9af6930e6616840244afc798f0293df08f4ce05426d6eb112e65d0",
+    "mp3_sha256": "a1b40b2901e33d50d27028aa460159bfedb163435f8baca7cc065df5fb9d3f0e",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 55,
+    "wav_sha256": "73b531527abb29c8b1e5e521ac88db59d84c105ed693ec5c89da27f857d20da2",
+    "mp3_sha256": "ba28a99b64e966cbe73e0ab374bf613dd8fb564b5d7dbaa85d94f4c6a2e29f4c",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 56,
+    "wav_sha256": "a15b2a8866458f1ed6534ba94135fcbe95936cdd9564e4c5bb76c235a1a2896f",
+    "mp3_sha256": "6a42dfb7551d7cde207b0455a3f82cea3de6f8c3232acd9d702ce897e146168d",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 57,
+    "wav_sha256": "acdf5e448b924d8e76e47bc3e7c7be2c36ba0c7637b846c525dd85bbc29fb132",
+    "mp3_sha256": "24d80dd502ce6e9cce695b094401b882b468eef01790ce0c1b12beaa2eb505a0",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 58,
+    "wav_sha256": "8066d49b7ee91b1148dd0ba5f13930b202907b0faa88603708dbae609c264129",
+    "mp3_sha256": "cb7fba21b11d054aee2eb5d4465bfccabf57d4b66db3a20402511a1f3ad3104f",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 59,
+    "wav_sha256": "ba79f895264772a47963595024aad1d6dfe16cc8764c00d7f1c15faf1c0ee28e",
+    "mp3_sha256": "f7a34277a045070315a3e3cee7d8a344bbacff13ba9ff52eafc703701dd6023f",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 60,
+    "wav_sha256": "887fccbf65513d5868c3331e800589de29a326c1556675206f9019d5aa6f3a15",
+    "mp3_sha256": "5ec73c8997a407a9e96732a3fa84b1f2b36d83a95f92a43e80c61ae6e90008f5",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  }
+]
