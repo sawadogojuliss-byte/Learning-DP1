@@ -51,7 +51,7 @@ try {
   assert.equal(await page.locator('#chevauchementPopup').count(),1);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'hidden');
   await page.locator('#chevauchementPopup [data-autre-creneau]').click();
   assert.equal(await page.locator('#chevauchementPopup .chev-propositions').evaluate(e=>getComputedStyle(e).overflowY),'visible');await scrollReach(page,'#chevauchementPopup .chev-dialogue');
-  await page.locator('#chevauchementPopup [data-annuler]').first().click(); assert.equal(await page.locator('#chevauchementPopup').count(),0);
+  await page.locator('#chevauchementAutres [data-annuler]').first().click(); assert.equal(await page.locator('#chevauchementPopup').count(),0);
   // Pages du menu (y compris les pages dont l'accès dépend normalement du profil).
   for (const name of ['soutien','exercices','legende','devoirs','eeia','feries','seances','pomodoro','aide','feedback','annonce']) {
    await page.evaluate(name=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo(name)},name);
