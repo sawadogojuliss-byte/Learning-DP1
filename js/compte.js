@@ -186,6 +186,7 @@ function compteFusionnerProfils(copies) {
     };
     utiles.slice(1).forEach(function (src) {
         Object.keys(src).forEach(function (k) {
+            if (k === 'statsFocus') return;
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             /* L'emploi du temps se fusionne par cours (ET-16). */
@@ -291,6 +292,9 @@ function compteFusionnerProfils(copies) {
         }
     });
     base.phoneDays = copieAvecJours ? copieAvecJours.phoneDays : (Array.isArray(base.phoneDays) ? base.phoneDays : []);
+    if (typeof syncStatsFusionner === 'function' && tous.some(function (c) { return Array.isArray(c.statsFocus); })) {
+        base.statsFocus = syncStatsPourCompte(syncStatsFusionner(tous.map(function (c) { return c.statsFocus; })));
+    }
     base.suppressions = registre;
     /* Les réglages du minuteur : la version datée la plus récente, toutes copies et cet appareil. */
     var focusChoisi = syncLireJson(SYNC_CLE_FOCUS, null);
@@ -537,7 +541,11 @@ function compteAfficherProfil(data) {
     data = compteCompleterReglages(data);
     /* Le réglage de sommeil de l'élève sur cet appareil est gardé à travers la réinitialisation. */
     var sommeilGarde = typeof sommeilCapturer === 'function' ? sommeilCapturer() : null;
+    /* Une réception du même compte ne doit pas changer le jour consulté. */
+    var jourGarde = !window.compteChangementDeCompte && window.__jourCourantPose && typeof selectedDay !== 'undefined' ? selectedDay : null;
+    var cleJourGardee = window.__jourCourantCle;
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
+    if (jourGarde !== null) { selectedDay = jourGarde; window.__jourCourantPose = true; window.__jourCourantCle = cleJourGardee; }
     memoireAppliquer(data, { compte: true });
     /* Même règle que memoireSommeilPeutAppliquer : le réglage gardé ne revient que s'il est plus récent que celui reçu. */
     var dateRecue = typeof memoireDateSommeil === 'function' ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : (data.sommeilChoisiLe || '');
@@ -1258,6 +1266,8 @@ function compteRestaurerTout(session, token, distantes, options) {
         vivantEtranger = true;
     }
     window.compteChangementDeCompte = vivantEtranger;
+    /* Les statistiques locales de l'ancien compte ont été archivées avec lui. */
+    if (vivantEtranger) try { localStorage.removeItem('studyPlanIB_statsFocus'); } catch (e) {}
     compteLierCompte(session, (vivant && vivant.userName) || '');
     var canon = compteCanonique(session.sub) || session.sub;
     compteMemoriserSession(session);
@@ -1511,7 +1521,7 @@ function comptePublierMorceaux(session, data) {
 }
 
 /* Progression dans comptes/{uid} : renvoyée après un changement réel (regroupé sur
-   3 s), pour qu'une connexion sur un autre appareil retrouve le planning et les
+   2,5 s), pour qu'une connexion sur un autre appareil retrouve le planning et les
    réglages. Un appareil sans données n'écrit rien ; un état identique n'est pas
    réécrit (savedAt change à chaque sauvegarde locale, il est ignoré). Effacer
    localement ne touche pas au nuage. */
@@ -1597,7 +1607,7 @@ function compteProgressionPlanifier() {
     compteProgressionTimer = setTimeout(function () {
         compteProgressionTimer = null;
         compteProgressionEnregistrer();
-    }, 3000);
+    }, 2500);
 }
 
 /* Changement de série de flammes : seule la série part vers le nuage, sur la copie du nuage. Envoyer tout

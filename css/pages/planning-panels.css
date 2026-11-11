@@ -537,7 +537,6 @@ body:has(.app-panel.active) {
     visibility: hidden;
 }
 .focus-fond-video.is-visible { visibility: visible; }
-
 .focus-shade {
     background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);
     pointer-events: none;
@@ -1403,7 +1402,7 @@ body.v3-deplacement, body.v3-deplacement * {
     justify-content:center; background:rgba(15,23,42,.68); backdrop-filter:blur(4px);
 }
 #chevauchementPopup .chev-dialogue {
-    box-sizing:border-box; width:min(100%,34rem); max-height:calc(100dvh - 2rem); overflow-y:auto;
+    box-sizing:border-box; width:min(100%,34rem); max-height:calc(100dvh - 2rem); overflow-y:auto; scroll-behavior:auto;
     padding:clamp(1rem,3vw,1.5rem); border-radius:1.4rem; background:#fff; color:#1f2937;
     box-shadow:0 26px 70px rgba(0,0,0,.3); font-family:Inter,system-ui,sans-serif;
 }
@@ -1423,6 +1422,8 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup .chev-carte-corps strong { font-size:.94rem; color:#111827; overflow-wrap:anywhere; }
 #chevauchementPopup .chev-actions { display:grid; gap:.5rem; margin-top:1rem; }
 #chevauchementPopup .chev-bouton { box-sizing:border-box; width:100%; padding:.72rem .8rem; border-radius:.75rem; border:1.5px solid #d1d5db; background:white; color:#374151; font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; text-align:center; }
+#chevauchementPopup .chev-bouton small { display:block; margin-top:.25rem; font-size:.75rem; line-height:1.4; font-weight:500; text-align:left; }
+#chevauchementPopup .chev-bouton[data-autre-creneau], #chevauchementPopup .chev-bouton[data-deplacer], #chevauchementPopup .chev-bouton[data-remplacer] { text-align:left; }
 #chevauchementPopup .chev-bouton-vert { background:#047857; color:#fff; border-color:#047857; }
 #chevauchementPopup .chev-bouton-clair { background:#f0fdf4; color:#065f46; border-color:#a7f3d0; }
 #chevauchementPopup .chev-bouton-lien { background:white; color:#4b5563; border-color:#e5e7eb; }

@@ -620,3 +620,66 @@ function syncFocusAppliquer(recu) {
     applique.modifieAt = syncNombre(recu.modifieAt);
     ecrire(SYNC_CLE_FOCUS, JSON.stringify(applique));
 }
+
+
+/* Journal Pomodoro : chaque événement a son propre identifiant, distinct de
+   l'identifiant éventuel de la tâche. Une coche retirée garde une pierre
+   tombale, pour qu'une copie hors ligne ne la fasse pas revenir. */
+var SYNC_STATS_CLE = 'studyPlanIB_statsFocus';
+var SYNC_STATS_MAX = 6000;
+function syncStatsId() {
+    var alea = '';
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        var octets = new Uint8Array(16); crypto.getRandomValues(octets);
+        alea = Array.prototype.map.call(octets, function (n) { return ('0' + n.toString(16)).slice(-2); }).join('');
+    } else alea = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    return Date.now().toString(36) + '-' + alea;
+}
+function syncStatsLire() {
+    var liste = syncLireJson(SYNC_STATS_CLE, []), modifie = false;
+    if (!Array.isArray(liste)) return [];
+    liste = liste.filter(function (e) {
+        return e && typeof e === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(e.d || '')) &&
+            ['lance', 'focus', 'short', 'long', 'tache'].indexOf(e.k) !== -1;
+    }).map(function (e) {
+        if (!e.u) { e.u = syncStatsId(); modifie = true; }
+        return e;
+    });
+    if (modifie) try { localStorage.setItem(SYNC_STATS_CLE, JSON.stringify(liste)); } catch (e) {}
+    return liste;
+}
+function syncStatsFusionner(listes) {
+    var carte = Object.create(null);
+    (listes || []).forEach(function (liste) {
+        (Array.isArray(liste) ? liste : []).forEach(function (e) {
+            if (!e || typeof e.u !== 'string' || !e.u || e.u.length > 100 ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(String(e.d || '')) ||
+                ['lance', 'focus', 'short', 'long', 'tache'].indexOf(e.k) === -1) return;
+            var ancien = carte[e.u];
+            if (!ancien || (e.supprime && !ancien.supprime)) carte[e.u] = e;
+        });
+    });
+    return Object.keys(carte).map(function (id) { return carte[id]; }).sort(function (a, b) {
+        return a.d < b.d ? -1 : a.d > b.d ? 1 : (a.u < b.u ? -1 : a.u > b.u ? 1 : 0);
+    }).slice(-SYNC_STATS_MAX);
+}
+function syncStatsAppliquer(liste) {
+    if (!Array.isArray(liste)) return;
+    var fusion = syncStatsFusionner([syncStatsLire(), liste]);
+    try { localStorage.setItem(SYNC_STATS_CLE, JSON.stringify(fusion)); } catch (e) {}
+    if (typeof statsPeindre === 'function') { try { statsPeindre(); } catch (e) {} }
+}
+
+/* Ne pas laisser le journal des statistiques monopoliser la progression
+   Firestore : les plus récentes entrées voyagent dans la limite de 200 ko.
+   Les autres restent dans le journal local (dans sa limite de 6 000). */
+function syncStatsPourCompte(liste) {
+    var resultat = [], taille = 2;
+    var tries = syncStatsFusionner([liste]);
+    for (var i = tries.length - 1; i >= 0; i--) {
+        var poids = JSON.stringify(tries[i]).length * 3 + 1; /* majorant UTF-8 */
+        if (taille + poids > 200000) break;
+        resultat.push(tries[i]); taille += poids;
+    }
+    return resultat.reverse();
+}

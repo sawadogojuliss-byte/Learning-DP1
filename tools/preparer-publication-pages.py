@@ -44,6 +44,9 @@ for rel, expected_hash in {
     'css/pages/focus-parametres.css': '0c9093c628fa9760c16a4e8ea7c205b2a50f3795',
     'js/synchro.js': 'b872031f3b925ac4961b97fa6993506023f121a6',
     'js/compte.js': '3978b067fe612c92a6a35e4266abc31cf86c9892',
+    'js/memoire.js': 'c6bff3e8fbb064baea991b35bc61783634d67439',
+    'js/pages/statistiques.js': '10aa882d785ec3527767ad1a80a23efa4bfc6ef9',
+    'js/pages/onboarding-classe.js': 'ba748e565e99d44f79c3424f3250f9b242179138',
 }.items():
     found = subprocess.check_output(['git', 'hash-object', str(base / rel)], text=True).strip()
     if found != expected_hash:
@@ -87,6 +90,9 @@ files = [
     'css/pages/focus-parametres.css',
     'js/synchro.js',
     'js/compte.js',
+    'js/memoire.js',
+    'js/pages/statistiques.js',
+    'js/pages/onboarding-classe.js',
     'livrables/publication-pomodoro/videos.css',
     'livrables/publication-pomodoro/mobile.css',
     'livrables/publication-pomodoro/reprise.css',
@@ -204,6 +210,10 @@ path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
 # La pause démarre toujours ; ce réglage concerne la reprise en minuteur libre.
 path = output / 'pages/pomodoro.html'
 text = path.read_text(encoding='utf-8')
+ancien_stats = 'Tes minuteurs terminés, enregistrés sur cet appareil.'
+if text.count(ancien_stats) != 1:
+    raise SystemExit('Texte des statistiques public inattendu')
+text = text.replace(ancien_stats, 'Tes statistiques suivent ton compte sur tes appareils connectés.', 1)
 ancien = 'Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em>'
 nouveau = 'Lancer automatiquement la concentration après une pause manuelle'
 if text.count(ancien) != 1:
@@ -294,7 +304,23 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if '20261104az' not in text:
             raise SystemExit('Version publique inattendue dans ' + rel)
         text = text.replace('20261104az', version)
+    if rel == 'js/boot.js':
+        # Même démarrage que la version de travail, sans jauge de chargement.
+        text = (ROOT / rel).read_text(encoding='utf-8')
+        text, remplacements = re.subn(r"var version = '[^']+';", "var version = '" + version + "';", text, count=1)
+        if remplacements != 1:
+            raise SystemExit('Version de démarrage introuvable')
     if rel == 'index.html':
+        jauge = '        <div class="boot-jauge" id="boot-jauge" role="progressbar" aria-label="Chargement de Studyplan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="6"><i id="boot-jauge-fill"></i></div>\n'
+        if text.count(jauge) != 1:
+            raise SystemExit('Jauge de démarrage publique inattendue')
+        text = text.replace(jauge, '')
+        text, styles = re.subn(r'        \.boot-jauge \{.*?        \.boot-mot \{', '        .boot-mot {', text, count=1, flags=re.S)
+        if styles != 1:
+            raise SystemExit('Styles de jauge publics inattendus')
+        text = text.replace('body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge', 'body.boot-erreur .boot-boite')
+        text = text.replace('.boot-jauge i, .boot-status { transition: none; }', '.boot-status { transition: none; }')
+        text = text.replace("        /* La lumière qui respire : le logo s'ouvre doucement, une lumière verte\n           passe derrière lui, et la barre suit le chargement réel. */", "        /* La lumière qui respire accompagne le chargement. */")
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Chargement des styles public inattendu')

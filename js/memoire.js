@@ -140,6 +140,7 @@ function memoireLireEtat() {
         suppressions: typeof syncLireRegistre === 'function' ? syncLireRegistre() : {},
         /* Réglages du minuteur, datés (lot 9, point 5). */
         focusReglages: typeof syncFocusCourant === 'function' ? syncFocusCourant() : null,
+        statsFocus: typeof syncStatsPourCompte === 'function' ? syncStatsPourCompte(syncStatsLire()) : [],
         modifsSemaine: (function () {
             try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
         })(),
@@ -481,6 +482,7 @@ function memoireAppliquerCorps(data, opts) {
         }
     }
     if (typeof syncFocusAppliquer === 'function' && depuisCompte && data.focusReglages) syncFocusAppliquer(data.focusReglages);
+    if (typeof syncStatsAppliquer === 'function' && Array.isArray(data.statsFocus)) syncStatsAppliquer(data.statsFocus);
     if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
     else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
@@ -895,7 +897,7 @@ function memoireSauvegarder() {
 
 function memoireCleDuCompte(cle, sub) {
     if (!cle) return false;
-    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle.indexOf(sub) !== -1;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle === 'studyPlanIB_statsFocus' || cle.indexOf(sub) !== -1;
 }
 
 function memoireEffacerSuite() {

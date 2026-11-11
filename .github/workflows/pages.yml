@@ -101,6 +101,10 @@ jobs:
           serveur=$!
           trap 'kill "$serveur"' EXIT
           executer_test travail/tools/tester-nouveau-design.mjs
+          executer_test travail/tools/tester-chargement-sans-barre.mjs
+          executer_test travail/tools/tester-jours-bac.mjs
+          executer_test travail/tools/tester-chevauchement.mjs
+          executer_test travail/tools/tester-chevauchement-usage.mjs
           executer_test travail/tools/tester-alerte-chevauchement.mjs
           executer_test travail/tools/tester-alerte-moteur.mjs
           executer_test travail/tools/tester-crayon-sommeil.mjs
@@ -202,6 +206,10 @@ jobs:
           executer_test tools/tester-theme-personnel.mjs
           executer_test tools/tester-rappels-activites.mjs
           executer_test tools/tester-nouveau-design.mjs
+          executer_test tools/tester-chargement-sans-barre.mjs
+          executer_test tools/tester-jours-bac.mjs
+          executer_test tools/tester-chevauchement.mjs
+          executer_test tools/tester-chevauchement-usage.mjs
           executer_test tools/tester-alerte-chevauchement.mjs
           executer_test tools/tester-alerte-moteur.mjs
           executer_test tools/tester-crayon-sommeil.mjs

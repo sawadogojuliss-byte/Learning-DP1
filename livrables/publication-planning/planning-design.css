@@ -79,3 +79,5 @@
 .cv-sommeil-avertissement p { margin:5px 0; }
 .cv-sommeil-avertissement div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; }
 .cv-sommeil-avertissement button { border:1px solid #bda963; border-radius:8px; background:#fff; color:#574a23; padding:6px 10px; cursor:pointer; }
+/* Chaque étape commence en haut, y compris avec le défilement global fluide. */
+#chevauchementPopup .chev-dialogue { scroll-behavior:auto; }

@@ -36,6 +36,13 @@ function setIbYear(year) {
         var matieres = document.getElementById('subjectsModal');
         if (matieres && matieres.classList.contains('active')) updateSubjectsUI();
     }
+    if (year === 'DP2' && typeof devoirsPoserQuestionBac === 'function' &&
+        typeof devoirsBacADemander === 'function' && devoirsBacADemander()) {
+        /* Rester sur la page Classe après la réponse, sans ouvrir le planning. */
+        devoirsPoserQuestionBac(function () {
+            if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        });
+    }
     if (window.__profilComplet && typeof renderPlanning === 'function') {
         try { renderPlanning(); } catch (e) {}
     }

@@ -16,7 +16,7 @@ function scenario(base, utiliserMoteur = false) {
     let closed = 0;
     const storage = new Map();
     const ctx = vm.createContext({
-        localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) || null },
+        localStorage: { setItem: (key, value) => storage.set(key, value), getItem: key => storage.get(key) || null, removeItem: key => storage.delete(key) },
         console, window: {}, customEvents: [], selectedActivities: [], selectedDay: 0,
         planningDecalageSemaine: 0, planningDateEdition: () => '', planningJourModifiable: () => true,
         weekdayWakeup: '06:00', saturdayWakeup: '07:00', sundayWakeup: '08:00',
@@ -114,7 +114,7 @@ erreurSauvegarde.ctx.v3Save = () => {
 assert.equal(erreurSauvegarde.eval('v3AppliquerChoixChevauchement(current, choix)', { current: erreurSauvegarde.current,
     choix: { utilisateur: { start: '19:00', end: '19:30' } } }), false);
 assert.equal(erreurSauvegarde.ctx.customEvents.length, 0);
-assert.equal(erreurSauvegarde.ctx.localStorage.getItem('studyPlanIB_customEvents_juliss'), '[]',
+assert.equal(erreurSauvegarde.ctx.localStorage.getItem('studyPlanIB_customEvents_juliss'), null,
     'un échec tardif doit restaurer la copie locale');
 // Le moteur régénère les créneaux fondamentaux : vérifier le résultat réel,
 // puis une seconde génération (gel/rechargement) et aucune suppression tacite.
@@ -154,8 +154,9 @@ assert.deepEqual(essentiel.ctx.generateDayEvents(0).map(e => e.id).sort(), ['act
 const reintroduit = scenario([sport], true);
 reintroduit.ctx.planningSansExercicesFaits = events => events.concat({ ...sport });
 const force = { utilisateur: { start: '18:30', end: '19:00' }, supprimerIds: ['sport'] };
-assert.equal(reintroduit.eval('v3AppliquerChoixChevauchement(current, choix)', { current: reintroduit.current, choix: force }), true,
-    'un bloc régénéré reste masqué par le choix explicite');
+assert.equal(reintroduit.eval('v3AppliquerChoixChevauchement(current, choix)', { current: reintroduit.current, choix: force }), false,
+    'un identifiant partagé ne doit pas supprimer plusieurs occurrences sans choix explicite');
+assert.equal(reintroduit.saves, 0);
 const echecs = scenario([sport], false);
 echecs.ctx.generateDayEvents = () => [{ ...sport }, { id: 'activity-Lecture-0-new', title: 'Lecture', startTime: '18:30', endTime: '19:00' }];
 assert.equal(echecs.eval('v3AppliquerChoixChevauchement(current, choix)', { current: echecs.current, choix: force }), false,
@@ -172,4 +173,40 @@ assert.equal(decalageImplicite.eval('v3AppliquerChoixChevauchement(current, choi
     'ne jamais déplacer Préparation sans accord, même lors de la régénération');
 assert.equal(decalageImplicite.saves, 0);
 assert.equal(decalageImplicite.ctx.customEvents.length, 0);
+// L'aperçu utilise le même moteur que l'application, sans sauvegarde ;
+// les réajustements ne sont acceptés qu'après confirmation de cet aperçu.
+const previsualisation = scenario([sport, { id: 'flex', title: 'Temps libre', type: 'study',
+    startTime: '19:00', endTime: '20:00' }], true);
+previsualisation.ctx.planningSansExercicesFaits = events => events.map(ev =>
+    ev.id === 'flex' && previsualisation.ctx.customEvents.some(e => e.deleted)
+        ? { ...ev, startTime: '20:00', endTime: '21:00' } : ev);
+const testChoix = { current: previsualisation.current, choix: force };
+const simulation = previsualisation.eval('v3SimulerChoixChevauchement(current, choix)', testChoix);
+assert.equal(simulation.valid, true);
+assert.equal(simulation.effets.length, 1);
+assert.equal(simulation.effets[0].avant.startTime, '19:00');
+assert.equal(simulation.effets[0].apres.startTime, '20:00');
+assert.equal(previsualisation.ctx.customEvents.length, 0);
+assert.equal(previsualisation.saves, 0);
+assert.equal(previsualisation.ctx.emploiNePasSauver, 0);
+assert.equal(previsualisation.eval('v3AppliquerChoixChevauchement(current, choix, {empreinte: empreinte})',
+    { ...testChoix, empreinte: simulation.empreinte }), true);
+assert.equal(previsualisation.saves, 1, 'les changements affichés peuvent être confirmés');
+const perime = scenario([sport], true);
+const preview = perime.eval('v3SimulerChoixChevauchement(current, choix)', { current: perime.current, choix: force });
+perime.ctx.customEvents.push({ day: 1, id: 'nouveau', title: 'Autre jour', startTime: '10:00', endTime: '11:00' });
+assert.equal(perime.eval('v3AppliquerChoixChevauchement(current, choix, {empreinte: empreinte})',
+    { current: perime.current, choix: force, empreinte: preview.empreinte }), false,
+    'une modification depuis l’aperçu interdit la confirmation');
+assert.equal(perime.saves, 0);
+assert.equal(perime.ctx.customEvents.length, 1);
+const conflitIndirect = scenario([sport,
+    { id:'a', title:'A', type:'study', startTime:'19:00', endTime:'19:30' },
+    { id:'b', title:'B', type:'study', startTime:'20:00', endTime:'20:30' }], true);
+conflitIndirect.ctx.planningSansExercicesFaits = events => events.map(ev =>
+    ev.id === 'a' && conflitIndirect.ctx.customEvents.some(e => e.deleted)
+        ? { ...ev, startTime:'20:00', endTime:'20:30' } : ev);
+assert.equal(conflitIndirect.eval('v3SimulerChoixChevauchement(current, choix).valid',
+    { current: conflitIndirect.current, choix: force }), false, 'un conflit indirect nouveau est refusé');
+assert.equal(conflitIndirect.ctx.customEvents.length, 0);
 console.log('ok popup : durées inchangées, alternative, cours protégé, conflit multiple, refus de chevauchement, annulation et reprise après échec');

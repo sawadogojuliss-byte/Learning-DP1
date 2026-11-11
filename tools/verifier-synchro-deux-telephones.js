@@ -179,7 +179,7 @@ const retirerCours = (c, id) => geste(c, 'customEvents = customEvents.filter(fun
 const retirerActivite = (c, nom) => geste(c, 'removeActivity(' + JSON.stringify(nom) + '); customEvents = customEvents.filter(function (e) { return !(e.type === "activity" && e.title === ' + JSON.stringify(nom) + '); }); memoireSauvegarder();');
 const deplacerActivite = (c, nom, debut, fin) => geste(c, 'selectedActivities.forEach(function (a) { if (a.name === ' + JSON.stringify(nom) + ') { a.startTime = ' + JSON.stringify(debut) + '; a.endTime = ' + JSON.stringify(fin) + '; } });'
   + 'customEvents.forEach(function (e) { if (e.title === ' + JSON.stringify(nom) + ') { e.startTime = ' + JSON.stringify(debut) + '; e.endTime = ' + JSON.stringify(fin) + '; } }); memoireSauvegarder();');
-/* Envoi immédiat (au lieu d'attendre les 3 secondes de l'application). */
+/* Envoi immédiat pour les scénarios qui ne testent pas le délai automatique. */
 async function envoyer(c) { figer(c); await c.compteProgressionEnregistrer(); }
 /* Emploi du temps tel que l'élève le voit : cours et activités, avec leurs horaires. */
 function emploi(c) {
@@ -273,7 +273,7 @@ async function ouvrirEnDirect(c, nuage) {
   verif('8c en direct dans les deux sens : emplois identiques', memes(a, b), true);
 
   /* ── 9. Modification non envoyée : elle reste si une copie arrive pendant l'attente ── */
-  ajouterCours(b, ev('c13', 0, '07:00', '07:30', 'Brouillon-B', 'course'));   /* non envoyée (attente de 3 s) */
+  ajouterCours(b, ev('c13', 0, '07:00', '07:30', 'Brouillon-B', 'course'));   /* non envoyée (timer de regroupement) */
   ajouterCours(a, ev('c14', 2, '13:00', '14:00', 'Atelier-A', 'course'));
   await envoyer(a); await attendre(300);
   verif('9 modification non envoyée de B conservée pendant l\'arrivée d\'une copie', emploi(b).cours.some(x => x[4] === 'Brouillon-B'), true);
@@ -354,6 +354,82 @@ async function ouvrirEnDirect(c, nuage) {
   await attendre(4500);
   verif('19 citation personnelle seule synchronisée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, 'Avance à ton rythme');
   verif('19b citation personnelle reçue par l’autre appareil', a.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
+
+  /* Le vrai déclenchement automatique : pas d'appel direct à envoyer().
+     Le nuage simulé livre les écoutes en 20 ms ; ce test mesure donc surtout
+     l'attente ajoutée par l'application, pas la latence d'un réseau réel. */
+  figer(a); figer(b);
+  const setTimeoutOriginal = a.setTimeout;
+  const delaisAutomatiques = [];
+  a.setTimeout = (fn, ms, ...args) => { delaisAutomatiques.push(ms); return setTimeoutOriginal(fn, ms, ...args); };
+  const debutAuto = Date.now();
+  const progressionAvant = nuage.journal.filter(x => x.c === 'progressions').length;
+  ajouterCours(a, ev('latence-1', 1, '12:00', '12:30', 'Auto-A1', 'course'));
+  await attendre(150);
+  ajouterCours(a, ev('latence-2', 1, '12:30', '13:00', 'Auto-A2', 'course'));
+  verif('20 le regroupement évite une écriture immédiate', nuage.journal.filter(x => x.c === 'progressions').length - progressionAvant, 0);
+  while (Date.now() - debutAuto < 3700 && !['Auto-A1', 'Auto-A2'].every(t => emploi(b).cours.some(x => x[4] === t))) await attendre(50);
+  const delaiAuto = Date.now() - debutAuto;
+  verif('20b les deux changements arrivent automatiquement sur B en moins de 3,7 s (nuage simulé)',
+    ['Auto-A1', 'Auto-A2'].every(t => emploi(b).cours.some(x => x[4] === t)) && delaiAuto < 3700, true);
+  verif('20d délai de regroupement fixé à 2,5 s', delaisAutomatiques.includes(2500), true);
+  a.setTimeout = setTimeoutOriginal;
+  console.log('Délai automatique A → B (nuage simulé) : ' + delaiAuto + ' ms');
+  verif('20c les gestes rapprochés sont regroupés en une écriture de progression', nuage.journal.filter(x => x.c === 'progressions').length - progressionAvant, 1);
+
+  // Deux appareils modifient à la fois sans forcer l'envoi : les deux
+  // changements doivent converger malgré le délai plus court.
+  figer(a); figer(b);
+  ajouterCours(a, ev('auto-concurrent-a', 2, '18:00', '18:30', 'Auto-concurrent-A', 'course'));
+  ajouterCours(b, ev('auto-concurrent-b', 2, '18:30', '19:00', 'Auto-concurrent-B', 'course'));
+  const debutConcurrence = Date.now();
+  while (Date.now() - debutConcurrence < 6000 && ![a, b].every(c => ['Auto-concurrent-A', 'Auto-concurrent-B'].every(t => emploi(c).cours.some(x => x[4] === t)))) await attendre(50);
+  verif('21 les envois automatiques simultanés préservent les deux ajouts',
+    [a, b].every(c => ['Auto-concurrent-A', 'Auto-concurrent-B'].every(t => emploi(c).cours.some(x => x[4] === t))), true);
+  verif('21b convergence des deux appareils après envois automatiques', memes(a, b), true);
+  /* Laisser se terminer les éventuelles reprises dues à la concurrence. */
+  await attendre(4000);
+  const ecrituresAvantSilence = nuage.journal.filter(x => x.c === 'progressions').length;
+  await attendre(4000);
+  verif('21c aucune boucle de renvoi après les envois automatiques',
+    nuage.journal.filter(x => x.c === 'progressions').length - ecrituresAvantSilence, 0);
+
+  /* Statistiques réelles du minuteur : événements simultanés et retrait
+     réversible d'une tâche, sans additionner deux fois un même événement. */
+  geste(b, 'selectDay(0)');
+  geste(a, "statsEnregistrer({k:'focus',m:25}); statsEnregistrer({k:'tache',id:'tache-partagee'});");
+  geste(b, "statsEnregistrer({k:'focus',m:40});");
+  let limite = Date.now() + 6000;
+  while (Date.now() < limite && ![a,b].every(c => c.statsLire().filter(e => e.k === 'focus').length === 2 && c.statsLire().some(e => e.k === 'tache'))) await attendre(50);
+  for (const [nom, c] of [['A',a],['B',b]]) {
+    verif('22 ' + nom + ' reçoit les deux concentrations sans doublon', c.statsLire().filter(e => e.k === 'focus').map(e => e.m).sort((x,y)=>x-y), [25,40]);
+    verif('22 ' + nom + ' reçoit la tâche cochée', c.statsLire().filter(e => e.k === 'tache').length, 1);
+  }
+  verif('22b jour choisi sur B conservé pendant la réception', geste(b, 'selectedDay'), 0);
+  const copieAvantRetrait = JSON.parse(JSON.stringify(b.syncStatsLire()));
+  geste(b, "statsRetirerTache('tache-partagee');");
+  limite = Date.now() + 6000;
+  while (Date.now() < limite && a.statsLire().some(e => e.k === 'tache')) await attendre(50);
+  verif('23 tâche décochée disparaît sur A', a.statsLire().filter(e => e.k === 'tache').length, 0);
+  a = await recharger(a, nuage);
+  verif('23b la tâche ne revient pas au rechargement', a.statsLire().filter(e => e.k === 'tache').length, 0);
+  verif('23c les deux concentrations persistent au rechargement', a.statsLire().filter(e => e.k === 'focus').map(e => e.m).sort((x,y)=>x-y), [25,40]);
+  const ancienneFusionnee = a.syncStatsFusionner([copieAvantRetrait, a.syncStatsLire()]);
+  verif('23d une ancienne copie hors ligne ne ressuscite pas la coche', ancienneFusionnee.filter(e => e.k === 'tache' && !e.supprime).length, 0);
+  const historiqueCharge = Array.from({length: 6000}, (_, i) => ({u: 'test-' + String(i).padStart(5, '0'), k: 'focus', d: '2026-11-04', s: 'x'.repeat(60), m: 25}));
+  const exportLimite = a.syncStatsPourCompte(historiqueCharge);
+  verif('24 export des statistiques borné à 200 ko', Buffer.byteLength(JSON.stringify(exportLimite), 'utf8') <= 200000, true);
+  verif('24b export conserve les événements récents', exportLimite[exportLimite.length - 1].u, 'test-05999');
+
+  /* Le journal précédent est archivé avant de changer de compte, mais ne
+     doit pas être offert à un élève différent sur cet appareil. */
+  figer(b);
+  const nouvelEleve = {sub: 'AUTRE-ELEVE-456', email: 'autre@example.org', name: 'Autre'};
+  await b.compteRestaurerTout(nouvelEleve, '', [], {});
+  verif('25 le changement de compte isole les statistiques de l’ancien élève', b.statsLire().length, 0);
+  verif('25b les statistiques restent archivées pour le premier compte',
+    !!(b.compteLireArchive(SUB) && b.compteLireArchive(SUB).statsFocus && b.compteLireArchive(SUB).statsFocus.length), true);
+
 
   /* ── Aucune écriture de test vers Firestore réel : tout est dans le faux nuage ── */
   const tout = verifs.every(Boolean);

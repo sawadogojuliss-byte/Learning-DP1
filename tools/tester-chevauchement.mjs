@@ -1,11 +1,14 @@
 /* Popup en vrai navigateur, avec activités fictives dans une session jetable.
    Aucun compte, aucun envoi distant, aucune fiche de test. */
 import assert from 'node:assert/strict';
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+const require = createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES, '../package.json') : import.meta.url);
+const { chromium } = require('playwright');
 const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 const options = { headless: true };
-if (process.env.STUDY_CHROMIUM_LOCAL) {
-    const aws = (await import('@sparticuz/chromium')).default;
+if (process.env.STUDY_CHROMIUM_LOCAL && !process.env.STUDY_PLAYWRIGHT_SYSTEM) {
+    const aws = require('@sparticuz/chromium').default;
     options.executablePath = await aws.executablePath();
     options.args = aws.args;
 }
@@ -60,18 +63,17 @@ try {
     assert(await popup.locator('.chev-proposition').count() > 4, 'des horaires de toute la journée');
     assert(await popup.locator('.chev-proposition-libre').count() > 0);
     assert(await popup.locator('.chev-proposition-occupee').count() > 0);
-    assert.match(await popup.locator('.chev-proposition-occupee').first().innerText(), /Activités concernées.*Sport/s);
+    assert.match(await popup.locator('.chev-proposition-occupee').first().innerText(), /Déjà prévu :.*Sport/s);
     await popup.locator('[data-filtre-horaire="occupes"]').click();
     assert.equal(await popup.locator('.chev-proposition-libre:visible').count(), 0);
     await popup.locator('.chev-proposition-occupee').filter({ hasText: '18:00 → 18:30' }).click();
-    assert.equal(await popup.locator('.chev-carte-deja').count(), 0, 'les anciennes cartes disparaissent après le choix');
+    assert.match(await popup.locator('#chevEtapeInitiale').innerText(), /Sport/);
     assert.equal(await popup.locator('[data-continuer-selection]').isDisabled(), true, 'aucune décision tacite sur Sport');
     assert.equal(await page.evaluate(() => window.__testSaves), 0);
     await popup.locator('[data-deplacer]').click();
-    assert.match(await popup.locator('#chevSelectionEffet').innerText(), /Sport.*19:00 → 20:00/s);
-    assert.equal(await popup.locator('[data-continuer-selection]').isEnabled(), true);
-    await popup.locator('[data-continuer-selection]').click();
-    assert.equal(await popup.count(), 0, 'Continuer applique directement le déplacement choisi');
+    assert.match(await popup.locator('#chevauchementApercu').innerText(), /Sport.*19:00 → 20:00/s);
+    await popup.locator('#chevauchementApercu [data-confirmer]').click();
+    assert.equal(await popup.count(), 0, 'le déplacement est confirmé après aperçu');
     assert.deepEqual(await page.evaluate(() => ({
         saves:window.__testSaves, sport:customEvents.find(e => e.replacesId === 'sport')?.endTime,
         lecture:customEvents.find(e => e.title === 'Lecture')?.endTime
@@ -79,9 +81,9 @@ try {
     await page.evaluate(() => { customEvents = []; window.__testSaves = 0; confirmAddActivity(); });
     await popup.locator('[data-autre-creneau]').click();
     await popup.locator('.chev-proposition-libre').filter({ hasText: '19:00 → 19:30' }).click();
-    assert.equal(await popup.locator('.chev-carte-deja').count(), 0);
+    assert.equal(await popup.locator('#chevEtapeInitiale').isVisible(), false);
     assert.match(await popup.locator('#chevauchementApercu').innerText(), /18:30 → 19:00.*19:00 → 19:30/s);
-    assert.equal(await popup.locator('#chevauchementApercu .chev-actions button').count(), 2, 'Continuer ou annuler seulement');
+    assert.equal(await popup.locator('#chevauchementApercu .chev-actions button').count(), 3, 'confirmer, revenir ou annuler');
     await popup.locator('#chevauchementApercu [data-confirmer]').click();
     assert.equal(await popup.count(), 0, 'Continuer sauvegarde directement le créneau libre');
     assert.deepEqual(await page.evaluate(() => ({
@@ -97,11 +99,11 @@ try {
     await popup.locator('#chevauchementDebut').fill('18:30');
     assert.match(await popup.locator('#chevauchementVerdict').innerText(), /Sport/);
     await popup.locator('[data-placer]').click();
-    assert.equal(await popup.locator('.chev-carte-deja').count(), 0, 'saisie manuelle : cartes cachées après le choix');
+    assert.match(await popup.locator('#chevEtapeInitiale').innerText(), /Sport/);
     await popup.locator('[data-remplacer]').click();
     assert.equal(await popup.locator('[data-continuer-selection]').isDisabled(), true);
     assert.match(await popup.locator('#chevListeRetraits').innerText(), /Sport/);
-    await popup.locator('#chevauchementChoix [data-annuler]').click();
+    await popup.locator('#chevSelectionActions [data-annuler]').click();
     assert.equal(await popup.count(), 0);
     assert.equal(await page.evaluate(() => window.__testSaves), 0);
     await page.evaluate(() => confirmAddActivity());
@@ -122,17 +124,19 @@ try {
         confirmAddActivity();
     });
     await popup.locator('[data-autre-creneau]').click();
+    await popup.locator('[data-filtre-horaire="occupes"]').click();
     await popup.locator('.chev-proposition-occupee').filter({ hasText:'18:00 → 18:30' }).click();
-    assert.equal(await popup.locator('.chev-carte-deja').count(), 0);
+    assert.match(await popup.locator('#chevEtapeInitiale').innerText(), /Sport/);
     await popup.locator('[data-remplacer]').click();
     await popup.locator('.chev-retrait').filter({ hasText:'Sport' }).locator('input').check();
     assert.equal(await popup.locator('[data-continuer-selection]').isDisabled(), true, 'Préparation non cochée : pas de retrait implicite');
     await popup.locator('.chev-retrait').filter({ hasText:'Préparation' }).locator('input').check();
     await popup.locator('[data-continuer-selection]').click();
+    await popup.locator('#chevauchementApercu [data-confirmer]').click();
     assert.match(await popup.locator('#chevConfirmEssentiels').innerText(), /Préparation/);
     assert.equal(await page.evaluate(() => window.__testSaves), 1, 'une seule pression sur Continuer ne retire pas un essentiel');
     await popup.locator('[data-renoncer-essentiel]').click();
-    await popup.locator('#chevauchementChoix [data-annuler]').click();
+    await popup.locator('#chevauchementApercu [data-annuler]').click();
     assert.equal(await page.evaluate(() => window.__testSaves), 1);
     await page.evaluate(() => {
         customEvents = [];
@@ -170,7 +174,7 @@ try {
     assert.equal(await popup.locator('.chev-carte-deja').count(), 2);
     assert.equal(await popup.locator('[data-deplacer]').count(), 0);
     await popup.locator('[data-remplacer]').click();
-    assert.equal(await popup.locator('.chev-carte-deja').count(), 0, 'les cartes quittent l’écran après le choix de remplacement');
+    assert.equal(await popup.locator('#chevEtapeInitiale').isVisible(), false);
     assert.match(await popup.locator('.chev-mode').nth(0).innerText(), /18:30 → 19:00 · 30 min/);
     assert.match(await popup.locator('.chev-mode').nth(1).innerText(), /18:00 → 19:00 · 1 h/);
     assert.equal(await popup.locator('.chev-retrait').count(), 2, 'ne proposer que les conflits réels du résultat');
