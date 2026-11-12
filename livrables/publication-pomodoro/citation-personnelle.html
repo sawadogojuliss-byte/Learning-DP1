@@ -1,6 +1,6 @@
                         <div class="focus-citation-personnelle">
                             <label for="focusCitationPersonnelle">Ma citation</label>
                             <p id="focusCitationPersonnelleAide">Écris quelques mots : ils apparaîtront en haut du minuteur. Laisse vide pour retrouver une citation du jour.</p>
-                            <textarea id="focusCitationPersonnelle" rows="3" maxlength="140" placeholder="Écris ta citation ici…" aria-describedby="focusCitationPersonnelleAide" oninput="focusSauverCitationPersonnelle(this)"></textarea>
-                            <small>140 caractères maximum · enregistrée sur cet appareil</small>
+                            <textarea id="focusCitationPersonnelle" rows="3" maxlength="140" placeholder="Écris ta citation ici…" aria-describedby="focusCitationPersonnelleAide" oninput="focusSauverCitationPersonnelle(this)" onblur="focusPeindreParametres()"></textarea>
+                            <small>140 caractères maximum · enregistrée ici et synchronisée avec ton compte lorsque tu es connecté</small>
                         </div>

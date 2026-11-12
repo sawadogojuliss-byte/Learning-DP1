@@ -547,6 +547,11 @@ function compteAfficherProfil(data) {
     if (typeof memoireReinitialiser === 'function') memoireReinitialiser();
     if (jourGarde !== null) { selectedDay = jourGarde; window.__jourCourantPose = true; window.__jourCourantCle = cleJourGardee; }
     memoireAppliquer(data, { compte: true });
+    /* Si le minuteur est ouvert mais arrêté, une citation reçue ne doit pas
+       attendre un tick ou une réouverture pour être affichée. */
+    if (ouverte === 'pomodoro' && typeof focusPeindre === 'function') {
+        try { focusPeindre(); } catch (e) {}
+    }
     /* Même règle que memoireSommeilPeutAppliquer : le réglage gardé ne revient que s'il est plus récent que celui reçu. */
     var dateRecue = typeof memoireDateSommeil === 'function' ? memoireDateSommeil(data.sommeilChoisiLe, [data.weekdaySleepHours, data.saturdaySleepHours, data.sundaySleepHours], [data.weekdayWakeup, data.saturdayWakeup, data.sundayWakeup]) : (data.sommeilChoisiLe || '');
     if (sommeilGarde && sommeilGarde.le && (!dateRecue || dateRecue < sommeilGarde.le) && typeof sommeilRestaurer === 'function') sommeilRestaurer(sommeilGarde);
@@ -1246,6 +1251,26 @@ function compteMontrerProgression(data, forcer) {
     return applique || ouvrir;
 }
 
+/* Après archivage d'un ancien compte, sa citation ne doit pas apparaître
+   dans le compte suivant. Les autres paramètres du minuteur restent locaux ;
+   leur version du nouveau compte pourra être reçue normalement. */
+function compteIsolerCitation() {
+    try {
+        var parametres = JSON.parse(localStorage.getItem('studyPlanIB_minuteurParametres') || 'null');
+        if (parametres && typeof parametres === 'object' && !Array.isArray(parametres)) {
+            parametres.citationPersonnelle = '';
+            if (parametres.citationCategorie === 'personnelle') parametres.citationCategorie = 'toutes';
+            localStorage.setItem('studyPlanIB_minuteurParametres', JSON.stringify(parametres));
+        }
+        if (typeof focusReglagesVus !== 'undefined') focusReglagesVus = null;
+        if (typeof syncFocusLire === 'function') {
+            var neutre = syncFocusLire();
+            neutre.modifieAt = 0;
+            localStorage.setItem('studyPlanIB_focusReglages', JSON.stringify(neutre));
+        }
+    } catch (e) {}
+}
+
 function compteRestaurerTout(session, token, distantes, options) {
     if (!session || !session.sub) return Promise.resolve('vide');
     options = options || {};
@@ -1267,7 +1292,10 @@ function compteRestaurerTout(session, token, distantes, options) {
     }
     window.compteChangementDeCompte = vivantEtranger;
     /* Les statistiques locales de l'ancien compte ont été archivées avec lui. */
-    if (vivantEtranger) try { localStorage.removeItem('studyPlanIB_statsFocus'); } catch (e) {}
+    if (vivantEtranger) {
+        try { localStorage.removeItem('studyPlanIB_statsFocus'); } catch (e) {}
+        compteIsolerCitation();
+    }
     compteLierCompte(session, (vivant && vivant.userName) || '');
     var canon = compteCanonique(session.sub) || session.sub;
     compteMemoriserSession(session);
@@ -2284,7 +2312,23 @@ function compteOnCredential(resp) {
                     if (travailLocalPossible && idLocal && compteMemeCompte(idLocal, session.sub) && compteLocalModifie(locale)) {
                         firebaseCopie = compteFusionnerProfils([locale, firebaseCopie]) || firebaseCopie;
                     }
-                    compteBasculer(firebaseCopie, session);
+                    /* Un autre compte : archiver l'ancien avant toute application
+                       de la copie reçue, dans compteRestaurerTout. */
+                    var autreCompte = proprietaireAvant && proprietaireAvant.sub && !compteMemeCompte(proprietaireAvant.sub, session.sub);
+                    /* Sur un appareil jamais lié, un simple changement de style
+                       local ne doit pas masquer une citation du compte. Une
+                       citation réellement saisie ici reste prioritaire selon la
+                       règle habituelle des réglages les plus récents. */
+                    var citationDistante = firebaseCopie.focusReglages && firebaseCopie.focusReglages.parametres && firebaseCopie.focusReglages.parametres.citationPersonnelle;
+                    var reglageLocal = typeof focusLireReglages === 'function' ? focusLireReglages() : null;
+                    if (!proprietaireAvant && !travailLocalPossible && citationDistante &&
+                        (!reglageLocal || !reglageLocal.citationPersonnelle) && typeof syncFocusLire === 'function') {
+                        try {
+                            var baseFocus = syncFocusLire(); baseFocus.modifieAt = 0;
+                            localStorage.setItem('studyPlanIB_focusReglages', JSON.stringify(baseFocus));
+                        } catch (e) {}
+                    }
+                    if (!autreCompte) compteBasculer(firebaseCopie, session);
                     distantes = [firebaseCopie];
                 }
                 return compteRestaurerTout(session, null, distantes, firebaseCopie ? { nuageDeReference: true } : null).then(function () {

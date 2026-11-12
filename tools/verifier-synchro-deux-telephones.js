@@ -350,10 +350,40 @@ async function ouvrirEnDirect(c, nuage) {
 
   /* Les paramètres du minuteur seuls déclenchent une sauvegarde : citation
      personnelle incluse, sans attendre une autre modification du planning. */
-  geste(b, `focusEcrireReglages({ citation: true, citationCategorie: 'personnelle', citationPersonnelle: 'Avance à ton rythme' });`);
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Avance à ton rythme' });`);
   await attendre(4500);
   verif('19 citation personnelle seule synchronisée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, 'Avance à ton rythme');
   verif('19b citation personnelle reçue par l’autre appareil', a.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
+  verif('19c la catégorie personnelle suit aussi', a.focusLireReglages().citationCategorie, 'personnelle');
+  let nouveau = nouvelAppareil(nuage, {});
+  geste(nouveau, `focusMajReglage('style', 'barre');`);
+  nouveau.compteOnCredential({ credential }); await attendre(3500); figer(nouveau);
+  verif('19d nouveau téléphone connecté récupère la citation', nouveau.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
+  geste(a, `focusSauverCitationPersonnelle({ value: 'Chaque jour compte' });`);
+  await attendre(4500);
+  verif('19e modification reçue sur le deuxième téléphone', b.focusLireReglages().citationPersonnelle, 'Chaque jour compte');
+  verif('19f modification reçue sur le nouveau téléphone', nouveau.focusLireReglages().citationPersonnelle, 'Chaque jour compte');
+  geste(b, `focusSauverCitationPersonnelle({ value: '' });`);
+  await attendre(4500);
+  verif('19g suppression reçue sur le premier téléphone', a.focusLireReglages().citationPersonnelle, '');
+  verif('19h suppression enregistrée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, '');
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Citation privée de Farid' });`);
+  await attendre(4500);
+  verif('19i citation rechargée sur un nouvel appareil', nouveau.focusLireReglages().citationPersonnelle, 'Citation privée de Farid');
+  let appareilAvecSaisie = nouvelAppareil(nuage, {});
+  geste(appareilAvecSaisie, `focusSauverCitationPersonnelle({ value: 'Écrite avant connexion' });`);
+  appareilAvecSaisie.compteOnCredential({ credential }); await attendre(4500); figer(appareilAvecSaisie);
+  verif('19i2 une citation saisie avant connexion reste sur l’appareil', appareilAvecSaisie.focusLireReglages().citationPersonnelle, 'Écrite avant connexion');
+  figer(appareilAvecSaisie); geste(appareilAvecSaisie, 'compteEcouterArreter()');
+  nuage.db.runTransaction = () => Promise.reject(new Error('réseau indisponible (citation test)'));
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Écrite hors ligne' });`);
+  await attendre(500); await envoyer(b);
+  verif('19j citation hors ligne conservée localement', b.focusLireReglages().citationPersonnelle, 'Écrite hors ligne');
+  nuage.db.runTransaction = transaction; b.__evenement('online'); await attendre(4000);
+  verif('19k citation envoyée après retour du réseau', a.focusLireReglages().citationPersonnelle, 'Écrite hors ligne');
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Citation privée de Farid' });`);
+  await attendre(4500);
+  figer(nouveau); geste(nouveau, 'compteEcouterArreter()');
 
   /* Le vrai déclenchement automatique : pas d'appel direct à envoyer().
      Le nuage simulé livre les écoutes en 20 ms ; ce test mesure donc surtout
@@ -426,9 +456,22 @@ async function ouvrirEnDirect(c, nuage) {
   figer(b);
   const nouvelEleve = {sub: 'AUTRE-ELEVE-456', email: 'autre@example.org', name: 'Autre'};
   await b.compteRestaurerTout(nouvelEleve, '', [], {});
+  verif('25a le changement de compte isole la citation', b.focusLireReglages().citationPersonnelle, '');
   verif('25 le changement de compte isole les statistiques de l’ancien élève', b.statsLire().length, 0);
   verif('25b les statistiques restent archivées pour le premier compte',
     !!(b.compteLireArchive(SUB) && b.compteLireArchive(SUB).statsFocus && b.compteLireArchive(SUB).statsFocus.length), true);
+
+  await b.compteRestaurerTout({sub: SUB, email: EMAIL, name: user.name}, '', [], {});
+  verif('25c la citation revient avec son compte après changement', b.focusLireReglages().citationPersonnelle, 'Citation privée de Farid');
+  const autreSession = {sub: 'AUTRE-CONNEXION-789', email: 'autre-connexion@example.org', name: 'Autre élève'};
+  const autreProfil = Object.assign({}, FULL, {userName: autreSession.name, google: autreSession, utilisateurId: autreSession.sub,
+    focusReglages: {modifieAt: Date.now() - 86400000, parametres: {citation: true, citationCategorie: 'personnelle', citationPersonnelle: 'Citation de l’autre élève'}}});
+  nuage.docs['progressions/UID-AUTRE'] = {progression: JSON.stringify(autreProfil)};
+  b.firebase = firebaseFactice(nuage, 'UID-AUTRE', autreSession);
+  const autreCredential = b64({alg:'none'}) + '.' + b64(autreSession) + '.x';
+  b.compteOnCredential({credential: autreCredential}); await attendre(4500); figer(b);
+  verif('25d connexion Google à un autre compte : sa citation est récupérée', b.focusLireReglages().citationPersonnelle, 'Citation de l’autre élève');
+  verif('25e la citation précédente reste archivée dans son compte', b.compteLireArchive(SUB).focusReglages.parametres.citationPersonnelle, 'Citation privée de Farid');
 
 
   /* ── Aucune écriture de test vers Firestore réel : tout est dans le faux nuage ── */
