@@ -335,10 +335,12 @@ function focusOuvrirSeances() {
         if (!panel || !panel.classList.contains('active')) {
             clearInterval(focusRafraichirSeancesTimer);
             focusRafraichirSeancesTimer = null;
+            focusFermerChoixSeance();
             return;
         }
         var suivante = focusSignatureSeances();
         if (suivante !== signature) { signature = suivante; focusPeindreAccueil(); }
+        focusActualiserChoixSeance();
     }, 10000);
 }
 
@@ -397,12 +399,27 @@ function focusDureeTexte(mins) {
     return m + ' min';
 }
 
-function focusNombrePomodoros(mins) {
-    return Math.max(1, Math.ceil(Math.max(1, Number(mins) || 1) / focusDurees().focus));
+/* Nombre de concentrations complètes possibles, pauses comprises. */
+function focusPossibilites(minutes) {
+    var d = focusDurees(), restant = Math.max(0, minutes), n = 0, utilise = 0;
+    while (n < 12) {
+        var pause = n ? d[focusPauseApres(n)] : 0;
+        if (utilise + pause + d.focus > restant) break;
+        utilise += pause + d.focus;
+        n++;
+    }
+    return { nombre: n || (restant >= 1 ? 1 : 0),
+        minutes: n ? d.focus : Math.min(d.focus, Math.floor(restant)),
+        raccourcie: !n && restant >= 1 };
 }
-
+function focusMinutesDisponibles(seance) {
+    var maintenant = focusMinutesMaintenant() + (new Date().getSeconds() + new Date().getMilliseconds() / 1000) / 60;
+    return Math.max(0, seance.fin - Math.max(seance.debut, maintenant));
+}
+function focusNombrePomodoros(mins) { return focusPossibilites(mins).nombre; }
 function focusPomodorosTexte(mins) {
-    return focusNombrePomodoros(mins) + ' × ' + focusDurees().focus + ' min';
+    var p = focusPossibilites(mins);
+    return p.nombre ? p.nombre + ' × ' + p.minutes + ' min' : 'moins d’une minute';
 }
 
 function focusJourIndex() {
@@ -486,7 +503,8 @@ function focusAjouterCarteSeance(seance) {
     droite.className = 'focus-seance-droite';
     var duree = document.createElement('span');
     duree.className = 'focus-seance-duree';
-    duree.textContent = focusDureeTexte(seance.duree) + ' · ' + focusPomodorosTexte(seance.duree);
+    var disponible = focusMinutesDisponibles(seance);
+    duree.textContent = (etat.cle === 'encours' ? focusDureeTexte(Math.floor(disponible)) + ' restantes' : focusDureeTexte(seance.duree)) + ' · ' + focusPomodorosTexte(etat.cle === 'passee' ? 0 : disponible);
     var marque = document.createElement('span');
     marque.className = 'focus-seance-etat is-' + etat.cle;
     marque.textContent = etat.texte;
@@ -537,16 +555,17 @@ function focusPeindreAccueil() {
     var total = 0;
     var pomodoros = 0;
     seances.forEach(function (s) {
-        total += s.duree;
-        pomodoros += focusNombrePomodoros(s.duree);
+        var disponible = focusMinutesDisponibles(s);
+        total += Math.floor(disponible);
+        pomodoros += focusNombrePomodoros(disponible);
     });
 
     var stats = document.getElementById('focusAccueilStats');
     if (stats) {
         stats.innerHTML = '';
         stats.appendChild(focusAjouterStat(String(seances.length), seances.length > 1 ? 'séances' : 'séance', false));
-        stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'de travail', false));
-        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions de ' + focusDurees().focus + ' min', true));
+        stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'disponibles', false));
+        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions possibles', true));
     }
 
     liste.innerHTML = '';
@@ -572,8 +591,8 @@ function focusPeindreAccueil() {
 }
 
 function focusSignatureSeances() {
-    return new Date().toDateString() + '|' + focusSeancesJour().map(function (s) {
-        return s.id + ':' + focusEtatSeance(s).cle;
+    return new Date().toDateString() + '|' + JSON.stringify(focusDurees()) + '|' + focusSeancesJour().map(function (s) {
+        return [s.id, s.titre, s.sous, s.debut, s.fin, focusEtatSeance(s).cle, Math.floor(focusMinutesDisponibles(s))].join(':');
     }).join('|');
 }
 
@@ -586,55 +605,90 @@ function focusChoisirSeance() {
 
 // De la liste au minuteur : une nouvelle étape dans l'historique, donc le
 // bouton retour du navigateur ramène d'abord sur la séance de révision.
+var focusChoixSeanceEnCours = null;
+function focusSeanceActualisee(id, date) {
+    if (date !== new Date().toDateString()) return null;
+    return focusSeancesJour().filter(function (s) { return s.id === id && focusEtatSeance(s).cle === 'encours'; })[0] || null;
+}
+function focusActualiserChoixSeance() {
+    var dialog = document.getElementById('focusChoixSeance');
+    if (!dialog || !dialog.open || !focusChoixSeanceEnCours) return;
+    var s = focusSeanceActualisee(focusChoixSeanceEnCours.id, focusChoixSeanceEnCours.date);
+    var p = s ? focusPossibilites(focusMinutesDisponibles(s)) : { nombre: 0 };
+    var champ = document.getElementById('focusChoixNombre');
+    var detail = document.getElementById('focusChoixDetail');
+    var ligne = document.getElementById('focusChoixLigne');
+    var bouton = document.getElementById('focusChoixLancer');
+    if (!p.nombre) {
+        detail.textContent = 'Ce créneau ne permet plus de lancer une minute complète. Reviens aux séances pour choisir un autre créneau.';
+        ligne.hidden = true; bouton.disabled = true; return;
+    }
+    bouton.disabled = false;
+    ligne.hidden = p.raccourcie || p.nombre === 1;
+    champ.max = String(p.nombre);
+    if (!champ.value || Number(champ.value) > p.nombre) champ.value = String(p.nombre);
+    if (p.raccourcie) detail.textContent = 'Il reste peu de temps : une séance de ' + p.minutes + ' min est possible.';
+    else if (p.nombre === 1) detail.textContent = 'Une séance de ' + p.minutes + ' min est possible dans le temps restant.';
+    else detail.textContent = 'Jusqu’à ' + p.nombre + ' séances de ' + p.minutes + ' min sont possibles, pauses comprises.';
+}
+function focusFermerChoixSeance() {
+    var dialog = document.getElementById('focusChoixSeance');
+    if (dialog && dialog.open) dialog.close();
+    focusChoixSeanceEnCours = null;
+}
 function focusEntrerPiece(libre) {
-    if (libre) return; /* ancien raccourci : ne doit jamais contourner le créneau */
+    if (libre) return;
     focusChoisirSeance();
     var choisie = focusSeancesJour().filter(function (s) {
         return s.id === focusSeanceChoisie && focusEtatSeance(s).cle === 'encours';
     })[0];
-    if (!choisie) {
-        focusPeindreAccueil();
+    if (!choisie) { focusPeindreAccueil(); return; }
+    // Retour à un minuteur existant : ne jamais le remplacer ni le réinitialiser.
+    if (focusEtat.running || focusEtat.transition || focusEtat.run) {
+        focusEntreeDepuisSeance = true;
+        if (typeof memoireAller === 'function') memoireAller('pomodoro');
+        else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+        if (!focusEtat.running && !focusEtat.transition) focusBasculer();
         return;
     }
-    choisie.dateSelection = new Date().toDateString();
-    var objectif = document.getElementById('focusTache');
-    var saisi = objectif ? objectif.value.trim() : '';
-    if (saisi && saisi !== choisie.titre && typeof confirmerAction === 'function') {
-        confirmerAction({ titre: 'Garder ton objectif ?',
-            detail: 'Un objectif est déjà saisi. Garde-le ou ajoute le titre de la séance.',
-            annulerTexte: 'Garder mon objectif', annuler: function () { focusValiderSeance(choisie, saisi); },
-            action: 'Accoler la séance', confirmer: function () { focusValiderSeance(choisie, saisi + ' · ' + choisie.titre); }
-        });
-        // Le dialogue partagé est attaché au body ; il doit passer au-dessus
-        // du panneau de séance plein écran, sinon ses boutons sont invisibles.
-        var dialogue = document.getElementById('confirmationAction');
-        if (dialogue) dialogue.style.zIndex = '100001';
-        return;
-    }
-    focusValiderSeance(choisie, choisie.titre);
+    focusChoixSeanceEnCours = { id: choisie.id, date: new Date().toDateString() };
+    var dialog = document.getElementById('focusChoixSeance');
+    document.getElementById('focusChoixNombre').value = '';
+    dialog.showModal();
+    focusActualiserChoixSeance();
 }
-
-function focusValiderSeance(choisie, objectif) {
-    /* Le créneau peut expirer pendant que l'élève choisit son objectif. */
-    if (choisie.dateSelection !== new Date().toDateString() || focusEtatSeance(choisie).cle !== 'encours') {
-        focusPeindreAccueil();
-        return;
+function focusConfirmerChoixSeance() {
+    if (!focusChoixSeanceEnCours) return;
+    var choisie = focusSeanceActualisee(focusChoixSeanceEnCours.id, focusChoixSeanceEnCours.date);
+    var p = choisie ? focusPossibilites(focusMinutesDisponibles(choisie)) : { nombre: 0 };
+    var nombre = Number(document.getElementById('focusChoixNombre').value);
+    if (!p.nombre || !Number.isInteger(nombre) || nombre < 1 || nombre > p.nombre) {
+        focusActualiserChoixSeance(); return;
     }
-    focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin,
-        date: new Date().toDateString() };
+    // Un autre minuteur a pu démarrer pendant l'ouverture du dialogue.
+    if (focusEtat.running || focusEtat.transition || focusEtat.run) { focusFermerChoixSeance(); return; }
+    focusFermerChoixSeance();
+    var champ = document.getElementById('focusTache');
+    var objectif = champ && champ.value.trim() ? champ.value.trim() : choisie.titre;
+    focusValiderSeance(choisie, objectif, nombre, p.minutes);
+}
+function focusValiderSeance(choisie, objectif, nombre, minutes) {
+    if (!focusSeanceActualisee(choisie.id, new Date().toDateString())) { focusPeindreAccueil(); return; }
+    focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin, date: new Date().toDateString() };
     focusEntreeDepuisSeance = true;
     try { sessionStorage.setItem('studyPlanIB_focusSeanceEnCours', JSON.stringify(focusSeanceMinuteur)); } catch (e) {}
     var champ = document.getElementById('focusTache');
-    if (champ) {
-        champ.value = objectif;
-        focusMemoriserObjectif();
-    }
+    if (champ) { champ.value = objectif; focusMemoriserObjectif(); }
+    focusChoisirMode('focus', false);
+    focusEtat.total = minutes * 60;
+    focusEtat.restant = focusEtat.total;
+    focusEtat.run = true;
+    focusEtat.serie = 0;
+    focusEtat.objectif = nombre;
     focusPeindre();
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
     else focusOuvrirMinuteur();
-    // Le bouton annonce un lancement : démarrer après l'ouverture, sans
-    // interrompre ni remettre à zéro un minuteur qui tourne déjà.
     if (!focusEtat.running && !focusEtat.transition) focusBasculer();
 }
 

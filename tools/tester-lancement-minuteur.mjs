@@ -45,6 +45,7 @@ try {
         await choisir(page);
         const planning = await page.evaluate(() => JSON.stringify(customEvents));
         await page.locator('#focusAccueilContinuer').click();
+        await page.locator('#focusChoixLancer').click();
         assert.equal(await page.locator('#panelPomodoro').evaluate(el => el.classList.contains('active')), true);
         assert.equal(await page.locator('#focusTache').inputValue(), 'Révision de physique');
         const depart = await page.evaluate(() => ({ running: focusEtat.running, restant: focusEtat.restant, fin: focusEtat.fin, id: focusSeanceMinuteur?.id }));
@@ -76,36 +77,68 @@ try {
         assert.equal(await page.evaluate(() => focusEtat.restant), enPause);
         await finir(page, errors);
 
-        // Un objectif préexistant est conservé, ou explicitement complété.
-        for (const ajouter of (width === 390 ? [false, true] : [false])) {
-            ({ page, errors } = await ouvrir(width));
-            await page.evaluate(() => navigateTo('pomodoro'));
-            await page.locator('#focusTache').fill('Mon objectif');
-            await page.evaluate(() => navigateTo('seances'));
-            await choisir(page);
-            await page.locator('#focusAccueilContinuer').click();
-            assert.equal(await page.evaluate(() => focusEtat.running), false);
-            await page.getByRole('button', { name: ajouter ? 'Accoler la séance' : 'Garder mon objectif' }).click();
-            assert.equal(await page.locator('#focusTache').inputValue(), ajouter ? 'Mon objectif · Révision de physique' : 'Mon objectif');
-            assert.equal(await page.evaluate(() => focusEtat.running), true);
-            await finir(page, errors);
-        }
-        if (width !== 390) {
-            console.log(`OK lancement, retour et objectif ${width}px`);
-            continue;
-        }
-        // Si la séance expire pendant la confirmation, rien ne démarre et l'objectif reste intact.
-        ({ page, errors } = await ouvrir(width, '2031-06-15T10:00:30', '09:30', '10:01'));
+        // L'objectif préexistant est conservé et le nombre choisi est respecté.
+        ({ page, errors } = await ouvrir(width, '2031-06-15T10:00:00', '09:30', '11:00'));
+        await page.evaluate(() => navigateTo('pomodoro'));
+        await page.locator('#focusTache').fill('Mon objectif');
+        await page.evaluate(() => navigateTo('seances'));
+        await choisir(page);
+        await page.locator('#focusAccueilContinuer').click();
+        assert.match(await page.locator('#focusChoixDetail').innerText(), /2 séances/);
+        await page.locator('#focusChoixNombre').fill('1');
+        await page.locator('#focusChoixLancer').click();
+        assert.equal(await page.locator('#focusTache').inputValue(), 'Mon objectif');
+        assert.equal(await page.evaluate(() => focusEtat.objectif), 1);
+        assert.equal(await page.evaluate(() => focusEtat.running), true);
+        await finir(page, errors);
+        if (width !== 390) { console.log(`OK lancement et objectif ${width}px`); continue; }
+
+        // Le temps et le nombre diminuent avec l'horloge et les pauses.
+        ({ page, errors } = await ouvrir(width, '2031-06-15T10:00:00', '09:30', '11:30'));
+        await choisir(page);
+        await page.locator('#focusAccueilContinuer').click();
+        assert.match(await page.locator('#focusChoixDetail').innerText(), /3 séances/);
+        await page.clock.fastForward(31 * 60000);
+        assert.match(await page.locator('#focusChoixDetail').innerText(), /2 séances/);
+        await page.locator('#focusChoixNombre').fill('2');
+        await page.locator('#focusChoixLancer').click();
+        assert.equal(await page.evaluate(() => focusEtat.objectif), 2);
+        await finir(page, errors);
+
+        // Petit créneau : une concentration plus courte, sans modifier les réglages.
+        ({ page, errors } = await ouvrir(width, '2031-06-15T10:00:00', '09:30', '10:10'));
+        await choisir(page);
+        await page.locator('#focusAccueilContinuer').click();
+        const detailCourt = await page.locator('#focusChoixDetail').innerText();
+        assert.match(detailCourt, /une séance de (9|10) min/i);
+        const minutesCourtes = Number(detailCourt.match(/de (\d+) min/)[1]);
+        await page.locator('#focusChoixLancer').click();
+        assert.ok(await page.evaluate(() => focusEtat.total) <= minutesCourtes * 60);
+        assert.equal(await page.evaluate(() => focusEtat.objectif), 1);
+        assert.equal(await page.evaluate(() => focusDurees().focus), 25);
+        await finir(page, errors);
+
+        // Expiration pendant la fenêtre et modification des horaires : aucun lancement obsolète.
+        ({ page, errors } = await ouvrir(width, '2031-06-15T10:00:00', '09:30', '10:02'));
         await page.evaluate(() => navigateTo('pomodoro'));
         await page.locator('#focusTache').fill('Objectif à conserver');
         await page.evaluate(() => navigateTo('seances'));
         await choisir(page);
         await page.locator('#focusAccueilContinuer').click();
-        await page.clock.fastForward(31000);
-        await page.getByRole('button', { name: 'Accoler la séance' }).click();
+        await page.clock.fastForward(121000);
+        assert.equal(await page.locator('#focusChoixLancer').isDisabled(), true);
         assert.equal(await page.evaluate(() => focusEtat.running), false);
         assert.equal(await page.locator('#focusTache').inputValue(), 'Objectif à conserver');
-        assert.equal(await page.locator('#panelSeances').evaluate(el => el.classList.contains('active')), true);
+        await page.locator('.focus-choix-actions button').first().click();
+        await finir(page, errors);
+
+        ({ page, errors } = await ouvrir(width));
+        await choisir(page);
+        await page.locator('#focusAccueilContinuer').click();
+        await page.evaluate(() => { customEvents[0].endTime = '09:59'; v3Save(); });
+        await page.evaluate(() => focusConfirmerChoixSeance());
+        assert.equal(await page.evaluate(() => focusEtat.running), false);
+        assert.equal(await page.locator('#focusChoixLancer').isDisabled(), true);
         await finir(page, errors);
 
         // Une séance réellement terminée à minuit est accessible avant minuit.
@@ -113,7 +146,29 @@ try {
         await choisir(page);
         assert.equal(await page.evaluate(() => focusSeancesJour().find(s => s.id === 'minuteur-test').duree), 30);
         await page.locator('#focusAccueilContinuer').click();
+        await page.locator('#focusChoixLancer').click();
         assert.equal(await page.evaluate(() => focusEtat.running && focusSeanceMinuteur.fin === 1440), true);
+        await finir(page, errors);
+
+        // Le dialogue respecte Échap et ne démarre rien après le changement de jour.
+        ({ page, errors } = await ouvrir(width, '2031-06-15T23:58:00', '23:30', '00:00'));
+        await choisir(page);
+        await page.locator('#focusAccueilContinuer').click();
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('#focusChoixSeance').evaluate(el => el.open), false);
+        assert.equal(await page.evaluate(() => focusEtat.running), false);
+        await page.locator('#focusAccueilContinuer').click();
+        await page.clock.fastForward(121000);
+        assert.equal(await page.locator('#focusChoixLancer').isDisabled(), true);
+        assert.equal(await page.evaluate(() => focusEtat.running), false);
+        await finir(page, errors);
+
+        // Les pauses longues après la troisième concentration sont incluses.
+        ({ page, errors } = await ouvrir(width));
+        const calcul = await page.evaluate(() => [focusPossibilites(115).nombre, focusPossibilites(125).nombre, focusPossibilites(24).minutes]);
+        assert.deepEqual(calcul, [3, 4, 24]);
+        assert.equal(await page.locator('#panelSeances').evaluate(el => getComputedStyle(el).animationName), 'none');
+        assert.equal(await page.locator('.focus-accueil-boite').evaluate(el => getComputedStyle(el).animationName), 'none');
         await finir(page, errors);
 
         // Une séance future ou passée reste inaccessible, avec explication visible.

@@ -75,9 +75,9 @@
 #chevauchementPopup .chev-proposition-occupee:hover { background:#eaf7ec; border-color:#83bd94; }
 #chevauchementPopup .chev-proposition-occupee .chev-proposition-effet { color:#607c67; }
 
-.cv-sommeil-avertissement { margin:0 0 14px; padding:14px; border:1px solid #e7dcb5; border-radius:14px; background:#fffbef; color:#574a23; font-size:13px; line-height:1.5; }
+.cv-sommeil-avertissement { margin:0 0 14px; padding:14px; border:1px solid #a7cfa9; border-radius:14px; background:#eff8e9; color:#315c35; font-size:13px; line-height:1.5; }
 .cv-sommeil-avertissement p { margin:5px 0; }
 .cv-sommeil-avertissement div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; }
-.cv-sommeil-avertissement button { border:1px solid #bda963; border-radius:8px; background:#fff; color:#574a23; padding:6px 10px; cursor:pointer; }
+.cv-sommeil-avertissement button { border:1px solid #80ae83; border-radius:8px; background:#fff; color:#315c35; padding:6px 10px; cursor:pointer; }
 /* Chaque étape commence en haut, y compris avec le défilement global fluide. */
 #chevauchementPopup .chev-dialogue { scroll-behavior:auto; }

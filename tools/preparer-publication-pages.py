@@ -103,6 +103,9 @@ files = [
     'livrables/publication-planning/planning-design.css',
     'livrables/publication-devoirs/devoirs-design.css',
     'js/pages/pomodoro-page.js',
+    'js/pages/minuteur-compteurs.js',
+    'pages/seances.html',
+    'tools/verifier-pomodoro.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
     'videos/arbres-au-bord-de-leau-assemblage.mp4',
@@ -184,7 +187,8 @@ text = path.read_text(encoding='utf-8')
 anchor = '\n.focus-shade {\n'
 if text.count(anchor) != 1 or '.focus-fond-video' in text:
     raise SystemExit('Feuille publique inattendue')
-path.write_text(text.replace(anchor, match.group(0) + anchor, 1), encoding='utf-8')
+styles_seances = css[css.index('/* Une arrivée immobile :'): ]
+path.write_text(text.replace(anchor, match.group(0) + anchor, 1) + '\n' + styles_seances, encoding='utf-8')
 
 # La page et sa feuille sont dédiées à la publication. Ne pas copier la version
 # de travail distincte de pages/ ou js/pages/exercices.js.

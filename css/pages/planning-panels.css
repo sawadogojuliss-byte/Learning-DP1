@@ -1874,3 +1874,21 @@ body.v3-deplacement, body.v3-deplacement * {
 }
 
 
+
+/* Une arrivée immobile : pas de translation qui évoque un retour arrière. */
+#panelSeances.app-panel, #panelSeances .focus-accueil-boite { animation: none; }
+.focus-choix-seance { width: min(29rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); box-sizing: border-box; padding: 0; border: 1px solid #56836a; border-radius: 1.4rem; background: #102a20; color: #f4fff8; box-shadow: 0 24px 80px #0009; font-family: Inter, system-ui, sans-serif; }
+.focus-choix-seance::backdrop { background: rgba(0, 12, 8, .78); backdrop-filter: blur(5px); }
+.focus-choix-contenu { padding: clamp(1.2rem, 4vw, 2rem); }
+.focus-choix-sur-titre { color: #a1e9bd; font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
+.focus-choix-seance h2 { font-size: 1.5rem; margin: .55rem 0; }
+.focus-choix-seance p { line-height: 1.5; color: #d4e9db; }
+.focus-choix-seance label { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-weight: 700; }
+.focus-choix-seance label[hidden] { display: none; }
+.focus-choix-seance input { width: 4.5rem; padding: .65rem; border: 1px solid #83b99a; border-radius: .7rem; background: #193d2c; color: white; font: inherit; }
+.focus-choix-seance .focus-choix-note { font-size: .8rem; color: #aecdbb; }
+.focus-choix-actions { display: flex; gap: .6rem; margin-top: 1.2rem; }
+.focus-choix-actions button { min-height: 44px; padding: .7rem 1rem; border-radius: .7rem; border: 1px solid #739e83; background: transparent; color: white; font: 700 .9rem Inter, system-ui, sans-serif; cursor: pointer; }
+.focus-choix-actions button:last-child { flex: 1; background: #a6ecc7; border-color: #a6ecc7; color: #103826; }
+.focus-choix-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.focus-choix-seance :focus-visible { outline: 2px solid #d2ffdf; outline-offset: 3px; }

@@ -29,3 +29,16 @@
         <div id="accueilFonds" class="focus-fonds" hidden></div>
     </div>
 </div>
+
+<dialog id="focusChoixSeance" class="focus-choix-seance" aria-labelledby="focusChoixTitre" aria-describedby="focusChoixDetail" onclose="focusChoixSeanceEnCours = null">
+    <div class="focus-choix-contenu">
+        <span class="focus-choix-sur-titre">TON TEMPS DE RÉVISION</span>
+        <h2 id="focusChoixTitre">Prêt à te concentrer ?</h2>
+        <p id="focusChoixDetail" role="status"></p>
+        <label id="focusChoixLigne" for="focusChoixNombre">Combien de séances souhaites-tu faire ?
+            <input id="focusChoixNombre" type="number" min="1" max="12" step="1" inputmode="numeric">
+        </label>
+        <p class="focus-choix-note">Ton objectif déjà saisi est conservé. Tu peux le modifier dans le minuteur.</p>
+        <div class="focus-choix-actions"><button type="button" onclick="focusFermerChoixSeance()">Retour</button><button id="focusChoixLancer" type="button" onclick="focusConfirmerChoixSeance()">Lancer le minuteur</button></div>
+    </div>
+</dialog>

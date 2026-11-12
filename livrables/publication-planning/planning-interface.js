@@ -199,7 +199,7 @@ function renderPlanning() {
     if (planningJourModifiable(selectedDay)) v3SignalerChevauchementJour(events, selectedDay);
     let eventsHtml = '';
     if (horsSommeil.length) {
-        eventsHtml += '<div class="cv-sommeil-avertissement" role="status"><strong>Le sommeil est protégé</strong><p>Ces anciens créneaux tombent pendant le sommeil. Ils sont conservés mais retirés de la journée tant que leurs horaires ne sont pas corrigés :</p>' + horsSommeil.map(function (ev, index) {
+        eventsHtml += '<div class="cv-sommeil-avertissement" role="status"><strong>Créneaux pendant ton sommeil</strong><p>Modifie ces horaires pour les afficher dans ta journée. Ils sont conservés, mais restent masqués tant qu’ils chevauchent ton sommeil :</p>' + horsSommeil.map(function (ev, index) {
             return '<div><span>' + v3Escape(ev.title || 'Créneau') + ' · ' + v3Escape(ev.startTime || '') + ' → ' + v3Escape(ev.endTime || '') + '</span>' +
                 (planningJourModifiable(selectedDay) && ev.editable ? '<button type="button" onclick="v3ModifierHorsSommeil(' + index + ')">Modifier</button>' : '') + '</div>';
         }).join('') + '</div>';

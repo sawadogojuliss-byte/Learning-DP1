@@ -85,6 +85,8 @@ try {
   await page.evaluate(() => { focusMajReglage('auto', true); navigateTo('seances'); });
   await page.locator('#focusAccueilListe .focus-seance').filter({ hasText: 'Physique — séance' }).click();
   await page.locator('#focusAccueilContinuer').click();
+  await page.locator('#focusChoixNombre').fill('2');
+  await page.locator('#focusChoixLancer').click();
   await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'pause-annonce'); assert.equal(s.serie, 1);
   await avance(page, 2000); s = await etat(page); assert.equal(s.mode, 'short'); assert.equal(s.running, true);
   await avance(page, 60000); s = await etat(page); assert.equal(s.transition, 'reprise-annonce');

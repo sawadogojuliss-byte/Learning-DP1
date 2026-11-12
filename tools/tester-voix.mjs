@@ -170,7 +170,7 @@ const seance = await page.evaluate(() => {
     window.__voixHeureOrig = focusMinutesMaintenant;
     generateDayEvents = jour => jour === focusJourIndex() ? [
         { id: 'voix-session', title: 'Révision de physique', type: 'study',
-            startTime: '12:00', endTime: '13:00' }
+            startTime: '12:00', endTime: '14:00' }
     ] : [];
     focusMinutesMaintenant = () => 12 * 60 + 30;
     focusChoisirMode('focus', false);
@@ -180,6 +180,8 @@ const seance = await page.evaluate(() => {
     navigateTo('seances');
     const accessible = !document.getElementById('focusAccueilContinuer').disabled;
     focusEntrerPiece();
+    document.getElementById('focusChoixNombre').value = '2';
+    focusConfirmerChoixSeance();
     const liee = !!focusSeanceMinuteur && focusSeanceMinuteur.id === 'voix-session';
     const minuteur = document.getElementById('panelPomodoro').classList.contains('active');
     // Le bouton d'entrée lance déjà le compte à rebours.
