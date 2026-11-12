@@ -110,6 +110,7 @@ var focusTaches = [];
 var focusAmbianceChoisie = [];
 var focusMenuTache = null;
 var focusSousCible = null;
+var focusEditionTache = null;
 var focusTimer = null;
 var focusAudio = null;
 var focusPip = null;
@@ -1365,6 +1366,7 @@ function focusBasculerTaches() {
     if (panneau.hidden) {
         focusMenuTache = null;
         focusSousCible = null;
+        focusEditionTache = null;
     }
     var bouton = document.getElementById('focusBtnTaches');
     if (bouton) bouton.classList.toggle('is-on', !panneau.hidden);
@@ -1401,6 +1403,7 @@ function focusFermer(id) {
     var el = document.getElementById(id);
     if (el) el.hidden = true;
     if (id === 'focusTaches') {
+        focusEditionTache = null;
         var bouton = document.getElementById('focusBtnTaches');
         if (bouton) bouton.classList.remove('is-on');
     }
@@ -1496,6 +1499,7 @@ function focusBoutonTache(tache, parent) {
         if (event) { event.preventDefault(); event.stopPropagation(); }
         focusMenuTache = focusMenuTache === tache.id ? null : tache.id;
         focusSousCible = null;
+        focusEditionTache = null;
         focusPeindreTaches();
     };
     return bouton;
@@ -1521,6 +1525,7 @@ function focusOptionsTache(tache, parent) {
     if (!parent) {
         menu.appendChild(focusOptionTache('sous', 'Ajouter une sous-tâche', '<path d="M12 5v14M5 12h14"/>', false, tache, parent));
     }
+    menu.appendChild(focusOptionTache('modifier', 'Modifier', '<path d="M4 20l4-.8L19 8.2 15.8 5 4.8 16zM13.8 7l3.2 3.2"/>', false, tache, parent));
     menu.appendChild(focusOptionTache('dupliquer', 'Dupliquer', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5h10"/>', false, tache, parent));
     menu.appendChild(focusOptionTache('supprimer', parent ? 'Supprimer la sous-tâche' : 'Supprimer la tâche', '<path d="M6 6l12 12M18 6 6 18"/>', true, tache, parent));
     return menu;
@@ -1529,6 +1534,15 @@ function focusOptionsTache(tache, parent) {
 function focusActionTache(action, tache, parent) {
     var cible = parent ? focusSousTaches(parent) : focusTaches;
     var index = cible.indexOf(tache);
+    if (action === 'modifier') {
+        focusMenuTache = null;
+        focusSousCible = null;
+        focusEditionTache = tache.id;
+        focusPeindreTaches();
+        var edition = document.querySelector('#focusListe .focus-edition-tache input');
+        if (edition) { edition.focus(); edition.select(); }
+        return;
+    }
     if (action === 'sous') {
         focusMenuTache = null;
         focusSousCible = tache.id;
@@ -1569,6 +1583,7 @@ function focusAjouterSousTache(event, id) {
 
 function focusLigneTache(tache, parent) {
     var li = document.createElement('li');
+    li.dataset.tacheId = String(tache.id);
     var ligne = document.createElement('div');
     ligne.className = 'focus-ligne' + (parent ? ' is-sous' : '');
     var check = document.createElement('button');
@@ -1582,11 +1597,70 @@ function focusLigneTache(tache, parent) {
     nom.className = 'focus-tache' + (tache.fait ? ' is-fait' : '');
     nom.textContent = tache.texte;
     nom.onclick = function () { focusChoisirTache(tache.id); };
+    var modifier = document.createElement('button');
+    modifier.type = 'button';
+    modifier.className = 'focus-tache-menu focus-tache-modifier';
+    modifier.setAttribute('aria-label', parent ? 'Modifier la sous-tâche' : 'Modifier la tâche');
+    modifier.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-.8L19 8.2 15.8 5 4.8 16zM13.8 7l3.2 3.2"/></svg>';
+    modifier.onclick = function (event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        focusActionTache('modifier', tache, parent);
+    };
     ligne.appendChild(check);
     ligne.appendChild(nom);
+    ligne.appendChild(modifier);
     ligne.appendChild(focusBoutonTache(tache, parent));
     li.appendChild(ligne);
     if (focusMenuTache === tache.id) li.appendChild(focusOptionsTache(tache, parent));
+    if (focusEditionTache === tache.id) {
+        var edition = document.createElement('form');
+        edition.className = 'focus-edition-tache';
+        var champEdition = document.createElement('input');
+        champEdition.type = 'text';
+        champEdition.maxLength = 120;
+        champEdition.value = tache.texte;
+        champEdition.setAttribute('aria-label', parent ? 'Modifier la sous-tâche' : 'Modifier la tâche');
+        champEdition.autocomplete = 'off';
+        var erreur = document.createElement('p');
+        erreur.className = 'focus-edition-erreur';
+        erreur.setAttribute('role', 'alert');
+        var actions = document.createElement('div');
+        actions.className = 'focus-edition-actions';
+        var enregistrer = document.createElement('button');
+        enregistrer.type = 'submit'; enregistrer.textContent = 'Enregistrer';
+        var annuler = document.createElement('button');
+        annuler.type = 'button'; annuler.textContent = 'Annuler';
+        function fermerEdition() {
+            focusEditionTache = null;
+            focusPeindreTaches();
+            var retour = Array.from(document.querySelectorAll('#focusListe li')).find(function (el) {
+                return el.dataset.tacheId === String(tache.id);
+            });
+            var bouton = retour && retour.querySelector(':scope > .focus-ligne .focus-tache-modifier');
+            if (bouton) bouton.focus();
+        }
+        annuler.onclick = fermerEdition;
+        edition.onkeydown = function (event) {
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); fermerEdition(); }
+        };
+        edition.onsubmit = function (event) {
+            event.preventDefault();
+            var texte = champEdition.value.trim();
+            var actuelle = focusTacheParId(tache.id);
+            if (!texte) { erreur.textContent = 'Écris un nom pour la tâche.'; champEdition.focus(); return false; }
+            if (!actuelle) { fermerEdition(); return false; }
+            var ancien = actuelle.texte;
+            actuelle.texte = texte;
+            var objectif = document.getElementById('focusTache');
+            if (objectif && objectif.value === ancien) { objectif.value = texte; focusMemoriserObjectif(); }
+            focusSauverTaches();
+            fermerEdition();
+            return false;
+        };
+        actions.appendChild(enregistrer); actions.appendChild(annuler);
+        edition.appendChild(champEdition); edition.appendChild(erreur); edition.appendChild(actions);
+        li.appendChild(edition);
+    }
     if (!parent) {
         var sous = focusSousTaches(tache);
         if (sous.length) {

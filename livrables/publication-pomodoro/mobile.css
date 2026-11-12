@@ -31,3 +31,23 @@
 @media (max-height: 550px) {
     #focusPage .focus-center { justify-content: flex-start; }
 }
+
+/* Modification d'une tâche ou sous-tâche, dans le panneau du minuteur. */
+.focus-edition-tache { margin: 0.4rem 0 0.25rem; }
+.focus-edition-tache input {
+    box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid #4ade80;
+    border-radius: 0.6rem; padding: 0.5rem 0.6rem; background: rgba(20, 30, 40, 0.94);
+    color: white; font: inherit;
+}
+.focus-edition-tache input:focus-visible { outline: 2px solid #a7f3d0; outline-offset: 2px; }
+.focus-edition-erreur { margin: 0.3rem 0; color: #fecaca; font-size: 0.8rem; }
+.focus-edition-erreur:empty { display: none; }
+.focus-edition-actions { display: flex; gap: 0.4rem; margin-top: 0.45rem; }
+.focus-edition-actions button {
+    min-height: 2.4rem; border: 1px solid rgba(255,255,255,0.35); border-radius: 0.55rem;
+    background: rgba(255,255,255,0.1); color: white; padding: 0.35rem 0.65rem; font: inherit; cursor: pointer;
+}
+.focus-edition-actions button:first-child { background: #047857; border-color: #047857; }
+
+/* Le crayon reste visible, y compris sur écran tactile sans survol. */
+.focus-tache-modifier { opacity: 0.9; }

@@ -103,6 +103,7 @@ jobs:
           executer_test travail/tools/tester-nouveau-design.mjs
           executer_test travail/tools/tester-chargement-sans-barre.mjs
           executer_test travail/tools/tester-jours-bac.mjs
+          executer_test travail/tools/tester-modifier-taches.mjs
           executer_test travail/tools/tester-chevauchement.mjs
           executer_test travail/tools/tester-chevauchement-usage.mjs
           executer_test travail/tools/tester-alerte-chevauchement.mjs
@@ -208,6 +209,7 @@ jobs:
           executer_test tools/tester-nouveau-design.mjs
           executer_test tools/tester-chargement-sans-barre.mjs
           executer_test tools/tester-jours-bac.mjs
+          executer_test tools/tester-modifier-taches.mjs
           executer_test tools/tester-chevauchement.mjs
           executer_test tools/tester-chevauchement-usage.mjs
           executer_test tools/tester-alerte-chevauchement.mjs
