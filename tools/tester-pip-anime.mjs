@@ -10,6 +10,8 @@ const browser=await chromium.launch(portable ? {executablePath:await portable.ex
 try {
  for (const viewport of [{width:320,height:568},{width:390,height:844},{width:1280,height:800}]) {
   const page=await browser.newPage({viewport}); const erreurs=[];page.on('pageerror',e=>erreurs.push(String(e)));
+  const filtrer = r=>r.request().url().startsWith(site)?r.continue():r.abort();
+  await page.route('**/*',filtrer);
   await page.addInitScript(()=>window.__STUDYPLAN_E2E=true);
   await page.goto(site,{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
@@ -46,6 +48,8 @@ try {
   await page.waitForFunction(()=>document.querySelector('#focusPipScene .pip-video')?.currentTime>.1,{timeout:30000});
   await page.evaluate(()=>{focusFermerPip();focusPoserFond(focusIndexParId('pluie-palmes-anime'))});assert.equal(await video.count(),0);
   await page.waitForFunction(()=>document.querySelector('#focusBg video')?.currentTime>.1,{timeout:30000});
+  // La fenêtre Document PiP doit pouvoir charger ses propres ressources.
+  await page.unroute('**/*',filtrer);
   // Quand Chromium expose Document PiP, utiliser la vraie API avec un clic.
   if (await page.evaluate(()=>!!window.documentPictureInPicture?.requestWindow)) {
   const popupPromise=page.waitForEvent('popup');await page.locator('#focusBtnPip').click();const popup=await popupPromise;
