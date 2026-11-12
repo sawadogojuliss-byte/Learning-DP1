@@ -11,6 +11,7 @@ const FICHIERS = [
     "style_v2.css",
     "style_v3.css",
     "css/pages/planning-panels.css",
+    "livrables/publication-eeia/design.css",
     "css/pages/exercices.css",
     "css/pages/planning-semaines.css",
     "css/pages/retours.css",

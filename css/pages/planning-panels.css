@@ -9,7 +9,8 @@
     background:#fff;
     overflow-y:auto;
     overscroll-behavior:contain;
-    animation:slideInRight 0.3s ease-out;
+    /* Une page plein écran ne doit pas laisser apparaître le planning derrière elle. */
+    animation:none;
 }
 
 .app-panel.active {
@@ -43,7 +44,6 @@ html:has(.app-panel.active),
 body:has(.app-panel.active) {
     overflow:hidden !important;
 }
-@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
 /* ─── MOOD BUTTONS ─── */
 .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
 .mood-btn:hover { transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.12); }

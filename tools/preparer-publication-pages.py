@@ -105,6 +105,9 @@ files = [
     'js/pages/pomodoro-page.js',
     'js/pages/minuteur-compteurs.js',
     'pages/seances.html',
+    'pages/ee-ia.html',
+    'js/pages/onboarding-travaux.js',
+    'livrables/publication-eeia/design.css',
     'tools/verifier-pomodoro.js',
     'js/pages/pomodoro-parametres.js',
     'js/pages/musique.js',
@@ -188,6 +191,11 @@ anchor = '\n.focus-shade {\n'
 if text.count(anchor) != 1 or '.focus-fond-video' in text:
     raise SystemExit('Feuille publique inattendue')
 styles_seances = css[css.index('/* Une arrivée immobile :'): ]
+# La translation du panneau révélait le planning sous toutes les pages.
+ancien_mouvement = '    animation:slideInRight 0.3s ease-out;'
+if text.count(ancien_mouvement) != 1:
+    raise SystemExit('Animation publique des panneaux inattendue')
+text = text.replace(ancien_mouvement, '    animation:none;', 1)
 path.write_text(text.replace(anchor, match.group(0) + anchor, 1) + '\n' + styles_seances, encoding='utf-8')
 
 # La page et sa feuille sont dédiées à la publication. Ne pas copier la version
@@ -342,7 +350,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Styles des rappels introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">'
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -358,7 +366,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;
