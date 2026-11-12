@@ -64,6 +64,12 @@ try {
         assert.match(await popup.locator('#chevEtapeInitiale').innerText(), /Sport/);
         await popup.locator('[data-remplacer]').click();
         assert.equal(await page.evaluate(() => document.activeElement.type), 'checkbox', 'le focus suit la nouvelle étape');
+        const carte = popup.locator('#chevListeRetraits .chev-retrait').first();
+        assert.equal(await carte.evaluate(e => getComputedStyle(e).backgroundColor), 'rgb(239, 248, 241)', 'fond vert avant sélection');
+        await carte.locator('input').check();
+        assert.equal(await carte.evaluate(e => getComputedStyle(e).backgroundColor), 'rgb(217, 242, 225)', 'fond vert après sélection');
+        assert.equal(await carte.locator('input').evaluate(e => getComputedStyle(e).accentColor), 'rgb(22, 129, 93)');
+        await carte.locator('input').uncheck();
         assert.equal(await popup.locator('#chevHoraireMode').isVisible(), false, 'aucune option inutile après le choix d’un horaire');
         await popup.locator('#chevListeRetraits input').check();
         const before = await page.evaluate(() => ({ records:JSON.stringify(customEvents), saved:localStorage.getItem('studyPlanIB_customEvents_juliss') }));

@@ -985,7 +985,10 @@ function focusObserverVideosFond() {
             if (panneau) observateur.observe(panneau, { attributes: true, attributeFilter: ['class'] });
         });
     }
-    document.addEventListener('visibilitychange', focusSynchroniserVideosFond);
+    document.addEventListener('visibilitychange', function () {
+        focusSynchroniserVideosFond();
+        focusPipMaj();
+    });
     window.addEventListener('online', function () {
         var video = document.querySelector('.app-panel.active .focus-fond-video');
         if (video && (video.paused || video.error)) focusVideoLancer(video, true);
@@ -1834,6 +1837,9 @@ function focusPipHtml() {
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Studyplan</title><style>' +
         'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;overflow:hidden;}' +
         '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111 center/cover no-repeat;}' +
+        '.pip-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}' +
+        '.time,#pipPlay,.coin{position:relative;z-index:1}' +
+        '.pip-video-reessayer{position:absolute;z-index:2;left:50%;bottom:.4rem;transform:translateX(-50%);width:auto;height:auto;min-height:32px;margin:0;padding:.35rem .55rem;font:600 .7rem system-ui;background:#173f2e;border-radius:.5rem;white-space:nowrap}' +
         '.time{margin:0;font-size:clamp(2.6rem,17vw,5.2rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 18px rgba(0,0,0,.35);}' +
         'button{margin-top:.7rem;width:2.7rem;height:2.45rem;border-radius:.65rem;border:1px solid rgba(255,255,255,.18);background:rgba(8,12,20,.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}' +
         'button:hover{background:#10b981;border-color:#059669;}' +
@@ -1859,9 +1865,63 @@ function focusPipPeindreBouton(bouton) {
     bouton.setAttribute('aria-label', enCours ? 'Pause' : 'Démarrer');
 }
 
+/* Le petit écran possède son propre lecteur : la vidéo de la page principale
+   peut être arrêtée lorsque son onglet est masqué, sans figer celle du PiP. */
+function focusPipVideo(scene, fond, actif) {
+    if (!scene) return;
+    var video = scene.querySelector('.pip-video');
+    var aide = scene.querySelector('.pip-video-reessayer');
+    if (!actif || !fond || !fond.video) {
+        if (aide) aide.remove();
+        if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+        return;
+    }
+    if (video && video.getAttribute('data-fond') === fond.id) return;
+    if (aide) aide.remove();
+    if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+    var doc = scene.ownerDocument;
+    video = doc.createElement('video');
+    video.className = 'pip-video';
+    video.setAttribute('data-fond', fond.id);
+    video.setAttribute('aria-hidden', 'true');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('tabindex', '-1');
+    video.muted = true; video.defaultMuted = true; video.loop = true; video.playsInline = true; video.preload = 'auto';
+    try { video.poster = new URL(fond.src, location.href).href; } catch (e) { video.poster = fond.src; }
+    // Le petit écran n'a pas besoin de télécharger la variante 4K.
+    var source = fond.videoLeger || fond.video;
+    try { source = new URL(source, location.href).href; } catch (e) {}
+    function masquerAide() { var n = scene.querySelector('.pip-video-reessayer'); if (n) n.remove(); }
+    function proposerReessai() {
+        if (!video.isConnected || scene.querySelector('.pip-video-reessayer')) return;
+        var bouton = doc.createElement('button');
+        bouton.type = 'button'; bouton.className = 'pip-video-reessayer';
+        bouton.textContent = 'Vidéo en pause · Réessayer';
+        bouton.onclick = function () { if (video.error) video.load(); lire(); };
+        scene.appendChild(bouton);
+    }
+    function lire() {
+        try {
+            var lecture = video.play();
+            if (lecture && lecture.catch) lecture.catch(function (e) {
+                if (!e || e.name !== 'AbortError') proposerReessai();
+            });
+        } catch (e) { proposerReessai(); }
+    }
+    var attente = setTimeout(function () {
+        if (video.isConnected && (video.paused || video.readyState < 3)) proposerReessai();
+    }, 10000);
+    video.addEventListener('playing', function () { clearTimeout(attente); masquerAide(); });
+    video.addEventListener('error', function () { clearTimeout(attente); proposerReessai(); });
+    video.src = source;
+    scene.insertBefore(video, scene.firstChild);
+    lire();
+}
+
 function focusPipMaj() {
     var temps = focusTexte(focusEtat.restant);
     var fond = 'url("' + focusFondAbsolu() + '")';
+    var decor = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
     var localTemps = document.getElementById('focusPipTemps');
     var localScene = document.getElementById('focusPipScene');
     if (localTemps) localTemps.textContent = temps;
@@ -1869,6 +1929,8 @@ function focusPipMaj() {
         localScene.style.backgroundImage = fond;
         localScene.style.backgroundPosition = 'center center';
         localScene.style.backgroundSize = 'cover';
+        var local = document.getElementById('focusPipLocal');
+        focusPipVideo(localScene, decor, !!local && !local.hidden && !document.hidden);
     }
     focusPipPeindreBouton(document.getElementById('focusPipPlay'));
     if (!focusPip || focusPip.closed) return;
@@ -1881,6 +1943,7 @@ function focusPipMaj() {
             scene.style.backgroundImage = fond;
             scene.style.backgroundPosition = 'center center';
             scene.style.backgroundSize = 'cover';
+            focusPipVideo(scene, decor, true);
         }
         focusPipPeindreBouton(doc.getElementById('pipPlay'));
     } catch (e) {}
@@ -1898,6 +1961,7 @@ function focusPeindrePipBouton() {
 function focusFermerPip() {
     var local = document.getElementById('focusPipLocal');
     if (local) local.hidden = true;
+    focusPipVideo(document.getElementById('focusPipScene'), null, false);
     if (focusPip && !focusPip.closed) {
         try { focusPip.close(); } catch (e) {}
     }
@@ -1928,6 +1992,7 @@ function focusImageDansImage() {
             var play = win.document.getElementById('pipPlay');
             if (play) play.onclick = function () { focusBasculer(); };
             win.addEventListener('pagehide', function () {
+                focusPipVideo(win.document.getElementById('pipScene'), null, false);
                 focusPip = null;
                 focusPeindrePipBouton();
             });

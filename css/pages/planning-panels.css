@@ -663,6 +663,13 @@ body:has(.app-panel.active) {
     background: #111;
     color: #fff;
 }
+
+/* Vidéo du mini-lecteur local, derrière le minuteur et ses commandes. */
+.focus-pip-scene .pip-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.focus-pip-scene .focus-pip-temps, .focus-pip-scene .focus-pip-play, .focus-pip-scene .focus-pip-coin { position:relative; z-index:1; }
+.focus-pip-scene .focus-pip-coin { position:absolute; }
+.focus-pip-scene .pip-video-reessayer { position:absolute; z-index:3; left:50%; bottom:.4rem; transform:translateX(-50%); min-height:32px; padding:.35rem .55rem; border:1px solid #b7e3c8; border-radius:.5rem; background:#173f2e; color:#fff; font:600 .7rem system-ui,sans-serif; cursor:pointer; white-space:nowrap; }
+
 .focus-pip[hidden] { display: none; }
 .focus-pip-fermer {
     position: absolute;
@@ -1430,9 +1437,10 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup .chev-bouton:disabled { opacity:.5; cursor:not-allowed; }
 #chevauchementPopup .chev-mode, #chevauchementPopup .chev-retrait { display:flex; align-items:center; gap:.7rem; margin:.45rem 0; padding:.72rem .85rem; border:1px solid #d1fae5; border-radius:.8rem; background:#f8fffb; font-size:.83rem; line-height:1.4; cursor:pointer; }
 #chevauchementPopup .chev-mode:has(input:checked) { border-color:#059669; background:#ecfdf5; color:#065f46; font-weight:700; }
-#chevauchementPopup .chev-retrait { background:#fffbeb; border-color:#fde68a; }
-#chevauchementPopup .chev-retrait:has(input:checked) { border-color:#d97706; background:#fef3c7; }
+#chevauchementPopup .chev-retrait { background:#eff8f1; border-color:#b9dec4; color:#244638; }
+#chevauchementPopup .chev-retrait:has(input:checked) { border-color:#45a873; background:#d9f2e1; }
 #chevauchementPopup .chev-mode input, #chevauchementPopup .chev-retrait input { flex:none; width:1.05rem; height:1.05rem; accent-color:#047857; }
+#chevauchementPopup .chev-retrait input { accent-color:#16815d; }
 #chevauchementPopup #chevSource { box-sizing:border-box; width:100%; padding:.7rem; border:1px solid #9ca3af; border-radius:.7rem; background:#fff; font:inherit; color:#111827; }
 #chevauchementPopup .chev-resultat { padding:.7rem .85rem; margin:.7rem 0; border-radius:.8rem; background:#ecfdf5; color:#065f46; font-size:.84rem; font-weight:700; }
 #chevauchementPopup .chev-verdict { margin:.6rem 0; font-size:.81rem; line-height:1.45; font-weight:700; color:#9a3412; }

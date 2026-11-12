@@ -17,3 +17,9 @@
     cursor: pointer;
 }
 .focus-video-reessayer:focus-visible { outline: 3px solid white; outline-offset: 3px; }
+
+/* Vidéo du mini-lecteur local, derrière le minuteur et ses commandes. */
+.focus-pip-scene .pip-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.focus-pip-scene .focus-pip-temps, .focus-pip-scene .focus-pip-play, .focus-pip-scene .focus-pip-coin { position:relative; z-index:1; }
+.focus-pip-scene .focus-pip-coin { position:absolute; }
+.focus-pip-scene .pip-video-reessayer { position:absolute; z-index:3; left:50%; bottom:.4rem; transform:translateX(-50%); min-height:32px; padding:.35rem .55rem; border:1px solid #b7e3c8; border-radius:.5rem; background:#173f2e; color:#fff; font:600 .7rem system-ui,sans-serif; cursor:pointer; white-space:nowrap; }

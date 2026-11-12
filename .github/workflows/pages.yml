@@ -118,6 +118,7 @@ jobs:
           executer_test travail/tools/tester-eeia-navigation.mjs
           executer_test travail/tools/tester-latence-pomodoro.mjs
           executer_test travail/tools/tester-pomodoro-anime.mjs
+          executer_test travail/tools/tester-pip-anime.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
@@ -192,6 +193,7 @@ jobs:
           }
           executer_test tools/tester-eeia-navigation.mjs
           executer_test tools/tester-pomodoro-anime.mjs
+          executer_test tools/tester-pip-anime.mjs
           executer_test tools/tester-foret-adaptive.mjs
           executer_test tools/tester-images-feedback.mjs
           executer_test tools/tester-pomodoro-reprise.mjs

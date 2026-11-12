@@ -41,6 +41,10 @@
 #chevauchementPopup .chev-carte-moi { background:#eff8f1; border-color:#c9e9d2; }
 #chevauchementPopup .chev-carte-deja { background:#fffbf5; border-color:#f2e4cd; }
 #chevauchementPopup .chev-carte-corps strong { color:#274737; }
+/* Les créneaux à cocher restent distincts des avertissements. */
+#chevauchementPopup .chev-retrait { background:#eff8f1; border-color:#b9dec4; color:#244638; }
+#chevauchementPopup .chev-retrait:has(input:checked) { background:#d9f2e1; border-color:#45a873; }
+#chevauchementPopup .chev-retrait input { accent-color:#16815d; }
 #chevauchementPopup .chev-actions { gap:9px; }
 #chevauchementPopup .chev-bouton { border-radius:11px; padding:12px 14px; line-height:1.45; }
 #chevauchementPopup .chev-bouton-vert { background:#16815d; border-color:#16815d; }
