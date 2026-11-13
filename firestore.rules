@@ -397,5 +397,35 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    /* Pseudos du Salon focus. Le salon parent est créé par un futur transport
+       sécurisé : son identifiant est un lien aléatoire de 48 caractères hexadécimaux,
+       il contient ferme (booléen) et expireLe (horodatage Firestore).
+       La connaissance du lien donne accès aux pseudos tant que le salon est ouvert.
+       Un invité utilise Firebase Authentication anonyme : le pseudo ne fait jamais
+       office d'identité ni de mot de passe. Aucune liste de salons n'est autorisée ici. */
+    match /salons_focus/{salonId}/membres/{uid} {
+      function salonOuvert() {
+        return request.auth != null
+          && salonId.matches('^[0-9a-f]{48}$')
+          && exists(/databases/$(database)/documents/salons_focus/$(salonId))
+          && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == false
+          && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe is timestamp
+          && request.time < get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe;
+      }
+      function pseudoValide() {
+        return request.resource.data.keys().hasAll(['pseudo'])
+          && request.resource.data.keys().hasOnly(['pseudo'])
+          && request.resource.data.pseudo is string
+          && request.resource.data.pseudo.size() > 0
+          && request.resource.data.pseudo.size() <= 30
+          && request.resource.data.pseudo.matches('.*[^ ].*');
+      }
+      allow get, list: if salonOuvert();
+      allow create, update: if salonOuvert()
+        && request.auth.uid == uid && pseudoValide();
+      /* Chacun peut retirer son pseudo même après fermeture ou expiration. */
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
   }
 }

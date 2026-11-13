@@ -77,5 +77,7 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/statistiques.js',
     'js/pages/minuteur-compteurs.js',
     'js/pages/pomodoro-page.js',
-    'js/pages/pomodoro-parametres.js'
+    'js/pages/pomodoro-parametres.js',
+    'js/pages/salon-focus-coeur.js',
+    'js/pages/salon-focus.js'
 ];

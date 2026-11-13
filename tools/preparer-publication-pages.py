@@ -110,6 +110,9 @@ files = [
     'livrables/publication-eeia/design.css',
     'tools/verifier-pomodoro.js',
     'js/pages/pomodoro-parametres.js',
+    'js/pages/salon-focus-coeur.js',
+    'js/pages/salon-focus.js',
+    'css/pages/salon-focus.css',
     'js/pages/musique.js',
     'videos/arbres-au-bord-de-leau-assemblage.mp4',
     'images/pomodoro/chalet-neige-anime.mp4',
@@ -222,6 +225,23 @@ path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
 # La pause démarre toujours ; ce réglage concerne la reprise en minuteur libre.
 path = output / 'pages/pomodoro.html'
 text = path.read_text(encoding='utf-8')
+# Salon focus : insérer les seuls fragments ciblés de la page de travail,
+# sans remplacer le reste du Pomodoro public.
+source_salon = (ROOT / 'pages/pomodoro.html').read_text(encoding='utf-8')
+menu_debut = source_salon.index('                    <li><button type="button" class="focus-tiroir-item" data-onglet="salon"')
+menu_fin = source_salon.index('\n', menu_debut) + 1
+page_debut = source_salon.index('                <section class="focus-tiroir-page salon-focus"')
+page_fin = source_salon.index('                </section>\n', page_debut) + len('                </section>\n')
+ecran_debut = source_salon.index('        <button type="button" id="salonRaccourci"')
+ecran_fin = source_salon.index('        <div id="focusFonds"', ecran_debut)
+for anchor, ajout in [
+    ('                    <li><button type="button" class="focus-tiroir-item" data-onglet="statistiques"', source_salon[menu_debut:menu_fin]),
+    ('                <section class="focus-tiroir-page" data-page="themes" hidden>', source_salon[page_debut:page_fin]),
+    ('        <div id="focusFonds" class="focus-fonds" hidden></div>', source_salon[ecran_debut:ecran_fin]),
+]:
+    if text.count(anchor) != 1:
+        raise SystemExit('Emplacement Salon focus public inattendu')
+    text = text.replace(anchor, ajout + anchor, 1)
 ancien_stats = 'Tes minuteurs terminés, enregistrés sur cet appareil.'
 if text.count(ancien_stats) != 1:
     raise SystemExit('Texte des statistiques public inattendu')
@@ -333,6 +353,17 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         text = text.replace('body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge', 'body.boot-erreur .boot-boite')
         text = text.replace('.boot-jauge i, .boot-status { transition: none; }', '.boot-status { transition: none; }')
         text = text.replace("        /* La lumière qui respire : le logo s'ouvre doucement, une lumière verte\n           passe derrière lui, et la barre suit le chargement réel. */", "        /* La lumière qui respire accompagne le chargement. */")
+        # Récupérer le jeton avant les scripts tiers, puis l'enlever de l'URL.
+        # Le texte exact du base tag peut varier ; insérer avant le titre.
+        anchor_invitation = '    <title>'
+        if text.count(anchor_invitation) != 1:
+            raise SystemExit('En-tête public inattendu')
+        capture = '''    <script>(function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m){window.__salonInvitation=m[1];try{history.replaceState(history.state,'',location.pathname+location.search)}catch(e){}}})();</script>\n'''
+        text = text.replace(anchor_invitation, capture + anchor_invitation, 1)
+        anchor_salon_css = '    <link rel="stylesheet" href="css/pages/focus-parametres.css?v=' + version + '">'
+        if text.count(anchor_salon_css) != 1:
+            raise SystemExit('Styles des paramètres publics inattendus')
+        text = text.replace(anchor_salon_css, anchor_salon_css + '\n    <link rel="stylesheet" href="css/pages/salon-focus.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Chargement des styles public inattendu')
@@ -359,8 +390,10 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = "    'js/pages/pomodoro-parametres.js'\n"
         if text.count(anchor) != 1:
             raise SystemExit('Registre public inattendu')
-        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
+        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
+        anchor_salon = '    "css/pages/planning-panels.css",'
+        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')

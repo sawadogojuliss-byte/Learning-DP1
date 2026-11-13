@@ -60,6 +60,45 @@
                 </span>
             </div>
         </div>
+        <button type="button" id="salonRaccourci" class="salon-raccourci" onclick="salonRevenir()" hidden>Revenir au salon</button>
+        <div id="salonEcran" class="salon-ecran" hidden aria-labelledby="salonTitre">
+            <div class="salon-decor" id="salonDecor"></div><div class="salon-voile"></div>
+            <div class="salon-interface">
+                <header class="salon-barre"><div><span class="salon-surtexte">Salon focus</span><h2 id="salonTitre">Salon</h2><span id="salonEtatConnexion" role="status" aria-live="polite"></span></div><button type="button" class="salon-action-secondaire" id="salonQuitterBouton" onclick="salonQuitter()">Quitter le salon</button></header>
+                <p class="salon-heure" id="salonHeure"></p><p class="salon-citation" id="salonCitation"></p>
+                <main class="salon-centre"><span id="salonPhase" class="salon-phase"></span><p id="salonTemps" class="salon-temps">25:00</p><p id="salonInfoChrono" role="status"></p>
+                    <div class="salon-commandes" id="salonCommandes" hidden><button type="button" data-mode="focus" onclick="salonPhaseChoisir('focus')">Concentration</button><button type="button" data-mode="short" onclick="salonPhaseChoisir('short')">Pause courte</button><button type="button" data-mode="long" onclick="salonPhaseChoisir('long')">Pause longue</button><button type="button" id="salonDemarrer" onclick="salonBasculer()">Démarrer</button><button type="button" onclick="salonReinitialiser()">Recommencer</button></div>
+                    <p id="salonAttente" hidden>Le minuteur est contrôlé par l’organisateur.</p>
+                    <p id="salonSignalVisuel" class="salon-signal" role="status" aria-live="polite" hidden>✦ Le temps est écoulé. Bravo pour ce moment de concentration !</p>
+                </main>
+                <details class="salon-espace" id="salonEspace">
+                    <summary><span>✦ &nbsp; Votre espace</span><small>Objectif, groupe &amp; préférences</small></summary>
+                    <div class="salon-cartes">
+                        <section class="salon-carte"><span class="salon-surtexte">TON MOMENT</span><h3>Une intention pour aujourd’hui</h3><p>Ton objectif reste sur cet appareil, sauf si tu décides de le partager.</p>
+                            <label for="salonObjectif">Mon objectif</label><input id="salonObjectif" maxlength="160" placeholder="Ex. Terminer mon introduction" oninput="salonGarderObjectif()">
+                            <label class="salon-case"><input type="checkbox" id="salonObjectifFait" onchange="salonGarderObjectif()"> Objectif accompli</label>
+                            <label class="salon-case"><input type="checkbox" id="salonObjectifPartager" onchange="salonPartagerObjectif()"> Partager mon objectif avec le salon</label>
+                            <button type="button" class="salon-action-secondaire" id="salonPret" onclick="salonBasculerPret()">✨ Je suis prêt</button>
+                            <p id="salonRituelInfo" role="status"></p>
+                        </section>
+                        <section class="salon-carte"><span class="salon-surtexte">ENSEMBLE</span><h3>Votre cercle</h3><p id="salonGroupeInfo">Les participants apparaîtront ici.</p><div id="salonListeMembres" class="salon-membres"></div>
+                            <div id="salonOutilsHote" hidden><button type="button" id="salonVerrou" class="salon-action-secondaire" onclick="salonVerrouiller()">Verrouiller le salon</button><p class="salon-aide">Le verrou empêche les nouvelles entrées. Les actions de gestion nécessitent un service sécurisé.</p></div>
+                            <button type="button" id="salonCoupPouce" class="salon-action-secondaire" onclick="salonDemanderAide()">💚 J’ai besoin d’un coup de pouce</button><div id="salonEncouragements"></div>
+                        </section>
+                        <section class="salon-carte"><span class="salon-surtexte">À TON RYTHME</span><h3>Un espace qui te ressemble</h3>
+                            <label for="salonVolume">Volume personnel <span id="salonVolumeValeur">100 %</span></label><input id="salonVolume" type="range" min="0" max="100" value="100" oninput="salonChangerVolume(this.value)">
+                            <label class="salon-case"><input type="checkbox" id="salonDiscret" onchange="salonChangerDiscret(this.checked)"> Mode discret : masquer noms et réactions</label>
+                            <label for="salonSignal">Signal de fin</label><select id="salonSignal" onchange="salonChangerSignal(this.value)"><option value="visuel">Notification visuelle</option><option value="son">Son doux</option><option value="aucun">Aucun signal</option></select>
+                            <div id="salonAmbianceHote" hidden><label for="salonAmbiance">Ambiance commune</label><select id="salonAmbiance"><option value="">Choisir une ambiance</option><option value="bibliotheque">Bibliothèque sous la pluie</option><option value="cafe">Café calme</option></select><button type="button" class="salon-action-secondaire" onclick="salonAppliquerAmbiance()">Partager l’ambiance</button><p class="salon-aide">Les sons viennent de Studyplan. Chacun choisit son volume.</p></div>
+                        </section>
+                        <section class="salon-carte salon-carte-bilan"><span class="salon-surtexte">PETITS PAS, GRAND CHEMIN</span><h3>Votre bilan</h3><p id="salonBilan">Le bilan commun apparaîtra après les premières sessions terminées.</p><p>Bravo pour le temps que vous vous accordez. ✨</p></section>
+                    </div>
+                </details>
+                <footer class="salon-pied"><div><button type="button" class="salon-action-secondaire" id="salonReglages" onclick="salonModifierPartage()" hidden>Modifier le partage</button><button type="button" class="salon-action-secondaire" id="salonSortieLocale" onclick="salonSortieLocale()" hidden>Quitter sur cet appareil</button><button type="button" class="salon-action-secondaire" onclick="salonCopierLien()">Copier le lien d’invitation</button><button type="button" class="salon-action-secondaire" id="salonAutoriserAudio" onclick="salonActiverAudio()">Activer les sons</button><button type="button" class="salon-action-secondaire" id="salonRelancerVideo" onclick="salonRelancerVideo()" hidden>Relancer le décor animé</button></div><p id="salonMembres" aria-live="polite"></p><p id="salonMessage" role="status" aria-live="polite"></p></footer>
+            </div>
+        </div>
+        <dialog id="salonBilanDialog" class="salon-invitation salon-bilan-dialog" aria-labelledby="salonBilanTitre"><form method="dialog"><span class="salon-surtexte">UN MOMENT PARTAGÉ</span><h2 id="salonBilanTitre">Bravo pour ce temps ensemble ✨</h2><p id="salonBilanFinal"></p><p>Chaque petit pas compte. Repose-toi et sois fier de ce que tu as accompli.</p><button class="salon-creer" type="submit">Terminer</button></form></dialog>
+        <dialog id="salonInvitation" class="salon-invitation" aria-labelledby="salonInvitationTitre"><form method="dialog" onsubmit="return salonRejoindre(event)"><span class="salon-surtexte">INVITATION</span><h2 id="salonInvitationTitre">Rejoins le salon</h2><p id="salonInvitationDescription">Choisis un pseudo visible des personnes présentes. Aucun compte n’est nécessaire.</p><label id="salonPseudoLabel" for="salonPseudo">Ton pseudo</label><input id="salonPseudo" required maxlength="30" autocomplete="nickname" placeholder="Ton prénom ou pseudo"><p id="salonInvitationStatut" role="status" aria-live="polite"></p><div><button type="button" class="salon-action-secondaire" onclick="salonAnnulerInvitation()">Annuler</button><button class="salon-creer" id="salonRejoindreBouton" type="submit">Rejoindre</button></div></form></dialog>
         <div id="focusFonds" class="focus-fonds" hidden></div>
         <aside id="focusTaches" class="focus-panneau focus-taches" hidden>
             <div class="focus-taches-haut">
@@ -86,10 +125,50 @@
                     <li><button type="button" class="focus-tiroir-item" data-onglet="minuteur" onclick="focusChoisirOnglet('minuteur')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 9v4M10 2.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Minuteur</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="citations" onclick="focusChoisirOnglet('citations')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 16c-1.6 0-2.5-1-2.5-2.6S5.6 10.5 7.5 10.5V9M17 16c-1.6 0-2.5-1-2.5-2.6s1.1-2.9 3-2.9V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Citations</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="voix" onclick="focusChoisirOnglet('voix')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h3.5L12 18V6L7.5 10H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Voix</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="salon" onclick="focusChoisirOnglet('salon')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 19v-1a6 6 0 0 1 12 0v1M16 5.5a3 3 0 0 1 0 5.8M17 13a5 5 0 0 1 4 5v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Salon focus</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="statistiques" onclick="focusChoisirOnglet('statistiques')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Statistiques</span></button></li>
                 </ul>
             </nav>
             <div class="focus-tiroir-contenu">
+                <section class="focus-tiroir-page salon-focus" data-page="salon" hidden aria-labelledby="salonFocusTitre">
+                    <div class="salon-hero">
+                        <div class="salon-hero-texte">
+                            <span class="salon-surtexte"><span aria-hidden="true">✦</span> UN MÊME RYTHME, ENSEMBLE</span>
+                            <h2 id="salonFocusTitre">Salon focus</h2>
+                            <p>Un espace pour se retrouver, se concentrer et avancer ensemble, où que vous soyez.</p>
+                            <span class="salon-badge" id="salonBadge">En préparation</span>
+                        </div>
+                        <div class="salon-illustration" aria-hidden="true"><span class="salon-orbite salon-orbite-un"></span><span class="salon-orbite salon-orbite-deux"></span><span class="salon-visuel"><small>CONCENTRATION</small><strong>25:00</strong><span>● &nbsp; ● &nbsp; ●</span></span></div>
+                    </div>
+                    <div class="salon-corps">
+                        <div class="salon-intro"><h3>Votre prochain moment de concentration</h3><p>Trois étapes toutes simples pour travailler côte à côte, même à distance.</p></div>
+                        <ol class="salon-etapes">
+                            <li><span>01</span><div><strong>Crée ton espace</strong><p>Donne un nom à votre salon.</p></div></li>
+                            <li><span>02</span><div><strong>Invite tes proches</strong><p>Partage un lien : tes invités rejoindront avec un pseudo.</p></div></li>
+                            <li><span>03</span><div><strong>Avancez ensemble</strong><p>Tu contrôles le minuteur et chacun suit le même rythme.</p></div></li>
+                        </ol>
+                        <div class="salon-formulaire">
+                            <div class="salon-entete"><div><span class="salon-surtexte">PRÉPARE TON ESPACE</span><h3 id="salonFormTitre">Créer un salon</h3><p>Choisis ce que tu souhaites partager avec les personnes invitées. Les images personnelles restent sur ton appareil. Si tu coches Citations, ta citation personnelle pourra être visible.</p></div><span class="salon-cadenas" aria-hidden="true">✦</span></div>
+                            <label class="salon-label" for="salonNom">Nom du salon</label>
+                            <input id="salonNom" type="text" maxlength="60" placeholder="Ex. Révisions Partiels" autocomplete="off">
+                            <fieldset class="salon-options"><legend>À partager dans le salon</legend><p>Le chrono reste commun ; choisis les autres réglages à partager. Pour les actualiser, ouvre « Modifier le partage » pendant le salon.</p>
+                                <div class="salon-options-grille">
+                                    <label><input type="checkbox" name="salonPartage" value="theme"><span><strong>Thème</strong><small>Le décor et les couleurs</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="minuteur"><span><strong>Minuteur</strong><small>Les durées de travail et de pause</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="horloge"><span><strong>Horloge</strong><small>Son apparence</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="sons"><span><strong>Sons</strong><small>Les ambiances sélectionnées</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="musique"><span><strong>Musique</strong><small>Les playlists de Studyplan</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="citations"><span><strong>Citations</strong><small>Les mots qui motivent</small></span></label>
+                                </div>
+                            </fieldset>
+                            <p class="salon-note" id="salonStatutCreation" role="status" aria-live="polite">Le service de salon n'est pas encore activé.</p>
+                            <button class="salon-creer" id="salonCreer" type="button" onclick="salonCreer()" disabled>Créer mon salon <span aria-hidden="true">↗</span></button>
+                            <button class="salon-creer" id="salonMajPartage" type="button" onclick="salonActualiserPartage()" hidden>Enregistrer le partage et revenir au salon</button>
+                            <button class="salon-action-secondaire" id="salonRetour" type="button" onclick="salonRevenir()" hidden>Revenir sans modifier</button>
+                            <p class="salon-confidentialite">Le lien donnera accès au salon : partage-le seulement avec les personnes que tu souhaites inviter.</p>
+                        </div>
+                    </div>
+                </section>
                 <section class="focus-tiroir-page" data-page="themes" hidden>
                     <header class="focus-page-titre"><h2>Thèmes</h2><p>Choisis le décor du minuteur et de la séance de révision.</p></header>
                     <div class="focus-carte focus-themes">

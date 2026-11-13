@@ -79,7 +79,7 @@ var FOCUS_TAILLES = [
     { id: 'grande', nom: 'Grande' }
 ];
 
-var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques'];
+var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'salon', 'statistiques'];
 
 var FOCUS_REGLAGES_CLE = 'studyPlanIB_minuteurParametres';
 var FOCUS_CERCLE = 2 * Math.PI * 45;

@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <script>document.write('<base href="' + location.pathname.replace(/index\.html$/, '').replace(/\/?$/, '/') + '">');</script>
+    <script>/* Le jeton d'invitation ne reste pas dans l'adresse ni dans l'historique. */
+    (function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m){window.__salonInvitation=m[1];try{history.replaceState(history.state,'',location.pathname+location.search)}catch(e){}}})();</script>
     <link rel="manifest" href="app.webmanifest">
     <meta name="theme-color" content="#059669">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,6 +40,7 @@
     <link rel="stylesheet" href="css/pages/emplois-atelier.css?v=20261108x">
     <link rel="stylesheet" href="css/pages/admin-atelier.css?v=20261108x">
     <link rel="stylesheet" href="css/pages/focus-parametres.css?v=20261108x">
+    <link rel="stylesheet" href="css/pages/salon-focus.css?v=20261108x">
     <link rel="stylesheet" href="livrables/publication-pomodoro/mobile.css?v=20261108x">
     <link rel="stylesheet" href="livrables/publication-pomodoro/reprise.css?v=20261108x">
     <link rel="stylesheet" href="css/compte.css?v=20261108x">
