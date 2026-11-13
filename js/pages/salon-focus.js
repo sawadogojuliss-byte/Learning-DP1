@@ -58,18 +58,19 @@
         var menu=document.querySelector('#focusReglages .focus-tiroir-liste');
         var contenu=document.querySelector('#focusReglages .focus-tiroir-contenu');
         var labels={objectif:'Objectif',groupe:'Groupe',preferences:'Préférences',bilan:'Bilan'};
-        var icones={objectif:'✦',groupe:'♧',preferences:'☷',bilan:'◷'};
+        var descriptions={objectif:'Définis ton intention pour cette séance.',groupe:'Retrouve les personnes et les outils de votre salon.',preferences:'Personnalise ton expérience, à ton rythme.',bilan:'Célèbre le temps que vous avez partagé.'};
+        var icones={objectif:'M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4',groupe:'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 4a4 4 0 0 1 0 7M20 21v-2a4 4 0 0 0-2.5-3.7',preferences:'M4 6h16M4 12h16M4 18h16M8 4v4M16 10v4M10 16v4',bilan:'M12 3a9 9 0 1 0 9 9h-9V3ZM15 3.5V9h5.5A9 9 0 0 0 15 3.5Z'};
         fichesSalon.forEach(function(nom){
             var id='reunion-'+nom, carte=document.querySelector('[data-salon-fiche="'+nom+'"]');
             if(!carte || document.querySelector('#focusReglages [data-page="'+id+'"]'))return;
             if(FOCUS_ONGLETS.indexOf(id)<0)FOCUS_ONGLETS.push(id);
             var li=document.createElement('li');li.dataset.reunionOnglet=nom;li.hidden=true;
             var bouton=document.createElement('button');bouton.type='button';bouton.className='focus-tiroir-item';bouton.dataset.onglet=id;
-            var icone=document.createElement('span');icone.className='salon-menu-icone';icone.setAttribute('aria-hidden','true');icone.textContent=icones[nom];
+            var icone=document.createElementNS('http://www.w3.org/2000/svg','svg');icone.setAttribute('class','salon-menu-icone');icone.setAttribute('aria-hidden','true');icone.setAttribute('viewBox','0 0 24 24');icone.setAttribute('fill','none');icone.setAttribute('stroke','currentColor');icone.setAttribute('stroke-width','1.7');icone.setAttribute('stroke-linecap','round');icone.setAttribute('stroke-linejoin','round');var trace=document.createElementNS('http://www.w3.org/2000/svg','path');trace.setAttribute('d',icones[nom]);icone.appendChild(trace);
             var texte=document.createElement('span');texte.textContent=labels[nom];bouton.appendChild(icone);bouton.appendChild(texte);
             bouton.addEventListener('click',function(){focusChoisirOnglet(id);});li.appendChild(bouton);menu.appendChild(li);
             var page=document.createElement('section');page.className='focus-tiroir-page salon-reglage-page';page.dataset.page=id;page.hidden=true;
-            var titre=document.createElement('div');titre.className='focus-page-titre';var h=document.createElement('h2');h.textContent=labels[nom];titre.appendChild(h);page.appendChild(titre);
+            var titre=document.createElement('div');titre.className='focus-page-titre';var h=document.createElement('h2');h.textContent=labels[nom];titre.appendChild(h);var sousTitre=document.createElement('p');sousTitre.textContent=descriptions[nom];titre.appendChild(sousTitre);page.appendChild(titre);
             carte.hidden=false;page.appendChild(carte);contenu.appendChild(page);
         });
     }
@@ -89,7 +90,9 @@
     focusChoisirOnglet=function(id) {
         if(session && (id==='statistiques' || (id==='salon' && !editionPartage))) return;
         if(!session && id.indexOf('reunion-')===0)return;
-        return choisirOngletPersonnel.apply(this,arguments);
+        var changement=focusOngletCourant!==id, resultat=choisirOngletPersonnel.apply(this,arguments);
+        if(changement && id.indexOf('reunion-')===0)document.querySelector('#focusReglages .focus-tiroir-contenu').scrollTop=0;
+        return resultat;
     };
     window.salonOuvrirFiche=function(nom) {
         if(!session || fichesSalon.indexOf(nom)<0)return;
@@ -435,31 +438,50 @@
         propriete($('salonOutilsHote'),'hidden',!hote);propriete($('salonAmbianceHote'),'hidden',!hote);
         propriete($('salonPret'),'disabled',!connecte || typeof session.personnaliser!=='function');
         propriete($('salonObjectifPartager'),'disabled',typeof session.personnaliser!=='function' || (!connecte && !$('salonObjectifPartager').checked));
-        statut('salonPret',m && m.pret?'✨ Je ne suis plus prêt':'✨ Je suis prêt');
+        statut('salonPret',m && m.pret?'Je ne suis plus prêt':'Je suis prêt');
         statut('salonVerrou',salle.verrouille?'Déverrouiller le salon':'Verrouiller le salon');
         propriete($('salonVerrou'),'disabled',!connecte || typeof session.verrouiller!=='function');
         propriete($('salonCoupPouce'),'disabled',!connecte || typeof session.demanderAide!=='function');
         if(typeof session.personnaliser!=='function')statut('salonRituelInfo','Partage de l’objectif et rituel prêts : bientôt disponibles dans le salon.');
         var bilan=salle.bilan;
-        statut('salonBilan',bilan && Number.isFinite(bilan.secondes) && Number.isFinite(bilan.sessions) ? Math.floor(Math.max(0,bilan.secondes)/60)+' min de concentration · '+Math.max(0,bilan.sessions)+' session(s) terminée(s) ensemble' : 'Le bilan commun est en préparation pour ce salon.');
-        statut('salonGroupeInfo',membres.length ? membres.length+' personne(s) inscrite(s) · '+membres.filter(function(x){return x.pret;}).length+' prêt(s)' : 'Les participants apparaîtront ici.');
-        var signature=JSON.stringify([membres,discret,hote,connecte,!!session.retirer,!!session.transferer,!!session.encourager]);
+        statut('salonBilan',bilan && Number.isFinite(bilan.secondes) && Number.isFinite(bilan.sessions) ? Math.floor(Math.max(0,bilan.secondes)/60)+' min de concentration · '+Math.max(0,bilan.sessions)+' session'+(bilan.sessions>1?'s':'')+' terminée'+(bilan.sessions>1?'s':'')+' ensemble' : 'Le bilan commun est en préparation pour ce salon.');
+        var etats=membres.map(etatPresence);
+        var recents=etats.filter(function(etat){return etat==='recente';}).length;
+        var prets=membres.filter(function(x){return x.pret;}).length;
+        statut('salonGroupeInfo',membres.length ? membres.length+' inscrit'+(membres.length>1?'s':'')+' · '+recents+' activité'+(recents>1?'s':'')+' récente'+(recents>1?'s':'')+(prets?' · '+prets+' prêt'+(prets>1?'s':''):'') : 'Les participants apparaîtront ici.');
+        var signature=JSON.stringify([membres,etats,discret,hote,connecte,!!session.retirer,!!session.transferer,!!session.encourager]);
         if(signature===signatureGroupe)return;signatureGroupe=signature;
         var liste=$('salonListeMembres'), encouragements=$('salonEncouragements');liste.textContent='';encouragements.textContent='';
-        $('salonMembres').hidden=discret;
+        $('salonMembres').hidden=discret;$('salonMembresDiscrets').hidden=!discret;
         if(discret) return;
-        membres.forEach(function(x){
-            var ligne=document.createElement('div'), label=document.createElement('span');
-            label.textContent=coeur.texte(x.pseudo,30)+(x.pret?' · prêt ✨':'')+(x.objectifPartage && x.objectif?' · '+coeur.texte(x.objectif,160)+(x.objectifFait?' ✓':''):'');ligne.appendChild(label);
-            function bouton(texte,fn){var b=document.createElement('button');b.type='button';b.className='salon-action-secondaire';b.textContent=texte;b.disabled=!connecte;b.addEventListener('click',fn);ligne.appendChild(b);}
+        membres.forEach(function(x,index){
+            var nom=coeur.texte(x.pseudo,30)||'Participant', ligne=document.createElement('div');
+            ligne.className='salon-membre';ligne.setAttribute('role','listitem');
+            var avatar=document.createElement('span');avatar.className='salon-membre-avatar salon-avatar-'+(index%4);avatar.setAttribute('aria-hidden','true');avatar.textContent=Array.from(nom.trim())[0].toLocaleUpperCase();ligne.appendChild(avatar);
+            var contenu=document.createElement('div');contenu.className='salon-membre-contenu';
+            var nomLigne=document.createElement('div');nomLigne.className='salon-membre-nom';var label=document.createElement('strong');label.textContent=nom;nomLigne.appendChild(label);
+            if(x.uid===salle.organisateurUid){var badge=document.createElement('span');badge.className='salon-membre-role';badge.textContent='Organisateur';nomLigne.appendChild(badge);}
+            if(x.uid===session.uid){var vous=document.createElement('span');vous.className='salon-membre-vous';vous.textContent='Vous';nomLigne.appendChild(vous);}
+            contenu.appendChild(nomLigne);
+            var presence=document.createElement('span');presence.className='salon-membre-presence salon-presence-'+etats[index];presence.textContent=({recente:'Activité récente',ancienne:'Activité ancienne',inconnue:'Présence non vérifiée'})[etats[index]];contenu.appendChild(presence);
+            if(x.pret){var pret=document.createElement('span');pret.className='salon-membre-detail';pret.textContent='Prêt';contenu.appendChild(pret);}
+            if(x.objectifPartage && x.objectif){var objectif=document.createElement('p');objectif.className='salon-membre-objectif';objectif.textContent='Objectif : '+coeur.texte(x.objectif,160)+(x.objectifFait?' ✓':'');contenu.appendChild(objectif);}
+            if(x.aide) { var info=document.createElement('p');info.className='salon-membre-detail';info.textContent='A besoin d’un coup de pouce';contenu.appendChild(info); }
+            if(x.encouragement) { var info2=document.createElement('p');info2.className='salon-membre-detail';info2.textContent=coeur.texte(x.encouragement,80);contenu.appendChild(info2); }
+            var actions=document.createElement('div');actions.className='salon-membre-actions';
+            function bouton(texte,fn){var b=document.createElement('button');b.type='button';b.className='salon-action-secondaire';b.textContent=texte;b.disabled=!connecte;b.addEventListener('click',fn);actions.appendChild(b);}
             if(hote && x.uid && x.uid!==session.uid && typeof session.transferer==='function') bouton('Transférer',function(){if(window.confirm('Confier le rôle d’organisateur à '+coeur.texte(x.pseudo,30)+' ?'))appelGroupe('transferer',[x.uid]);});
             if(hote && x.uid && x.uid!==session.uid && typeof session.retirer==='function') bouton('Retirer',function(){if(window.confirm('Retirer '+coeur.texte(x.pseudo,30)+' du salon ?'))appelGroupe('retirer',[x.uid]);});
-            if(x.aide && x.uid!==session.uid && typeof session.encourager==='function') bouton('💚 Encourager',function(){appelGroupe('encourager',[x.uid]);});
-            if(x.aide) { var info=document.createElement('span');info.textContent=' · a besoin d’un coup de pouce';ligne.appendChild(info); }
-            if(x.encouragement) { var info2=document.createElement('span');info2.textContent=' · 💚 '+coeur.texte(x.encouragement,80);ligne.appendChild(info2); }
-            liste.appendChild(ligne);
+            if(x.aide && x.uid!==session.uid && typeof session.encourager==='function') bouton('Encourager',function(){appelGroupe('encourager',[x.uid]);});
+            if(actions.childNodes.length)contenu.appendChild(actions);ligne.appendChild(contenu);liste.appendChild(ligne);
         });
     }
+    function etatPresence(m) {
+        var date=Number(m && m.vuLe), maintenant=heure();
+        if(!connecte || !Number.isFinite(date) || date<=0)return 'inconnue';
+        return date<=maintenant+30000 && maintenant-date<=120000?'recente':'ancienne';
+    }
+
     function decor(id, personnelAutorise) {
         var cle = id + ':' + !!personnelAutorise;
         if (fondMontre===cle) return;fondMontre=cle;
@@ -501,10 +523,9 @@
     }
     var signatureParticipants='';
     function peindreParticipants(membres) {
-        var zone=$('salonParticipants'), noms=$('salonParticipantsNoms'), maintenant=heure();
+        var zone=$('salonParticipants'), noms=$('salonParticipantsNoms');
         var liste=membres.slice(0,40).map(function(m){
-            var date=Number(m && m.vuLe), connue=connecte && Number.isFinite(date) && date>0;
-            return {nom:coeur.texte(m && m.pseudo,30),etat:!connue?'inconnue':(date<=maintenant+30000 && maintenant-date<=120000?'recente':'ancienne')};
+            return {nom:coeur.texte(m && m.pseudo,30),etat:etatPresence(m)};
         }).filter(function(m){return m.nom && m.etat!=='ancienne';});
         var signature=JSON.stringify([liste,discret,connecte]);
         if(signature===signatureParticipants)return;

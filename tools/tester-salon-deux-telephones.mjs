@@ -54,6 +54,15 @@ try{
   for(const nom of ['objectif','groupe','preferences','bilan']) {await p.locator(`[data-onglet="reunion-${nom}"]`).click();assert.equal(await p.locator(`[data-salon-fiche="${nom}"]`).isVisible(),true);}
   await p.getByRole('button',{name:'Fermer les paramètres'}).click();
  }
+ // La liste distingue les personnes inscrites d'une activité récente ou non vérifiée.
+ await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-groupe"]').click();
+ const membres=gp.locator('#salonListeMembres [role="listitem"]');assert.equal(await membres.count(),2);
+ assert.match(await membres.nth(0).innerText(),/Organisateur/);assert.match(await membres.nth(1).innerText(),/Camille/);assert.match(await membres.nth(1).innerText(),/Vous/);assert.match(await membres.nth(1).innerText(),/Activité récente/);
+ if(process.env.SALON_SCREENSHOTS)await gp.screenshot({path:'/home/user/salon-groupe-v4-mobile.png'});
+ room.membres.find(m=>m.uid==='host').vuLe=Date.now()-180000;await gp.waitForFunction(()=>document.querySelector('#salonListeMembres [role=listitem]')?.textContent.includes('Activité ancienne'));
+ delete room.membres.find(m=>m.uid==='host').vuLe;await gp.waitForFunction(()=>document.querySelector('#salonListeMembres [role=listitem]')?.textContent.includes('Présence non vérifiée'));
+ await gp.locator('[data-onglet="reunion-preferences"]').click();await gp.locator('#salonDiscret').check();await gp.locator('#focusReglages .focus-tiroir-contenu').evaluate(e=>e.scrollTop=10000);await gp.locator('[data-onglet="reunion-groupe"]').click();assert.equal(await gp.locator('#focusReglages .focus-tiroir-contenu').evaluate(e=>e.scrollTop),0,'le début de la rubrique reste visible');assert.equal(await membres.count(),0);assert.equal(await gp.locator('#salonMembresDiscrets').isVisible(),true);
+ await gp.locator('[data-onglet="reunion-preferences"]').click();await gp.locator('#salonDiscret').uncheck();await gp.getByRole('button',{name:'Fermer les paramètres'}).click();
  assert.equal(await gp.locator('#salonCommandes').isVisible(),false);assert.equal(await gp.evaluate(()=>location.hash),'#salon='+id);
  // Vérifie le curseur et la sélection sans perdre le focus au cours des mises à jour.
  await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-objectif"]').click();if(process.env.SALON_SCREENSHOTS)await gp.screenshot({path:'/home/user/salon-parametres-v3.png'});const input=gp.locator('#salonObjectif');await input.fill('Réviser ensemble');

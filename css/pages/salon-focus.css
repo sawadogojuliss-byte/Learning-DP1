@@ -250,3 +250,66 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
  .salon-ecran .salon-participants small {display:none;}
  .salon-ecran .salon-bottom {padding:.4rem .65rem max(.5rem,env(safe-area-inset-bottom));}
 }
+
+/* Réunion : un espace de réglages chaleureux, lisible et adapté au mobile. */
+#panelPomodoro #focusReglages .salon-reglage-page {max-width:48rem;padding-bottom:3rem;}
+#panelPomodoro #focusReglages .salon-reglage-page .focus-page-titre {margin:0 0 1.65rem;}
+#panelPomodoro #focusReglages .salon-reglage-page .focus-page-titre h2 {font-size:clamp(1.8rem,3vw,2.55rem);letter-spacing:-.04em;}
+#panelPomodoro #focusReglages .salon-reglage-page .focus-page-titre p {margin:.55rem 0 0;color:#a9c5b6;font-size:.94rem;line-height:1.5;}
+#focusReglages .salon-reglage-page .salon-carte {box-sizing:border-box;overflow:hidden;padding:clamp(1.15rem,3vw,1.8rem);border:1px solid #a6e7be26;border-radius:1.35rem;background:linear-gradient(145deg,#12382b 0%,#0b241c 65%,#0c241d 100%);box-shadow:0 20px 50px #00110d55;}
+#focusReglages .salon-carte-entete {display:flex;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;}
+#focusReglages .salon-carte-embleme {display:grid;place-items:center;flex:none;width:3.1rem;height:3.1rem;border:1px solid #c6f5d230;border-radius:1rem;background:linear-gradient(145deg,#c5efd0,#8ed2ad);color:#164632;font:700 1.4rem/1 system-ui;box-shadow:0 5px 18px #001c1270;}
+#focusReglages .salon-carte-entete h3 {margin:.4rem 0 .3rem;color:#f4fff7;font-size:clamp(1.2rem,2vw,1.5rem);letter-spacing:-.025em;line-height:1.2;}
+#focusReglages .salon-carte-entete p {margin:0;color:#b9d2c2;font-size:.86rem;line-height:1.5;}
+#focusReglages .salon-surtexte {color:#a5e9be;font-size:.65rem;font-weight:800;letter-spacing:.14em;}
+#focusReglages .salon-bloc,#focusReglages .salon-personnes,#focusReglages .salon-groupe-actions {min-width:0;box-sizing:border-box;margin:1rem 0 0;padding:1.2rem;border:1px solid #c7f1d419;border-radius:1rem;background:#071d17a8;}
+#focusReglages .salon-bloc > label:not(.salon-case) {display:block;margin:0 0 .55rem;color:#e9f8ed;font-size:.84rem;font-weight:700;}
+#focusReglages .salon-bloc > label:not(.salon-case):not(:first-child) {margin-top:1.3rem;}
+#focusReglages .salon-bloc .salon-indication {margin:-.1rem 0 .8rem;color:#aac5b4;font-size:.77rem;line-height:1.5;}
+#focusReglages .salon-bloc input:not([type=checkbox]):not([type=range]),#focusReglages .salon-bloc select {min-height:3rem;color:#f6fff7;background:#0e2b21;border:1px solid #a4ddba55;border-radius:.75rem;font-size:16px;}
+#focusReglages .salon-bloc input::placeholder {color:#a0b8a8;opacity:1;}
+#focusReglages .salon-bloc :is(input,select):focus-visible,#focusReglages .salon-reglage-page button:focus-visible {outline:3px solid #a6ecc0;outline-offset:3px;}
+#focusReglages .salon-case {display:flex;align-items:center;gap:.7rem;margin:.75rem 0 0;padding:.7rem .75rem;border:1px solid #d4f8df17;border-radius:.75rem;background:#ffffff06;color:#e6f5e9;font-size:.82rem;line-height:1.4;}
+#focusReglages .salon-case input {flex:none;width:1.05rem;height:1.05rem;margin:0;accent-color:#81dca6;}
+#focusReglages .salon-case:has(input:disabled) {opacity:.6;}
+#focusReglages .salon-actions {display:flex;align-items:center;flex-wrap:wrap;gap:.5rem 1rem;margin-top:1rem;}
+#focusReglages .salon-reglage-page .salon-action-secondaire {min-height:2.7rem;margin:.25rem .25rem .25rem 0;padding:.65rem .9rem;border:1px solid #bcebd24f;border-radius:.75rem;background:#1a4a35;color:#eaf9ee;font:650 .8rem/1.3 system-ui;}
+#focusReglages .salon-reglage-page .salon-action-secondaire:hover:not(:disabled) {background:#286849;border-color:#bcebd2;}
+#focusReglages .salon-reglage-page .salon-action-secondaire:disabled {opacity:.48;}
+#focusReglages .salon-actions p {flex:1 1 15rem;margin:0;color:#b2c9b9;font-size:.76rem;line-height:1.5;}
+#focusReglages .salon-bloc input[type=range] {margin:.5rem 0 .75rem;accent-color:#a0e8b8;}
+#focusReglages #salonVolumeValeur {float:right;color:#a8e6bc;}
+#focusReglages .salon-personnes-entete {display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;}
+#focusReglages .salon-personnes-entete h4,#focusReglages .salon-groupe-actions h4 {margin:0;color:#f1fff4;font-size:1rem;letter-spacing:-.01em;}
+#focusReglages .salon-personnes-entete p,#focusReglages .salon-groupe-actions>p {margin:.35rem 0 0;color:#afcaba;font-size:.76rem;line-height:1.4;}
+#focusReglages .salon-personnes-symbole {display:grid;place-items:center;width:2.3rem;height:2.3rem;border:1px solid #a4e6bb30;border-radius:.8rem;background:#93e8b714;color:#a7e9be;}
+#focusReglages .salon-membres {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr));gap:.65rem;}
+#focusReglages .salon-membres .salon-membre {display:flex;align-items:flex-start;gap:.8rem;min-width:0;padding:.85rem;border:1px solid #d4f8df20;border-radius:.9rem;background:#ffffff08;overflow-wrap:anywhere;}
+#focusReglages .salon-membre-avatar {display:grid;place-items:center;flex:none;width:2.7rem;height:2.7rem;border:1px solid #e5fff750;border-radius:.9rem;background:#b8e9c8;color:#164634;font:800 1rem/1 system-ui;}
+#focusReglages .salon-avatar-1 {background:#d6e7c0;color:#394d29;} #focusReglages .salon-avatar-2 {background:#b9e2df;color:#244c49;} #focusReglages .salon-avatar-3 {background:#ecd8b7;color:#594830;}
+#focusReglages .salon-membre-contenu {flex:1;min-width:0;}
+#focusReglages .salon-membre-nom {display:flex;align-items:center;flex-wrap:wrap;gap:.35rem .45rem;}
+#focusReglages .salon-membre-nom strong {color:#f3fff6;font-size:.88rem;line-height:1.3;overflow-wrap:anywhere;}
+#focusReglages .salon-membre-role,#focusReglages .salon-membre-vous {padding:.16rem .4rem;border-radius:999px;background:#bcebd521;color:#c8edd4;font-size:.62rem;font-weight:700;}
+#focusReglages .salon-membre-presence {display:block;margin-top:.35rem;color:#bdcbbf;font-size:.7rem;line-height:1.4;}
+#focusReglages .salon-membre-presence::before {content:'';display:inline-block;width:.42rem;height:.42rem;margin-right:.38rem;border-radius:50%;background:#9caea3;vertical-align:.06em;}
+#focusReglages .salon-presence-recente {color:#b3edc4;} #focusReglages .salon-presence-recente::before {background:#83e6a4;box-shadow:0 0 0 3px #85e6a321;}
+#focusReglages .salon-membre-detail,#focusReglages .salon-membre-objectif {display:block;margin:.45rem 0 0;color:#c7dfcf;font-size:.73rem;line-height:1.45;}
+#focusReglages .salon-membre-actions {display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.45rem;}
+#focusReglages .salon-membre-actions .salon-action-secondaire {min-height:2rem;padding:.4rem .55rem;font-size:.68rem;}
+#focusReglages .salon-personnes-note {margin:.9rem 0 0;color:#a9c0b0;font-size:.71rem;line-height:1.5;}
+#focusReglages .salon-groupe-actions .salon-pied>div {display:flex;flex-wrap:wrap;gap:.2rem;}
+#focusReglages .salon-bilan-contenu {text-align:center;padding:1.6rem 1rem;}
+#focusReglages .salon-bilan-symbole {display:grid;place-items:center;width:3rem;height:3rem;margin:0 auto 1rem;border-radius:50%;background:#a2e8ba22;color:#bbebc9;font-size:1.4rem;}
+#focusReglages .salon-bilan-contenu p {display:block;margin:.45rem auto;color:#c2dbc9;line-height:1.5;}
+.salon-sr-only {position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+#focusReglages .salon-menu-icone {width:20px;height:20px;flex:none;}
+#focusReglages .salon-reglage-page [hidden] {display:none!important;}
+@media(max-width:720px){
+ #panelPomodoro #focusReglages .salon-reglage-page .focus-page-titre {margin-bottom:1.1rem;}
+ #panelPomodoro #focusReglages .salon-reglage-page .focus-page-titre p {font-size:.82rem;}
+ #focusReglages .salon-reglage-page .salon-carte {padding:1rem;border-radius:1.1rem;}
+ #focusReglages .salon-carte-entete {gap:.8rem;margin-bottom:1.1rem;}
+ #focusReglages .salon-carte-embleme {width:2.7rem;height:2.7rem;border-radius:.85rem;}
+ #focusReglages .salon-bloc,#focusReglages .salon-personnes,#focusReglages .salon-groupe-actions {padding:.9rem;}
+}
