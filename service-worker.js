@@ -18,6 +18,7 @@ const FICHIERS = [
     "css/pages/emplois-atelier.css",
     "css/pages/admin-atelier.css",
     "css/pages/focus-parametres.css",
+    "css/pages/salon-focus.css",
     "livrables/publication-pomodoro/mobile.css",
     "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
@@ -94,7 +95,9 @@ const FICHIERS = [
     "js/pages/statistiques.js",
     "js/pages/minuteur-compteurs.js",
     "js/pages/pomodoro-page.js",
-    "js/pages/pomodoro-parametres.js"
+    "js/pages/pomodoro-parametres.js",
+    "js/pages/salon-focus-coeur.js",
+    "js/pages/salon-focus.js"
 ];
 function urlDuSite(fichier) {
     var url = new URL(fichier || './', self.registration.scope);

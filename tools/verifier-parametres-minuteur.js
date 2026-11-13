@@ -72,11 +72,11 @@ ok(minuteur.indexOf('focus-bouton-parametres') === -1 && !/id="focusReglages"[^>
 /* ── 3. Menu latéral et pages : toutes les rubriques des captures ── */
 ok(/id="focusReglages"[^>]*class="focus-tiroir"|class="focus-tiroir"[^>]*id="focusReglages"/.test(minuteur), 'le menu Paramètres doit être un tiroir (focus-tiroir)');
 ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit avoir une croix de fermeture');
-['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques'].forEach(function (onglet) {
+['themes', 'horloge', 'minuteur', 'citations', 'voix', 'salon', 'statistiques'].forEach(function (onglet) {
     ok(minuteur.indexOf('data-onglet="' + onglet + '"') !== -1, 'entrée de menu manquante : ' + onglet);
     ok(minuteur.indexOf('data-page="' + onglet + '"') !== -1, 'page manquante : ' + onglet);
 });
-['Thèmes', 'Horloge', 'Minuteur', 'Citations', 'Voix', 'Statistiques'].forEach(function (nom) {
+['Thèmes', 'Horloge', 'Minuteur', 'Citations', 'Voix', 'Salon focus', 'Statistiques'].forEach(function (nom) {
     ok(minuteur.indexOf('<span>' + nom + '</span>') !== -1, 'libellé de menu manquant : ' + nom);
 });
 ['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
@@ -85,7 +85,7 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
 });
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
 ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
-ok(script.indexOf("var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques']") !== -1, 'ordre des rubriques incorrect');
+ok(script.indexOf("var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'salon', 'statistiques']") !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
 });
