@@ -210,6 +210,7 @@ jobs:
           executer_test tools/tester-pomodoro-anime.mjs
           executer_test tools/tester-pip-anime.mjs
           executer_test tools/tester-salon-apercu.mjs
+          executer_test tools/tester-salon-deux-telephones.mjs
           executer_test tools/tester-foret-adaptive.mjs
           executer_test tools/tester-images-feedback.mjs
           executer_test tools/tester-pomodoro-reprise.mjs
