@@ -104,10 +104,10 @@ try {
   assert.equal(room.membres.filter(m=>m.uid==='guest').length,1,'la reprise ne duplique pas le participant');
   await hp.reload({waitUntil:'load'});await hp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && document.getElementById('salonCommandes') && !document.getElementById('salonCommandes').hidden && !document.getElementById('salonInvitation')?.open);
-  assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’organisateur reprend sans pseudo');
+  await hp.locator('#salonCommandes').waitFor({state:'visible'});assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’organisateur reprend sans pseudo');
   await hp.evaluate(()=>sessionStorage.removeItem('studyPlanIB_salon_session'));await hp.reload({waitUntil:'load'});
   await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && document.getElementById('salonCommandes') && !document.getElementById('salonCommandes').hidden && !document.getElementById('salonInvitation')?.open,{timeout:60000});
-  assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’identité serveur reconnaît l’organisateur sans mémo local');
+  await hp.locator('#salonCommandes').waitFor({state:'visible'});assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’identité serveur reconnaît l’organisateur sans mémo local');
   assert.equal(await hp.evaluate(()=>location.hash),'#salon='+id);
 
   await hp.locator('#salonEspace').evaluate(e=>e.open=false);hp.once('dialog',d=>d.dismiss());await hp.getByRole('button',{name:'Fermer le salon',exact:true}).click();assert.equal(room.ferme,false,'annuler ne ferme pas le salon');
