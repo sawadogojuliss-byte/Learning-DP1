@@ -28,6 +28,8 @@ try {
  horsLigne=false;await h.page.locator('#salonRejoindreBouton').click();
  await h.page.waitForFunction(()=>!document.getElementById('salonInvitation').open&&!document.getElementById('salonCommandes').hidden);
  assert.equal(await h.page.locator('#salonTemps').textContent(),'23:00');
+ await h.page.evaluate(()=>window.dispatchEvent(new Event('load')));
+ assert.equal(await h.page.locator('#salonEcran').isVisible(),true,'un nettoyage tardif au chargement ne masque pas le salon');
  horsLigne=true;await h.page.reload({waitUntil:'domcontentloaded'});
  await h.page.waitForFunction(()=>document.getElementById('salonInvitationTitre')?.textContent==='Reprendre ton salon',{timeout:60000});
  assert.equal(await h.page.locator('#salonPseudo').isVisible(),false,'le propriétaire en reconnexion ne voit pas le pseudo');

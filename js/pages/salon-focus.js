@@ -35,7 +35,13 @@
         if(session || invitation)adresseSalon(session ? session.id : invitation);
         return resultat;
     };
-    window.addEventListener('load',function(){if(session || invitation)adresseSalon(session ? session.id : invitation);});
+    window.addEventListener('load',function(){
+        // Le nettoyage général de navigation s'exécute lui aussi à load et
+        // peut masquer Pomodoro après une reprise très rapide depuis le cache.
+        if(invitation || (session && $('salonEcran') && !$('salonEcran').hidden)) {
+            ouvrirPomodoro();adresseSalon(session ? session.id : invitation);
+        }
+    });
     var protections = null;
     function protegerReglages(invite) {
         var ids=['focusDureeSeances','focusDureeFocus','focusDureeShort','focusDureeLong'];
