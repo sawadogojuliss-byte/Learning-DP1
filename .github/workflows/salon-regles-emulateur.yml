@@ -31,4 +31,12 @@ jobs:
           FIREBASE_CLI_DISABLE_TELEMETRY: '1'
         run: |
           printf '%s\n' '{"emulators":{"firestore":{"port":8080},"ui":{"enabled":false}}}' > "$RUNNER_TEMP/salon-test/firebase.json"
-          "$RUNNER_TEMP/salon-test/node_modules/.bin/firebase" emulators:exec --project demo-studyplan-salon-rules --config "$RUNNER_TEMP/salon-test/firebase.json" --only firestore 'node tools/tester-salon-regles.cjs'
+          set +e
+          "$RUNNER_TEMP/salon-test/node_modules/.bin/firebase" emulators:exec --project demo-studyplan-salon-rules --config "$RUNNER_TEMP/salon-test/firebase.json" --only firestore 'node tools/tester-salon-regles.cjs' > "$RUNNER_TEMP/salon-test/resultat.log" 2>&1
+          resultat=$?
+          cat "$RUNNER_TEMP/salon-test/resultat.log"
+          if [ "$resultat" -ne 0 ]; then
+            message=$(tail -c 6000 "$RUNNER_TEMP/salon-test/resultat.log" | python3 -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))')
+            echo "::error::$message"
+          fi
+          exit "$resultat"
