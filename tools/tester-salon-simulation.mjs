@@ -56,6 +56,7 @@ try {
   await gp.waitForFunction(()=>document.getElementById('salonTitre').textContent==='Révisions <test>');assert.equal(room.membres.length,1,'l’aperçu ne fait pas rejoindre');
   await gp.locator('#salonPseudo').fill('Camille');await gp.locator('#salonRejoindreBouton').click();await gp.waitForFunction(()=>!document.getElementById('salonInvitation').open);
   await gp.waitForFunction(()=>document.getElementById('salonTitre').textContent==='Révisions <test>');
+  await hp.locator('#salonBtnReglages').click();for(const id of ['salon','statistiques'])assert.equal(await hp.locator(`[data-onglet="${id}"]`).isVisible(),false);for(const id of ['objectif','groupe','preferences','bilan'])assert.equal(await hp.locator(`[data-onglet="reunion-${id}"]`).count(),1);await hp.getByRole('button',{name:'Fermer les paramètres'}).click();
   assert.equal(await gp.locator('#salonCommandes').isVisible(),false);
   for(const bouton of await gp.locator('#salonEcran [data-mode]').all())assert.equal(await bouton.isDisabled(),true,'les phases sont affichées mais interdites à l’invité');
   assert.equal(await hp.locator('#salonDemarrer svg').count(),2,'commandes graphiques du Pomodoro');
@@ -67,9 +68,10 @@ try {
   for(const champ of ['focusDureeSeances','focusDureeFocus','focusDureeShort','focusDureeLong'])assert.equal(await gp.locator('#'+champ).isDisabled(),true);
   for(const bouton of await gp.locator('#focusReglages .focus-stepper button').all())assert.equal(await bouton.isDisabled(),true);
   await gp.evaluate(()=>focusChoisirOnglet('salon'));assert.equal(await gp.locator('#focusReglages [data-page="salon"]').isVisible(),false);
+  for(const nom of ['objectif','groupe','preferences','bilan'])assert.equal(await gp.locator(`[data-onglet="reunion-${nom}"]`).count(),1);
   await gp.getByRole('button',{name:'Fermer les paramètres'}).click();
-  await gp.getByRole('button',{name:'✦ Objectif'}).click();assert.equal(await gp.locator('[data-salon-fiche="objectif"]').isVisible(),true);assert.equal(await gp.locator('[data-salon-fiche="groupe"]').isVisible(),false);
-  await gp.locator('#salonEspace summary').click();
+  await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-objectif"]').click();assert.equal(await gp.locator('[data-salon-fiche="objectif"]').isVisible(),true);assert.equal(await gp.locator('[data-salon-fiche="groupe"]').isVisible(),false);
+  await gp.getByRole('button',{name:'Fermer les paramètres'}).click();
   await gp.getByRole('button',{name:'Image dans l’image'}).click();assert.equal(await gp.locator('#salonPipLocal').isVisible(),true);assert.equal(await gp.locator('#salonPipPlay').isVisible(),false);await gp.locator('#salonPipLocal .focus-pip-fermer').click();
   assert.equal(await gp.locator('#salonEcran').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'pas de débordement horizontal');
   await assert.rejects(backend('guest','modify',{revision:room.revision,changement:{chrono:{}}}),/refus/);
@@ -84,18 +86,18 @@ try {
   const seconds=s=>s.split(':').reduce((n,x)=>n*60+Number(x),0);assert.ok(Math.abs(seconds(ht)-seconds(gt))<=1,`${ht} ≠ ${gt}`);
   await hp.locator('#salonDemarrer').click();await gp.waitForFunction(()=>document.getElementById('salonInfoChrono').textContent==='En pause');
   await hp.locator('[data-mode=short]').click();await gp.waitForFunction(()=>document.getElementById('salonPhase').textContent==='Pause courte');assert.equal(await gp.locator('#salonTemps').innerText(),'05:00');
-  await hp.getByRole('button',{name:'♧ Groupe'}).click();await hp.locator('#salonReglages').click();await hp.locator('[name=salonPartage][value=theme]').uncheck();await hp.locator('[name=salonPartage][value=citations]').uncheck();await hp.locator('#salonMajPartage').click();
+  await hp.locator('#salonBtnReglages').click();await hp.locator('[data-onglet="reunion-groupe"]').click();await hp.locator('#salonReglages').click();await hp.locator('[name=salonPartage][value=theme]').uncheck();await hp.locator('[name=salonPartage][value=citations]').uncheck();await hp.locator('#salonMajPartage').click();
   await gp.waitForFunction(()=>!document.querySelector('#salonDecor video'));assert.equal('theme' in room.partage,false);assert.equal('citation' in room.partage,false);
   const prefsAvant=await gp.evaluate(()=>localStorage.getItem('studyPlanIB_minuteurParametres'));
-  await gp.getByRole('button',{name:'♧ Groupe'}).click();await gp.locator('#salonAutoriserAudio').click();assert.equal(await gp.locator('#salonAutoriserAudio').innerText(),'Couper les sons');
+  await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-groupe"]').click();await gp.locator('#salonAutoriserAudio').click();assert.equal(await gp.locator('#salonAutoriserAudio').innerText(),'Couper les sons');
   await gp.waitForFunction(()=>window.__sonsJoues.some(a=>a.currentSrc.includes('pluie.mp3')&&!a.paused&&a.currentTime>.1),{timeout:30000});
   await gp.waitForFunction(()=>window.__sonsJoues.some(a=>a.currentSrc.includes('piano.mp3')&&!a.paused),{timeout:30000});
   await gp.locator('#salonAutoriserAudio').click();assert.equal(await gp.evaluate(()=>window.__sonsJoues.every(a=>a.paused)),true,'le bouton coupe les sons');
-  await gp.locator('#salonEspace summary').click();await gp.reload({waitUntil:'domcontentloaded'});await gp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
+  await gp.getByRole('button',{name:'Fermer les paramètres'}).click();await gp.reload({waitUntil:'domcontentloaded'});await gp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   assert.equal(await gp.locator('#salonPseudo').inputValue(),'Camille');await gp.locator('#salonRejoindreBouton').click();await gp.waitForFunction(()=>!document.getElementById('salonInvitation').open);
   await gp.waitForFunction(()=>document.getElementById('salonPhase').textContent==='Pause courte');
   // Un navigateur peut refuser la lecture ; l'invité peut ensuite réessayer.
-  await gp.getByRole('button',{name:'♧ Groupe'}).click();
+  await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-groupe"]').click();
   await gp.evaluate(()=>{window.__ancienPlay=HTMLMediaElement.prototype.play;HTMLMediaElement.prototype.play=function(){if(this instanceof HTMLAudioElement)return Promise.reject(new DOMException('Bloqué','NotAllowedError'));return window.__ancienPlay.call(this)}});
   await gp.locator('#salonAutoriserAudio').click();await gp.waitForFunction(()=>document.getElementById('salonMessage').textContent.includes('bloquée'));
   await gp.evaluate(()=>{HTMLMediaElement.prototype.play=window.__ancienPlay});
@@ -110,9 +112,9 @@ try {
   await hp.locator('#salonCommandes').waitFor({state:'visible'});assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’identité serveur reconnaît l’organisateur sans mémo local');
   assert.equal(await hp.evaluate(()=>location.hash),'#salon='+id);
 
-  await hp.locator('#salonEspace').evaluate(e=>e.open=false);hp.once('dialog',d=>d.dismiss());await hp.getByRole('button',{name:'Fermer le salon',exact:true}).click();assert.equal(room.ferme,false,'annuler ne ferme pas le salon');
+  if(await hp.locator('#focusReglages').isVisible())await hp.getByRole('button',{name:'Fermer les paramètres'}).click();hp.once('dialog',d=>d.dismiss());await hp.getByRole('button',{name:'Fermer le salon',exact:true}).click();assert.equal(room.ferme,false,'annuler ne ferme pas le salon');
   hp.once('dialog',d=>d.accept());await hp.getByRole('button',{name:'Fermer le salon',exact:true}).click();await gp.waitForFunction(()=>document.getElementById('salonEcran').hidden);
-  assert.match(await gp.locator('#salonStatutCreation').innerText(),/fermé/);
+  await gp.locator('#salonFinDialog').waitFor({state:'visible'});assert.match(await gp.locator('#salonFinMessage').innerText(),/organisateur a arrêté la réunion/);await gp.getByRole('button',{name:'Compris'}).click();
   assert.equal(await gp.evaluate(()=>localStorage.getItem('studyPlanIB_minuteurParametres')),prefsAvant,'les réglages personnels ne sont pas écrasés');
 
   assert.deepEqual(host.errors,[]);assert.deepEqual(guest.errors,[]);console.log('OK simulation deux personnes, chronomètre, partage et fermeture '+viewport.width+'×'+viewport.height);

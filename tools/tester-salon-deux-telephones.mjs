@@ -48,13 +48,19 @@ try{
  room.membres.find(m=>m.uid==='guest').vuLe=Date.now()-180000;await hp.waitForFunction(()=>!document.getElementById('salonParticipantsNoms').textContent.includes('Camille'));
  room.membres.find(m=>m.uid==='guest').vuLe=Date.now();await hp.waitForFunction(()=>document.getElementById('salonParticipantsNoms').textContent.includes('Camille'));
  const bornes=await gp.locator('#salonParticipants').boundingBox();assert.ok(bornes.y>=0&&bornes.y+bornes.height<=568,'les pseudos sont visibles sans défiler sur le petit téléphone');
+ for(const p of [hp,gp]){
+  await p.locator('#salonBtnReglages').click();
+  for(const ancien of ['salon','statistiques'])assert.equal(await p.locator(`[data-onglet="${ancien}"]`).isVisible(),false);
+  for(const nom of ['objectif','groupe','preferences','bilan']) {await p.locator(`[data-onglet="reunion-${nom}"]`).click();assert.equal(await p.locator(`[data-salon-fiche="${nom}"]`).isVisible(),true);}
+  await p.getByRole('button',{name:'Fermer les paramètres'}).click();
+ }
  assert.equal(await gp.locator('#salonCommandes').isVisible(),false);assert.equal(await gp.evaluate(()=>location.hash),'#salon='+id);
  // Vérifie le curseur et la sélection sans perdre le focus au cours des mises à jour.
- await gp.getByRole('button',{name:'✦ Objectif'}).click();const input=gp.locator('#salonObjectif');await input.fill('Réviser ensemble');
+ await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-objectif"]').click();if(process.env.SALON_SCREENSHOTS)await gp.screenshot({path:'/home/user/salon-parametres-v3.png'});const input=gp.locator('#salonObjectif');await input.fill('Réviser ensemble');
  await input.evaluate(e=>{e.focus();e.setSelectionRange(3,7)});await gp.waitForTimeout(1400);
  assert.deepEqual(await input.evaluate(e=>[document.activeElement===e,e.selectionStart,e.selectionEnd,getComputedStyle(e).cursor,getComputedStyle(e).userSelect]),[true,3,7,'text','text']);
  assert.notEqual(await input.evaluate(e=>getComputedStyle(e).caretColor),'rgba(0, 0, 0, 0)');
- await gp.locator('#salonEspace summary').click();
+ await gp.getByRole('button',{name:'Fermer les paramètres'}).click();
  // Un chrono en pause ne doit pas être reconstruit quatre fois par seconde.
  await hp.evaluate(()=>{window.__chronoMutations=0;window.__chronoObserver=new MutationObserver(records=>window.__chronoMutations+=records.length);window.__chronoObserver.observe(document.getElementById('salonTemps'),{childList:true,characterData:true,subtree:true});});
  await hp.waitForTimeout(1600);assert.equal(await hp.evaluate(()=>window.__chronoMutations),0);await hp.evaluate(()=>window.__chronoObserver.disconnect());
@@ -64,5 +70,7 @@ try{
  await hp.waitForFunction(()=>document.getElementById('salonInvitationTitre')?.textContent==='Reprendre ton salon',{timeout:60000});assert.equal(await hp.locator('#salonPseudo').isVisible(),false);
  authHote=true;await hp.locator('#salonRejoindreBouton').click();await hp.waitForFunction(()=>!document.getElementById('salonInvitation').open&&!document.getElementById('salonCommandes').hidden);assert.equal(await hp.evaluate(()=>location.hash),'#salon='+id);
  await gp.getByRole('button',{name:'Quitter le salon',exact:true}).click();await hp.waitForFunction(()=>!document.getElementById('salonParticipantsNoms').textContent.includes('Camille'));
+ await gp.locator('#focusReglages').waitFor({state:'visible'});for(const id of ['salon','statistiques'])assert.equal(await gp.locator(`[data-onglet="${id}"]`).isVisible(),true,'rubriques personnelles restaurées après le départ');
+ for(const nom of ['objectif','groupe','preferences','bilan'])assert.equal(await gp.locator(`[data-onglet="reunion-${nom}"]`).isVisible(),false,'outils du salon masqués hors session');
  assert.deepEqual(h.errors,[]);assert.deepEqual(g.errors,[]);await h.context.close();await g.context.close();console.log('OK deux téléphones simulés 390×844 / 320×568 : identité, saisie, participants, chrono et départ');
 }finally{await browser.close()}

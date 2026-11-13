@@ -52,7 +52,27 @@
             ouvrirPomodoro();adresseSalon(session ? session.id : invitation);
         }
     });
-    var protections = null;
+    var protections = null, editionPartage = false;
+    var fichesSalon = ['objectif','groupe','preferences','bilan'];
+    function installerFiches() {
+        var menu=document.querySelector('#focusReglages .focus-tiroir-liste');
+        var contenu=document.querySelector('#focusReglages .focus-tiroir-contenu');
+        var labels={objectif:'Objectif',groupe:'Groupe',preferences:'Préférences',bilan:'Bilan'};
+        var icones={objectif:'✦',groupe:'♧',preferences:'☷',bilan:'◷'};
+        fichesSalon.forEach(function(nom){
+            var id='reunion-'+nom, carte=document.querySelector('[data-salon-fiche="'+nom+'"]');
+            if(!carte || document.querySelector('#focusReglages [data-page="'+id+'"]'))return;
+            if(FOCUS_ONGLETS.indexOf(id)<0)FOCUS_ONGLETS.push(id);
+            var li=document.createElement('li');li.dataset.reunionOnglet=nom;li.hidden=true;
+            var bouton=document.createElement('button');bouton.type='button';bouton.className='focus-tiroir-item';bouton.dataset.onglet=id;
+            var icone=document.createElement('span');icone.className='salon-menu-icone';icone.setAttribute('aria-hidden','true');icone.textContent=icones[nom];
+            var texte=document.createElement('span');texte.textContent=labels[nom];bouton.appendChild(icone);bouton.appendChild(texte);
+            bouton.addEventListener('click',function(){focusChoisirOnglet(id);});li.appendChild(bouton);menu.appendChild(li);
+            var page=document.createElement('section');page.className='focus-tiroir-page salon-reglage-page';page.dataset.page=id;page.hidden=true;
+            var titre=document.createElement('div');titre.className='focus-page-titre';var h=document.createElement('h2');h.textContent=labels[nom];titre.appendChild(h);page.appendChild(titre);
+            carte.hidden=false;page.appendChild(carte);contenu.appendChild(page);
+        });
+    }
     function protegerReglages(invite) {
         var ids=['focusDureeSeances','focusDureeFocus','focusDureeShort','focusDureeLong'];
         if (!protections) {
@@ -62,17 +82,19 @@
             protections={champs:champs.map(function(e){return {el:e,disabled:e.disabled};}),onglets:onglets.map(function(e){return {el:e,hidden:e.hidden};})};
         }
         protections.champs.forEach(function(x){x.el.disabled=invite?true:x.disabled;});
-        protections.onglets.forEach(function(x){x.el.hidden=invite?true:x.hidden;});
+        protections.onglets.forEach(function(x){x.el.hidden=session?true:x.hidden;});
+        document.querySelectorAll('#focusReglages [data-reunion-onglet]').forEach(function(e){e.hidden=!session;});
     }
     var choisirOngletPersonnel=focusChoisirOnglet;
     focusChoisirOnglet=function(id) {
-        if(session && session.role==='invite' && (id==='salon'||id==='statistiques')) return;
+        if(session && (id==='statistiques' || (id==='salon' && !editionPartage))) return;
+        if(!session && id.indexOf('reunion-')===0)return;
         return choisirOngletPersonnel.apply(this,arguments);
     };
     window.salonOuvrirFiche=function(nom) {
-        if(!session)return;
-        document.querySelectorAll('[data-salon-fiche]').forEach(function(e){e.hidden=e.dataset.salonFiche!==nom;});
-        var panneau=$('salonEspace');panneau.classList.add('salon-fiche-active');panneau.open=true;
+        if(!session || fichesSalon.indexOf(nom)<0)return;
+        if($('focusReglages').hidden)focusBasculerReglages();
+        focusChoisirOnglet('reunion-'+nom);
     };
     window.salonOuvrirReglages=function() { if(!session)return;focusBasculerReglages();if(!$('focusReglages').hidden)focusChoisirOnglet('themes'); };
     window.salonOuvrirTaches=function() { if(session)focusBasculerTaches(); };
@@ -189,7 +211,7 @@
     function init() {
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
-        resumeSelection();pret();
+        installerFiches();resumeSelection();pret();
     }
     setTimeout(init,0);
     function commencer(s, initial, pseudo) {
@@ -199,7 +221,7 @@
         adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
         try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
         local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false;
-        $('salonEspace').open=false;$('salonEspace').classList.remove('salon-fiche-active');document.querySelectorAll('[data-salon-fiche]').forEach(function(e){e.hidden=false;});
+        editionPartage=false;
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
         try { var obj=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_objectif_'+s.id)||'{}'); $('salonObjectif').value=coeur.texte(obj.texte,160); $('salonObjectifFait').checked=obj.fait===true; } catch(e) {}
         $('salonVolume').value=Math.round(volumeSalon*100); $('salonVolumeValeur').textContent=Math.round(volumeSalon*100)+' %';
@@ -222,7 +244,7 @@
         arreterEcoute = session.observer(function (data, etat) {
             connecte = !!(etat && etat.connecte);
             if (data && salle && Number(data.revision) < Number(salle.revision)) return;
-            if (data && data.ferme) { finirLocal('Le salon a été fermé par son organisateur.'); return; }
+            if (data && data.ferme) { finirLocal('Le salon a été fermé par son organisateur.',session.role==='invite'); return; }
             if (data) {
                 salle = data;
                 if (session.uid && data.organisateurUid) {
@@ -234,7 +256,7 @@
             }
             statut('salonEtatConnexion', connecte ? '● Connecté en direct' : '○ Reconnexion en cours');
             peindre();
-        }, function (e) { if(e && (e.code==='removed' || e.code==='room-closed')) { finirLocal(e.code==='removed'?'Tu as été retiré du salon.':'Le salon a été fermé.'); return; } connecte=false;statut('salonEtatConnexion','○ Connexion interrompue');statut('salonMessage',erreur(e));peindre(); });
+        }, function (e) { if(e && (e.code==='removed' || e.code==='room-closed')) { finirLocal(e.code==='removed'?'Tu as été retiré du salon.':'Le salon est fermé ou a expiré.'); return; } connecte=false;statut('salonEtatConnexion','○ Connexion interrompue');statut('salonMessage',erreur(e));peindre(); });
         timer = setInterval(peindre,250);
         peindre();
     }
@@ -289,9 +311,9 @@
         $('salonEcran').hidden=true; $('salonRaccourci').hidden=false; $('salonCreer').hidden=true; $('salonFormTitre').textContent='Modifier le partage';$('salonMajPartage').hidden=false;$('salonRetour').hidden=false;
         $('salonNom').value=salle.nom;$('salonNom').disabled=true;
         Object.keys(salle.options || {}).forEach(function(k){var el=document.querySelector('[name="salonPartage"][value="'+k+'"]');if(el)el.checked=!!salle.options[k];});
-        resumeSelection();focusBasculerReglages();focusChoisirOnglet('salon');
+        editionPartage=true;resumeSelection();if($('focusReglages').hidden)focusBasculerReglages();focusChoisirOnglet('salon');
     };
-    window.salonRevenir=function () { ouvrirPomodoro();focusFermer('focusReglages');$('salonRaccourci').hidden=true;$('salonEcran').hidden=false; };
+    window.salonRevenir=function () { editionPartage=false;focusChoisirOnglet('themes');ouvrirPomodoro();focusFermer('focusReglages');$('salonRaccourci').hidden=true;$('salonEcran').hidden=false; };
     window.salonActualiserPartage=function () {
         envoyer({options:options(),partage:selectionPartagee()}).then(function(ok){if(ok)window.salonRevenir();});
     };
@@ -302,7 +324,7 @@
     function selectionnerLien(valeur) {
         var carte=$('salonLienCarte'), champ=$('salonLienAffiche');
         // Éviter qu'une feuille ouverte recouvre le champ sur petit écran.
-        $('salonEspace').open=false;carte.hidden=false;champ.value=valeur;champ.focus();champ.select();
+        focusFermer('focusReglages');carte.hidden=false;champ.value=valeur;champ.focus();champ.select();
         try { champ.setSelectionRange(0,champ.value.length); } catch(e) {}
     }
     function copieSecours(s, valeur) {
@@ -491,7 +513,7 @@
         liste.forEach(function(m){var puce=document.createElement('span');puce.className='salon-participant'+(m.etat==='recente'?' salon-participant-recent':'');puce.textContent=m.nom;puce.title=m.etat==='recente'?'Activité récente':'Présence non vérifiée';noms.appendChild(puce);});
         statut('salonParticipantsInfo',!connecte?'Connexion interrompue · présences non vérifiées':liste.some(function(m){return m.etat==='inconnue';})?'Présence de certains participants non vérifiée.':'Point vert : activité dans les deux dernières minutes.');
     }
-    function finirLocal(message) {
+    function finirLocal(message, finOrganisateur) {
         var bilanFinal=salle && salle.bilan;
         window.salonFermerMini();clearTimeout(objectifTimer); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
@@ -501,6 +523,12 @@
         sonsPersonnels.forEach(focusLireSon);sonsPersonnels=[];focusPeindreSonBouton();connecte=false;occupe=false;
         $('salonSortieLocale').hidden=true;$('salonFormTitre').textContent='Créer un salon';$('salonCreer').hidden=false;$('salonMajPartage').hidden=true;$('salonRetour').hidden=true;$('salonNom').disabled=false;
         pret();statut('salonStatutCreation',message||'Tu as quitté le salon.');
+        editionPartage=false;
+        if(finOrganisateur) {
+            focusChoisirOnglet('themes');
+            var fin=$('salonFinDialog');if(fin.parentNode!==document.body)document.body.appendChild(fin);if(!fin.open)fin.showModal();
+            return;
+        }
         if ($('focusReglages').hidden) focusBasculerReglages();focusChoisirOnglet('salon');
         if(bilanFinal && Number.isFinite(bilanFinal.secondes) && Number.isFinite(bilanFinal.sessions)) {
             $('salonBilanFinal').textContent=Math.floor(Math.max(0,bilanFinal.secondes)/60)+' min de concentration · '+Math.max(0,bilanFinal.sessions)+' session(s) terminée(s) ensemble.';

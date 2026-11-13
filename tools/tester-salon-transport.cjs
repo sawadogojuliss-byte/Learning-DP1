@@ -16,7 +16,7 @@ class Ref {
 class Coll {
  constructor(db,path){this.db=db;this.path=path}
  doc(id){return new Ref(this.db,this.path+'/'+id)}
- onSnapshot(opts,cb){let item={path:this.path,cb,type:'collection'};ecoutes.push(item);queueMicrotask(()=>notifier(item));return()=>{ecoutes.splice(ecoutes.indexOf(item),1)}}
+ onSnapshot(opts,cb,err){let item={path:this.path,cb,err,type:'collection'};ecoutes.push(item);queueMicrotask(()=>notifier(item));return()=>{ecoutes.splice(ecoutes.indexOf(item),1)}}
 }
 function notifier(item){if(item.type==='doc')return item.cb(snapshot(item.path));const prefix=item.path+'/';const liste=[...docs.keys()].filter(k=>k.startsWith(prefix)&&!k.slice(prefix.length).includes('/')).map(snapshot);item.cb({docs:liste,metadata:{fromCache:false,hasPendingWrites:false}});}
 class DB {
@@ -59,6 +59,11 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  listener.cb(snapshot(listener.path));assert.equal(etats.at(-1).etat.connecte,true);stop();
  await assert.rejects(g.modifier(2,{chrono:debut}),e=>e.code==='permission-denied');
  hostDB.online=false;await assert.rejects(a.modifier(2,{chrono:debut}),/offline/);hostDB.online=true;assert.equal(docs.get('salons_focus/'+a.id).revision,2);
+ // Le refus de la liste peut précéder l'événement de fermeture du salon.
+ const c=await host.creer({...donnees,nom:'Salon C'});const etatsB=[],erreursB=[];const stopB=c.observer((d,e)=>etatsB.push(d),e=>erreursB.push(e));await new Promise(r=>setTimeout(r,0));
+ const bPath='salons_focus/'+c.id;docs.set(bPath,{...docs.get(bPath),ferme:true,revision:2});
+ const membresB=ecoutes.find(x=>x.type==='collection' && x.path===bPath+'/membres');membresB.err(Object.assign(Error('denied'),{code:'permission-denied'}));
+ await new Promise(r=>setTimeout(r,0));assert.equal(etatsB.at(-1).ferme,true,'fermeture confirmée malgré un refus de liste reçu en premier');assert.deepEqual(erreursB,[]);stopB();
  await g.quitter();assert.equal(docs.has('salons_focus/'+a.id+'/membres/invite-1'),false);assert.equal(await g.actualiserPresence(),false,'la présence ne recrée jamais un membre parti');await a.fermer();assert.equal(docs.get('salons_focus/'+a.id).ferme,true);assert.equal(docs.get('salons_focus/'+b.id).ferme,false);
  console.log('OK adaptateur Firestore simulé : liens, choix, compte isolé, horloges, retard, conflits et déconnexion. Règles NON testées.');
 })().catch(e=>{console.error(e);process.exit(1)});

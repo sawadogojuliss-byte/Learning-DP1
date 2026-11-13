@@ -86,7 +86,19 @@
                     synchroniseMembres=!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites;
                     if(!synchroniseMembres) { emettre();return; }
                     membres=snap.docs.map(function(d){var v=d.data();return {uid:d.id,pseudo:v.pseudo,vuLe:v.vuLe && typeof v.vuLe.toMillis==='function'?v.vuLe.toMillis():null};});listeConfirmee=membres;emettre();
-                },function(e){if(!arrete && !(salle && salle.ferme))surErreur(e);});
+                },function(e){
+                    if(arrete || (salle && salle.ferme))return;
+                    // Les règles interdisent la liste des membres dès la fermeture.
+                    // Sa notification peut arriver avant celle du document parent :
+                    // vérifier ce dernier avant d'interpréter le refus comme une panne.
+                    if(e && e.code==='permission-denied') {
+                        room.get({source:'server'}).then(function(snap){
+                            if(arrete)return;
+                            if(snap.exists && snap.data().ferme) { salle=snap.data();synchroniseSalle=true;emettre(); }
+                            else surErreur(e);
+                        },function(){if(!arrete)surErreur(e);});
+                    } else surErreur(e);
+                });
                 var interval=setInterval(function(){if(!arrete && !ferme)heureServeur(contexte).then(function(d){delta=d;},function(){surErreur(erreur('clock-unavailable'));});},60000);
                 return function(){arrete=true;presenceSouhaitee=false;presenceActive=false;clearInterval(presenceTimer);presenceTimer=null;clearInterval(interval);a();b();};
             }

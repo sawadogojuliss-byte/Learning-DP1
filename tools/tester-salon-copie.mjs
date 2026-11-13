@@ -42,10 +42,10 @@ async function scenario(mode,viewport){
  await page.locator('#salonLienCarte .salon-lien-fermer').click();
  await page.evaluate(()=>{window.__copie='';document.getElementById('salonGroupePartageStatut').textContent='';});
  if(mode==='reel')await page.evaluate(()=>navigator.clipboard.writeText('ancien contenu'));
- await page.getByRole('button',{name:'♧ Groupe'}).click();await page.getByRole('button',{name:'Copier le lien d’invitation'}).click();
+ await page.locator('#salonBtnReglages').click();await page.locator('[data-onglet="reunion-groupe"]').click();await page.getByRole('button',{name:'Copier le lien d’invitation'}).click();
  if(['refuse','exception','absent'].includes(mode)){
   await page.waitForFunction(()=>!document.getElementById('salonLienCarte').hidden && document.getElementById('salonGroupePartageStatut').textContent.includes('manuellement'));
-  assert.equal(await page.locator('#salonEspace').evaluate(e=>e.open),false,'le panneau ne masque pas le lien');
+  assert.equal(await page.locator('#focusReglages').isVisible(),false,'le panneau ne masque pas le lien');
   await page.locator('#salonLienAffiche').click();
   assert.match(await page.locator('#salonGroupePartageStatut').textContent(),/manuellement/);
  }else {

@@ -202,3 +202,51 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
 }
 
 .salon-invitation .salon-invitation-embleme {display:grid;place-items:center;}
+
+/* Le salon reprend la scène du minuteur personnel ; ses outils sont dans Paramètres. */
+#salonEspace[hidden],#focusReglages li[hidden] {display:none!important;}
+.salon-voile {background:linear-gradient(180deg,rgba(6,30,24,.28),transparent 18%);}
+.salon-ecran .salon-top {padding:1.35rem 1.6rem 0;}
+.salon-ecran .focus-logo {font-size:clamp(1.7rem,3.1vw,3rem);letter-spacing:-.045em;}
+.salon-top-droite .focus-quote {font-size:clamp(.95rem,1.25vw,1.15rem);line-height:1.3;}
+.salon-ecran .salon-centre {gap:.85rem;}
+.salon-ecran .salon-titre {font-size:clamp(1.15rem,1.7vw,1.65rem);font-weight:700;}
+.salon-ecran .focus-modes {gap:1.15rem;margin-top:.35rem;padding:0;border:0;border-radius:0;background:none;backdrop-filter:none;}
+.salon-ecran .focus-modes button {padding:.2rem .1rem;border-radius:0;background:none;font-size:clamp(.78rem,1.05vw,.95rem);letter-spacing:.14em;}
+.salon-ecran .focus-modes button.is-on {background:none;color:#fff;}
+.salon-ecran .salon-temps {margin:.15rem 0 .2rem;font-size:clamp(5rem,15vh,9rem);text-shadow:0 1px 12px rgba(0,0,0,.35);}
+.salon-ecran .focus-glass,.salon-ecran #salonDemarrer {width:3.35rem;height:3.05rem;border:1px solid rgba(255,255,255,.28);border-radius:.85rem;background:rgba(6,78,59,.28);color:#fff;box-shadow:none;}
+.salon-ecran #salonDemarrer:hover {background:rgba(5,150,105,.75);}
+.salon-ecran .salon-bottom {padding:.85rem 1.1rem calc(.95rem + env(safe-area-inset-bottom));}
+.salon-ecran .salon-info-chrono,.salon-ecran #salonAttente {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+.salon-marque {min-width:0;}
+.salon-ecran .salon-participants {align-items:flex-start;max-width:min(25rem,45vw);margin:.55rem 0 0;padding:0;border:0;background:none;}
+.salon-ecran .salon-participants-titre {position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+.salon-ecran .salon-participants-noms {justify-content:flex-start;max-height:4.5rem;}
+.salon-ecran .salon-participants small {font-size:.62rem;text-align:left;}
+.salon-reglage-page {max-width:54rem;}
+.salon-reglage-page .focus-page-titre {margin-bottom:1.3rem;}
+.salon-reglage-page .salon-carte {padding:1.2rem;border:1px solid rgba(110,231,183,.15);border-radius:1.1rem;background:rgba(255,255,255,.035);}
+.salon-reglage-page .salon-carte-bilan p {display:block;margin:.5rem 0;}
+.salon-menu-icone {display:inline-flex;align-items:center;justify-content:center;width:20px;flex:none;color:#6ee7b7;font-size:1.2rem;}
+#panelPomodoro #focusReglages .salon-reglage-page input:not([type=range]):not([type=checkbox]) {-webkit-user-select:text;user-select:text;caret-color:#d7f9de;cursor:text;}
+#panelPomodoro #focusReglages .salon-reglage-page input::selection {background:#94d5a8;color:#09291a;}
+.salon-fin-dialog .salon-creer {margin-top:1.15rem;width:100%;min-height:2.9rem;}
+@media(max-width:720px){
+ .salon-ecran .salon-top {padding:1rem 1rem 0;}
+ .salon-ecran .salon-centre {gap:.65rem;}
+ .salon-ecran .focus-modes {gap:.45rem;}
+ .salon-ecran .focus-modes button {font-size:.62rem;letter-spacing:.06em;}
+ .salon-ecran .salon-temps {font-size:clamp(4rem,19vw,7rem);}
+ .salon-ecran .salon-participants {max-width:48vw;}
+ .salon-ecran .salon-bottom {padding:.65rem .8rem max(.75rem,env(safe-area-inset-bottom));}
+}
+@media(max-height:650px) and (max-width:720px){
+ .salon-ecran .salon-top {padding:.7rem .8rem 0;}
+ .salon-ecran .salon-centre {gap:.4rem;}
+ .salon-ecran .salon-temps {font-size:clamp(3.5rem,18vw,5rem);}
+ .salon-ecran .focus-modes {gap:.35rem;}
+ .salon-ecran .focus-modes button {font-size:.54rem;}
+ .salon-ecran .salon-participants small {display:none;}
+ .salon-ecran .salon-bottom {padding:.4rem .65rem max(.5rem,env(safe-area-inset-bottom));}
+}

@@ -41,7 +41,11 @@ function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{cons
   await assert.rejects(guest.modifier(dataG.revision,{chrono:demarre}),e=>e.code==='permission-denied');
   await guest.quitter();stopG();
   await attendre(()=>dataH && !dataH.membres.some(m=>m.pseudo==='Camille'));
-  await host.fermer();stopH();
+  const encore=await adapter.rejoindre(host.id,'Camille');let fin=null;let erreursFin=[];
+  const stopFin=encore.observer((s)=>{if(s.ferme)fin=s;},e=>erreursFin.push(e));
+  await attendre(()=>dataH && dataH.membres.some(m=>m.pseudo==='Camille'));
+  await host.fermer();await attendre(()=>fin && fin.ferme);stopFin();stopH();
+  assert.deepEqual(erreursFin,[],'la fermeture ne doit pas être confondue avec un refus de liste des membres');
   await assert.rejects(adapter.reprendre(host.id));
   assert.deepEqual(errors,[]);
   console.log('OK adaptateur réel sur émulateur Firestore : créer, reprendre, rejoindre, présence, chrono, autorité et départ');
