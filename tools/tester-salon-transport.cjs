@@ -47,9 +47,11 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  const debut=core.commande(donnees.chrono,'demarrer',a.maintenant(),{});await a.modifier(1,{chrono:debut});
  await assert.rejects(a.modifier(1,{chrono:debut}),e=>e.code==='revision-conflict');
  const g=await guest.rejoindre(a.id,'Camille');assert.ok(Math.abs(g.maintenant()-Date.now())<2000,'horloge invitée recalée');assert.equal(hostAuth.user.uid,'host-1','le compte principal reste connecté');assert.equal(guestAuth.persistence,'SESSION');
+ assert.equal(await g.actualiserPresence(),true);
+ assert.ok(docs.get('salons_focus/'+a.id+'/membres/invite-1').vuLe instanceof Timestamp,'présence horodatée par le serveur');
  const recu=await new Promise((resolve,reject)=>{const stop=g.observer((room,etat)=>{if(etat.connecte){stop();resolve(room)}},reject)});
  assert.equal(recu.nom,'Salon A');assert.equal(recu.chrono.fin,debut.fin);assert.ok(Math.abs(core.temps(recu.chrono,g.maintenant()).restant-core.temps(debut,a.maintenant()).restant)<=1);
- assert.equal(recu.membres.some(x=>x.pseudo==='Camille'),true);assert.equal(docs.get('salons_focus/'+b.id).chrono.running,false);
+ assert.equal(recu.membres.some(x=>x.pseudo==='Camille' && Number.isFinite(x.vuLe)),true);assert.equal(docs.get('salons_focus/'+b.id).chrono.running,false);
  const etats=[];const stop=g.observer((d,etat)=>etats.push({d,etat}),e=>{throw e});await new Promise(r=>setTimeout(r,0));
  const listener=ecoutes.find(x=>x.type==='doc' && x.path==='salons_focus/'+a.id);
  listener.cb({exists:true,data:()=>({nom:'donnée non confirmée',ferme:false}),metadata:{fromCache:true,hasPendingWrites:true}});
@@ -57,6 +59,6 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  listener.cb(snapshot(listener.path));assert.equal(etats.at(-1).etat.connecte,true);stop();
  await assert.rejects(g.modifier(2,{chrono:debut}),e=>e.code==='permission-denied');
  hostDB.online=false;await assert.rejects(a.modifier(2,{chrono:debut}),/offline/);hostDB.online=true;assert.equal(docs.get('salons_focus/'+a.id).revision,2);
- await g.quitter();assert.equal(docs.has('salons_focus/'+a.id+'/membres/invite-1'),false);await a.fermer();assert.equal(docs.get('salons_focus/'+a.id).ferme,true);assert.equal(docs.get('salons_focus/'+b.id).ferme,false);
+ await g.quitter();assert.equal(docs.has('salons_focus/'+a.id+'/membres/invite-1'),false);assert.equal(await g.actualiserPresence(),false,'la présence ne recrée jamais un membre parti');await a.fermer();assert.equal(docs.get('salons_focus/'+a.id).ferme,true);assert.equal(docs.get('salons_focus/'+b.id).ferme,false);
  console.log('OK adaptateur Firestore simulé : liens, choix, compte isolé, horloges, retard, conflits et déconnexion. Règles NON testées.');
 })().catch(e=>{console.error(e);process.exit(1)});

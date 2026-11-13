@@ -145,3 +145,60 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
  .salon-ecran .salon-lien-champ input {padding:.55rem;font-size:.72rem;}
  .salon-copier {padding:.55rem .65rem;font-size:.7rem;}
 }
+
+/* La saisie et la copie restent natives, contrairement au décor Pomodoro. */
+#panelPomodoro .salon-ecran input:not([type=range]),
+#panelPomodoro .salon-ecran textarea {
+ -webkit-user-select:text;user-select:text;caret-color:#d7f9de;cursor:text;
+}
+#panelPomodoro .salon-ecran input::selection,#panelPomodoro .salon-ecran textarea::selection {background:#94d5a8;color:#09291a;}
+.salon-invitation [hidden],.salon-participants[hidden] {display:none!important;}
+.salon-invitation {box-sizing:border-box;width:min(27rem,calc(100% - 2rem));max-width:calc(100% - 2rem);padding:clamp(1.35rem,5vw,2.1rem);border:1px solid #b3dfbf66;border-radius:1.5rem;background:linear-gradient(145deg,#1b4938,#0c2b20);box-shadow:0 24px 80px #00120daa;}
+.salon-invitation::backdrop {background:#031b16ad;backdrop-filter:blur(5px);}
+.salon-invitation-embleme {width:3rem;height:3rem;margin-bottom:1.1rem;border-radius:1rem;background:#c6edcf;color:#17442b;box-shadow:none;}
+.salon-invitation h2 {margin:.55rem 0 .4rem;font-size:clamp(1.5rem,5vw,2rem);line-height:1.15;}
+.salon-invitation p {margin:.45rem 0;color:#d4e8d8;font-size:.9rem;line-height:1.5;}
+.salon-invitation label {margin:1.35rem 0 .55rem;color:#eaf8ed;font-size:.82rem;}
+.salon-invitation input {min-height:3.2rem;margin:0;border:1px solid #b7e3c488;border-radius:.8rem;background:#09261d;color:#fff;caret-color:#d7f9de;cursor:text;font-size:16px;user-select:text;-webkit-user-select:text;}
+.salon-invitation input::placeholder {color:#a8c5b0;opacity:1;}
+.salon-invitation input:focus {border-color:#bcf2ca;outline:2px solid #a8e6b980;outline-offset:2px;}
+.salon-invitation #salonInvitationStatut:not(:empty) {margin-top:.75rem;color:#f8dfbd;}
+.salon-invitation .salon-invitation-actions {display:flex;gap:.6rem;margin-top:1.2rem;}
+.salon-invitation .salon-invitation-actions button {min-height:2.9rem;}
+.salon-invitation .salon-creer {background:#c5ebcd;color:#173c29;}
+.salon-invitation .salon-invitation-alternative {display:block;width:100%;margin-top:.9rem;padding:.35rem;color:#ccebd3;border:0;background:transparent;font:600 .8rem system-ui;cursor:pointer;text-decoration:underline;text-underline-offset:.25em;}
+.salon-participants {display:flex;flex-direction:column;align-items:center;gap:.35rem;max-width:min(34rem,100%);margin:.15rem auto;padding:.55rem .85rem;border:1px solid #d4f4dc35;border-radius:1rem;background:#0a2c20a8;}
+.salon-participants-titre {color:#c8e9d0;font:700 .63rem system-ui;letter-spacing:.1em;text-transform:uppercase;}
+.salon-participants-noms {display:flex;justify-content:center;flex-wrap:wrap;gap:.3rem;max-height:4.5rem;overflow:auto;}
+.salon-participant {max-width:12rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:.28rem .6rem;border:1px solid #d6f3da33;border-radius:999px;background:#e6f8e615;color:#f4fff5;font:600 .72rem system-ui;}
+.salon-participants small {color:#d3e8d7;font:400 .62rem/1.3 system-ui;text-align:center;}
+.salon-attente-invitation .salon-participants {display:none!important;}
+@media(max-height:650px){.salon-invitation {padding:1rem 1.25rem}.salon-invitation-embleme{width:2.4rem;height:2.4rem;margin-bottom:.7rem}.salon-invitation label{margin-top:.8rem}.salon-participants{padding:.35rem .6rem}.salon-participants-noms{max-height:2rem}}
+/* En très petit écran, le début reste atteignable au défilement. */
+.salon-ecran .salon-centre {justify-content:safe center;}
+
+.salon-participant-recent::before {content:'';display:inline-block;width:.4rem;height:.4rem;margin-right:.4rem;border-radius:50%;background:#8fe5a5;vertical-align:.1em;}
+@media(max-height:650px) and (max-width:720px){
+ .salon-top-droite .focus-quote {display:none;}
+ .salon-ecran .salon-top {padding:.7rem .8rem 0;}
+ .salon-ecran .salon-etat {font-size:.6rem;padding:.25rem .45rem;}
+ .salon-meta {margin-top:.35rem;}
+ .salon-ecran .salon-quitter {padding:.4rem .55rem;font-size:.65rem;}
+ .salon-ecran .salon-centre {gap:.28rem;padding:.35rem .6rem;}
+ .salon-ecran .salon-temps {font-size:clamp(3.5rem,18vw,5rem);margin:.05rem 0;}
+ .salon-ecran .focus-modes {margin:.1rem 0;padding:.15rem;}
+ .salon-ecran .focus-modes button {padding:.42rem .35rem;font-size:.53rem;}
+ .salon-ecran .focus-glass {width:2.6rem;height:2.6rem;border-radius:.8rem;}
+ .salon-ecran .salon-message {max-height:3rem;overflow:auto;}
+ .salon-ecran .salon-lanceurs {flex-wrap:nowrap;gap:.25rem;padding:0 .4rem;margin:.2rem auto;}
+ .salon-ecran .salon-lanceurs button {white-space:nowrap;padding:.45rem .52rem;font-size:.62rem;}
+ .salon-ecran .salon-bottom {flex-wrap:nowrap;justify-content:space-between;padding:.4rem .65rem max(.5rem,env(safe-area-inset-bottom));}
+ .salon-ecran .salon-bottom .focus-outils {gap:.25rem;}
+ .salon-ecran .focus-rond,.salon-ecran .focus-flamme {width:2rem;height:2rem;}
+}
+@media(max-height:650px) and (max-width:720px){
+ .salon-ecran .salon-lanceurs {box-sizing:border-box;width:100%;max-width:100%;}
+ .salon-ecran .salon-lanceurs button {flex:1 1 0;min-width:0;padding:.45rem .1rem;font-size:.58rem;}
+}
+
+.salon-invitation .salon-invitation-embleme {display:grid;place-items:center;}

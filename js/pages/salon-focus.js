@@ -9,6 +9,10 @@
     try { var ancien = JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session') || 'null');
         if (ancien && /^[a-f0-9]{48}$/.test(ancien.id) && ['hote','invite'].indexOf(ancien.role) >= 0 && (!invitation || invitation===ancien.id)) { invitation=ancien.id; reprise=ancien; }
     } catch (e) {}
+    // Ce repère ne donne aucun droit : le serveur vérifie toujours le compte.
+    try { var repereHote=JSON.parse(localStorage.getItem('studyPlanIB_salon_hote') || 'null');
+        if (!reprise && invitation && repereHote && repereHote.id===invitation && repereHote.jusqua>Date.now()) reprise={id:invitation,role:'hote'};
+    } catch (e) {}
     try { delete window.__salonInvitation; } catch (e) { window.__salonInvitation = null; }
     var occupe = false, connecte = false, audioAutorise = false, lecteurs = {}, signatureAudio = '';
     var fondMontre = '', playlistChoisie = null, local = null, sonsPersonnels = [], generationAudio = 0;
@@ -26,6 +30,8 @@
     function isolerEcranSalon() { var e=$('salonEcran'),p=$('panelPomodoro');if(e && p && e.parentNode!==p)p.appendChild(e); }
     isolerEcranSalon();
     function statut(id, message) { var el = $(id), valeur = message || ''; if (el && el.textContent !== valeur) el.textContent = valeur; }
+    function propriete(el, cle, valeur) { if(el && el[cle]!==valeur) el[cle]=valeur; }
+    function attribut(el, cle, valeur) { if(el && el.getAttribute(cle)!==valeur) el.setAttribute(cle,valeur); }
     function heure() { return session && typeof session.maintenant === 'function' ? session.maintenant() : Date.now(); }
     function options() { var r={}; document.querySelectorAll('[name="salonPartage"]').forEach(function (e) { r[e.value] = e.checked; }); return coeur.autorisations(r); }
     function adresseSalon(id) {
@@ -87,7 +93,7 @@
     };
     function peindreMini(c){
         var temps=focusTexte(c.restant), hote=session.role==='hote';
-        $('salonPipTemps').textContent=temps;$('salonPipPlay').hidden=!hote;$('salonPipPlay').textContent=c.running?'❚❚':'▶';
+        statut('salonPipTemps',temps);$('salonPipPlay').hidden=!hote;$('salonPipPlay').textContent=c.running?'❚❚':'▶';
         if(miniSalon&&!miniSalon.closed){var doc=miniSalon.document,t=doc.getElementById('pipTime'),b=doc.getElementById('pipPlay'),scene=doc.getElementById('pipScene');
             if(t)t.textContent=temps;if(b){b.style.display=hote?'flex':'none';var play=b.querySelector('.pip-ico-play'),pause=b.querySelector('.pip-ico-pause');if(play)play.style.display=c.running?'none':'block';if(pause)pause.style.display=c.running?'block':'none';b.setAttribute('aria-label',c.running?'Pause':'Démarrer');}
             if(scene)scene.style.backgroundImage=$('salonDecor').style.backgroundImage;
@@ -142,12 +148,13 @@
             if (dialog && !dialog.open) dialog.showModal();
             if (!actif) { $('salonRejoindreBouton').disabled=true; statut('salonInvitationStatut','Le service de salon n’est pas encore activé.'); }
             else if (typeof transport.reprendre==='function') verifierOrganisateur();
+            else formulaireInvite();
             if (actif && typeof transport.apercu==='function') {
                 var idApercu=invitation;
                 transport.apercu(idApercu).then(function(data){
                     if(invitation!==idApercu || session || !data)return;
                     $('salonTitre').textContent=coeur.texte(data.nom,60);
-                    try {var c=coeur.temps(data.chrono,data.maintenant);$('salonTemps').textContent=focusTexte(c.restant);$('salonPhase').textContent=({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode];}catch(e){}
+                    try {var c=coeur.temps(data.chrono,data.maintenant);$('salonTemps').textContent=focusTexte(c.restant);statut('salonPhase',({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode]);}catch(e){}
                     var selection=coeur.autorisations(data.options), part=coeur.contenus(selection,data.partage||{});
                     if(selection.theme && part.theme)decor(part.theme,false);
                     $('salonCitation').textContent=selection.citations && part.citation && part.citation.visible?part.citation.texte:'';
@@ -157,16 +164,16 @@
     }
     function formulaireInvite() {
         verifierHote=false;$('salonInvitationTitre').textContent='Rejoins le salon';
-        $('salonInvitationDescription').textContent='Choisis un pseudo visible des personnes présentes. Aucun compte n’est nécessaire.';
+        $('salonInvitationDescription').textContent='Choisis le nom que les autres verront dans le salon. Tu peux rejoindre sans compte.';
         $('salonPseudo').hidden=false;$('salonPseudo').required=true;$('salonPseudoLabel').hidden=false;
-        $('salonRejoindreBouton').textContent='Rejoindre';$('salonRejoindreBouton').disabled=false;statut('salonInvitationStatut','');
+        $('salonRejoindreBouton').textContent='Entrer dans le salon';$('salonRejoindreBouton').disabled=false;$('salonInvitationOrganisateur').hidden=false;$('salonInvitationInvite').hidden=true;statut('salonInvitationStatut','');
     }
     function verifierOrganisateur() {
         if(!invitation || occupe || !transport || typeof transport.reprendre!=='function')return;
         var id=invitation, hoteConnu=!!(reprise && reprise.role==='hote');verifierHote=true;occupe=true;
         $('salonInvitationTitre').textContent='Connexion au salon';$('salonInvitationDescription').textContent='Vérification de ton accès…';
         $('salonPseudo').hidden=true;$('salonPseudo').required=false;$('salonPseudoLabel').hidden=true;
-        $('salonRejoindreBouton').textContent='Réessayer';$('salonRejoindreBouton').disabled=true;statut('salonInvitationStatut','');
+        $('salonRejoindreBouton').textContent='Vérification…';$('salonRejoindreBouton').disabled=true;$('salonInvitationOrganisateur').hidden=true;$('salonInvitationInvite').hidden=true;statut('salonInvitationStatut','');
         Promise.resolve().then(function(){return transport.reprendre(id);}).then(function(s){
             if(invitation!==id)return;occupe=false;invitation=null;reprise=null;verifierHote=false;$('salonInvitation').close();ouvrirPomodoro();commencer(s,null,'');
         }).catch(function(e){
@@ -174,9 +181,11 @@
             if(!hoteConnu && e && (e.code==='auth-required' || e.code==='permission-denied')) { formulaireInvite();return; }
             $('salonInvitationTitre').textContent=hoteConnu?'Reprendre ton salon':'Vérifier ton accès';
             $('salonInvitationDescription').textContent=hoteConnu?'Reconnecte-toi pour retrouver ton salon et son minuteur.':'La vérification n’a pas abouti. Réessaie avant de rejoindre.';
-            $('salonRejoindreBouton').disabled=false;statut('salonInvitationStatut',erreur(e));
+            $('salonRejoindreBouton').textContent='Réessayer';$('salonRejoindreBouton').disabled=false;$('salonInvitationInvite').hidden=!hoteConnu;statut('salonInvitationStatut',erreur(e));
         });
     }
+    window.salonChoisirInvite=function(){if(!invitation || occupe)return;reprise=null;formulaireInvite();};
+    window.salonVerifierOrganisateur=function(){if(!invitation || occupe)return;reprise={id:invitation,role:'hote'};verifierOrganisateur();};
     function init() {
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
@@ -185,9 +194,11 @@
     setTimeout(init,0);
     function commencer(s, initial, pseudo) {
         if (!s || !/^[a-f0-9]{48}$/.test(s.id) || ['hote','invite'].indexOf(s.role) < 0 || typeof s.maintenant !== 'function' || typeof s.observer !== 'function' || typeof s.modifier !== 'function' || typeof s.quitter !== 'function' || typeof s.fermer !== 'function') throw new Error('Session invalide');
-        session = s;adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
+        session = s;
+        if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
+        adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
         try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
-        local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; finObservee=0; signalees={}; partageInitialise=false;
+        local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false;
         $('salonEspace').open=false;$('salonEspace').classList.remove('salon-fiche-active');document.querySelectorAll('[data-salon-fiche]').forEach(function(e){e.hidden=false;});
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
         try { var obj=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_objectif_'+s.id)||'{}'); $('salonObjectif').value=coeur.texte(obj.texte,160); $('salonObjectifFait').checked=obj.fait===true; } catch(e) {}
@@ -207,7 +218,7 @@
         $('salonAttente').hidden = session.role === 'hote';
         $('salonReglages').hidden = session.role !== 'hote';
         $('salonQuitterBouton').textContent = session.role === 'hote' ? 'Fermer le salon' : 'Quitter le salon';
-        statut('salonMessage',minuteurPersonnelPause ? 'Ton minuteur personnel a été mis en pause pendant le salon.' : 'Le minuteur du salon est indépendant de ton minuteur personnel.');
+        statut('salonMessage',minuteurPersonnelPause ? 'Ton minuteur personnel a été mis en pause pendant le salon.' : '');
         arreterEcoute = session.observer(function (data, etat) {
             connecte = !!(etat && etat.connecte);
             if (data && salle && Number(data.revision) < Number(salle.revision)) return;
@@ -323,8 +334,8 @@
         if (Array.isArray(sons)) ids=ids.concat(sons);
         if (musique && Array.isArray(musique.sons)) ids=ids.concat(musique.sons);
         ids=ids.filter(function(id,i,a){return a.indexOf(id)===i && !!focusSonParId(id);});
-        $('salonAutoriserAudio').hidden=!ids.length;
-        $('salonAutoriserAudio').textContent=audioAutorise?'Couper les sons':'Activer les sons';
+        propriete($('salonAutoriserAudio'),'hidden',!ids.length);
+        statut('salonAutoriserAudio',audioAutorise?'Couper les sons':'Activer les sons');
         if (!audioAutorise) return;
         var signature=JSON.stringify(ids);if(signature===signatureAudio)return;stopperAudio();signatureAudio=signature;var generation=generationAudio;
         ids.forEach(function(id){ var son=focusSonParId(id), audio=new Audio(son.fichier);audio.loop=true;audio.volume=focusVolume(id)*volumeSalon;lecteurs[id]=audio;var p=audio.play();if(p&&p.catch)p.catch(function(){if(generation!==generationAudio)return;statut('salonMessage','La lecture est bloquée : touche « Activer les sons » pour réessayer.');audioAutorise=false;stopperAudio();}); });
@@ -344,7 +355,7 @@
         if(v==='son') try { var AudioContext=window.AudioContext||window.webkitAudioContext; if(AudioContext) { contexteSignal=contexteSignal||new AudioContext(); contexteSignal.resume(); } } catch(e) {}
     };
     function signalerFin(c) {
-        if (salle.chrono.running && salle.chrono.fin > 0 && c.restant > 0) { finObservee=salle.chrono.fin; $('salonSignalVisuel').hidden=true; }
+        if (salle.chrono.running && salle.chrono.fin > 0 && c.restant > 0) { finObservee=salle.chrono.fin; propriete($('salonSignalVisuel'),'hidden',true); }
         if (!finObservee || c.restant !== 0 || signalees[finObservee]) return;
         signalees[finObservee]=true;finObservee=0;
         if(signalFin==='visuel') $('salonSignalVisuel').hidden=false;
@@ -397,19 +408,19 @@
     function peindreGroupe() {
         var hote=session.role==='hote', membres=Array.isArray(salle.membres)?salle.membres.slice(0,40):[], m=moi();
         if(m && !partageInitialise) { $('salonObjectifPartager').checked=m.objectifPartage===true; partageInitialise=true; }
-        $('salonCommandes').hidden=!hote; $('salonAttente').hidden=hote; $('salonReglages').hidden=!hote;
-        $('salonQuitterBouton').textContent=hote?'Fermer le salon':'Quitter le salon';
-        $('salonOutilsHote').hidden=!hote;$('salonAmbianceHote').hidden=!hote;
-        $('salonPret').disabled=!connecte || typeof session.personnaliser!=='function';
-        $('salonObjectifPartager').disabled=typeof session.personnaliser!=='function' || (!connecte && !$('salonObjectifPartager').checked);
-        $('salonPret').textContent=m && m.pret?'✨ Je ne suis plus prêt':'✨ Je suis prêt';
-        $('salonVerrou').textContent=salle.verrouille?'Déverrouiller le salon':'Verrouiller le salon';
-        $('salonVerrou').disabled=!connecte || typeof session.verrouiller!=='function';
-        $('salonCoupPouce').disabled=!connecte || typeof session.demanderAide!=='function';
+        propriete($('salonCommandes'),'hidden',!hote);propriete($('salonAttente'),'hidden',hote);propriete($('salonReglages'),'hidden',!hote);
+        statut('salonQuitterBouton',hote?'Fermer le salon':'Quitter le salon');
+        propriete($('salonOutilsHote'),'hidden',!hote);propriete($('salonAmbianceHote'),'hidden',!hote);
+        propriete($('salonPret'),'disabled',!connecte || typeof session.personnaliser!=='function');
+        propriete($('salonObjectifPartager'),'disabled',typeof session.personnaliser!=='function' || (!connecte && !$('salonObjectifPartager').checked));
+        statut('salonPret',m && m.pret?'✨ Je ne suis plus prêt':'✨ Je suis prêt');
+        statut('salonVerrou',salle.verrouille?'Déverrouiller le salon':'Verrouiller le salon');
+        propriete($('salonVerrou'),'disabled',!connecte || typeof session.verrouiller!=='function');
+        propriete($('salonCoupPouce'),'disabled',!connecte || typeof session.demanderAide!=='function');
         if(typeof session.personnaliser!=='function')statut('salonRituelInfo','Partage de l’objectif et rituel prêts : bientôt disponibles dans le salon.');
         var bilan=salle.bilan;
         statut('salonBilan',bilan && Number.isFinite(bilan.secondes) && Number.isFinite(bilan.sessions) ? Math.floor(Math.max(0,bilan.secondes)/60)+' min de concentration · '+Math.max(0,bilan.sessions)+' session(s) terminée(s) ensemble' : 'Le bilan commun est en préparation pour ce salon.');
-        statut('salonGroupeInfo',membres.length ? membres.filter(function(x){return x.pret;}).length+' prêt(s) sur '+membres.length+' participant(s)' : 'Les participants apparaîtront ici.');
+        statut('salonGroupeInfo',membres.length ? membres.length+' personne(s) inscrite(s) · '+membres.filter(function(x){return x.pret;}).length+' prêt(s)' : 'Les participants apparaîtront ici.');
         var signature=JSON.stringify([membres,discret,hote,connecte,!!session.retirer,!!session.transferer,!!session.encourager]);
         if(signature===signatureGroupe)return;signatureGroupe=signature;
         var liste=$('salonListeMembres'), encouragements=$('salonEncouragements');liste.textContent='';encouragements.textContent='';
@@ -443,27 +454,42 @@
         if(!session || !salle) return;
         var choix=coeur.autorisations(salle.options), p=coeur.contenus(choix,salle.partage || {}), c;
         try { c=coeur.temps(salle.chrono,heure()); } catch(e) { statut('salonMessage','Le minuteur reçu est invalide.');return; }
-        $('salonTitre').textContent=coeur.texte(salle.nom,60);
-        $('salonPhase').textContent=({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode];
-        $('salonTemps').textContent=focusTexte(c.restant);peindreMini(c);
+        statut('salonTitre',coeur.texte(salle.nom,60));
+        statut('salonPhase',({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode]);
+        statut('salonTemps',focusTexte(c.restant));peindreMini(c);
         statut('salonInfoChrono',c.restant===0?'Temps écoulé · en attente de l’organisateur':(c.running?'En cours':'En pause'));
-        $('salonDemarrer').setAttribute('aria-label',c.running?'Pause':'Démarrer');$('salonIconPlay').style.display=c.running?'none':'block';$('salonIconPause').style.display=c.running?'block':'none';
-        $('salonAstuce').textContent=FOCUS_ASTUCES[c.mode]||'';var flamme=$('focusFlamme');if(flamme)$('salonFlamme').textContent=flamme.textContent;
+        attribut($('salonDemarrer'),'aria-label',c.running?'Pause':'Démarrer');propriete($('salonIconPlay').style,'display',c.running?'none':'block');propriete($('salonIconPause').style,'display',c.running?'block':'none');
+        statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');var flamme=$('focusFlamme');if(flamme)statut('salonFlamme',flamme.textContent);
         signalerFin(c);peindreGroupe();
-        $('salonCommandes').querySelectorAll('button').forEach(function(b){b.disabled=!connecte||occupe;});
-        document.querySelectorAll('#salonEcran [data-mode]').forEach(function(b){b.disabled=session.role!=='hote'||!connecte||occupe;b.classList.toggle('is-on',b.dataset.mode===c.mode);b.setAttribute('aria-pressed',String(b.dataset.mode===c.mode));});
+        $('salonCommandes').querySelectorAll('button').forEach(function(b){propriete(b,'disabled',!connecte||occupe);});
+        document.querySelectorAll('#salonEcran [data-mode]').forEach(function(b){propriete(b,'disabled',session.role!=='hote'||!connecte||occupe);b.classList.toggle('is-on',b.dataset.mode===c.mode);attribut(b,'aria-pressed',String(b.dataset.mode===c.mode));});
         var h=choix.horloge && p.horloge ? p.horloge : local.horloge;
         var police=FOCUS_POLICES.some(function(x){return x.id===h.police})?h.police:'gras';
         var taille=FOCUS_TAILLES.some(function(x){return x.id===h.taille})?h.taille:'normale';
-        $('salonEcran').className='salon-ecran focus-police-'+police+' focus-taille-'+taille;
-        $('salonHeure').textContent=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        var classe='salon-ecran focus-police-'+police+' focus-taille-'+taille;if($('salonEcran').className!==classe)$('salonEcran').className=classe;
+        statut('salonHeure',new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
         var citation=choix.citations && p.citation ? p.citation : local.citation;
-        $('salonCitation').textContent=citation.visible?citation.texte:'';
+        statut('salonCitation',citation.visible?citation.texte:'');
         var decorPartage = choix.theme && p.theme;
         decor(decorPartage ? p.theme : local.themeLocal, !decorPartage);
         peindreAudio(p,choix);
         var membres=Array.isArray(salle.membres)?salle.membres:[];
+        peindreParticipants(membres);
         statut('salonMembres',membres.length ? 'Participants : '+membres.slice(0,40).map(function(m){return coeur.texte(m && m.pseudo,30);}).filter(Boolean).join(' · ') : '');
+    }
+    var signatureParticipants='';
+    function peindreParticipants(membres) {
+        var zone=$('salonParticipants'), noms=$('salonParticipantsNoms'), maintenant=heure();
+        var liste=membres.slice(0,40).map(function(m){
+            var date=Number(m && m.vuLe), connue=connecte && Number.isFinite(date) && date>0;
+            return {nom:coeur.texte(m && m.pseudo,30),etat:!connue?'inconnue':(date<=maintenant+30000 && maintenant-date<=120000?'recente':'ancienne')};
+        }).filter(function(m){return m.nom && m.etat!=='ancienne';});
+        var signature=JSON.stringify([liste,discret,connecte]);
+        if(signature===signatureParticipants)return;
+        signatureParticipants=signature;zone.hidden=discret || !liste.length;
+        noms.textContent='';
+        liste.forEach(function(m){var puce=document.createElement('span');puce.className='salon-participant'+(m.etat==='recente'?' salon-participant-recent':'');puce.textContent=m.nom;puce.title=m.etat==='recente'?'Activité récente':'Présence non vérifiée';noms.appendChild(puce);});
+        statut('salonParticipantsInfo',!connecte?'Connexion interrompue · présences non vérifiées':liste.some(function(m){return m.etat==='inconnue';})?'Présence de certains participants non vérifiée.':'Point vert : activité dans les deux dernières minutes.');
     }
     function finirLocal(message) {
         var bilanFinal=salle && salle.bilan;

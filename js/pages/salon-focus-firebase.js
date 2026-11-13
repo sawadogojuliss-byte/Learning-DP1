@@ -40,10 +40,40 @@
         async function session(contexte,id,role,offset) {
             validationId(id);
             var db=contexte.db, room=db.collection('salons_focus').doc(id), membre=room.collection('membres').doc(contexte.user.uid);
-            var delta=offset, ferme=false, listeConfirmee=[];
+            var delta=offset, ferme=false, listeConfirmee=[], presenceTimer=null, presenceEnCours=null, presenceActive=false, presenceSouhaitee=false, presenceDisponible=true;
             function maintenant(){return Math.round(horloge()+delta);}
             function objet(snap){ if(!snap.exists)throw erreur('not-found');return snap.data(); }
+            // Une présence est un signal récent, non une preuve de connexion permanente.
+            // Avec les anciennes règles, la mise à jour est refusée et l'interface
+            // indique honnêtement que la présence n'est pas vérifiable.
+            async function actualiserPresence() {
+                if (ferme || !presenceDisponible) return false;
+                try {
+                    return await db.runTransaction(async function(tx){
+                        var snap=await tx.get(membre);
+                        if(!snap.exists)return false;
+                        tx.update(membre,{vuLe:firebase.firestore.FieldValue.serverTimestamp()});
+                        return true;
+                    });
+                } catch(e) {
+                    if(e && e.code==='permission-denied') presenceDisponible=false;
+                    return false;
+                }
+            }
+            function battement() {
+                if(!presenceActive || presenceEnCours)return;
+                presenceEnCours=actualiserPresence().then(function(){presenceEnCours=null;},function(){presenceEnCours=null;});
+            }
+            function demarrerPresence() {
+                if(!presenceSouhaitee || presenceActive)return;
+                presenceActive=true;battement();presenceTimer=setInterval(battement,35000);
+            }
+            async function arreterPresence() {
+                presenceActive=false;clearInterval(presenceTimer);presenceTimer=null;
+                if(presenceEnCours)await presenceEnCours;
+            }
             function observer(callback,surErreur) {
+                presenceSouhaitee=true;demarrerPresence();
                 var salle=null, membres=null, synchroniseSalle=false, synchroniseMembres=false, arrete=false;
                 function emettre(){if(!arrete && salle && salle.ferme)callback(salle,{connecte:synchroniseSalle});else if(!arrete && salle && membres)callback(Object.assign({},salle,{membres:membres}),{connecte:synchroniseSalle&&synchroniseMembres});}
                 var a=room.onSnapshot({includeMetadataChanges:true},function(snap){
@@ -55,10 +85,10 @@
                 var b=room.collection('membres').onSnapshot({includeMetadataChanges:true},function(snap){
                     synchroniseMembres=!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites;
                     if(!synchroniseMembres) { emettre();return; }
-                    membres=snap.docs.map(function(d){return {uid:d.id,pseudo:d.data().pseudo};});listeConfirmee=membres;emettre();
+                    membres=snap.docs.map(function(d){var v=d.data();return {uid:d.id,pseudo:v.pseudo,vuLe:v.vuLe && typeof v.vuLe.toMillis==='function'?v.vuLe.toMillis():null};});listeConfirmee=membres;emettre();
                 },function(e){if(!arrete && !(salle && salle.ferme))surErreur(e);});
                 var interval=setInterval(function(){if(!arrete && !ferme)heureServeur(contexte).then(function(d){delta=d;},function(){surErreur(erreur('clock-unavailable'));});},60000);
-                return function(){arrete=true;clearInterval(interval);a();b();};
+                return function(){arrete=true;presenceSouhaitee=false;presenceActive=false;clearInterval(presenceTimer);presenceTimer=null;clearInterval(interval);a();b();};
             }
             async function modifier(revision,changement) {
                 if (role!=='hote') throw erreur('permission-denied');
@@ -77,12 +107,13 @@
                     return Object.assign({},d,patch,{membres:listeConfirmee.slice()});
                 });
             }
-            async function quitter(){await db.runTransaction(function(tx){tx.delete(membre);return Promise.resolve();});}
+            async function quitter(){await arreterPresence();try {await db.runTransaction(function(tx){tx.delete(membre);return Promise.resolve();});} catch(e) {demarrerPresence();throw e;}}
             async function fermer(){
                 if(role!=='hote')throw erreur('permission-denied');
-                await db.runTransaction(async function(tx){var d=objet(await tx.get(room));if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');if(d.ferme)return;tx.update(room,{ferme:true,revision:d.revision+1});});ferme=true;
+                await arreterPresence();
+                try {await db.runTransaction(async function(tx){var d=objet(await tx.get(room));if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');if(d.ferme)return;tx.update(room,{ferme:true,revision:d.revision+1});});ferme=true;} catch(e) {demarrerPresence();throw e;}
             }
-            return {id:id,uid:contexte.user.uid,role:role,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer};
+            return {id:id,uid:contexte.user.uid,role:role,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence};
         }
         async function creer(donnees) {
             var contexte=await organisateur(), delta=await heureServeur(contexte);

@@ -31,6 +31,9 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertFails(getDocs(collection(guest,'salons_focus')));
   await assertSucceeds(setDoc(doc(guest,chemin(id)+'/membres/guest'),{pseudo:'Camille'}));
   await assertFails(setDoc(doc(guest,chemin(id)+'/membres/intrus'),{pseudo:'Camille'}));
+  await assertSucceeds(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
+  await assertFails(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:Timestamp.fromMillis(Date.now()+3600000)}));
+  await assertFails(updateDoc(doc(intrus,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
   await assertFails(setDoc(doc(guest,chemin(id)+'/membres/guest'),{pseudo:'Camille',role:'hote'}));
   await assertFails(updateDoc(doc(guest,chemin(id)),{revision:2,chrono:{mode:'focus',total:1,restant:1,running:false,fin:0}}));
   await assertFails(updateDoc(doc(host,chemin(id)),{revision:2,organisateurUid:'guest'}));

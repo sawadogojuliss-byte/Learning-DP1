@@ -497,13 +497,17 @@ service cloud.firestore {
             && (get(/databases/$(database)/documents/salons_focus/$(salonId)).data.verrouille == false || membre());
         }
         function pseudoValide() {
-          return request.resource.data.keys().hasAll(['pseudo']) && request.resource.data.keys().hasOnly(['pseudo'])
+          return request.resource.data.keys().hasAll(['pseudo']) && request.resource.data.keys().hasOnly(['pseudo', 'vuLe'])
             && request.resource.data.pseudo is string && request.resource.data.pseudo.size() > 0
-            && request.resource.data.pseudo.size() <= 30 && request.resource.data.pseudo.matches('.*[^ ].*');
+            && request.resource.data.pseudo.size() <= 30 && request.resource.data.pseudo.matches('.*[^ ].*')
+            && (!('vuLe' in request.resource.data) || request.resource.data.vuLe is timestamp);
         }
         allow get, list: if parentLisible();
-        allow create: if parentActif() && parentDeverrouille() && request.auth.uid == uid && pseudoValide();
-        allow update: if parentActif() && request.auth.uid == uid && pseudoValide();
+        allow create: if parentActif() && parentDeverrouille() && request.auth.uid == uid && pseudoValide()
+          && (!('vuLe' in request.resource.data) || request.resource.data.vuLe == request.time);
+        allow update: if parentActif() && request.auth.uid == uid && pseudoValide()
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['vuLe'])
+              || !('vuLe' in request.resource.data) || request.resource.data.vuLe == request.time);
         allow delete: if request.auth != null && request.auth.uid == uid;
       }
     }

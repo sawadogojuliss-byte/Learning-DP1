@@ -132,6 +132,7 @@ jobs:
           executer_test travail/tools/tester-salon-fonctions.mjs
           executer_test travail/tools/tester-salon-liens.mjs
           executer_test travail/tools/tester-salon-copie.mjs
+          executer_test travail/tools/tester-salon-deux-telephones.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
