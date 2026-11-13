@@ -91,7 +91,11 @@
         if(session && (id==='statistiques' || (id==='salon' && !editionPartage))) return;
         if(!session && id.indexOf('reunion-')===0)return;
         var changement=focusOngletCourant!==id, resultat=choisirOngletPersonnel.apply(this,arguments);
-        if(changement && id.indexOf('reunion-')===0)document.querySelector('#focusReglages .focus-tiroir-contenu').scrollTop=0;
+        if(changement && id.indexOf('reunion-')===0) {
+            var contenu=document.querySelector('#focusReglages .focus-tiroir-contenu');contenu.scrollTop=0;
+            // Certains navigateurs restaurent l'ancienne position après le changement de page.
+            requestAnimationFrame(function(){if(focusOngletCourant===id)contenu.scrollTop=0;});
+        }
         return resultat;
     };
     window.salonOuvrirFiche=function(nom) {
