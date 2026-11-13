@@ -103,10 +103,10 @@ try {
   await gp.locator('#salonAutoriserAudio').click();await gp.waitForFunction(()=>window.__sonsJoues.some(a=>a.currentSrc.includes('piano.mp3')&&!a.paused),{timeout:30000});
   assert.equal(room.membres.filter(m=>m.uid==='guest').length,1,'la reprise ne duplique pas le participant');
   await hp.reload({waitUntil:'domcontentloaded'});await hp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
-  await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && !document.getElementById('salonInvitation')?.open);
+  await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && document.getElementById('salonCommandes') && !document.getElementById('salonCommandes').hidden && !document.getElementById('salonInvitation')?.open);
   assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’organisateur reprend sans pseudo');
   await hp.evaluate(()=>sessionStorage.removeItem('studyPlanIB_salon_session'));await hp.reload({waitUntil:'domcontentloaded'});
-  await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && !document.getElementById('salonInvitation')?.open,{timeout:60000});
+  await hp.waitForFunction(()=>document.getElementById('salonPhase')?.textContent==='Pause courte' && document.getElementById('salonCommandes') && !document.getElementById('salonCommandes').hidden && !document.getElementById('salonInvitation')?.open,{timeout:60000});
   assert.equal(await hp.locator('#salonCommandes').isVisible(),true,'l’identité serveur reconnaît l’organisateur sans mémo local');
   assert.equal(await hp.evaluate(()=>location.hash),'#salon='+id);
 
