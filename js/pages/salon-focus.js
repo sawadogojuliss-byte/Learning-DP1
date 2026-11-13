@@ -21,6 +21,10 @@
         if (['visuel','son','aucun'].indexOf(preference.signal) >= 0) signalFin = preference.signal;
     } catch (e) {}
     var $ = function (id) { return document.getElementById(id); };
+    // Les mêmes classes visuelles ne doivent pas devenir des descendants de la
+    // barre Pomodoro personnelle (sélecteurs, tests et navigation restent isolés).
+    function isolerEcranSalon() { var e=$('salonEcran'),p=$('panelPomodoro');if(e && p && e.parentNode!==p)p.appendChild(e); }
+    isolerEcranSalon();
     function statut(id, message) { var el = $(id), valeur = message || ''; if (el && el.textContent !== valeur) el.textContent = valeur; }
     function heure() { return session && typeof session.maintenant === 'function' ? session.maintenant() : Date.now(); }
     function options() { var r={}; document.querySelectorAll('[name="salonPartage"]').forEach(function (e) { r[e.value] = e.checked; }); return coeur.autorisations(r); }
@@ -121,6 +125,7 @@
     }
     function pret() {
         if (!$('salonCreer')) return;
+        isolerEcranSalon();
         var actif = !!(transport && typeof transport.creer === 'function' && typeof transport.rejoindre === 'function');
         $('salonCreer').disabled = !actif;
         statut('salonStatutCreation', actif ? 'Version d’essai : les invités rejoignent avec un pseudo. Le lien donne accès au salon.' : 'Le service de salon n’est pas encore activé.');
