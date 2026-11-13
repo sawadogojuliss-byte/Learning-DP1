@@ -37,3 +37,38 @@
 @media(max-width:760px) { .salon-cartes { grid-template-columns:1fr; }.salon-espace summary small { display:none; }.salon-carte-bilan { grid-column:auto; } }
 
 .salon-options .salon-selection-resume { display:inline-block; padding:.45rem .7rem; margin:0 0 .8rem; border:1px solid #72d69b55; border-radius:.6rem; background:#164c35; color:#e3f9e9; font-weight:700; }
+/* Outils et feuilles du salon, inspirés du minuteur. */
+.salon-lanceurs { display:flex;justify-content:center;flex-wrap:wrap;gap:.45rem;margin:0 auto 1rem;max-width:65rem; }
+.salon-lanceurs button { border:1px solid #e4ffeb66;background:#073226c9;color:white;border-radius:999px;padding:.6rem .9rem;font:650 .8rem system-ui;cursor:pointer;backdrop-filter:blur(10px); }
+.salon-lanceurs button:hover { background:#187756; }.salon-espace .salon-carte[hidden] { display:none!important; }.salon-espace.salon-fiche-active .salon-cartes { grid-template-columns:1fr; }.salon-espace.salon-fiche-active { position:fixed;z-index:10;right:1.2rem;bottom:1.2rem;width:min(27rem,calc(100% - 2.4rem));max-height:85dvh;overflow:auto; }.salon-espace.salon-fiche-active .salon-carte-bilan { grid-column:auto; }
+.salon-lien-carte { position:relative;display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;max-width:44rem;margin:1rem auto;padding:1rem;border:1px solid #b6ebc77a;border-radius:1rem;background:#123e2ce8;box-shadow:0 1rem 3rem #00140b80; }.salon-lien-carte[hidden] {display:none!important}.salon-lien-carte p {margin:.3rem 0;color:#daefe1;font-size:.82rem}.salon-lien-carte input { flex:1 1 16rem;min-width:0;color:#effff3;background:#061f16;border:1px solid #80c69c88;border-radius:.6rem;padding:.65rem; }.salon-lien-fermer { position:absolute;right:.5rem;top:.35rem;color:white;background:transparent;border:0;font-size:1.2rem;cursor:pointer; }
+body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.salon-actif #focusReglages { z-index:100; }
+.salon-invitation { position:fixed;inset:0;margin:auto;max-height:calc(100dvh - 3rem);overflow:auto;background:linear-gradient(155deg,#174536,#09251b);border-color:#9be5b47a;box-shadow:0 2rem 6rem #001109b0;padding:clamp(1.4rem,4vw,2.2rem); }.salon-invitation::backdrop {background:#00130a99;backdrop-filter:blur(3px)}.salon-invitation h2 {font-size:clamp(1.65rem,5vw,2.2rem);letter-spacing:-.04em;}.salon-invitation-embleme {display:grid;place-items:center;width:3.2rem;height:3.2rem;margin-bottom:1.2rem;border:1px solid #9be5b466;border-radius:1rem;color:#c1f7d0;background:#326d4c;box-shadow:0 8px 24px #001c1066}.salon-invitation input {margin-bottom:.5rem}.salon-invitation form>div:last-child {margin-top:1.1rem}
+.salon-attente-invitation .salon-lanceurs,.salon-attente-invitation .salon-pied,.salon-attente-invitation .salon-espace,.salon-attente-invitation .salon-barre button {display:none!important}
+@media(max-width:720px){.salon-espace.salon-fiche-active {right:.7rem;bottom:.7rem;width:calc(100% - 1.4rem);max-height:72dvh}.salon-lien-carte {margin:.8rem 0}.salon-lanceurs {justify-content:flex-start}.salon-lanceurs button {padding:.55rem .75rem}}
+.salon-mini-bouton { margin-top:.65rem;color:white;cursor:pointer;font-size:1.15rem; }.salon-pip[hidden] {display:none!important}.salon-pip .focus-pip-scene {display:flex;align-items:center;justify-content:center;flex-direction:column;height:100%;background:#153d2d}.salon-pip .focus-pip-temps {margin:0;font-size:clamp(2.5rem,8vw,5rem);font-weight:800}.salon-pip .focus-pip-play {background:#276c4d;border:1px solid #c5f5d5;border-radius:.6rem;color:#fff;padding:.5rem 1rem;cursor:pointer}.salon-pip .focus-pip-play[hidden]{display:none}.salon-attente-invitation .salon-mini-bouton{display:none!important}
+/* Reprendre la structure et les boutons du Pomodoro, sans exposer son chrono personnel. */
+.salon-ecran .salon-interface { background:transparent; padding:0; min-height:100dvh; height:100dvh; }
+.salon-ecran .salon-top { flex:0 0 auto; }
+.salon-top-droite { display:flex;flex-direction:column;align-items:flex-end;gap:.45rem; }
+.salon-top-droite .focus-quote { margin:.45rem 0 0; }
+.salon-etat { display:block;font:600 .75rem system-ui;color:#d5efdd;margin-top:.45rem; }
+.salon-ecran .salon-heure { margin:.3rem 0 0;font-size:.9rem; }
+.salon-ecran .salon-centre { flex:1;min-height:0;padding:1rem 1.25rem .5rem;gap:.85rem;overflow:auto; }
+.salon-ecran .salon-titre { margin:0;overflow-wrap:anywhere; }
+.salon-ecran .salon-temps { margin:.15rem 0 .2rem;font-size:clamp(5rem,15vh,9rem);letter-spacing:-.045em;line-height:.9; }
+.salon-ecran .focus-modes button:disabled {cursor:default;opacity:.72;}
+.salon-ecran .focus-modes button.is-on:disabled {color:white;opacity:1;}
+.salon-controles-ensemble {display:flex;align-items:center;justify-content:center;gap:.7rem;}
+.salon-ecran #salonCommandes[hidden],.salon-ecran #salonPipInvite[hidden] {display:none!important;}
+.salon-info-chrono,.salon-message,.salon-ecran #salonAttente {font-size:.75rem;margin:0;color:#e3f2e9;}
+.salon-message:empty {display:none;}
+.salon-ecran .salon-lanceurs {flex:0 0 auto;margin:.15rem auto;}
+.salon-ecran .salon-bottom {flex:0 0 auto;}
+.salon-ecran .salon-espace:not([open]) {display:none;}
+.salon-ecran .salon-espace {position:fixed;z-index:12;right:1.2rem;bottom:5rem;width:min(27rem,calc(100% - 2.4rem));max-height:75dvh;overflow:auto;}
+.salon-ecran .salon-cartes {grid-template-columns:1fr;}
+.salon-ecran .salon-carte-bilan {grid-column:auto;}
+.salon-pied {padding-top:.5rem;}
+.salon-attente-invitation .salon-bottom,.salon-attente-invitation .salon-controles-ensemble,.salon-attente-invitation .focus-modes button {visibility:hidden;}
+@media(max-width:720px){.salon-ecran .salon-interface {height:100dvh;min-height:100dvh}.salon-ecran .salon-centre{padding:.4rem .75rem;gap:.5rem}.salon-ecran .salon-temps{font-size:clamp(4rem,14vw,7rem)}.salon-top-droite .focus-quote{max-width:40vw}.salon-ecran .salon-espace{right:.7rem;bottom:4.5rem;width:calc(100% - 1.4rem);max-height:70dvh}.salon-ecran .salon-lanceurs{justify-content:center}}

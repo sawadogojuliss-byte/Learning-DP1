@@ -6,7 +6,7 @@ La rubrique est dans les paramètres du Pomodoro uniquement. Le salon a son prop
 
 Le compte à rebours est commun. Les six cases sont facultatives et décochées par défaut : le thème du catalogue, les durées du minuteur, l'apparence de l'horloge, les sons choisis, la playlist de sons Studyplan et la citation affichée. L'organisateur peut ouvrir ses réglages, changer les choix et enregistrer à nouveau le partage. Les paramètres reçus ne sont pas écrits dans le stockage du profil de l'invité. Une photo personnelle n'est jamais transmise. Chaque appareil doit autoriser localement le son ; aucun alignement à l'échantillon près n'est promis. L'écran propose la reprise des décors vidéo en cas de blocage.
 
-Le lien d'invitation utilise un identifiant aléatoire dans le fragment d'URL, capturé et retiré dès le début du chargement. Les informations de reprise sont uniquement conservées dans le `sessionStorage` de l'onglet ; elles sont effacées au départ ou à la fermeture. Le pseudo est visible dans le salon. L'organisateur confirme la fermeture ; en cas d'erreur, la sortie locale indique que le salon peut rester ouvert ailleurs. Cette étape ne constitue pas une révocation serveur.
+Le lien d'invitation utilise un identifiant aléatoire dans le fragment d'URL, capturé au chargement et conservé dans la barre d’adresse jusqu’au départ du salon. Les informations de reprise sont uniquement conservées dans le `sessionStorage` de l'onglet ; elles sont effacées au départ ou à la fermeture. Le pseudo est visible dans le salon. L'organisateur confirme la fermeture ; en cas d'erreur, la sortie locale indique que le salon peut rester ouvert ailleurs. Cette étape ne constitue pas une révocation serveur.
 
 ## Contrat du transport à réaliser en dernier
 
@@ -34,7 +34,7 @@ Le module d'interface cherche `window.SALON_FOCUS_TRANSPORT` avant son chargemen
 - `node tools/tester-salon-apercu.mjs` : interface sans transport (désactivée), responsive.
 - `node tools/tester-salon-simulation.mjs` : deux contextes de navigateur et faux transport en mémoire, sélection, audio réellement démarré, création, invitation, rôle, commandes, coupure simulée, reprise après rechargement, fermeture et conservation des préférences. Les permissions, la précision de l'horloge serveur et les reconnexions Firebase réelles ne sont **pas** vérifiées par cette simulation.
 
-L'assembleur contrôlé sait inclure les fichiers du salon sans inclure les autres travaux non liés. Aucun adaptateur Firebase réel n'a été déployé. L'utilisateur indique avoir publié et testé la règle des pseudos ; elle ne couvre pas encore les salons. Ne pas publier la fonctionnalité comme opérationnelle avant les étapes ci-dessus.
+L'assembleur contrôlé sait inclure les fichiers du salon sans inclure les autres travaux non liés. Un adaptateur Firebase expérimental a été publié pour essai ; l'utilisateur indique avoir publié les règles de salon fournies, mais leur état effectif et leur sécurité n'ont pas été vérifiés indépendamment. Les fonctions avancées décrites ci-dessous ne sont pas raccordées à cet adaptateur.
 
 ## Fonctions supplémentaires — interface et contrat en préparation
 
@@ -67,3 +67,13 @@ Avant activation : exécuter les règles dans l'émulateur Firebase avec identit
 L'utilisateur indique avoir activé l'authentification anonyme et publié les règles proposées. Il demande la mise en ligne pour tester lui-même, sans exécuter de vérifications. Le transport est donc branché pour cet essai, sans validation réelle préalable. Le site indique clairement que c'est un essai et recommande des données fictives. Les actions supplémentaires non supportées par le transport restent désactivées. Le lien donne accès aux données partagées aux personnes qui le connaissent. Aucun effacement automatique ni protection anti-abus complète n'est encore configuré. Une expiration refuse l'accès mais ne supprime pas les documents ou sous-collections.
 
 La publication sans tests est limitée au commit portant le marqueur `[essai sans tests]` ; les tests automatiques habituels restent en place pour les commits suivants. Ne pas considérer cette publication comme une validation de sécurité, une vérification Firebase ou l'achèvement des fonctions de gestion du groupe.
+
+## Refonte du salon — état local
+
+Le lien est affiché à la création, reste dans la barre d'adresse durant l'invitation et la session, puis est effacé au départ. Il reste un secret d'accès : le fragment peut être lu par les scripts de la page et copié par le participant ; `no-referrer` ne protège pas contre les scripts tiers. L'aperçu lit l'état du salon sans enregistrer de membre, après authentification anonyme ; s'il échoue, le décor local est présenté derrière l'invitation. Les réglages de durées et de séances sont désactivés pour l'invité, ainsi que l'accès aux pages Salon focus et Statistiques. Les commandes du chrono restent réservées à l'hôte par les règles existantes, qui n'ont pas été testées ici sur émulateur.
+
+Les boutons des fonctions réseau avancées restent désactivés lorsque l'adaptateur ne les fournit pas. Le bilan commun n'est pas calculé par l'adaptateur expérimental. Les tests multi-navigateurs de ces fonctions utilisent un faux transport ; leur succès ne prouve pas qu'elles fonctionnent avec Firebase. L'optimisation générale des décors et de la musique reste à réaliser.
+
+## Présentation Pomodoro et reprise de l'hôte
+
+Le salon reprend la structure, les styles et icônes de la page Pomodoro (modes, commandes, mini-lecteur, barre inférieure), sans réutiliser son état de minuteur personnel. Les phases sont visibles mais désactivées pour les invités. Un contrôle serveur de l'identité est tenté avant d'afficher le formulaire de pseudo ; le propriétaire confirmé reprend automatiquement. En cas d'erreur réseau, la vérification est proposée à nouveau sans faire passer le propriétaire pour un invité. Le contrôle Firebase réel reste à vérifier ; l'identité revendiquée dans `sessionStorage` n'accorde aucun droit. `tester-salon-reprise.mjs` couvre les cas simulés, notamment l'absence de mémo et la reconnexion après panne.

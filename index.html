@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <script>document.write('<base href="' + location.pathname.replace(/index\.html$/, '').replace(/\/?$/, '/') + '">');</script>
-    <script>/* Le jeton d'invitation ne reste pas dans l'adresse ni dans l'historique. */
-    (function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m){window.__salonInvitation=m[1];try{history.replaceState(history.state,'',location.pathname+location.search)}catch(e){}}})();</script>
+    <meta name="referrer" content="no-referrer">
+    <script>/* Le lien reste visible tant que le salon est ouvert. */
+    (function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m)window.__salonInvitation=m[1];})();</script>
     <link rel="manifest" href="app.webmanifest">
     <meta name="theme-color" content="#059669">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

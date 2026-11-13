@@ -39,6 +39,11 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  const a=await host.creer(donnees), b=await host.creer({...donnees,nom:'Salon B',options:{theme:true,sons:true},partage:{theme:'foret',sons:['pluie']}});
  assert.notEqual(a.id,b.id);assert.match(a.id,/^[a-f0-9]{48}$/);assert.ok(Math.abs(a.maintenant()-Date.now())<2000,'horloge hôte recalée');
  assert.deepEqual(Object.keys(docs.get('salons_focus/'+a.id).partage),['theme']);assert.deepEqual(Object.keys(docs.get('salons_focus/'+b.id).partage).sort(),['sons','theme']);
+ const reprise=await host.reprendre(a.id);assert.equal(reprise.role,'hote');assert.equal(reprise.uid,'host-1');
+ hostAuth.user=null;await assert.rejects(host.reprendre(a.id),e=>e.code==='auth-required');
+ hostAuth.user={uid:'autre',isAnonymous:false};await assert.rejects(host.reprendre(a.id),e=>e.code==='permission-denied');hostAuth.user={uid:'host-1',isAnonymous:false};
+ const apercu=await guest.apercu(a.id);assert.equal(apercu.nom,'Salon A');assert.deepEqual(Object.keys(apercu.partage),['theme']);assert.equal(docs.has('salons_focus/'+a.id+'/membres/invite-1'),false,'aperçu sans inscription comme membre');
+ await assert.rejects(guest.apercu('invalid'),e=>e.code==='not-found');await assert.rejects(guest.apercu('0'.repeat(48)),e=>e.code==='not-found');
  const debut=core.commande(donnees.chrono,'demarrer',a.maintenant(),{});await a.modifier(1,{chrono:debut});
  await assert.rejects(a.modifier(1,{chrono:debut}),e=>e.code==='revision-conflict');
  const g=await guest.rejoindre(a.id,'Camille');assert.ok(Math.abs(g.maintenant()-Date.now())<2000,'horloge invitée recalée');assert.equal(hostAuth.user.uid,'host-1','le compte principal reste connecté');assert.equal(guestAuth.persistence,'SESSION');

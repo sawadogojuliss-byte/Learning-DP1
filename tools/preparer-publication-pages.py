@@ -359,7 +359,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor_invitation = '    <title>'
         if text.count(anchor_invitation) != 1:
             raise SystemExit('En-tête public inattendu')
-        capture = '''    <script>(function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m){window.__salonInvitation=m[1];try{history.replaceState(history.state,'',location.pathname+location.search)}catch(e){}}})();</script>\n'''
+        capture = '''    <meta name="referrer" content="no-referrer">\n    <script>(function(){var m=/^#salon=([a-f0-9]{48})$/.exec(location.hash);if(m)window.__salonInvitation=m[1];})();</script>\n'''
         text = text.replace(anchor_invitation, capture + anchor_invitation, 1)
         anchor_salon_css = '    <link rel="stylesheet" href="css/pages/focus-parametres.css?v=' + version + '">'
         if text.count(anchor_salon_css) != 1:

@@ -106,6 +106,14 @@
             });
             return session(contexte,id,'invite',delta);
         }
+        async function apercu(id) {
+            validationId(id);
+            var contexte=await invite(), delta=await heureServeur(contexte);
+            var snap=await contexte.db.collection('salons_focus').doc(id).get({source:'server'});
+            if(!snap.exists)throw erreur('not-found');
+            var d=snap.data();if(d.ferme || !d.expireLe || d.expireLe.toMillis()<=horloge()+delta)throw erreur('room-closed');
+            return {nom:d.nom,chrono:d.chrono,options:d.options,partage:d.partage,maintenant:Math.round(horloge()+delta)};
+        }
         async function reprendre(id) {
             validationId(id);var contexte=await organisateur(), delta=await heureServeur(contexte), room=contexte.db.collection('salons_focus').doc(id);
             var snap=await room.get({source:'server'});if(!snap.exists)throw erreur('not-found');var d=snap.data();
@@ -113,7 +121,7 @@
             if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');
             return session(contexte,id,'hote',delta);
         }
-        return {creer:creer,rejoindre:rejoindre,reprendre:reprendre};
+        return {creer:creer,rejoindre:rejoindre,reprendre:reprendre,apercu:apercu};
     }
     if (typeof module==='object' && module.exports) module.exports=creerAdaptateur;
     else {
@@ -133,7 +141,8 @@
             root.SALON_FOCUS_TRANSPORT={
                 creer:function(d){return obtenir().then(function(t){return t.creer(d);});},
                 rejoindre:function(id,pseudo){return obtenir().then(function(t){return t.rejoindre(id,pseudo);});},
-                reprendre:function(id){return obtenir().then(function(t){return t.reprendre(id);});}
+                reprendre:function(id){return obtenir().then(function(t){return t.reprendre(id);});},
+                apercu:function(id){return obtenir().then(function(t){return t.apercu(id);});}
             };
         }
     }

@@ -46,8 +46,9 @@ try {
   await hp.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon')});
   await hp.locator('#salonNom').fill('Réviser ensemble');await hp.locator('#salonCreer').click();await hp.locator('#salonEcran').waitFor();
   await gp.goto(base+'#salon='+id,{waitUntil:'domcontentloaded'});await gp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
-  await gp.locator('#salonPseudo').fill('Camille');await gp.locator('#salonRejoindreBouton').click();await gp.locator('#salonEcran').waitFor();
-  await hp.locator('#salonEspace summary').click();await gp.locator('#salonEspace summary').click();
+  await gp.locator('#salonPseudo').fill('Camille');await gp.locator('#salonRejoindreBouton').click();await gp.waitForFunction(()=>!document.getElementById('salonInvitation').open);
+  await hp.getByRole('button',{name:'♧ Groupe'}).click();await gp.getByRole('button',{name:'✦ Objectif'}).click();
+  await hp.evaluate(()=>document.querySelectorAll('[data-salon-fiche]').forEach(e=>e.hidden=false));await gp.evaluate(()=>document.querySelectorAll('[data-salon-fiche]').forEach(e=>e.hidden=false));
   await gp.locator('#salonObjectif').fill('Terminer mon devoir');await gp.waitForTimeout(500);assert.equal(room.membres.find(x=>x.uid==='guest').objectif,undefined,'objectif privé par défaut');
   await gp.locator('#salonObjectifPartager').check();await hp.waitForFunction(()=>document.getElementById('salonListeMembres').textContent.includes('Terminer mon devoir'));
   await gp.locator('#salonObjectifFait').check();await hp.waitForFunction(()=>document.getElementById('salonListeMembres').textContent.includes('✓'));
