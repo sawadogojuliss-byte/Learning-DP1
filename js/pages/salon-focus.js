@@ -202,6 +202,7 @@
         if (typeof focusFermer === 'function') focusFermer('focusReglages');
         $('salonEcran').hidden = false; $('salonRaccourci').hidden = true;if($('salonRaccourci').parentNode!==document.body)document.body.appendChild($('salonRaccourci'));
         $('salonLienCarte').hidden=!(initial && s.role==='hote');$('salonLienAffiche').value=coeur.lienInvitation(document.baseURI,s.id);
+        statut('salonLienStatut','Seules les personnes qui ont ce lien peuvent rejoindre.');statut('salonGroupePartageStatut','');
         $('salonCommandes').hidden = session.role !== 'hote';$('salonPipInvite').hidden=false;
         $('salonAttente').hidden = session.role === 'hote';
         $('salonReglages').hidden = session.role !== 'hote';
@@ -284,14 +285,35 @@
         envoyer({options:options(),partage:selectionPartagee()}).then(function(ok){if(ok)window.salonRevenir();});
     };
     function lien() { return coeur.lienInvitation(document.baseURI, session.id); }
+    function messageCopie(message) {
+        statut('salonLienStatut',message);statut('salonGroupePartageStatut',message);statut('salonMessage',message);
+    }
+    function selectionnerLien(valeur) {
+        var carte=$('salonLienCarte'), champ=$('salonLienAffiche');
+        // Éviter qu'une feuille ouverte recouvre le champ sur petit écran.
+        $('salonEspace').open=false;carte.hidden=false;champ.value=valeur;champ.focus();champ.select();
+        try { champ.setSelectionRange(0,champ.value.length); } catch(e) {}
+    }
+    function copieSecours(s, valeur) {
+        if (session!==s) return;
+        // Le lien reste visible et sélectionnable si l'accès au presse-papiers
+        // est refusé (appui long sur mobile, copier au clavier sur ordinateur).
+        selectionnerLien(valeur);
+        var copie=false;
+        try { copie=typeof document.execCommand==='function' && document.execCommand('copy')===true; } catch(e) {}
+        messageCopie(copie ? 'Lien copié ! Partage-le uniquement avec tes invités.' : 'Copie automatique indisponible : sélectionne le lien ci-dessus et copie-le manuellement.');
+    }
     window.salonCopierLien=function () {
         if (!session) return;
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lien()).then(function(){statut('salonMessage','Lien copié. Partage-le uniquement avec tes invités.');},function(){afficherLien();});
-        else afficherLien();
+        var s=session, valeur=lien(), operation;
+        try {
+            if (navigator.clipboard && typeof navigator.clipboard.writeText==='function') operation=navigator.clipboard.writeText(valeur);
+            else { copieSecours(s,valeur);return; }
+        } catch(e) { copieSecours(s,valeur);return; }
+        Promise.resolve(operation).then(function(){
+            if(session===s)messageCopie('Lien copié ! Partage-le uniquement avec tes invités.');
+        },function(){copieSecours(s,valeur);});
     };
-    function afficherLien() {
-        var p=$('salonMessage');p.textContent='Copie ce lien : ';var input=document.createElement('input');input.value=lien();input.readOnly=true;input.setAttribute('aria-label','Lien d’invitation');p.appendChild(input);input.select();
-    }
     function stopperAudio() { generationAudio++; Object.keys(lecteurs).forEach(function (id){lecteurs[id].pause();lecteurs[id].removeAttribute('src');lecteurs[id].load();});lecteurs={};signatureAudio=''; }
     window.salonActiverAudio=function () { audioAutorise=!audioAutorise;if (!audioAutorise) stopperAudio();signatureAudio='';peindre(); };
     function peindreAudio(partage, opts) {
