@@ -18,4 +18,20 @@ const data=s.contenus(all,{theme:'x',durees:{focus:999,short:-2,long:5},horloge:
 assert.equal(data.durees.focus,180);assert.equal(data.durees.short,1);assert.deepEqual(data.sons,['pluie','vent']);assert.equal(data.citation.texte,'privé');assert.ok(!('motDePasse' in data));
 assert.equal(s.texte('<script>\ntexte',60),'<script> texte'); // rendu exclusivement par textContent
 assert.equal(s.autorisations({theme:'true'}).theme,false);
-console.log('OK logique Salon focus : chrono, commandes, bornes et partage sélectif');
+// Les 64 combinaisons sont possibles ; rien d'autre ne sort du profil.
+const champs = {theme:'theme',minuteur:'durees',horloge:'horloge',sons:'sons',musique:'musique',citations:'citation'};
+const source = {theme:'foret',durees:{focus:25,short:5,long:15},horloge:{police:'gras',taille:'grande'},sons:['pluie'],musique:{nom:'Calme',sons:['piano']},citation:{visible:true,texte:'privé'}};
+for(let masque=0;masque<64;masque++) {
+  const choix=Object.fromEntries(s.options.map((x,i)=>[x,!!(masque & (1<<i))]));
+  const obtenu=s.contenus(choix,source);
+  assert.deepEqual(Object.keys(obtenu).sort(),s.options.filter(x=>choix[x]).map(x=>champs[x]).sort(), 'partage '+masque);
+}
+const crypto=require('node:crypto').webcrypto;
+const ids=new Set(Array.from({length:1000},()=>s.nouvelIdentifiant(crypto)));
+assert.equal(ids.size,1000);assert.ok([...ids].every(id=>/^[0-9a-f]{48}$/.test(id)));
+assert.throws(()=>s.nouvelIdentifiant(null),/cryptographique/);
+const id=[...ids][0];
+assert.equal(s.lienInvitation('https://sawadogojuliss-byte.github.io/Learning-DP1/?test=1#ancien',id),'https://sawadogojuliss-byte.github.io/Learning-DP1/#salon='+id);
+assert.throws(()=>s.lienInvitation('https://studyplan.test/','abc'),/invalide/);
+assert.throws(()=>s.lienInvitation('javascript:alert(1)',id),/invalide/);
+console.log('OK logique Salon focus : chrono, 64 choix indépendants et identifiants aléatoires');

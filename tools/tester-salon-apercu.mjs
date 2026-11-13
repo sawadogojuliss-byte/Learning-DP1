@@ -20,6 +20,12 @@ try {
   assert.equal(await section.locator('input[name=salonPartage]:checked').count(),0);
   await section.locator('#salonNom').fill('Révisions Partiels');await section.locator('input[value=theme]').check();
   assert.equal(await section.locator('input[value=theme]').isChecked(),true);
+  assert.match(await section.locator('#salonSelectionResume').innerText(),/^1 élément partagé/);
+  await section.locator('input[value=horloge]').check();
+  assert.equal(await section.locator('input[name=salonPartage]:checked').count(),2);
+  assert.match(await section.locator('#salonSelectionResume').innerText(),/^2 éléments partagés/);
+  await section.locator('input[value=theme]').uncheck();await section.locator('input[value=horloge]').uncheck();
+  assert.match(await section.locator('#salonSelectionResume').innerText(),/^Aucun élément/);
   assert.equal(await section.locator('#salonCreer').isDisabled(),true);
   assert.match(await section.locator('.salon-note').innerText(),/n’est pas encore activé/);
   assert.equal(await section.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'pas de débordement horizontal');

@@ -1,7 +1,5 @@
-/* Salon focus — interface et orchestration indépendantes du transport.
-   Le transport réel doit être installé et protégé AVANT activation. Pour les
-   tests uniquement, window.SALON_FOCUS_TRANSPORT peut être injecté au démarrage.
-   Les échanges sont limités aux éléments explicitement cochés. */
+/* Salon focus — interface indépendante du transport.
+   Version d'essai : seules les options explicitement cochées sont transmises. */
 (function () {
     'use strict';
     var coeur = window.SalonFocusCoeur;
@@ -28,6 +26,10 @@
     function statut(id, message) { var el = $(id), valeur = message || ''; if (el && el.textContent !== valeur) el.textContent = valeur; }
     function heure() { return session && typeof session.maintenant === 'function' ? session.maintenant() : Date.now(); }
     function options() { var r={}; document.querySelectorAll('[name="salonPartage"]').forEach(function (e) { r[e.value] = e.checked; }); return coeur.autorisations(r); }
+    function resumeSelection() {
+        var selection=document.querySelectorAll('[name="salonPartage"]:checked').length;
+        statut('salonSelectionResume',selection ? selection+' élément'+(selection>1?'s':'')+' partagé'+(selection>1?'s':'')+' en plus du chrono.' : 'Aucun élément supplémentaire partagé.');
+    }
     function etatPersonnel() {
         var r = focusLireReglages(), f = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
         return { theme: f && f.id !== 'personnel-local' ? f.id : '', themeLocal: f ? f.id : '', durees: focusDurees(),
@@ -46,6 +48,9 @@
     function erreur(e) {
         if (!navigator.onLine) return 'Connexion interrompue. Réessaie quand le réseau revient.';
         if (e && e.code === 'auth-required') return 'Connecte-toi à ton compte Google pour créer ou reprendre ton salon.';
+        if (e && e.code === 'auth/operation-not-allowed') return 'La connexion anonyme doit être activée pour les invités.';
+        if (e && e.code === 'room-locked') return 'Ce salon est verrouillé : les nouvelles entrées sont suspendues.';
+        if (e && e.code === 'clock-unavailable') return 'Impossible de synchroniser l’heure du salon. Vérifie ta connexion.';
         if (e && (e.code === 'room-closed' || e.code === 'not-found' || e.code === 'removed')) return 'Ce salon est fermé, expiré ou introuvable.';
         if (e && e.code === 'revision-conflict') return 'Le salon a changé. Attends la synchronisation puis réessaie.';
         if (e && e.code === 'permission-denied') return 'Accès refusé. Le service du salon doit être configuré ou ce lien n’est plus valide.';
@@ -55,8 +60,8 @@
         if (!$('salonCreer')) return;
         var actif = !!(transport && typeof transport.creer === 'function' && typeof transport.rejoindre === 'function');
         $('salonCreer').disabled = !actif;
-        statut('salonStatutCreation', actif ? 'Les invités rejoignent gratuitement avec un pseudo. Le lien donne accès au salon.' : 'Le service de salon n’est pas encore activé.');
-        $('salonBadge').textContent = actif ? 'Un espace à partager' : 'En préparation';
+        statut('salonStatutCreation', actif ? 'Version d’essai : les invités rejoignent avec un pseudo. Le lien donne accès au salon.' : 'Le service de salon n’est pas encore activé.');
+        $('salonBadge').textContent = actif ? 'Version d’essai' : 'En préparation';
         if (invitation) {
             var dialog=$('salonInvitation');
             // Le dialogue doit être visible avant d'ouvrir la page Pomodoro.
@@ -73,7 +78,8 @@
     }
     function init() {
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
-        pret();
+        document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
+        resumeSelection();pret();
     }
     setTimeout(init,0);
     function commencer(s, initial, pseudo) {
@@ -167,13 +173,13 @@
         $('salonEcran').hidden=true; $('salonRaccourci').hidden=false; $('salonCreer').hidden=true; $('salonFormTitre').textContent='Modifier le partage';$('salonMajPartage').hidden=false;$('salonRetour').hidden=false;
         $('salonNom').value=salle.nom;$('salonNom').disabled=true;
         Object.keys(salle.options || {}).forEach(function(k){var el=document.querySelector('[name="salonPartage"][value="'+k+'"]');if(el)el.checked=!!salle.options[k];});
-        focusBasculerReglages();focusChoisirOnglet('salon');
+        resumeSelection();focusBasculerReglages();focusChoisirOnglet('salon');
     };
     window.salonRevenir=function () { focusFermer('focusReglages');$('salonRaccourci').hidden=true;$('salonEcran').hidden=false; };
     window.salonActualiserPartage=function () {
         envoyer({options:options(),partage:selectionPartagee()}).then(function(ok){if(ok)window.salonRevenir();});
     };
-    function lien() { var u=new URL(location.href);u.search='';u.hash='salon='+session.id;return u.href; }
+    function lien() { return coeur.lienInvitation(document.baseURI, session.id); }
     window.salonCopierLien=function () {
         if (!session) return;
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(lien()).then(function(){statut('salonMessage','Lien copié. Partage-le uniquement avec tes invités.');},function(){afficherLien();});

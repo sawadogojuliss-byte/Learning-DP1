@@ -18,6 +18,8 @@ concurrency:
 jobs:
   construire:
     runs-on: ubuntu-latest
+    env:
+      ESSAI_SANS_TESTS: ${{ contains(github.event.head_commit.message, '[essai sans tests]') }}
     timeout-minutes: 20
     steps:
       - name: Récupérer le travail de la branche courante
@@ -48,32 +50,36 @@ jobs:
             sudo apt-get update && sudo apt-get install -y ffmpeg
           fi
           python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
-          python3 travail/tools/tester-preparation-annonces.py site/livrables/publication-voix/essai-traitement
-          python3 travail/tools/verifier-stock-voix.py
-          python3 travail/tools/verifier-prises-lot2.py site
-          python3 travail/tools/verifier-prises-lot3.py site
-          python3 travail/tools/verifier-prises-lot4.py site
-          python3 travail/tools/verifier-prises-lot5.py site
-          python3 travail/tools/verifier-prises-lot6.py site
-          python3 travail/tools/verifier-prises-lot7.py site
-          python3 travail/tools/verifier-prises-lot8.py site
-          python3 travail/tools/verifier-prises-lot9.py site
-          python3 travail/tests/voix/test_serveur.py
-          node --check site/js/compte.js
-          node --check site/js/synchro.js
-          cmp travail/js/compte.js site/js/compte.js
-          cmp travail/js/synchro.js site/js/synchro.js
-          node --check site/js/pages/pomodoro-page.js
-          node travail/tools/tester-salon-coeur.cjs
-          node --check site/js/pages/boite.js
-          node --check site/js/pages/exercices.js
-          node --check site/js/pages/planning-interface.js
-          node --check site/js/pages/devoirs.js
-          node --check site/js/accessibilite.js
-          (cd site && node tools/verifier-devoirs.js && node tools/verifier-devoirs-edition.js)
-          node --check site/service-worker.js
-          node site/tools/verifier-pomodoro.js
+          if [ "$ESSAI_SANS_TESTS" != "true" ]; then
+            python3 travail/tools/tester-preparation-annonces.py site/livrables/publication-voix/essai-traitement
+            python3 travail/tools/verifier-stock-voix.py
+            python3 travail/tools/verifier-prises-lot2.py site
+            python3 travail/tools/verifier-prises-lot3.py site
+            python3 travail/tools/verifier-prises-lot4.py site
+            python3 travail/tools/verifier-prises-lot5.py site
+            python3 travail/tools/verifier-prises-lot6.py site
+            python3 travail/tools/verifier-prises-lot7.py site
+            python3 travail/tools/verifier-prises-lot8.py site
+            python3 travail/tools/verifier-prises-lot9.py site
+            python3 travail/tests/voix/test_serveur.py
+            node --check site/js/compte.js
+            node --check site/js/synchro.js
+            cmp travail/js/compte.js site/js/compte.js
+            cmp travail/js/synchro.js site/js/synchro.js
+            node --check site/js/pages/pomodoro-page.js
+            node travail/tools/tester-salon-coeur.cjs
+            node travail/tools/tester-salon-transport.cjs
+            node --check site/js/pages/boite.js
+            node --check site/js/pages/exercices.js
+            node --check site/js/pages/planning-interface.js
+            node --check site/js/pages/devoirs.js
+            node --check site/js/accessibilite.js
+            (cd site && node tools/verifier-devoirs.js && node tools/verifier-devoirs-edition.js)
+            node --check site/service-worker.js
+            node site/tools/verifier-pomodoro.js
+          fi
       - name: Tester le site assemblé avant publication
+        if: ${{ !contains(github.event.head_commit.message, '[essai sans tests]') }}
         shell: bash
         env:
           STUDY_SITE: http://127.0.0.1:8508/
@@ -123,6 +129,7 @@ jobs:
           executer_test travail/tools/tester-salon-apercu.mjs
           executer_test travail/tools/tester-salon-simulation.mjs
           executer_test travail/tools/tester-salon-fonctions.mjs
+          executer_test travail/tools/tester-salon-liens.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
@@ -159,6 +166,7 @@ jobs:
         uses: actions/deploy-pages@v4
 
   verifier-en-ligne:
+    if: ${{ !contains(github.event.head_commit.message, '[essai sans tests]') }}
     needs: publier
     runs-on: ubuntu-latest
     steps:

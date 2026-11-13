@@ -151,7 +151,7 @@
                             <div class="salon-entete"><div><span class="salon-surtexte">PRÉPARE TON ESPACE</span><h3 id="salonFormTitre">Créer un salon</h3><p>Choisis ce que tu souhaites partager avec les personnes invitées. Les images personnelles restent sur ton appareil. Si tu coches Citations, ta citation personnelle pourra être visible.</p></div><span class="salon-cadenas" aria-hidden="true">✦</span></div>
                             <label class="salon-label" for="salonNom">Nom du salon</label>
                             <input id="salonNom" type="text" maxlength="60" placeholder="Ex. Révisions Partiels" autocomplete="off">
-                            <fieldset class="salon-options"><legend>À partager dans le salon</legend><p>Le chrono reste commun ; choisis les autres réglages à partager. Pour les actualiser, ouvre « Modifier le partage » pendant le salon.</p>
+                            <fieldset class="salon-options"><legend>À partager dans le salon</legend><p>Le chrono est commun. Choisis librement aucun, un ou plusieurs éléments : seuls ceux que tu coches sont partagés. Tu pourras changer ton choix pendant la séance.</p><p id="salonSelectionResume" class="salon-selection-resume" aria-live="polite">Aucun élément supplémentaire partagé.</p>
                                 <div class="salon-options-grille">
                                     <label><input type="checkbox" name="salonPartage" value="theme"><span><strong>Thème</strong><small>Le décor et les couleurs</small></span></label>
                                     <label><input type="checkbox" name="salonPartage" value="minuteur"><span><strong>Minuteur</strong><small>Les durées de travail et de pause</small></span></label>
@@ -165,7 +165,7 @@
                             <button class="salon-creer" id="salonCreer" type="button" onclick="salonCreer()" disabled>Créer mon salon <span aria-hidden="true">↗</span></button>
                             <button class="salon-creer" id="salonMajPartage" type="button" onclick="salonActualiserPartage()" hidden>Enregistrer le partage et revenir au salon</button>
                             <button class="salon-action-secondaire" id="salonRetour" type="button" onclick="salonRevenir()" hidden>Revenir sans modifier</button>
-                            <p class="salon-confidentialite">Le lien donnera accès au salon : partage-le seulement avec les personnes que tu souhaites inviter.</p>
+                            <p class="salon-confidentialite">Version d’essai : partage le lien uniquement avec tes invités et utilise des informations fictives. Les données ne sont pas encore supprimées automatiquement.</p>
                         </div>
                     </div>
                 </section>

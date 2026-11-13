@@ -57,7 +57,21 @@
         if (selection.citations) r.citation = { visible: !!(source.citation && source.citation.visible), texte: texte(source.citation && source.citation.texte, 160) };
         return r;
     }
-    var api = { modes: modes.slice(), options: options.slice(), texte: texte, autorisations: autorisations, contenus: contenus, temps: temps, commande: commande };
+    // Le futur transport doit créer un identifiant différent pour chaque salon,
+    // sans repli prévisible si la source cryptographique est indisponible.
+    function nouvelIdentifiant(source) {
+        if (!source || typeof source.getRandomValues !== 'function') throw new Error('Aléa cryptographique indisponible');
+        var octets = new Uint8Array(24); source.getRandomValues(octets);
+        return Array.prototype.map.call(octets, function(b) { return b.toString(16).padStart(2,'0'); }).join('');
+    }
+    function lienInvitation(base, id) {
+        if (!/^[0-9a-f]{48}$/.test(id)) throw new Error('Identifiant de salon invalide');
+        var url = new URL(base);
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('Adresse du site invalide');
+        url.search = ''; url.hash = 'salon=' + id;
+        return url.href;
+    }
+    var api = { modes: modes.slice(), options: options.slice(), texte: texte, autorisations: autorisations, contenus: contenus, temps: temps, commande: commande, nouvelIdentifiant: nouvelIdentifiant, lienInvitation: lienInvitation };
     if (typeof module === 'object' && module.exports) module.exports = api;
     else root.SalonFocusCoeur = api;
 })(typeof window === 'undefined' ? globalThis : window);
