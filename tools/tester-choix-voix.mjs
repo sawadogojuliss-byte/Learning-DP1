@@ -11,6 +11,8 @@ try {
   for (const viewport of [{ width: 320, height: 568 }, { width: 390, height: 844 }, { width: 1280, height: 800 }]) {
     const page = await browser.newPage({ viewport, serviceWorkers: 'block' });
     const errors = []; page.on('pageerror', e => errors.push(String(e)));
+    // Le contrôle porte sur les ressources du site, pas sur les services tiers.
+    await page.route('**/*', r => r.request().url().startsWith(site) ? r.continue() : r.abort());
     await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; });
     await page.goto(site, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
