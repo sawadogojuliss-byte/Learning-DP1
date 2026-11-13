@@ -39,7 +39,7 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertFails(updateDoc(doc(host,chemin(id)),{revision:2,organisateurUid:'guest'}));
   await assertFails(updateDoc(doc(host,chemin(id)),{revision:3}));
   await assertSucceeds(updateDoc(doc(host,chemin(id)),{revision:2,chrono:{mode:'focus',total:1500,restant:1500,running:true,fin:Date.now()+1500000}}));
-  await env.withSecurityRulesDisabled(async c=>{await setDoc(doc(c.firestore(),chemin(autre)),{...data(),verrouille:true});await setDoc(doc(c.firestore(),chemin(autre)+'/membres/host'),{pseudo:'Organisateur'});});
+  await env.withSecurityRulesDisabled(async c=>{const db=c.firestore();await setDoc(doc(db,chemin(autre)),{...data(),verrouille:true});await setDoc(doc(db,chemin(autre)+'/membres/host'),{pseudo:'Organisateur'});});
   await assertFails(getDoc(doc(intrus,chemin(autre))));
   await assertFails(setDoc(doc(intrus,chemin(autre)+'/membres/intrus'),{pseudo:'Intrus'}));
   await assertSucceeds(getDoc(doc(host,chemin(autre))));
