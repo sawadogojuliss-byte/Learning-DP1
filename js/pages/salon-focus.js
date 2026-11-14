@@ -333,7 +333,7 @@
         isolerEcranSalon();
         var actif = !!(transport && typeof transport.creer === 'function' && typeof transport.rejoindre === 'function');
         $('salonCreer').disabled = !actif;
-        statut('salonStatutCreation', actif ? 'Version d’essai : les invités rejoignent avec un pseudo. Le lien donne accès au salon.' : 'Le service de salon n’est pas encore activé.');
+        statut('salonStatutCreation', actif ? '' : 'Le service de salon n’est pas encore activé.');
         $('salonBadge').textContent = actif ? 'Version d’essai' : 'En préparation';
         if (invitation) {
             var dialog=$('salonInvitation');
@@ -620,7 +620,7 @@
             liste=Array.isArray(liste)?liste:[];
             if(messagesInitialises && $('salonMessagerie').hidden)liste.forEach(function(m){if(m.id && !messagesConnus.has(m.id) && m.auteurUid!==s.uid)messagesNonLus++;});
             liste.forEach(function(m){if(m.id)messagesConnus.add(m.id);});messagesSalon=liste;messagesDisponibles=true;peindreMessages();messagesInitialises=true;
-            $('salonChatReessayer').hidden=true;statut('salonChatEtat','Les 50 derniers messages sont affichés.');etatMessages();
+            $('salonChatReessayer').hidden=true;statut('salonChatEtat','');etatMessages();
         },function(){if(session!==s || generation!==generationMessages)return;messagesDisponibles=false;$('salonChatReessayer').hidden=false;statut('salonChatEtat','Messagerie interrompue. Vérifie la connexion puis réessaie.');etatMessages();});
     }
     function demarrerMessages(s) {

@@ -99,7 +99,7 @@
                     <div id="salonChatListe" class="salon-chat-liste" role="log" aria-label="Messages du salon" aria-live="polite" aria-relevant="additions text"></div>
                     <div class="salon-chat-pied"><div class="salon-chat-connexion"><p id="salonChatEtat" class="salon-chat-etat" role="status" aria-live="polite">Connexion à la messagerie…</p><button type="button" id="salonChatReessayer" class="salon-chat-reessayer" onclick="salonReessayerMessages()" hidden>Réessayer</button></div>
                     <form class="salon-chat-form" onsubmit="return salonEnvoyerMessage(event)"><label class="focus-sr" for="salonChatTexte">Ton message</label><textarea id="salonChatTexte" maxlength="1000" rows="2" placeholder="Écris un message…"></textarea><button id="salonChatEnvoyer" type="submit" disabled aria-label="Envoyer le message"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="m3 4 18 8-18 8 2.5-8L3 4Zm2.5 8H21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button></form>
-                    <p class="salon-chat-note">Les messages ne sont pas encore supprimés automatiquement : évite les données sensibles.</p></div>
+                    </div>
                 </aside>
                 <footer class="focus-bottom salon-bottom">
             <div class="focus-outils">
@@ -262,7 +262,7 @@
                                     <label><input type="checkbox" name="salonPartage" value="citations"><span><strong>Citations</strong><small>Les mots qui motivent</small></span></label>
                                 </div>
                             </fieldset>
-                            <p class="salon-note" id="salonStatutCreation" role="status" aria-live="polite">Le service de salon n'est pas encore activé.</p>
+                            <p class="salon-note" id="salonStatutCreation" role="status" aria-live="polite"></p>
                             <button class="salon-creer" id="salonCreer" type="button" onclick="salonCreer()" disabled>Créer mon salon <span aria-hidden="true">↗</span></button>
                             <button class="salon-creer" id="salonMajPartage" type="button" onclick="salonActualiserPartage()" hidden>Enregistrer le partage et revenir au salon</button>
                             <button class="salon-action-secondaire" id="salonRetour" type="button" onclick="salonRevenir()" hidden>Revenir sans modifier</button>

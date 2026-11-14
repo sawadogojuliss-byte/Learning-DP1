@@ -178,13 +178,19 @@ for rel in files:
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(ROOT / rel, dest)
 
-# Moteur de traitement vocal à la construction : une phrase complète par
-# durée est calculée à partir des prises existantes. Ces essais ne remplacent
-# pas encore les annonces du minuteur avant leur validation à l'écoute.
-subprocess.run([sys.executable, str(ROOT / 'tools/preparer-annonces-fluides.py'),
-    '--ffmpeg', os.environ.get('STUDY_FFMPEG', 'ffmpeg'),
-    '--sortie', str(output / 'livrables/publication-voix/essai-traitement'),
-    *map(str, range(1, 61))], check=True)
+# Conserver à l'identique les annonces déjà publiées : ne pas régénérer les
+# voix masculines lors de l'assemblage. Une absence interrompt la publication.
+from urllib.request import Request, urlopen
+voix_publiques = 'https://sawadogojuliss-byte.github.io/Learning-DP1/livrables/publication-voix/essai-traitement/'
+voix_sortie = output / 'livrables/publication-voix/essai-traitement'
+for n in range(1, 61):
+    nom = f'annonce-{n:02d}-minutes.mp3'
+    requete = Request(voix_publiques + nom, headers={'User-Agent': 'Studyplan-publication'})
+    with urlopen(requete, timeout=45) as reponse:
+        if reponse.headers.get_content_type() not in ('audio/mpeg', 'audio/mp3', 'application/octet-stream'):
+            raise SystemExit('Annonce publiée indisponible : ' + nom)
+        with (voix_sortie / nom).open('wb') as destination:
+            shutil.copyfileobj(reponse, destination)
 
 css = (ROOT / 'css/pages/planning-panels.css').read_text(encoding='utf-8')
 match = re.search(r'/\* Le décor statique reste sous la vidéo.*?\.focus-fond-video\.is-visible \{ visibility: visible; \}\n', css, flags=re.S)

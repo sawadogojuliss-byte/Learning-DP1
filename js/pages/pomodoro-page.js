@@ -1483,7 +1483,10 @@ function focusAjouterTache(event) {
     if (champ) champ.value = '';
     focusSauverTaches();
     var objectif = document.getElementById('focusTache');
-    if (objectif && !objectif.value.trim()) objectif.value = texte;
+    var ecranSalon = document.getElementById('salonEcran');
+    // Dans le Pomodoro personnel, la tâche qu'on vient d'ajouter devient
+    // immédiatement l'objectif affiché. La séance et le salon gardent leur comportement.
+    if (objectif && (!objectif.value.trim() || (!focusSeanceMinuteur && (!ecranSalon || ecranSalon.hidden)))) objectif.value = texte;
     focusMemoriserObjectif();
     focusPeindreTaches();
     return false;

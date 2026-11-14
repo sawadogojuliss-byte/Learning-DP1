@@ -407,3 +407,7 @@ body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMe
 .salon-celebration .salon-creer:hover {background:#e1fae7;}
 
 .salon-invitation form > .salon-celebration-embleme {display:grid;place-items:center;}
+
+/* Les messages d’erreur restent visibles, sans encart vide en fonctionnement normal. */
+.salon-note:empty {display:none;}
+.salon-chat-connexion:has(.salon-chat-etat:empty):has(.salon-chat-reessayer[hidden]) {display:none;}
