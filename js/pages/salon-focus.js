@@ -20,6 +20,8 @@
     var generationMessages=0, arreterMessages=null, messagesSalon=[], signatureMessages='', messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
     var reglagesSalon=null, voixSalon=null, prioritesSalon={}, volumesSalon={}, listesSalon=[], porteeSalon=null, filePortee=[], enAttentePartage={}, envoiPartage=false, timerPartage=null;
     var objectifTimer = null, fileMembre = Promise.resolve(), signatureGroupe = '', partageInitialise = false, miniSalon=null;
+    // Ces séances sont observées sur cet appareil, jamais présentées comme un compteur serveur.
+    var seancesObservees=[], signatureCompteurSalon='';
     try {
         var preference = JSON.parse(localStorage.getItem('studyPlanIB_salon_preferences') || '{}');
         volumeSalon = typeof preference.volume === 'number' ? Math.max(0, Math.min(1, preference.volume)) : 1;
@@ -384,7 +386,8 @@
         if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
         adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
         try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,identite:s.identite||'',pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
-        local = localDepart; salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false; fileMembre=Promise.resolve();
+        local = localDepart; salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; signatureCompteurSalon='';
+        try {var historique=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_seances_'+s.id)||'[]');seancesObservees=Array.isArray(historique)?historique.filter(function(x){return x && Number.isFinite(x.fin) && Number.isFinite(x.secondes);}).slice(-100):[];} catch(e){seancesObservees=[];} partageInitialise=false; fileMembre=Promise.resolve();
         editionPartage=false;
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
         try { var obj=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_objectif_'+s.id)||'{}'); $('salonObjectif').value=coeur.texte(obj.texte,160); $('salonObjectifFait').checked=obj.fait===true; } catch(e) {}
@@ -638,13 +641,38 @@
     };
     function signalerFin(c) {
         if (salle.chrono.running && salle.chrono.fin > 0 && c.restant > 0) { finObservee=salle.chrono.fin; propriete($('salonSignalVisuel'),'hidden',true); }
-        if (!finObservee || c.restant !== 0 || signalees[finObservee]) return;
-        signalees[finObservee]=true;finObservee=0;
+        if (!salle.chrono.running || !salle.chrono.fin) { finObservee=0; return; }
+        if (!finObservee || salle.chrono.fin!==finObservee || c.restant !== 0 || signalees[finObservee]) return;
+        var fin=finObservee;signalees[fin]=true;finObservee=0;
+        if(c.mode==='focus' && !seancesObservees.some(function(x){return x.fin===fin;})) {
+            seancesObservees.push({fin:fin,secondes:c.total});seancesObservees=seancesObservees.slice(-100);
+            try {sessionStorage.setItem('studyPlanIB_salon_seances_'+session.id,JSON.stringify(seancesObservees));} catch(e) {}
+            celebrerSeance(c);
+        }
         if(signalFin==='visuel') $('salonSignalVisuel').hidden=false;
         if(signalFin==='son' && contexteSignal && contexteSignal.state==='running') {
             var osc=contexteSignal.createOscillator(), gain=contexteSignal.createGain(), t=contexteSignal.currentTime;
             osc.type='sine';osc.frequency.value=523.25;gain.gain.setValueAtTime(0.0001,t);gain.gain.exponentialRampToValueAtTime(.08,t+.05);gain.gain.exponentialRampToValueAtTime(.0001,t+.8);osc.connect(gain);gain.connect(contexteSignal.destination);osc.start(t);osc.stop(t+.82);
         }
+    }
+    function celebrerSeance(c) {
+        var noms=(Array.isArray(salle.membres)?salle.membres:[]).filter(function(m){return etatPresence(m)!=='ancienne' && (!discret || m.uid===session.uid);}).map(function(m){return coeur.texte(m.pseudo,30);}).filter(Boolean);
+        statut('salonCelebrationPersonnes',discret?'Bravo à toutes et à tous.':(noms.length?'Bravo à '+noms.join(', ')+' !':'Bravo à toutes et à tous.'));
+        var minutes=Math.round(c.total/60), unite=minutes>1?' minutes':' minute';
+        var cible=Number(salle.partage && salle.partage.durees && salle.partage.durees.seances)||4;
+        var objectifAtteint=seancesObservees.length===cible;
+        statut('salonCelebrationTitre',objectifAtteint?'Bravo, objectif atteint !':'Bravo à tout le groupe !');
+        statut('salonCelebrationTexte',objectifAtteint?'Bravo à toutes et à tous pour ces séances de concentration. Chaque effort compte.':'Vous venez de terminer une séance de concentration'+(minutes?' de '+minutes+unite:'')+'. Chaque effort compte.');
+        var cumul=Math.round(seancesObservees.reduce(function(t,x){return t+x.secondes;},0)/60);
+        statut('salonCelebrationProgression',seancesObservees.length+' séance'+(seancesObservees.length>1?'s':'')+' suivie'+(seancesObservees.length>1?'s':'')+' sur cet appareil'+(cumul?' · '+cumul+' min':''));
+        var dialog=$('salonCelebrationDialog');if(dialog.parentNode!==document.body)document.body.appendChild(dialog);if(!dialog.open)dialog.showModal();
+    }
+    function peindreCompteurSalon(c) {
+        var el=$('salonCompteur'), d=salle.partage && salle.partage.durees, n=Math.max(1,Math.min(12,Number(d && d.seances)||4));
+        var plein=Math.min(n,seancesObservees.length+(c.mode==='focus' && c.running?1:0));
+        var html=focusCompteurHtml(reglagesSalon.compteur||'points',n,plein);
+        if(signatureCompteurSalon!==html){signatureCompteurSalon=html;el.innerHTML=html;}
+        attribut(el,'aria-label',seancesObservees.length+' séances terminées suivies sur cet appareil ; objectif indicatif de '+n);
     }
     function publierMembre(changement) {
         var s=session;
@@ -680,20 +708,12 @@
     }
     window.salonVerrouiller=function(){if(session && session.role==='hote')appelGroupe('verrouiller',[!salle.verrouille]);};
     window.salonDemanderAide=function(){appelGroupe('demanderAide',[]);};
-    window.salonAppliquerAmbiance=function(){
-        if(!salle || !session || session.role!=='hote')return;
-        var id=$('salonAmbiance').value, recettes={bibliotheque:{nom:'Bibliothèque sous la pluie',sons:['bibliotheque','pluie']},cafe:{nom:'Café calme',sons:['cafe','piano']}};
-        if(!recettes[id])return;
-        var opts=coeur.autorisations(salle.options), partage=coeur.contenus(opts,salle.partage||{});
-        opts.musique=true;partage.musique=recettes[id];
-        envoyer({options:opts,partage:partage}).then(function(ok){if(ok)playlistChoisie=recettes[id];});
-    };
     function peindreGroupe() {
         var hote=session.role==='hote', membres=Array.isArray(salle.membres)?salle.membres.slice(0,40):[], m=moi();
         if(m && !partageInitialise) { $('salonObjectifPartager').checked=m.objectifPartage===true; partageInitialise=true; }
         propriete($('salonCommandes'),'hidden',!hote);propriete($('salonAttente'),'hidden',hote);propriete($('salonReglages'),'hidden',!hote);
         statut('salonQuitterBouton',hote?'Fermer le salon':'Quitter le salon');
-        propriete($('salonOutilsHote'),'hidden',!hote);propriete($('salonAmbianceHote'),'hidden',!hote);
+        propriete($('salonOutilsHote'),'hidden',!hote);
         propriete($('salonPret'),'disabled',!connecte || typeof session.personnaliser!=='function');
         propriete($('salonObjectifPartager'),'disabled',typeof session.personnaliser!=='function' || (!connecte && !$('salonObjectifPartager').checked));
         statut('salonPret',m && m.pret?'Je ne suis plus prêt':'Je suis prêt');
@@ -702,7 +722,7 @@
         propriete($('salonCoupPouce'),'disabled',!connecte || typeof session.demanderAide!=='function');
         if(typeof session.personnaliser!=='function')statut('salonRituelInfo','Partage de l’objectif et rituel prêts : bientôt disponibles dans le salon.');
         var bilan=salle.bilan;
-        statut('salonBilan',bilan && Number.isFinite(bilan.secondes) && Number.isFinite(bilan.sessions) ? Math.floor(Math.max(0,bilan.secondes)/60)+' min de concentration · '+Math.max(0,bilan.sessions)+' session'+(bilan.sessions>1?'s':'')+' terminée'+(bilan.sessions>1?'s':'')+' ensemble' : 'Le bilan commun est en préparation pour ce salon.');
+        statut('salonBilan',bilan && Number.isFinite(bilan.secondes) && Number.isFinite(bilan.sessions) ? Math.floor(Math.max(0,bilan.secondes)/60)+' min de concentration · '+Math.max(0,bilan.sessions)+' session'+(bilan.sessions>1?'s':'')+' terminée'+(bilan.sessions>1?'s':'')+' ensemble' : (seancesObservees.length ? seancesObservees.length+' séance'+(seancesObservees.length>1?'s':'')+' de concentration suivie'+(seancesObservees.length>1?'s':'')+' sur cet appareil · '+Math.round(seancesObservees.reduce(function(t,x){return t+x.secondes;},0)/60)+' min.' : 'Vos séances de concentration suivies sur cet appareil apparaîtront ici.'));
         var etats=membres.map(etatPresence);
         var recents=etats.filter(function(etat){return etat==='recente';}).length;
         var prets=membres.filter(function(x){return x.pret;}).length;
@@ -771,7 +791,7 @@
         try { c=coeur.temps(salle.chrono,heure()); } catch(e) { statut('salonMessage','Le minuteur reçu est invalide.');return; }
         statut('salonTitre',coeur.texte(salle.nom,60));
         statut('salonPhase',({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode]);
-        statut('salonTemps',focusTexte(c.restant));peindreStyleSalon(c);peindreMini(c);
+        statut('salonTemps',focusTexte(c.restant));peindreStyleSalon(c);peindreMini(c);peindreCompteurSalon(c);
         statut('salonInfoChrono',c.restant===0?'Temps écoulé · en attente de l’organisateur':(c.running?'En cours':'En pause'));
         attribut($('salonDemarrer'),'aria-label',c.running?'Pause':'Démarrer');propriete($('salonIconPlay').style,'display',c.running?'none':'block');propriete($('salonIconPause').style,'display',c.running?'block':'none');
         statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');
@@ -807,13 +827,14 @@
         signatureParticipants=signature;zone.hidden=discret || !liste.length;
         noms.textContent='';
         liste.forEach(function(m){var puce=document.createElement('span');puce.className='salon-participant'+(m.etat==='recente'?' salon-participant-recent':'');puce.textContent=m.nom;puce.title=m.etat==='recente'?'Activité récente':'Présence non vérifiée';noms.appendChild(puce);});
-        statut('salonParticipantsInfo',!connecte?'Connexion interrompue · présences non vérifiées':liste.some(function(m){return m.etat==='inconnue';})?'Présence de certains participants non vérifiée.':'Point vert : activité dans les deux dernières minutes.');
+        var info=$('salonParticipantsInfo');var texteInfo=!connecte?'Connexion interrompue · présences non vérifiées':liste.some(function(m){return m.etat==='inconnue';})?'Présence de certains participants non vérifiée.':'';statut('salonParticipantsInfo',texteInfo);propriete(info,'hidden',!texteInfo);
     }
     function finirLocal(message, finOrganisateur) {
         var bilanFinal=salle && salle.bilan;
+        var celebration=$('salonCelebrationDialog');if(celebration && celebration.open)celebration.close();
         fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer);clearTimeout(timerPartage);filePortee=[];enAttentePartage={};var choix=$('salonChoixPartage');if(choix && choix.open)choix.close(); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
-        try { sessionStorage.removeItem('studyPlanIB_salon_session');sessionStorage.removeItem('studyPlanIB_salon_local_'+session.id+'_'+(session.uid||'')); } catch(e) {}
+        try { sessionStorage.removeItem('studyPlanIB_salon_session');sessionStorage.removeItem('studyPlanIB_salon_seances_'+session.id);sessionStorage.removeItem('studyPlanIB_salon_local_'+session.id+'_'+(session.uid||'')); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);window.salonFermerLien();
         focusFermer('focusReglages');focusFermer('focusTaches');focusFermer('focusSons');
         focusPeindre();focusPeindreParametres();chronoChargerReglagesVoix();

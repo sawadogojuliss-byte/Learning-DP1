@@ -76,6 +76,9 @@ assert(!el('exoListContainer').innerHTML.includes('Nom <b>'), 'nom de fichier é
 assert(el('exoListContainer').innerHTML.includes('Phy &lt;b&gt;'), 'matière échappée');
 assert(!el('exoListContainer').innerHTML.includes('onclick="basculerExoFait'), 'aucun id injecté dans un onclick');
 assert(!call('exoSujets()').some(s => s.name === 'Bac national'), 'bac absent sans réponse positive');
+call("subjects.push({name:'Bac national', icon:'🎓'})");
+assert(!call('exoSujets()').some(s => s.name === 'Bac national'), 'bac importé absent après réponse non');
+call("subjects = subjects.filter(s => s.name !== 'Bac national')");
 context.devoirsFaitBac = () => true;
 assert(call('exoSujets()').some(s => s.name === 'Bac national'), 'bac visible en DP2 si oui');
 call("ibYear='DP1'");

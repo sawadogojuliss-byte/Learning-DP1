@@ -65,7 +65,7 @@
             <div class="salon-decor" id="salonDecor"></div><div class="salon-voile"></div>
             <div class="salon-interface focus-page">
                 <header class="focus-top salon-top">
-                    <div class="focus-haut-gauche salon-marque"><p class="focus-logo">Studyplan</p><div class="salon-meta"><span id="salonEtatConnexion" class="salon-etat" role="status" aria-live="polite"></span><span class="salon-meta-separateur" aria-hidden="true"></span><time class="salon-heure" id="salonHeure"></time></div><div id="salonParticipants" class="salon-participants" hidden aria-label="Participants au salon"><span class="salon-participants-titre">Votre groupe</span><div id="salonParticipantsNoms" class="salon-participants-noms"></div><small id="salonParticipantsInfo">Vérification des présences…</small></div></div>
+                    <div class="focus-haut-gauche salon-marque"><p class="focus-logo">Studyplan</p><div class="salon-meta"><span id="salonEtatConnexion" class="salon-etat" role="status" aria-live="polite"></span><span class="salon-meta-separateur" aria-hidden="true"></span><time class="salon-heure" id="salonHeure"></time></div><div id="salonParticipants" class="salon-participants" hidden aria-label="Participants au salon"><span class="salon-participants-titre">Votre groupe</span><div id="salonParticipantsNoms" class="salon-participants-noms"></div><small id="salonParticipantsInfo" hidden></small></div></div>
                     <div class="salon-top-droite"><p class="focus-quote" id="salonCitation"></p><button type="button" class="salon-action-secondaire salon-quitter" id="salonQuitterBouton" onclick="salonQuitter()">Quitter le salon</button></div>
                 </header>
                 <dialog class="salon-lien-carte" id="salonLienCarte" hidden aria-labelledby="salonLienTitre">
@@ -76,7 +76,7 @@
                     <p id="salonLienStatut" class="salon-lien-statut" role="status" aria-live="polite"></p>
                 </dialog>
                 <main class="focus-center salon-centre"><h2 id="salonTitre" class="focus-question salon-titre">Salon</h2>
-                    <div class="focus-modes-zone"><div class="focus-modes" role="group" aria-label="Phases du minuteur"><button type="button" data-mode="focus" onclick="salonPhaseChoisir('focus')">CONCENTRATION</button><button type="button" data-mode="short" onclick="salonPhaseChoisir('short')">PAUSE COURTE</button><button type="button" data-mode="long" onclick="salonPhaseChoisir('long')">PAUSE LONGUE</button></div></div>
+                    <div class="focus-modes-zone"><div class="focus-modes" role="group" aria-label="Phases du minuteur"><button type="button" data-mode="focus" onclick="salonPhaseChoisir('focus')">CONCENTRATION</button><button type="button" data-mode="short" onclick="salonPhaseChoisir('short')">PAUSE COURTE</button><button type="button" data-mode="long" onclick="salonPhaseChoisir('long')">PAUSE LONGUE</button></div><div class="focus-compteur" id="salonCompteur" aria-label="Séances de concentration suivies sur cet appareil"></div></div>
                     <span id="salonPhase" class="focus-sr"></span><p id="salonTemps" class="focus-time salon-temps">25:00</p><div class="focus-visuel" id="salonVisuel" hidden></div><div class="focus-barre" id="salonBarre" hidden><i id="salonBarreRemplie"></i></div>
             <div class="salon-controles-ensemble"><div class="focus-controls" id="salonCommandes" hidden>
                 <button type="button" id="salonDemarrer" class="focus-glass" onclick="salonBasculer()" aria-label="Démarrer">
@@ -99,7 +99,7 @@
                     <div id="salonChatListe" class="salon-chat-liste" role="log" aria-label="Messages du salon" aria-live="polite" aria-relevant="additions text"></div>
                     <div class="salon-chat-pied"><div class="salon-chat-connexion"><p id="salonChatEtat" class="salon-chat-etat" role="status" aria-live="polite">Connexion à la messagerie…</p><button type="button" id="salonChatReessayer" class="salon-chat-reessayer" onclick="salonReessayerMessages()" hidden>Réessayer</button></div>
                     <form class="salon-chat-form" onsubmit="return salonEnvoyerMessage(event)"><label class="focus-sr" for="salonChatTexte">Ton message</label><textarea id="salonChatTexte" maxlength="1000" rows="2" placeholder="Écris un message…"></textarea><button id="salonChatEnvoyer" type="submit" disabled aria-label="Envoyer le message"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="m3 4 18 8-18 8 2.5-8L3 4Zm2.5 8H21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button></form>
-                    <p class="salon-chat-note">Visible par les personnes ayant rejoint. Les messages ne sont pas encore supprimés automatiquement : évite les données sensibles.</p></div>
+                    <p class="salon-chat-note">Les messages ne sont pas encore supprimés automatiquement : évite les données sensibles.</p></div>
                 </aside>
                 <footer class="focus-bottom salon-bottom">
             <div class="focus-outils">
@@ -153,7 +153,6 @@
                             <div class="salon-bloc"><label for="salonVolume">Volume personnel <span id="salonVolumeValeur">100 %</span></label><input id="salonVolume" type="range" min="0" max="100" value="100" oninput="salonChangerVolume(this.value)">
                             <label class="salon-case"><input type="checkbox" id="salonDiscret" onchange="salonChangerDiscret(this.checked)"> <span>Mode discret : masquer les noms des autres participants et les réactions</span></label>
                             <label for="salonSignal">Signal de fin</label><select id="salonSignal" onchange="salonChangerSignal(this.value)"><option value="visuel">Notification visuelle</option><option value="son">Son doux</option><option value="aucun">Aucun signal</option></select></div>
-                            <div id="salonAmbianceHote" class="salon-bloc" hidden><label for="salonAmbiance">Ambiance commune</label><select id="salonAmbiance"><option value="">Choisir une ambiance</option><option value="bibliotheque">Bibliothèque sous la pluie</option><option value="cafe">Café calme</option></select><button type="button" class="salon-action-secondaire" onclick="salonAppliquerAmbiance()">Partager l’ambiance</button><p class="salon-aide">Les sons viennent de Studyplan. Chacun choisit son volume.</p></div>
                         </section>
                         <section class="salon-carte salon-carte-bilan" data-salon-fiche="bilan"><div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">✧</span><div><span class="salon-surtexte">PETITS PAS, GRAND CHEMIN</span><h3>Votre bilan</h3><p>Un regard sur le chemin parcouru ensemble.</p></div></div><div class="salon-bloc salon-bilan-contenu"><span class="salon-bilan-symbole" aria-hidden="true">✦</span><p id="salonBilan">Le bilan commun apparaîtra après les premières sessions terminées.</p><p>Bravo pour le temps que vous vous accordez.</p></div></section>
                     </div>
@@ -168,6 +167,16 @@
                 <h2 id="salonFinTitre">La réunion est terminée</h2>
                 <p id="salonFinMessage">L’organisateur a arrêté la réunion pour tous les participants.</p>
                 <button class="salon-creer" type="submit">Compris</button>
+            </form>
+        </dialog>
+        <dialog id="salonCelebrationDialog" class="salon-invitation salon-celebration" aria-labelledby="salonCelebrationTitre" aria-describedby="salonCelebrationTexte">
+            <form method="dialog"><div class="salon-celebration-embleme" aria-hidden="true">✦</div>
+                <span class="salon-surtexte">UN MOMENT ACCOMPLI ENSEMBLE</span>
+                <h2 id="salonCelebrationTitre">Bravo à tout le groupe !</h2>
+                <p id="salonCelebrationTexte">Vous venez de terminer une séance de concentration. Chaque effort compte.</p>
+                <p id="salonCelebrationPersonnes" class="salon-celebration-personnes"></p>
+                <p id="salonCelebrationProgression" class="salon-celebration-progression"></p>
+                <button class="salon-creer" type="submit">Continuer ensemble</button>
             </form>
         </dialog>
         <dialog id="salonBilanDialog" class="salon-invitation salon-bilan-dialog" aria-labelledby="salonBilanTitre"><form method="dialog"><span class="salon-surtexte">UN MOMENT PARTAGÉ</span><h2 id="salonBilanTitre">Bravo pour ce temps ensemble ✨</h2><p id="salonBilanFinal"></p><p>Chaque petit pas compte. Repose-toi et sois fier de ce que tu as accompli.</p><button class="salon-creer" type="submit">Terminer</button></form></dialog>
@@ -310,7 +319,7 @@
                 <section class="focus-tiroir-page" data-page="minuteur" hidden>
                     <header class="focus-page-titre"><h2>Minuteur</h2><p>Durées, style d'affichage et enchaînement.</p></header>
                     <div id="salonReglagesMinuteur" class="focus-carte salon-reglages-minuteur" hidden>
-                        <h3>Minuteur du salon</h3><p>Ces durées concernent tous les participants. Mets le minuteur en pause avant de les modifier.</p><label class="salon-duree-seances" for="salonDureeSeances">Séances souhaitées <input id="salonDureeSeances" type="number" min="1" max="12" value="4"></label><p>Nombre indicatif : l’enchaînement automatique et le bilan commun ne sont pas encore disponibles.</p>
+                        <h3>Minuteur du salon</h3><p>Ces durées concernent tous les participants. Mets le minuteur en pause avant de les modifier.</p><label class="salon-duree-seances" for="salonDureeSeances">Séances souhaitées <input id="salonDureeSeances" type="number" min="1" max="12" value="4"></label><p>Le nombre de séances est indicatif. Les pauses restent manuelles et le bilan compte les séances observées sur cet appareil.</p>
                         <div class="focus-durees">
                             <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="salonDureeFocus" type="number" min="1" max="180" value="25"><small>min</small></span></label>
                             <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="salonDureeShort" type="number" min="1" max="60" value="5"><small>min</small></span></label>

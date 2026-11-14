@@ -62,7 +62,9 @@ try {
   await gp.locator('[data-onglet="reunion-groupe"]').click();await gp.locator('#salonCoupPouce').click();await hp.getByRole('button',{name:'Encourager'}).click();await gp.waitForFunction(()=>document.getElementById('salonListeMembres').textContent.includes('Tu peux le faire'));
   await gp.locator('[data-onglet="reunion-preferences"]').click();await gp.locator('#salonDiscret').check();assert.match(await gp.locator('#salonListeMembres').innerText(),/Organisateur/);assert.doesNotMatch(await gp.locator('#salonListeMembres').innerText(),/Camille/);assert.equal(await gp.locator('#salonMembres').isVisible(),false);await gp.locator('#salonDiscret').uncheck();
   await gp.locator('#salonVolume').fill('23');assert.equal(await gp.locator('#salonVolumeValeur').innerText(),'23 %');
-  await hp.locator('[data-onglet="reunion-preferences"]').click();await hp.locator('#salonAmbiance').selectOption('bibliotheque');await hp.getByRole('button',{name:'Partager l’ambiance'}).click();await gp.waitForFunction(()=>document.getElementById('salonAutoriserAudio').hidden===false);assert.deepEqual(room.partage.musique.sons,['bibliotheque','pluie']);
+  await hp.locator('[data-onglet="reunion-preferences"]').click();assert.equal(await hp.locator('#salonAmbiance').count(),0,'ambiance commune retirée des préférences');
+  // Une musique partagée par les autres voies de partage reste compatible.
+  room.options.musique=true;room.partage.musique={nom:'Bibliothèque sous la pluie',sons:['bibliotheque','pluie']};room.revision++;await gp.waitForFunction(()=>document.getElementById('salonAutoriserAudio').hidden===false);
   await gp.locator('[data-onglet="reunion-groupe"]').click();await gp.locator('#salonAutoriserAudio').click();await gp.waitForFunction(()=>document.querySelector('#salonAutoriserAudio').textContent==='Couper les sons');
   await gp.waitForFunction(()=>window.__audios.some(a=>a.currentSrc.includes('pluie.mp3')));
   const volume=await gp.evaluate(()=>window.__audios.find(a=>a.currentSrc.includes('pluie.mp3')).volume);assert.ok(Math.abs(volume-(.55*.23))<.001, 'volume personnel appliqué');
@@ -71,7 +73,26 @@ try {
   await hp.locator('[data-onglet="reunion-groupe"]').click();await hp.locator('#salonVerrou').click();await hp.waitForFunction(()=>document.getElementById('salonVerrou').textContent.includes('Déverrouiller'));await assert.rejects(backend('intrus','join',{id,pseudo:'Autre'}),/permission-denied/);
   await hp.locator('#salonVerrou').click();await hp.waitForFunction(()=>document.getElementById('salonVerrou').textContent==='Verrouiller le salon');
   room.bilan={secondes:1500,sessions:1};await gp.waitForFunction(()=>document.getElementById('salonBilan').textContent.includes('25 min'));
-  room.chrono={mode:'focus',total:5,restant:5,running:true,fin:Date.now()+1500};room.revision++;await gp.waitForFunction(()=>document.getElementById('salonSignalVisuel').hidden===false,{timeout:5000});
+  assert.equal(await hp.locator('#salonListeMembres').evaluate(e=>getComputedStyle(e).gridTemplateColumns.split(' ').length),1,'une ligne par participant');
+  assert.doesNotMatch(await hp.locator('#salonParticipants').innerText(),/Point vert :/);
+  assert.equal(await hp.locator('#salonCompteur .focus-compteur-item').count(),3,'compteur comme le Pomodoro');
+  room.chrono={mode:'focus',total:5,restant:5,running:true,fin:Date.now()+2500};room.revision++;
+  await Promise.all([hp.waitForFunction(()=>document.getElementById('salonCelebrationDialog').open,{timeout:8000}),gp.waitForFunction(()=>document.getElementById('salonCelebrationDialog').open,{timeout:8000})]);
+  for(const p of [hp,gp]){const boite=await p.locator('#salonCelebrationDialog').boundingBox();assert.ok(boite.x>=0 && boite.y>=0 && boite.x+boite.width<=viewport.width && boite.y+boite.height<=viewport.height,'bilan dans la zone visible');}
+  if(process.env.SALON_SCREENSHOTS && viewport.width===1280)await hp.screenshot({path:'/home/user/salon-celebration.png'});
+  for(const p of [hp,gp]){assert.match(await p.locator('#salonCelebrationTitre').innerText(),/Bravo à tout le groupe/);assert.match(await p.locator('#salonCelebrationPersonnes').innerText(),/Organisateur/);assert.match(await p.locator('#salonCelebrationPersonnes').innerText(),/Camille/);assert.match(await p.locator('#salonCelebrationProgression').innerText(),/1 séance/);await p.locator('#salonCelebrationDialog button').click();}
+  await hp.waitForTimeout(500);assert.equal(await hp.locator('#salonCelebrationDialog').evaluate(e=>e.open),false,'pas de doublon au rafraîchissement');
+  assert.equal(await gp.locator('#salonSignalVisuel').isHidden(),false);
+  // Deux autres concentrations : chacune félicite les deux personnes, et
+  // le troisième bilan annonce l'objectif atteint sans fabriquer de données serveur.
+  for(let n=2;n<=3;n++){
+    room.chrono={mode:'focus',total:5,restant:5,running:true,fin:Date.now()+2500};room.revision++;
+    await Promise.all([hp.waitForFunction(()=>document.getElementById('salonCelebrationDialog').open,{timeout:8000}),gp.waitForFunction(()=>document.getElementById('salonCelebrationDialog').open,{timeout:8000})]);
+    for(const p of [hp,gp]){assert.match(await p.locator('#salonCelebrationProgression').innerText(),new RegExp(n+' séances'));if(n===3)assert.match(await p.locator('#salonCelebrationTitre').innerText(),/objectif atteint/i);await p.locator('#salonCelebrationDialog button').click();}
+  }
+  room.chrono={mode:'short',total:5,restant:5,running:true,fin:Date.now()+1800};room.revision++;
+  await gp.waitForTimeout(2300);
+  for(const p of [hp,gp]){assert.equal(await p.locator('#salonCelebrationDialog').evaluate(e=>e.open),false,'une pause ne déclenche pas le bilan');assert.equal(await p.evaluate(id=>JSON.parse(sessionStorage.getItem('studyPlanIB_salon_seances_'+id)).length,id),3,'une pause ne compte pas comme concentration');}
   assert.equal(await gp.locator('#salonEcran').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'pas de débordement');
   hp.once('dialog',d=>d.accept());await hp.getByRole('button',{name:'Transférer'}).click();await gp.waitForFunction(()=>!document.getElementById('salonCommandes').hidden);await hp.waitForFunction(()=>document.getElementById('salonCommandes').hidden);
   await assert.rejects(backend('host','lock',{value:true}),/permission-denied/);

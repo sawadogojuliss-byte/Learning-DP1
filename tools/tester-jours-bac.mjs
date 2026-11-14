@@ -75,6 +75,13 @@ try {
     await page.reload({waitUntil:'domcontentloaded'});
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
     assert.equal(await page.evaluate(() => devoirsLireStore().bac), reponse === 'Oui', 'réponse conservée au rechargement');
+    if(reponse==='Non') {
+      const ancien=await page.evaluate(()=>{
+        ibYear='DP2';subjects=[{name:'Mathématiques'},{name:'Bac national'}];optionalSubjects=[{name:'BAC NATIONAL'}];
+        devoirsRendre();return {matieres:exoSujets().map(s=>s.name),suggestions:Array.from(document.querySelectorAll('#devoirsMatiereListe option')).map(x=>x.value),vendredi:generateDayEvents(4).some(e=>e.id==='bac-vendredi'),samedi:generateDayEvents(5).some(e=>e.id==='bac-samedi')};
+      });
+      assert.deepEqual(ancien,{matieres:['Mathématiques'],suggestions:['Mathématiques'],vendredi:false,samedi:false},'un BAC ancien ne reparaît pas dans les choix ni le planning après Non');
+    }
     assert.deepEqual(errors, []);
     console.log('OK DP2 ' + reponse + ' : question immédiate, planning adapté, jour choisi conservé.');
     await page.close();

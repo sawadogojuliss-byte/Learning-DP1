@@ -380,3 +380,27 @@ body.salon-actif .salon-limite-reglage {display:block;}
 body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button:not(:disabled),a[href],summary) {cursor:pointer;}
 body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button,a[href],summary) :is(svg,svg *,img,span,strong,em,i) {cursor:inherit;}
 body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) button svg {pointer-events:none;}
+
+/* Chaque personne occupe sa propre ligne, même sur grand écran. */
+#focusReglages .salon-membres {grid-template-columns:minmax(0,1fr);}
+#focusReglages .salon-membres .salon-membre {width:100%;box-sizing:border-box;}
+.salon-ecran .salon-participants-noms {display:flex;flex-direction:column;align-items:flex-start;flex-wrap:nowrap;max-height:min(10rem,20vh);overflow:auto;}
+
+/* Les zones interactives ne bougent pas au passage de la souris ; les icônes
+   décoratives ne peuvent pas intercepter la cible du bouton. */
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button,a[href],summary,[role=button]):hover {transform:none!important;}
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button,a[href],summary) :is(svg,img) {pointer-events:none;}
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button,a[href],summary) {transition-property:background-color,border-color,color,box-shadow,opacity;}
+
+/* Bilan chaleureux et lisible, sans masquer les commandes du minuteur. */
+.salon-celebration {box-sizing:border-box;max-height:calc(100dvh - 2rem);overflow:auto;text-align:center;width:min(27rem,calc(100% - 3rem));padding:2rem 1.7rem;border:1px solid #b6e9ca75;border-radius:1.5rem;background:linear-gradient(150deg,#1d523a,#0b261c);box-shadow:0 30px 90px #00170dcc;}
+.salon-celebration::backdrop {background:#00130fba;backdrop-filter:blur(4px);}
+.salon-celebration-embleme {display:grid;place-items:center;width:4.25rem;height:4.25rem;margin:0 auto 1.1rem;border:1px solid #bbf6cf70;border-radius:1.35rem;background:radial-gradient(circle,#b3f3c455,#88d4a40b);color:#d5ffe1;font-size:2rem;}
+.salon-celebration h2 {margin:.65rem 0;color:#f4fff6;font-size:clamp(1.5rem,3vw,1.85rem);line-height:1.18;letter-spacing:-.035em;}
+.salon-celebration p {color:#d5e9da;line-height:1.55;}
+.salon-celebration-personnes {overflow-wrap:anywhere;font-weight:700;color:#bcf1ca!important;}
+.salon-celebration-progression {display:inline-block;margin:.4rem auto 1.1rem;padding:.45rem .8rem;border:1px solid #b6e9ca35;border-radius:999px;background:#ffffff0b;font-size:.78rem;}
+.salon-celebration .salon-creer {display:block;width:100%;min-height:2.9rem;border:0;border-radius:.85rem;background:#c7f0d0;color:#153d29;font-weight:800;}
+.salon-celebration .salon-creer:hover {background:#e1fae7;}
+
+.salon-invitation form > .salon-celebration-embleme {display:grid;place-items:center;}

@@ -32,7 +32,10 @@ function exoLireDate(value) {
     return result.getFullYear() === y && result.getMonth() === m - 1 && result.getDate() === d ? result : null;
 }
 function exoSujets() {
-    const list = typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [];
+    const bacActif = typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsFaitBac === 'function' && devoirsFaitBac();
+    // Une ancienne matière importée ne doit pas contourner le choix « Non ».
+    const list = (typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [])
+        .filter(s => s && (bacActif || String(s.name || '').trim().toLocaleLowerCase('fr') !== 'bac national'));
     if (typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsFaitBac === 'function' && devoirsFaitBac() &&
         !list.some(s => s.name === 'Bac national')) list.push({ name: 'Bac national', icon: '🎓' });
     return list;

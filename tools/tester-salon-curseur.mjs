@@ -37,7 +37,13 @@ async function analyser(page, selector, position='centre') {
  const e=page.locator(selector).first();assert.equal(await e.isVisible(),true,selector+' doit être visible');assert.equal(await e.isDisabled().catch(()=>false),false,selector+' doit être activé');
  await e.scrollIntoViewIfNeeded();await page.waitForTimeout(450);const b=await e.boundingBox();assert.ok(b && b.width>=4 && b.height>=4,selector+' doit avoir une surface mesurable');
  const x=position==='bord'?b.x+1.5:b.x+b.width/2, y=b.y+b.height/2;
- await page.mouse.move(x,y);const mesures=await page.evaluate(async ({x,y})=>{const r=[];for(let i=0;i<55;i++){const el=document.elementFromPoint(x,y);r.push({cursor:el?getComputedStyle(el).cursor:'',tag:el?.tagName,id:el?.id,classe:el?.getAttribute('class')});await new Promise(f=>requestAnimationFrame(f));}return r;},{x,y});
+ // Approcher depuis l'extérieur, puis vérifier que le survol ne déplace pas
+ // la zone réelle sous la souris (le test précédent ne mesurait que le centre).
+ await page.mouse.move(Math.max(0,b.x-6),y);const avant=await e.boundingBox();
+ await page.mouse.move(x,y,{steps:6});await page.waitForTimeout(200);const apres=await e.boundingBox();
+ assert.ok(Math.abs(avant.x-apres.x)<.5 && Math.abs(avant.y-apres.y)<.5,selector+' ne doit pas bouger au survol');
+ assert.equal(await e.evaluate((el,pt)=>{const cible=document.elementFromPoint(pt.x,pt.y);return cible===el || el.contains(cible);},{x,y}),true,selector+' reste sous le pointeur');
+ const mesures=await page.evaluate(async ({x,y})=>{const r=[];for(let i=0;i<55;i++){const el=document.elementFromPoint(x,y);r.push({cursor:el?getComputedStyle(el).cursor:'',tag:el?.tagName,id:el?.id,classe:el?.getAttribute('class')});await new Promise(f=>requestAnimationFrame(f));}return r;},{x,y});
  const ensemble=[...new Set(mesures.map(m=>m.cursor))];assert.deepEqual(ensemble,['pointer'],selector+' : curseur de bouton instable');
 }
 try {

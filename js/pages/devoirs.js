@@ -1441,6 +1441,7 @@ function devoirsRendre() {
            seulement s'il n'a pas encore de profil) */
         var matieresProposees = devoirsMatieresEleve();
         if (!matieresProposees.length) matieresProposees = devoirsMatieresConnues();
+        if (!devoirsFaitBac()) matieresProposees = matieresProposees.filter(function(m) { return devoirsNormaliser(m) !== 'bac national'; });
         listeM.innerHTML = matieresProposees.map(function (m) {
             return '<option value="' + devoirsEchap(m) + '"></option>';
         }).join('');

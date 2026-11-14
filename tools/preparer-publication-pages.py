@@ -312,6 +312,14 @@ shutil.copy2(ROOT / 'livrables/publication-legende/defilement.css', output / 'cs
 # le parcours de présentation/confirmation est remplacé sur la base publique.
 path = output / 'js/pages/exercices.js'
 text = path.read_text(encoding='utf-8')
+# Une ancienne matière « Bac national » ne doit pas contourner un choix Non.
+ancien_bac = "    const list = typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [];"
+nouveau_bac = """    const bacActif = typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsFaitBac === 'function' && devoirsFaitBac();
+    const list = (typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [])
+        .filter(s => s && (bacActif || String(s.name || '').trim().toLocaleLowerCase('fr') !== 'bac national'));"""
+if text.count(ancien_bac) != 1:
+    raise SystemExit('Liste des matières Exercices publique inattendue')
+text = text.replace(ancien_bac, nouveau_bac, 1)
 # Une durée personnalisée ne doit pas allumer le préréglage 1 h 30.
 ancien_preset = "(dur===30?'30 min':dur===45?'45 min':dur===60?'1h':'1h30')"
 nouveau_preset = "(dur===30?'30 min':dur===45?'45 min':dur===60?'1h':dur===90?'1h30':'')"
