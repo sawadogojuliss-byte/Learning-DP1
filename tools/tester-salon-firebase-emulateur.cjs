@@ -70,6 +70,13 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   await assert.rejects(reprise.modifier(revision,{chrono:demarre}),e=>e.code==='revision-conflict');
   await attendre(()=>dataG && dataG.chrono.running,'chrono invité');
   await assert.rejects(guest.modifier(dataG.revision,{chrono:demarre}),e=>e.code==='permission-denied');
+  await attendre(()=>dataH.membres.some(m=>m.uid===host.uid && m.vuLe),'présence de l’hôte');
+  await host.transferer(guest.uid);await attendre(()=>dataG.organisateurUid===guest.uid,'transfert');
+  await assert.rejects(host.modifier(dataG.revision,{chrono:demarre}),e=>e.code==='permission-denied');
+  const promu=await adapter.reprendre(host.id,'invite');assert.equal(promu.role,'hote');
+  const exHote=await adapter.reprendre(host.id);assert.equal(exHote.role,'invite');
+  await guest.modifier(dataG.revision,{chrono:core.commande(demarre,'pause',guest.maintenant(),{})});
+  await guest.transferer(host.uid);await attendre(()=>dataH.organisateurUid===host.uid,'retour du rôle');
   await guest.quitter();stopG();
   await attendre(()=>dataH && !dataH.membres.some(m=>m.pseudo==='Camille'),'départ invité');
   const encore=await adapter.rejoindre(host.id,'Camille');let fin=null;let erreursFin=[];

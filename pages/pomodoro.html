@@ -68,12 +68,12 @@
                     <div class="focus-haut-gauche salon-marque"><p class="focus-logo">Studyplan</p><div class="salon-meta"><span id="salonEtatConnexion" class="salon-etat" role="status" aria-live="polite"></span><span class="salon-meta-separateur" aria-hidden="true"></span><time class="salon-heure" id="salonHeure"></time></div><div id="salonParticipants" class="salon-participants" hidden aria-label="Participants au salon"><span class="salon-participants-titre">Votre groupe</span><div id="salonParticipantsNoms" class="salon-participants-noms"></div><small id="salonParticipantsInfo">Vérification des présences…</small></div></div>
                     <div class="salon-top-droite"><p class="focus-quote" id="salonCitation"></p><button type="button" class="salon-action-secondaire salon-quitter" id="salonQuitterBouton" onclick="salonQuitter()">Quitter le salon</button></div>
                 </header>
-                <section class="salon-lien-carte" id="salonLienCarte" hidden aria-labelledby="salonLienTitre">
+                <dialog class="salon-lien-carte" id="salonLienCarte" hidden aria-labelledby="salonLienTitre">
                     <div class="salon-lien-entete"><span class="salon-lien-icone" aria-hidden="true">✦</span><div><span class="salon-surtexte">UN MOMENT À PARTAGER</span><h3 id="salonLienTitre">Ton salon est prêt</h3><p>Invite les personnes avec qui tu veux te concentrer.</p></div></div>
-                    <button type="button" class="salon-lien-fermer" onclick="document.getElementById('salonLienCarte').hidden=true" aria-label="Fermer la carte de partage">×</button>
+                    <button type="button" class="salon-lien-fermer" onclick="salonFermerLien()" aria-label="Fermer la carte de partage">×</button>
                     <div class="salon-lien-champ"><label for="salonLienAffiche" class="focus-sr">Lien du salon</label><input id="salonLienAffiche" readonly spellcheck="false"><button type="button" class="salon-copier" onclick="salonCopierLien()">Copier le lien</button></div>
                     <p id="salonLienStatut" class="salon-lien-statut" role="status" aria-live="polite">Seules les personnes qui ont ce lien peuvent rejoindre.</p>
-                </section>
+                </dialog>
                 <main class="focus-center salon-centre"><h2 id="salonTitre" class="focus-question salon-titre">Salon</h2>
                     <div class="focus-modes-zone"><div class="focus-modes" role="group" aria-label="Phases du minuteur"><button type="button" data-mode="focus" onclick="salonPhaseChoisir('focus')">CONCENTRATION</button><button type="button" data-mode="short" onclick="salonPhaseChoisir('short')">PAUSE COURTE</button><button type="button" data-mode="long" onclick="salonPhaseChoisir('long')">PAUSE LONGUE</button></div></div>
                     <span id="salonPhase" class="focus-sr"></span><p id="salonTemps" class="focus-time salon-temps">25:00</p>
@@ -139,8 +139,7 @@
                             <div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">♡</span><div><span class="salon-surtexte">ENSEMBLE</span><h3>Votre cercle</h3><p>Un espace pour avancer côte à côte.</p></div></div>
                             <section class="salon-personnes" aria-labelledby="salonPersonnesTitre">
                                 <div class="salon-personnes-entete"><div><h4 id="salonPersonnesTitre">Participants</h4><p id="salonGroupeInfo">Les participants apparaîtront ici.</p></div><span class="salon-personnes-symbole" aria-hidden="true">✦</span></div>
-                                <div id="salonListeMembres" class="salon-membres" role="list" aria-label="Participants inscrits"></div><p id="salonMembresDiscrets" class="salon-personnes-note" hidden>Mode discret : seul le nom de l’organisateur reste affiché.</p>
-                                <p class="salon-personnes-note">L’activité récente est une indication, pas une garantie de connexion.</p>
+                                <div id="salonListeMembres" class="salon-membres" role="list" aria-label="Participants inscrits"></div>
                             </section>
                             <div class="salon-groupe-actions"><h4>Votre salon</h4><p>Retrouve ici les outils pour inviter et gérer votre espace.</p>
                                 <div id="salonOutilsHote" hidden><button type="button" id="salonVerrou" class="salon-action-secondaire" onclick="salonVerrouiller()">Verrouiller le salon</button><p class="salon-aide">Le verrou empêche les nouvelles entrées. Les actions de gestion nécessitent un service sécurisé.</p></div>
@@ -303,7 +302,15 @@
                 </section>
                 <section class="focus-tiroir-page" data-page="minuteur" hidden>
                     <header class="focus-page-titre"><h2>Minuteur</h2><p>Durées, style d'affichage et enchaînement.</p></header>
-                    <div class="focus-carte">
+                    <div id="salonReglagesMinuteur" class="focus-carte salon-reglages-minuteur" hidden>
+                        <h3>Minuteur du salon</h3><p>Ces durées concernent tous les participants. Mets le minuteur en pause avant de les modifier.</p><label class="salon-duree-seances" for="salonDureeSeances">Séances souhaitées <input id="salonDureeSeances" type="number" min="1" max="12" value="4"></label><p>Nombre indicatif : l’enchaînement automatique et le bilan commun ne sont pas encore disponibles.</p>
+                        <div class="focus-durees">
+                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="salonDureeFocus" type="number" min="1" max="180" value="25"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="salonDureeShort" type="number" min="1" max="60" value="5"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="salonDureeLong" type="number" min="1" max="60" value="15"><small>min</small></span></label>
+                        </div><button type="button" class="salon-copier" id="salonAppliquerDurees" onclick="salonAppliquerDurees()">Appliquer au salon</button><p id="salonDureesStatut" role="status" aria-live="polite"></p>
+                    </div>
+                    <div id="focusDureesPersonnelles" class="focus-carte">
                         <div class="focus-seances focus-seances-haut">
                             <p class="focus-seances-question" id="focusSeancesQuestion">Combien de séances souhaites-tu faire ?</p>
                             <div class="focus-stepper">

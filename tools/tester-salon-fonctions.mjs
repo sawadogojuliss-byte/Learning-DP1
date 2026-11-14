@@ -12,9 +12,9 @@ let room, removed;
 const clone=v=>structuredClone(v);
 function error(code){const e=Error(code);e.code=code;return e;}
 async function backend(actor,op,arg={}) {
- if(op==='create'){room={...clone(arg),revision:1,ferme:false,verrouille:false,organisateurUid:actor,membres:[{uid:actor,pseudo:'Organisateur'}],bilan:{secondes:0,sessions:0}};removed=new Set();return {id,uid:actor,role:'hote'};}
+ if(op==='create'){room={...clone(arg),revision:1,ferme:false,verrouille:false,organisateurUid:actor,membres:[{uid:actor,pseudo:'Organisateur',vuLe:Date.now()}],bilan:{secondes:0,sessions:0}};removed=new Set();return {id,uid:actor,role:'hote'};}
  if(!room || room.ferme)throw error('room-closed');
- if(op==='join'){if(arg.id!==id || room.verrouille || removed.has(actor))throw error('permission-denied');room.membres=room.membres.filter(x=>x.uid!==actor);room.membres.push({uid:actor,pseudo:arg.pseudo});return {id,uid:actor,role:actor===room.organisateurUid?'hote':'invite'};}
+ if(op==='join'){if(arg.id!==id || room.verrouille || removed.has(actor))throw error('permission-denied');room.membres=room.membres.filter(x=>x.uid!==actor);room.membres.push({uid:actor,pseudo:arg.pseudo,vuLe:Date.now()});return {id,uid:actor,role:actor===room.organisateurUid?'hote':'invite'};}
  if(!room.membres.some(x=>x.uid===actor))throw error('removed');
  if(op==='read')return clone(room);
  if(op==='personal'){Object.assign(room.membres.find(x=>x.uid===actor),clone(arg));return;}
@@ -44,10 +44,16 @@ try {
   room=null;const host=await newUser('host',viewport),guest=await newUser('guest',viewport);const hp=host.page,gp=guest.page;
   await hp.goto(base,{waitUntil:'domcontentloaded'});await hp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   await hp.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon')});
-  await hp.locator('#salonNom').fill('Réviser ensemble');await hp.locator('#salonCreer').click();await hp.locator('#salonEcran').waitFor();
+  await hp.locator('#salonNom').fill('Réviser ensemble');await hp.locator('#salonCreer').click();await hp.locator('#salonEcran').waitFor();await hp.locator('.salon-lien-fermer').click();
   await gp.goto(base+'#salon='+id,{waitUntil:'domcontentloaded'});await gp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
   await gp.locator('#salonPseudo').fill('Camille');await gp.locator('#salonRejoindreBouton').click();await gp.waitForFunction(()=>!document.getElementById('salonInvitation').open);
-  await hp.locator('#salonBtnReglages').click();await hp.locator('[data-onglet="reunion-groupe"]').click();await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="reunion-objectif"]').click();
+  await hp.locator('#salonBtnReglages').click();await hp.locator('[data-onglet="minuteur"]').click();
+  assert.equal(await hp.locator('#salonReglagesMinuteur').isVisible(),true);assert.equal(await hp.locator('#focusDureesPersonnelles').isVisible(),false);
+  await hp.locator('#salonDureeFocus').fill('42');await hp.locator('#salonDureeShort').fill('7');await hp.locator('#salonDureeLong').fill('18');await hp.locator('#salonDureeSeances').fill('3');await hp.locator('#salonAppliquerDurees').click();
+  await gp.waitForFunction(()=>document.getElementById('salonTemps').textContent==='42:00');assert.equal(room.partage.durees.focus,42);assert.equal(room.partage.durees.seances,3);
+  await hp.locator('[data-onglet="reunion-groupe"]').click();await gp.locator('#salonBtnReglages').click();await gp.locator('[data-onglet="minuteur"]').click();
+  assert.equal(await gp.locator('#salonReglagesMinuteur').isVisible(),false);assert.equal(await gp.locator('#focusDureesPersonnelles').isVisible(),false);
+  await gp.locator('[data-onglet="reunion-objectif"]').click();
   await gp.locator('#salonObjectif').fill('Terminer mon devoir');await gp.waitForTimeout(500);assert.equal(room.membres.find(x=>x.uid==='guest').objectif,undefined,'objectif privé par défaut');
   await gp.locator('#salonObjectifPartager').check();await hp.waitForFunction(()=>document.getElementById('salonListeMembres').textContent.includes('Terminer mon devoir'));
   await gp.locator('#salonObjectifFait').check();await hp.waitForFunction(()=>document.getElementById('salonListeMembres').textContent.includes('✓'));
@@ -69,6 +75,8 @@ try {
   assert.equal(await gp.locator('#salonEcran').evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'pas de débordement');
   hp.once('dialog',d=>d.accept());await hp.getByRole('button',{name:'Transférer'}).click();await gp.waitForFunction(()=>!document.getElementById('salonCommandes').hidden);await hp.waitForFunction(()=>document.getElementById('salonCommandes').hidden);
   await assert.rejects(backend('host','lock',{value:true}),/permission-denied/);
+  await gp.locator('[data-onglet="minuteur"]').click();assert.equal(await gp.locator('#salonReglagesMinuteur').isVisible(),true);assert.equal(await gp.locator('#salonDureeFocus').inputValue(),'42');
+  await hp.locator('[data-onglet="minuteur"]').click();assert.equal(await hp.locator('#salonReglagesMinuteur').isVisible(),false);
   await gp.locator('[data-onglet="reunion-groupe"]').click();gp.once('dialog',d=>d.accept());await gp.getByRole('button',{name:'Retirer'}).click();await hp.waitForFunction(()=>document.getElementById('salonEcran').hidden);assert.match(await hp.locator('#salonBilanFinal').innerText(),/25 min/);assert.equal(await hp.locator('#salonBilanDialog').evaluate(e=>e.open),true);await assert.rejects(backend('host','join',{id,pseudo:'Organisateur'}),/permission-denied/);
   assert.deepEqual(host.errors,[]);assert.deepEqual(guest.errors,[]);console.log('OK nouvelles fonctions simulées '+viewport.width+'×'+viewport.height);
   await host.context.close();await guest.context.close();

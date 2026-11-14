@@ -46,6 +46,7 @@
         if (selection.minuteur) {
             var d = source.durees || {};
             r.durees = { focus: nombre(d.focus,1,180,25), short: nombre(d.short,1,60,5), long: nombre(d.long,1,60,15) };
+            if (d.seances !== undefined) r.durees.seances = nombre(d.seances,1,12,4);
         }
         if (selection.horloge) r.horloge = { police: texte(source.horloge && source.horloge.police, 40), taille: texte(source.horloge && source.horloge.taille, 40) };
         function ids(liste) {

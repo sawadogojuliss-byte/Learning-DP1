@@ -83,7 +83,9 @@
             var onglets=Array.from(document.querySelectorAll('#focusReglages [data-onglet="salon"],#focusReglages [data-onglet="statistiques"]')).map(function(e){return e.closest('li');});
             protections={champs:champs.map(function(e){return {el:e,disabled:e.disabled};}),onglets:onglets.map(function(e){return {el:e,hidden:e.hidden};})};
         }
-        protections.champs.forEach(function(x){x.el.disabled=invite?true:x.disabled;});
+        protections.champs.forEach(function(x){x.el.disabled=session?true:x.disabled;});
+        $('focusDureesPersonnelles').hidden=!!session;
+        $('salonReglagesMinuteur').hidden=!session || invite;
         protections.onglets.forEach(function(x){x.el.hidden=session?true:x.hidden;});
         document.querySelectorAll('#focusReglages [data-reunion-onglet]').forEach(function(e){e.hidden=!session;});
     }
@@ -92,6 +94,7 @@
         if(session && (id==='statistiques' || (id==='salon' && !editionPartage))) return;
         if(!session && id.indexOf('reunion-')===0)return;
         var changement=focusOngletCourant!==id, resultat=choisirOngletPersonnel.apply(this,arguments);
+        if(changement && id==='minuteur' && session && session.role==='hote')remplirDureesSalon();
         if(changement && id.indexOf('reunion-')===0) {
             var contenu=document.querySelector('#focusReglages .focus-tiroir-contenu');contenu.scrollTop=0;
             // Certains navigateurs restaurent l'ancienne position après le changement de page.
@@ -147,7 +150,17 @@
         playlistChoisie = { nom:coeur.texte(liste && liste.nom,40), sons:(liste && liste.sons || []).slice(0,20) };
         return jouerListe.apply(this, arguments);
     };
-    function selectionPartagee() { return coeur.contenus(options(), etatPersonnel()); }
+    function selectionPartagee() {
+        var p=coeur.contenus(options(),etatPersonnel());
+        // Les salons créés restent compatibles avec les anciennes règles ;
+        // l'objectif partagé de séances n'est ajouté qu'à l'application explicite.
+        if(p.durees){
+            var existant=session && salle && salle.partage && salle.partage.durees;
+            if(existant && existant.seances!==undefined)p.durees.seances=existant.seances;
+            else delete p.durees.seances;
+        }
+        return p;
+    }
     function erreur(e) {
         if (!navigator.onLine) return 'Connexion interrompue. Réessaie quand le réseau revient.';
         if (e && e.code === 'auth-required') return 'Connecte-toi à ton compte Google pour créer ou reprendre ton salon.';
@@ -204,7 +217,7 @@
         $('salonInvitationTitre').textContent='Connexion au salon';$('salonInvitationDescription').textContent='Vérification de ton accès…';
         $('salonPseudo').hidden=true;$('salonPseudo').required=false;$('salonPseudoLabel').hidden=true;
         $('salonRejoindreBouton').textContent='Vérification…';$('salonRejoindreBouton').disabled=true;$('salonInvitationOrganisateur').hidden=true;$('salonInvitationInvite').hidden=true;statut('salonInvitationStatut','');
-        Promise.resolve().then(function(){return transport.reprendre(id);}).then(function(s){
+        Promise.resolve().then(function(){return transport.reprendre(id,reprise && reprise.identite);}).then(function(s){
             if(invitation!==id)return;occupe=false;invitation=null;reprise=null;verifierHote=false;$('salonInvitation').close();ouvrirPomodoro();commencer(s,null,'');
         }).catch(function(e){
             if(invitation!==id)return;occupe=false;
@@ -221,6 +234,7 @@
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
         installerFiches();resumeSelection();
         $('salonMessagerie').addEventListener('keydown',function(event){if(event.key==='Escape'){event.preventDefault();window.salonFermerMessages();}});
+        $('salonLienCarte').addEventListener('cancel',function(event){event.preventDefault();window.salonFermerLien();});
         $('salonInvitation').addEventListener('cancel',function(event){event.preventDefault();window.salonAnnulerInvitation();});
         pret();
     }
@@ -230,7 +244,7 @@
         session = s;
         if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
         adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
-        try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
+        try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,identite:s.identite||'',pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
         local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false; fileMembre=Promise.resolve();
         editionPartage=false;
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
@@ -245,7 +259,8 @@
         focusCouperSon();
         if (typeof focusFermer === 'function') focusFermer('focusReglages');
         $('salonEcran').hidden = false; $('salonRaccourci').hidden = true;if($('salonRaccourci').parentNode!==document.body)document.body.appendChild($('salonRaccourci'));
-        $('salonLienCarte').hidden=!(initial && s.role==='hote');$('salonLienAffiche').value=coeur.lienInvitation(document.baseURI,s.id);
+        $('salonLienAffiche').value=coeur.lienInvitation(document.baseURI,s.id);
+        if(initial && s.role==='hote')ouvrirLien();else window.salonFermerLien();
         statut('salonLienStatut','Seules les personnes qui ont ce lien peuvent rejoindre.');statut('salonGroupePartageStatut','');
         $('salonCommandes').hidden = session.role !== 'hote';$('salonPipInvite').hidden=false;
         $('salonAttente').hidden = session.role === 'hote';
@@ -259,7 +274,8 @@
             if (data) {
                 salle = data;
                 if (session.uid && data.organisateurUid) {
-                    session.role = data.organisateurUid === session.uid ? 'hote' : 'invite';protegerReglages(session.role==='invite');
+                    var ancienRole=session.role;session.role = data.organisateurUid === session.uid ? 'hote' : 'invite';protegerReglages(session.role==='invite');
+                    if(ancienRole!=='hote' && session.role==='hote' && focusOngletCourant==='minuteur')remplirDureesSalon();
                     try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.role=session.role; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
                 }
                 if (session.role === 'hote' && !playlistChoisie && data.options && data.options.musique && data.partage && data.partage.musique)
@@ -296,7 +312,7 @@
         if (!estHote && !pseudo) { statut('salonInvitationStatut','Choisis un pseudo.'); $('salonPseudo').focus();return false; }
         occupe=true;$('salonRejoindreBouton').disabled=true;statut('salonInvitationStatut','Connexion au salon…');
         var idInvitation=invitation, generation=generationInvitation;
-        var operation = estHote && typeof transport.reprendre === 'function' ? transport.reprendre(idInvitation) : estHote ? Promise.reject(new Error('Reprise indisponible')) : transport.rejoindre(idInvitation,pseudo);
+        var operation = estHote && typeof transport.reprendre === 'function' ? transport.reprendre(idInvitation,reprise && reprise.identite) : estHote ? Promise.reject(new Error('Reprise indisponible')) : transport.rejoindre(idInvitation,pseudo);
         Promise.resolve(operation).then(function (s) {
             if(generation!==generationInvitation || invitation!==idInvitation) {
                 // Une inscription peut avoir été confirmée après l'annulation.
@@ -316,6 +332,20 @@
             if(session!==s)return false;occupe=false;statut('salonMessage',erreur(e));peindre();return false;
         });
     }
+    function remplirDureesSalon(){
+        var d=(salle && salle.partage && salle.partage.durees)||focusDurees();
+        $('salonDureeFocus').value=d.focus;$('salonDureeShort').value=d.short;$('salonDureeLong').value=d.long;$('salonDureeSeances').value=d.seances||4;statut('salonDureesStatut','');
+    }
+    window.salonAppliquerDurees=function(){
+        if(!session || session.role!=='hote' || !salle || !connecte)return;
+        var c=coeur.temps(salle.chrono,heure());
+        if(c.running){statut('salonDureesStatut','Mets le minuteur en pause avant de changer les durées.');return;}
+        var d={focus:Number($('salonDureeFocus').value),short:Number($('salonDureeShort').value),long:Number($('salonDureeLong').value),seances:Number($('salonDureeSeances').value)};
+        if(!Number.isInteger(d.focus)||d.focus<1||d.focus>180||!Number.isInteger(d.short)||d.short<1||d.short>60||!Number.isInteger(d.long)||d.long<1||d.long>60||!Number.isInteger(d.seances)||d.seances<1||d.seances>12){statut('salonDureesStatut','Choisis des durées valides : 1 à 180 minutes de concentration, 1 à 60 minutes de pause et 1 à 12 séances.');return;}
+        var opts=coeur.autorisations(salle.options),p=coeur.contenus(opts,salle.partage||{});opts.minuteur=true;p.durees=d;
+        var chrono=coeur.commande(salle.chrono,c.mode,heure(),d);
+        envoyer({options:opts,partage:p,chrono:chrono}).then(function(ok){statut('salonDureesStatut',ok?'Durées appliquées à tout le salon.':'Modification non confirmée. Réessaie.');});
+    };
     function action(nom) {
         if (!salle || !salle.chrono) return;
         var d = salle.partage && salle.partage.durees || etatPersonnel().durees;
@@ -340,10 +370,12 @@
     function messageCopie(message) {
         statut('salonLienStatut',message);statut('salonGroupePartageStatut',message);statut('salonMessage',message);
     }
+    function ouvrirLien(){var carte=$('salonLienCarte');carte.hidden=false;if(!carte.open)carte.showModal();}
+    window.salonFermerLien=function(){var carte=$('salonLienCarte');if(carte.open)carte.close();carte.hidden=true;};
     function selectionnerLien(valeur) {
         var carte=$('salonLienCarte'), champ=$('salonLienAffiche');
         // Éviter qu'une feuille ouverte recouvre le champ sur petit écran.
-        focusFermer('focusReglages');carte.hidden=false;champ.value=valeur;champ.focus();champ.select();
+        focusFermer('focusReglages');ouvrirLien();champ.value=valeur;champ.focus();champ.select();
         try { champ.setSelectionRange(0,champ.value.length); } catch(e) {}
     }
     function copieSecours(s, valeur) {
@@ -495,7 +527,7 @@
     function appelGroupe(nom,args) {
         var s=session;
         if(!s || !connecte || typeof s[nom]!=='function'){statut('salonMessage','Cette fonction attend le raccordement sécurisé du salon.');return;}
-        Promise.resolve().then(function(){return s[nom].apply(s,args||[]);}).catch(function(e){if(session===s)statut('salonMessage',erreur(e));});
+        Promise.resolve().then(function(){return s[nom].apply(s,args||[]);}).catch(function(e){if(session===s)statut('salonMessage',nom==='transferer' && e && e.code==='permission-denied'?'Transfert refusé : vérifie l’activité du participant et la mise à jour des règles Firebase.':erreur(e));});
     }
     window.salonVerrouiller=function(){if(session && session.role==='hote')appelGroupe('verrouiller',[!salle.verrouille]);};
     window.salonDemanderAide=function(){appelGroupe('demanderAide',[]);};
@@ -529,7 +561,7 @@
         var signature=JSON.stringify([membres,etats,discret,hote,connecte,!!session.retirer,!!session.transferer,!!session.encourager]);
         if(signature===signatureGroupe)return;signatureGroupe=signature;
         var liste=$('salonListeMembres'), encouragements=$('salonEncouragements');liste.textContent='';encouragements.textContent='';
-        $('salonMembres').hidden=discret;$('salonMembresDiscrets').hidden=!discret;
+        $('salonMembres').hidden=discret;
         membres.forEach(function(x,index){
             if(discret && x.uid!==salle.organisateurUid)return;
             var nom=coeur.texte(x.pseudo,30)||'Participant', ligne=document.createElement('div');
@@ -547,7 +579,7 @@
             if(x.encouragement) { var info2=document.createElement('p');info2.className='salon-membre-detail';info2.textContent=coeur.texte(x.encouragement,80);contenu.appendChild(info2); }
             var actions=document.createElement('div');actions.className='salon-membre-actions';
             function bouton(texte,fn){var b=document.createElement('button');b.type='button';b.className='salon-action-secondaire';b.textContent=texte;b.disabled=!connecte;b.addEventListener('click',fn);actions.appendChild(b);}
-            if(hote && x.uid && x.uid!==session.uid && typeof session.transferer==='function') bouton('Transférer',function(){if(window.confirm('Confier le rôle d’organisateur à '+coeur.texte(x.pseudo,30)+' ?'))appelGroupe('transferer',[x.uid]);});
+            if(hote && x.uid && x.uid!==session.uid && etats[index]==='recente' && typeof session.transferer==='function') bouton('Transférer',function(){if(window.confirm('Confier le rôle d’organisateur à '+coeur.texte(x.pseudo,30)+' ?'))appelGroupe('transferer',[x.uid]);});
             if(hote && x.uid && x.uid!==session.uid && typeof session.retirer==='function') bouton('Retirer',function(){if(window.confirm('Retirer '+coeur.texte(x.pseudo,30)+' du salon ?'))appelGroupe('retirer',[x.uid]);});
             if(x.aide && x.uid!==session.uid && typeof session.encourager==='function') bouton('Encourager',function(){appelGroupe('encourager',[x.uid]);});
             if(actions.childNodes.length)contenu.appendChild(actions);ligne.appendChild(contenu);liste.appendChild(ligne);
@@ -620,7 +652,7 @@
         fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
         try { sessionStorage.removeItem('studyPlanIB_salon_session'); } catch(e) {}
-        $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);$('salonLienCarte').hidden=true;
+        $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);window.salonFermerLien();
         focusFermer('focusReglages');focusFermer('focusTaches');focusFermer('focusSons');
         sonsPersonnels.forEach(focusLireSon);sonsPersonnels=[];focusPeindreSonBouton();connecte=false;occupe=false;
         $('salonSortieLocale').hidden=true;$('salonFormTitre').textContent='Créer un salon';$('salonCreer').hidden=false;$('salonMajPartage').hidden=true;$('salonRetour').hidden=true;$('salonNom').disabled=false;

@@ -418,11 +418,12 @@ service cloud.firestore {
         && (o.horloge == ('horloge' in p)) && (o.sons == ('sons' in p))
         && (o.musique == ('musique' in p)) && (o.citations == ('citation' in p))
         && (!o.theme || (p.theme is string && p.theme.size() <= 80))
-        && (!o.minuteur || (p.durees is map && p.durees.keys().hasOnly(['focus','short','long'])
+        && (!o.minuteur || (p.durees is map && p.durees.keys().hasOnly(['focus','short','long','seances'])
             && p.durees.keys().hasAll(['focus','short','long'])
             && p.durees.focus is int && p.durees.focus >= 1 && p.durees.focus <= 180
             && p.durees.short is int && p.durees.short >= 1 && p.durees.short <= 60
-            && p.durees.long is int && p.durees.long >= 1 && p.durees.long <= 60))
+            && p.durees.long is int && p.durees.long >= 1 && p.durees.long <= 60
+            && (!('seances' in p.durees) || (p.durees.seances is int && p.durees.seances >= 1 && p.durees.seances <= 12))))
         && (!o.horloge || (p.horloge is map && p.horloge.keys().hasOnly(['police','taille'])
             && p.horloge.keys().hasAll(['police','taille']) && p.horloge.police is string
             && p.horloge.police.size() <= 40 && p.horloge.taille is string && p.horloge.taille.size() <= 40))
@@ -476,8 +477,16 @@ service cloud.firestore {
         && request.resource.data.expireLe <= request.time + duration.value(13, 'h');
       allow update: if request.auth != null && resource.data.organisateurUid == request.auth.uid
         && resource.data.ferme == false && resource.data.expireLe > request.time
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['chrono','options','partage','revision','ferme'])
-        && request.resource.data.revision == resource.data.revision + 1 && salonValide(request.resource.data);
+        && request.resource.data.revision == resource.data.revision + 1 && salonValide(request.resource.data)
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['chrono','options','partage','revision','ferme'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['organisateurUid','revision'])
+              && request.resource.data.organisateurUid != resource.data.organisateurUid
+              && exists(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid))
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe is timestamp
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe >= request.time - duration.value(120, 's')
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe <= request.time)
+        );
       allow delete: if false;
       match /membres/{uid} {
         function parentActif() {
@@ -525,7 +534,11 @@ service cloud.firestore {
           && (champsMessageInchanges() || messageAutorise())
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['vuLe'])
               || !('vuLe' in request.resource.data) || request.resource.data.vuLe == request.time);
-        allow delete: if request.auth != null && request.auth.uid == uid;
+        allow delete: if request.auth != null && request.auth.uid == uid
+          && (!exists(/databases/$(database)/documents/salons_focus/$(salonId))
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == true
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe <= request.time
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.organisateurUid != uid);
       }
       // Les messages restent dans Firestore après la fermeture : prévoir une
       // suppression serveur/TTL séparée avant tout usage avec des données sensibles.

@@ -1,6 +1,6 @@
 # Règles de la messagerie du salon
 
-À appliquer **manuellement** dans les règles Firestore réellement en place, après sauvegarde et comparaison. La publication du site ne publie pas les règles. Ce dépôt ne permet pas de vérifier les règles actuellement déployées.
+À appliquer **manuellement** dans les règles Firestore réellement en place, après sauvegarde et comparaison. Pour le transfert et le réglage du nombre de séances, la mise à jour du seul bloc messages ci-dessous ne suffit pas : utiliser le fichier complet `firestore.rules`, après comparaison avec la production. La publication du site ne publie pas les règles. Ce dépôt ne permet pas de vérifier les règles actuellement déployées.
 
 Dans `match /salons_focus/{salonId}`, remplacer le bloc `match /membres/{uid}` existant par le bloc ci-dessous, puis ajouter le bloc `match /messages/{messageId}` à côté du bloc `membres`, toujours dans ce même salon. Conserver les autres règles et fonctions du salon, notamment `membre()` et `salonIdValide()`, ainsi que toutes les autres collections. L'ensemble complet de référence est `firestore.rules` ; ne pas remplacer à l'aveugle des règles de production différentes.
 

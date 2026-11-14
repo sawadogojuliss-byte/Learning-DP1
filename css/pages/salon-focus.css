@@ -355,3 +355,17 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
 @media(max-height:650px){.salon-messagerie {height:min(27rem,calc(100dvh - 4.8rem));}.salon-chat-entete {padding:.65rem 1rem;}.salon-chat-note {font-size:.6rem;}.salon-chat-pied {padding:.55rem .8rem .65rem;}}
 #panelPomodoro .salon-chat-form textarea {-webkit-user-select:text;user-select:text;caret-color:#b9f6c9;cursor:text;}
 #panelPomodoro .salon-chat-form textarea::selection {background:#94d5a8;color:#09291a;}
+
+/* Le lien de création est une carte temporaire centrée, pas un élément de la scène. */
+.salon-ecran dialog.salon-lien-carte[open] {position:fixed;inset:0;margin:auto;width:min(32rem,calc(100vw - 2rem));max-height:calc(100dvh - 2rem);padding:1.65rem;border-radius:1.5rem;background:radial-gradient(circle at 15% 0,#327653,transparent 48%),linear-gradient(145deg,#174b36,#0a281d);box-shadow:0 25px 90px #00130eb5;}
+.salon-ecran dialog.salon-lien-carte::backdrop {background:#00140dc7;backdrop-filter:blur(5px);}
+.salon-ecran dialog.salon-lien-carte .salon-lien-entete h3 {font-size:1.35rem;}
+.salon-ecran dialog.salon-lien-carte .salon-lien-champ {padding:.35rem;border:1px solid #c0f2d443;border-radius:1rem;background:#03191083;}
+.salon-ecran dialog.salon-lien-carte .salon-lien-champ input {border:0;background:transparent;}
+.salon-ecran dialog.salon-lien-carte .salon-copier {border-radius:.8rem;background:#bff3d1;box-shadow:0 5px 18px #00140b4d;}
+#panelPomodoro .salon-reglages-minuteur[hidden],#panelPomodoro #focusDureesPersonnelles[hidden] {display:none!important;}
+.salon-reglages-minuteur>p {color:#bcd6c7;line-height:1.5;font-size:.8rem;}.salon-reglages-minuteur .salon-copier {margin-top:1rem;}
+/* La conversation reste au bord droit et au-dessus de la barre d'outils. */
+.salon-messagerie {left:auto;right:1rem;bottom:5.3rem;transform:none;}
+@media(max-width:720px){.salon-messagerie {right:.65rem;bottom:4.8rem;max-height:calc(100dvh - 5.5rem);}.salon-ecran dialog.salon-lien-carte[open] {padding:1.2rem;}}
+.salon-duree-seances {display:flex;align-items:center;gap:1rem;margin:.8rem 0;color:#d7f7e3;font-weight:700;font-size:.85rem;}.salon-duree-seances input {width:5rem;padding:.55rem;border:1px solid #a1d8b877;border-radius:.7rem;background:#071f16;color:#fff;font:inherit;}

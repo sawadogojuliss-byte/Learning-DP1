@@ -96,3 +96,11 @@ Une fermeture confirmée par le document du salon affiche aux invités présents
 ## Réponses réseau tardives
 
 Le parcours d'invitation ignore une réponse arrivée après annulation (bouton ou fermeture native du dialogue) et tente de retirer une inscription invitée confirmée trop tard. Ce retrait reste tributaire du réseau. Les commandes et réponses d'une ancienne session ne doivent pas remplacer l'état d'un salon ouvert entre-temps ; la file d'actions personnelles est réinitialisée par session. `tools/tester-salon-courses.mjs` couvre ces courses avec un transport simulé ; il ne prouve pas le comportement Firebase réel en cas de perte réseau ou de fermeture du navigateur.
+
+## Réglage du minuteur et transfert d'organisation
+
+Le salon utilise son propre formulaire de durées, masqué aux invités, indépendant du Pomodoro personnel. L'organisateur applique les durées à tous après avoir mis le chrono en pause ; le nombre de séances est indicatif et partagé mais l'enchaînement automatique et le bilan commun ne sont pas encore implémentés. L'ancienne configuration des salons sans nombre de séances reste acceptée.
+
+Le transfert est effectué par transaction avec changement du seul UID organisateur et incrément de révision. Les règles exigent que le demandeur soit l'organisateur actuel et que le destinataire soit un membre ayant une activité récente ; cette activité n'est pas une preuve de connexion permanente. L'ancien organisateur perd le droit de modifier le salon et le nouvel organisateur l'obtient, y compris avec une identité anonyme. La reprise utilise l'identité de session initiale ; si l'identité anonyme est perdue, on ne peut pas garantir sa récupération. Aucun message de notification de transfert n'est envoyé. Un organisateur actif ne peut pas supprimer sa propre inscription sans transfert ou fermeture.
+
+**Important :** ces changements nécessitent de publier le nouveau fichier complet `firestore.rules` dans le projet Firebase. La publication du site ne déploie pas les règles ; tant que les règles précédentes restent en production, le transfert et les nouvelles durées avec nombre de séances seront refusés. Sauvegarder et comparer les règles existantes avant de les remplacer. Les règles ne gèrent toujours pas le retrait, le verrouillage actif, le bilan commun ni les objectifs partagés.

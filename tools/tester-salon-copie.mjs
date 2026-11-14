@@ -25,12 +25,12 @@ async function scenario(mode,viewport){
  await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
  await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon')});
  await page.locator('#salonNom').fill('Révisions ensemble');await page.locator('#salonCreer').click();await page.locator('#salonLienCarte').waitFor({state:'visible'});
- assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);
+ assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);assert.equal(await page.locator('#salonLienCarte').evaluate(e=>e.open),true,'carte de création en dialogue');
  await page.getByRole('button',{name:'Copier le lien',exact:true}).click();
  if(['refuse','exception','absent'].includes(mode)){
   await page.waitForFunction(()=>document.getElementById('salonLienStatut').textContent.includes('manuellement'));
   assert.equal(await page.locator('#salonLienCarte').isVisible(),true);
-  assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);
+  assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);assert.equal(await page.locator('#salonLienCarte').evaluate(e=>e.open),true,'carte de création en dialogue');
   assert.equal(await page.locator('#salonLienAffiche').evaluate(e=>e.selectionStart===0&&e.selectionEnd===e.value.length),true,'lien sélectionné');
   assert.ok(await page.evaluate(()=>window.__exec)>0);
  }else{
