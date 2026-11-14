@@ -23,7 +23,7 @@ f.auth.Auth={Persistence:{SESSION:'session'}};
 f.firestore.FieldValue=firebaseCompat.firestore.FieldValue;
 f.firestore.Timestamp=firebaseCompat.firestore.Timestamp;
 const adapter=creerAdaptateur({coeur:core,firebase:f,config,crypto});
-function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{const debut=Date.now();const timer=setInterval(()=>{if(condition()){clearInterval(timer);resolve();}else if(Date.now()-debut>ms){clearInterval(timer);reject(Error('Délai : état attendu non reçu'));}},50);});}
+function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=>{const debut=Date.now();const timer=setInterval(()=>{if(condition()){clearInterval(timer);resolve();}else if(Date.now()-debut>ms){clearInterval(timer);reject(Error('Délai : état attendu non reçu — '+etape));}},50);});}
 (async()=>{
  let stopH=()=>{},stopG=()=>{};
  try {
@@ -34,19 +34,19 @@ function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{cons
   stopH=host.observer((s,e)=>{if(e.connecte)dataH=s;},e=>errors.push(e));
   const guest=await adapter.rejoindre(host.id,'Camille');
   stopG=guest.observer((s,e)=>{if(e.connecte)dataG=s;},e=>errors.push(e));
-  await attendre(()=>dataH && dataG && dataH.membres.some(m=>m.pseudo==='Camille' && m.vuLe));
+  await attendre(()=>dataH && dataG && dataH.membres.some(m=>m.pseudo==='Camille' && m.vuLe),'entrée et présence');
   assert.ok(dataG.membres.some(m=>m.pseudo==='Organisateur'));
   const demarre=core.commande(dataH.chrono,'demarrer',host.maintenant(),{});
   const revision=dataH.revision;await host.modifier(revision,{chrono:demarre});
   await assert.rejects(reprise.modifier(revision,{chrono:demarre}),e=>e.code==='revision-conflict');
-  await attendre(()=>dataG && dataG.chrono.running);
+  await attendre(()=>dataG && dataG.chrono.running,'chrono invité');
   await assert.rejects(guest.modifier(dataG.revision,{chrono:demarre}),e=>e.code==='permission-denied');
   await guest.quitter();stopG();
-  await attendre(()=>dataH && !dataH.membres.some(m=>m.pseudo==='Camille'));
+  await attendre(()=>dataH && !dataH.membres.some(m=>m.pseudo==='Camille'),'départ invité');
   const encore=await adapter.rejoindre(host.id,'Camille');let fin=null;let erreursFin=[];
   const stopFin=encore.observer((s)=>{if(s.ferme)fin=s;},e=>erreursFin.push(e));
-  await attendre(()=>dataH && dataH.membres.some(m=>m.pseudo==='Camille'));
-  await host.fermer();await attendre(()=>fin && fin.ferme);stopFin();stopH();
+  await attendre(()=>dataH && dataH.membres.some(m=>m.pseudo==='Camille'),'retour invité');
+  await host.fermer();await attendre(()=>fin && fin.ferme,'fermeture par organisateur');stopFin();stopH();
   assert.deepEqual(erreursFin,[],'la fermeture ne doit pas être confondue avec un refus de liste des membres');
   await assert.rejects(adapter.reprendre(host.id));
   await assert.rejects(adapter.rejoindre(host.id,'Nouvel invité'));
