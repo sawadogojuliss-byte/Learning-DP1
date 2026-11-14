@@ -40,6 +40,7 @@
         async function session(contexte,id,role,offset) {
             validationId(id);
             var db=contexte.db, room=db.collection('salons_focus').doc(id), membre=room.collection('membres').doc(contexte.user.uid);
+            var messageEnAttente=null;
             var delta=offset, ferme=false, listeConfirmee=[], presenceTimer=null, presenceEnCours=null, presenceActive=false, presenceSouhaitee=false, presenceDisponible=true;
             function maintenant(){return Math.round(horloge()+delta);}
             function objet(snap){ if(!snap.exists)throw erreur('not-found');return snap.data(); }
@@ -128,13 +129,24 @@
             async function envoyerMessage(texte) {
                 texte=String(texte == null ? '' : texte).replace(/\r\n?/g,'\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,'').trim();
                 if(!texte || texte.length>1000)throw erreur('invalid-argument');
-                var ref=room.collection('messages').doc();
+                // Réutiliser l'identifiant en cas de résultat incertain : une
+                // tentative confirmée côté serveur ne doit pas être dupliquée.
+                if(!messageEnAttente || messageEnAttente.texte!==texte)
+                    messageEnAttente={texte:texte,ref:room.collection('messages').doc()};
+                var tentative=messageEnAttente, ref=tentative.ref;
                 await db.runTransaction(async function(tx){
+                    var precedent=await tx.get(ref);
+                    if(precedent.exists){
+                        var deja=precedent.data();
+                        if(deja.auteurUid===contexte.user.uid && deja.texte===texte)return;
+                        throw erreur('already-exists');
+                    }
                     var snap=await tx.get(membre);if(!snap.exists)throw erreur('permission-denied');
                     var pseudo=coeur.texte(snap.data().pseudo,30);if(!pseudo)throw erreur('permission-denied');
                     tx.update(membre,{messageLe:firebase.firestore.FieldValue.serverTimestamp(),dernierMessageId:ref.id});
                     tx.set(ref,{auteurUid:contexte.user.uid,pseudo:pseudo,texte:texte,envoyeLe:firebase.firestore.FieldValue.serverTimestamp()});
                 });
+                if(messageEnAttente===tentative)messageEnAttente=null;
             }
             async function quitter(){await arreterPresence();try {await db.runTransaction(function(tx){tx.delete(membre);return Promise.resolve();});} catch(e) {demarrerPresence();throw e;}}
             async function fermer(){
@@ -152,7 +164,7 @@
             var opts=coeur.autorisations(donnees.options), contenu=coeur.contenus(opts,donnees.partage);
             var chrono=coeur.temps(donnees.chrono,horloge()+delta);
             var data={nom:nom,organisateurUid:contexte.user.uid,revision:1,ferme:false,verrouille:false,chrono:chrono,options:opts,partage:contenu,expireLe:firebase.firestore.Timestamp.fromMillis(horloge()+delta+12*60*60*1000)};
-            await db.runTransaction(async function(tx){if((await tx.get(room)).exists)throw erreur('already-exists');tx.set(room,data);tx.set(membre,{pseudo:'Organisateur'});});
+            await db.runTransaction(async function(tx){if((await tx.get(room)).exists)throw erreur('already-exists');tx.set(room,data);tx.set(membre,{pseudo:coeur.texte(contexte.user.displayName,30)||'Organisateur'});});
             return session(contexte,id,'hote',delta);
         }
         async function rejoindre(id,pseudo) {
@@ -179,6 +191,16 @@
             var snap=await room.get({source:'server'});if(!snap.exists)throw erreur('not-found');var d=snap.data();
             if(d.ferme || !d.expireLe || d.expireLe.toMillis()<=horloge()+delta)throw erreur('room-closed');
             if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');
+            // Les salons créés avant l'affichage des noms portaient simplement
+            // « Organisateur ». Actualiser ce seul ancien libellé si possible.
+            var nomHote=coeur.texte(contexte.user.displayName,30);
+            if(nomHote) {
+                var membre=room.collection('membres').doc(contexte.user.uid);
+                try {await contexte.db.runTransaction(async function(tx){
+                    var m=await tx.get(membre);
+                    if(m.exists && m.data().pseudo==='Organisateur')tx.update(membre,{pseudo:nomHote});
+                });} catch(e) { /* Reprise du salon même si le nom ne peut être mis à jour. */ }
+            }
             return session(contexte,id,'hote',delta);
         }
         return {creer:creer,rejoindre:rejoindre,reprendre:reprendre,apercu:apercu};

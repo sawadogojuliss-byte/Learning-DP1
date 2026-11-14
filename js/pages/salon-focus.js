@@ -17,7 +17,7 @@
     var occupe = false, connecte = false, audioAutorise = false, lecteurs = {}, signatureAudio = '';
     var fondMontre = '', playlistChoisie = null, local = null, sonsPersonnels = [], generationAudio = 0;
     var volumeSalon = 1, discret = false, signalFin = 'visuel', contexteSignal = null, finObservee = 0, signalees = {};
-    var arreterMessages=null, messagesSalon=[], messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
+    var generationMessages=0, arreterMessages=null, messagesSalon=[], messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
     var objectifTimer = null, fileMembre = Promise.resolve(), signatureGroupe = '', partageInitialise = false, miniSalon=null;
     try {
         var preference = JSON.parse(localStorage.getItem('studyPlanIB_salon_preferences') || '{}');
@@ -401,22 +401,30 @@
         });
         if(proche || !$('salonMessagerie').hidden && !messagesInitialises)liste.scrollTop=liste.scrollHeight;
     }
-    function demarrerMessages(s) {
-        messagesSalon=[];messagesConnus=new Set();messagesInitialises=false;messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
-        $('salonMessagerie').hidden=true;$('salonChatTexte').value='';peindreMessages();etatMessages();
-        if(typeof s.observerMessages!=='function' || typeof s.envoyerMessage!=='function') {statut('salonChatEtat','La messagerie n’est pas disponible pour ce salon.');return;}
-        statut('salonChatEtat','Connexion à la messagerie…');
+    function ecouterMessages(s) {
+        var generation=++generationMessages;
+        if(arreterMessages)arreterMessages();arreterMessages=null;
+        messagesDisponibles=false;$('salonChatReessayer').hidden=true;
+        statut('salonChatEtat','Connexion à la messagerie…');etatMessages();
         arreterMessages=s.observerMessages(function(liste){
-            if(session!==s)return;
+            if(session!==s || generation!==generationMessages)return;
             liste=Array.isArray(liste)?liste:[];
             if(messagesInitialises && $('salonMessagerie').hidden)liste.forEach(function(m){if(m.id && !messagesConnus.has(m.id) && m.auteurUid!==s.uid)messagesNonLus++;});
             liste.forEach(function(m){if(m.id)messagesConnus.add(m.id);});messagesSalon=liste;messagesDisponibles=true;peindreMessages();messagesInitialises=true;
-            statut('salonChatEtat','Les 50 derniers messages sont affichés.');etatMessages();
-        },function(){if(session!==s)return;messagesDisponibles=false;statut('salonChatEtat','Messagerie indisponible. Vérifie la connexion et les autorisations du salon.');etatMessages();});
+            $('salonChatReessayer').hidden=true;statut('salonChatEtat','Les 50 derniers messages sont affichés.');etatMessages();
+        },function(){if(session!==s || generation!==generationMessages)return;messagesDisponibles=false;$('salonChatReessayer').hidden=false;statut('salonChatEtat','Messagerie interrompue. Vérifie la connexion puis réessaie.');etatMessages();});
     }
+    function demarrerMessages(s) {
+        messagesSalon=[];messagesConnus=new Set();messagesInitialises=false;messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
+        $('salonMessagerie').hidden=true;$('salonChatTexte').value='';$('salonChatReessayer').hidden=true;peindreMessages();etatMessages();
+        if(typeof s.observerMessages!=='function' || typeof s.envoyerMessage!=='function') {statut('salonChatEtat','La messagerie n’est pas disponible pour ce salon.');return;}
+        ecouterMessages(s);
+    }
+    window.salonReessayerMessages=function(){if(session && typeof session.observerMessages==='function')ecouterMessages(session);};
     function fermerMessagesSession() {
+        generationMessages++;
         if(arreterMessages)arreterMessages();arreterMessages=null;messagesSalon=[];messagesConnus=new Set();messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
-        $('salonMessagerie').hidden=true;etatMessages();
+        $('salonMessagerie').hidden=true;$('salonChatReessayer').hidden=true;etatMessages();
     }
     window.salonFermerMessages=function(){ $('salonMessagerie').hidden=true;etatMessages();$('salonBtnMessages').focus(); };
     window.salonBasculerMessages=function(){
@@ -522,8 +530,8 @@
         if(signature===signatureGroupe)return;signatureGroupe=signature;
         var liste=$('salonListeMembres'), encouragements=$('salonEncouragements');liste.textContent='';encouragements.textContent='';
         $('salonMembres').hidden=discret;$('salonMembresDiscrets').hidden=!discret;
-        if(discret) return;
         membres.forEach(function(x,index){
+            if(discret && x.uid!==salle.organisateurUid)return;
             var nom=coeur.texte(x.pseudo,30)||'Participant', ligne=document.createElement('div');
             ligne.className='salon-membre';ligne.setAttribute('role','listitem');
             var avatar=document.createElement('span');avatar.className='salon-membre-avatar salon-avatar-'+(index%4);avatar.setAttribute('aria-hidden','true');avatar.textContent=Array.from(nom.trim())[0].toLocaleUpperCase();ligne.appendChild(avatar);
@@ -572,7 +580,7 @@
         statut('salonTemps',focusTexte(c.restant));peindreMini(c);
         statut('salonInfoChrono',c.restant===0?'Temps écoulé · en attente de l’organisateur':(c.running?'En cours':'En pause'));
         attribut($('salonDemarrer'),'aria-label',c.running?'Pause':'Démarrer');propriete($('salonIconPlay').style,'display',c.running?'none':'block');propriete($('salonIconPause').style,'display',c.running?'block':'none');
-        statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');var flamme=$('focusFlamme');if(flamme)statut('salonFlamme',flamme.textContent);
+        statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');
         signalerFin(c);peindreGroupe();
         $('salonDemarrer').classList.toggle('is-on',c.running);
         [['salonBtnTaches','focusTaches'],['salonBtnSon','focusSons'],['salonBtnReglages','focusReglages']].forEach(function(pair){$(pair[0]).classList.toggle('is-on',!$(pair[1]).hidden);});

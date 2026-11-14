@@ -17,7 +17,7 @@ function db(nom,uid,provider){
 }
 const h=db('hote-test','host-transport','google.com'),g=db('invite-test','guest-transport','anonymous');
 function auth(user){return {onAuthStateChanged(cb){queueMicrotask(()=>cb(user));return()=>{};},setPersistence:async()=>{},signInAnonymously:async()=>({user})};}
-const ah=auth({uid:'host-transport',isAnonymous:false}),ag=auth({uid:'guest-transport',isAnonymous:true});
+const ah=auth({uid:'host-transport',isAnonymous:false,displayName:'Julien Test'}),ag=auth({uid:'guest-transport',isAnonymous:true});
 const f={apps:[],initializeApp(){const a={name:'salon-focus-invite',auth:()=>ag,firestore:()=>g.firestore};this.apps.push(a);return a;},auth:()=>ah,firestore:()=>h.firestore};
 f.auth.Auth={Persistence:{SESSION:'session'}};
 f.firestore.FieldValue=firebaseCompat.firestore.FieldValue;
@@ -35,16 +35,34 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   const guest=await adapter.rejoindre(host.id,'Camille');
   stopG=guest.observer((s,e)=>{if(e.connecte)dataG=s;},e=>errors.push(e));
   await attendre(()=>dataH && dataG && dataH.membres.some(m=>m.pseudo==='Camille' && m.vuLe),'entrée et présence');
-  assert.ok(dataG.membres.some(m=>m.pseudo==='Organisateur'));
+  assert.ok(dataG.membres.some(m=>m.pseudo==='Julien Test'));
   let messagesH=null,messagesG=null,erreursMessages=[];
   const stopMessagesH=host.observerMessages(m=>{messagesH=m},e=>erreursMessages.push(e));
   const stopMessagesG=guest.observerMessages(m=>{messagesG=m},e=>erreursMessages.push(e));
   await attendre(()=>messagesH && messagesG,'ouverture messagerie');
+  await host.envoyerMessage('Bonjour du groupe');
+  await attendre(()=>messagesG.some(m=>m.texte==='Bonjour du groupe' && m.pseudo==='Julien Test'),'message de l’hôte');
   await assert.rejects(guest.envoyerMessage('   '),e=>e.code==='invalid-argument');
   await guest.envoyerMessage('Bonjour depuis Camille');
   await attendre(()=>messagesH.some(m=>m.texte==='Bonjour depuis Camille') && messagesG.some(m=>m.texte==='Bonjour depuis Camille'),'réception message');
-  assert.equal(messagesH[0].pseudo,'Camille');assert.equal(messagesH[0].auteurUid,guest.uid);
+  assert.equal(messagesH.find(m=>m.texte==='Bonjour depuis Camille').pseudo,'Camille');assert.equal(messagesH.find(m=>m.texte==='Bonjour depuis Camille').auteurUid,guest.uid);
   await assert.rejects(guest.envoyerMessage('Trop rapide'));
+  // Simuler une perte de l'accusé après le commit réel, puis réessayer avec
+  // le même identifiant : un seul document doit exister dans l'émulateur.
+  await new Promise(r=>setTimeout(r,2200));
+  const original=g.firestore.runTransaction.bind(g.firestore);
+  let perdre=true;
+  g.firestore.runTransaction=async fn=>{
+    let aEcritMessage=false;
+    const resultat=await original(tx=>fn({get:tx.get.bind(tx),update:tx.update.bind(tx),delete:tx.delete.bind(tx),set(ref,data){if(ref.path.includes('/messages/'))aEcritMessage=true;return tx.set(ref,data);}}));
+    if(perdre && aEcritMessage){perdre=false;throw Error('accusé perdu');}
+    return resultat;
+  };
+  try {
+    await assert.rejects(guest.envoyerMessage('Test sans doublon'),/accusé perdu/);
+    await guest.envoyerMessage('Test sans doublon');
+    await attendre(()=>messagesH.filter(m=>m.texte==='Test sans doublon').length===1,'message sans doublon');
+  } finally {g.firestore.runTransaction=original;}
   stopMessagesH();stopMessagesG();assert.deepEqual(erreursMessages,[]);
 
   const demarre=core.commande(dataH.chrono,'demarrer',host.maintenant(),{});
