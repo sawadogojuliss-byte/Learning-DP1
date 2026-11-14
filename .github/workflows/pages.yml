@@ -133,6 +133,7 @@ jobs:
           executer_test travail/tools/tester-salon-liens.mjs
           executer_test travail/tools/tester-salon-copie.mjs
           executer_test travail/tools/tester-salon-deux-telephones.mjs
+          executer_test travail/tools/tester-salon-courses.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
@@ -211,6 +212,7 @@ jobs:
           executer_test tools/tester-pip-anime.mjs
           executer_test tools/tester-salon-apercu.mjs
           executer_test tools/tester-salon-deux-telephones.mjs
+          executer_test tools/tester-salon-courses.mjs
           executer_test tools/tester-foret-adaptive.mjs
           executer_test tools/tester-images-feedback.mjs
           executer_test tools/tester-pomodoro-reprise.mjs

@@ -5,7 +5,7 @@
     var coeur = window.SalonFocusCoeur;
     var transport = window.SALON_FOCUS_TRANSPORT || null;
     var session = null, salle = null, arreterEcoute = null, timer = null;
-    var invitation = window.__salonInvitation || null, reprise = null, verifierHote = false;
+    var invitation = window.__salonInvitation || null, reprise = null, verifierHote = false, generationInvitation = 0;
     try { var ancien = JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session') || 'null');
         if (ancien && /^[a-f0-9]{48}$/.test(ancien.id) && ['hote','invite'].indexOf(ancien.role) >= 0 && (!invitation || invitation===ancien.id)) { invitation=ancien.id; reprise=ancien; }
     } catch (e) {}
@@ -218,7 +218,9 @@
     function init() {
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
-        installerFiches();resumeSelection();pret();
+        installerFiches();resumeSelection();
+        $('salonInvitation').addEventListener('cancel',function(event){event.preventDefault();window.salonAnnulerInvitation();});
+        pret();
     }
     setTimeout(init,0);
     function commencer(s, initial, pseudo) {
@@ -227,7 +229,7 @@
         if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
         adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
         try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
-        local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false;
+        local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false; fileMembre=Promise.resolve();
         editionPartage=false;
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
         try { var obj=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_objectif_'+s.id)||'{}'); $('salonObjectif').value=coeur.texte(obj.texte,160); $('salonObjectifFait').checked=obj.fait===true; } catch(e) {}
@@ -290,18 +292,25 @@
         var pseudo=coeur.texte($('salonPseudo').value,30);
         if (!estHote && !pseudo) { statut('salonInvitationStatut','Choisis un pseudo.'); $('salonPseudo').focus();return false; }
         occupe=true;$('salonRejoindreBouton').disabled=true;statut('salonInvitationStatut','Connexion au salon…');
-        var operation = estHote && typeof transport.reprendre === 'function' ? transport.reprendre(invitation) : estHote ? Promise.reject(new Error('Reprise indisponible')) : transport.rejoindre(invitation,pseudo);
+        var idInvitation=invitation, generation=generationInvitation;
+        var operation = estHote && typeof transport.reprendre === 'function' ? transport.reprendre(idInvitation) : estHote ? Promise.reject(new Error('Reprise indisponible')) : transport.rejoindre(idInvitation,pseudo);
         Promise.resolve(operation).then(function (s) {
+            if(generation!==generationInvitation || invitation!==idInvitation) {
+                // Une inscription peut avoir été confirmée après l'annulation.
+                // La supprimer au mieux, sans toucher à une éventuelle session active.
+                if(!estHote && s && typeof s.quitter==='function' && !(session && session.id===s.id && session.uid===s.uid)) Promise.resolve().then(function(){return s.quitter();}).catch(function(){});
+                return;
+            }
             invitation=null;reprise=null;occupe=false;$('salonInvitation').close();ouvrirPomodoro();commencer(s,null,pseudo);
-        }).catch(function (e) { occupe=false;$('salonRejoindreBouton').disabled=false;statut('salonInvitationStatut',erreur(e)); });
+        }).catch(function (e) { if(generation!==generationInvitation || invitation!==idInvitation)return;occupe=false;$('salonRejoindreBouton').disabled=false;statut('salonInvitationStatut',erreur(e)); });
         return false;
     };
-    window.salonAnnulerInvitation = function () { invitation=null;reprise=null;occupe=false;verifierHote=false;adresseSalon(null);$('salonEcran').hidden=true;$('salonEcran').classList.remove('salon-attente-invitation');try{sessionStorage.removeItem('studyPlanIB_salon_session');}catch(e){} $('salonInvitation').close(); };
+    window.salonAnnulerInvitation = function () { generationInvitation++;invitation=null;reprise=null;occupe=false;verifierHote=false;adresseSalon(null);$('salonEcran').hidden=true;$('salonEcran').classList.remove('salon-attente-invitation');try{sessionStorage.removeItem('studyPlanIB_salon_session');}catch(e){} $('salonInvitation').close(); };
     function envoyer(changement) {
         if (!session || session.role !== 'hote' || !salle || !connecte || occupe) { statut('salonMessage','Attends la connexion au salon avant de modifier le minuteur.');return Promise.resolve(false); }
-        occupe=true;peindre();
-        return session.modifier(salle.revision, changement).then(function (nouveau) { if (nouveau && (!salle || nouveau.revision >= salle.revision)) salle=nouveau;occupe=false;peindre();return true; },function (e) {
-            occupe=false;statut('salonMessage',erreur(e));peindre();return false;
+        var s=session;occupe=true;peindre();
+        return s.modifier(salle.revision, changement).then(function (nouveau) { if(session!==s)return false;if (nouveau && (!salle || nouveau.revision >= salle.revision)) salle=nouveau;occupe=false;peindre();return true; },function (e) {
+            if(session!==s)return false;occupe=false;statut('salonMessage',erreur(e));peindre();return false;
         });
     }
     function action(nom) {
@@ -398,7 +407,7 @@
         if (!s || !connecte || typeof s.personnaliser !== 'function') { statut('salonRituelInfo','Cette fonction attend le raccordement sécurisé du salon.'); return Promise.resolve(false); }
         fileMembre=fileMembre.catch(function(){}).then(function(){
             if(session!==s) return false;
-            return s.personnaliser(changement).then(function(){return true;},function(e){statut('salonRituelInfo',erreur(e));return false;});
+            return s.personnaliser(changement).then(function(){return true;},function(e){if(session===s)statut('salonRituelInfo',erreur(e));return false;});
         });
         return fileMembre;
     }
@@ -411,8 +420,9 @@
     };
     window.salonPartagerObjectif=function() {
         clearTimeout(objectifTimer);
-        var partage=$('salonObjectifPartager').checked;
+        var s=session, partage=$('salonObjectifPartager').checked;
         publierMembre({objectifPartage:partage,objectif:partage?coeur.texte($('salonObjectif').value,160):'',objectifFait:partage && $('salonObjectifFait').checked}).then(function(ok){
+            if(session!==s)return;
             if(!ok && partage) $('salonObjectifPartager').checked=false;
             if(!ok && !partage) { $('salonObjectifPartager').checked=true; statut('salonRituelInfo','Le retrait du partage n’a pas été confirmé. Réessaie dès la reconnexion.'); }
         });
@@ -422,7 +432,7 @@
     function appelGroupe(nom,args) {
         var s=session;
         if(!s || !connecte || typeof s[nom]!=='function'){statut('salonMessage','Cette fonction attend le raccordement sécurisé du salon.');return;}
-        Promise.resolve().then(function(){return s[nom].apply(s,args||[]);}).catch(function(e){statut('salonMessage',erreur(e));});
+        Promise.resolve().then(function(){return s[nom].apply(s,args||[]);}).catch(function(e){if(session===s)statut('salonMessage',erreur(e));});
     }
     window.salonVerrouiller=function(){if(session && session.role==='hote')appelGroupe('verrouiller',[!salle.verrouille]);};
     window.salonDemanderAide=function(){appelGroupe('demanderAide',[]);};

@@ -28,7 +28,8 @@ function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{cons
  let stopH=()=>{},stopG=()=>{};
  try {
   const host=await adapter.creer({nom:'Test émulateur',options:{},partage:{},chrono:{mode:'focus',total:1500,restant:1500,running:false,fin:0}});
-  assert.equal((await adapter.reprendre(host.id)).role,'hote');
+  const reprise=await adapter.reprendre(host.id);assert.equal(reprise.role,'hote');
+  await assert.rejects(adapter.rejoindre(host.id,'   '),e=>e.code==='invalid-argument');
   let dataH=null,dataG=null,errors=[];
   stopH=host.observer((s,e)=>{if(e.connecte)dataH=s;},e=>errors.push(e));
   const guest=await adapter.rejoindre(host.id,'Camille');
@@ -36,7 +37,8 @@ function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{cons
   await attendre(()=>dataH && dataG && dataH.membres.some(m=>m.pseudo==='Camille' && m.vuLe));
   assert.ok(dataG.membres.some(m=>m.pseudo==='Organisateur'));
   const demarre=core.commande(dataH.chrono,'demarrer',host.maintenant(),{});
-  await host.modifier(dataH.revision,{chrono:demarre});
+  const revision=dataH.revision;await host.modifier(revision,{chrono:demarre});
+  await assert.rejects(reprise.modifier(revision,{chrono:demarre}),e=>e.code==='revision-conflict');
   await attendre(()=>dataG && dataG.chrono.running);
   await assert.rejects(guest.modifier(dataG.revision,{chrono:demarre}),e=>e.code==='permission-denied');
   await guest.quitter();stopG();
@@ -47,7 +49,8 @@ function attendre(condition,ms=12000){return new Promise((resolve,reject)=>{cons
   await host.fermer();await attendre(()=>fin && fin.ferme);stopFin();stopH();
   assert.deepEqual(erreursFin,[],'la fermeture ne doit pas être confondue avec un refus de liste des membres');
   await assert.rejects(adapter.reprendre(host.id));
+  await assert.rejects(adapter.rejoindre(host.id,'Nouvel invité'));
   assert.deepEqual(errors,[]);
-  console.log('OK adaptateur réel sur émulateur Firestore : créer, reprendre, rejoindre, présence, chrono, autorité et départ');
+  console.log('OK adaptateur réel sur émulateur Firestore : créer, reprendre, rejoindre, pseudo, conflit, présence, chrono, autorité, départ et fermeture');
  } finally {stopH();stopG();await Promise.all([h.app.delete(),g.app.delete()]);}
 })().catch(e=>{console.error(e);process.exitCode=1});

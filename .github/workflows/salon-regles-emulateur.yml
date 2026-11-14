@@ -3,6 +3,8 @@ on:
   push:
     paths:
       - firestore.rules
+      - js/pages/salon-focus-firebase.js
+      - js/pages/salon-focus-coeur.js
       - tools/tester-salon-regles.cjs
       - tools/tester-salon-firebase-emulateur.cjs
       - .github/workflows/salon-regles-emulateur.yml
