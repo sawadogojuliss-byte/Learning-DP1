@@ -25,7 +25,10 @@
 .salon-invitation { border:1px solid #81d4a175;border-radius:1.4rem;background:#102e22;color:white;box-shadow:0 25px 75px #0008;width:min(26rem,calc(100% - 4rem));padding:1.5rem;font-family:system-ui; }.salon-invitation::backdrop { background:#00150cbb; }.salon-invitation h2 { margin:.5rem 0; }.salon-invitation p { color:#c4dbcc;line-height:1.5; }.salon-invitation label { display:block;font-weight:700;font-size:.9rem;margin:1rem 0 .4rem; }.salon-invitation input { box-sizing:border-box;width:100%;padding:.8rem;background:#071c14;color:white;border:1px solid #729680;border-radius:.7rem;font:inherit; }.salon-invitation form>div { display:flex;gap:.6rem; }.salon-invitation .salon-creer { width:auto;background:#16815d;cursor:pointer;flex:1; }.salon-invitation .salon-creer:disabled { cursor:not-allowed; }
 @media(max-width:720px) { .salon-citation { position:static;text-align:left;max-width:none;font-size:.85rem;margin:.8rem 0 0; }.salon-centre { padding:1.5rem 0; }.salon-interface { min-height:100dvh; }.salon-barre h2 { font-size:1.25rem; } }
 
-.salon-raccourci[hidden] { display:none; }.salon-raccourci { position:fixed;z-index:40;left:1rem;bottom:1rem;border:1px solid #a4e8be;border-radius:999px;background:#075a3e;color:#fff;padding:.7rem 1rem;font:700 .85rem system-ui;cursor:pointer; }
+.salon-raccourci[hidden] { display:none; }.salon-raccourci { position:fixed;z-index:100000;left:1rem;bottom:1rem;border:1px solid #a4e8be;border-radius:999px;background:#075a3e;color:#fff;padding:.7rem 1rem;font:700 .85rem system-ui;cursor:pointer; }
+/* Le raccourci reste accessible au-dessus des pages plein écran, sans masquer leurs dialogues. */
+body:has(#focusReglages:not([hidden])) .salon-raccourci,body:has(dialog[open]) .salon-raccourci { visibility:hidden; }
+body:has(#panelPomodoro.active) .salon-raccourci { bottom:5.5rem; }
 .salon-ecran .salon-heure,.salon-ecran .salon-temps { font-family:var(--fp-famille,system-ui);font-weight:var(--fp-poids,700);font-style:var(--fp-style,normal); }.salon-ecran.focus-taille-petite .salon-temps { font-size:clamp(3rem,10vw,6rem); }.salon-ecran.focus-taille-grande .salon-temps { font-size:clamp(5rem,17vw,11rem); }
 
 /* Espace partagé : panneaux sobres, sans masquer le minuteur. */
