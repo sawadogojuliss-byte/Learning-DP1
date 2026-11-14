@@ -374,3 +374,9 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
 @media (max-width: 480px) { .salon-choix-partage .salon-invitation-actions { flex-direction:column; } .salon-choix-partage .salon-invitation-actions button { width:100%; } }
 .salon-limite-reglage {display:none;margin:.6rem 0;color:#526b5d;font-size:.82rem;line-height:1.45;}
 body.salon-actif .salon-limite-reglage {display:block;}
+
+/* Les icônes décoratives ne créent pas de zone de curseur distincte à
+   l'intérieur d'un bouton. Les champs conservent leurs curseurs natifs. */
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button:not(:disabled),a[href],summary) {cursor:pointer;}
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) :is(button,a[href],summary) :is(svg,svg *,img,span,strong,em,i) {cursor:inherit;}
+body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMessagerie) button svg {pointer-events:none;}

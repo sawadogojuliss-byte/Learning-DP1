@@ -451,17 +451,32 @@ async function ouvrirEnDirect(c, nuage) {
   verif('24 export des statistiques borné à 200 ko', Buffer.byteLength(JSON.stringify(exportLimite), 'utf8') <= 200000, true);
   verif('24b export conserve les événements récents', exportLimite[exportLimite.length - 1].u, 'test-05999');
 
+  /* BAC : la même chaîne compte/nuage que les deux téléphones, avec une
+     ancienne copie et les deux sens de modification. */
+  const choisirBac = (c, valeur) => geste(c, `var bacTest=devoirsLireStore();bacTest.bac=${valeur};bacTest.bacDemande=2;devoirsEcrireStore(bacTest);memoireSauvegarder();`);
+  choisirBac(a, true); await envoyer(a); await attendre(600);
+  verif('BAC oui transmis au second téléphone', geste(b, 'devoirsLireStore().bac'), true);
+  const ancienBac = a.memoireLireEtat();
+  await attendre(20); choisirBac(a, false); await envoyer(a); await attendre(600);
+  verif('BAC non transmis au second téléphone', geste(b, 'devoirsLireStore().bac'), false);
+  b.memoireAppliquer(ancienBac, {compte:true});
+  verif('ancienne restauration ne rétablit pas oui', geste(b, 'devoirsLireStore().bac'), false);
+  await attendre(20); choisirBac(b, true); await envoyer(b); await attendre(600);
+  verif('nouveau oui transmis au premier téléphone', geste(a, 'devoirsLireStore().bac'), true);
+
   /* Le journal précédent est archivé avant de changer de compte, mais ne
      doit pas être offert à un élève différent sur cet appareil. */
   figer(b);
   const nouvelEleve = {sub: 'AUTRE-ELEVE-456', email: 'autre@example.org', name: 'Autre'};
   await b.compteRestaurerTout(nouvelEleve, '', [], {});
+  verif('BAC changement vers compte vierge ne reprend pas la réponse', geste(b, 'devoirsLireStore().bac'), null);
   verif('25a le changement de compte isole la citation', b.focusLireReglages().citationPersonnelle, '');
   verif('25 le changement de compte isole les statistiques de l’ancien élève', b.statsLire().length, 0);
   verif('25b les statistiques restent archivées pour le premier compte',
     !!(b.compteLireArchive(SUB) && b.compteLireArchive(SUB).statsFocus && b.compteLireArchive(SUB).statsFocus.length), true);
 
   await b.compteRestaurerTout({sub: SUB, email: EMAIL, name: user.name}, '', [], {});
+  verif('BAC retour au compte restaure sa réponse', geste(b, 'devoirsLireStore().bac'), true);
   verif('25c la citation revient avec son compte après changement', b.focusLireReglages().citationPersonnelle, 'Citation privée de Farid');
   const autreSession = {sub: 'AUTRE-CONNEXION-789', email: 'autre-connexion@example.org', name: 'Autre élève'};
   const autreProfil = Object.assign({}, FULL, {userName: autreSession.name, google: autreSession, utilisateurId: autreSession.sub,

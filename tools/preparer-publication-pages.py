@@ -294,6 +294,8 @@ end = text.index('    </div><!-- fin planningModal -->', start)
 text = text[:start] + (ROOT / 'livrables/publication-planning/edition.html').read_text(encoding='utf-8') + '\n' + text[end:]
 path.write_text(text, encoding='utf-8')
 path = output / 'js/pages/devoirs.js'
+# La base vérifiée est exactement la version suivie : publier aussi le correctif BAC.
+shutil.copy2(ROOT / 'js/pages/devoirs.js', path)
 text = path.read_text(encoding='utf-8')
 anchor_devoirs = "        if (bouton) {\n            bouton.style.background = g === genre"
 if text.count(anchor_devoirs) != 1:

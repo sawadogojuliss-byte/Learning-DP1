@@ -103,7 +103,7 @@ function appliquer(d, data) {
             }
             if (data.devoirsStore) {
                 var f = syncFusionnerStore(devoirsLireStore(), data.devoirsStore, reg);
-                devoirsEcrireStore({ bac: f.bac, bacDemande: f.bacDemande, devoirs: f.devoirs, examens: f.examens }, { brut: true });
+                devoirsEcrireStore({ bac: f.bac, bacDemande: f.bacDemande, bacModifieAt: f.bacModifieAt, devoirs: f.devoirs, examens: f.examens }, { brut: true });
                 syncRecaler('devoirs', f.devoirs);
                 syncRecaler('examens', f.examens);
             }
@@ -309,3 +309,24 @@ const ids = (liste) => liste.map((x) => x.id).sort();
 }
 
 console.log('ok synchro : suppressions, modification la plus récente, devoirs, emploi du temps, minuteur, anciennes sauvegardes, application, purge, plafond');
+
+// BAC : une réponse récente ne doit pas être remplacée par une copie ancienne.
+{
+    const A = appareil('bacA'), B = appareil('bacB');
+    run(A, `devoirsEcrireStore({bac:true,bacDemande:2,devoirs:[],examens:[]});`);
+    synchroniser(A,B);
+    assert.strictEqual(run(B,'devoirsLireStore().bac'),true);
+    const vieille = sauvegarder(B);
+    clock.t += 1000;
+    run(A, `devoirsEcrireStore({bac:false,bacDemande:2,devoirs:[],examens:[]});`);
+    const recent = sauvegarder(A);
+    assert.strictEqual(run(A,`syncFusionnerStore(${JSON.stringify(recent.devoirsStore)},${JSON.stringify(vieille.devoirsStore)},{}).bac`),false);
+    assert.strictEqual(run(A,`syncFusionnerStore(${JSON.stringify(vieille.devoirsStore)},${JSON.stringify(recent.devoirsStore)},{}).bac`),false);
+    appliquer(A,vieille);assert.strictEqual(run(A,'devoirsLireStore().bac'),false,'ancienne copie ne doit pas rétablir oui');
+    appliquer(B,recent);assert.strictEqual(run(B,'devoirsLireStore().bac'),false,'réponse non synchronisée');
+    synchroniser(B,A);assert.strictEqual(run(A,'devoirsLireStore().bac'),false);
+    clock.t += 1000;run(B,`devoirsEcrireStore({bac:true,bacDemande:2,devoirs:[],examens:[]});`);synchroniser(A,B);
+    assert.strictEqual(run(A,'devoirsLireStore().bac'),true,'un oui réellement plus récent reste possible');
+    assert.strictEqual(run(A,`syncFusionnerStore({bac:false,bacDemande:2},{bac:true,bacDemande:2},{}).bac`),false,'sans dates on garde la réponse locale');
+}
+console.log('ok synchronisation BAC : non, copies anciennes et réponse plus récente');

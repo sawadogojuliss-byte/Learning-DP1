@@ -499,16 +499,22 @@ function syncFusionnerEmploi(a, b, reg) {
     return { at: at, jours: jours };
 }
 
-/* Fusion des devoirs et examens (le bac national reste la réponse la plus
-   aboutie). */
+/* Fusion des devoirs et examens ; la réponse BAC datée la plus récente gagne. */
 function syncFusionnerStore(a, b, reg) {
     var A = a && typeof a === 'object' ? a : null;
     var B = b && typeof b === 'object' ? b : null;
     if (!A) return B ? syncCopier(B) : null;
     if (!B) return syncCopier(A);
     var res = syncCopier(A);
-    if (res.bac !== true && res.bac !== false && (B.bac === true || B.bac === false)) res.bac = B.bac;
-    res.bacDemande = (A.bacDemande === 2 || B.bacDemande === 2) ? 2 : 0;
+    var aValide = A.bac === true || A.bac === false, bValide = B.bac === true || B.bac === false;
+    var aDate = aValide ? syncNombre(A.bacModifieAt) : 0, bDate = bValide ? syncNombre(B.bacModifieAt) : 0;
+    // Sans date historique, conserver la valeur locale ; une décision datée
+    // prime sur une copie ancienne, quelle que soit la richesse du profil.
+    var gagnant = !aValide && bValide || bValide && bDate > aDate ? B : A;
+    if (aValide && bValide && aDate && aDate === bDate && A.bac !== B.bac) gagnant = A.bac === false ? A : B;
+    res.bac = gagnant.bac === true || gagnant.bac === false ? gagnant.bac : null;
+    res.bacModifieAt = gagnant === B ? bDate : aDate;
+    res.bacDemande = gagnant.bacDemande === 2 ? 2 : 0;
     res.devoirs = syncFusionnerListes([A.devoirs, B.devoirs], 'devoirs', reg, {});
     res.examens = syncFusionnerListes([A.examens, B.examens], 'examens', reg, {});
     return res;

@@ -17,7 +17,7 @@
     var occupe = false, connecte = false, audioAutorise = false, lecteurs = {}, signatureAudio = '';
     var fondMontre = '', playlistChoisie = null, local = null, sonsPersonnels = [], generationAudio = 0;
     var volumeSalon = 1, discret = false, signalFin = 'visuel', contexteSignal = null, finObservee = 0, signalees = {};
-    var generationMessages=0, arreterMessages=null, messagesSalon=[], messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
+    var generationMessages=0, arreterMessages=null, messagesSalon=[], signatureMessages='', messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
     var reglagesSalon=null, voixSalon=null, prioritesSalon={}, volumesSalon={}, listesSalon=[], porteeSalon=null, filePortee=[], enAttentePartage={}, envoiPartage=false, timerPartage=null;
     var objectifTimer = null, fileMembre = Promise.resolve(), signatureGroupe = '', partageInitialise = false, miniSalon=null;
     try {
@@ -90,11 +90,11 @@
             var onglets=Array.from(document.querySelectorAll('#focusReglages [data-onglet="salon"],#focusReglages [data-onglet="statistiques"]')).map(function(e){return e.closest('li');});
             protections={champs:champs.map(function(e){return {el:e,disabled:e.disabled};}),onglets:onglets.map(function(e){return {el:e,hidden:e.hidden};})};
         }
-        protections.champs.forEach(function(x){x.el.disabled=session?true:x.disabled;});
-        $('focusDureesPersonnelles').hidden=!!session;
-        $('salonReglagesMinuteur').hidden=!session || invite;
-        protections.onglets.forEach(function(x){x.el.hidden=session?true:x.hidden;});
-        document.querySelectorAll('#focusReglages [data-reunion-onglet]').forEach(function(e){e.hidden=!session;});
+        protections.champs.forEach(function(x){propriete(x.el,'disabled',session?true:x.disabled);});
+        propriete($('focusDureesPersonnelles'),'hidden',!!session);
+        propriete($('salonReglagesMinuteur'),'hidden',!session || invite);
+        protections.onglets.forEach(function(x){propriete(x.el,'hidden',session?true:x.hidden);});
+        document.querySelectorAll('#focusReglages [data-reunion-onglet]').forEach(function(e){propriete(e,'hidden',!session);});
     }
     var choisirOngletPersonnel=focusChoisirOnglet;
     focusChoisirOnglet=function(id) {
@@ -133,7 +133,7 @@
     };
     function peindreMini(c){
         var temps=focusTexte(c.restant), hote=session.role==='hote';
-        statut('salonPipTemps',temps);$('salonPipPlay').hidden=!hote;$('salonPipPlay').textContent=c.running?'❚❚':'▶';
+        statut('salonPipTemps',temps);propriete($('salonPipPlay'),'hidden',!hote);statut('salonPipPlay',c.running?'❚❚':'▶');
         if(miniSalon&&!miniSalon.closed){var doc=miniSalon.document,t=doc.getElementById('pipTime'),b=doc.getElementById('pipPlay'),scene=doc.getElementById('pipScene');
             if(t)t.textContent=temps;if(b){b.style.display=hote?'flex':'none';var play=b.querySelector('.pip-ico-play'),pause=b.querySelector('.pip-ico-pause');if(play)play.style.display=c.running?'none':'block';if(pause)pause.style.display=c.running?'block':'none';b.setAttribute('aria-label',c.running?'Pause':'Démarrer');}
             if(scene)scene.style.backgroundImage=$('salonDecor').style.backgroundImage;
@@ -413,7 +413,7 @@
             if (data) {
                 salle = data;
                 if (session.uid && data.organisateurUid) {
-                    var ancienRole=session.role;session.role = data.organisateurUid === session.uid ? 'hote' : 'invite';protegerReglages(session.role==='invite');
+                    var ancienRole=session.role;session.role = data.organisateurUid === session.uid ? 'hote' : 'invite';if(ancienRole!==session.role)protegerReglages(session.role==='invite');
                     if(ancienRole==='hote' && session.role!=='hote'){clearTimeout(timerPartage);enAttentePartage={};if($('salonChoixPartage').open)window.salonChoisirPortee(false);}
                     if(ancienRole!=='hote' && session.role==='hote' && focusOngletCourant==='minuteur')remplirDureesSalon();
                     try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.role=session.role; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
@@ -564,12 +564,13 @@
     function etatMessages() {
         var disponible=!!(session && messagesDisponibles && connecte);
         propriete($('salonChatEnvoyer'),'disabled',!disponible || messageEnCours);
-        var badge=$('salonChatBadge');badge.hidden=messagesNonLus===0;badge.textContent=messagesNonLus>99?'99+':String(messagesNonLus);
+        var badge=$('salonChatBadge');propriete(badge,'hidden',messagesNonLus===0);statut('salonChatBadge',messagesNonLus>99?'99+':String(messagesNonLus));
         attribut($('salonBtnMessages'),'aria-label',messagesNonLus?'Messagerie, '+messagesNonLus+' message'+(messagesNonLus>1?'s':'')+' non lu'+(messagesNonLus>1?'s':''):'Messagerie');
         attribut($('salonBtnMessages'),'aria-expanded',String(!$('salonMessagerie').hidden));
         $('salonBtnMessages').classList.toggle('is-on',!$('salonMessagerie').hidden);
     }
     function peindreMessages() {
+        var signature=JSON.stringify([messagesSalon,discret,session && session.uid]);if(signature===signatureMessages)return;signatureMessages=signature;
         var liste=$('salonChatListe'), proche=liste.scrollHeight-liste.scrollTop-liste.clientHeight<80;
         liste.textContent='';
         if(!messagesSalon.length){var vide=document.createElement('p');vide.className='salon-chat-vide';vide.textContent='Un petit mot pour commencer ?';liste.appendChild(vide);}
@@ -595,7 +596,7 @@
         },function(){if(session!==s || generation!==generationMessages)return;messagesDisponibles=false;$('salonChatReessayer').hidden=false;statut('salonChatEtat','Messagerie interrompue. Vérifie la connexion puis réessaie.');etatMessages();});
     }
     function demarrerMessages(s) {
-        messagesSalon=[];messagesConnus=new Set();messagesInitialises=false;messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
+        messagesSalon=[];signatureMessages='';messagesConnus=new Set();messagesInitialises=false;messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
         $('salonMessagerie').hidden=true;$('salonChatTexte').value='';$('salonChatReessayer').hidden=true;peindreMessages();etatMessages();
         if(typeof s.observerMessages!=='function' || typeof s.envoyerMessage!=='function') {statut('salonChatEtat','La messagerie n’est pas disponible pour ce salon.');return;}
         ecouterMessages(s);
@@ -706,7 +707,7 @@
         var recents=etats.filter(function(etat){return etat==='recente';}).length;
         var prets=membres.filter(function(x){return x.pret;}).length;
         statut('salonGroupeInfo',membres.length ? membres.length+' inscrit'+(membres.length>1?'s':'')+' · '+recents+' activité'+(recents>1?'s':'')+' récente'+(recents>1?'s':'')+(prets?' · '+prets+' prêt'+(prets>1?'s':''):'') : 'Les participants apparaîtront ici.');
-        var signature=JSON.stringify([membres,etats,discret,hote,connecte,!!session.retirer,!!session.transferer,!!session.encourager]);
+        var signature=JSON.stringify([membres.map(function(x){return [x.uid,x.pseudo,x.pret,x.objectifPartage,x.objectif,x.objectifFait,x.aide,x.encouragement];}),etats,discret,hote,connecte,salle.organisateurUid,session.uid,!!session.retirer,!!session.transferer,!!session.encourager]);
         if(signature===signatureGroupe)return;signatureGroupe=signature;
         var liste=$('salonListeMembres'), encouragements=$('salonEncouragements');liste.textContent='';encouragements.textContent='';
         $('salonMembres').hidden=discret;

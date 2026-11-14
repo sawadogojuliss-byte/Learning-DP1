@@ -26,6 +26,39 @@ try {
     assert.equal(await page.evaluate(() => devoirsLireStore().bac), reponse === 'Oui');
     const blocs = await page.evaluate(() => ({ vendredi: generateDayEvents(4).some(e => e.id === 'bac-vendredi'), samedi: generateDayEvents(5).some(e => e.id === 'bac-samedi') }));
     assert.deepEqual(blocs, { vendredi: reponse === 'Oui', samedi: reponse === 'Oui' });
+    // Une restauration d'une copie contradictoire plus ancienne ne doit pas
+    // annuler le choix local ni faire réapparaître les blocs du bac.
+    const restauration=await page.evaluate((choix)=>{
+      const profil=memoireLireEtat();profil.devoirsStore={bac:!choix,bacDemande:2,bacModifieAt:1,devoirs:[],examens:[]};
+      memoireAppliquer(profil,{compte:true});return {bac:devoirsLireStore().bac,v:generateDayEvents(4).some(e=>e.id==='bac-vendredi'),s:generateDayEvents(5).some(e=>e.id==='bac-samedi')};
+    },reponse==='Oui');
+    assert.deepEqual(restauration,{bac:reponse==='Oui',v:reponse==='Oui',s:reponse==='Oui'},'restauration ancienne ne doit pas inverser la réponse');
+    // Le store du compte précédent ne doit pas contaminer le compte entrant,
+    // même si ce dernier n'a pas encore de données BAC.
+    const isolation = await page.evaluate((choix) => {
+      const original=devoirsStoreCompact(), profil=memoireLireEtat();
+      window.compteChangementDeCompte=true;
+      profil.devoirsStore={bac:!choix,bacDemande:2,bacModifieAt:1,devoirs:[],examens:[]};
+      memoireAppliquer(profil,{compte:true});const autre=devoirsLireStore().bac;
+      delete profil.devoirsStore;memoireAppliquer(profil,{compte:true});const absent=devoirsLireStore().bac;
+      window.compteChangementDeCompte=false;devoirsEcrireStore(original,{brut:true});
+      return {autre,absent};
+    },reponse==='Oui');
+    assert.deepEqual(isolation,{autre:reponse!=='Oui',absent:null},'isolation des comptes avec ou sans ancien store');
+    // Changer ou reconfirmer la réponse sans devoir recréer son compte.
+    await page.evaluate(() => { document.getElementById('classeModal').classList.remove('active'); navigateTo('devoirs'); devoirsRendre(); });
+    assert.equal(await page.locator('#devoirsBacEtat').textContent(), reponse);
+    await page.getByRole('button',{name:'Modifier ma réponse'}).click();
+    await page.locator('#bacQuestionAnnuler').click();
+    assert.equal(await page.evaluate(() => devoirsLireStore().bac), reponse === 'Oui');
+    await page.getByRole('button',{name:'Modifier ma réponse'}).click();
+    await page.locator('#bacQuestion'+(reponse==='Oui'?'Non':'Oui')).click();
+    assert.equal(await page.evaluate(() => devoirsLireStore().bac), reponse !== 'Oui');
+    assert.equal(await page.evaluate(() => generateDayEvents(4).some(e=>e.id==='bac-vendredi')),reponse !== 'Oui');
+    await page.getByRole('button',{name:'Modifier ma réponse'}).click();
+    await page.locator('#bacQuestion'+reponse).click();
+    assert.equal(await page.locator('#devoirsBacEtat').textContent(), reponse);
+    await page.evaluate(() => { document.getElementById('panelDevoirs').classList.remove('active'); showClassePage(); });
     await page.locator('#classeChoices button').filter({ hasText: 'DP2' }).click();
     assert.equal(await page.locator('#bacQuestionModal').count(), 0, 'pas de redemande après réponse');
     await page.locator('#classeContinueBtn').click();
@@ -39,6 +72,9 @@ try {
     assert.equal(await page.locator('#dayNavigation .planning-jour').nth(0).getAttribute('aria-pressed'), 'true');
     await page.locator('#dayNavigation .planning-jour').nth(4).click();
     assert.equal(await page.evaluate(() => selectedDay), 4, 'les autres jours restent accessibles');
+    await page.reload({waitUntil:'domcontentloaded'});
+    await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, { timeout: 60000 });
+    assert.equal(await page.evaluate(() => devoirsLireStore().bac), reponse === 'Oui', 'réponse conservée au rechargement');
     assert.deepEqual(errors, []);
     console.log('OK DP2 ' + reponse + ' : question immédiate, planning adapté, jour choisi conservé.');
     await page.close();

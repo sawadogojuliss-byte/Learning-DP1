@@ -134,6 +134,7 @@ jobs:
           executer_test travail/tools/tester-salon-copie.mjs
           executer_test travail/tools/tester-salon-deux-telephones.mjs
           executer_test travail/tools/tester-salon-isolation.mjs
+          executer_test travail/tools/tester-salon-curseur.mjs
           executer_test travail/tools/tester-salon-courses.mjs
           executer_test travail/tools/tester-salon-messagerie.mjs
           executer_test travail/tools/tester-curseur-stable.mjs
@@ -215,6 +216,7 @@ jobs:
           executer_test tools/tester-pip-anime.mjs
           executer_test tools/tester-salon-apercu.mjs
           executer_test tools/tester-salon-deux-telephones.mjs
+          executer_test tools/tester-salon-curseur.mjs
           executer_test tools/tester-salon-courses.mjs
           executer_test tools/tester-salon-messagerie.mjs
           executer_test tools/tester-curseur-stable.mjs
