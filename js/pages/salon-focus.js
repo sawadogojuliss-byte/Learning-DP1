@@ -66,7 +66,7 @@
         // comme actives sur le minuteur commun.
         [['focusOptNotif','Dans le salon, choisis le signal de fin dans Préférences. L’annonce vocale et la notification Pomodoro ne sont pas utilisées.'],['focusVoixActive','Le salon utilise son propre signal de fin : les annonces vocales du Pomodoro personnel ne s’y déclenchent pas.'],['focusOptAuto','Le minuteur commun ne passe pas automatiquement à la phase suivante.']].forEach(function(info){
             var input=$(info[0]);if(!input)return;var label=input.closest('label');if(!label || label.nextElementSibling && label.nextElementSibling.classList.contains('salon-limite-reglage'))return;
-            var note=document.createElement('p');note.className='salon-limite-reglage';note.textContent=info[1];label.after(note);
+            var note=document.createElement('p');note.className='salon-limite-reglage';note.textContent=info[1];note.setAttribute('aria-label',info[1]);label.after(note);
         });
         fichesSalon.forEach(function(nom){
             var id='reunion-'+nom, carte=document.querySelector('[data-salon-fiche="'+nom+'"]');

@@ -38,6 +38,7 @@ try {
  const h=await telephone('host',{width:390,height:844}),g=await telephone('guest',{width:320,height:568});const hp=h.page,gp=g.page;
  await hp.goto(base,{waitUntil:'domcontentloaded'});await hp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
  await hp.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon');});
+ for(const id of ['focusVoixActive','focusOptNotif','focusOptAuto'])assert.equal(await hp.locator('#'+id).evaluate(e=>e.closest('label').control===e),true,'le libellé commande encore son interrupteur');
  const stockage=()=>Object.fromEntries(Object.entries(localStorage).filter(([k])=>(k.startsWith('studyPlanIB_focus')&&k!=='studyPlanIB_focusEtat')||k.startsWith('studyPlanIB_minuteurParametres')||k.startsWith('studyPlanIB_voix')));
  const avant=await hp.evaluate(stockage);await hp.locator('#salonNom').fill('Isolation');await hp.locator('#salonCreer').click();await hp.locator('#salonLienCarte').waitFor();await hp.locator('.salon-lien-fermer').click();
  await gp.goto(base+'#salon='+id,{waitUntil:'domcontentloaded'});await gp.locator('#salonPseudo').waitFor({state:'visible',timeout:60000});await gp.locator('#salonPseudo').fill('Camille');await gp.locator('#salonRejoindreBouton').click();await gp.waitForFunction(()=>!document.getElementById('salonInvitation').open);
