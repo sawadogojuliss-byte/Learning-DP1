@@ -6,7 +6,7 @@ const path=require('node:path');
 const {createRequire}=require('node:module');
 const modules=createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES,'../package.json') : __filename);
 const {initializeTestEnvironment,assertFails,assertSucceeds}=modules('@firebase/rules-unit-testing');
-const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,Timestamp,serverTimestamp}=modules('firebase/firestore');
+const {doc,collection,getDoc,getDocs,setDoc,updateDoc,deleteDoc,writeBatch,Timestamp,serverTimestamp,query,orderBy,limit}=modules('firebase/firestore');
 const id='abcdef0123456789abcdef0123456789abcdef0123456789', autre='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 const chemin=x=>'salons_focus/'+x;
 const options={theme:true,minuteur:false,horloge:false,sons:false,musique:false,citations:false};
@@ -31,6 +31,16 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertFails(getDocs(collection(guest,'salons_focus')));
   await assertSucceeds(setDoc(doc(guest,chemin(id)+'/membres/guest'),{pseudo:'Camille'}));
   await assertFails(setDoc(doc(guest,chemin(id)+'/membres/intrus'),{pseudo:'Camille'}));
+  const msgId='ABCDEFGHIJKLMNOPQRST', autreMsg='QRSTUVWXYZabcdefghij', prefix=chemin(id)+'/messages/';
+  const message=(texte,pseudo='Camille')=>({auteurUid:'guest',pseudo,texte,envoyeLe:serverTimestamp()});
+  const envoi=writeBatch(guest);envoi.update(doc(guest,chemin(id)+'/membres/guest'),{messageLe:serverTimestamp(),dernierMessageId:msgId});envoi.set(doc(guest,prefix+msgId),message('Bonjour !'));await assertSucceeds(envoi.commit());
+  const tropVite=writeBatch(guest);tropVite.update(doc(guest,chemin(id)+'/membres/guest'),{messageLe:serverTimestamp(),dernierMessageId:autreMsg});tropVite.set(doc(guest,prefix+autreMsg),message('Encore'));await assertFails(tropVite.commit());
+  await assertSucceeds(getDoc(doc(host,prefix+msgId)));await assertFails(getDoc(doc(intrus,prefix+msgId)));
+  await assertFails(getDocs(collection(guest,prefix)));await assertSucceeds(getDocs(query(collection(guest,prefix),orderBy('envoyeLe','desc'),limit(50))));
+  await assertFails(updateDoc(doc(guest,prefix+msgId),{texte:'Modifié'}));await assertFails(deleteDoc(doc(guest,prefix+msgId)));
+  await assertFails(setDoc(doc(guest,chemin(id)+'/membres/guest'),{pseudo:'Camille'})); // le délai ne peut pas être effacé
+  await assertFails(setDoc(doc(guest,prefix+autreMsg),message('Usurpation','Autre')));
+
   await assertSucceeds(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
   await assertFails(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:Timestamp.fromMillis(Date.now()+3600000)}));
   await assertFails(updateDoc(doc(intrus,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
@@ -44,6 +54,7 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertFails(setDoc(doc(intrus,chemin(autre)+'/membres/intrus'),{pseudo:'Intrus'}));
   await assertSucceeds(getDoc(doc(host,chemin(autre))));
   await assertSucceeds(updateDoc(doc(host,chemin(id)),{revision:3,ferme:true}));
+  await assertFails(getDoc(doc(guest,prefix+msgId)));
   await assertFails(setDoc(doc(intrus,chemin(id)+'/membres/intrus'),{pseudo:'Intrus'}));
   await assertSucceeds(deleteDoc(doc(guest,chemin(id)+'/membres/guest')));
   console.log('OK règles Firestore : propriétaires, invités, fermeture, isolation et partage.');

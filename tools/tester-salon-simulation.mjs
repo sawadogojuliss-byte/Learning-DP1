@@ -60,7 +60,7 @@ try {
   assert.equal(await gp.locator('#salonCommandes').isVisible(),false);
   for(const bouton of await gp.locator('#salonEcran [data-mode]').all())assert.equal(await bouton.isDisabled(),true,'les phases sont affichées mais interdites à l’invité');
   assert.equal(await hp.locator('#salonDemarrer svg').count(),2,'commandes graphiques du Pomodoro');
-  assert.equal(await hp.locator('#salonEcran .focus-bottom .focus-rond').count(),6,'barre Pomodoro complète');
+  assert.equal(await hp.locator('#salonEcran .focus-bottom .focus-rond').count(),7,'barre Pomodoro avec messagerie');
   await gp.locator('#salonEcran').getByRole('button',{name:'Paramètres'}).click();
   assert.equal(await gp.locator('#focusReglages [data-onglet="salon"]').isVisible(),false);
   assert.equal(await gp.locator('#focusReglages [data-onglet="statistiques"]').isVisible(),false);

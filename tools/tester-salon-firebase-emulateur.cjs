@@ -36,6 +36,17 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   stopG=guest.observer((s,e)=>{if(e.connecte)dataG=s;},e=>errors.push(e));
   await attendre(()=>dataH && dataG && dataH.membres.some(m=>m.pseudo==='Camille' && m.vuLe),'entrée et présence');
   assert.ok(dataG.membres.some(m=>m.pseudo==='Organisateur'));
+  let messagesH=null,messagesG=null,erreursMessages=[];
+  const stopMessagesH=host.observerMessages(m=>{messagesH=m},e=>erreursMessages.push(e));
+  const stopMessagesG=guest.observerMessages(m=>{messagesG=m},e=>erreursMessages.push(e));
+  await attendre(()=>messagesH && messagesG,'ouverture messagerie');
+  await assert.rejects(guest.envoyerMessage('   '),e=>e.code==='invalid-argument');
+  await guest.envoyerMessage('Bonjour depuis Camille');
+  await attendre(()=>messagesH.some(m=>m.texte==='Bonjour depuis Camille') && messagesG.some(m=>m.texte==='Bonjour depuis Camille'),'réception message');
+  assert.equal(messagesH[0].pseudo,'Camille');assert.equal(messagesH[0].auteurUid,guest.uid);
+  await assert.rejects(guest.envoyerMessage('Trop rapide'));
+  stopMessagesH();stopMessagesG();assert.deepEqual(erreursMessages,[]);
+
   const demarre=core.commande(dataH.chrono,'demarrer',host.maintenant(),{});
   const revision=dataH.revision;await host.modifier(revision,{chrono:demarre});
   await assert.rejects(reprise.modifier(revision,{chrono:demarre}),e=>e.code==='revision-conflict');

@@ -23,6 +23,7 @@ const FICHIERS = [
     "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
     "css/accessibilite.css",
+    "css/curseur-stable.css",
     "js/accessibilite.js",
     "images/logo.png",
     "app.webmanifest",

@@ -114,6 +114,7 @@ files = [
     'js/pages/salon-focus-firebase.js',
     'js/pages/salon-focus.js',
     'css/pages/salon-focus.css',
+    'css/curseur-stable.css',
     'js/pages/musique.js',
     'videos/arbres-au-bord-de-leau-assemblage.mp4',
     'images/pomodoro/chalet-neige-anime.mp4',
@@ -386,7 +387,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/defilement.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="css/pages/defilement.css?v=' + version + '">\n    <link rel="stylesheet" href="css/curseur-stable.css?v=' + version + '">', 1)
     if rel == 'js/registre.js':
         anchor = "    'js/pages/pomodoro-parametres.js'\n"
         if text.count(anchor) != 1:
@@ -394,7 +395,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
         anchor_salon = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-focus.js",', 1)
+        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-focus.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')

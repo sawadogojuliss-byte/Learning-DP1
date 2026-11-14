@@ -119,13 +119,30 @@
                     return Object.assign({},d,patch,{membres:listeConfirmee.slice()});
                 });
             }
+            function observerMessages(callback, surErreur) {
+                return room.collection('messages').orderBy('envoyeLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
+                    if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
+                    callback(snap.docs.map(function(doc){var d=doc.data();return {id:doc.id,auteurUid:d.auteurUid,pseudo:d.pseudo,texte:d.texte,envoyeLe:d.envoyeLe && typeof d.envoyeLe.toMillis==='function'?d.envoyeLe.toMillis():0};}).reverse());
+                },surErreur);
+            }
+            async function envoyerMessage(texte) {
+                texte=String(texte == null ? '' : texte).replace(/\r\n?/g,'\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g,'').trim();
+                if(!texte || texte.length>1000)throw erreur('invalid-argument');
+                var ref=room.collection('messages').doc();
+                await db.runTransaction(async function(tx){
+                    var snap=await tx.get(membre);if(!snap.exists)throw erreur('permission-denied');
+                    var pseudo=coeur.texte(snap.data().pseudo,30);if(!pseudo)throw erreur('permission-denied');
+                    tx.update(membre,{messageLe:firebase.firestore.FieldValue.serverTimestamp(),dernierMessageId:ref.id});
+                    tx.set(ref,{auteurUid:contexte.user.uid,pseudo:pseudo,texte:texte,envoyeLe:firebase.firestore.FieldValue.serverTimestamp()});
+                });
+            }
             async function quitter(){await arreterPresence();try {await db.runTransaction(function(tx){tx.delete(membre);return Promise.resolve();});} catch(e) {demarrerPresence();throw e;}}
             async function fermer(){
                 if(role!=='hote')throw erreur('permission-denied');
                 await arreterPresence();
                 try {await db.runTransaction(async function(tx){var d=objet(await tx.get(room));if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');if(d.ferme)return;tx.update(room,{ferme:true,revision:d.revision+1});});ferme=true;} catch(e) {demarrerPresence();throw e;}
             }
-            return {id:id,uid:contexte.user.uid,role:role,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence};
+            return {id:id,uid:contexte.user.uid,role:role,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence,observerMessages:observerMessages,envoyerMessage:envoyerMessage};
         }
         async function creer(donnees) {
             var contexte=await organisateur(), delta=await heureServeur(contexte);
@@ -145,7 +162,7 @@
                 var snap=await tx.get(room);if(!snap.exists)throw erreur('not-found');var d=snap.data();
                 if(d.ferme || !d.expireLe || d.expireLe.toMillis() <= horloge()+delta)throw erreur('room-closed');
                 var existant=await tx.get(membre);if(d.verrouille && !existant.exists)throw erreur('room-locked');
-                tx.set(membre,{pseudo:pseudo});
+                if(existant.exists)tx.update(membre,{pseudo:pseudo});else tx.set(membre,{pseudo:pseudo});
             });
             return session(contexte,id,'invite',delta);
         }

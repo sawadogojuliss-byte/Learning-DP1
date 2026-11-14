@@ -17,6 +17,7 @@
     var occupe = false, connecte = false, audioAutorise = false, lecteurs = {}, signatureAudio = '';
     var fondMontre = '', playlistChoisie = null, local = null, sonsPersonnels = [], generationAudio = 0;
     var volumeSalon = 1, discret = false, signalFin = 'visuel', contexteSignal = null, finObservee = 0, signalees = {};
+    var arreterMessages=null, messagesSalon=[], messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
     var objectifTimer = null, fileMembre = Promise.resolve(), signatureGroupe = '', partageInitialise = false, miniSalon=null;
     try {
         var preference = JSON.parse(localStorage.getItem('studyPlanIB_salon_preferences') || '{}');
@@ -219,6 +220,7 @@
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
         installerFiches();resumeSelection();
+        $('salonMessagerie').addEventListener('keydown',function(event){if(event.key==='Escape'){event.preventDefault();window.salonFermerMessages();}});
         $('salonInvitation').addEventListener('cancel',function(event){event.preventDefault();window.salonAnnulerInvitation();});
         pret();
     }
@@ -266,6 +268,7 @@
             statut('salonEtatConnexion', connecte ? '● Connecté en direct' : '○ Reconnexion en cours');
             peindre();
         }, function (e) { if(e && (e.code==='removed' || e.code==='room-closed')) { finirLocal(e.code==='removed'?'Tu as été retiré du salon.':'Le salon est fermé ou a expiré.'); return; } connecte=false;statut('salonEtatConnexion','○ Connexion interrompue');statut('salonMessage',erreur(e));peindre(); });
+        demarrerMessages(s);
         timer = setInterval(peindre,250);
         peindre();
     }
@@ -378,6 +381,58 @@
         var signature=JSON.stringify(ids);if(signature===signatureAudio)return;stopperAudio();signatureAudio=signature;var generation=generationAudio;
         ids.forEach(function(id){ var son=focusSonParId(id), audio=new Audio(son.fichier);audio.loop=true;audio.volume=focusVolume(id)*volumeSalon;lecteurs[id]=audio;var p=audio.play();if(p&&p.catch)p.catch(function(){if(generation!==generationAudio)return;statut('salonMessage','La lecture est bloquée : touche « Activer les sons » pour réessayer.');audioAutorise=false;stopperAudio();}); });
     }
+    function etatMessages() {
+        var disponible=!!(session && messagesDisponibles && connecte);
+        propriete($('salonChatEnvoyer'),'disabled',!disponible || messageEnCours);
+        var badge=$('salonChatBadge');badge.hidden=messagesNonLus===0;badge.textContent=messagesNonLus>99?'99+':String(messagesNonLus);
+        attribut($('salonBtnMessages'),'aria-label',messagesNonLus?'Messagerie, '+messagesNonLus+' message'+(messagesNonLus>1?'s':'')+' non lu'+(messagesNonLus>1?'s':''):'Messagerie');
+        attribut($('salonBtnMessages'),'aria-expanded',String(!$('salonMessagerie').hidden));
+        $('salonBtnMessages').classList.toggle('is-on',!$('salonMessagerie').hidden);
+    }
+    function peindreMessages() {
+        var liste=$('salonChatListe'), proche=liste.scrollHeight-liste.scrollTop-liste.clientHeight<80;
+        liste.textContent='';
+        if(!messagesSalon.length){var vide=document.createElement('p');vide.className='salon-chat-vide';vide.textContent='Un petit mot pour commencer ?';liste.appendChild(vide);}
+        messagesSalon.forEach(function(m){
+            var article=document.createElement('article'), moi=session && m.auteurUid===session.uid;article.className='salon-chat-message'+(moi?' salon-chat-moi':'');
+            var entete=document.createElement('div');entete.className='salon-chat-meta';var nom=document.createElement('strong');nom.textContent=moi?'Vous':discret?'Participant':coeur.texte(m.pseudo,30)||'Participant';entete.appendChild(nom);
+            if(m.envoyeLe){var h=document.createElement('time');h.textContent=new Date(m.envoyeLe).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});entete.appendChild(h);}
+            var texte=document.createElement('p');texte.textContent=String(m.texte || '').slice(0,1000);article.appendChild(entete);article.appendChild(texte);liste.appendChild(article);
+        });
+        if(proche || !$('salonMessagerie').hidden && !messagesInitialises)liste.scrollTop=liste.scrollHeight;
+    }
+    function demarrerMessages(s) {
+        messagesSalon=[];messagesConnus=new Set();messagesInitialises=false;messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
+        $('salonMessagerie').hidden=true;$('salonChatTexte').value='';peindreMessages();etatMessages();
+        if(typeof s.observerMessages!=='function' || typeof s.envoyerMessage!=='function') {statut('salonChatEtat','La messagerie n’est pas disponible pour ce salon.');return;}
+        statut('salonChatEtat','Connexion à la messagerie…');
+        arreterMessages=s.observerMessages(function(liste){
+            if(session!==s)return;
+            liste=Array.isArray(liste)?liste:[];
+            if(messagesInitialises && $('salonMessagerie').hidden)liste.forEach(function(m){if(m.id && !messagesConnus.has(m.id) && m.auteurUid!==s.uid)messagesNonLus++;});
+            liste.forEach(function(m){if(m.id)messagesConnus.add(m.id);});messagesSalon=liste;messagesDisponibles=true;peindreMessages();messagesInitialises=true;
+            statut('salonChatEtat','Les 50 derniers messages sont affichés.');etatMessages();
+        },function(){if(session!==s)return;messagesDisponibles=false;statut('salonChatEtat','Messagerie indisponible. Vérifie la connexion et les autorisations du salon.');etatMessages();});
+    }
+    function fermerMessagesSession() {
+        if(arreterMessages)arreterMessages();arreterMessages=null;messagesSalon=[];messagesConnus=new Set();messagesNonLus=0;messagesDisponibles=false;messageEnCours=false;
+        $('salonMessagerie').hidden=true;etatMessages();
+    }
+    window.salonFermerMessages=function(){ $('salonMessagerie').hidden=true;etatMessages();$('salonBtnMessages').focus(); };
+    window.salonBasculerMessages=function(){
+        if(!session)return;if(!$('salonMessagerie').hidden){window.salonFermerMessages();return;}
+        $('salonMessagerie').hidden=false;messagesNonLus=0;etatMessages();$('salonChatListe').scrollTop=$('salonChatListe').scrollHeight;$('salonChatTexte').focus();
+    };
+    window.salonEnvoyerMessage=function(event){
+        if(event)event.preventDefault();var s=session, champ=$('salonChatTexte'), texte=champ.value.trim();
+        if(!s || !messagesDisponibles || !connecte || messageEnCours)return false;
+        if(!texte){statut('salonChatEtat','Écris un message avant de l’envoyer.');champ.focus();return false;}
+        messageEnCours=true;statut('salonChatEtat','Envoi en cours…');etatMessages();
+        Promise.resolve().then(function(){return s.envoyerMessage(texte);}).then(function(){
+            if(session!==s)return;if(champ.value.trim()===texte)champ.value='';messageEnCours=false;statut('salonChatEtat','Message envoyé.');etatMessages();champ.focus();
+        },function(){if(session!==s)return;messageEnCours=false;statut('salonChatEtat','Envoi non confirmé. Vérifie la connexion ou attends quelques secondes avant de réessayer.');etatMessages();});
+        return false;
+    };
     function sauvegarderPreferences() {
         try { localStorage.setItem('studyPlanIB_salon_preferences',JSON.stringify({volume:volumeSalon,discret:discret,signal:signalFin})); } catch(e) {}
     }
@@ -386,7 +441,7 @@
         $('salonVolumeValeur').textContent=Math.round(volumeSalon*100)+' %';
         Object.keys(lecteurs).forEach(function(id){lecteurs[id].volume=focusVolume(id)*volumeSalon;}); sauvegarderPreferences();
     };
-    window.salonChangerDiscret=function(v) { discret=!!v;sauvegarderPreferences();signatureGroupe='';peindre(); };
+    window.salonChangerDiscret=function(v) { discret=!!v;sauvegarderPreferences();signatureGroupe='';peindre();peindreMessages(); };
     window.salonChangerSignal=function(v) {
         if (['visuel','son','aucun'].indexOf(v)<0) return;
         signalFin=v; $('salonSignalVisuel').hidden=true; sauvegarderPreferences();
@@ -519,6 +574,10 @@
         attribut($('salonDemarrer'),'aria-label',c.running?'Pause':'Démarrer');propriete($('salonIconPlay').style,'display',c.running?'none':'block');propriete($('salonIconPause').style,'display',c.running?'block':'none');
         statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');var flamme=$('focusFlamme');if(flamme)statut('salonFlamme',flamme.textContent);
         signalerFin(c);peindreGroupe();
+        $('salonDemarrer').classList.toggle('is-on',c.running);
+        [['salonBtnTaches','focusTaches'],['salonBtnSon','focusSons'],['salonBtnReglages','focusReglages']].forEach(function(pair){$(pair[0]).classList.toggle('is-on',!$(pair[1]).hidden);});
+        $('salonBtnPip').classList.toggle('is-on',!$('salonPipLocal').hidden || !!(miniSalon&&!miniSalon.closed));
+        etatMessages();
         $('salonCommandes').querySelectorAll('button').forEach(function(b){propriete(b,'disabled',!connecte||occupe);});
         document.querySelectorAll('#salonEcran [data-mode]').forEach(function(b){propriete(b,'disabled',session.role!=='hote'||!connecte||occupe);b.classList.toggle('is-on',b.dataset.mode===c.mode);attribut(b,'aria-pressed',String(b.dataset.mode===c.mode));});
         var h=choix.horloge && p.horloge ? p.horloge : local.horloge;
@@ -550,7 +609,7 @@
     }
     function finirLocal(message, finOrganisateur) {
         var bilanFinal=salle && salle.bilan;
-        window.salonFermerMini();clearTimeout(objectifTimer); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
+        fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
         try { sessionStorage.removeItem('studyPlanIB_salon_session'); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);$('salonLienCarte').hidden=true;
