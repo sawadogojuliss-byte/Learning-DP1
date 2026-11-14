@@ -7,20 +7,14 @@
     var status = document.getElementById('boot-status');
     var jauge = document.getElementById('boot-jauge-fill');
     var barre = document.getElementById('boot-jauge');
-
-    /* La barre suit le chargement réel : chaque page reçue et chaque script
-       chargé la font avancer. On ne ment jamais sur l'avancement. */
     function avancer(fait, total) {
-        if (!jauge) return;
-        var pourcentage = Math.max(6, Math.min(100, Math.round((fait / Math.max(1, total)) * 100)));
-        jauge.style.width = pourcentage + '%';
+        var pourcentage = Math.max(6, Math.min(100, Math.round(fait / Math.max(1, total) * 100)));
+        if (jauge) jauge.style.width = pourcentage + '%';
         if (barre) barre.setAttribute('aria-valuenow', String(pourcentage));
     }
-
     function fail(message) {
         document.body.classList.remove('booting');
         document.body.classList.add('boot-erreur');
-        if (jauge) jauge.style.width = '0%';
         if (status) {
             status.hidden = false;
             var mot = status.querySelector('.boot-mot');
@@ -29,7 +23,7 @@
         }
     }
 
-var version = '20261104ay';
+var version = '20261108x';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un
@@ -70,8 +64,7 @@ var version = '20261104ay';
 
     var pages = window.STUDYPLAN_HTML || [];
     var scripts = window.STUDYPLAN_SCRIPTS || [];
-    var etapesFaites = 0;
-    var etapesTotales = pages.length + scripts.length;
+    var etapesFaites = 0, etapesTotales = pages.length + scripts.length;
 
     /* Une page retirée du site ne doit jamais bloquer le démarrage : on
        l'ignore et le reste s'ouvre normalement. */
@@ -80,13 +73,11 @@ var version = '20261104ay';
             if (!res.ok) throw new Error('Page absente : ' + url);
             return res.text();
         }).then(function (texte) {
-            etapesFaites += 1;
-            avancer(etapesFaites, etapesTotales);
+            etapesFaites++; avancer(etapesFaites, etapesTotales);
             return texte;
         }).catch(function (e) {
             if (window.console && console.warn) console.warn(e.message);
-            etapesFaites += 1;
-            avancer(etapesFaites, etapesTotales);
+            etapesFaites++; avancer(etapesFaites, etapesTotales);
             return '';
         });
     })).then(function (parts) {
@@ -97,8 +88,7 @@ var version = '20261104ay';
                 erreurs.push(src);
                 console.error('Module indisponible', src, e);
             }).then(function () {
-                etapesFaites += 1;
-                avancer(etapesFaites, etapesTotales);
+                etapesFaites++; avancer(etapesFaites, etapesTotales);
             });
         })).then(function () {
             if (erreurs.length) {

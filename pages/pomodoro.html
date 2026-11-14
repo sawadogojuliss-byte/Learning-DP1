@@ -60,6 +60,146 @@
                 </span>
             </div>
         </div>
+        <button type="button" id="salonRaccourci" class="salon-raccourci" onclick="salonRevenir()" hidden>Revenir au salon</button>
+        <div id="salonEcran" class="salon-ecran" hidden aria-labelledby="salonTitre">
+            <div class="salon-decor" id="salonDecor"></div><div class="salon-voile"></div>
+            <div class="salon-interface focus-page">
+                <header class="focus-top salon-top">
+                    <div class="focus-haut-gauche salon-marque"><p class="focus-logo">Studyplan</p><div class="salon-meta"><span id="salonEtatConnexion" class="salon-etat" role="status" aria-live="polite"></span><span class="salon-meta-separateur" aria-hidden="true"></span><time class="salon-heure" id="salonHeure"></time></div><div id="salonParticipants" class="salon-participants" hidden aria-label="Participants au salon"><span class="salon-participants-titre">Votre groupe</span><div id="salonParticipantsNoms" class="salon-participants-noms"></div><small id="salonParticipantsInfo" hidden></small></div></div>
+                    <div class="salon-top-droite"><p class="focus-quote" id="salonCitation"></p><button type="button" class="salon-action-secondaire salon-quitter" id="salonQuitterBouton" onclick="salonQuitter()">Quitter le salon</button></div>
+                </header>
+                <dialog class="salon-lien-carte" id="salonLienCarte" hidden aria-labelledby="salonLienTitre">
+                    <div class="salon-lien-entete"><span class="salon-lien-icone" aria-hidden="true">✦</span><div><span class="salon-surtexte">UN MOMENT À PARTAGER</span><h3 id="salonLienTitre">Ton salon est prêt</h3><p>Invite les personnes avec qui tu veux te concentrer.</p></div></div>
+                    <button type="button" class="salon-lien-fermer" onclick="salonFermerLien()" aria-label="Fermer la carte de partage">×</button>
+                    <div class="salon-lien-champ"><label for="salonLienAffiche" class="focus-sr">Lien du salon</label><input id="salonLienAffiche" readonly spellcheck="false"><button type="button" class="salon-copier" onclick="salonCopierLien()">Copier le lien</button></div>
+                    <p class="salon-lien-statut">Seules les personnes qui ont ce lien peuvent rejoindre.</p>
+                    <p id="salonLienStatut" class="salon-lien-statut" role="status" aria-live="polite"></p>
+                </dialog>
+                <main class="focus-center salon-centre"><h2 id="salonTitre" class="focus-question salon-titre">Salon</h2>
+                    <div class="focus-modes-zone"><div class="focus-modes" role="group" aria-label="Phases du minuteur"><button type="button" data-mode="focus" onclick="salonPhaseChoisir('focus')">CONCENTRATION</button><button type="button" data-mode="short" onclick="salonPhaseChoisir('short')">PAUSE COURTE</button><button type="button" data-mode="long" onclick="salonPhaseChoisir('long')">PAUSE LONGUE</button></div><div class="focus-compteur" id="salonCompteur" aria-label="Séances de concentration suivies sur cet appareil"></div></div>
+                    <span id="salonPhase" class="focus-sr"></span><p id="salonTemps" class="focus-time salon-temps">25:00</p><div class="focus-visuel" id="salonVisuel" hidden></div><div class="focus-barre" id="salonBarre" hidden><i id="salonBarreRemplie"></i></div>
+            <div class="salon-controles-ensemble"><div class="focus-controls" id="salonCommandes" hidden>
+                <button type="button" id="salonDemarrer" class="focus-glass" onclick="salonBasculer()" aria-label="Démarrer">
+                    <svg id="salonIconPlay" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+                    <svg id="salonIconPause" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="display:none"><rect x="6" y="5" width="4.2" height="14" rx="1"/><rect x="13.8" y="5" width="4.2" height="14" rx="1"/></svg>
+                </button>
+                <button type="button" class="focus-glass" onclick="salonReinitialiser()" aria-label="Recommencer">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 4.5V9h-4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+            <div class="focus-controls salon-pip-invite" id="salonPipInvite" hidden>                <button type="button" id="salonBtnPip" class="focus-glass" onclick="salonMiniLecteur()" aria-label="Image dans l’image">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2"/><rect x="11.5" y="11" width="7.5" height="5.2" rx="1" fill="currentColor"/></svg>
+                </button></div></div>
+
+                    <p id="salonInfoChrono" class="salon-info-chrono" role="status"></p><p id="salonMessage" class="salon-message" role="status" aria-live="polite"></p><p id="salonAttente" hidden>Le minuteur est contrôlé par l’organisateur.</p><p id="salonAstuce" class="focus-tip" hidden></p><p id="salonSignalVisuel" class="salon-signal" role="status" aria-live="polite" hidden>✦ Le temps est écoulé. Bravo pour ce moment de concentration !</p>
+                </main>
+                <div id="salonPipLocal" class="focus-pip salon-pip" hidden><button type="button" class="focus-pip-fermer" onclick="salonFermerMini()" aria-label="Fermer le mini-lecteur">×</button><div class="focus-pip-scene"><p class="focus-pip-temps" id="salonPipTemps">25:00</p><button type="button" class="focus-pip-play" id="salonPipPlay" onclick="salonBasculer()" aria-label="Démarrer">▶</button></div></div>
+                <aside id="salonMessagerie" class="salon-messagerie" hidden aria-labelledby="salonMessagerieTitre">
+                    <div class="salon-chat-entete"><span class="salon-chat-embleme" aria-hidden="true">✦</span><div class="salon-chat-heading"><span class="salon-surtexte">ENSEMBLE, À VOTRE RYTHME</span><h3 id="salonMessagerieTitre">La conversation</h3><p>Un petit mot pour le groupe ?</p></div><button type="button" class="salon-chat-fermer" onclick="salonFermerMessages()" aria-label="Fermer la messagerie">×</button></div>
+                    <div id="salonChatListe" class="salon-chat-liste" role="log" aria-label="Messages du salon" aria-live="polite" aria-relevant="additions text"></div>
+                    <div class="salon-chat-pied"><div class="salon-chat-connexion"><p id="salonChatEtat" class="salon-chat-etat" role="status" aria-live="polite">Connexion à la messagerie…</p><button type="button" id="salonChatReessayer" class="salon-chat-reessayer" onclick="salonReessayerMessages()" hidden>Réessayer</button></div>
+                    <form class="salon-chat-form" onsubmit="return salonEnvoyerMessage(event)"><label class="focus-sr" for="salonChatTexte">Ton message</label><textarea id="salonChatTexte" maxlength="1000" rows="2" placeholder="Écris un message…"></textarea><button id="salonChatEnvoyer" type="submit" disabled aria-label="Envoyer le message"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" aria-hidden="true"><path d="m3 4 18 8-18 8 2.5-8L3 4Zm2.5 8H21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></button></form>
+                    </div>
+                </aside>
+                <footer class="focus-bottom salon-bottom">
+            <div class="focus-outils">
+                <button type="button" id="salonBtnTaches" class="focus-rond" onclick="salonOuvrirTaches()" aria-label="Tâches">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 7h11M8 12h11M8 17h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 7h.01M4 12h.01M4 17h.01" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                </button>
+                <button type="button" id="salonBtnSon" class="focus-rond" onclick="salonOuvrirSons()" aria-label="Sons">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18V6l10-2v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="18" r="2.2" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="16" r="2.2" stroke="currentColor" stroke-width="2"/></svg>
+                </button>
+            </div>
+            <div class="focus-outils">
+                <button type="button" id="salonBtnMessages" class="focus-rond salon-chat-bouton" onclick="salonBasculerMessages()" aria-label="Messagerie" aria-controls="salonMessagerie" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 18.5 3.5 21l.6-4A8.5 8.5 0 1 1 8 20l-3-1.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 11h8M8 14h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span id="salonChatBadge" class="salon-chat-badge" hidden aria-hidden="true"></span></button>
+                <button type="button" class="focus-rond" onclick="salonMasquer()" aria-label="Retour à l'emploi du temps">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-8.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="salonBtnAstuce" class="focus-rond focus-ampoule" onclick="salonBasculerAstuce()" aria-label="Conseil">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 21h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M8 14a5 5 0 1 1 8 0c-.8.9-1.5 1.6-1.5 2.5h-5C9.5 15.6 8.8 14.9 8 14z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+                </button>
+                <button type="button" id="salonBtnReglages" class="focus-rond" onclick="salonOuvrirReglages()" aria-label="Paramètres">
+                    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M19.00 9.60 L21.85 10.28 L21.85 13.72 L19.00 14.40 L18.65 15.26 L20.18 17.75 L17.75 20.18 L15.26 18.65 L14.40 19.00 L13.72 21.85 L10.28 21.85 L9.60 19.00 L8.74 18.65 L6.25 20.18 L3.82 17.75 L5.35 15.26 L5.00 14.40 L2.15 13.72 L2.15 10.28 L5.00 9.60 L5.35 8.74 L3.82 6.25 L6.25 3.82 L8.74 5.35 L9.60 5.00 L10.28 2.15 L13.72 2.15 L14.40 5.00 L15.26 5.35 L17.75 3.82 L20.18 6.25 L18.65 8.74 Z M8.40 12.00 a3.6 3.6 0 1 0 7.2 0 a3.6 3.6 0 1 0 -7.2 0 Z"/></svg>
+                </button>
+                <button type="button" class="focus-rond" onclick="focusPleinEcran()" aria-label="Agrandir">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 5h5v5M10 19H5v-5M19 14v5h-5M5 10V5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+            </div>
+                </footer>
+                <details class="salon-espace" id="salonEspace" hidden>
+                    <summary><span>✦ &nbsp; Votre espace</span><small>Objectif, groupe &amp; préférences</small></summary>
+                    <div class="salon-cartes">
+                        <section class="salon-carte" data-salon-fiche="objectif">
+                            <div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">✦</span><div><span class="salon-surtexte">TON MOMENT</span><h3>Une intention pour aujourd’hui</h3><p>Un petit pas à la fois, à ton rythme.</p></div></div>
+                            <div class="salon-bloc"><label for="salonObjectif">Mon objectif</label><p class="salon-indication">Il reste sur cet appareil, sauf si tu décides de le partager.</p><input id="salonObjectif" maxlength="160" placeholder="Ex. Terminer mon introduction" oninput="salonGarderObjectif()">
+                                <label class="salon-case"><input type="checkbox" id="salonObjectifFait" onchange="salonGarderObjectif()"> <span>Objectif accompli</span></label>
+                                <label class="salon-case"><input type="checkbox" id="salonObjectifPartager" onchange="salonPartagerObjectif()"> <span>Partager mon objectif avec le salon</span></label>
+                            </div><div class="salon-actions"><button type="button" class="salon-action-secondaire" id="salonPret" onclick="salonBasculerPret()">Je suis prêt</button><p id="salonRituelInfo" role="status"></p></div>
+                        </section>
+                        <section class="salon-carte" data-salon-fiche="groupe">
+                            <div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">♡</span><div><span class="salon-surtexte">ENSEMBLE</span><h3>Votre cercle</h3><p>Un espace pour avancer côte à côte.</p></div></div>
+                            <section class="salon-personnes" aria-labelledby="salonPersonnesTitre">
+                                <div class="salon-personnes-entete"><div><h4 id="salonPersonnesTitre">Participants</h4><p id="salonGroupeInfo">Les participants apparaîtront ici.</p></div><span class="salon-personnes-symbole" aria-hidden="true">✦</span></div>
+                                <div id="salonListeMembres" class="salon-membres" role="list" aria-label="Participants inscrits"></div>
+                            </section>
+                            <div class="salon-groupe-actions"><h4>Votre salon</h4><p>Retrouve ici les outils pour inviter et gérer votre espace.</p>
+                                <div id="salonOutilsHote" hidden><button type="button" id="salonVerrou" class="salon-action-secondaire" onclick="salonVerrouiller()">Verrouiller le salon</button><p class="salon-aide">Le verrou empêche les nouvelles entrées. Les actions de gestion nécessitent un service sécurisé.</p></div>
+                                <button type="button" id="salonCoupPouce" class="salon-action-secondaire" onclick="salonDemanderAide()">J’ai besoin d’un coup de pouce</button><div id="salonEncouragements"></div>
+                                <div class="salon-pied"><div><button type="button" class="salon-action-secondaire" id="salonReglages" onclick="salonModifierPartage()" hidden>Modifier le partage</button><button type="button" class="salon-action-secondaire" id="salonSortieLocale" onclick="salonSortieLocale()" hidden>Quitter sur cet appareil</button><button type="button" class="salon-action-secondaire" onclick="salonCopierLien()">Copier le lien d’invitation</button><p id="salonGroupePartageStatut" class="salon-groupe-statut" role="status" aria-live="polite"></p><button type="button" class="salon-action-secondaire" id="salonAutoriserAudio" onclick="salonActiverAudio()">Activer les sons</button><button type="button" class="salon-action-secondaire" id="salonRelancerVideo" onclick="salonRelancerVideo()" hidden>Relancer le décor animé</button></div><p id="salonMembres" class="salon-sr-only" aria-live="polite"></p></div>
+                            </div>
+                        </section>
+                        <section class="salon-carte" data-salon-fiche="preferences">
+                            <div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">◈</span><div><span class="salon-surtexte">À TON RYTHME</span><h3>Un espace qui te ressemble</h3><p>Règle ton confort sans changer celui des autres.</p></div></div>
+                            <div class="salon-bloc"><label for="salonVolume">Volume personnel <span id="salonVolumeValeur">100 %</span></label><input id="salonVolume" type="range" min="0" max="100" value="100" oninput="salonChangerVolume(this.value)">
+                            <label class="salon-case"><input type="checkbox" id="salonDiscret" onchange="salonChangerDiscret(this.checked)"> <span>Mode discret : masquer les noms des autres participants et les réactions</span></label>
+                            <label for="salonSignal">Signal de fin</label><select id="salonSignal" onchange="salonChangerSignal(this.value)"><option value="visuel">Notification visuelle</option><option value="son">Son doux</option><option value="aucun">Aucun signal</option></select></div>
+                        </section>
+                        <section class="salon-carte salon-carte-bilan" data-salon-fiche="bilan"><div class="salon-carte-entete"><span class="salon-carte-embleme" aria-hidden="true">✧</span><div><span class="salon-surtexte">PETITS PAS, GRAND CHEMIN</span><h3>Votre bilan</h3><p>Un regard sur le chemin parcouru ensemble.</p></div></div><div class="salon-bloc salon-bilan-contenu"><span class="salon-bilan-symbole" aria-hidden="true">✦</span><p id="salonBilan">Le bilan commun apparaîtra après les premières sessions terminées.</p><p>Bravo pour le temps que vous vous accordez.</p></div></section>
+                    </div>
+                </details>
+
+            </div>
+        </div>
+        <dialog id="salonFinDialog" class="salon-invitation salon-fin-dialog" aria-labelledby="salonFinTitre" aria-describedby="salonFinMessage">
+            <form method="dialog">
+                <div class="salon-invitation-embleme" aria-hidden="true">✦</div>
+                <span class="salon-surtexte">FIN DE LA RÉUNION</span>
+                <h2 id="salonFinTitre">La réunion est terminée</h2>
+                <p id="salonFinMessage">L’organisateur a arrêté la réunion pour tous les participants.</p>
+                <button class="salon-creer" type="submit">Compris</button>
+            </form>
+        </dialog>
+        <dialog id="salonCelebrationDialog" class="salon-invitation salon-celebration" aria-labelledby="salonCelebrationTitre" aria-describedby="salonCelebrationTexte">
+            <form method="dialog"><div class="salon-celebration-embleme" aria-hidden="true">✦</div>
+                <span class="salon-surtexte">UN MOMENT ACCOMPLI ENSEMBLE</span>
+                <h2 id="salonCelebrationTitre">Bravo à tout le groupe !</h2>
+                <p id="salonCelebrationTexte">Vous venez de terminer une séance de concentration. Chaque effort compte.</p>
+                <p id="salonCelebrationPersonnes" class="salon-celebration-personnes"></p>
+                <p id="salonCelebrationProgression" class="salon-celebration-progression"></p>
+                <button class="salon-creer" type="submit">Continuer ensemble</button>
+            </form>
+        </dialog>
+        <dialog id="salonBilanDialog" class="salon-invitation salon-bilan-dialog" aria-labelledby="salonBilanTitre"><form method="dialog"><span class="salon-surtexte">UN MOMENT PARTAGÉ</span><h2 id="salonBilanTitre">Bravo pour ce temps ensemble ✨</h2><p id="salonBilanFinal"></p><p>Chaque petit pas compte. Repose-toi et sois fier de ce que tu as accompli.</p><button class="salon-creer" type="submit">Terminer</button></form></dialog>
+        <dialog id="salonInvitation" class="salon-invitation" autofocus aria-labelledby="salonInvitationTitre" aria-describedby="salonInvitationDescription">
+            <form method="dialog" onsubmit="return salonRejoindre(event)">
+                <div class="salon-invitation-embleme" aria-hidden="true">✦</div>
+                <span class="salon-surtexte">UN MOMENT POUR AVANCER ENSEMBLE</span>
+                <h2 id="salonInvitationTitre">Connexion au salon</h2>
+                <p id="salonInvitationDescription">Nous vérifions ton accès au salon…</p>
+                <label id="salonPseudoLabel" for="salonPseudo" hidden>Comment souhaites-tu apparaître ?</label>
+                <input id="salonPseudo" hidden maxlength="30" autocomplete="nickname" placeholder="Ton prénom ou ton pseudo" enterkeyhint="go">
+                <p id="salonInvitationStatut" role="status" aria-live="polite"></p>
+                <div class="salon-invitation-actions"><button type="button" class="salon-action-secondaire" onclick="salonAnnulerInvitation()">Annuler</button><button class="salon-creer" id="salonRejoindreBouton" type="submit" disabled>Vérification…</button></div>
+                <button type="button" id="salonInvitationInvite" class="salon-invitation-alternative" onclick="salonChoisirInvite()" hidden>Je rejoins comme invité</button>
+                <button type="button" id="salonInvitationOrganisateur" class="salon-invitation-alternative" onclick="salonVerifierOrganisateur()" hidden>Je suis l’organisateur</button>
+            </form>
+        </dialog>
+        <dialog id="salonChoixPartage" class="salon-invitation salon-choix-partage" aria-labelledby="salonChoixTitre" aria-describedby="salonChoixDescription">
+            <div class="salon-invitation-embleme" aria-hidden="true">✦</div><span class="salon-surtexte">UN ESPACE À VOTRE IMAGE</span>
+            <h2 id="salonChoixTitre">Pour toi ou pour tout le groupe ?</h2>
+            <p id="salonChoixDescription">Tes prochains changements de thème, police, taille, citation et ambiance suivront ce choix pendant ce salon. Le style du minuteur et le volume restent personnels ; les durées restent communes.</p>
+            <div class="salon-invitation-actions"><button type="button" class="salon-action-secondaire" onclick="salonChoisirPortee(false)">Seulement pour moi</button><button type="button" class="salon-creer" onclick="salonChoisirPortee(true)">Pour tout le groupe</button></div>
+        </dialog>
         <div id="focusFonds" class="focus-fonds" hidden></div>
         <aside id="focusTaches" class="focus-panneau focus-taches" hidden>
             <div class="focus-taches-haut">
@@ -86,15 +226,81 @@
                     <li><button type="button" class="focus-tiroir-item" data-onglet="minuteur" onclick="focusChoisirOnglet('minuteur')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="13" r="8" stroke="currentColor" stroke-width="2"/><path d="M12 9v4M10 2.5h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Minuteur</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="citations" onclick="focusChoisirOnglet('citations')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 16c-1.6 0-2.5-1-2.5-2.6S5.6 10.5 7.5 10.5V9M17 16c-1.6 0-2.5-1-2.5-2.6s1.1-2.9 3-2.9V9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Citations</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="voix" onclick="focusChoisirOnglet('voix')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 10v4h3.5L12 18V6L7.5 10H4z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Voix</span></button></li>
+                    <li><button type="button" class="focus-tiroir-item" data-onglet="salon" onclick="focusChoisirOnglet('salon')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M3 19v-1a6 6 0 0 1 12 0v1M16 5.5a3 3 0 0 1 0 5.8M17 13a5 5 0 0 1 4 5v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Salon focus</span></button></li>
                     <li><button type="button" class="focus-tiroir-item" data-onglet="statistiques" onclick="focusChoisirOnglet('statistiques')"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Statistiques</span></button></li>
                 </ul>
             </nav>
             <div class="focus-tiroir-contenu">
+                <section class="focus-tiroir-page salon-focus" data-page="salon" hidden aria-labelledby="salonFocusTitre">
+                    <div class="salon-hero">
+                        <div class="salon-hero-texte">
+                            <span class="salon-surtexte"><span aria-hidden="true">✦</span> UN MÊME RYTHME, ENSEMBLE</span>
+                            <h2 id="salonFocusTitre">Salon focus</h2>
+                            <p>Un espace pour se retrouver, se concentrer et avancer ensemble, où que vous soyez.</p>
+                            <span class="salon-badge" id="salonBadge">En préparation</span>
+                        </div>
+                        <div class="salon-illustration" aria-hidden="true"><span class="salon-orbite salon-orbite-un"></span><span class="salon-orbite salon-orbite-deux"></span><span class="salon-visuel"><small>CONCENTRATION</small><strong>25:00</strong><span>● &nbsp; ● &nbsp; ●</span></span></div>
+                    </div>
+                    <div class="salon-corps">
+                        <div class="salon-intro"><h3>Votre prochain moment de concentration</h3><p>Trois étapes toutes simples pour travailler côte à côte, même à distance.</p></div>
+                        <ol class="salon-etapes">
+                            <li><span>01</span><div><strong>Crée ton espace</strong><p>Donne un nom à votre salon.</p></div></li>
+                            <li><span>02</span><div><strong>Invite tes proches</strong><p>Partage un lien : tes invités rejoindront avec un pseudo.</p></div></li>
+                            <li><span>03</span><div><strong>Avancez ensemble</strong><p>Tu contrôles le minuteur et chacun suit le même rythme.</p></div></li>
+                        </ol>
+                        <div class="salon-formulaire">
+                            <div class="salon-entete"><div><span class="salon-surtexte">PRÉPARE TON ESPACE</span><h3 id="salonFormTitre">Créer un salon</h3><p>Choisis ce que tu souhaites partager avec les personnes invitées. Les images personnelles restent sur ton appareil. Si tu coches Citations, ta citation personnelle pourra être visible.</p></div><span class="salon-cadenas" aria-hidden="true">✦</span></div>
+                            <label class="salon-label" for="salonNom">Nom du salon</label>
+                            <input id="salonNom" type="text" maxlength="60" placeholder="Ex. Révisions Partiels" autocomplete="off">
+                            <fieldset class="salon-options"><legend>À partager dans le salon</legend><p>Le chrono est commun. Choisis librement aucun, un ou plusieurs éléments : seuls ceux que tu coches sont partagés. Tu pourras changer ton choix pendant la séance.</p><p id="salonSelectionResume" class="salon-selection-resume" aria-live="polite">Aucun élément supplémentaire partagé.</p>
+                                <div class="salon-options-grille">
+                                    <label><input type="checkbox" name="salonPartage" value="theme"><span><strong>Thème</strong><small>Le décor et les couleurs</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="minuteur"><span><strong>Minuteur</strong><small>Les durées de travail et de pause</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="horloge"><span><strong>Horloge</strong><small>Son apparence</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="sons"><span><strong>Sons</strong><small>Les ambiances sélectionnées</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="musique"><span><strong>Musique</strong><small>Les listes de sons Studyplan</small></span></label>
+                                    <label><input type="checkbox" name="salonPartage" value="citations"><span><strong>Citations</strong><small>Les mots qui motivent</small></span></label>
+                                </div>
+                            </fieldset>
+                            <p class="salon-note" id="salonStatutCreation" role="status" aria-live="polite"></p>
+                            <button class="salon-creer" id="salonCreer" type="button" onclick="salonCreer()" disabled>Créer mon salon <span aria-hidden="true">↗</span></button>
+                            <button class="salon-creer" id="salonMajPartage" type="button" onclick="salonActualiserPartage()" hidden>Enregistrer le partage et revenir au salon</button>
+                            <button class="salon-action-secondaire" id="salonRetour" type="button" onclick="salonRevenir()" hidden>Revenir sans modifier</button>
+                            <p class="salon-confidentialite">Version d’essai : partage le lien uniquement avec tes invités et utilise des informations fictives. Les données ne sont pas encore supprimées automatiquement.</p>
+                        </div>
+                    </div>
+                </section>
                 <section class="focus-tiroir-page" data-page="themes" hidden>
                     <header class="focus-page-titre"><h2>Thèmes</h2><p>Choisis le décor du minuteur et de la séance de révision.</p></header>
                     <div class="focus-carte focus-themes">
                         <div class="focus-filtres" id="focusFiltresFonds" role="group" aria-label="Catégories de thèmes"></div>
                         <div id="focusThemesCorps"></div>
+                    </div>
+                    <div class="focus-carte focus-perso" id="focusThemePersonnel">
+                        <div class="focus-perso-entete">
+                            <span class="focus-perso-picto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="3" stroke="currentColor" stroke-width="1.6"/><circle cx="9" cy="9" r="1.5" fill="currentColor"/><path d="m5.5 17 4-4 2.4 2.3 2.9-3.2 3.7 4.9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                            <div><span class="focus-perso-surplus">TON ESPACE, TON STYLE</span><h3>Ton image en fond</h3><p>Ajoute une photo qui t’inspire pour créer un décor rien qu’à toi.</p></div>
+                        </div>
+                        <div class="focus-perso-zone">
+                            <div class="focus-perso-apercu" id="focusPersonnelApercu" aria-label="Aucune photo personnelle importée"><span id="focusPersonnelVide" aria-hidden="true"><svg viewBox="0 0 48 36" fill="none"><rect x="3" y="3" width="42" height="30" rx="5" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="13" r="3" stroke="currentColor" stroke-width="1.5"/><path d="m7 27 10-9 7 6 7-8 10 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Ton prochain décor</span></span></div>
+                            <div class="focus-perso-actions">
+                                <span class="focus-perso-label">UN DÉCOR PERSONNEL</span>
+                                <strong>Une photo, une ambiance.</strong>
+                                <p>Choisis une image depuis ton appareil et retrouve-la ici quand tu reviens.</p>
+                                <input id="focusPersonnelFichier" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" hidden onchange="focusPersonnelChoisir(this)">
+                                <button type="button" class="focus-perso-importer" id="focusPersonnelImporter" onclick="document.getElementById('focusPersonnelFichier').click()"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="focusPersonnelBoutonTexte">Choisir une photo</span></button>
+                                <div class="focus-perso-secondaires" id="focusPersonnelSecondaires" hidden><button type="button" id="focusPersonnelUtiliser" onclick="focusPersonnelUtiliser()">Utiliser ce décor</button><button type="button" onclick="focusPersonnelSupprimer()">Supprimer</button></div>
+                                <p class="focus-perso-confidentialite"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M8 10V7a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg> Enregistrée uniquement sur cet appareil.</p>
+                                <p id="focusPersonnelStatut" class="focus-perso-statut" role="status" aria-live="polite"></p>
+                            </div>
+                        </div>
+                        <dialog id="focusPersonnelErreur" class="focus-perso-dialog" role="dialog" aria-modal="true" aria-labelledby="focusPersonnelErreurTitre" aria-describedby="focusPersonnelErreurTexte">
+                            <div class="focus-perso-dialog-icone" aria-hidden="true">!</div>
+                            <h3 id="focusPersonnelErreurTitre">Cette photo ne peut pas être utilisée</h3>
+                            <p id="focusPersonnelErreurTexte"></p>
+                            <p class="focus-perso-dialog-conseil">Choisis une photo <strong>horizontale</strong> (plus large que haute), au format <strong>JPG, PNG ou WebP</strong>, de <strong>10 Mo maximum</strong>.</p>
+                            <div class="focus-perso-dialog-actions"><button type="button" class="focus-perso-dialog-fermer btn-back" onclick="focusPersonnelFermerErreur()">Compris</button><button type="button" class="focus-perso-dialog-choisir" onclick="focusPersonnelFermerErreur(); document.getElementById('focusPersonnelFichier').click()">Choisir une autre photo</button></div>
+                        </dialog>
                     </div>
                 </section>
                 <section class="focus-tiroir-page" data-page="horloge" hidden>
@@ -112,7 +318,15 @@
                 </section>
                 <section class="focus-tiroir-page" data-page="minuteur" hidden>
                     <header class="focus-page-titre"><h2>Minuteur</h2><p>Durées, style d'affichage et enchaînement.</p></header>
-                    <div class="focus-carte">
+                    <div id="salonReglagesMinuteur" class="focus-carte salon-reglages-minuteur" hidden>
+                        <h3>Minuteur du salon</h3><p>Ces durées concernent tous les participants. Mets le minuteur en pause avant de les modifier.</p><label class="salon-duree-seances" for="salonDureeSeances">Séances souhaitées <input id="salonDureeSeances" type="number" min="1" max="12" value="4"></label><p>Le nombre de séances est indicatif. Les pauses restent manuelles et le bilan compte les séances observées sur cet appareil.</p>
+                        <div class="focus-durees">
+                            <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="salonDureeFocus" type="number" min="1" max="180" value="25"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="salonDureeShort" type="number" min="1" max="60" value="5"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="salonDureeLong" type="number" min="1" max="60" value="15"><small>min</small></span></label>
+                        </div><button type="button" class="salon-copier" id="salonAppliquerDurees" onclick="salonAppliquerDurees()">Appliquer au salon</button><p id="salonDureesStatut" role="status" aria-live="polite"></p>
+                    </div>
+                    <div id="focusDureesPersonnelles" class="focus-carte">
                         <div class="focus-seances focus-seances-haut">
                             <p class="focus-seances-question" id="focusSeancesQuestion">Combien de séances souhaites-tu faire ?</p>
                             <div class="focus-stepper">
@@ -124,8 +338,8 @@
                         <h3>Durées</h3>
                         <div class="focus-durees">
                             <label class="focus-duree"><span>Concentration</span><span class="focus-duree-champ"><input id="focusDureeFocus" type="number" min="1" max="180" value="25" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" onchange="focusSauverDurees()"><small>min</small></span></label>
-                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause courte</span><span class="focus-duree-champ"><input id="focusDureeShort" type="number" min="1" max="60" value="5" oninput="chronoPreparerDureeSaisie(this)" onchange="focusSauverDurees()"><small>min</small></span></label>
+                            <label class="focus-duree"><span>Pause longue</span><span class="focus-duree-champ"><input id="focusDureeLong" type="number" min="1" max="60" value="15" oninput="chronoPreparerDureeSaisie(this)" onchange="focusSauverDurees()"><small>min</small></span></label>
                         </div>
                     </div>
                     <div class="focus-carte">
@@ -154,7 +368,7 @@
                             <div class="focus-depliant-contenu">
                             <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptBarre" type="checkbox" onchange="focusChoisirOption('barre', this.checked)"><i></i></span><span>Afficher la barre de progression sous le minuteur</span></label>
                             <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptNotif" type="checkbox" onchange="focusChoisirOption('notif', this.checked)"><i></i></span><span>Afficher une notification à la fin <em>(fonction bêta)</em></span></label>
-                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la phase suivante <em>(concentration puis pauses)</em></span></label>
+                            <label class="focus-interrupteur"><span class="focus-switch"><input id="focusOptAuto" type="checkbox" onchange="focusChoisirOption('auto', this.checked)"><i></i></span><span>Lancer automatiquement la concentration après une pause manuelle</span></label>
                             <p class="focus-statut-reglage" id="focusStatutReglage" role="status" aria-live="polite"></p>
                             </div>
                         </details>
@@ -164,6 +378,12 @@
                     <header class="focus-page-titre"><h2>Citations</h2><p>Les citations se trouvent en haut à droite.</p></header>
                     <div class="focus-carte">
                         <label class="focus-champ-liste"><span>Catégorie</span><select id="focusCategorieCitation" class="focus-select" onchange="focusChoisirCategorieCitation(this.value)"></select></label>
+                        <div class="focus-citation-personnelle">
+                            <label for="focusCitationPersonnelle">Ma citation</label>
+                            <p id="focusCitationPersonnelleAide">Écris quelques mots : ils apparaîtront en haut du minuteur. Laisse vide pour retrouver une citation du jour.</p>
+                            <textarea id="focusCitationPersonnelle" rows="3" maxlength="140" placeholder="Écris ta citation ici…" aria-describedby="focusCitationPersonnelleAide" oninput="focusSauverCitationPersonnelle(this)" onblur="focusPeindreParametres()"></textarea>
+                            <small>140 caractères maximum · enregistrée ici et synchronisée avec ton compte lorsque tu es connecté</small>
+                        </div>
                         <label class="focus-interrupteur focus-citation-bouton"><span class="focus-switch"><input id="focusOptCitation" type="checkbox" onchange="focusChoisirOption('citation', this.checked)"><i></i></span><span>Afficher la citation</span></label>
                     </div>
                 </section>
@@ -172,12 +392,20 @@
                     <div class="focus-carte">
                         <h3>Annonce vocale</h3>
                         <label class="focus-interrupteur"><span class="focus-switch"><input id="focusVoixActive" type="checkbox" checked onchange="chronoSauverReglagesVoix()"><i></i></span><span>Annonce vocale activée</span></label>
+                        <fieldset class="focus-voix-choix">
+                            <legend>Choisis ta voix</legend>
+                            <p>Elle annoncera la fin de ta séance et la durée de ta pause.</p>
+                            <div class="focus-voix-grille">
+                                <label class="focus-voix-option is-indisponible"><input type="radio" name="focusVoixType" value="feminine" disabled aria-describedby="focusVoixFeminineAide"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix féminine</strong><small id="focusVoixFeminineAide">Indisponible pour le moment</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
+                                <label class="focus-voix-option"><input type="radio" name="focusVoixType" value="masculine" onchange="chronoChoisirVoix(this.value)"><span class="focus-voix-tuile"><span class="focus-voix-icone" aria-hidden="true">♫</span><span><strong>Voix masculine</strong><small>Calme et chaleureuse</small></span><span class="focus-voix-coche" aria-hidden="true">✓</span></span></label>
+                            </div>
+                        </fieldset>
                         <label for="focusVoixVolume">Volume de la voix</label>
                         <input id="focusVoixVolume" type="range" min="0" max="100" value="70" oninput="chronoSauverReglagesVoix()">
                     </div>
                 </section>
                 <section class="focus-tiroir-page" data-page="statistiques" hidden>
-                    <header class="focus-page-titre"><h2>Statistiques</h2><p>Tes minuteurs terminés, enregistrés sur cet appareil.</p></header>
+                    <header class="focus-page-titre"><h2>Statistiques</h2><p>Tes statistiques suivent ton compte sur tes appareils connectés.</p></header>
                     <div id="statsPeriodes" class="focus-filtres stats-periodes" role="group" aria-label="Période"></div>
                     <p id="statsVide" class="stats-vide" hidden>Aucun minuteur terminé sur cette période. Lance une séance de révision pour voir tes chiffres ici.</p>
                     <div id="statsCartes" class="stats-cartes"></div>
@@ -207,6 +435,15 @@
                 <div id="focusSonsGrille" class="focus-sons-grille"></div>
             </div>
         </div>
+        <aside id="focusReprise" class="focus-reprise" role="region" aria-live="polite" aria-labelledby="focusRepriseTitre" aria-describedby="focusRepriseDetail" hidden>
+            <div class="focus-reprise-entete">
+                <span class="focus-reprise-icone" aria-hidden="true">✦</span>
+                <div><p class="focus-reprise-label">Pause terminée</p><h2 id="focusRepriseTitre">Es-tu prêt à reprendre ?</h2><p id="focusRepriseDetail">Ta prochaine séance de concentration t’attend.</p></div>
+            </div>
+            <div class="focus-reprise-progression"><div id="focusRepriseBarres" class="focus-reprise-barres" aria-hidden="true"></div><span id="focusRepriseCompte"></span></div>
+            <div class="focus-reprise-actions"><button type="button" class="focus-reprise-oui" onclick="focusConfirmerReprise()">Oui, je reprends <span aria-hidden="true">→</span></button><button type="button" class="focus-reprise-attendre" onclick="focusReporterReprise()">Pas encore</button></div>
+        </aside>
+        <button type="button" id="focusRepriseRappel" class="focus-reprise-rappel" onclick="focusMontrerReprise()" hidden>Reprendre quand tu veux <span aria-hidden="true">↗</span></button>
         <p id="focusModeStatut" class="focus-sr" role="status" aria-live="polite"></p>
         <footer class="focus-bottom">
             <div class="focus-outils">

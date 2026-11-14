@@ -30,21 +30,29 @@ function devoirsLireStore() {
             return {
                 bac: (d.bac === true || d.bac === false) ? d.bac : null,
                 bacDemande: d.bacDemande === 2 ? 2 : 0,
+                bacModifieAt: Number.isFinite(Number(d.bacModifieAt)) && Number(d.bacModifieAt) > 0 ? Number(d.bacModifieAt) : 0,
                 devoirs: Array.isArray(d.devoirs) ? d.devoirs.filter(function (x) { return x && x.id; }) : [],
                 examens: Array.isArray(d.examens) ? d.examens.filter(function (x) { return x && x.id; }) : []
             };
         }
     } catch (e) {}
-    return { bac: null, bacDemande: 0, devoirs: [], examens: [] };
+    return { bac: null, bacDemande: 0, bacModifieAt: 0, devoirs: [], examens: [] };
 }
 
 /* Chaque écriture date les devoirs modifiés et note les suppressions
    (js/synchro.js). `brut` : restauration d'une sauvegarde, rien n'est daté. */
 function devoirsEcrireStore(store, opts) {
-    if (!(opts && opts.brut) && store && typeof syncEstampiller === 'function') {
+    if (!(opts && opts.brut) && store) {
         var avant = devoirsLireStore();
-        syncEstampiller('devoirs', store.devoirs, avant.devoirs);
-        syncEstampiller('examens', store.examens, avant.examens);
+        // La réponse est un champ indépendant des devoirs : dater tout changement
+        // pour qu'une ancienne copie du compte ne puisse pas rétablir l'inverse.
+        if ((store.bac === true || store.bac === false) && store.bac !== avant.bac)
+            store.bacModifieAt = Math.max(Date.now(), avant.bacModifieAt + 1);
+        else if (!store.bacModifieAt) store.bacModifieAt = avant.bacModifieAt;
+        if (typeof syncEstampiller === 'function') {
+            syncEstampiller('devoirs', store.devoirs, avant.devoirs);
+            syncEstampiller('examens', store.examens, avant.examens);
+        }
     }
     try { localStorage.setItem(DEVOIRS_CLE, JSON.stringify(store)); } catch (e) {}
 }
@@ -55,7 +63,7 @@ function devoirsFaitBac() {
 
 function devoirsStoreCompact() {
     var s = devoirsLireStore();
-    return { bac: s.bac, bacDemande: s.bacDemande, devoirs: s.devoirs, examens: s.examens };
+    return { bac: s.bac, bacDemande: s.bacDemande, bacModifieAt: s.bacModifieAt, devoirs: s.devoirs, examens: s.examens };
 }
 
 function devoirsId(prefixe) {
@@ -75,12 +83,12 @@ function devoirsBacADemander() {
     return true;
 }
 
-function devoirsPoserQuestionBac(apres) {
+function devoirsPoserQuestionBac(apres, forcer) {
     var store = devoirsLireStore();
     /* Déjà répondu sous la version actuelle : plus jamais de popup.
        Une réponse plus ancienne (avant que « Oui » n'applique vraiment
        les créneaux du bac) mérite une nouvelle demande. */
-    if (store.bacDemande === 2 && (store.bac === true || store.bac === false)) {
+    if (!forcer && store.bacDemande === 2 && (store.bac === true || store.bac === false)) {
         if (typeof apres === 'function') apres();
         return;
     }
@@ -97,11 +105,13 @@ function devoirsPoserQuestionBac(apres) {
         '<div style="display:flex;gap:0.6rem;">' +
         '<button id="bacQuestionNon" style="flex:1;padding:0.8rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;background:#f9fafb;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Non</button>' +
         '<button id="bacQuestionOui" style="flex:1;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">Oui, je fais le bac</button>' +
-        '</div></div>';
+        '</div>' + (forcer ? '<button type="button" id="bacQuestionAnnuler" style="margin-top:0.8rem;border:0;background:none;color:#4b5563;font:inherit;cursor:pointer;">Annuler</button>' : '') + '</div>';
     document.body.appendChild(voile);
     function repondre(oui) {
         var s = devoirsLireStore();
         s.bac = oui;
+        // Même une réponse identique reconfirmée est une décision récente.
+        s.bacModifieAt = Math.max(Date.now(), s.bacModifieAt + 1);
         s.bacDemande = 2; /* la réponse s'applique vraiment au planning */
         devoirsEcrireStore(s);
         voile.remove();
@@ -109,8 +119,17 @@ function devoirsPoserQuestionBac(apres) {
         else if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         if (typeof devoirsRendreSiVisible === 'function') { try { devoirsRendreSiVisible(); } catch (e) {} }
     }
+    if (forcer) voile.querySelector('#bacQuestionAnnuler').onclick = function () { voile.remove(); };
     voile.querySelector('#bacQuestionOui').onclick = function () { repondre(true); };
     voile.querySelector('#bacQuestionNon').onclick = function () { repondre(false); };
+}
+
+/* Permet de corriger une réponse restaurée incorrectement, sans quitter Devoirs. */
+function devoirsModifierBac() {
+    devoirsPoserQuestionBac(function () {
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        if (typeof renderPlanning === 'function') { try { renderPlanning(); } catch (e) {} }
+    }, true);
 }
 
 /* ── Matières connues ──────────────────────────────────────────────── */
@@ -1410,12 +1429,19 @@ function devoirsDelai(date) {
 
 function devoirsRendre() {
     var store = devoirsLireStore();
+    var bacReglage = document.getElementById('devoirsBacReglage');
+    if (bacReglage) {
+        bacReglage.hidden = typeof ibYear === 'undefined' || ibYear !== 'DP2';
+        var bacEtat = document.getElementById('devoirsBacEtat');
+        if (bacEtat) bacEtat.textContent = store.bac === true ? 'Oui' : store.bac === false ? 'Non' : 'Pas encore répondu';
+    }
     var listeM = document.getElementById('devoirsMatiereListe');
     if (listeM) {
         /* la saisie ne propose que les matières de l'élève (toutes
            seulement s'il n'a pas encore de profil) */
         var matieresProposees = devoirsMatieresEleve();
         if (!matieresProposees.length) matieresProposees = devoirsMatieresConnues();
+        if (!devoirsFaitBac()) matieresProposees = matieresProposees.filter(function(m) { return devoirsNormaliser(m) !== 'bac national'; });
         listeM.innerHTML = matieresProposees.map(function (m) {
             return '<option value="' + devoirsEchap(m) + '"></option>';
         }).join('');
@@ -1462,8 +1488,7 @@ function devoirsRendre() {
             (filtre === 'avenir' || !passes.length ? '' : '<details class="devoirs-passes"' + (filtre === 'passes' ? ' open' : '') + '><summary>Passés (' + passes.length + ')</summary>' + rendreLignes(passes) + '</details>');
         if (!zone.innerHTML) zone.innerHTML = '<p>Aucun créneau trouvé.</p>';
     });
-    /* Le réglage du bac n'est plus sur cette page : la question est
-       posée par le popup, une seule fois, à tous les DP2. */
+
 }
 
 function devoirsRendreSiVisible() {

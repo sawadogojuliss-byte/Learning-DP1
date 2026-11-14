@@ -1,0 +1,122 @@
+<!-- ============================================================
+     PAGE : Devoirs & Examens
+     Deux parties : les devoirs (composition + révisions) et les
+     examens (programme de révisions sur deux semaines).
+     Script : js/pages/devoirs.js
+     ============================================================ -->
+<div class="app-panel dd-page" id="panelDevoirs">
+        <div class="dd-topbar"><div class="dd-topbar-inner">
+          <button type="button" class="dd-back" onclick="navigateTo('planning')" aria-label="Revenir au planning"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+          <div class="dd-brand"><span class="dd-brand-mark"><img src="images/logo.png" alt="Logo Studyplan" width="42" height="42"></span><span><strong>Studyplan</strong><small>MON ESPACE D’ÉTUDE</small></span></div>
+          <span class="dd-top-note">Un pas à la fois <span aria-hidden="true">✦</span></span>
+        </div></div>
+        <div class="dd-shell">
+          <header class="dd-hero"><div><p class="dd-eyebrow"><span></span> TON ESPACE D’ORGANISATION</p><h1>Devoirs <em>et examens</em></h1><p>Prépare tes épreuves et organise tes révisions en toute sérénité.</p></div>
+          <aside class="dd-hero-aside"><span class="dd-aside-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 10h16m-12 5 2 2 4-4"/></svg></span><div><small>TON ORGANISATION</small><strong>Avance à ton rythme</strong><span>Chaque étape compte.</span></div></aside></header>
+            <section id="devoirsBacReglage" hidden style="margin:0 0 1rem;padding:1rem;border:1px solid #d7e8dc;border-radius:1rem;background:#f4faf5;">
+                <strong>Bac national : <span id="devoirsBacEtat">Pas encore répondu</span></strong>
+                <button type="button" onclick="devoirsModifierBac()" style="margin-left:0.7rem;padding:0.45rem 0.7rem;border:1px solid #a7cfb6;border-radius:0.6rem;background:white;color:#176844;font-weight:700;cursor:pointer;">Modifier ma réponse</button>
+            </section>
+
+            <!-- Onglets -->
+            <div class="dd-tabs" role="tablist" aria-label="Devoirs ou examens">
+                <button id="ongletBtn-devoirs" type="button" role="tab" aria-controls="onglet-devoirs" aria-selected="true" onclick="devoirsBasculerOnglet('devoirs')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;">Devoirs</button>
+                <button id="ongletBtn-examens" type="button" role="tab" aria-controls="onglet-examens" aria-selected="false" onclick="devoirsBasculerOnglet('examens')" style="flex:1;padding:0.625rem;border-radius:0.75rem;border:none;font-weight:700;font-size:0.85rem;cursor:pointer;">Examens</button>
+            </div>
+
+            <!-- Onglet Devoirs -->
+            <div id="onglet-devoirs" class="dd-content" role="tabpanel" aria-labelledby="ongletBtn-devoirs">
+                <div style="background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:#065f46;line-height:1.5;">
+                    Photographie (ou colle le texte de) l'emploi du temps de tes devoirs : les heures de composition entrent dans <strong>Mon Planning</strong>, et des heures de révision se posent dans les moments où tu n'es pas en cours.
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Le document des devoirs</label>
+                    <div role="button" tabindex="0" aria-label="Choisir une photo ou un PDF des devoirs" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('devoirsFichier').click()}" onclick="document.getElementById('devoirsFichier').click()" style="border:2px dashed #a7f3d0;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffa;">
+                        <span class="dd-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></span>
+                        <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#065f46;">Choisis une photo du document</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF — la lecture se fait dans ton navigateur</p>
+                    </div>
+                    <input type="file" id="devoirsFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument()">
+                    <textarea id="devoirsTexteColle" aria-label="Texte du planning à analyser" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>
+                    <button type="button" onclick="devoirsLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
+                    <p id="devoirsOcrStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                    <datalist id="devoirsMatiereListe"></datalist>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Ajouter un devoir à la main</label>
+                    <label class="focus-sr" for="devManuelMatiere">Matière</label>
+                        <input id="devManuelMatiere" aria-label="Matière" list="devoirsMatiereListe" placeholder="Matière (ex. : Mathématiques)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <div class="devoirs-heures" style="display:flex;gap:0.5rem;">
+                        <label class="focus-sr" for="devManuelDate">Date</label>
+                        <input id="devManuelDate" aria-label="Date" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                        <label class="focus-sr" for="devManuelDebut">Début</label>
+                        <input id="devManuelDebut" aria-label="Heure de début" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                        <label class="focus-sr" for="devManuelFin">Fin</label>
+                        <input id="devManuelFin" aria-label="Heure de fin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                    </div>
+                    <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #a7f3d0;border-radius:0.8rem;background:#ecfdf5;color:#065f46;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter le devoir</button>
+                    <p id="devoirsAjoutStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Mes devoirs</label>
+                    <div class="devoirs-outils"><label for="devoirsRecherche">Rechercher dans mes devoirs</label>
+                        <input id="devoirsRecherche" type="search" placeholder="Chercher une matière" oninput="devoirsRendre()">
+                        <label for="devoirsFiltre">Afficher</label><select id="devoirsFiltre" onchange="devoirsRendre()">
+                            <option value="tous">À venir et passés</option><option value="avenir">À venir</option><option value="passes">Passés</option>
+                        </select></div>
+                    <div id="devoirsListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+                </div>
+            </div>
+
+            <!-- Onglet Examens -->
+            <div id="onglet-examens" class="dd-content" role="tabpanel" aria-labelledby="ongletBtn-examens" style="display:none;">
+                <div style="background:#f0fdfa;border:1.5px solid #99f6e4;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:1rem;font-size:0.82rem;color:#134e4a;line-height:1.55;">
+                    Ajoute les dates et les heures de tes examens dès que tu les connais. Les révisions commencent au plus tôt <strong>14 jours avant chaque épreuve</strong>. Pendant la semaine qui précède, ton planning ne contient plus que des <strong>révisions et des exercices</strong> sur les matières à examiner — plus de CAS, ni mémoire, ni évaluation interne. La semaine des épreuves, chaque examen apparaît à son heure, avec quelques révisions pour ce qui reste à composer : <strong>une matière composée n'est plus jamais révisée</strong>. Après la dernière épreuve, ton planning redevient normal tout seul.
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Le planning des examens</label>
+                    <div role="button" tabindex="0" aria-label="Choisir une photo ou un PDF des examens" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('devoirsFichierExam').click()}" onclick="document.getElementById('devoirsFichierExam').click()" style="border:2px dashed #99f6e4;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffe;">
+                        <span class="dd-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></span>
+                        <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF — la lecture se fait dans ton navigateur</p>
+                    </div>
+                    <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument('examens')">
+                    <textarea id="devoirsTexteColleExam" aria-label="Texte du planning à analyser" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>
+                    <button type="button" onclick="devoirsLireDocument('examens')" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#0d9488,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le planning</button>
+                    <p id="exaOcrStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;margin-bottom:1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Ajouter un examen à la main</label>
+                    <label class="focus-sr" for="exaManuelMatiere">Matière</label>
+                        <input id="exaManuelMatiere" aria-label="Matière" list="devoirsMatiereListe" placeholder="Matière (ex. : Physique)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;margin-bottom:0.5rem;">
+                    <div class="devoirs-heures" style="display:flex;gap:0.5rem;">
+                        <label class="focus-sr" for="exaManuelDate">Date</label>
+                        <input id="exaManuelDate" aria-label="Date" type="date" style="flex:1.4;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                        <label class="focus-sr" for="exaManuelDebut">Début</label>
+                        <input id="exaManuelDebut" aria-label="Heure de début" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                        <label class="focus-sr" for="exaManuelFin">Fin</label>
+                        <input id="exaManuelFin" aria-label="Heure de fin" type="time" style="flex:1;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.85rem;">
+                    </div>
+                    <button type="button" onclick="devoirsAjouterManuel()" style="width:100%;margin-top:0.6rem;padding:0.7rem;border:1.5px solid #99f6e4;border-radius:0.8rem;background:#f0fdfa;color:#134e4a;font:inherit;font-weight:800;font-size:0.88rem;cursor:pointer;">Ajouter l'examen</button>
+                    <p id="exaAjoutStatut" role="status" aria-live="polite" aria-atomic="true" style="min-height:1.1rem;margin:0.5rem 0 0;font-size:0.78rem;font-weight:650;color:#047857;"></p>
+                </div>
+
+                <div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.1rem;">
+                    <label style="font-size:0.85rem;font-weight:700;color:#374151;display:block;margin-bottom:0.6rem;">Mes examens</label>
+                    <div class="devoirs-outils"><label for="examensRecherche">Rechercher dans mes examens</label>
+                        <input id="examensRecherche" type="search" placeholder="Chercher une matière" oninput="devoirsRendre()">
+                        <label for="examensFiltre">Afficher</label><select id="examensFiltre" onchange="devoirsRendre()">
+                            <option value="tous">À venir et passés</option><option value="avenir">À venir</option><option value="passes">Passés</option>
+                        </select></div>
+                    <div id="examensListe" style="display:flex;flex-direction:column;gap:0.5rem;"></div>
+                </div>
+            </div>
+            <!-- Aperçu unique, visible sous les deux onglets -->
+            <div id="devoirsConfirmation" style="margin-top:0.6rem;"></div>
+        </div>
+    </div>

@@ -90,6 +90,10 @@ function accueilPeindreSons() {
         nom.textContent = son.nom;
         btn.appendChild(icone);
         btn.appendChild(nom);
+        var anticiper = function () { if (typeof focusPrechargerSon === 'function') focusPrechargerSon(son.id); };
+        btn.addEventListener('pointerenter', anticiper);
+        btn.addEventListener('pointerdown', anticiper);
+        btn.addEventListener('focus', anticiper);
         btn.onclick = function () {
             if (typeof focusChoisirSon === 'function') focusChoisirSon(son.id);
             accueilPeindreSons();
@@ -160,12 +164,19 @@ function accueilVignettesFonds() {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'focus-vignette';
+        btn.hidden = !!fond.masque; // garder les indices des sélections enregistrées
         btn.setAttribute('aria-label', fond.nom);
         btn.title = fond.nom;
         btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';
         btn.style.backgroundPosition = 'center center';
         btn.style.backgroundSize = 'cover';
         btn.style.backgroundRepeat = 'no-repeat';
+        var anticiper = function () {
+            if (typeof focusAmorcageUtile === 'function' && focusAmorcageUtile() && typeof focusDecoderImage === 'function') focusDecoderImage(fond.src);
+        };
+        btn.addEventListener('pointerenter', anticiper);
+        btn.addEventListener('pointerdown', anticiper);
+        btn.addEventListener('focus', anticiper);
         btn.onclick = function () { accueilChoisirFond(i); };
         galerie.appendChild(btn);
     });

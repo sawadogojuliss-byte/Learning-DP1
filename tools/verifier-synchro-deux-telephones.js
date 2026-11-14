@@ -29,16 +29,18 @@ function creerContexte(init) {
     querySelector() { return null; }, querySelectorAll() { return []; }, focus() {}, blur() {}, click() {}, remove() {}, getContext() { return null; } });
   const document = { readyState: 'complete', title: '', body: el(), documentElement: el(), head: el(), getElementById: () => null, querySelector: () => null,
     querySelectorAll: () => [], createElement: el, addEventListener() {}, removeEventListener() {}, createTextNode: () => el() };
+  const listeners = {};
   const ctx = {
     console, setTimeout, clearTimeout, setInterval() { return 0; }, clearInterval() {}, Date, Math, JSON, Promise, Object, Array, String, Number, Boolean,
     RegExp, Error, Set, Map, URL, Intl, Symbol, Uint8Array, ArrayBuffer, Buffer,
     localStorage: ls, sessionStorage: ls, document, navigator: { onLine: true, userAgent: 'test' },
     location: { hash: '', href: 'https://test/', search: '', pathname: '/' }, history: { replaceState() {}, pushState() {} },
-    addEventListener() {}, removeEventListener() {}, requestAnimationFrame: () => 0, fetch: () => Promise.reject(new Error('reseau coupe')),
+    addEventListener(type, fn) { (listeners[type] ||= []).push(fn); }, removeEventListener() {}, requestAnimationFrame: () => 0, fetch: () => Promise.reject(new Error('reseau coupe')),
     alert() {}, confirm: () => true, prompt: () => null, getComputedStyle: () => ({}), atob: b => Buffer.from(b, 'base64').toString('binary'),
     btoa: b => Buffer.from(b, 'binary').toString('base64'), TextEncoder, TextDecoder,
   };
   ctx.window = ctx; ctx.self = ctx; ctx.globalThis = ctx; ctx.__store = store;
+  ctx.__evenement = type => (listeners[type] || []).forEach(fn => fn({ type }));
   vm.createContext(ctx);
   return ctx;
 }
@@ -110,6 +112,7 @@ function creerNuage() {
   }
   const db = { collection: (c) => ({ doc: (id) => doc(c, id), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }),
     where: () => ({ orderBy: () => ({ limit: () => ({ get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }) };
+  require('./nuage-factice.cjs')(db);
   return { docs, journal, ecoutes, db };
 }
 function firebaseFactice(nuage, uid, user) {
@@ -176,7 +179,7 @@ const retirerCours = (c, id) => geste(c, 'customEvents = customEvents.filter(fun
 const retirerActivite = (c, nom) => geste(c, 'removeActivity(' + JSON.stringify(nom) + '); customEvents = customEvents.filter(function (e) { return !(e.type === "activity" && e.title === ' + JSON.stringify(nom) + '); }); memoireSauvegarder();');
 const deplacerActivite = (c, nom, debut, fin) => geste(c, 'selectedActivities.forEach(function (a) { if (a.name === ' + JSON.stringify(nom) + ') { a.startTime = ' + JSON.stringify(debut) + '; a.endTime = ' + JSON.stringify(fin) + '; } });'
   + 'customEvents.forEach(function (e) { if (e.title === ' + JSON.stringify(nom) + ') { e.startTime = ' + JSON.stringify(debut) + '; e.endTime = ' + JSON.stringify(fin) + '; } }); memoireSauvegarder();');
-/* Envoi immédiat (au lieu d'attendre les 3 secondes de l'application). */
+/* Envoi immédiat pour les scénarios qui ne testent pas le délai automatique. */
 async function envoyer(c) { figer(c); await c.compteProgressionEnregistrer(); }
 /* Emploi du temps tel que l'élève le voit : cours et activités, avec leurs horaires. */
 function emploi(c) {
@@ -270,7 +273,7 @@ async function ouvrirEnDirect(c, nuage) {
   verif('8c en direct dans les deux sens : emplois identiques', memes(a, b), true);
 
   /* ── 9. Modification non envoyée : elle reste si une copie arrive pendant l'attente ── */
-  ajouterCours(b, ev('c13', 0, '07:00', '07:30', 'Brouillon-B', 'course'));   /* non envoyée (attente de 3 s) */
+  ajouterCours(b, ev('c13', 0, '07:00', '07:30', 'Brouillon-B', 'course'));   /* non envoyée (timer de regroupement) */
   ajouterCours(a, ev('c14', 2, '13:00', '14:00', 'Atelier-A', 'course'));
   await envoyer(a); await attendre(300);
   verif('9 modification non envoyée de B conservée pendant l\'arrivée d\'une copie', emploi(b).cours.some(x => x[4] === 'Brouillon-B'), true);
@@ -278,11 +281,213 @@ async function ouvrirEnDirect(c, nuage) {
   /* Fin : le nuage et les deux téléphones doivent concorder après un dernier envoi de B. */
   await envoyer(b); await attendre(800);
   verif('10 après envoi, A et B identiques', memes(a, b), true);
+  verif('10b modification de A conservée malgré la modification non envoyée de B', emploi(b).cours.some(x => x[4] === 'Atelier-A'), true);
+  verif('10c modification locale de B conservée', emploi(b).cours.some(x => x[4] === 'Brouillon-B'), true);
 
   /* ── 11. Le nuage contient exactement l'emploi envoyé ── */
   const enNuage = JSON.parse(nuage.docs['progressions/UID-FARID'].progression);
   verif('11 le nuage porte les cours de l\'emploi', enNuage.customEvents.map(x => x.title).sort().join(','),
     emploi(b).cours.map(x => x[4]).sort().join(','));
+
+  /* Suppression concurrente avec un ajout sur l'autre appareil. */
+  ajouterCours(b, ev('c15', 4, '11:00', '12:00', 'Ajout-hors-ligne', 'course'));
+  retirerActivite(a, 'Natation');
+  await envoyer(a); await attendre(300); await envoyer(b); await attendre(800);
+  verif('12 suppression concurrente : l’activité ne revient pas', emploi(b).activites.some(x => x[0] === 'Natation'), false);
+  verif('12b ajout concurrent préservé', emploi(a).cours.some(x => x[4] === 'Ajout-hors-ligne'), true);
+
+  /* Ré-ajouter explicitement une activité reste possible après suppression. */
+  geste(b, `selectedActivities.push({ name: 'Natation', days: [1], startTime: '15:00', endTime: '16:00' }); memoireSauvegarder();`);
+  await envoyer(b); await attendre(800);
+  verif('13 activité réajoutée explicitement', emploi(a).activites.some(x => x[0] === 'Natation'), true);
+
+  /* Deux écritures simultanées sont fusionnées atomiquement. */
+  ajouterCours(a, ev('c16', 0, '10:00', '11:00', 'Simultané-A', 'course'));
+  ajouterCours(b, ev('c17', 0, '11:00', '12:00', 'Simultané-B', 'course'));
+  const avantReprises = nuage.db.transactionRetries;
+  await Promise.all([envoyer(a), envoyer(b)]); await attendre(1000);
+  verif('14 une transaction concurrente est relue après conflit', nuage.db.transactionRetries > avantReprises, true);
+  verif('14 les deux écritures simultanées sont conservées', ['Simultané-A', 'Simultané-B'].every(t => emploi(a).cours.some(x => x[4] === t)), true);
+  verif('14b appareils convergents', memes(a, b), true);
+
+  /* L'élève écrit encore pendant que sa transaction attend le réseau. */
+  const transaction = nuage.db.runTransaction;
+  let debloquer;
+  nuage.db.runTransaction = fn => new Promise(resolve => { debloquer = resolve; }).then(() => transaction(fn));
+  ajouterCours(b, ev('c18', 0, '12:00', '13:00', 'Avant-réseau', 'course'));
+  const envoiAttente = envoyer(b);
+  await attendre(30);
+  ajouterCours(b, ev('c19', 0, '13:00', '14:00', 'Pendant-réseau', 'course'));
+  nuage.db.runTransaction = transaction; debloquer();
+  await envoiAttente; await envoyer(b); await attendre(800);
+  verif('15 modification pendant transaction conservée sur les deux appareils', ['Avant-réseau', 'Pendant-réseau'].every(t => emploi(a).cours.some(x => x[4] === t) && emploi(b).cours.some(x => x[4] === t)), true);
+
+  /* Échec réseau : rien n'est marqué envoyé ; une nouvelle tentative reprend. */
+  nuage.db.runTransaction = () => Promise.reject(new Error('réseau indisponible (test)'));
+  ajouterCours(b, ev('c20', 0, '14:00', '15:00', 'Hors-ligne', 'course'));
+  await envoyer(b);
+  verif('16 échec réseau : modification gardée localement', emploi(b).cours.some(x => x[4] === 'Hors-ligne'), true);
+  nuage.db.runTransaction = transaction; b.__evenement('online'); await attendre(4000);
+  verif('16b nouvelle tentative au retour du réseau : modification reçue sur A', emploi(a).cours.some(x => x[4] === 'Hors-ligne'), true);
+
+  /* Reconnexion du même compte avec un travail non envoyé. */
+  ajouterCours(b, ev('c21', 0, '15:00', '16:00', 'Avant-reconnexion', 'course'));
+  figer(b); b.compteOnCredential({ credential }); await attendre(3500); figer(b);
+  verif('17 reconnexion : travail local non envoyé conservé', emploi(b).cours.some(x => x[4] === 'Avant-reconnexion'), true);
+  await envoyer(b); await attendre(800);
+  verif('17b reconnexion : travail publié et reçu', emploi(a).cours.some(x => x[4] === 'Avant-reconnexion'), true);
+
+  /* Une sauvegarde illisible sur le serveur ne doit jamais être écrasée. */
+  const sauvegardeNuage = nuage.docs['progressions/UID-FARID'].progression;
+  nuage.docs['progressions/UID-FARID'].progression = '{invalide';
+  ajouterCours(b, ev('c22', 0, '16:00', '17:00', 'Après-erreur', 'course'));
+  await envoyer(b);
+  verif('18 sauvegarde distante illisible : pas d’écrasement', nuage.docs['progressions/UID-FARID'].progression, '{invalide');
+  verif('18b modification conservée localement', emploi(b).cours.some(x => x[4] === 'Après-erreur'), true);
+  nuage.docs['progressions/UID-FARID'].progression = sauvegardeNuage;
+  await envoyer(b); await attendre(800);
+  verif('18c après correction, modification transmise', emploi(a).cours.some(x => x[4] === 'Après-erreur'), true);
+
+  /* Les paramètres du minuteur seuls déclenchent une sauvegarde : citation
+     personnelle incluse, sans attendre une autre modification du planning. */
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Avance à ton rythme' });`);
+  await attendre(4500);
+  verif('19 citation personnelle seule synchronisée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, 'Avance à ton rythme');
+  verif('19b citation personnelle reçue par l’autre appareil', a.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
+  verif('19c la catégorie personnelle suit aussi', a.focusLireReglages().citationCategorie, 'personnelle');
+  let nouveau = nouvelAppareil(nuage, {});
+  geste(nouveau, `focusMajReglage('style', 'barre');`);
+  nouveau.compteOnCredential({ credential }); await attendre(3500); figer(nouveau);
+  verif('19d nouveau téléphone connecté récupère la citation', nouveau.focusLireReglages().citationPersonnelle, 'Avance à ton rythme');
+  geste(a, `focusSauverCitationPersonnelle({ value: 'Chaque jour compte' });`);
+  await attendre(4500);
+  verif('19e modification reçue sur le deuxième téléphone', b.focusLireReglages().citationPersonnelle, 'Chaque jour compte');
+  verif('19f modification reçue sur le nouveau téléphone', nouveau.focusLireReglages().citationPersonnelle, 'Chaque jour compte');
+  geste(b, `focusSauverCitationPersonnelle({ value: '' });`);
+  await attendre(4500);
+  verif('19g suppression reçue sur le premier téléphone', a.focusLireReglages().citationPersonnelle, '');
+  verif('19h suppression enregistrée dans le nuage', JSON.parse(nuage.docs['progressions/UID-FARID'].progression).focusReglages.parametres.citationPersonnelle, '');
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Citation privée de Farid' });`);
+  await attendre(4500);
+  verif('19i citation rechargée sur un nouvel appareil', nouveau.focusLireReglages().citationPersonnelle, 'Citation privée de Farid');
+  let appareilAvecSaisie = nouvelAppareil(nuage, {});
+  geste(appareilAvecSaisie, `focusSauverCitationPersonnelle({ value: 'Écrite avant connexion' });`);
+  appareilAvecSaisie.compteOnCredential({ credential }); await attendre(4500); figer(appareilAvecSaisie);
+  verif('19i2 une citation saisie avant connexion reste sur l’appareil', appareilAvecSaisie.focusLireReglages().citationPersonnelle, 'Écrite avant connexion');
+  figer(appareilAvecSaisie); geste(appareilAvecSaisie, 'compteEcouterArreter()');
+  nuage.db.runTransaction = () => Promise.reject(new Error('réseau indisponible (citation test)'));
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Écrite hors ligne' });`);
+  await attendre(500); await envoyer(b);
+  verif('19j citation hors ligne conservée localement', b.focusLireReglages().citationPersonnelle, 'Écrite hors ligne');
+  nuage.db.runTransaction = transaction; b.__evenement('online'); await attendre(4000);
+  verif('19k citation envoyée après retour du réseau', a.focusLireReglages().citationPersonnelle, 'Écrite hors ligne');
+  geste(b, `focusSauverCitationPersonnelle({ value: 'Citation privée de Farid' });`);
+  await attendre(4500);
+  figer(nouveau); geste(nouveau, 'compteEcouterArreter()');
+
+  /* Le vrai déclenchement automatique : pas d'appel direct à envoyer().
+     Le nuage simulé livre les écoutes en 20 ms ; ce test mesure donc surtout
+     l'attente ajoutée par l'application, pas la latence d'un réseau réel. */
+  figer(a); figer(b);
+  const setTimeoutOriginal = a.setTimeout;
+  const delaisAutomatiques = [];
+  a.setTimeout = (fn, ms, ...args) => { delaisAutomatiques.push(ms); return setTimeoutOriginal(fn, ms, ...args); };
+  const debutAuto = Date.now();
+  const progressionAvant = nuage.journal.filter(x => x.c === 'progressions').length;
+  ajouterCours(a, ev('latence-1', 1, '12:00', '12:30', 'Auto-A1', 'course'));
+  await attendre(150);
+  ajouterCours(a, ev('latence-2', 1, '12:30', '13:00', 'Auto-A2', 'course'));
+  verif('20 le regroupement évite une écriture immédiate', nuage.journal.filter(x => x.c === 'progressions').length - progressionAvant, 0);
+  while (Date.now() - debutAuto < 3700 && !['Auto-A1', 'Auto-A2'].every(t => emploi(b).cours.some(x => x[4] === t))) await attendre(50);
+  const delaiAuto = Date.now() - debutAuto;
+  verif('20b les deux changements arrivent automatiquement sur B en moins de 3,7 s (nuage simulé)',
+    ['Auto-A1', 'Auto-A2'].every(t => emploi(b).cours.some(x => x[4] === t)) && delaiAuto < 3700, true);
+  verif('20d délai de regroupement fixé à 2,5 s', delaisAutomatiques.includes(2500), true);
+  a.setTimeout = setTimeoutOriginal;
+  console.log('Délai automatique A → B (nuage simulé) : ' + delaiAuto + ' ms');
+  verif('20c les gestes rapprochés sont regroupés en une écriture de progression', nuage.journal.filter(x => x.c === 'progressions').length - progressionAvant, 1);
+
+  // Deux appareils modifient à la fois sans forcer l'envoi : les deux
+  // changements doivent converger malgré le délai plus court.
+  figer(a); figer(b);
+  ajouterCours(a, ev('auto-concurrent-a', 2, '18:00', '18:30', 'Auto-concurrent-A', 'course'));
+  ajouterCours(b, ev('auto-concurrent-b', 2, '18:30', '19:00', 'Auto-concurrent-B', 'course'));
+  const debutConcurrence = Date.now();
+  while (Date.now() - debutConcurrence < 6000 && ![a, b].every(c => ['Auto-concurrent-A', 'Auto-concurrent-B'].every(t => emploi(c).cours.some(x => x[4] === t)))) await attendre(50);
+  verif('21 les envois automatiques simultanés préservent les deux ajouts',
+    [a, b].every(c => ['Auto-concurrent-A', 'Auto-concurrent-B'].every(t => emploi(c).cours.some(x => x[4] === t))), true);
+  verif('21b convergence des deux appareils après envois automatiques', memes(a, b), true);
+  /* Laisser se terminer les éventuelles reprises dues à la concurrence. */
+  await attendre(4000);
+  const ecrituresAvantSilence = nuage.journal.filter(x => x.c === 'progressions').length;
+  await attendre(4000);
+  verif('21c aucune boucle de renvoi après les envois automatiques',
+    nuage.journal.filter(x => x.c === 'progressions').length - ecrituresAvantSilence, 0);
+
+  /* Statistiques réelles du minuteur : événements simultanés et retrait
+     réversible d'une tâche, sans additionner deux fois un même événement. */
+  geste(b, 'selectDay(0)');
+  geste(a, "statsEnregistrer({k:'focus',m:25}); statsEnregistrer({k:'tache',id:'tache-partagee'});");
+  geste(b, "statsEnregistrer({k:'focus',m:40});");
+  let limite = Date.now() + 6000;
+  while (Date.now() < limite && ![a,b].every(c => c.statsLire().filter(e => e.k === 'focus').length === 2 && c.statsLire().some(e => e.k === 'tache'))) await attendre(50);
+  for (const [nom, c] of [['A',a],['B',b]]) {
+    verif('22 ' + nom + ' reçoit les deux concentrations sans doublon', c.statsLire().filter(e => e.k === 'focus').map(e => e.m).sort((x,y)=>x-y), [25,40]);
+    verif('22 ' + nom + ' reçoit la tâche cochée', c.statsLire().filter(e => e.k === 'tache').length, 1);
+  }
+  verif('22b jour choisi sur B conservé pendant la réception', geste(b, 'selectedDay'), 0);
+  const copieAvantRetrait = JSON.parse(JSON.stringify(b.syncStatsLire()));
+  geste(b, "statsRetirerTache('tache-partagee');");
+  limite = Date.now() + 6000;
+  while (Date.now() < limite && a.statsLire().some(e => e.k === 'tache')) await attendre(50);
+  verif('23 tâche décochée disparaît sur A', a.statsLire().filter(e => e.k === 'tache').length, 0);
+  a = await recharger(a, nuage);
+  verif('23b la tâche ne revient pas au rechargement', a.statsLire().filter(e => e.k === 'tache').length, 0);
+  verif('23c les deux concentrations persistent au rechargement', a.statsLire().filter(e => e.k === 'focus').map(e => e.m).sort((x,y)=>x-y), [25,40]);
+  const ancienneFusionnee = a.syncStatsFusionner([copieAvantRetrait, a.syncStatsLire()]);
+  verif('23d une ancienne copie hors ligne ne ressuscite pas la coche', ancienneFusionnee.filter(e => e.k === 'tache' && !e.supprime).length, 0);
+  const historiqueCharge = Array.from({length: 6000}, (_, i) => ({u: 'test-' + String(i).padStart(5, '0'), k: 'focus', d: '2026-11-04', s: 'x'.repeat(60), m: 25}));
+  const exportLimite = a.syncStatsPourCompte(historiqueCharge);
+  verif('24 export des statistiques borné à 200 ko', Buffer.byteLength(JSON.stringify(exportLimite), 'utf8') <= 200000, true);
+  verif('24b export conserve les événements récents', exportLimite[exportLimite.length - 1].u, 'test-05999');
+
+  /* BAC : la même chaîne compte/nuage que les deux téléphones, avec une
+     ancienne copie et les deux sens de modification. */
+  const choisirBac = (c, valeur) => geste(c, `var bacTest=devoirsLireStore();bacTest.bac=${valeur};bacTest.bacDemande=2;devoirsEcrireStore(bacTest);memoireSauvegarder();`);
+  choisirBac(a, true); await envoyer(a); await attendre(600);
+  verif('BAC oui transmis au second téléphone', geste(b, 'devoirsLireStore().bac'), true);
+  const ancienBac = a.memoireLireEtat();
+  await attendre(20); choisirBac(a, false); await envoyer(a); await attendre(600);
+  verif('BAC non transmis au second téléphone', geste(b, 'devoirsLireStore().bac'), false);
+  b.memoireAppliquer(ancienBac, {compte:true});
+  verif('ancienne restauration ne rétablit pas oui', geste(b, 'devoirsLireStore().bac'), false);
+  await attendre(20); choisirBac(b, true); await envoyer(b); await attendre(600);
+  verif('nouveau oui transmis au premier téléphone', geste(a, 'devoirsLireStore().bac'), true);
+
+  /* Le journal précédent est archivé avant de changer de compte, mais ne
+     doit pas être offert à un élève différent sur cet appareil. */
+  figer(b);
+  const nouvelEleve = {sub: 'AUTRE-ELEVE-456', email: 'autre@example.org', name: 'Autre'};
+  await b.compteRestaurerTout(nouvelEleve, '', [], {});
+  verif('BAC changement vers compte vierge ne reprend pas la réponse', geste(b, 'devoirsLireStore().bac'), null);
+  verif('25a le changement de compte isole la citation', b.focusLireReglages().citationPersonnelle, '');
+  verif('25 le changement de compte isole les statistiques de l’ancien élève', b.statsLire().length, 0);
+  verif('25b les statistiques restent archivées pour le premier compte',
+    !!(b.compteLireArchive(SUB) && b.compteLireArchive(SUB).statsFocus && b.compteLireArchive(SUB).statsFocus.length), true);
+
+  await b.compteRestaurerTout({sub: SUB, email: EMAIL, name: user.name}, '', [], {});
+  verif('BAC retour au compte restaure sa réponse', geste(b, 'devoirsLireStore().bac'), true);
+  verif('25c la citation revient avec son compte après changement', b.focusLireReglages().citationPersonnelle, 'Citation privée de Farid');
+  const autreSession = {sub: 'AUTRE-CONNEXION-789', email: 'autre-connexion@example.org', name: 'Autre élève'};
+  const autreProfil = Object.assign({}, FULL, {userName: autreSession.name, google: autreSession, utilisateurId: autreSession.sub,
+    focusReglages: {modifieAt: Date.now() - 86400000, parametres: {citation: true, citationCategorie: 'personnelle', citationPersonnelle: 'Citation de l’autre élève'}}});
+  nuage.docs['progressions/UID-AUTRE'] = {progression: JSON.stringify(autreProfil)};
+  b.firebase = firebaseFactice(nuage, 'UID-AUTRE', autreSession);
+  const autreCredential = b64({alg:'none'}) + '.' + b64(autreSession) + '.x';
+  b.compteOnCredential({credential: autreCredential}); await attendre(4500); figer(b);
+  verif('25d connexion Google à un autre compte : sa citation est récupérée', b.focusLireReglages().citationPersonnelle, 'Citation de l’autre élève');
+  verif('25e la citation précédente reste archivée dans son compte', b.compteLireArchive(SUB).focusReglages.parametres.citationPersonnelle, 'Citation privée de Farid');
+
 
   /* ── Aucune écriture de test vers Firestore réel : tout est dans le faux nuage ── */
   const tout = verifs.every(Boolean);

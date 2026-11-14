@@ -397,5 +397,174 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    /* BROUILLON pour le Salon focus : ne pas publier avant validation avec
+       l'émulateur et un projet d'essai. Le lien aléatoire est une clé d'accès :
+       toute personne authentifiée qui le connaît peut voir un salon déverrouillé. */
+    function salonIdValide(id) { return id.matches('^[0-9a-f]{48}$'); }
+    function salonOptionsValides(o) {
+      return o is map && o.keys().hasAll(['theme', 'minuteur', 'horloge', 'sons', 'musique', 'citations'])
+        && o.keys().hasOnly(['theme', 'minuteur', 'horloge', 'sons', 'musique', 'citations'])
+        && o.theme is bool && o.minuteur is bool && o.horloge is bool
+        && o.sons is bool && o.musique is bool && o.citations is bool;
+    }
+    function salonSonsValides(sons) {
+      return sons is list && sons.size() <= 20
+        && sons.hasOnly(['pluie', 'ocean', 'cafe', 'train', 'bibliotheque', 'matin', 'orage', 'piano', 'vent', 'gamma', 'concentration']);
+    }
+    function salonPartageValide(o, p) {
+      return p is map && p.keys().hasOnly(['theme', 'durees', 'horloge', 'sons', 'musique', 'citation'])
+        && (o.theme == ('theme' in p)) && (o.minuteur == ('durees' in p))
+        && (o.horloge == ('horloge' in p)) && (o.sons == ('sons' in p))
+        && (o.musique == ('musique' in p)) && (o.citations == ('citation' in p))
+        && (!o.theme || (p.theme is string && p.theme.size() <= 80))
+        && (!o.minuteur || (p.durees is map && p.durees.keys().hasOnly(['focus','short','long','seances'])
+            && p.durees.keys().hasAll(['focus','short','long'])
+            && p.durees.focus is int && p.durees.focus >= 1 && p.durees.focus <= 180
+            && p.durees.short is int && p.durees.short >= 1 && p.durees.short <= 60
+            && p.durees.long is int && p.durees.long >= 1 && p.durees.long <= 60
+            && (!('seances' in p.durees) || (p.durees.seances is int && p.durees.seances >= 1 && p.durees.seances <= 12))))
+        && (!o.horloge || (p.horloge is map && p.horloge.keys().hasOnly(['police','taille'])
+            && p.horloge.keys().hasAll(['police','taille']) && p.horloge.police is string
+            && p.horloge.police.size() <= 40 && p.horloge.taille is string && p.horloge.taille.size() <= 40))
+        && (!o.sons || salonSonsValides(p.sons))
+        && (!o.musique || (p.musique is map && p.musique.keys().hasOnly(['nom','sons'])
+            && p.musique.keys().hasAll(['nom','sons']) && p.musique.nom is string
+            && p.musique.nom.size() <= 40 && salonSonsValides(p.musique.sons)))
+        && (!o.citations || (p.citation is map && p.citation.keys().hasOnly(['visible','texte'])
+            && p.citation.keys().hasAll(['visible','texte']) && p.citation.visible is bool
+            && p.citation.texte is string && p.citation.texte.size() <= 160));
+    }
+    function salonChronoValide(c) {
+      return c is map && c.keys().hasOnly(['mode','total','restant','running','fin'])
+        && c.keys().hasAll(['mode','total','restant','running','fin'])
+        && c.mode in ['focus','short','long'] && c.total is int && c.total >= 1 && c.total <= 10800
+        && c.restant is int && c.restant >= 0 && c.restant <= c.total && c.running is bool
+        && c.fin is int && c.fin >= 0 && c.fin <= 8640000000000000
+        && (c.running ? c.fin > 0 : c.fin == 0);
+    }
+    function salonValide(d) {
+      return d.keys().hasOnly(['nom','organisateurUid','revision','ferme','verrouille','chrono','options','partage','expireLe'])
+        && d.keys().hasAll(['nom','organisateurUid','revision','ferme','verrouille','chrono','options','partage','expireLe'])
+        && d.nom is string && d.nom.size() > 0 && d.nom.size() <= 60
+        && d.organisateurUid is string && d.organisateurUid.size() <= 128
+        && d.revision is int && d.revision >= 1 && d.revision <= 1000000
+        && d.ferme is bool && d.verrouille is bool && d.expireLe is timestamp
+        && salonChronoValide(d.chrono) && salonOptionsValides(d.options)
+        && salonPartageValide(d.options,d.partage);
+    }
+    match /salons_focus_horloges/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['at']) && request.resource.data.keys().hasAll(['at'])
+        && request.resource.data.at == request.time;
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+    match /salons_focus/{salonId} {
+      function membre() {
+        return exists(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.auth.uid));
+      }
+      allow get: if request.auth != null && salonIdValide(salonId)
+        && (resource == null || (resource.data.expireLe > request.time
+            && ((!resource.data.ferme && !resource.data.verrouille) || membre())));
+      allow list: if false;
+      allow create: if request.auth != null && salonIdValide(salonId)
+        && request.auth.token.firebase.sign_in_provider == 'google.com'
+        && salonValide(request.resource.data) && request.resource.data.organisateurUid == request.auth.uid
+        && request.resource.data.revision == 1 && request.resource.data.ferme == false
+        && request.resource.data.verrouille == false && request.resource.data.expireLe > request.time
+        && request.resource.data.expireLe <= request.time + duration.value(13, 'h');
+      allow update: if request.auth != null && resource.data.organisateurUid == request.auth.uid
+        && resource.data.ferme == false && resource.data.expireLe > request.time
+        && request.resource.data.revision == resource.data.revision + 1 && salonValide(request.resource.data)
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['chrono','options','partage','revision','ferme'])
+          || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['organisateurUid','revision'])
+              && request.resource.data.organisateurUid != resource.data.organisateurUid
+              && exists(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid))
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe is timestamp
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe >= request.time - duration.value(120, 's')
+              && get(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.resource.data.organisateurUid)).data.vuLe <= request.time)
+        );
+      allow delete: if false;
+      match /membres/{uid} {
+        function parentActif() {
+          return request.auth != null && salonIdValide(salonId)
+            && existsAfter(/databases/$(database)/documents/salons_focus/$(salonId))
+            && getAfter(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == false
+            && getAfter(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe > request.time;
+        }
+        function parentDeverrouille() {
+          return getAfter(/databases/$(database)/documents/salons_focus/$(salonId)).data.verrouille == false;
+        }
+        function parentLisible() {
+          return request.auth != null && salonIdValide(salonId)
+            && exists(/databases/$(database)/documents/salons_focus/$(salonId))
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == false
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe > request.time
+            && (get(/databases/$(database)/documents/salons_focus/$(salonId)).data.verrouille == false || membre());
+        }
+        function pseudoValide() {
+          return request.resource.data.keys().hasAll(['pseudo']) && request.resource.data.keys().hasOnly(['pseudo', 'vuLe', 'messageLe', 'dernierMessageId'])
+            && request.resource.data.pseudo is string && request.resource.data.pseudo.size() > 0
+            && request.resource.data.pseudo.size() <= 30 && request.resource.data.pseudo.matches('.*[^ ].*')
+            && (!('vuLe' in request.resource.data) || request.resource.data.vuLe is timestamp)
+            && (('messageLe' in request.resource.data) == ('dernierMessageId' in request.resource.data))
+            && (!('messageLe' in request.resource.data) || (request.resource.data.messageLe is timestamp
+                && request.resource.data.dernierMessageId is string
+                && request.resource.data.dernierMessageId.matches('^[A-Za-z0-9]{20}$')));
+        }
+        function messageAutorise() {
+          let d = request.resource.data;
+          let cheminMessage = /databases/$(database)/documents/salons_focus/$(salonId)/messages/$(d.dernierMessageId);
+          return ('messageLe' in d) && d.messageLe == request.time
+            && (!('messageLe' in resource.data) || resource.data.messageLe <= request.time - duration.value(2, 's'))
+            && existsAfter(cheminMessage) && getAfter(cheminMessage).data.auteurUid == uid
+            && getAfter(cheminMessage).data.envoyeLe == request.time;
+        }
+        function champsMessageInchanges() {
+          return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['messageLe', 'dernierMessageId']);
+        }
+        allow get, list: if parentLisible();
+        allow create: if parentActif() && parentDeverrouille() && request.auth.uid == uid && pseudoValide()
+          && !('messageLe' in request.resource.data)
+          && (!('vuLe' in request.resource.data) || request.resource.data.vuLe == request.time);
+        allow update: if parentActif() && request.auth.uid == uid && pseudoValide()
+          && (champsMessageInchanges() || messageAutorise())
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['vuLe'])
+              || !('vuLe' in request.resource.data) || request.resource.data.vuLe == request.time);
+        allow delete: if request.auth != null && request.auth.uid == uid
+          && (!exists(/databases/$(database)/documents/salons_focus/$(salonId))
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == true
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe <= request.time
+              || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.organisateurUid != uid);
+      }
+      // Les messages restent dans Firestore après la fermeture : prévoir une
+      // suppression serveur/TTL séparée avant tout usage avec des données sensibles.
+      match /messages/{messageId} {
+        function membreActif() {
+          return request.auth != null && salonIdValide(salonId)
+            && exists(/databases/$(database)/documents/salons_focus/$(salonId))
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == false
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe > request.time
+            && membre();
+        }
+        function identite() {
+          return getAfter(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(request.auth.uid)).data;
+        }
+        allow get: if membreActif();
+        allow list: if membreActif() && request.query.limit != null && request.query.limit <= 50;
+        allow create: if membreActif() && messageId.matches('^[A-Za-z0-9]{20}$')
+          && request.resource.data.keys().hasOnly(['auteurUid', 'pseudo', 'texte', 'envoyeLe'])
+          && request.resource.data.keys().hasAll(['auteurUid', 'pseudo', 'texte', 'envoyeLe'])
+          && request.resource.data.auteurUid == request.auth.uid
+          && request.resource.data.pseudo == identite().pseudo
+          && request.resource.data.texte is string && request.resource.data.texte.size() > 0
+          && request.resource.data.texte.size() <= 1000 && request.resource.data.envoyeLe == request.time
+          && identite().messageLe == request.time && identite().dernierMessageId == messageId;
+        allow update, delete: if false;
+      }
+    }
   }
 }

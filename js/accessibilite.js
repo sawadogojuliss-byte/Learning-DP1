@@ -22,7 +22,23 @@
     var actif = null;
     var champs = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
     function visible(el) { return !!(el && el.isConnected && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden'); }
-    function focusables(el) { return Array.from(el.querySelectorAll(champs)).filter(visible); }
+    function dansModale(modale, el) {
+        if (!modale || !el) return false;
+        if (modale.contains(el)) return true;
+        /* La reprise Pomodoro est attachée au body pour rester visible entre
+           les pages ; elle fait logiquement partie du planning ouvert. */
+        return modale.id === 'planningModal' && !!(el.closest && el.closest('#focusReprise, #focusRepriseRappel')) && visible(el);
+    }
+    function focusables(el) {
+        var liste = Array.from(el.querySelectorAll(champs)).filter(visible);
+        if (el.id === 'planningModal') {
+            var fenetre = document.getElementById('focusReprise');
+            var rappel = document.getElementById('focusRepriseRappel');
+            if (fenetre && !el.contains(fenetre) && visible(fenetre)) liste = liste.concat(Array.from(fenetre.querySelectorAll(champs)).filter(visible));
+            if (rappel && !el.contains(rappel) && visible(rappel)) liste.push(rappel);
+        }
+        return liste;
+    }
     function sources(racine) {
         if (!racine || racine.nodeType !== 1 || racine === region) return;
         var candidats = [racine].concat(Array.from(racine.querySelectorAll('[aria-live],[role="status"],[role="alert"]')));
@@ -155,7 +171,7 @@
         var precedentModal = actif;
         if (precedentModal && !dialogVisible(precedentModal)) {
             var retour = retourFocus.get(precedentModal);
-            if (retour && visible(retour) && (!suivant || suivant.contains(retour))) retour.focus();
+            if (retour && visible(retour) && (!suivant || dansModale(suivant, retour))) retour.focus();
         }
         actif = suivant;
         if (suivant && !ouvert.get(suivant)) {
@@ -164,7 +180,7 @@
         }
         if (suivant) {
             setTimeout(function () {
-                if (modaleActive() !== suivant || suivant.contains(document.activeElement)) return;
+                if (modaleActive() !== suivant || dansModale(suivant, document.activeElement)) return;
                 var cible = focusables(suivant)[0] || suivant;
                 if (cible === suivant && !suivant.hasAttribute('tabindex')) suivant.tabIndex = -1;
                 cible.focus();
@@ -193,14 +209,14 @@
         var list = focusables(modale);
         if (!list.length) { e.preventDefault(); modale.focus(); return; }
         var premier = list[0], dernier = list[list.length - 1];
-        if (!modale.contains(document.activeElement) || !list.includes(document.activeElement) ||
+        if (!dansModale(modale, document.activeElement) || !list.includes(document.activeElement) ||
             (e.shiftKey && document.activeElement === premier)) {
             e.preventDefault(); (e.shiftKey ? dernier : premier).focus();
         } else if (!e.shiftKey && document.activeElement === dernier) { e.preventDefault(); premier.focus(); }
     }, true);
     document.addEventListener('focusin', function (e) {
         var modale = modaleActive();
-        if (modale && !modale.contains(e.target)) {
+        if (modale && !dansModale(modale, e.target)) {
             var cible = focusables(modale)[0] || modale;
             if (cible === modale && !modale.hasAttribute('tabindex')) modale.tabIndex = -1;
             cible.focus();

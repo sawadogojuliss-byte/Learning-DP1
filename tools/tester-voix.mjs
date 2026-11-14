@@ -8,9 +8,13 @@
  * écoute ce que le navigateur reçoit vraiment : les sons programmés
  * dans l'AudioContext, et l'état des lecteurs d'ambiance.
  */
-import { chromium } from 'playwright';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+const require = createRequire(process.env.STUDY_TEST_MODULES ? path.resolve(process.env.STUDY_TEST_MODULES, '../package.json') : import.meta.url);
+const { chromium } = require('playwright');
+const portable = process.env.STUDY_TEST_MODULES && !process.env.STUDY_PLAYWRIGHT_SYSTEM ? require('@sparticuz/chromium').default : null;
 
-const SITE_OK = 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
+const SITE_OK = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 
 function echec(message) {
     console.error('ECHEC ' + message);
@@ -19,7 +23,8 @@ function echec(message) {
 
 const browser = await chromium.launch({
     headless: true,
-    args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio']
+    ...(portable ? { executablePath: await portable.executablePath() } : {}),
+    args: [...(portable ? portable.args.filter(x => x !== '--single-process') : []), '--autoplay-policy=no-user-gesture-required', '--mute-audio']
 });
 const page = await browser.newPage();
 await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; }); /* profil de test local seulement */
@@ -41,7 +46,7 @@ await page.addInitScript(function () {
             const vraiStart = source.start;
             source.start = function (quand) {
                 window.__sonsProgrammes.push({ quand: quand, duree: source.buffer ? source.buffer.duration : 0,
-                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['n-7']) });
+                    septCorrige: !!(window.chronoVoixTampons && source.buffer === window.chronoVoixTampons['masculine-complet-7']) });
                 return vraiStart.apply(source, arguments);
             };
             return source;
@@ -114,7 +119,7 @@ await page.evaluate(function () {
 });
 await page.waitForFunction(function () {
     return [2, 6, 7, 16, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30].every(function (n) {
-        return !!chronoVoixTampons['n-' + n];
+        return !!chronoVoixTampons[(chronoVoixCompleteApprouvee(n) ? 'masculine-complet-' : 'masculine-n-') + n];
     });
 }, null, { timeout: 30000 });
 
@@ -145,14 +150,17 @@ const fin = await page.evaluate(function () {
     };
 });
 
-if (fin.enMarche !== false) echec('le chronomètre continue tout seul après la fin de la concentration');
+if (fin.enMarche !== false || fin.restant !== 7 * 60) echec('la pause doit attendre la fin de l’annonce : ' + JSON.stringify(fin));
 if (fin.mode !== 'short') echec('la phase suivante doit être une pause courte, trouvée : ' + fin.mode);
 if (fin.ambianceEncore !== false) echec('la musique d\'ambiance continue pendant la pause');
 if (fin.oscillateurs < 2) echec('le bip de fin n\'a pas sonné (oscillateurs : ' + fin.oscillateurs + ')');
-if (fin.sons.length < 3) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
+if (fin.sons.length !== 1) echec('la voix n\'a pas été programmée (sons : ' + JSON.stringify(fin.sons) + ')');
 const total = fin.sons.reduce(function (s, x) { return s + (x.duree || 0); }, 0);
-if (total < 6) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
+if (total < 3) echec('l\'annonce est trop courte pour être la phrase entière (' + total.toFixed(1) + ' s)');
 if (!fin.sons.some(s => s.septCorrige)) echec('Pomodoro ne lit pas le fichier corrigé de « sept »');
+await page.waitForFunction(() => focusEtat.running && focusEtat.mode === 'short' && focusEtat.transition === '', null, { timeout: 20000 });
+const apresAnnonce = await page.evaluate(() => focusEtat.restant);
+if (apresAnnonce < 7 * 60 - 2) echec('la pause a perdu du temps pendant l’annonce : ' + apresAnnonce);
 
 /* Le lancement depuis « Séance de révision du jour » mène au même minuteur.
    Une séance fictive du moment ne quitte jamais ce navigateur, et ne modifie
@@ -162,17 +170,21 @@ const seance = await page.evaluate(() => {
     window.__voixHeureOrig = focusMinutesMaintenant;
     generateDayEvents = jour => jour === focusJourIndex() ? [
         { id: 'voix-session', title: 'Révision de physique', type: 'study',
-            startTime: '12:00', endTime: '13:00' }
+            startTime: '12:00', endTime: '14:00' }
     ] : [];
     focusMinutesMaintenant = () => 12 * 60 + 30;
     focusChoisirMode('focus', false);
+    focusEtat.run = false;
+    focusEtat.serie = 0;
     focusEtat.cycles = 0;
     navigateTo('seances');
     const accessible = !document.getElementById('focusAccueilContinuer').disabled;
     focusEntrerPiece();
+    document.getElementById('focusChoixNombre').value = '2';
+    focusConfirmerChoixSeance();
     const liee = !!focusSeanceMinuteur && focusSeanceMinuteur.id === 'voix-session';
     const minuteur = document.getElementById('panelPomodoro').classList.contains('active');
-    if (liee && minuteur) document.getElementById('focusPlay').click();
+    // Le bouton d'entrée lance déjà le compte à rebours.
     return { accessible, liee, minuteur, lancee: focusEtat.running };
 });
 if (!Object.values(seance).every(Boolean)) echec('impossible de lancer la séance témoin : ' + JSON.stringify(seance));
@@ -186,10 +198,10 @@ await page.waitForTimeout(1800);
 const sonSeance = await page.evaluate(() => ({
     mode: focusEtat.mode,
     sons: window.__sonsProgrammes,
-    url: chronoVoixUrl('n-7')
+    url: chronoVoixUrl('masculine-complet-7')
 }));
 if (sonSeance.mode !== 'short' || !sonSeance.sons.some(s => s.septCorrige) ||
-    !sonSeance.url.includes('/n-7.wav?v='))
+    !sonSeance.url.includes('/essai-prises-lot2/07.mp3?v='))
     echec('la séance de révision ne joue pas le même « sept » que Pomodoro : ' + JSON.stringify(sonSeance));
 await page.evaluate(() => {
     generateDayEvents = window.__voixGenerationOrig;
@@ -237,6 +249,6 @@ if (erreurs.length) echec('erreurs JavaScript : ' + erreurs.join(' | '));
 
 console.log('ok fin de chronomètre en vrai navigateur : '
     + fin.sons.length + ' sons (' + total.toFixed(1) + ' s), bip ' + fin.oscillateurs
-    + ', musique arrêtée, pause ' + fin.mode + ' proposée');
+    + ', musique arrêtée, pause ' + fin.mode + ' lancée');
 
 await browser.close();

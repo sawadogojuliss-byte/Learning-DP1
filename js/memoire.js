@@ -140,6 +140,7 @@ function memoireLireEtat() {
         suppressions: typeof syncLireRegistre === 'function' ? syncLireRegistre() : {},
         /* Réglages du minuteur, datés (lot 9, point 5). */
         focusReglages: typeof syncFocusCourant === 'function' ? syncFocusCourant() : null,
+        statsFocus: typeof syncStatsPourCompte === 'function' ? syncStatsPourCompte(syncStatsLire()) : [],
         modifsSemaine: (function () {
             try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
         })(),
@@ -464,13 +465,15 @@ function memoireAppliquerCorps(data, opts) {
            avec le compte, fusionnés par identifiant (DE-25). */
         var recu = data.devoirsStore;
         if (recu && typeof recu === 'object') {
-            var actuel = devoirsLireStore();
+            // Ne jamais fusionner la réponse ou les devoirs d'un autre compte.
+            var actuel = window.compteChangementDeCompte ? {bac:null,bacDemande:0,bacModifieAt:0,devoirs:[],examens:[]} : devoirsLireStore();
             var fusion = typeof syncFusionnerStore === 'function'
                 ? syncFusionnerStore(actuel, recu, registre)
                 : null;
             devoirsEcrireStore({
-                bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
-                bacDemande: recu.bacDemande === 2 ? 2 : actuel.bacDemande,
+                bac: fusion ? fusion.bac : ((actuel.bac === true || actuel.bac === false) ? actuel.bac : recu.bac),
+                bacDemande: fusion ? fusion.bacDemande : actuel.bacDemande,
+                bacModifieAt: fusion ? fusion.bacModifieAt : actuel.bacModifieAt,
                 devoirs: fusion ? fusion.devoirs : (Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs),
                 examens: fusion ? fusion.examens : (Array.isArray(recu.examens) ? recu.examens : actuel.examens)
             }, { brut: true });
@@ -480,7 +483,10 @@ function memoireAppliquerCorps(data, opts) {
             }
         }
     }
+    if (depuisCompte && window.compteChangementDeCompte && !data.devoirsStore && typeof devoirsEcrireStore === 'function')
+        devoirsEcrireStore({bac:null,bacDemande:0,bacModifieAt:0,devoirs:[],examens:[]}, {brut:true});
     if (typeof syncFocusAppliquer === 'function' && depuisCompte && data.focusReglages) syncFocusAppliquer(data.focusReglages);
+    if (typeof syncStatsAppliquer === 'function' && Array.isArray(data.statsFocus)) syncStatsAppliquer(data.statsFocus);
     if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
     else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
@@ -616,6 +622,12 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
+    /* Au rechargement (memoireNavSilence), aucun panneau plein écran ne
+       doit se réactiver : seul le planning est visible. Les panneaux
+       ne s'ouvrent que sur clic explicite via navigateTo(). */
+    if (memoireNavSilence && etape !== 'planning' && etape !== 'seances' && etape !== 'pomodoro') {
+        return;
+    }
     if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin') {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
@@ -889,7 +901,7 @@ function memoireSauvegarder() {
 
 function memoireCleDuCompte(cle, sub) {
     if (!cle) return false;
-    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle.indexOf(sub) !== -1;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle === 'studyPlanIB_statsFocus' || cle.indexOf(sub) !== -1;
 }
 
 function memoireEffacerSuite() {

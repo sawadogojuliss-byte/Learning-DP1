@@ -1,0 +1,10 @@
+.boite-images{margin-top:1rem;padding:1rem;border:1px solid #a7f3d0;border-radius:1.1rem;background:linear-gradient(145deg,#f0fdf4,#fff);box-shadow:0 5px 20px rgba(6,95,70,.06)}
+.boite-images-intro{display:flex;align-items:center;gap:.75rem;color:#064e3b}
+.boite-images-icone{display:grid;place-items:center;width:2.6rem;height:2.6rem;border-radius:.8rem;background:#d1fae5;color:#047857;font-size:1.5rem}
+.boite-images-intro strong{font-size:.9rem}.boite-images-intro p,.boite-images-conseil,.boite-images-statut{margin:.2rem 0 0;font-size:.76rem;line-height:1.45;color:#4b665c}
+.boite-images-selection{display:inline-flex;position:relative;overflow:hidden;align-items:center;margin-top:.75rem;border:1px solid #059669;border-radius:.7rem;padding:.6rem .85rem;color:#047857;background:#fff;font-weight:700;font-size:.82rem;cursor:pointer}
+.boite-images-selection:focus-within{outline:3px solid #34d399;outline-offset:2px}.boite-images-selection input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.boite-images-apercus{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem;margin-top:.65rem}.boite-images-apercus:empty{display:none}
+.boite-images-apercu{min-width:0;padding:.4rem;background:white;border:1px solid #d1fae5;border-radius:.75rem}.boite-images-apercu img{display:block;width:100%;height:6rem;object-fit:cover;border-radius:.45rem;background:#f3f4f6}
+.boite-images-apercu span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:.35rem 0;color:#374151;font-size:.73rem}.boite-images-apercu button{border:0;background:transparent;color:#b42318;font-size:.75rem;font-weight:700;cursor:pointer;padding:.2rem}
+.boite-images-statut{min-height:1em;color:#065f46}.boite-images-recues{margin-top:.75rem}.boite-images-recues p{font-size:.78rem;font-weight:700;color:#047857;margin-bottom:.4rem}.boite-images-recues div{display:flex;gap:.5rem;flex-wrap:wrap}.boite-images-recues img{width:8rem;height:6rem;object-fit:cover;border-radius:.6rem;border:1px solid #d1fae5}.boite-images-recues a:focus-visible{outline:3px solid #10b981;outline-offset:3px}

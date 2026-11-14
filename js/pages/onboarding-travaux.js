@@ -325,110 +325,74 @@ function eeMarquerFaite(kind, subject, partId) {
     });
 }
 
-function eeBarre(pourcent, accent) {
-    return '<div style="height:0.55rem;border-radius:999px;background:#f3f4f6;overflow:hidden;margin-top:0.45rem;">'
-        + '<div style="width:' + pourcent + '%;height:100%;border-radius:999px;background:' + accent + ';transition:width 0.25s;"></div>'
-        + '</div>';
+function eeBarre(pourcent) {
+    return '<div class="eeia-progress" role="progressbar" aria-label="Avancement du plan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pourcent + '"><span style="width:' + pourcent + '%"></span></div>';
 }
 
 function eeBoutonChoix(label, actif, accent, wash, action) {
-    return '<button type="button" onclick="' + action + '" style="text-align:left;width:100%;border:1.5px solid ' + (actif ? accent : '#e7e5e4') + ';background:' + (actif ? wash : 'white') + ';border-radius:1rem;padding:0.8rem 0.9rem;cursor:pointer;font-weight:750;color:#1c1917;font-size:0.9rem;">'
-        + (actif ? '✓ ' : '') + eeEchap(label) + '</button>';
+    return '<button class="eeia-stage' + (actif ? ' is-active' : '') + '" type="button" aria-pressed="' + (actif ? 'true' : 'false') + '" onclick="' + action + '"><span aria-hidden="true">' + (actif ? '✓' : '·') + '</span>' + eeEchap(label) + '</button>';
 }
 
 function eePanneauSolutions() {
-    return '<div style="margin-top:0.85rem;padding:0.9rem;border-radius:1rem;background:#fffbeb;border:1px solid #fde68a;">'
-        + '<ol style="margin:0;padding-left:1.15rem;color:#44403c;font-size:0.86rem;line-height:1.45;">'
-        + EE_SOLUTIONS_FIXES.map(function (texte) { return '<li style="margin:0.28rem 0;">' + eeEchap(texte) + '</li>'; }).join('')
-        + '</ol>'
-        + '<p style="margin:0.8rem 0 0;padding:0.7rem 0.75rem;border-radius:0.8rem;background:white;color:#1c1917;font-size:0.84rem;line-height:1.45;">Une fois cette étape finie, fais des recherches pour comprendre les critères d’évaluation.</p>'
-        + '</div>';
+    return '<div class="eeia-solutions"><strong>Quelques pistes pour commencer</strong>'
+        + '<ol>' + EE_SOLUTIONS_FIXES.map(function (texte) { return '<li>' + eeEchap(texte) + '</li>'; }).join('') + '</ol>'
+        + '<p>Une fois cette étape finie, fais des recherches pour comprendre les critères d’évaluation.</p></div>';
 }
 
 function eePanneauPlan(kind, index, plan, accent) {
     var av = eeAvancement(plan);
-    var html = '<div style="margin-top:0.85rem;">'
-        + '<div style="display:flex;gap:0.45rem;">'
-        + '<input id="eeIn-' + kind + '-' + index + '" maxlength="80" placeholder="Ex. : Introduction" onkeydown="if(event.key===\'Enter\'){event.preventDefault();eeAjouterPartie(\'' + kind + '\',' + index + ');}" style="flex:1;min-width:0;border:1.5px solid #e7e5e4;border-radius:0.8rem;padding:0.7rem 0.75rem;font-size:0.9rem;">'
-        + '<button type="button" onclick="eeAjouterPartie(\'' + kind + '\',' + index + ')" style="border:none;background:' + accent + ';color:white;border-radius:0.8rem;padding:0.7rem 0.85rem;font-weight:800;cursor:pointer;">Ajouter</button>'
-        + '</div>';
-    if (!av.n) {
-        html += '</div>';
-        return html;
-    }
+    var html = '<div class="eeia-plan"><label for="eeIn-' + kind + '-' + index + '">Les parties de ton plan</label>'
+        + '<div class="eeia-ajout"><input id="eeIn-' + kind + '-' + index + '" maxlength="80" placeholder="Ex. : Introduction" onkeydown="if(event.key===\'Enter\'){event.preventDefault();eeAjouterPartie(\'' + kind + '\',' + index + ');}">'
+        + '<button type="button" onclick="eeAjouterPartie(\'' + kind + '\',' + index + ')">Ajouter</button></div>';
+    if (!av.n) return html + '<p class="eeia-plan-vide">Ajoute une première partie pour commencer ton plan.</p></div>';
+    html += '<div class="eeia-parties">';
     plan.forEach(function (partie, i) {
-        html += '<div style="display:flex;align-items:center;gap:0.45rem;margin-top:0.4rem;">'
-            + '<button type="button" onclick="eeBasculerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" style="flex:1;min-width:0;text-align:left;border:1.5px solid ' + (partie.done ? '#86efac' : '#e7e5e4') + ';background:' + (partie.done ? '#f0fdf4' : 'white') + ';border-radius:0.85rem;padding:0.7rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.55rem;">'
-            + '<span style="width:1.35rem;height:1.35rem;border-radius:0.4rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.75rem;font-weight:800;color:' + (partie.done ? 'white' : '#a8a29e') + ';background:' + (partie.done ? '#16a34a' : '#f5f5f4') + ';">' + (partie.done ? '✓' : '') + '</span>'
-            + '<span style="flex:1;min-width:0;color:#1c1917;font-size:0.88rem;">' + eeEchap(partie.text) + '</span>'
-            + '<strong style="color:' + accent + ';font-size:0.85rem;">' + av.parts[i] + ' %</strong>'
-            + '</button>'
-            + '<button type="button" onclick="eeRetirerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" title="Retirer" style="border:none;background:transparent;color:#a8a29e;cursor:pointer;font-size:1rem;padding:0.35rem;">×</button>'
-            + '</div>';
+        html += '<div class="eeia-partie">'
+            + '<button class="eeia-partie-action' + (partie.done ? ' is-done' : '') + '" type="button" aria-pressed="' + (partie.done ? 'true' : 'false') + '" onclick="eeBasculerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')">'
+            + '<span class="eeia-check" aria-hidden="true">' + (partie.done ? '✓' : '') + '</span>'
+            + '<span class="eeia-partie-texte">' + eeEchap(partie.text) + '</span><strong>' + av.parts[i] + ' %</strong></button>'
+            + '<button class="eeia-supprimer" type="button" onclick="eeRetirerPartie(\'' + kind + '\',' + index + ',\'' + partie.id + '\')" aria-label="Retirer ' + eeEchap(partie.text) + '" title="Retirer">×</button></div>';
     });
-    html += '<p style="margin:0.7rem 0 0;color:#78716c;font-size:0.78rem;line-height:1.4;">Les parties non cochées de ton plan seront mises dans ton emploi du temps pour que tu puisses avancer dans tes travaux.</p></div>';
-    return html;
+    return html + '</div><p class="eeia-plan-info">Les parties non cochées de ton plan seront mises dans ton emploi du temps pour que tu puisses avancer dans tes travaux.</p></div>';
 }
 
 function eeCarteTravail(opts) {
     var plan = eePlanDe(opts.kind, opts.index);
     var niveau = eeNiveauDe(opts.kind, opts.index);
     var av = eeAvancement(plan);
-    if (niveau === 'final') {
-        av.pourcent = 100;
-        av.nFait = av.n;
-    }
-    var html = '<article style="margin-bottom:0.9rem;padding:0.95rem;border-radius:1.1rem;background:white;border:1px solid #e7e5e4;">'
-        + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;">'
-        + '<div style="min-width:0;"><p style="margin:0 0 0.15rem;font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:800;color:' + opts.accent + ';">' + eeEchap(opts.kicker) + '</p>'
-        + '<h3 style="margin:0;font-size:1.02rem;color:#1c1917;">' + (opts.icon ? '<span style="margin-right:0.35rem;">' + iconeHtml(opts.icon, '1.15rem') + '</span>' : '') + eeEchap(opts.titre) + '</h3></div>'
-        + '<span style="font-size:1.35rem;font-weight:800;color:' + opts.accent + ';white-space:nowrap;">' + av.pourcent + ' %</span>'
-        + '</div>'
-        + eeBarre(av.pourcent, opts.accent)
-        + (niveau !== 'final' && av.n ? '<p style="margin:0.45rem 0 0.8rem;color:#78716c;font-size:0.76rem;">' + av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n + '</p>' : '')
-        + '<div style="display:flex;flex-direction:column;gap:0.4rem;' + (niveau === 'final' || !av.n ? 'margin-top:0.8rem;' : '') + '">'
+    if (niveau === 'final') { av.pourcent = 100; av.nFait = av.n; }
+    var statut = niveau === 'debut' ? 'Pas commencé' : niveau === 'plan' ? 'Plan en cours' : niveau === 'final' ? 'Finalisation' : 'À définir';
+    var html = '<article class="eeia-carte ' + (opts.kind === 'memoir' ? 'is-memoire' : 'is-ia') + '">'
+        + '<div class="eeia-carte-head"><div class="eeia-carte-identite"><span class="eeia-carte-icon" aria-hidden="true">' + (opts.icon ? iconeHtml(opts.icon, '1.2rem') : '✎') + '</span>'
+        + '<div><p class="eeia-carte-kicker">' + eeEchap(opts.kicker) + '</p><h3>' + eeEchap(opts.titre) + '</h3></div></div>'
+        + '<span class="eeia-statut">' + statut + '</span></div>'
+        + '<div class="eeia-progress-head"><span>Avancement du plan</span><strong>' + av.pourcent + ' %</strong></div>'
+        + eeBarre(av.pourcent)
+        + '<p class="eeia-progress-caption">' + (niveau === 'final' ? 'Travail en finalisation' : av.n ? av.nFait + ' partie' + (av.nFait > 1 ? 's' : '') + ' terminée' + (av.nFait > 1 ? 's' : '') + ' sur ' + av.n : 'Ajoute des parties pour suivre ta progression') + '</p>'
+        + '<p class="eeia-stage-label">Où en es-tu ?</p><div class="eeia-stages" role="group" aria-label="Étape de ' + eeEchap(opts.titre) + '">'
         + eeBoutonChoix('Pas commencé', niveau === 'debut', opts.accent, opts.wash, 'eeChoisirDebut(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Plan', niveau === 'plan', opts.accent, opts.wash, 'eeChoisirPlan(\'' + opts.kind + '\',' + opts.index + ')')
         + eeBoutonChoix('Finalisation', niveau === 'final', opts.accent, opts.wash, 'eeChoisirFinal(\'' + opts.kind + '\',' + opts.index + ')')
         + '</div>';
     if (niveau === 'debut') html += eePanneauSolutions();
     if (niveau === 'plan') html += eePanneauPlan(opts.kind, opts.index, plan, opts.accent);
-    html += '</article>';
-    return html;
+    return html + '</article>';
 }
 
 function renderEEia() {
     var body = document.getElementById('eeiaBody');
     if (!body) return;
-    var html = '<p style="margin:0 0 1rem;color:#57534e;font-size:0.86rem;line-height:1.45;">Le pourcentage suit les parties de ton plan. Appuie sur Pas commencé pour les pistes de départ, puis sur Plan pour saisir tes parties.</p>';
-    html += eeCarteTravail({
-        kind: 'memoir',
-        index: -1,
-        kicker: 'EE',
-        titre: 'Mémoire',
-        icon: '',
-        accent: '#9f1239',
-        wash: '#fff1f2'
-    });
-    html += '<section style="margin-top:0.4rem;">'
-        + '<p style="margin:0 0 0.2rem;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;font-weight:800;color:#1d4ed8;">IA</p>'
-        + '<h2 style="margin:0 0 0.75rem;font-size:1.15rem;color:#1c1917;">Évaluations internes</h2>';
+    var html = '<div class="eeia-intro"><span aria-hidden="true">✦</span><p>Le pourcentage suit les parties cochées de ton plan. Choisis une étape pour commencer.</p></div>'
+        + '<section class="eeia-section" aria-labelledby="eeiaMemoireTitre"><div class="eeia-section-head"><div><p>EXTENDED ESSAY</p><h2 id="eeiaMemoireTitre">Ton mémoire</h2></div><span>EE</span></div>'
+        + eeCarteTravail({ kind: 'memoir', index: -1, kicker: 'Mémoire · EE', titre: 'Mon mémoire', icon: '', accent: '#16815d', wash: '#edf8f0' }) + '</section>'
+        + '<section class="eeia-section" aria-labelledby="eeiaIATitre"><div class="eeia-section-head"><div><p>INTERNAL ASSESSMENTS</p><h2 id="eeiaIATitre">Tes évaluations internes</h2></div><span>IA</span></div>';
     var sujets = eeSujets();
-    if (!sujets.length) {
-        html += '<p style="margin:0;color:#6b7280;font-size:0.88rem;">Choisis d’abord tes matières pour suivre chaque évaluation interne.</p>';
-    }
+    if (!sujets.length) html += '<div class="eeia-vide"><strong>Ton espace est prêt</strong><p>Choisis d’abord tes matières pour suivre chaque évaluation interne.</p></div>';
+    html += '<div class="eeia-grille">';
     sujets.forEach(function (sujet, index) {
-        html += eeCarteTravail({
-            kind: 'ia',
-            index: index,
-            kicker: 'IA',
-            titre: sujet.name,
-            icon: sujet.icon || '📋',
-            accent: '#1d4ed8',
-            wash: '#eff6ff'
-        });
+        html += eeCarteTravail({ kind: 'ia', index: index, kicker: 'Évaluation interne · IA', titre: sujet.name, icon: sujet.icon || '📋', accent: '#16815d', wash: '#edf8f0' });
     });
-    html += '</section>';
+    html += '</div></section>';
     body.innerHTML = html;
     eeSuiviPlanning();
 }

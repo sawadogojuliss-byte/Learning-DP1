@@ -32,15 +32,52 @@ var FOCUS_FONDS = [
     { id: 'tunnel', cat: 'degrades', nom: 'Tunnel', src: 'images/pomodoro/tunnel.webp?v=20261015p', mini: 'images/pomodoro/mini/tunnel.webp?v=20261015p' },
     { id: 'stade', cat: 'degrades', nom: 'Stade', src: 'images/pomodoro/stade.webp?v=20261015p', mini: 'images/pomodoro/mini/stade.webp?v=20261015p' },
     /* Photos ajoutées en octobre 2026 : fleurs, montagnes, mer. */
-    { id: 'geraniums', cat: 'nature', nom: 'Géraniums', src: 'images/pomodoro/geraniums.webp?v=20261019d', mini: 'images/pomodoro/mini/geraniums.webp?v=20261019d' },
-    { id: 'chrysantheme', cat: 'nature', nom: 'Chrysanthème', src: 'images/pomodoro/chrysantheme.webp?v=20261019d', mini: 'images/pomodoro/mini/chrysantheme.webp?v=20261019d' },
+    { id: 'geraniums', cat: 'fleurs', nom: 'Géraniums', src: 'images/pomodoro/geraniums.webp?v=20261019d', mini: 'images/pomodoro/mini/geraniums.webp?v=20261019d' },
+    { id: 'chrysantheme', cat: 'fleurs', nom: 'Chrysanthème', src: 'images/pomodoro/chrysantheme.webp?v=20261019d', mini: 'images/pomodoro/mini/chrysantheme.webp?v=20261019d' },
     { id: 'lac-montagne', cat: 'paysages', nom: 'Lac de montagne', src: 'images/pomodoro/lac-montagne.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-montagne.webp?v=20261019d' },
     { id: 'arbre-couchant', cat: 'paysages', nom: 'Arbre au couchant', src: 'images/pomodoro/arbre-couchant.webp?v=20261019d', mini: 'images/pomodoro/mini/arbre-couchant.webp?v=20261019d' },
     { id: 'canyon', cat: 'paysages', nom: 'Canyon', src: 'images/pomodoro/canyon.webp?v=20261019d', mini: 'images/pomodoro/mini/canyon.webp?v=20261019d' },
     { id: 'lac-alpin', cat: 'paysages', nom: 'Lac alpin', src: 'images/pomodoro/lac-alpin.webp?v=20261019d', mini: 'images/pomodoro/mini/lac-alpin.webp?v=20261019d' },
     { id: 'plage', cat: 'paysages', nom: 'Plage', src: 'images/pomodoro/plage.webp?v=20261019d', mini: 'images/pomodoro/mini/plage.webp?v=20261019d' },
     { id: 'mer-soleil', cat: 'paysages', nom: 'Mer au soleil', src: 'images/pomodoro/mer-soleil.webp?v=20261019d', mini: 'images/pomodoro/mini/mer-soleil.webp?v=20261019d' },
-    { id: 'marguerites', cat: 'nature', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' }
+    { id: 'marguerites', cat: 'fleurs', nom: 'Marguerites', src: 'images/pomodoro/marguerites.webp?v=20261019d', mini: 'images/pomodoro/mini/marguerites.webp?v=20261019d' },
+    /* Ajouté à la fin pour conserver les choix existants enregistrés par indice. */
+    { id: 'chalet-neige-anime', cat: 'anime', nom: 'Chalet sous la neige', src: 'images/pomodoro/chalet-neige-anime.webp?v=20261107b', mini: 'images/pomodoro/mini/chalet-neige-anime.webp?v=20261107b', video: 'images/pomodoro/chalet-neige-anime.mp4?v=20261107b' },
+    /* Photos du dossier StudyPlan / Image. Ajoutées après les anciens indices. */
+    { id: 'drive-parc-au-soleil', cat: 'retire', nom: 'Banc au parc', src: 'images/pomodoro/drive-banc-au-parc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-banc-au-parc.webp?v=20261107c', precharger: false, masque: true, remplacePar: 'drive-banc-au-parc' },
+    { id: 'drive-banc-au-parc', cat: 'nature', nom: 'Banc au parc', src: 'images/pomodoro/drive-banc-au-parc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-banc-au-parc.webp?v=20261107c', precharger: false },
+    { id: 'drive-stade-au-couchant', cat: 'sport', nom: 'Stade au couchant', src: 'images/pomodoro/drive-stade-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-stade-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-arbre-et-champs', cat: 'nature', nom: 'Arbre et champs', src: 'images/pomodoro/drive-arbre-et-champs.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-arbre-et-champs.webp?v=20261107c', precharger: false },
+    { id: 'drive-profondeurs-colorees', cat: 'degrades', nom: 'Profondeurs colorées', src: 'images/pomodoro/drive-profondeurs-colorees.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-profondeurs-colorees.webp?v=20261107c', precharger: false },
+    { id: 'drive-douceur-pastel', cat: 'degrades', nom: 'Douceur pastel', src: 'images/pomodoro/drive-douceur-pastel.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-douceur-pastel.webp?v=20261107c', precharger: false },
+    { id: 'drive-aurore-sur-le-lac', cat: 'paysages', nom: 'Aurore sur le lac', src: 'images/pomodoro/drive-aurore-sur-le-lac.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-aurore-sur-le-lac.webp?v=20261107c', precharger: false },
+    { id: 'drive-cascade-en-foret', cat: 'nature', nom: 'Cascade en forêt', src: 'images/pomodoro/drive-cascade-en-foret.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-cascade-en-foret.webp?v=20261107c', precharger: false },
+    { id: 'drive-clairiere-de-montagne', cat: 'paysages', nom: 'Clairière de montagne', src: 'images/pomodoro/drive-clairiere-de-montagne.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-clairiere-de-montagne.webp?v=20261107c', precharger: false },
+    { id: 'drive-voile-boreal', cat: 'paysages', nom: 'Voile boréal', src: 'images/pomodoro/drive-voile-boreal.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-voile-boreal.webp?v=20261107c', precharger: false },
+    { id: 'drive-montagnes-bleues', cat: 'paysages', nom: 'Montagnes bleues', src: 'images/pomodoro/drive-montagnes-bleues.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-montagnes-bleues.webp?v=20261107c', precharger: false },
+    { id: 'drive-feuilles-de-pluie', cat: 'nature', nom: 'Feuilles de pluie', src: 'images/pomodoro/drive-feuilles-de-pluie.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-feuilles-de-pluie.webp?v=20261107c', precharger: false },
+    { id: 'drive-horizon-au-couchant', cat: 'paysages', nom: 'Horizon au couchant', src: 'images/pomodoro/drive-horizon-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-horizon-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-stade-a-la-tombee-du-jour', cat: 'sport', nom: 'Stade à la tombée du jour', src: 'images/pomodoro/drive-stade-a-la-tombee-du-jour.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-stade-a-la-tombee-du-jour.webp?v=20261107c', precharger: false },
+    { id: 'drive-soleil-rouge', cat: 'paysages', nom: 'Soleil rouge', src: 'images/pomodoro/drive-soleil-rouge.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-soleil-rouge.webp?v=20261107c', precharger: false },
+    { id: 'drive-montagnes-etoilees', cat: 'paysages', nom: 'Montagnes étoilées', src: 'images/pomodoro/drive-montagnes-etoilees.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-montagnes-etoilees.webp?v=20261107c', precharger: false },
+    { id: 'drive-aurore-sur-la-rive', cat: 'paysages', nom: 'Aurore sur la rive', src: 'images/pomodoro/drive-aurore-sur-la-rive.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-aurore-sur-la-rive.webp?v=20261107c', precharger: false },
+    { id: 'drive-panier-au-couchant', cat: 'sport', nom: 'Panier au couchant', src: 'images/pomodoro/drive-panier-au-couchant.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-panier-au-couchant.webp?v=20261107c', precharger: false },
+    { id: 'drive-vallee-dans-les-nuages', cat: 'paysages', nom: 'Vallée dans les nuages', src: 'images/pomodoro/drive-vallee-dans-les-nuages.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-vallee-dans-les-nuages.webp?v=20261107c', precharger: false },
+    { id: 'drive-torrent-alpin', cat: 'nature', nom: 'Torrent alpin', src: 'images/pomodoro/drive-torrent-alpin.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-torrent-alpin.webp?v=20261107c', precharger: false },
+    { id: 'drive-champ-de-coquelicots', cat: 'fleurs', nom: 'Champ de coquelicots', src: 'images/pomodoro/drive-champ-de-coquelicots.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-champ-de-coquelicots.webp?v=20261107c', precharger: false },
+    { id: 'drive-fleurs-en-noir-et-blanc', cat: 'fleurs', nom: 'Fleurs en noir et blanc', src: 'images/pomodoro/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-fleurs-en-noir-et-blanc.webp?v=20261107c', precharger: false },
+    { id: 'drive-lueurs-vives', cat: 'degrades', nom: 'Lueurs vives', src: 'images/pomodoro/drive-lueurs-vives.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-lueurs-vives.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-pourpre', cat: 'fleurs', nom: 'Rose pourpre', src: 'images/pomodoro/drive-rose-pourpre.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-pourpre.webp?v=20261107c', precharger: false },
+    { id: 'drive-reflets-du-soir', cat: 'paysages', nom: 'Reflets du soir', src: 'images/pomodoro/drive-reflets-du-soir.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-reflets-du-soir.webp?v=20261107c', precharger: false },
+    { id: 'drive-rose-perlee', cat: 'fleurs', nom: 'Rose perlée', src: 'images/pomodoro/drive-rose-perlee.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-rose-perlee.webp?v=20261107c', precharger: false },
+    { id: 'drive-passerelle-en-foret', cat: 'nature', nom: 'Passerelle en forêt', src: 'images/pomodoro/drive-passerelle-en-foret.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-passerelle-en-foret.webp?v=20261107c', precharger: false },
+    { id: 'drive-ballon-sur-le-terrain', cat: 'sport', nom: 'Ballon sur le terrain', src: 'images/pomodoro/drive-ballon-sur-le-terrain.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-ballon-sur-le-terrain.webp?v=20261107c', precharger: false },
+    { id: 'drive-pelouse-du-stade', cat: 'sport', nom: 'Pelouse du stade', src: 'images/pomodoro/drive-pelouse-du-stade.webp?v=20261107c', mini: 'images/pomodoro/mini/drive-pelouse-du-stade.webp?v=20261107c', precharger: false },
+    /* Ajout à la fin : les indices sauvegardés des autres thèmes ne changent pas. */
+    { id: 'dunes-lagunes-anime', cat: 'anime', nom: 'Dunes et lagunes', src: 'images/pomodoro/dunes-lagunes-anime.webp?v=20261107d', mini: 'images/pomodoro/mini/dunes-lagunes-anime.webp?v=20261107d', video: 'images/pomodoro/dunes-lagunes-anime.mp4?v=20261107d', precharger: false },
+    { id: 'pluie-palmes-anime', cat: 'anime', nom: 'Pluie sur les palmes', src: 'images/pomodoro/pluie-palmes-anime.webp?v=20261107e', mini: 'images/pomodoro/mini/pluie-palmes-anime.webp?v=20261107e', video: 'images/pomodoro/pluie-palmes-anime.mp4?v=20261107e', precharger: false },
+    { id: 'foret-automne-anime', cat: 'anime', nom: 'Forêt d’automne', src: 'images/pomodoro/foret-automne-anime.webp?v=20261107f', mini: 'images/pomodoro/mini/foret-automne-anime.webp?v=20261107f', video: 'images/pomodoro/foret-automne-anime.mp4?v=20261108a', video4k: 'images/pomodoro/foret-automne-anime-4k.mp4?v=20261108a', videoLeger: 'images/pomodoro/foret-automne-anime-leger.mp4?v=20261108a', precharger: false },
+    { id: 'arbres-rivage-anime', cat: 'anime', nom: 'Arbres au bord de l’eau', src: 'images/pomodoro/arbres-rivage-anime.webp?v=20261107g', mini: 'images/pomodoro/mini/arbres-rivage-anime.webp?v=20261107g', video: 'images/pomodoro/arbres-rivage-anime.mp4?v=20261107g', precharger: false },
 ];
 var FOCUS_ASTUCES = {
     focus: 'Range le téléphone. Une seule tâche, jusqu’à la fin du temps.',
@@ -57,6 +94,10 @@ var focusEtat = {
     /* série de révision : séances terminées, et série en cours ou non */
     serie: 0,
     run: false,
+    pauseFinale: false,
+    objectif: 0,
+    transition: '',
+    repriseMasquee: false,
     fond: 0,
     son: 'off',
     astuce: false
@@ -69,16 +110,17 @@ var focusTaches = [];
 var focusAmbianceChoisie = [];
 var focusMenuTache = null;
 var focusSousCible = null;
+var focusEditionTache = null;
 var focusTimer = null;
 var focusAudio = null;
 var focusPip = null;
 var focusBruit = null;
 var focusTitreOrig = typeof document !== 'undefined' ? document.title : 'Studyplan';
 var focusPret = false;
-/* Fonds : le décor affiché ne change qu'une fois la nouvelle image décodée,
-   et il change d'un coup (sinon le planning apparaissait dessous, ou bien
-   l'ancienne image revenait pendant le fondu). */
+/* Fonds : chaque image est décodée avant d'être posée sans fondu.
+   Une miniature rapide peut précéder l'image complète du même décor. */
 var focusFondsPrets = {};
+var focusFondsEnCours = {};
 var focusFondActif = '';
 var focusFondDemande = '';
 var focusAccueilActif = '';
@@ -118,6 +160,10 @@ function focusSauverEtat() {
         cycles: focusEtat.cycles,
         serie: focusEtat.serie,
         run: !!focusEtat.run,
+        pauseFinale: !!focusEtat.pauseFinale,
+        objectif: focusEtat.objectif,
+        transition: focusEtat.transition,
+        repriseMasquee: !!focusEtat.repriseMasquee,
         date: new Date().toDateString()
     };
     var texte = JSON.stringify(donnees);
@@ -145,6 +191,10 @@ function focusRestaurerEtat() {
     focusEtat.cycles = Math.max(0, Math.floor(Number(donnees.cycles) || 0));
     focusEtat.serie = Math.max(0, Math.floor(Number(donnees.serie) || 0));
     focusEtat.run = !!donnees.run;
+    focusEtat.objectif = focusBorner(donnees.objectif || focusDurees().seances, focusDurees().seances, 1, 12);
+    focusEtat.pauseFinale = !!donnees.pauseFinale && donnees.mode !== 'focus';
+    focusEtat.transition = ['pause-annonce', 'reprise-annonce', 'attente-reprise', 'fin-annonce'].indexOf(donnees.transition) !== -1 ? donnees.transition : '';
+    focusEtat.repriseMasquee = !!donnees.repriseMasquee && focusEtat.transition === 'attente-reprise';
     if (donnees.running && Number(donnees.fin) > 0) {
         focusEtat.running = true;
         focusEtat.fin = Number(donnees.fin);
@@ -200,6 +250,11 @@ function focusCharger() {
         var choix = localStorage.getItem('studyPlanIB_focusFond');
         if (choix !== null && /^\d+$/.test(choix) && Number(choix) < FOCUS_FONDS.length) fond = Number(choix);
     } catch (e) {}
+    // Un ancien choix retiré pointe vers le décor conservé, sans décaler les indices.
+    if (FOCUS_FONDS[fond].remplacePar) {
+        fond = focusIndexParId(FOCUS_FONDS[fond].remplacePar);
+        try { localStorage.setItem('studyPlanIB_focusFond', String(fond)); } catch (e) {}
+    }
     focusEtat.fond = fond;
     var tache = '';
     try { tache = localStorage.getItem('studyPlanIB_focusTache') || ''; } catch (e) {}
@@ -210,10 +265,30 @@ function focusCharger() {
     if (typeof chronoChargerReglagesVoix === 'function') chronoChargerReglagesVoix();
     focusTaches = focusLireJson('studyPlanIB_focusTaches', []);
     if (!Array.isArray(focusTaches)) focusTaches = [];
+    focusObserverVideosFond();
     focusPreparerFonds();
     focusPoserFond(focusEtat.fond, true);
+    focusPersonnelInitialiser();
     focusRestaurerEtat();
     focusEtatRestaure = true;
+    /* Un rechargement interrompt la lecture audio. On ne laisse jamais une
+       transition bloquée : la pause démarre ou la confirmation réapparaît. */
+    if (focusEtat.pauseFinale) {
+        // Migration des anciennes pauses finales déjà enregistrées : elles ne
+        // continuent plus automatiquement après le rechargement.
+        focusEtat.running = false;
+        focusEtat.fin = 0;
+        focusEtat.pauseFinale = false;
+        focusEtat.transition = '';
+        focusChoisirMode('focus', false);
+    } else if (focusEtat.transition === 'pause-annonce') {
+        focusEtat.transition = '';
+        focusLancerPhase();
+    } else if (focusEtat.transition === 'reprise-annonce') {
+        focusEtat.transition = focusEtat.run && focusEtat.objectif > 1 && focusEtat.serie < focusEtat.objectif ? 'attente-reprise' : '';
+    } else if (focusEtat.transition === 'fin-annonce') {
+        focusEtat.transition = ''; // l'audio interrompu n'est pas rejoué
+    }
     focusSauverEtat();
     focusBrancher();
     /* un chrono qui tournait avant le rechargement repart tout seul :
@@ -260,10 +335,12 @@ function focusOuvrirSeances() {
         if (!panel || !panel.classList.contains('active')) {
             clearInterval(focusRafraichirSeancesTimer);
             focusRafraichirSeancesTimer = null;
+            focusFermerChoixSeance();
             return;
         }
         var suivante = focusSignatureSeances();
         if (suivante !== signature) { signature = suivante; focusPeindreAccueil(); }
+        focusActualiserChoixSeance();
     }, 10000);
 }
 
@@ -322,12 +399,27 @@ function focusDureeTexte(mins) {
     return m + ' min';
 }
 
-function focusNombrePomodoros(mins) {
-    return Math.max(1, Math.ceil(Math.max(1, Number(mins) || 1) / focusDurees().focus));
+/* Nombre de concentrations complètes possibles, pauses comprises. */
+function focusPossibilites(minutes) {
+    var d = focusDurees(), restant = Math.max(0, minutes), n = 0, utilise = 0;
+    while (n < 12) {
+        var pause = n ? d[focusPauseApres(n)] : 0;
+        if (utilise + pause + d.focus > restant) break;
+        utilise += pause + d.focus;
+        n++;
+    }
+    return { nombre: n || (restant >= 1 ? 1 : 0),
+        minutes: n ? d.focus : Math.min(d.focus, Math.floor(restant)),
+        raccourcie: !n && restant >= 1 };
 }
-
+function focusMinutesDisponibles(seance) {
+    var maintenant = focusMinutesMaintenant() + (new Date().getSeconds() + new Date().getMilliseconds() / 1000) / 60;
+    return Math.max(0, seance.fin - Math.max(seance.debut, maintenant));
+}
+function focusNombrePomodoros(mins) { return focusPossibilites(mins).nombre; }
 function focusPomodorosTexte(mins) {
-    return focusNombrePomodoros(mins) + ' × ' + focusDurees().focus + ' min';
+    var p = focusPossibilites(mins);
+    return p.nombre ? p.nombre + ' × ' + p.minutes + ' min' : 'moins d’une minute';
 }
 
 function focusJourIndex() {
@@ -350,6 +442,8 @@ function focusSeancesJour() {
         if (!estEtude) return;
         var debut = focusMinutesHeure(ev.startTime);
         var fin = focusMinutesHeure(ev.endTime);
+        // Une séance qui finit à minuit se termine à la fin de la journée.
+        if (fin === 0 && debut > 0 && ev.endTime === '00:00') fin = 24 * 60;
         if (!(fin > debut)) return;
         seances.push({
             id: String(ev.id),
@@ -409,7 +503,8 @@ function focusAjouterCarteSeance(seance) {
     droite.className = 'focus-seance-droite';
     var duree = document.createElement('span');
     duree.className = 'focus-seance-duree';
-    duree.textContent = focusDureeTexte(seance.duree) + ' · ' + focusPomodorosTexte(seance.duree);
+    var disponible = focusMinutesDisponibles(seance);
+    duree.textContent = (etat.cle === 'encours' ? focusDureeTexte(Math.floor(disponible)) + ' restantes' : focusDureeTexte(seance.duree)) + ' · ' + focusPomodorosTexte(etat.cle === 'passee' ? 0 : disponible);
     var marque = document.createElement('span');
     marque.className = 'focus-seance-etat is-' + etat.cle;
     marque.textContent = etat.texte;
@@ -460,16 +555,17 @@ function focusPeindreAccueil() {
     var total = 0;
     var pomodoros = 0;
     seances.forEach(function (s) {
-        total += s.duree;
-        pomodoros += focusNombrePomodoros(s.duree);
+        var disponible = focusMinutesDisponibles(s);
+        total += Math.floor(disponible);
+        pomodoros += focusNombrePomodoros(disponible);
     });
 
     var stats = document.getElementById('focusAccueilStats');
     if (stats) {
         stats.innerHTML = '';
         stats.appendChild(focusAjouterStat(String(seances.length), seances.length > 1 ? 'séances' : 'séance', false));
-        stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'de travail', false));
-        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions de ' + focusDurees().focus + ' min', true));
+        stats.appendChild(focusAjouterStat(focusDureeTexte(total), 'disponibles', false));
+        stats.appendChild(focusAjouterStat(String(pomodoros), 'sessions possibles', true));
     }
 
     liste.innerHTML = '';
@@ -495,8 +591,8 @@ function focusPeindreAccueil() {
 }
 
 function focusSignatureSeances() {
-    return new Date().toDateString() + '|' + focusSeancesJour().map(function (s) {
-        return s.id + ':' + focusEtatSeance(s).cle;
+    return new Date().toDateString() + '|' + JSON.stringify(focusDurees()) + '|' + focusSeancesJour().map(function (s) {
+        return [s.id, s.titre, s.sous, s.debut, s.fin, focusEtatSeance(s).cle, Math.floor(focusMinutesDisponibles(s))].join(':');
     }).join('|');
 }
 
@@ -509,45 +605,91 @@ function focusChoisirSeance() {
 
 // De la liste au minuteur : une nouvelle étape dans l'historique, donc le
 // bouton retour du navigateur ramène d'abord sur la séance de révision.
+var focusChoixSeanceEnCours = null;
+function focusSeanceActualisee(id, date) {
+    if (date !== new Date().toDateString()) return null;
+    return focusSeancesJour().filter(function (s) { return s.id === id && focusEtatSeance(s).cle === 'encours'; })[0] || null;
+}
+function focusActualiserChoixSeance() {
+    var dialog = document.getElementById('focusChoixSeance');
+    if (!dialog || !dialog.open || !focusChoixSeanceEnCours) return;
+    var s = focusSeanceActualisee(focusChoixSeanceEnCours.id, focusChoixSeanceEnCours.date);
+    var p = s ? focusPossibilites(focusMinutesDisponibles(s)) : { nombre: 0 };
+    var champ = document.getElementById('focusChoixNombre');
+    var detail = document.getElementById('focusChoixDetail');
+    var ligne = document.getElementById('focusChoixLigne');
+    var bouton = document.getElementById('focusChoixLancer');
+    if (!p.nombre) {
+        detail.textContent = 'Ce créneau ne permet plus de lancer une minute complète. Reviens aux séances pour choisir un autre créneau.';
+        ligne.hidden = true; bouton.disabled = true; return;
+    }
+    bouton.disabled = false;
+    ligne.hidden = p.raccourcie || p.nombre === 1;
+    champ.max = String(p.nombre);
+    if (!champ.value || Number(champ.value) > p.nombre) champ.value = String(p.nombre);
+    if (p.raccourcie) detail.textContent = 'Il reste peu de temps : une séance de ' + p.minutes + ' min est possible.';
+    else if (p.nombre === 1) detail.textContent = 'Une séance de ' + p.minutes + ' min est possible dans le temps restant.';
+    else detail.textContent = 'Jusqu’à ' + p.nombre + ' séances de ' + p.minutes + ' min sont possibles, pauses comprises.';
+}
+function focusFermerChoixSeance() {
+    var dialog = document.getElementById('focusChoixSeance');
+    if (dialog && dialog.open) dialog.close();
+    focusChoixSeanceEnCours = null;
+}
 function focusEntrerPiece(libre) {
-    if (libre) return; /* ancien raccourci : ne doit jamais contourner le créneau */
+    if (libre) return;
     focusChoisirSeance();
     var choisie = focusSeancesJour().filter(function (s) {
         return s.id === focusSeanceChoisie && focusEtatSeance(s).cle === 'encours';
     })[0];
-    if (!choisie) {
-        focusPeindreAccueil();
+    if (!choisie) { focusPeindreAccueil(); return; }
+    // Retour à un minuteur existant : ne jamais le remplacer ni le réinitialiser.
+    if (focusEtat.running || focusEtat.transition || focusEtat.run) {
+        focusEntreeDepuisSeance = true;
+        if (typeof memoireAller === 'function') memoireAller('pomodoro');
+        else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+        if (!focusEtat.running && !focusEtat.transition) focusBasculer();
         return;
     }
-    var objectif = document.getElementById('focusTache');
-    var saisi = objectif ? objectif.value.trim() : '';
-    if (saisi && saisi !== choisie.titre && typeof confirmerAction === 'function') {
-        confirmerAction({ titre: 'Garder ton objectif ?',
-            detail: 'Un objectif est déjà saisi. Garde-le ou ajoute le titre de la séance.',
-            annulerTexte: 'Garder mon objectif', annuler: function () { focusValiderSeance(choisie, saisi); },
-            action: 'Accoler la séance', confirmer: function () { focusValiderSeance(choisie, saisi + ' · ' + choisie.titre); }
-        });
-        return;
-    }
-    focusValiderSeance(choisie, choisie.titre);
+    focusChoixSeanceEnCours = { id: choisie.id, date: new Date().toDateString() };
+    var dialog = document.getElementById('focusChoixSeance');
+    document.getElementById('focusChoixNombre').value = '';
+    dialog.showModal();
+    focusActualiserChoixSeance();
 }
-
-function focusValiderSeance(choisie, objectif) {
-    /* Le créneau peut expirer pendant que l'élève choisit son objectif. */
-    if (focusEtatSeance(choisie).cle !== 'encours') { focusPeindreAccueil(); return; }
-    focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin,
-        date: new Date().toDateString() };
+function focusConfirmerChoixSeance() {
+    if (!focusChoixSeanceEnCours) return;
+    var choisie = focusSeanceActualisee(focusChoixSeanceEnCours.id, focusChoixSeanceEnCours.date);
+    var p = choisie ? focusPossibilites(focusMinutesDisponibles(choisie)) : { nombre: 0 };
+    var nombre = Number(document.getElementById('focusChoixNombre').value);
+    if (!p.nombre || !Number.isInteger(nombre) || nombre < 1 || nombre > p.nombre) {
+        focusActualiserChoixSeance(); return;
+    }
+    // Un autre minuteur a pu démarrer pendant l'ouverture du dialogue.
+    if (focusEtat.running || focusEtat.transition || focusEtat.run) { focusFermerChoixSeance(); return; }
+    focusFermerChoixSeance();
+    var champ = document.getElementById('focusTache');
+    var objectif = champ && champ.value.trim() ? champ.value.trim() : choisie.titre;
+    focusValiderSeance(choisie, objectif, nombre, p.minutes);
+}
+function focusValiderSeance(choisie, objectif, nombre, minutes) {
+    if (!focusSeanceActualisee(choisie.id, new Date().toDateString())) { focusPeindreAccueil(); return; }
+    focusSeanceMinuteur = { id: choisie.id, debut: choisie.debut, fin: choisie.fin, date: new Date().toDateString() };
     focusEntreeDepuisSeance = true;
     try { sessionStorage.setItem('studyPlanIB_focusSeanceEnCours', JSON.stringify(focusSeanceMinuteur)); } catch (e) {}
     var champ = document.getElementById('focusTache');
-    if (champ) {
-        champ.value = objectif;
-        focusMemoriserObjectif();
-    }
+    if (champ) { champ.value = objectif; focusMemoriserObjectif(); }
+    focusChoisirMode('focus', false);
+    focusEtat.total = minutes * 60;
+    focusEtat.restant = focusEtat.total;
+    focusEtat.run = true;
+    focusEtat.serie = 0;
+    focusEtat.objectif = nombre;
     focusPeindre();
     if (typeof memoireAller === 'function') memoireAller('pomodoro');
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
     else focusOuvrirMinuteur();
+    if (!focusEtat.running && !focusEtat.transition) focusBasculer();
 }
 
 function focusDecoderImage(src, suite) {
@@ -559,15 +701,22 @@ function focusDecoderImage(src, suite) {
         if (suite) suite(true);
         return;
     }
+    /* Une image demandée simultanément par les deux pages ou par le
+       préchargement n'est téléchargée et décodée qu'une seule fois. */
+    if (focusFondsEnCours[src]) {
+        if (suite) focusFondsEnCours[src].push(suite);
+        return;
+    }
+    focusFondsEnCours[src] = suite ? [suite] : [];
     var img = new Image();
     var fait = false;
     var finir = function (ok) {
         if (fait) return;
         fait = true;
-        /* On garde l'image décodée en mémoire : le clic suivant la pose alors
-           sans le moindre délai. */
         if (ok) focusFondsPrets[src] = img;
-        if (suite) suite(!!ok);
+        var suites = focusFondsEnCours[src] || [];
+        delete focusFondsEnCours[src];
+        suites.forEach(function (rappel) { try { rappel(!!ok); } catch (e) {} });
     };
     img.onload = function () {
         if (img.decode) img.decode().then(function () { finir(true); }, function () { finir(true); });
@@ -604,7 +753,7 @@ function focusAmorcerFonds() {
         }
         var fond = FOCUS_FONDS[ordre[rang]];
         rang += 1;
-        if (!fond || focusFondsPrets[fond.src]) {
+        if (!fond || fond.precharger === false || focusFondsPrets[fond.src]) {
             suivant();
             return;
         }
@@ -632,11 +781,17 @@ function focusPeindreCalque(el, src) {
     el.style.backgroundRepeat = 'no-repeat';
 }
 
-/* Change le décor. L'ancienne image reste affichée telle quelle pendant que la
-   nouvelle se charge, puis la nouvelle est posée d'un coup : aucun fondu, donc
-   jamais l'ancienne image qui réapparaît ni le planning derrière. */
+/* Change le décor sans fondu ni fond transparent : une miniature décodée
+   précède si possible l'image complète, sans écraser un choix plus récent. */
 function focusFondPage(src) {
-    if (!src || src === focusFondActif) return;
+    if (!src) return;
+    if (src === focusFondActif) {
+        focusFondDemande = '';
+        /* Annule aussi l'aperçu provisoire d'un autre choix. */
+        focusPeindreCalque(document.getElementById('focusBg'), src);
+        focusPeindreFonds();
+        return;
+    }
     var bg = document.getElementById('focusBg');
     if (!bg) {
         focusFondActif = src;
@@ -644,7 +799,15 @@ function focusFondPage(src) {
     }
     focusFondDemande = src;
     focusPeindreFonds();
+    /* La petite image déjà visible dans la galerie donne un retour rapide,
+       tout en gardant l'ancien décor jusqu'à ce qu'elle soit décodée. */
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    if (fond.mini && fond.mini !== src) focusDecoderImage(fond.mini, function (ok) {
+        if (ok && focusFondDemande === src && (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src === src) focusPeindreCalque(bg, fond.mini);
+    });
     focusDecoderImage(src, function (ok) {
+        /* Un décodage plus ancien ne doit pas écraser le dernier choix. */
+        if ((FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
         focusFondDemande = '';
         focusPeindreFonds();
         if (!ok) return;
@@ -658,11 +821,179 @@ function focusFondPage(src) {
 
 function focusFondAccueil(src) {
     var el = document.getElementById('focusAccueilFond');
-    if (!el || !src || focusAccueilActif === src) return;
+    if (!el || !src) return;
+    if (focusAccueilActif === src) { focusPeindreCalque(el, src); return; }
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    if (fond.mini && fond.mini !== src) focusDecoderImage(fond.mini, function (ok) {
+        if (ok && focusAccueilActif !== src && (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src === src) focusPeindreCalque(el, fond.mini);
+    });
     focusDecoderImage(src, function (ok) {
-        if (!ok) return;
+        if (!ok || (FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0]).src !== src) return;
         focusAccueilActif = src;
         focusPeindreCalque(el, src);
+    });
+}
+
+/* En cas d'autoplay refusé, de réseau coupé ou de chargement trop long, ne
+   pas laisser une image fixe sans explication. Le bouton fournit aussi un
+   vrai geste utilisateur aux navigateurs qui exigent une interaction. */
+function focusVideoRetirerAide(panel) {
+    if (!panel) return;
+    var aide = panel.querySelector('.focus-video-reessayer');
+    if (aide) aide.remove();
+}
+function focusVideoAide(video, texte) {
+    if (!video.isConnected) return;
+    var panel = video.closest('.app-panel');
+    if (!panel) return;
+    var aide = panel.querySelector('.focus-video-reessayer');
+    if (!aide) {
+        aide = document.createElement('button');
+        aide.type = 'button';
+        aide.className = 'focus-video-reessayer';
+        aide.onclick = function () { focusVideoLancer(video, true); };
+        panel.appendChild(aide);
+    }
+    aide.textContent = texte || 'Décor animé en pause — réessayer';
+}
+/* La 4K agrandie est réservée aux grands écrans et aux bonnes connexions ;
+   le mobile et les réseaux limités reçoivent une version plus légère. */
+function focusVideoSource(fond) {
+    if (!fond.videoLeger) return fond.video;
+    var connexion = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if ((connexion && (connexion.saveData || (connexion.downlink && connexion.downlink < 5))) || window.innerWidth <= 768) return fond.videoLeger;
+    var pixels = (window.screen && window.screen.width || window.innerWidth) * (window.devicePixelRatio || 1);
+    if (fond.video4k && pixels >= 3000 && (!connexion || !connexion.downlink || connexion.downlink >= 15)) return fond.video4k;
+    return fond.video;
+}
+
+function focusVideoLancer(video, reessai) {
+    if (!video || !video.isConnected) return;
+    if (reessai && video.error) video.load();
+    video.muted = true;
+    try {
+        var source = video.getAttribute('src');
+        var lecture = video.play();
+        if (lecture && lecture.catch) lecture.catch(function (err) {
+            if (!video.isConnected || source !== video.getAttribute('src') || (err && err.name === 'AbortError')) return;
+            focusVideoAide(video, 'Décor animé en pause — réessayer');
+        });
+    } catch (e) { focusVideoAide(video, 'Décor animé en pause — réessayer'); }
+}
+
+/* Le poster reste visible tant que la vidéo ne joue pas (chargement, hors ligne,
+   navigateur incompatible). Une seule vidéo tourne, uniquement sur la page
+   visible ; elle est muette, sans commandes, et boucle indépendamment du chrono. */
+function focusSynchroniserVideosFond() {
+    var fond = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
+    [
+        { panneau: 'panelPomodoro', page: 'focusPage', calque: 'focusBg' },
+        { panneau: 'panelSeances', page: 'focusAccueil', calque: 'focusAccueilFond' }
+    ].forEach(function (cible) {
+        var panel = document.getElementById(cible.panneau);
+        var page = document.getElementById(cible.page);
+        var calque = document.getElementById(cible.calque);
+        if (!calque) return;
+        var video = calque.querySelector('.focus-fond-video');
+        var visible = !!fond.video && !!panel && panel.classList.contains('active') &&
+            !!page && !page.hidden && !document.hidden;
+        if (!visible) {
+            if (video) {
+                focusVideoRetirerAide(panel);
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+                video.remove();
+            }
+            return;
+        }
+        if (video && video.getAttribute('data-fond') === fond.id) return;
+        if (video) { focusVideoRetirerAide(panel); video.pause(); video.remove(); }
+        video = document.createElement('video');
+        video.className = 'focus-fond-video';
+        video.setAttribute('data-fond', fond.id);
+        video.muted = true;
+        video.defaultMuted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = 'auto';
+        video.poster = fond.src;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('aria-hidden', 'true');
+        video.setAttribute('tabindex', '-1');
+        var attente;
+        function passerPlusLeger() {
+            if (!video.isConnected) return false;
+            var source = video.getAttribute('src');
+            var suivante = source === fond.video4k ? fond.video : (source === fond.video ? fond.videoLeger : null);
+            if (!suivante) return false;
+            var temps = video.currentTime || 0;
+            video.pause(); video.src = suivante;
+            video.addEventListener('loadedmetadata', function reprendrePosition() {
+                if (video.getAttribute('src') !== suivante) return;
+                try { if (temps > 0 && temps < video.duration) video.currentTime = temps; } catch (e) {}
+            }, { once: true });
+            video.load(); surveillerAttente(); focusVideoLancer(video, false);
+            return true;
+        }
+        function surveillerAttente() {
+            clearTimeout(attente);
+            attente = setTimeout(function () {
+                if (video.isConnected && (video.paused || video.readyState < 3)) {
+                    // Le poster reste visible pendant le chargement : pas de
+                    // message de relance pour une simple attente réseau.
+                    passerPlusLeger();
+                }
+            }, 5000);
+        }
+        var mesureVideo;
+        video.addEventListener('playing', function () {
+            clearTimeout(attente);
+            video.classList.add('is-visible');
+            focusVideoRetirerAide(panel);
+            clearTimeout(mesureVideo);
+            if (fond.videoLeger && video.getVideoPlaybackQuality) {
+                var avant = video.getVideoPlaybackQuality();
+                mesureVideo = setTimeout(function () {
+                    if (!video.isConnected || video.paused) return;
+                    var apres = video.getVideoPlaybackQuality();
+                    var total = apres.totalVideoFrames - avant.totalVideoFrames;
+                    var perdu = apres.droppedVideoFrames - avant.droppedVideoFrames;
+                    if (total >= 45 && perdu / total > 0.3) passerPlusLeger();
+                }, 6000);
+            }
+        });
+        video.addEventListener('waiting', surveillerAttente);
+        video.addEventListener('error', function () {
+            clearTimeout(attente);
+            video.classList.remove('is-visible');
+            if (!passerPlusLeger()) focusVideoAide(video, 'Décor animé indisponible — réessayer');
+        });
+        video.src = focusVideoSource(fond);
+        calque.appendChild(video);
+        surveillerAttente();
+        focusVideoLancer(video, false);
+    });
+}
+
+function focusObserverVideosFond() {
+    if (focusObserverVideosFond.pret) return;
+    focusObserverVideosFond.pret = true;
+    if (typeof MutationObserver === 'function') {
+        var observateur = new MutationObserver(focusSynchroniserVideosFond);
+        ['panelPomodoro', 'panelSeances'].forEach(function (id) {
+            var panneau = document.getElementById(id);
+            if (panneau) observateur.observe(panneau, { attributes: true, attributeFilter: ['class'] });
+        });
+    }
+    document.addEventListener('visibilitychange', function () {
+        focusSynchroniserVideosFond();
+        focusPipMaj();
+    });
+    window.addEventListener('online', function () {
+        var video = document.querySelector('.app-panel.active .focus-fond-video');
+        if (video && (video.paused || video.error)) focusVideoLancer(video, true);
     });
 }
 
@@ -673,6 +1004,7 @@ function focusPreparerFonds() {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'focus-vignette';
+            btn.hidden = !!fond.masque; // conserve les indices des galeries historiques
             btn.setAttribute('aria-label', fond.nom);
             btn.style.backgroundImage = 'url("' + (fond.mini || fond.src) + '")';
             btn.style.backgroundPosition = 'center center';
@@ -689,22 +1021,38 @@ function focusPreparerFonds() {
     focusAmorcerFonds();
 }
 
-/* Le second paramètre reste accepté (ouverture du panneau) : l image n est de
-   toute façon posée qu une fois décodée, donc jamais de trou dans le décor. */
+/* Le second paramètre reste accepté ; les images sont posées après décodage
+   sans jamais créer de trou transparent dans le décor. */
 function focusPoserFond(index, immediat) {
     if (index < 0 || index >= FOCUS_FONDS.length) return;
+    if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
     focusEtat.fond = index;
     var fond = FOCUS_FONDS[index];
-    try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
+    if (fond.id === 'personnel-local') {
+        try { localStorage.setItem('studyPlanIB_themePersonnelActif', '1'); } catch (e) {}
+    } else {
+        if (!immediat) {
+            focusPersonnelSelectionRevision++;
+            try { localStorage.removeItem('studyPlanIB_themePersonnelActif'); } catch (e) {}
+        }
+        if (typeof syncFocusCourant === 'function') syncFocusCourant();
+        try { localStorage.setItem('studyPlanIB_focusFond', String(index)); } catch (e) {}
+        if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
+    }
+    focusPersonnelPeindre();
     focusPeindreFonds();
     focusFondPage(fond.src);
     focusFondAccueil(fond.src);
+    focusSynchroniserVideosFond();
     focusPipMaj();
 }
 
 function focusChoisirMode(mode, enchainement) {
     if (mode !== 'focus' && mode !== 'short' && mode !== 'long') return;
+    if (enchainement !== false && focusEtat.transition) focusAnnulerTransition();
     if (!enchainement && focusEtat.running && focusEtat.mode !== mode) focusPause();
+    // Un choix manuel ouvre une nouvelle phase ; il ne prolonge pas une fin de série.
+    if (enchainement !== false) focusEtat.pauseFinale = false;
     focusEtat.mode = mode;
     var minutes = focusDurees()[mode];
     focusEtat.total = minutes * 60;
@@ -723,15 +1071,18 @@ function focusCompterLancement() {
     if (focusEtat.mode === 'focus' && focusEtat.restant >= focusEtat.total) statsEnregistrer({ k: 'lance' });
 }
 
+var focusAutoriserRepriseConfirmee = false;
 function focusBasculer() {
     var panel = document.getElementById('panelPomodoro');
     if (!panel || !panel.classList.contains('active')) return;
     focusCharger();
+    if (focusEtat.transition === 'attente-reprise') { focusConfirmerReprise(); return; }
+    if (focusEtat.transition) return; /* ne pas couper l'annonce en cours */
     if (focusEtat.running) {
         focusPause();
         return;
     }
-    if (focusEtat.mode === 'focus' && focusSeanceMinuteur &&
+    if (!focusAutoriserRepriseConfirmee && focusEtat.mode === 'focus' && focusSeanceMinuteur &&
         (focusSeanceMinuteur.date !== new Date().toDateString() ||
          focusMinutesMaintenant() < focusSeanceMinuteur.debut ||
          focusMinutesMaintenant() >= focusSeanceMinuteur.fin)) {
@@ -749,6 +1100,7 @@ function focusBasculer() {
     if (focusEtat.mode === 'focus' && !focusEtat.run) {
         focusEtat.run = true;
         focusEtat.serie = 0;
+        focusEtat.objectif = focusDurees().seances;
     }
     focusCompterLancement();
     focusEtat.running = true;
@@ -779,13 +1131,110 @@ function focusPause() {
 }
 
 function focusRecommencer() {
+    if (focusEtat.transition) focusAnnulerTransition();
     focusPause();
     focusEtat.restant = focusDurees()[focusEtat.mode] * 60;
     focusEtat.total = focusEtat.restant;
     focusPeindre();
 }
 
-/* Une série de révision est en cours : les séances s'enchaînent seules. */
+/* Les callbacks audio ne peuvent agir après une action manuelle. */
+var focusTransitionGeneration = 0;
+function focusAnnulerTransition() {
+    ++focusTransitionGeneration;
+    if (typeof chronoInterrompreAnnonce === 'function') chronoInterrompreAnnonce(false);
+    focusEtat.transition = '';
+    focusEtat.repriseMasquee = false;
+    focusEtat.run = false;
+    focusEtat.serie = 0;
+    focusEtat.pauseFinale = false;
+}
+
+/* Garde la fenêtre juste au-dessus des outils, y compris en plein écran et
+   lorsque la barre se replie sur téléphone. Hors minuteur, position normale. */
+function focusPlacerReprise() {
+    var panel = document.getElementById('panelPomodoro');
+    var page = document.getElementById('focusPage');
+    var pied = page && page.querySelector ? page.querySelector('.focus-bottom') : null;
+    var bas = null;
+    if (panel && panel.classList.contains('active') && page && !page.hidden && pied && pied.getBoundingClientRect) {
+        var rect = pied.getBoundingClientRect();
+        if (rect.height > 0 && rect.top >= 0 && rect.top < window.innerHeight) {
+            bas = Math.ceil(window.innerHeight - rect.top + 12);
+        }
+    }
+    ['focusReprise', 'focusRepriseRappel'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el || !el.style || !el.style.setProperty) return;
+        if (bas === null) el.style.removeProperty('--focus-reprise-bas');
+        else el.style.setProperty('--focus-reprise-bas', bas + 'px');
+    });
+}
+
+function focusPeindreReprise() {
+    var fenetre = document.getElementById('focusReprise');
+    var rappel = document.getElementById('focusRepriseRappel');
+    /* Hors plein écran, la fenêtre suit le minuteur sur tout le site. En
+       plein écran, les éléments hors de ce sous-arbre ne sont pas rendus,
+       quel que soit leur z-index : les placer DANS le panneau agrandi. */
+    var pleinEcran = document.fullscreenElement || document.webkitFullscreenElement;
+    var panel = document.getElementById('panelPomodoro');
+    var cible = pleinEcran === panel ? panel : document.body;
+    if (cible && cible.appendChild) {
+        if (fenetre && fenetre.parentNode !== cible) cible.appendChild(fenetre);
+        if (rappel && rappel.parentNode !== cible) cible.appendChild(rappel);
+    }
+    var attend = focusEtat.transition === 'attente-reprise';
+    if (fenetre) fenetre.hidden = !attend || focusEtat.repriseMasquee;
+    if (rappel) rappel.hidden = !attend || !focusEtat.repriseMasquee;
+    focusPlacerReprise();
+    if (!attend) return;
+    var total = focusEtat.objectif || focusDurees().seances;
+    var numero = Math.min(total, focusEtat.serie + 1);
+    var compte = document.getElementById('focusRepriseCompte');
+    if (compte) compte.textContent = 'Séance ' + numero + ' sur ' + total;
+    var barres = document.getElementById('focusRepriseBarres');
+    if (barres) {
+        barres.innerHTML = '';
+        for (var i = 0; i < total; i++) {
+            var barre = document.createElement('i');
+            if (i < numero) barre.className = 'is-on';
+            barres.appendChild(barre);
+        }
+    }
+}
+function focusReporterReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    focusEtat.repriseMasquee = true;
+    focusPeindre();
+    var rappel = document.getElementById('focusRepriseRappel');
+    if (rappel && rappel.focus) rappel.focus();
+}
+function focusMontrerReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    focusEtat.repriseMasquee = false;
+    focusPeindre();
+    var bouton = document.querySelector('#focusReprise .focus-reprise-oui');
+    if (bouton && bouton.focus) bouton.focus();
+}
+function focusConfirmerReprise() {
+    if (focusEtat.transition !== 'attente-reprise') return;
+    var panel = document.getElementById('panelPomodoro');
+    if (panel && !panel.classList.contains('active')) {
+        if (typeof memoireAller === 'function') memoireAller('pomodoro');
+        else if (typeof navigateTo === 'function') navigateTo('pomodoro');
+        if (!panel.classList.contains('active')) return;
+    }
+    focusEtat.transition = '';
+    focusEtat.repriseMasquee = false;
+    focusPeindre();
+    /* Le créneau a pu expirer pendant une pause ou une attente volontaire.
+       Une série déjà commencée reste reprenable sur confirmation explicite. */
+    focusAutoriserRepriseConfirmee = true;
+    try { focusBasculer(); } finally { focusAutoriserRepriseConfirmee = false; }
+}
+
+/* Une série de révision est en cours : le type de pause reste celui prévu. */
 function focusEnchainementSeance() {
     return !!(focusEtat.run && focusSeanceMinuteur);
 }
@@ -797,79 +1246,92 @@ function focusLancerPhase() {
     focusLancerIntervalle();
 }
 
+/* Arrête la série sans lancer de pause. Un changement de réglage pendant
+   une annonce invalide son callback avant d'annoncer la fin de série. */
+function focusTerminerSerie(silencieux) {
+    var generation = ++focusTransitionGeneration;
+    if (typeof chronoInterrompreAnnonce === 'function') chronoInterrompreAnnonce(false);
+    focusEtat.running = false;
+    focusEtat.fin = 0;
+    focusStopIntervalle();
+    focusEtat.run = false;
+    focusEtat.pauseFinale = false;
+    focusEtat.repriseMasquee = false;
+    focusChoisirMode('focus', false);
+    focusEtat.transition = 'fin-annonce';
+    focusPeindre();
+    function terminer() {
+        if (generation !== focusTransitionGeneration || focusEtat.transition !== 'fin-annonce') return;
+        focusEtat.transition = '';
+        focusPeindre();
+    }
+    if (silencieux) terminer();
+    else if (typeof chronoAnnoncerFinSerie === 'function') chronoAnnoncerFinSerie(terminer);
+    else { focusBip(1); setTimeout(terminer, 800); }
+}
+
 function focusPhaseSuivante(silencieux) {
     var fini = focusEtat.mode;
-    /* La phase qui se termine est notée pour les statistiques (une fois, ici seulement). */
     if (typeof statsEnregistrer === 'function') {
         statsEnregistrer({ k: fini, m: Math.round(focusEtat.total / 60),
             s: fini === 'focus' && focusSeanceMinuteur ? focusSeanceMinuteur.id : null });
     }
     focusEtat.running = false;
+    focusEtat.fin = 0;
     focusStopIntervalle();
-    /* Enchaînement automatique : séance de révision seulement, et pas au rattrapage. */
-    var chaine = focusEnchainementSeance() && !silencieux;
+    var chaine = focusEnchainementSeance();
+    var generation = ++focusTransitionGeneration;
 
     if (fini === 'focus') {
         focusEtat.cycles += 1;
-        /* La série compte chaque concentration terminée, minuteur libre compris. */
-        if (focusEtat.run) {
-            focusEtat.serie = Math.min(focusDurees().seances, focusEtat.serie + 1);
-            if (focusEtat.serie >= focusDurees().seances) focusEtat.run = false;
-        }
-        if (chaine) {
-            if (!focusEtat.run) {
-                /* Dernière séance de la série : fin, sans pause. */
-                focusChoisirMode('focus', false);
-                if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(2);
+        var serieEnCours = focusEtat.run;
+        var objectif = focusEtat.objectif || focusDurees().seances;
+        if (serieEnCours) focusEtat.serie += 1;
+        if (serieEnCours && focusEtat.serie >= objectif) {
+            focusTerminerSerie(silencieux);
+        } else {
+            var modePause = chaine ? focusPauseApres(focusEtat.serie) :
+                (focusEtat.cycles % objectif === 0 ? 'long' : 'short');
+            var minutesPause = focusDurees()[modePause];
+            focusChoisirMode(modePause, false);
+            focusEtat.pauseFinale = false;
+            focusEtat.transition = 'pause-annonce';
+            focusEtat.repriseMasquee = false;
+            focusPeindre();
+            function demarrerPause() {
+                if (generation !== focusTransitionGeneration || focusEtat.transition !== 'pause-annonce') return;
+                focusEtat.transition = '';
+                focusLancerPhase();
                 focusPeindre();
-                focusTitre();
-                if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-                return;
             }
-            /* Pause courte, sauf après la 3e séance : pause longue. La pause démarre seule. */
-            var pauseSerie = focusPauseApres(focusEtat.serie);
-            focusChoisirMode(pauseSerie, false);
-            if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(focusDurees()[pauseSerie]);
-            else focusBip(2);
-            focusLancerPhase();
-            focusPeindre();
-            focusTitre();
-            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-            return;
+            if (silencieux) demarrerPause();
+            else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause, demarrerPause, false);
+            else { focusBip(2); setTimeout(demarrerPause, 800); }
         }
-        /* Minuteur libre : la phase suivante est proposée, jamais lancée d'elle-même. */
-        var modePause = focusEtat.cycles % focusDurees().seances === 0 ? 'long' : 'short';
-        /* la pause annoncée est celle de la configuration de l'élève,
-           pas une valeur écrite dans le site */
-        var minutesPause = focusDurees()[modePause];
-        focusChoisirMode(modePause, false);
-        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
-        else if (typeof chronoAnnoncerPause === 'function') chronoAnnoncerPause(minutesPause);
-        else focusBip(2);
     } else {
+        var pauseFinale = focusEtat.pauseFinale;
+        focusEtat.pauseFinale = false;
         focusChoisirMode('focus', false);
-        if (chaine) {
-            /* Même son qu'à la fin d'une séance, puis la concentration reprend seule. */
-            if (typeof chronoBipDoux === 'function') chronoBipDoux(); else focusBip(1);
-            focusLancerPhase();
-            if (typeof chronoRendreMusique === 'function') { try { chronoRendreMusique(); } catch (e) {} }
+        focusEtat.transition = 'reprise-annonce';
+        focusEtat.repriseMasquee = false;
+        focusPeindre();
+        function reprisePrete() {
+            if (generation !== focusTransitionGeneration || focusEtat.transition !== 'reprise-annonce') return;
+            // L'objectif a pu changer pendant la voix de reprise.
+            var demander = focusEtat.run && focusEtat.serie < focusEtat.objectif && !pauseFinale;
+            focusEtat.transition = demander ? 'attente-reprise' : '';
             focusPeindre();
-            focusTitre();
-            if (typeof focusNotifierFin === 'function') focusNotifierFin(fini);
-            return;
+            if (!demander && !pauseFinale && !focusEtat.run && !silencieux &&
+                typeof focusLireReglages === 'function' && focusLireReglages().auto &&
+                typeof focusDemarrerEnchainement === 'function') focusDemarrerEnchainement();
         }
-        if (silencieux) { /* rattrapage au rechargement : pas d'annonce */ }
-        else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise();
-        else focusBip(1);
+        if (silencieux) reprisePrete();
+        else if (pauseFinale) { focusBip(1); reprisePrete(); }
+        else if (typeof chronoAnnoncerReprise === 'function') chronoAnnoncerReprise(reprisePrete);
+        else { focusBip(1); setTimeout(reprisePrete, 800); }
     }
-    focusPeindre();
     focusTitre();
-    /* Options du panneau Paramètres : notification de fin, enchaînement automatique.
-       Un rattrapage au rechargement ne déclenche rien. */
-    if (!silencieux && typeof focusNotifierFin === 'function') {
-        focusNotifierFin(fini);
-        if (focusLireReglages().auto) focusDemarrerEnchainement();
-    }
+    if (!silencieux && typeof focusNotifierFin === 'function') focusNotifierFin(fini);
 }
 
 function focusTick() {
@@ -918,6 +1380,7 @@ function focusPeindre() {
     focusTitre();
     focusPipMaj();
     if (typeof focusPeindreCompteur === 'function') focusPeindreCompteur();
+    focusPeindreReprise();
     if (typeof planningMinuteurEntete === 'function') planningMinuteurEntete();
     focusSauverEtat();
     /* style d'affichage, police, heure et citation : js/pages/pomodoro-parametres.js */
@@ -962,6 +1425,7 @@ function focusBasculerTaches() {
     if (panneau.hidden) {
         focusMenuTache = null;
         focusSousCible = null;
+        focusEditionTache = null;
     }
     var bouton = document.getElementById('focusBtnTaches');
     if (bouton) bouton.classList.toggle('is-on', !panneau.hidden);
@@ -998,6 +1462,7 @@ function focusFermer(id) {
     var el = document.getElementById(id);
     if (el) el.hidden = true;
     if (id === 'focusTaches') {
+        focusEditionTache = null;
         var bouton = document.getElementById('focusBtnTaches');
         if (bouton) bouton.classList.remove('is-on');
     }
@@ -1018,7 +1483,10 @@ function focusAjouterTache(event) {
     if (champ) champ.value = '';
     focusSauverTaches();
     var objectif = document.getElementById('focusTache');
-    if (objectif && !objectif.value.trim()) objectif.value = texte;
+    var ecranSalon = document.getElementById('salonEcran');
+    // Dans le Pomodoro personnel, la tâche qu'on vient d'ajouter devient
+    // immédiatement l'objectif affiché. La séance et le salon gardent leur comportement.
+    if (objectif && (!objectif.value.trim() || (!focusSeanceMinuteur && (!ecranSalon || ecranSalon.hidden)))) objectif.value = texte;
     focusMemoriserObjectif();
     focusPeindreTaches();
     return false;
@@ -1067,7 +1535,9 @@ function focusChoisirTache(id) {
 }
 
 function focusSauverTaches() {
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusTaches', JSON.stringify(focusTaches.slice(-40))); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
 }
 
 function focusPeindreTaches() {
@@ -1091,6 +1561,7 @@ function focusBoutonTache(tache, parent) {
         if (event) { event.preventDefault(); event.stopPropagation(); }
         focusMenuTache = focusMenuTache === tache.id ? null : tache.id;
         focusSousCible = null;
+        focusEditionTache = null;
         focusPeindreTaches();
     };
     return bouton;
@@ -1116,6 +1587,7 @@ function focusOptionsTache(tache, parent) {
     if (!parent) {
         menu.appendChild(focusOptionTache('sous', 'Ajouter une sous-tâche', '<path d="M12 5v14M5 12h14"/>', false, tache, parent));
     }
+    menu.appendChild(focusOptionTache('modifier', 'Modifier', '<path d="M4 20l4-.8L19 8.2 15.8 5 4.8 16zM13.8 7l3.2 3.2"/>', false, tache, parent));
     menu.appendChild(focusOptionTache('dupliquer', 'Dupliquer', '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5h10"/>', false, tache, parent));
     menu.appendChild(focusOptionTache('supprimer', parent ? 'Supprimer la sous-tâche' : 'Supprimer la tâche', '<path d="M6 6l12 12M18 6 6 18"/>', true, tache, parent));
     return menu;
@@ -1124,6 +1596,15 @@ function focusOptionsTache(tache, parent) {
 function focusActionTache(action, tache, parent) {
     var cible = parent ? focusSousTaches(parent) : focusTaches;
     var index = cible.indexOf(tache);
+    if (action === 'modifier') {
+        focusMenuTache = null;
+        focusSousCible = null;
+        focusEditionTache = tache.id;
+        focusPeindreTaches();
+        var edition = document.querySelector('#focusListe .focus-edition-tache input');
+        if (edition) { edition.focus(); edition.select(); }
+        return;
+    }
     if (action === 'sous') {
         focusMenuTache = null;
         focusSousCible = tache.id;
@@ -1164,6 +1645,7 @@ function focusAjouterSousTache(event, id) {
 
 function focusLigneTache(tache, parent) {
     var li = document.createElement('li');
+    li.dataset.tacheId = String(tache.id);
     var ligne = document.createElement('div');
     ligne.className = 'focus-ligne' + (parent ? ' is-sous' : '');
     var check = document.createElement('button');
@@ -1177,11 +1659,70 @@ function focusLigneTache(tache, parent) {
     nom.className = 'focus-tache' + (tache.fait ? ' is-fait' : '');
     nom.textContent = tache.texte;
     nom.onclick = function () { focusChoisirTache(tache.id); };
+    var modifier = document.createElement('button');
+    modifier.type = 'button';
+    modifier.className = 'focus-tache-menu focus-tache-modifier';
+    modifier.setAttribute('aria-label', parent ? 'Modifier la sous-tâche' : 'Modifier la tâche');
+    modifier.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4-.8L19 8.2 15.8 5 4.8 16zM13.8 7l3.2 3.2"/></svg>';
+    modifier.onclick = function (event) {
+        if (event) { event.preventDefault(); event.stopPropagation(); }
+        focusActionTache('modifier', tache, parent);
+    };
     ligne.appendChild(check);
     ligne.appendChild(nom);
+    ligne.appendChild(modifier);
     ligne.appendChild(focusBoutonTache(tache, parent));
     li.appendChild(ligne);
     if (focusMenuTache === tache.id) li.appendChild(focusOptionsTache(tache, parent));
+    if (focusEditionTache === tache.id) {
+        var edition = document.createElement('form');
+        edition.className = 'focus-edition-tache';
+        var champEdition = document.createElement('input');
+        champEdition.type = 'text';
+        champEdition.maxLength = 120;
+        champEdition.value = tache.texte;
+        champEdition.setAttribute('aria-label', parent ? 'Modifier la sous-tâche' : 'Modifier la tâche');
+        champEdition.autocomplete = 'off';
+        var erreur = document.createElement('p');
+        erreur.className = 'focus-edition-erreur';
+        erreur.setAttribute('role', 'alert');
+        var actions = document.createElement('div');
+        actions.className = 'focus-edition-actions';
+        var enregistrer = document.createElement('button');
+        enregistrer.type = 'submit'; enregistrer.textContent = 'Enregistrer';
+        var annuler = document.createElement('button');
+        annuler.type = 'button'; annuler.textContent = 'Annuler';
+        function fermerEdition() {
+            focusEditionTache = null;
+            focusPeindreTaches();
+            var retour = Array.from(document.querySelectorAll('#focusListe li')).find(function (el) {
+                return el.dataset.tacheId === String(tache.id);
+            });
+            var bouton = retour && retour.querySelector(':scope > .focus-ligne .focus-tache-modifier');
+            if (bouton) bouton.focus();
+        }
+        annuler.onclick = fermerEdition;
+        edition.onkeydown = function (event) {
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); fermerEdition(); }
+        };
+        edition.onsubmit = function (event) {
+            event.preventDefault();
+            var texte = champEdition.value.trim();
+            var actuelle = focusTacheParId(tache.id);
+            if (!texte) { erreur.textContent = 'Écris un nom pour la tâche.'; champEdition.focus(); return false; }
+            if (!actuelle) { fermerEdition(); return false; }
+            var ancien = actuelle.texte;
+            actuelle.texte = texte;
+            var objectif = document.getElementById('focusTache');
+            if (objectif && objectif.value === ancien) { objectif.value = texte; focusMemoriserObjectif(); }
+            focusSauverTaches();
+            fermerEdition();
+            return false;
+        };
+        actions.appendChild(enregistrer); actions.appendChild(annuler);
+        edition.appendChild(champEdition); edition.appendChild(erreur); edition.appendChild(actions);
+        li.appendChild(edition);
+    }
     if (!parent) {
         var sous = focusSousTaches(tache);
         if (sous.length) {
@@ -1236,19 +1777,37 @@ function focusAjusterSeances(pas) {
 }
 
 function focusSauverDurees() {
+    var anciennes = focusDurees();
     var durees = {
         focus: focusBorner(document.getElementById('focusDureeFocus') && document.getElementById('focusDureeFocus').value, 25, 1, 180),
         short: focusBorner(document.getElementById('focusDureeShort') && document.getElementById('focusDureeShort').value, 5, 1, 60),
         long: focusBorner(document.getElementById('focusDureeLong') && document.getElementById('focusDureeLong').value, 15, 1, 60),
         seances: focusBorner(document.getElementById('focusDureeSeances') && document.getElementById('focusDureeSeances').value, 4, 1, 12)
     };
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusDurees', JSON.stringify(durees)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusPeindreSeances(durees.seances);
-    if (!focusEtat.running) {
+    if (typeof chronoVoixPreparer === 'function') {
+        try { chronoVoixPreparer([durees.short, durees.long]); } catch (e) {}
+    }
+    if (focusEtat.run) {
+        focusEtat.objectif = durees.seances;
+        // Si les séances déjà achevées suffisent, une pause en cours ou une
+        // reprise en attente n'a plus lieu d'être. Une concentration déjà
+        // commencée reste cependant intacte jusqu'à sa fin.
+        var entreSeances = focusEtat.mode !== 'focus' ||
+            focusEtat.transition === 'reprise-annonce' || focusEtat.transition === 'attente-reprise';
+        if (entreSeances && focusEtat.serie >= focusEtat.objectif) {
+            focusTerminerSerie(false);
+            return;
+        }
+    }
+    if (!focusEtat.running && !focusEtat.transition && anciennes[focusEtat.mode] !== durees[focusEtat.mode]) {
         focusEtat.total = durees[focusEtat.mode] * 60;
         focusEtat.restant = focusEtat.total;
-        focusPeindre();
     }
+    focusPeindre(); // conserve aussi l'objectif actualisé au rechargement
 }
 
 function focusMemoriserObjectif() {
@@ -1283,6 +1842,9 @@ function focusPipHtml() {
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Studyplan</title><style>' +
         'html,body{margin:0;height:100%;background:#111;color:#fff;font-family:Inter,system-ui,sans-serif;user-select:none;caret-color:transparent;overflow:hidden;}' +
         '.scene{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#111 center/cover no-repeat;}' +
+        '.pip-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;}' +
+        '.time,#pipPlay,.coin{position:relative;z-index:1}' +
+        '.pip-video-reessayer{position:absolute;z-index:2;left:50%;bottom:.4rem;transform:translateX(-50%);width:auto;height:auto;min-height:32px;margin:0;padding:.35rem .55rem;font:600 .7rem system-ui;background:#173f2e;border-radius:.5rem;white-space:nowrap}' +
         '.time{margin:0;font-size:clamp(2.6rem,17vw,5.2rem);font-weight:800;letter-spacing:-.045em;line-height:.9;text-shadow:0 2px 18px rgba(0,0,0,.35);}' +
         'button{margin-top:.7rem;width:2.7rem;height:2.45rem;border-radius:.65rem;border:1px solid rgba(255,255,255,.18);background:rgba(8,12,20,.55);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;}' +
         'button:hover{background:#10b981;border-color:#059669;}' +
@@ -1308,9 +1870,63 @@ function focusPipPeindreBouton(bouton) {
     bouton.setAttribute('aria-label', enCours ? 'Pause' : 'Démarrer');
 }
 
+/* Le petit écran possède son propre lecteur : la vidéo de la page principale
+   peut être arrêtée lorsque son onglet est masqué, sans figer celle du PiP. */
+function focusPipVideo(scene, fond, actif) {
+    if (!scene) return;
+    var video = scene.querySelector('.pip-video');
+    var aide = scene.querySelector('.pip-video-reessayer');
+    if (!actif || !fond || !fond.video) {
+        if (aide) aide.remove();
+        if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+        return;
+    }
+    if (video && video.getAttribute('data-fond') === fond.id) return;
+    if (aide) aide.remove();
+    if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.remove(); }
+    var doc = scene.ownerDocument;
+    video = doc.createElement('video');
+    video.className = 'pip-video';
+    video.setAttribute('data-fond', fond.id);
+    video.setAttribute('aria-hidden', 'true');
+    video.setAttribute('playsinline', '');
+    video.setAttribute('tabindex', '-1');
+    video.muted = true; video.defaultMuted = true; video.loop = true; video.playsInline = true; video.preload = 'auto';
+    try { video.poster = new URL(fond.src, location.href).href; } catch (e) { video.poster = fond.src; }
+    // Le petit écran n'a pas besoin de télécharger la variante 4K.
+    var source = fond.videoLeger || fond.video;
+    try { source = new URL(source, location.href).href; } catch (e) {}
+    function masquerAide() { var n = scene.querySelector('.pip-video-reessayer'); if (n) n.remove(); }
+    function proposerReessai() {
+        if (!video.isConnected || scene.querySelector('.pip-video-reessayer')) return;
+        var bouton = doc.createElement('button');
+        bouton.type = 'button'; bouton.className = 'pip-video-reessayer';
+        bouton.textContent = 'Vidéo en pause · Réessayer';
+        bouton.onclick = function () { if (video.error) video.load(); lire(); };
+        scene.appendChild(bouton);
+    }
+    function lire() {
+        try {
+            var lecture = video.play();
+            if (lecture && lecture.catch) lecture.catch(function (e) {
+                if (!e || e.name !== 'AbortError') proposerReessai();
+            });
+        } catch (e) { proposerReessai(); }
+    }
+    var attente = setTimeout(function () {
+        if (video.isConnected && (video.paused || video.readyState < 3)) proposerReessai();
+    }, 10000);
+    video.addEventListener('playing', function () { clearTimeout(attente); masquerAide(); });
+    video.addEventListener('error', function () { clearTimeout(attente); proposerReessai(); });
+    video.src = source;
+    scene.insertBefore(video, scene.firstChild);
+    lire();
+}
+
 function focusPipMaj() {
     var temps = focusTexte(focusEtat.restant);
     var fond = 'url("' + focusFondAbsolu() + '")';
+    var decor = FOCUS_FONDS[focusEtat.fond] || FOCUS_FONDS[0];
     var localTemps = document.getElementById('focusPipTemps');
     var localScene = document.getElementById('focusPipScene');
     if (localTemps) localTemps.textContent = temps;
@@ -1318,6 +1934,8 @@ function focusPipMaj() {
         localScene.style.backgroundImage = fond;
         localScene.style.backgroundPosition = 'center center';
         localScene.style.backgroundSize = 'cover';
+        var local = document.getElementById('focusPipLocal');
+        focusPipVideo(localScene, decor, !!local && !local.hidden && !document.hidden);
     }
     focusPipPeindreBouton(document.getElementById('focusPipPlay'));
     if (!focusPip || focusPip.closed) return;
@@ -1330,6 +1948,7 @@ function focusPipMaj() {
             scene.style.backgroundImage = fond;
             scene.style.backgroundPosition = 'center center';
             scene.style.backgroundSize = 'cover';
+            focusPipVideo(scene, decor, true);
         }
         focusPipPeindreBouton(doc.getElementById('pipPlay'));
     } catch (e) {}
@@ -1347,6 +1966,7 @@ function focusPeindrePipBouton() {
 function focusFermerPip() {
     var local = document.getElementById('focusPipLocal');
     if (local) local.hidden = true;
+    focusPipVideo(document.getElementById('focusPipScene'), null, false);
     if (focusPip && !focusPip.closed) {
         try { focusPip.close(); } catch (e) {}
     }
@@ -1377,6 +1997,7 @@ function focusImageDansImage() {
             var play = win.document.getElementById('pipPlay');
             if (play) play.onclick = function () { focusBasculer(); };
             win.addEventListener('pagehide', function () {
+                focusPipVideo(win.document.getElementById('pipScene'), null, false);
                 focusPip = null;
                 focusPeindrePipBouton();
             });
@@ -1423,6 +2044,7 @@ var FOCUS_SONS = [
     { id: 'concentration', nom: 'Concentration', icone: '🧑‍💻', groupe: 'concentration', fichier: 'audio/pomodoro/concentration.mp3?v=20261017k' }
 ];
 var focusLecteurs = {};
+var focusSonAmorce = null;
 var focusVolumes = {};
 var focusListeEdition = null;
 
@@ -1447,7 +2069,9 @@ function focusVolume(id) {
 }
 
 function focusSauverVolume(id) {
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusVol_' + id, String(focusVolumes[id])); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
 }
 
 function focusLireListes() {
@@ -1464,6 +2088,22 @@ function focusSonActif(id) {
     return !!(audio && !audio.paused);
 }
 
+/* Ne prépare que le son que l'élève survole, touche ou atteint au clavier.
+   Aucun son ne démarre sans clic et les réseaux économes sont respectés. */
+function focusPrechargerSon(id) {
+    if (!focusAmorcageUtile() || focusLecteurs[id] || (focusSonAmorce && focusSonAmorce.id === id)) return;
+    var son = focusSonParId(id);
+    if (!son) return;
+    if (focusSonAmorce) {
+        try { focusSonAmorce.audio.removeAttribute('src'); focusSonAmorce.audio.load(); } catch (e) {}
+    }
+    var audio = new Audio();
+    audio.preload = 'metadata';
+    audio.src = son.fichier;
+    focusSonAmorce = { id: id, audio: audio };
+    audio.load();
+}
+
 function focusLireSon(id) {
     if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours) {
         if (typeof chronoMettreSonEnAttente === 'function') chronoMettreSonEnAttente(id);
@@ -1472,7 +2112,8 @@ function focusLireSon(id) {
     var son = focusSonParId(id);
     if (!son) return;
     if (!focusLecteurs[id]) {
-        var audio = new Audio(son.fichier);
+        var audio = focusSonAmorce && focusSonAmorce.id === id ? focusSonAmorce.audio : new Audio(son.fichier);
+        if (focusSonAmorce && focusSonAmorce.id === id) focusSonAmorce = null;
         audio.loop = true;
         audio.preload = 'auto';
         focusLecteurs[id] = audio;
@@ -1558,6 +2199,9 @@ function focusPeindreSons() {
         nom.textContent = son.nom;
         btn.appendChild(icone);
         btn.appendChild(nom);
+        btn.addEventListener('pointerenter', function () { focusPrechargerSon(son.id); });
+        btn.addEventListener('pointerdown', function () { focusPrechargerSon(son.id); });
+        btn.addEventListener('focus', function () { focusPrechargerSon(son.id); });
         btn.onclick = function () { focusChoisirSon(son.id); };
         var volume = document.createElement('input');
         volume.type = 'range';
@@ -1588,7 +2232,9 @@ function focusChoisirSon(id) {
     }
     focusAmbianceChoisie = Object.keys(focusLecteurs).filter(focusSonActif);
     if (typeof chronoAnnonceEnCours !== 'undefined' && chronoAnnonceEnCours && focusAmbianceChoisie.indexOf(id) === -1) focusAmbianceChoisie.push(id);
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusPeindreSons();
     focusPeindreSonBouton();
 }
@@ -1633,7 +2279,9 @@ function focusJouerListe(liste) {
         if (focusSonParId(id)) focusLireSon(id);
     });
     focusAmbianceChoisie = (liste.sons || []).filter(focusSonParId);
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try { localStorage.setItem('studyPlanIB_focusAmbiance', JSON.stringify(focusAmbianceChoisie)); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
     focusEtat.enPause = false;
     focusPeindreSonBouton();
     focusPeindreListes();
@@ -1846,8 +2494,10 @@ function focusReprendreApresRafraichissement() {
     try {
         var liee = JSON.parse(sessionStorage.getItem('studyPlanIB_focusSeanceEnCours') || 'null');
         if (liee && liee.id) {
-            if (liee.date !== new Date().toDateString() ||
-                focusMinutesMaintenant() < liee.debut || focusMinutesMaintenant() >= liee.fin) {
+            var etatSauve = focusLireJson('studyPlanIB_focusEtat', null);
+            var serieDejaCommencee = etatSauve && etatSauve.run && etatSauve.date === new Date().toDateString();
+            if (!serieDejaCommencee && (liee.date !== new Date().toDateString() ||
+                focusMinutesMaintenant() < liee.debut || focusMinutesMaintenant() >= liee.fin)) {
                 sessionStorage.removeItem('studyPlanIB_focusSeanceEnCours');
                 if (typeof memoireAller === 'function') memoireAller('seances');
                 else if (typeof navigateTo === 'function') navigateTo('seances');
@@ -1863,5 +2513,254 @@ function focusReprendreApresRafraichissement() {
     else if (typeof navigateTo === 'function') navigateTo('pomodoro');
 }
 
+/* Restaurer un chrono actif même si le rechargement rouvre une autre page.
+   Sinon il ne repartirait qu'après une nouvelle visite du minuteur. */
+function focusRestaurerEnArrierePlan() {
+    if (focusPret) return;
+    var sauve = focusLireJson('studyPlanIB_focusEtat', null);
+    if (!sauve || sauve.date !== new Date().toDateString() || (!sauve.running && !sauve.transition)) return;
+    try {
+        var liee = JSON.parse(sessionStorage.getItem('studyPlanIB_focusSeanceEnCours') || 'null');
+        if (sauve.run && liee && liee.id) focusSeanceMinuteur = liee;
+    } catch (e) {}
+    focusCharger();
+}
+
+/* Le plein écran peut changer pendant l'attente ; un onglet suspendu doit
+   recalculer tout de suite son échéance lorsqu'il revient au premier plan. */
+document.addEventListener('fullscreenchange', focusPeindreReprise);
+document.addEventListener('webkitfullscreenchange', focusPeindreReprise);
+window.addEventListener('resize', focusPlacerReprise);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', focusPlacerReprise);
+document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && focusPret && focusEtat.running) focusTick();
+});
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted && focusPret && focusEtat.running) focusTick();
+});
+/* Photo personnelle : uniquement dans IndexedDB de cet appareil. Les thèmes
+   prédéfinis gardent leurs indices ; l'entrée locale n'existe qu'en mémoire. */
+var focusPersonnelRevision = 0;
+var focusPersonnelSelectionRevision = 0;
+var focusPersonnelOccupe = false;
+var focusPersonnelDemarre = false;
+var focusPersonnelUrl = '';
+var FOCUS_PERSONNEL_MAX = 10 * 1024 * 1024;
+
+function focusPersonnelBase() {
+    return new Promise(function (resolve, reject) {
+        if (typeof indexedDB === 'undefined') { reject(new Error('stockage indisponible')); return; }
+        var req;
+        try { req = indexedDB.open('studyplan-themes-personnels', 1); }
+        catch (e) { reject(e); return; }
+        req.onupgradeneeded = function () { if (!req.result.objectStoreNames.contains('images')) req.result.createObjectStore('images'); };
+        req.onerror = function () { reject(req.error || new Error('stockage indisponible')); };
+        req.onblocked = function () { reject(new Error('stockage bloqué')); };
+        req.onsuccess = function () { resolve(req.result); };
+    });
+}
+function focusPersonnelStocker(action, blob) {
+    return focusPersonnelBase().then(function (db) {
+        return new Promise(function (resolve, reject) {
+            var tx, req, resultat;
+            try {
+                tx = db.transaction('images', action === 'lire' ? 'readonly' : 'readwrite');
+                var store = tx.objectStore('images');
+                req = action === 'lire' ? store.get('photo') : action === 'effacer' ? store.delete('photo') : store.put(blob, 'photo');
+                req.onsuccess = function () { resultat = req.result; };
+                tx.oncomplete = function () { db.close(); resolve(resultat); };
+                tx.onerror = tx.onabort = function () { var e = tx.error || new Error('stockage impossible'); db.close(); reject(e); };
+            } catch (e) { db.close(); reject(e); }
+        });
+    });
+}
+function focusPersonnelVerifierFormat(fichier) {
+    return fichier.slice(0, 12).arrayBuffer().then(function (buffer) {
+        var b = new Uint8Array(buffer);
+        var jpeg = b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+        var png = b.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every(function (n, i) { return b[i] === n; });
+        var webp = b.length >= 12 && b[0] === 82 && b[1] === 73 && b[2] === 70 && b[3] === 70 && b[8] === 87 && b[9] === 69 && b[10] === 66 && b[11] === 80;
+        if (!((fichier.type === 'image/jpeg' && jpeg) || (fichier.type === 'image/png' && png) || (fichier.type === 'image/webp' && webp))) throw new Error('format');
+    });
+}
+function focusPersonnelDecoder(blob) {
+    return new Promise(function (resolve, reject) {
+        var url;
+        try { url = URL.createObjectURL(blob); } catch (e) { reject(e); return; }
+        var img = new Image();
+        img.onload = function () {
+            if (!img.naturalWidth || img.naturalWidth <= img.naturalHeight) {
+                URL.revokeObjectURL(url);
+                reject(new Error('orientation'));
+                return;
+            }
+            resolve({ url: url, image: img });
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('illisible')); };
+        img.src = url;
+    });
+}
+function focusPersonnelInstaller(decoded) {
+    var ancien = focusPersonnelUrl;
+    focusPersonnelUrl = decoded.url;
+    var i = focusIndexParId('personnel-local');
+    /* focusIndexParId renvoie 0 quand un id est absent : vérifier l'id. */
+    if (!FOCUS_FONDS[i] || FOCUS_FONDS[i].id !== 'personnel-local') {
+        i = FOCUS_FONDS.length;
+        FOCUS_FONDS.push({ id: 'personnel-local', cat: 'personnel', nom: 'Ma photo', src: decoded.url, mini: decoded.url, masque: true, precharger: false });
+    } else {
+        FOCUS_FONDS[i].src = decoded.url;
+        FOCUS_FONDS[i].mini = decoded.url;
+    }
+    focusFondsPrets[decoded.url] = decoded.image;
+    focusPersonnelPeindre();
+    return { index: i, ancien: ancien };
+}
+function focusPersonnelLiberer(url) {
+    if (!url || url === focusPersonnelUrl) return;
+    delete focusFondsPrets[url];
+    try { URL.revokeObjectURL(url); } catch (e) {}
+}
+function focusPersonnelPeindre() {
+    var apercu = document.getElementById('focusPersonnelApercu');
+    var vide = document.getElementById('focusPersonnelVide');
+    var secondaire = document.getElementById('focusPersonnelSecondaires');
+    var texte = document.getElementById('focusPersonnelBoutonTexte');
+    var utiliser = document.getElementById('focusPersonnelUtiliser');
+    var fond = FOCUS_FONDS[focusEtat.fond];
+    var actif = !!(fond && fond.id === 'personnel-local' && focusPersonnelUrl);
+    if (apercu) {
+        apercu.style.backgroundImage = focusPersonnelUrl ? 'url("' + focusPersonnelUrl + '")' : '';
+        apercu.classList.toggle('has-image', !!focusPersonnelUrl);
+        apercu.setAttribute('aria-label', focusPersonnelUrl ? 'Aperçu de ta photo personnelle' : 'Aucune photo personnelle importée');
+    }
+    if (vide) vide.hidden = !!focusPersonnelUrl;
+    if (secondaire) secondaire.hidden = !focusPersonnelUrl;
+    if (texte) texte.textContent = focusPersonnelUrl ? 'Changer de photo' : 'Choisir une photo';
+    if (utiliser) { utiliser.textContent = actif ? 'Décor utilisé ✓' : 'Utiliser ce décor'; utiliser.disabled = actif || focusPersonnelOccupe; }
+}
+function focusPersonnelStatut(texte) {
+    var el = document.getElementById('focusPersonnelStatut');
+    if (el) el.textContent = texte || '';
+}
+function focusPersonnelAfficherErreur(texte) {
+    var dialog = document.getElementById('focusPersonnelErreur');
+    var message = document.getElementById('focusPersonnelErreurTexte');
+    if (message) message.textContent = texte;
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function') {
+        if (!dialog.open) dialog.showModal();
+    } else dialog.setAttribute('open', '');
+}
+function focusPersonnelFermerErreur() {
+    var dialog = document.getElementById('focusPersonnelErreur');
+    if (!dialog) return;
+    if (typeof dialog.close === 'function' && dialog.open) dialog.close();
+    else dialog.removeAttribute('open');
+}
+function focusPersonnelInitialiser() {
+    if (focusPersonnelDemarre) return;
+    focusPersonnelDemarre = true;
+    focusPersonnelOccupe = true;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    if (bouton) bouton.disabled = true;
+    var revision = focusPersonnelRevision;
+    var selection = focusPersonnelSelectionRevision;
+    focusPersonnelStocker('lire').then(function (blob) {
+        if (!blob || revision !== focusPersonnelRevision) return null;
+        return focusPersonnelDecoder(blob);
+    }).then(function (decoded) {
+        if (!decoded) return;
+        if (revision !== focusPersonnelRevision) { URL.revokeObjectURL(decoded.url); return; }
+        var pose = focusPersonnelInstaller(decoded);
+        var actif = false;
+        try { actif = localStorage.getItem('studyPlanIB_themePersonnelActif') === '1'; } catch (e) {}
+        if (actif && selection === focusPersonnelSelectionRevision) focusPoserFond(pose.index);
+        focusPersonnelLiberer(pose.ancien);
+    }).catch(function () { focusPersonnelStatut('Photo enregistrée indisponible sur cet appareil.'); }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; focusPersonnelPeindre(); });
+}
+function focusPersonnelChoisir(input) {
+    var fichier = input && input.files && input.files[0];
+    if (input) input.value = ''; // Rechoisir le même fichier reste possible.
+    if (!fichier || focusPersonnelOccupe) return;
+    var selection = focusPersonnelSelectionRevision;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    var types = ['image/jpeg', 'image/png', 'image/webp'];
+    if (types.indexOf(String(fichier.type).toLowerCase()) === -1) {
+        focusPersonnelAfficherErreur('Ce format de fichier n’est pas pris en charge.');
+        return;
+    }
+    if (!fichier.size || fichier.size > FOCUS_PERSONNEL_MAX) {
+        focusPersonnelAfficherErreur('Ce fichier est vide ou dépasse la taille autorisée.');
+        return;
+    }
+    var revision = ++focusPersonnelRevision;
+    focusPersonnelOccupe = true;
+    if (bouton) bouton.disabled = true;
+    var supprimer = document.querySelector('#focusPersonnelSecondaires button:last-child');
+    if (supprimer) supprimer.disabled = true;
+    focusPersonnelPeindre();
+    focusPersonnelStatut('Préparation de ta photo…');
+    var decoded;
+    focusPersonnelVerifierFormat(fichier).then(function () { return focusPersonnelDecoder(fichier); }).then(function (d) {
+        decoded = d;
+        if (revision !== focusPersonnelRevision) return false;
+        return focusPersonnelStocker('ecrire', fichier).then(function () { return true; });
+    }).then(function (enregistre) {
+        if (!enregistre || revision !== focusPersonnelRevision) {
+            if (decoded) URL.revokeObjectURL(decoded.url);
+            return;
+        }
+        var pose = focusPersonnelInstaller(decoded);
+        if (selection === focusPersonnelSelectionRevision) focusPoserFond(pose.index);
+        focusPersonnelLiberer(pose.ancien);
+        if (typeof focusPeindreParametres === 'function') focusPeindreParametres();
+        focusPersonnelStatut(selection === focusPersonnelSelectionRevision ? 'Ta photo est maintenant utilisée comme décor.' : 'Ta photo est prête à être utilisée.');
+    }).catch(function (e) {
+        if (decoded) URL.revokeObjectURL(decoded.url);
+        if (revision !== focusPersonnelRevision) return;
+        var raison = e && e.message;
+        focusPersonnelStatut('');
+        focusPersonnelAfficherErreur(raison === 'orientation' ? 'Cette photo est verticale ou carrée.' : raison === 'illisible' ? 'Cette image ne peut pas être lue.' : raison === 'format' ? 'Ce format de fichier n’est pas pris en charge.' : 'La photo n’a pas pu être enregistrée sur cet appareil. Vérifie l’espace disponible et les autorisations de stockage.');
+    }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; if (supprimer) supprimer.disabled = false; focusPersonnelPeindre(); });
+}
+function focusPersonnelUtiliser() {
+    if (focusPersonnelOccupe || !focusPersonnelUrl) return;
+    var i = focusIndexParId('personnel-local');
+    if (!FOCUS_FONDS[i] || FOCUS_FONDS[i].id !== 'personnel-local') return;
+    focusPersonnelRevision++;
+    focusPoserFond(i);
+    if (typeof focusPeindreParametres === 'function') focusPeindreParametres();
+    focusPersonnelStatut('Ta photo est maintenant utilisée comme décor.');
+}
+function focusPersonnelSupprimer() {
+    if (focusPersonnelOccupe) return;
+    focusPersonnelOccupe = true;
+    var bouton = document.getElementById('focusPersonnelImporter');
+    var supprimer = document.querySelector('#focusPersonnelSecondaires button:last-child');
+    if (bouton) bouton.disabled = true;
+    if (supprimer) supprimer.disabled = true;
+    focusPersonnelPeindre();
+    var revision = ++focusPersonnelRevision;
+    focusPersonnelStocker('effacer').then(function () {
+        if (revision !== focusPersonnelRevision) return;
+        var fond = FOCUS_FONDS[focusEtat.fond];
+        if (fond && fond.id === 'personnel-local') {
+            var precedent = 0;
+            try { precedent = Number(localStorage.getItem('studyPlanIB_focusFond')) || 0; } catch (e) {}
+            if (!FOCUS_FONDS[precedent] || FOCUS_FONDS[precedent].id === 'personnel-local') precedent = 0;
+            focusPoserFond(precedent);
+        }
+        try { localStorage.removeItem('studyPlanIB_themePersonnelActif'); } catch (e) {}
+        var ancien = focusPersonnelUrl;
+        focusPersonnelUrl = '';
+        focusPersonnelPeindre();
+        focusPersonnelLiberer(ancien);
+        focusPersonnelStatut('Photo supprimée de cet appareil.');
+    }).catch(function () { focusPersonnelStatut('La photo n’a pas pu être supprimée sur cet appareil.'); }).then(function () { focusPersonnelOccupe = false; if (bouton) bouton.disabled = false; if (supprimer) supprimer.disabled = false; focusPersonnelPeindre(); });
+}
+
+/* Les restaurations peuvent charger le minuteur : initialiser d'abord les variables de la photo. */
 focusAfficherEntree();
 focusReprendreApresRafraichissement();
+focusRestaurerEnArrierePlan();

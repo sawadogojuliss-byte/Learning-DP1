@@ -102,6 +102,7 @@ function creerNuage() {
   }
   const db = { collection: (c) => ({ doc: (id) => doc(c, id), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }),
     where: () => ({ orderBy: () => ({ limit: () => ({ get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }) };
+  require('./nuage-factice.cjs')(db);
   return { docs, journal, ecoutes, db };
 }
 function firebaseFactice(nuage, uid, user) {
@@ -168,7 +169,7 @@ const retirerCours = (c, id) => geste(c, 'customEvents = customEvents.filter(fun
 const retirerActivite = (c, nom) => geste(c, 'removeActivity(' + JSON.stringify(nom) + '); customEvents = customEvents.filter(function (e) { return !(e.type === "activity" && e.title === ' + JSON.stringify(nom) + '); }); memoireSauvegarder();');
 const deplacerActivite = (c, nom, debut, fin) => geste(c, 'selectedActivities.forEach(function (a) { if (a.name === ' + JSON.stringify(nom) + ') { a.startTime = ' + JSON.stringify(debut) + '; a.endTime = ' + JSON.stringify(fin) + '; } });'
   + 'customEvents.forEach(function (e) { if (e.title === ' + JSON.stringify(nom) + ') { e.startTime = ' + JSON.stringify(debut) + '; e.endTime = ' + JSON.stringify(fin) + '; } }); memoireSauvegarder();');
-/* Envoi immédiat (au lieu d'attendre les 3 secondes de l'application). */
+/* Envoi immédiat, sans attendre le timer de regroupement de l'application. */
 async function envoyer(c) { figer(c); await c.compteProgressionEnregistrer(); }
 /* Emploi du temps tel que l'élève le voit : cours et activités, avec leurs horaires. */
 function emploi(c) {

@@ -1,0 +1,51 @@
+/* Tests isolés, profils fictifs, aucune connexion ni modification de données réelles. */
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+const require=createRequire(process.env.STUDY_TEST_MODULES?path.resolve(process.env.STUDY_TEST_MODULES,'../package.json'):import.meta.url);
+const {chromium}=require('playwright');
+const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM?null:require('@sparticuz/chromium').default;
+const site=process.env.STUDY_SITE||'http://127.0.0.1:8530/';
+const browser=await chromium.launch(portable?{executablePath:await portable.executablePath(),args:portable.args.filter(x=>x!=='--single-process')}:{});
+const boot=async page=>{await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),null,{timeout:60000}); await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active'); userName='Test'; subjects=[{name:'Mathématiques',icon:'🔢',level:'HL'}]; optionalSubjects=[]; navigateTo('devoirs');});};
+const within=async loc=>{const v=await loc.evaluate(e=>({scroll:e.scrollWidth,client:e.clientWidth})); assert.ok(v.scroll<=v.client+1,JSON.stringify(v));};
+const viewports=[{width:320,height:568},{width:390,height:844},{width:1280,height:800}].filter(v=>!process.env.STUDY_TEST_WIDTH||v.width===Number(process.env.STUDY_TEST_WIDTH));
+try {for(const viewport of viewports){
+ const context=await browser.newContext({viewport,serviceWorkers:'block'}); const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(String(e)));
+ await page.route('**/*',r=>r.request().url().startsWith(site)?r.continue():r.abort()); await page.addInitScript(()=>window.__STUDYPLAN_E2E=true);
+ await page.goto(site,{waitUntil:'domcontentloaded'}); await boot(page);
+ const panel=page.locator('#panelDevoirs'); await within(panel); assert.equal(await panel.locator('.dd-brand-mark img').evaluate(e=>e.complete&&e.naturalWidth>0),true);
+ if(process.env.STUDY_TEST_CAPTURE) await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/devoirs-${viewport.width}.png`});
+ await page.locator('#devoirsTexteColle').fill('Mathématiques 14/06/2035 08:00 10:00');
+ await panel.locator('button[onclick="devoirsLireDocument()"]').click();assert.match(await page.locator('#devoirsConfirmation').innerText(),/1 créneau/);await page.evaluate(()=>devoirsViderPropositions());
+ await panel.locator('button[onclick="devoirsAjouterManuel()"]').first().click(); assert.match(await page.locator('#devoirsAjoutStatut').innerText(),/Matière et date/);
+ await page.locator('#devManuelMatiere').fill('Mathématiques');await page.locator('#devManuelDate').fill('2035-06-14');
+ await panel.locator('button[onclick="devoirsAjouterManuel()"]').first().click(); await page.locator('#seancesQuestionAucune').click();
+ assert.match(await page.locator('#devoirsListe').innerText(),/Mathématiques/);
+ await page.locator('#devoirsRecherche').fill('physique'); assert.doesNotMatch(await page.locator('#devoirsListe').innerText(),/Mathématiques/);
+ await page.locator('#devoirsRecherche').fill('math');assert.match(await page.locator('#devoirsListe').innerText(),/Mathématiques/);
+ await page.locator('#devoirsListe button[title=Modifier]').click();await page.locator('#devoirsEditMatiere').fill('Mathématiques avancées');await page.locator('#devoirsEditSauver').click();assert.match(await page.locator('#devoirsListe').innerText(),/Mathématiques avancées/);
+ await page.locator('#devoirsListe button[onclick^=devoirsSupprimer]').click();assert.doesNotMatch(await page.locator('#devoirsListe').innerText(),/Mathématiques/);await page.locator('.suppression-toast button').getByText('Annuler').click();assert.match(await page.locator('#devoirsListe').innerText(),/Mathématiques avancées/);
+ await page.locator('#ongletBtn-examens').click();assert.equal(await page.locator('#ongletBtn-examens').getAttribute('aria-selected'),'true'); assert.equal(await page.locator('#onglet-devoirs').isVisible(),false);
+ await page.locator('#exaManuelMatiere').fill('Physique');await page.locator('#exaManuelDate').fill('2035-06-15');await page.locator('#exaManuelDebut').fill('09:00');await page.locator('#exaManuelFin').fill('11:00');
+ await panel.locator('button[onclick="devoirsAjouterManuel()"]').nth(1).click(); assert.match(await page.locator('#examensListe').innerText(),/Physique/);await within(panel);
+ await page.reload({waitUntil:'domcontentloaded'});await boot(page);assert.match(await page.locator('#devoirsListe').innerText(),/Mathématiques/);await page.locator('#ongletBtn-examens').click();assert.match(await page.locator('#examensListe').innerText(),/Physique/);
+ await page.evaluate(()=>{navigateTo('exercices')});assert.equal(await page.locator('#panelExercices .ed-brand-mark img').evaluate(e=>e.complete&&e.naturalWidth>0),true);
+ await page.evaluate(()=>{navigateTo('planning'); selectedDay=indexJourCourant(); planningDecalageSemaine=0;customEvents=[{id:'test-edit',day:selectedDay,title:'Lecture',startTime:'18:00',endTime:'19:00',type:'activity',icon:'📚',source:'custom',pinned:true}];v3Save(); renderPlanning();});
+ let card=page.locator('#eventsContainer [data-v3-idx]').filter({hasText:'Lecture'}); await card.click(); const edit=page.locator('#editEventModal'); await edit.waitFor({state:'visible'});
+ assert.equal(await page.locator('#editEventTitle').inputValue(),'Lecture'); if(process.env.STUDY_TEST_CAPTURE) await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/edition-${viewport.width}.png`});
+ await edit.getByLabel('Augmenter la durée de 15 minutes').click();assert.equal(await page.locator('#editEventEnd').inputValue(),'19:15');await page.locator('#editEventTitle').fill('Lecture calme');await page.evaluate(()=>{window.__originalGenerate=generateDayEvents;const original=v3LastRendered.find(e=>e.id==='test-edit');window.generateDayEvents=()=>{const override=customEvents.filter(e=>e&&e.replacesId==='test-edit'&&!e.deleted).slice(-1)[0];return [{...original,...(override||{}),id:'test-edit'}]}});await page.locator('#editSaveButton').click(); assert.equal(await edit.isVisible(),false);
+ assert.ok(await page.evaluate(()=>customEvents.some(e=>e.title==='Lecture calme'&&e.endTime==='19:15')));
+ // Une simulation contrôlée permet de vérifier les choix sans interférence de l'emploi du temps réel.
+ await page.evaluate(()=>{selectedDay=0;customEvents=[];window.__testSaves=0;window.__testEvents=[{id:'sport',title:'Sport',type:'activity',icon:'⚽',startTime:'18:00',endTime:'19:00',editable:true,kind:'pinned'}];window.generateDayEvents=()=>window.__testEvents.filter(e=>!customEvents.some(c=>c.deleted&&c.replacesId===e.id)).map(e=>{const ov=customEvents.find(c=>c.replacesId===e.id&&!c.deleted);return ov?{...e,startTime:ov.startTime,endTime:ov.endTime}:e}).concat(customEvents.filter(e=>!e.replacesId&&!e.deleted));window.v3Save=()=>window.__testSaves++;window.renderPlanning=()=>{};window.closeAddModal=()=>{};window.v3Toast=()=>{};window.bedtimeForDay=()=> '22:00';document.getElementById('activityNameInput').value='Lecture';document.getElementById('activityStartInput').value='18:30';document.getElementById('activityEndInput').value='19:00';confirmAddActivity();});
+ let pop=page.locator('#chevauchementPopup');await pop.waitFor({state:'visible'});await within(pop.locator('.chev-dialogue'));assert.match(await pop.innerText(),/Sport/);assert.match(await pop.locator('[data-deplacer]').innerText(),/19:00 → 20:00/);
+ if(process.env.STUDY_TEST_CAPTURE) await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/chevauchement-${viewport.width}.png`});
+ await pop.locator('[data-deplacer]').click();assert.match(await pop.locator('#chevauchementApercu').innerText(),/Sport.*19:00 → 20:00/s);assert.equal(await page.evaluate(()=>__testSaves),0);
+ await pop.locator('[data-retour-apercu]').click();assert.equal(await pop.locator('#chevEtapeInitiale').isVisible(),true);assert.equal(await page.evaluate(()=>__testSaves),0);
+ await pop.locator('[data-autre-creneau]').click();await pop.locator('[data-filtre-horaire=libres]').click();assert.equal(await pop.locator('.chev-proposition-occupee:visible').count(),0);
+ await pop.locator('.chev-proposition-libre').filter({hasText:'19:00 → 19:30'}).click();assert.match(await pop.locator('#chevauchementApercu').innerText(),/19:00 → 19:30/);assert.equal(await page.evaluate(()=>__testSaves),0);
+ await pop.locator('[data-confirmer]').click();assert.equal(await pop.count(),0);assert.equal(await page.evaluate(()=>__testSaves),1);assert.ok(await page.evaluate(()=>customEvents.some(e=>e.title==='Lecture'&&e.startTime==='19:00')));
+ await page.evaluate(()=>{customEvents=[];window.__testSaves=0;confirmAddActivity()});await pop.locator('[data-autre-creneau]').click();await pop.locator('#chevauchementDebut').fill('18:00');await pop.locator('[data-placer]').click();await pop.locator('[data-deplacer]').click();assert.match(await pop.locator('#chevauchementApercu').innerText(),/Sport/);assert.equal(await page.evaluate(()=>__testSaves),0);await pop.locator('[data-retour-apercu]').click();await pop.locator('[data-annuler]:visible').last().click();
+ await page.evaluate(()=>{customEvents=[];window.__testSaves=0;confirmAddActivity()});await pop.locator('[data-remplacer]').click();assert.equal(await pop.locator('[data-continuer]').isDisabled(),true);await pop.locator('#chevListeRetraits input').first().check();await pop.locator('[data-continuer]').click();assert.match(await pop.locator('#chevauchementApercu').innerText(),/Sport/);assert.equal(await page.evaluate(()=>__testSaves),0);await pop.locator('[data-retour-apercu]').click();assert.equal(await pop.locator('#chevRemplacement').isVisible(),true);await pop.locator('[data-continuer]').click();await pop.locator('[data-confirmer]').click();if(await pop.locator('[data-confirmer-essentiel]').count())await pop.locator('[data-confirmer-essentiel]').click();assert.equal(await page.evaluate(()=>__testSaves),1);
+ assert.deepEqual(errors,[]);console.log(`OK devoirs, examens, édition et chevauchement ${viewport.width}×${viewport.height}`);await context.close();
+}}finally{await browser.close()}

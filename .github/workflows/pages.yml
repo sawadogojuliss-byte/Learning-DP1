@@ -1,20 +1,256 @@
-name: Lien public
+name: Publication contrôlée de Studyplan
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - arena/f4de29cb-learning-dp1
 
 permissions:
   contents: read
-  checks: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: publication-pages
+  cancel-in-progress: true
 
 jobs:
-  partager:
+  construire:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    env:
+      ESSAI_SANS_TESTS: ${{ contains(github.event.head_commit.message, '[essai sans tests]') }}
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - name: Ouvrir un lien public
+      - name: Récupérer le travail de la branche courante
+        uses: actions/checkout@v4
+        with:
+          path: travail
+      - name: Récupérer la base exacte du site publié
+        uses: actions/checkout@v4
+        with:
+          ref: 1efb82e236505af518b4e6fa3065b170ab1e2ae2
+          path: base-publique
+      - name: Vérifier la configuration et la branche publique
+        shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_SHA: ${{ github.sha }}
-        run: python3 tools/share-public.py
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          actif=$(git ls-remote "https://github.com/${GITHUB_REPOSITORY}.git" refs/heads/arena/b9e08b94-learning-dp1 | cut -f1)
+          test "$actif" = "1efb82e236505af518b4e6fa3065b170ab1e2ae2" || { echo "La branche publique a changé : arrêt avant publication."; exit 1; }
+          type=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type)
+          test "$type" = workflow || { echo "Configurer d'abord GitHub Pages sur GitHub Actions."; exit 1; }
+      - name: Assembler les changements publiés et la légende
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf base-publique/.git
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
+          python3 travail/tools/preparer-publication-pages.py base-publique site "p-${GITHUB_SHA:0:12}"
+          if [ "$ESSAI_SANS_TESTS" != "true" ]; then
+            python3 travail/tools/tester-preparation-annonces.py site/livrables/publication-voix/essai-traitement
+            python3 travail/tools/verifier-stock-voix.py
+            python3 travail/tools/verifier-prises-lot2.py site
+            python3 travail/tools/verifier-prises-lot3.py site
+            python3 travail/tools/verifier-prises-lot4.py site
+            python3 travail/tools/verifier-prises-lot5.py site
+            python3 travail/tools/verifier-prises-lot6.py site
+            python3 travail/tools/verifier-prises-lot7.py site
+            python3 travail/tools/verifier-prises-lot8.py site
+            python3 travail/tools/verifier-prises-lot9.py site
+            # Ne pas régénérer de voix masculines, même pour un essai temporaire.
+            node --check site/js/compte.js
+            node --check site/js/synchro.js
+            cmp travail/js/compte.js site/js/compte.js
+            cmp travail/js/synchro.js site/js/synchro.js
+            node --check site/js/pages/pomodoro-page.js
+            node travail/tools/tester-salon-coeur.cjs
+            node travail/tools/tester-salon-transport.cjs
+            node --check site/js/pages/boite.js
+            node --check site/js/pages/exercices.js
+            node --check site/js/pages/planning-interface.js
+            node --check site/js/pages/devoirs.js
+            node --check site/js/accessibilite.js
+            (cd site && node tools/verifier-devoirs.js && node tools/verifier-devoirs-edition.js)
+            node --check site/service-worker.js
+            node site/tools/verifier-pomodoro.js
+          fi
+      - name: Tester le site assemblé avant publication
+        if: ${{ !contains(github.event.head_commit.message, '[essai sans tests]') }}
+        shell: bash
+        env:
+          STUDY_SITE: http://127.0.0.1:8508/
+          STUDY_TEST_MODULES: /tmp/study-test/node_modules
+          STUDY_PLAYWRIGHT_SYSTEM: '1'
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/study-test playwright
+          /tmp/study-test/node_modules/.bin/playwright install --with-deps chromium
+          executer_test() {
+            local fichier="$1" journal detail
+            journal=$(mktemp)
+            if node "$fichier" 2>&1 | tee "$journal"; then
+              rm -f "$journal"
+              return 0
+            fi
+            detail=$(tail -n 25 "$journal")
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Échec du test::$fichier%0A$detail"
+            rm -f "$journal"
+            return 1
+          }
+          python3 -m http.server 8508 --directory site &
+          serveur=$!
+          trap 'kill "$serveur"' EXIT
+          executer_test travail/tools/tester-nouveau-design.mjs
+          executer_test travail/tools/tester-chargement-avec-barre.mjs
+          executer_test travail/tools/tester-jours-bac.mjs
+          executer_test travail/tools/tester-modifier-taches.mjs
+          executer_test travail/tools/tester-chevauchement.mjs
+          executer_test travail/tools/tester-chevauchement-usage.mjs
+          executer_test travail/tools/tester-alerte-chevauchement.mjs
+          executer_test travail/tools/tester-alerte-moteur.mjs
+          executer_test travail/tools/tester-crayon-sommeil.mjs
+          executer_test travail/tools/tester-planification-seances.mjs
+          executer_test travail/tools/tester-duree-planification.mjs
+          executer_test travail/tools/tester-seances-moteur.mjs
+          executer_test travail/tools/tester-exercices-design.mjs
+          executer_test travail/tools/tester-creneaux-exercices.mjs
+          executer_test travail/tools/tester-defilement-legende.mjs
+          executer_test travail/tools/tester-eeia-navigation.mjs
+          executer_test travail/tools/tester-latence-pomodoro.mjs
+          executer_test travail/tools/tester-pomodoro-anime.mjs
+          executer_test travail/tools/tester-pip-anime.mjs
+          executer_test travail/tools/tester-salon-apercu.mjs
+          executer_test travail/tools/tester-salon-simulation.mjs
+          executer_test travail/tools/tester-salon-reprise.mjs
+          executer_test travail/tools/tester-salon-fonctions.mjs
+          executer_test travail/tools/tester-salon-liens.mjs
+          executer_test travail/tools/tester-salon-copie.mjs
+          executer_test travail/tools/tester-salon-deux-telephones.mjs
+          executer_test travail/tools/tester-salon-isolation.mjs
+          executer_test travail/tools/tester-salon-reglages-personnels.mjs
+          executer_test travail/tools/tester-salon-curseur.mjs
+          executer_test travail/tools/tester-salon-courses.mjs
+          executer_test travail/tools/tester-salon-messagerie.mjs
+          executer_test travail/tools/tester-curseur-stable.mjs
+          executer_test travail/tools/tester-foret-adaptive.mjs
+          executer_test travail/tools/tester-images-feedback.mjs
+          (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
+          executer_test travail/tools/tester-pomodoro-reprise.mjs
+          executer_test travail/tools/tester-lancement-minuteur.mjs
+          executer_test travail/tools/tester-pause-mobile.mjs
+          executer_test travail/tools/tester-voix.mjs
+          executer_test travail/tools/tester-choix-voix.mjs
+          executer_test travail/tools/tester-transitions-voix.mjs
+          # Le test du service vocal régénère des annonces : il reste désactivé.
+          executer_test travail/tools/tester-popup-reprise.mjs
+          executer_test travail/tools/tester-citation-personnelle.mjs
+          executer_test travail/tools/tester-citation-reception.mjs
+          executer_test travail/tools/tester-essai-debit.mjs
+          executer_test travail/tools/tester-propositions-reprise.mjs
+          executer_test travail/tools/tester-pomodoro-cache.mjs
+          executer_test travail/tools/tester-themes-drive.mjs
+          executer_test travail/tools/tester-theme-personnel.mjs
+          executer_test travail/tools/tester-rappels-activites.mjs
+      - name: Préparer le paquet Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publier:
+    needs: construire
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - name: Publier le site testé
+        id: deploiement
+        uses: actions/deploy-pages@v4
+
+  verifier-en-ligne:
+    if: ${{ !contains(github.event.head_commit.message, '[essai sans tests]') }}
+    needs: publier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer les tests
+        uses: actions/checkout@v4
+      - name: Préparer le navigateur de test
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix /tmp/study-pomodoro-test playwright
+          /tmp/study-pomodoro-test/node_modules/.bin/playwright install --with-deps chromium
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
+      - name: Tester le site public avec des profils fictifs
+        env:
+          STUDY_SITE: https://sawadogojuliss-byte.github.io/Learning-DP1/
+          STUDY_TEST_MODULES: /tmp/study-pomodoro-test/node_modules
+          STUDY_PLAYWRIGHT_SYSTEM: '1'
+        run: |
+          set -euo pipefail
+          executer_test() {
+            local fichier="$1" journal detail
+            journal=$(mktemp)
+            if node "$fichier" 2>&1 | tee "$journal"; then
+              rm -f "$journal"
+              return 0
+            fi
+            detail=$(tail -n 25 "$journal")
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Échec du test::$fichier%0A$detail"
+            rm -f "$journal"
+            return 1
+          }
+          executer_test tools/tester-eeia-navigation.mjs
+          executer_test tools/tester-pomodoro-anime.mjs
+          executer_test tools/tester-pip-anime.mjs
+          executer_test tools/tester-salon-apercu.mjs
+          executer_test tools/tester-salon-deux-telephones.mjs
+          executer_test tools/tester-salon-curseur.mjs
+          executer_test tools/tester-salon-courses.mjs
+          executer_test tools/tester-salon-messagerie.mjs
+          executer_test tools/tester-curseur-stable.mjs
+          executer_test tools/tester-foret-adaptive.mjs
+          executer_test tools/tester-images-feedback.mjs
+          executer_test tools/tester-pomodoro-reprise.mjs
+          executer_test tools/tester-lancement-minuteur.mjs
+          executer_test tools/tester-pause-mobile.mjs
+          executer_test tools/tester-voix.mjs
+          # Le service vocal n’est pas relancé lors de la vérification publique.
+          executer_test tools/tester-choix-voix.mjs
+          executer_test tools/tester-transitions-voix.mjs
+          executer_test tools/tester-popup-reprise.mjs
+          executer_test tools/tester-citation-personnelle.mjs
+          executer_test tools/tester-citation-reception.mjs
+          executer_test tools/tester-essai-debit.mjs
+          executer_test tools/tester-propositions-reprise.mjs
+          executer_test tools/tester-pomodoro-cache.mjs
+          executer_test tools/tester-themes-drive.mjs
+          executer_test tools/tester-theme-personnel.mjs
+          executer_test tools/tester-rappels-activites.mjs
+          executer_test tools/tester-nouveau-design.mjs
+          executer_test tools/tester-chargement-avec-barre.mjs
+          executer_test tools/tester-jours-bac.mjs
+          executer_test tools/tester-modifier-taches.mjs
+          executer_test tools/tester-chevauchement.mjs
+          executer_test tools/tester-chevauchement-usage.mjs
+          executer_test tools/tester-alerte-chevauchement.mjs
+          executer_test tools/tester-alerte-moteur.mjs
+          executer_test tools/tester-crayon-sommeil.mjs
+          executer_test tools/tester-planification-seances.mjs
+          executer_test tools/tester-duree-planification.mjs
+          executer_test tools/tester-seances-moteur.mjs
+          executer_test tools/tester-exercices-design.mjs
+          executer_test tools/tester-creneaux-exercices.mjs
+          executer_test tools/tester-defilement-legende.mjs

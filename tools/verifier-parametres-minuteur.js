@@ -35,11 +35,13 @@ var vm = require('vm');
 var blocCitations = (script.match(/var FOCUS_CATEGORIES_CITATIONS[\s\S]*?\n\};/) || [])[0] || '';
 var contexteCitations = {};
 try { vm.runInNewContext(blocCitations + '\nthis.C = FOCUS_CITATIONS; this.K = FOCUS_CATEGORIES_CITATIONS;', contexteCitations); } catch (e) { contexteCitations = {}; }
-var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre'];
-var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être'];
+var categoriesAttendues = ['toutes', 'motivation', 'inspiration', 'bien-etre', 'personnelle'];
+var nomsAttendus = ['Toutes les citations', 'Motivation', 'Inspiration', 'Bien-être', 'Ma citation'];
 var listeCategories = contexteCitations.K || [];
-ok(listeCategories.length === 4 && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
-    'les 4 catégories doivent exister avec leurs libellés français (sans Gratitude)');
+ok(listeCategories.length === categoriesAttendues.length && categoriesAttendues.every(function (id, i) { return listeCategories[i] && listeCategories[i].id === id && listeCategories[i].nom === nomsAttendus[i]; }),
+    'les catégories initiales et Ma citation doivent exister avec leurs libellés français (sans Gratitude)');
+ok(minuteur.includes('id="focusCitationPersonnelle"') && script.includes('focusSauverCitationPersonnelle'),
+    'la citation personnelle doit être saisissable et enregistrée');
 var lesCitations = contexteCitations.C || {};
 ['motivation', 'inspiration', 'bien-etre'].forEach(function (id) {
     var liste = lesCitations[id] || [];
@@ -70,11 +72,11 @@ ok(minuteur.indexOf('focus-bouton-parametres') === -1 && !/id="focusReglages"[^>
 /* ── 3. Menu latéral et pages : toutes les rubriques des captures ── */
 ok(/id="focusReglages"[^>]*class="focus-tiroir"|class="focus-tiroir"[^>]*id="focusReglages"/.test(minuteur), 'le menu Paramètres doit être un tiroir (focus-tiroir)');
 ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit avoir une croix de fermeture');
-['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques'].forEach(function (onglet) {
+['themes', 'horloge', 'minuteur', 'citations', 'voix', 'salon', 'statistiques'].forEach(function (onglet) {
     ok(minuteur.indexOf('data-onglet="' + onglet + '"') !== -1, 'entrée de menu manquante : ' + onglet);
     ok(minuteur.indexOf('data-page="' + onglet + '"') !== -1, 'page manquante : ' + onglet);
 });
-['Thèmes', 'Horloge', 'Minuteur', 'Citations', 'Voix', 'Statistiques'].forEach(function (nom) {
+['Thèmes', 'Horloge', 'Minuteur', 'Citations', 'Voix', 'Salon focus', 'Statistiques'].forEach(function (nom) {
     ok(minuteur.indexOf('<span>' + nom + '</span>') !== -1, 'libellé de menu manquant : ' + nom);
 });
 ['focusChoixStyle', 'focusOptBarre', 'focusOptNotif', 'focusOptAuto', 'focusChoixPolice',
@@ -83,7 +85,7 @@ ok(minuteur.indexOf('aria-label="Fermer les paramètres"') !== -1, 'le menu doit
 });
 ok(minuteur.indexOf('Taille de l\'horloge et du minuteur') !== -1, 'la page Horloge doit garder la carte « Taille de l\'horloge et du minuteur »');
 ok(minuteur.indexOf('Afficher la citation') !== -1, 'la page Citations doit avoir l\'interrupteur d\'affichage');
-ok(script.indexOf("var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'statistiques']") !== -1, 'ordre des rubriques incorrect');
+ok(script.indexOf("var FOCUS_ONGLETS = ['themes', 'horloge', 'minuteur', 'citations', 'voix', 'salon', 'statistiques']") !== -1, 'ordre des rubriques incorrect');
 ['Par défaut', 'Barre de progression', 'Jauge', 'Matrice de points', 'Camembert'].forEach(function (nom) {
     ok(script.indexOf("nom: '" + nom + "'") !== -1, 'style du minuteur manquant : ' + nom);
 });

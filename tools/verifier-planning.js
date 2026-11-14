@@ -72,12 +72,12 @@ ok(popup.indexOf('majFin()') !== -1 && popup.indexOf('chevauchementVerdict') !==
 ok(popup.indexOf('chevConfirmEssentiels') !== -1, 'les créneaux essentiels exigent une seconde confirmation');
 ok(popup.indexOf('Ce qui est déjà prévu') !== -1, 'la popup doit lister ce qui occupe le créneau');
 ok(popup.indexOf('Choisir un autre créneau') !== -1, 'la popup doit proposer les créneaux de la journée');
-ok(popup.indexOf('Activités concernées') !== -1 && popup.indexOf('data-filtre-horaire') !== -1,
+ok(popup.indexOf('Déjà prévu :') !== -1 && popup.indexOf('data-filtre-horaire') !== -1,
     'les horaires occupés doivent informer des activités concernées');
 ok(popup.indexOf('Garder mon horaire et déplacer') !== -1, 'le déplacement doit expliquer son effet');
 ok(popup.indexOf('data-continuer-selection') !== -1 && popup.indexOf('confirmerDirect(choix') !== -1 &&
     popup.indexOf('Deuxième confirmation') !== -1,
-    'Continuer applique le choix vérifié, sauf retrait essentiel qui exige un second accord');
+    'le choix est vérifié avec une seconde confirmation pour les essentiels');
 ok(popup.indexOf('data-annuler') !== -1, 'il faut pouvoir annuler sans enregistrer');
 ok(popup.indexOf('Prendre son créneau') === -1 && popup.indexOf('se décale juste après') === -1,
     'les anciennes promesses trompeuses doivent disparaître');

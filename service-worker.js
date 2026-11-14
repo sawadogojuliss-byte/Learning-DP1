@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261104ay';
+const VERSION = '20261108x';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -11,13 +11,19 @@ const FICHIERS = [
     "style_v2.css",
     "style_v3.css",
     "css/pages/planning-panels.css",
+    "livrables/publication-eeia/design.css",
+    "css/pages/exercices.css",
     "css/pages/planning-semaines.css",
     "css/pages/retours.css",
     "css/pages/emplois-atelier.css",
     "css/pages/admin-atelier.css",
     "css/pages/focus-parametres.css",
+    "css/pages/salon-focus.css",
+    "livrables/publication-pomodoro/mobile.css",
+    "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
     "css/accessibilite.css",
+    "css/curseur-stable.css",
     "js/accessibilite.js",
     "images/logo.png",
     "app.webmanifest",
@@ -90,7 +96,10 @@ const FICHIERS = [
     "js/pages/statistiques.js",
     "js/pages/minuteur-compteurs.js",
     "js/pages/pomodoro-page.js",
-    "js/pages/pomodoro-parametres.js"
+    "js/pages/pomodoro-parametres.js",
+    "js/pages/salon-focus-coeur.js",
+    "js/pages/salon-focus-firebase.js",
+    "js/pages/salon-focus.js"
 ];
 function urlDuSite(fichier) {
     var url = new URL(fichier || './', self.registration.scope);
@@ -125,7 +134,10 @@ self.addEventListener('fetch', function (event) {
         !url.pathname.startsWith(new URL('./', self.registration.scope).pathname)) return;
     if (url.pathname.includes('/data/') || url.pathname.includes('/api/') ||
         url.pathname.endsWith('.json') || url.pathname.includes('/lib/') ||
-        url.pathname.includes('/audio/')) return;
+        url.pathname.includes('/audio/') ||
+        /* Le navigateur gère les requêtes Range de la vidéo ; Cache API ne
+           sait pas stocker une réponse partielle 206. Le poster reste affiché. */
+        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4')) return;
     var navigation = req.mode === 'navigate';
     var versionCheck = url.pathname.endsWith('/js/boot.js') && !url.search;
     if (navigation || versionCheck) {

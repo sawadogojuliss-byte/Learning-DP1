@@ -390,7 +390,28 @@
     font: inherit;
 }
 .focus-page input[type="range"] { width: 100%; accent-color: var(--focus-vert); }
-#focusReglages label[for="focusVoixVolume"] { display: block; margin: 0.8rem 0 0.4rem; font-size: 0.86rem; color: #fff; }
+#focusReglages label[for="focusVoixVolume"] { display: block; margin: 1.15rem 0 0.4rem; font-size: 0.86rem; color: #fff; }
+
+/* Voix : deux choix lisibles, accessibles au clavier et accordés au tiroir. */
+.focus-voix-choix { min-width: 0; margin: 1.1rem 0 0; padding: 0; border: 0; }
+.focus-voix-choix legend { padding: 0; color: #fff; font-size: .91rem; font-weight: 650; }
+.focus-voix-choix p { margin: .35rem 0 .8rem; color: rgba(255,255,255,.66); font-size: .8rem; line-height: 1.45; }
+.focus-voix-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.focus-voix-option { position: relative; min-width: 0; cursor: pointer; }
+.focus-voix-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.focus-voix-tuile { display: flex; align-items: center; gap: .65rem; min-height: 4.3rem; box-sizing: border-box; padding: .7rem; border: 1px solid rgba(255,255,255,.13); border-radius: .85rem; background: rgba(255,255,255,.045); color: #fff; transition: border-color .18s, background .18s; }
+.focus-voix-icone { display: grid; place-items: center; flex: 0 0 2.15rem; width: 2.15rem; height: 2.15rem; border-radius: .7rem; background: rgba(110,231,183,.11); color: var(--focus-menthe); font-size: 1.1rem; }
+.focus-voix-tuile strong, .focus-voix-tuile small { display: block; }
+.focus-voix-tuile strong { font-size: .83rem; line-height: 1.25; }
+.focus-voix-tuile small { margin-top: .2rem; color: rgba(255,255,255,.62); font-size: .7rem; line-height: 1.25; }
+.focus-voix-coche { margin-left: auto; color: var(--focus-menthe); opacity: 0; }
+.focus-voix-option input:checked + .focus-voix-tuile { border-color: rgba(110,231,183,.8); background: rgba(16,185,129,.14); }
+.focus-voix-option input:checked + .focus-voix-tuile .focus-voix-coche { opacity: 1; }
+.focus-voix-option input:focus-visible + .focus-voix-tuile { outline: 2px solid #fff; outline-offset: 3px; }
+.focus-voix-option.is-indisponible { cursor: not-allowed; }
+.focus-voix-option input:disabled + .focus-voix-tuile { border-color: rgba(255,255,255,.08); background: rgba(255,255,255,.025); color: rgba(255,255,255,.65); }
+.focus-voix-option input:disabled + .focus-voix-tuile .focus-voix-icone { color: rgba(255,255,255,.55); background: rgba(255,255,255,.06); }
+@media (max-width: 360px) { .focus-voix-grille { grid-template-columns: 1fr; } }
 
 /* Interrupteurs */
 .focus-interrupteur {
@@ -766,4 +787,63 @@ html:has(#panelSeances.active) #app-pages > :is(nav, section, footer) { display:
 .focus-page .focus-modes-zone .focus-compteur {
     position: absolute; left: 0; bottom: 0.4rem; top: auto; margin: 0; max-width: none;
     justify-content: flex-start; gap: 0.3rem;
+}
+
+/* Citation personnelle : même carte et mêmes tons que les autres réglages. */
+.focus-citation-personnelle { display: grid; gap: .5rem; margin-top: 1.25rem; }
+.focus-citation-personnelle label { color: #e5f8ed; font-weight: 750; font-size: 1rem; }
+.focus-citation-personnelle p { margin: 0; color: #b9d2c2; font-size: .85rem; line-height: 1.45; }
+.focus-citation-personnelle textarea { width: 100%; min-height: 5.8rem; resize: vertical; padding: .8rem .9rem; border: 1px solid rgba(110,231,183,.28); border-radius: .8rem; background: rgba(4,30,24,.6); color: #effcf4; font: inherit; line-height: 1.4; }
+.focus-citation-personnelle textarea::placeholder { color: #a6c3b1; opacity: 1; }
+.focus-citation-personnelle textarea:focus-visible { outline: 2px solid #a6ecc7; outline-offset: 2px; }
+.focus-citation-personnelle small { color: #abc9b5; font-size: .75rem; }
+.focus-top .focus-quote { overflow-wrap: anywhere; }
+.focus-top .focus-quote:focus-visible { outline: 2px solid #a6ecc7; outline-offset: 3px; border-radius: .25rem; }
+
+/* Photo personnelle — le même vocabulaire vert, verre et Degular que les paramètres. */
+.focus-page .focus-perso {
+    position: relative; overflow: hidden; padding: clamp(1.15rem, 3vw, 1.65rem);
+    border-color: rgba(110, 231, 183, .19);
+    background: radial-gradient(ellipse at 100% 0, rgba(16,185,129,.12), transparent 50%), rgba(255,255,255,.035);
+}
+.focus-page .focus-perso-entete { display: flex; align-items: flex-start; gap: .9rem; margin-bottom: 1.2rem; }
+.focus-page .focus-perso-picto { display: grid; place-items: center; flex: 0 0 2.65rem; width: 2.65rem; height: 2.65rem; border: 1px solid rgba(110,231,183,.22); border-radius: .85rem; color: #a7f3d0; background: rgba(16,185,129,.13); }
+.focus-page .focus-perso-picto svg { width: 1.35rem; height: 1.35rem; }
+.focus-page .focus-perso-surplus, .focus-page .focus-perso-label { display: block; margin: 0 0 .35rem; color: #a7f3d0; font-size: .64rem; line-height: 1.2; letter-spacing: .11em; font-weight: 800; }
+.focus-page .focus-perso-entete h3 { margin: 0; font-size: 1.15rem; }
+.focus-page .focus-perso-entete p, .focus-page .focus-perso-actions > p { margin: .35rem 0 0; color: rgba(255,255,255,.64); font-size: .86rem; line-height: 1.45; }
+.focus-page .focus-perso-zone { display: grid; grid-template-columns: minmax(10rem, 1.05fr) minmax(0, 1.25fr); gap: 1.3rem; align-items: center; padding: 1rem; border: 1px solid rgba(110,231,183,.12); border-radius: 1rem; background: rgba(3,20,15,.48); }
+.focus-page .focus-perso-apercu { display: grid; place-items: center; min-width: 0; aspect-ratio: 16 / 10; overflow: hidden; border: 1px dashed rgba(167,243,208,.28); border-radius: .75rem; background: linear-gradient(145deg, rgba(6,78,59,.55), rgba(3,22,18,.95)); background-position: center; background-size: cover; }
+.focus-page .focus-perso-apercu.has-image { border-style: solid; border-color: rgba(167,243,208,.25); }
+.focus-page .focus-perso-apercu > span { display: flex; flex-direction: column; align-items: center; gap: .45rem; color: rgba(167,243,208,.62); font-size: .75rem; font-weight: 600; }
+.focus-page .focus-perso-apercu > span[hidden] { display: none; }
+.focus-page .focus-perso-apercu svg { width: 3.2rem; opacity: .8; }
+.focus-page .focus-perso-actions { min-width: 0; }
+.focus-page .focus-perso-actions strong { color: #fff; font-size: 1rem; font-weight: 700; }
+.focus-page .focus-perso-importer, .focus-perso-dialog-choisir { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; margin-top: .9rem; padding: .72rem 1rem; border: 1px solid #6ee7b7; border-radius: .7rem; background: #10b981; color: #03251b; font: inherit; font-size: .86rem; font-weight: 800; cursor: pointer; }
+.focus-page .focus-perso-importer:hover, .focus-perso-dialog-choisir:hover { background: #6ee7b7; }
+.focus-page .focus-perso-importer:disabled { opacity: .65; cursor: wait; }
+.focus-page .focus-perso-importer svg, .focus-page .focus-perso-confidentialite svg { width: 1.05rem; height: 1.05rem; flex: 0 0 auto; }
+.focus-page .focus-perso-secondaires { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin-top: .65rem; }
+.focus-page .focus-perso-secondaires[hidden] { display: none; }
+.focus-page .focus-perso-secondaires button { padding: .2rem 0; border: 0; background: transparent; color: #a7f3d0; font: inherit; font-size: .8rem; font-weight: 650; cursor: pointer; }
+.focus-page .focus-perso-secondaires button:hover { color: #fff; }
+.focus-page .focus-perso-actions > .focus-perso-confidentialite { display: flex; align-items: center; gap: .35rem; margin-top: .8rem; color: rgba(255,255,255,.5); font-size: .73rem; }
+.focus-page .focus-perso-actions > .focus-perso-statut { color: #a7f3d0; font-size: .77rem; }
+.focus-page .focus-perso button:focus-visible, .focus-perso-dialog button:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 3px; }
+.focus-perso-dialog { box-sizing: border-box; width: min(29rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; margin: auto; padding: 1.5rem; border: 1px solid rgba(110,231,183,.27); border-radius: 1.1rem; background: #09251e; color: #fff; box-shadow: 0 28px 90px rgba(0,0,0,.55); font-family: var(--focus-degular); }
+.focus-perso-dialog::backdrop { background: rgba(0, 9, 6, .75); }
+.focus-perso-dialog-icone { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; margin-bottom: .9rem; border-radius: .8rem; background: rgba(16,185,129,.14); color: #a7f3d0; font-size: 1.25rem; font-weight: 800; }
+.focus-perso-dialog h3 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.focus-perso-dialog p { color: rgba(255,255,255,.75); font-size: .9rem; line-height: 1.5; }
+.focus-perso-dialog .focus-perso-dialog-conseil { padding: .85rem; border: 1px solid rgba(110,231,183,.14); border-radius: .7rem; background: rgba(16,185,129,.08); }
+.focus-perso-dialog strong { color: #d1fae5; }
+.focus-perso-dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .6rem; }
+.focus-perso-dialog-actions button { margin-top: .2rem; }
+.focus-perso-dialog-fermer { padding: .72rem 1rem; border: 1px solid rgba(255,255,255,.18); border-radius: .7rem; background: rgba(255,255,255,.05); color: #fff; font: inherit; font-size: .86rem; font-weight: 700; cursor: pointer; }
+@media (max-width: 600px) {
+    .focus-page .focus-perso-zone { grid-template-columns: 1fr; gap: 1rem; }
+    .focus-page .focus-perso-apercu { max-height: 12rem; }
+    .focus-perso-dialog-actions { flex-direction: column-reverse; }
+    .focus-perso-dialog-actions button { width: 100%; }
 }

@@ -301,6 +301,13 @@ function syncEstamperActivites(liste) {
     var maintenant = Date.now();
     var reg = syncLireRegistre();
     var change = false;
+    /* La date d'ajout appartient à l'activité, pas au profil : modifier un
+       cours sur un appareil hors ligne ne réajoute pas ses vieilles activités. */
+    (Array.isArray(liste) ? liste : []).forEach(function (a) {
+        if (!a || !a.name || ancien.noms.indexOf(String(a.name)) !== -1) return;
+        var tombe = syncNombre(reg.selectedActivities && reg.selectedActivities[String(a.name)]);
+        a.syncAjouteAt = Math.max(maintenant, tombe + 1);
+    });
     ancien.noms.forEach(function (n) {
         if (actuels.indexOf(String(n)) !== -1) return;
         reg.selectedActivities = reg.selectedActivities || {};
@@ -312,9 +319,9 @@ function syncEstamperActivites(liste) {
 }
 
 /* Fusion des activités de toutes les copies, par nom. La version de l'activité
-   est celle de la copie la plus récente qui la contient. Une activité est retirée
-   si sa suppression est postérieure à cette copie : une copie vide ou ancienne ne
-   la fait donc plus revenir. Une activité ré-ajoutée après sa suppression reste. */
+   est celle de la copie la plus récente qui la contient. Une suppression est
+   comparée à la date d'ajout de l'activité, jamais à la date du profil. Une
+   ancienne activité sans date ne revient pas ; un ajout explicite reste. */
 function syncFusionnerActivites(copies, reg) {
     var supprimes = (reg && reg.selectedActivities) || {};
     var triees = (copies || []).filter(function (c) {
@@ -327,7 +334,9 @@ function syncFusionnerActivites(copies, reg) {
         x.c.selectedActivities.forEach(function (a) {
             if (!a || typeof a !== 'object' || !a.name) return;
             var n = String(a.name);
-            if (!parNom[n]) { parNom[n] = { act: a, t: x.t }; ordre.push(n); }
+            var ajout = syncNombre(a.syncAjouteAt);
+            if (!parNom[n]) { parNom[n] = { act: a, t: ajout }; ordre.push(n); }
+            else if (ajout > parNom[n].t) parNom[n] = { act: a, t: ajout };
         });
     });
     return ordre.filter(function (n) {
@@ -490,16 +499,22 @@ function syncFusionnerEmploi(a, b, reg) {
     return { at: at, jours: jours };
 }
 
-/* Fusion des devoirs et examens (le bac national reste la réponse la plus
-   aboutie). */
+/* Fusion des devoirs et examens ; la réponse BAC datée la plus récente gagne. */
 function syncFusionnerStore(a, b, reg) {
     var A = a && typeof a === 'object' ? a : null;
     var B = b && typeof b === 'object' ? b : null;
     if (!A) return B ? syncCopier(B) : null;
     if (!B) return syncCopier(A);
     var res = syncCopier(A);
-    if (res.bac !== true && res.bac !== false && (B.bac === true || B.bac === false)) res.bac = B.bac;
-    res.bacDemande = (A.bacDemande === 2 || B.bacDemande === 2) ? 2 : 0;
+    var aValide = A.bac === true || A.bac === false, bValide = B.bac === true || B.bac === false;
+    var aDate = aValide ? syncNombre(A.bacModifieAt) : 0, bDate = bValide ? syncNombre(B.bacModifieAt) : 0;
+    // Sans date historique, conserver la valeur locale ; une décision datée
+    // prime sur une copie ancienne, quelle que soit la richesse du profil.
+    var gagnant = !aValide && bValide || bValide && bDate > aDate ? B : A;
+    if (aValide && bValide && aDate && aDate === bDate && A.bac !== B.bac) gagnant = A.bac === false ? A : B;
+    res.bac = gagnant.bac === true || gagnant.bac === false ? gagnant.bac : null;
+    res.bacModifieAt = gagnant === B ? bDate : aDate;
+    res.bacDemande = gagnant.bacDemande === 2 ? 2 : 0;
     res.devoirs = syncFusionnerListes([A.devoirs, B.devoirs], 'devoirs', reg, {});
     res.examens = syncFusionnerListes([A.examens, B.examens], 'examens', reg, {});
     return res;
@@ -510,17 +525,20 @@ function syncFusionnerStore(a, b, reg) {
 function syncFocusLire() {
     var r = {
         durees: syncLireJson('studyPlanIB_focusDurees', null),
+        parametres: syncLireJson('studyPlanIB_minuteurParametres', null),
         fond: null,
         ambiance: syncLireJson('studyPlanIB_focusAmbiance', null),
         taches: syncLireJson('studyPlanIB_focusTaches', null),
         volumes: {},
         voixActive: null,
-        voixVolume: null
+        voixVolume: null,
+        voixType: null
     };
     try {
         r.fond = localStorage.getItem('studyPlanIB_focusFond');
         r.voixActive = localStorage.getItem('studyPlanIB_voixActive');
         r.voixVolume = localStorage.getItem('studyPlanIB_voixVolume');
+        r.voixType = localStorage.getItem('studyPlanIB_voixType');
         for (var i = 0; i < localStorage.length; i++) {
             var cle = localStorage.key(i);
             if (cle && cle.indexOf('studyPlanIB_focusVol_') === 0) {
@@ -535,12 +553,14 @@ function syncFocusEmpreinte(o) {
     o = o || {};
     return JSON.stringify({
         durees: o.durees == null ? null : o.durees,
+        parametres: o.parametres == null ? null : o.parametres,
         fond: o.fond == null ? null : o.fond,
         ambiance: o.ambiance == null ? null : o.ambiance,
         taches: o.taches == null ? null : o.taches,
         volumes: o.volumes || {},
         voixActive: o.voixActive == null ? null : o.voixActive,
-        voixVolume: o.voixVolume == null ? null : o.voixVolume
+        voixVolume: o.voixVolume == null ? null : o.voixVolume,
+        voixType: o.voixType == null ? null : o.voixType
     });
 }
 
@@ -552,7 +572,7 @@ function syncFocusCourant() {
     if (!precedent || typeof precedent !== 'object') {
         actuel.modifieAt = 0;
     } else if (syncFocusEmpreinte(precedent) !== empreinte) {
-        actuel.modifieAt = Date.now();
+        actuel.modifieAt = Math.max(Date.now(), syncNombre(precedent.modifieAt) + 1);
     } else {
         actuel.modifieAt = syncNombre(precedent.modifieAt);
     }
@@ -562,6 +582,21 @@ function syncFocusCourant() {
     return actuel;
 }
 
+/* Appelé avant/après une modification du minuteur. La sauvegarde est
+   regroupée pour ne pas ralentir une saisie ou un curseur de volume. */
+var syncFocusTimer = null;
+function syncFocusNotifier() {
+    if (syncApplicationProfonde > 0 || window.compteRestaurationEnCours) return;
+    var avant = syncLireJson(SYNC_CLE_FOCUS, null);
+    var actuel = syncFocusCourant();
+    if (avant && syncFocusEmpreinte(avant) === syncFocusEmpreinte(actuel)) return;
+    if (syncFocusTimer) clearTimeout(syncFocusTimer);
+    syncFocusTimer = setTimeout(function () {
+        syncFocusTimer = null;
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    }, 350);
+}
+
 /* Écrit des réglages reçus, seulement s'ils sont plus récents que les locaux. */
 function syncFocusAppliquer(recu) {
     if (!recu || typeof recu !== 'object') return;
@@ -569,6 +604,10 @@ function syncFocusAppliquer(recu) {
     if (syncNombre(recu.modifieAt) <= syncNombre(local.modifieAt)) return;
     function ecrire(cle, valeur) { try { localStorage.setItem(cle, valeur); } catch (e) {} }
     if (recu.durees && typeof recu.durees === 'object') ecrire('studyPlanIB_focusDurees', JSON.stringify(recu.durees));
+    if (recu.parametres && typeof recu.parametres === 'object' && !Array.isArray(recu.parametres)) {
+        ecrire('studyPlanIB_minuteurParametres', JSON.stringify(recu.parametres));
+        if (typeof focusReglagesVus !== 'undefined') focusReglagesVus = null;
+    }
     if (typeof recu.fond === 'string' && /^\d{1,3}$/.test(recu.fond)) ecrire('studyPlanIB_focusFond', recu.fond);
     if (Array.isArray(recu.ambiance)) ecrire('studyPlanIB_focusAmbiance', JSON.stringify(recu.ambiance.slice(0, 12)));
     if (Array.isArray(recu.taches)) ecrire('studyPlanIB_focusTaches', JSON.stringify(recu.taches.slice(-40)));
@@ -580,9 +619,73 @@ function syncFocusAppliquer(recu) {
     }
     if (recu.voixActive === 'true' || recu.voixActive === 'false') ecrire('studyPlanIB_voixActive', recu.voixActive);
     if (typeof recu.voixVolume === 'string' && isFinite(Number(recu.voixVolume))) ecrire('studyPlanIB_voixVolume', recu.voixVolume);
+    if (recu.voixType === 'feminine' || recu.voixType === 'masculine') ecrire('studyPlanIB_voixType', recu.voixType);
     /* On garde ce qui est réellement écrit sur l'appareil, pas ce qui a été reçu :
        un réglage absent de la sauvegarde reste celui de l'appareil. */
     var applique = syncFocusLire();
     applique.modifieAt = syncNombre(recu.modifieAt);
     ecrire(SYNC_CLE_FOCUS, JSON.stringify(applique));
+}
+
+
+/* Journal Pomodoro : chaque événement a son propre identifiant, distinct de
+   l'identifiant éventuel de la tâche. Une coche retirée garde une pierre
+   tombale, pour qu'une copie hors ligne ne la fasse pas revenir. */
+var SYNC_STATS_CLE = 'studyPlanIB_statsFocus';
+var SYNC_STATS_MAX = 6000;
+function syncStatsId() {
+    var alea = '';
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        var octets = new Uint8Array(16); crypto.getRandomValues(octets);
+        alea = Array.prototype.map.call(octets, function (n) { return ('0' + n.toString(16)).slice(-2); }).join('');
+    } else alea = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    return Date.now().toString(36) + '-' + alea;
+}
+function syncStatsLire() {
+    var liste = syncLireJson(SYNC_STATS_CLE, []), modifie = false;
+    if (!Array.isArray(liste)) return [];
+    liste = liste.filter(function (e) {
+        return e && typeof e === 'object' && /^\d{4}-\d{2}-\d{2}$/.test(String(e.d || '')) &&
+            ['lance', 'focus', 'short', 'long', 'tache'].indexOf(e.k) !== -1;
+    }).map(function (e) {
+        if (!e.u) { e.u = syncStatsId(); modifie = true; }
+        return e;
+    });
+    if (modifie) try { localStorage.setItem(SYNC_STATS_CLE, JSON.stringify(liste)); } catch (e) {}
+    return liste;
+}
+function syncStatsFusionner(listes) {
+    var carte = Object.create(null);
+    (listes || []).forEach(function (liste) {
+        (Array.isArray(liste) ? liste : []).forEach(function (e) {
+            if (!e || typeof e.u !== 'string' || !e.u || e.u.length > 100 ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(String(e.d || '')) ||
+                ['lance', 'focus', 'short', 'long', 'tache'].indexOf(e.k) === -1) return;
+            var ancien = carte[e.u];
+            if (!ancien || (e.supprime && !ancien.supprime)) carte[e.u] = e;
+        });
+    });
+    return Object.keys(carte).map(function (id) { return carte[id]; }).sort(function (a, b) {
+        return a.d < b.d ? -1 : a.d > b.d ? 1 : (a.u < b.u ? -1 : a.u > b.u ? 1 : 0);
+    }).slice(-SYNC_STATS_MAX);
+}
+function syncStatsAppliquer(liste) {
+    if (!Array.isArray(liste)) return;
+    var fusion = syncStatsFusionner([syncStatsLire(), liste]);
+    try { localStorage.setItem(SYNC_STATS_CLE, JSON.stringify(fusion)); } catch (e) {}
+    if (typeof statsPeindre === 'function') { try { statsPeindre(); } catch (e) {} }
+}
+
+/* Ne pas laisser le journal des statistiques monopoliser la progression
+   Firestore : les plus récentes entrées voyagent dans la limite de 200 ko.
+   Les autres restent dans le journal local (dans sa limite de 6 000). */
+function syncStatsPourCompte(liste) {
+    var resultat = [], taille = 2;
+    var tries = syncStatsFusionner([liste]);
+    for (var i = tries.length - 1; i >= 0; i--) {
+        var poids = JSON.stringify(tries[i]).length * 3 + 1; /* majorant UTF-8 */
+        if (taille + poids > 200000) break;
+        resultat.push(tries[i]); taille += poids;
+    }
+    return resultat.reverse();
 }

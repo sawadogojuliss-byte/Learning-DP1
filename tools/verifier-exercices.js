@@ -15,7 +15,13 @@ const elements = {};
 let activeElement = null;
 function el(id) {
     if (!elements[id]) elements[id] = {
-        id, value: '', textContent: '', innerHTML: '', style: {}, attrs: {},
+        id, value: '', textContent: '', innerHTML: '', style: {}, attrs: {}, hidden: false,
+        /* La page porte des classes (badge vide, progression) : le faux
+           élément doit s'y prêter comme un vrai nœud. */
+        classList: { valeurs: [], add(c) { if (!this.valeurs.includes(c)) this.valeurs.push(c); },
+            remove(c) { this.valeurs = this.valeurs.filter(v => v !== c); },
+            contains(c) { return this.valeurs.includes(c); },
+            toggle(c, force) { const on = force === undefined ? !this.contains(c) : !!force; if (on) this.add(c); else this.remove(c); return on; } },
         replaceChildren() {}, append() {},
         setAttribute(k, v) { this.attrs[k] = v; },
         getAttribute(k) { return this.attrs[k] || null; },
