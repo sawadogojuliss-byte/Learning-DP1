@@ -70,6 +70,15 @@ try {
     await page.evaluate(() => { document.getElementById('planningModal').classList.add('active'); navigateTo('eeia'); });
     assert.equal(await page.locator('.eeia-carte.is-memoire [role=progressbar]').getAttribute('aria-valuenow'),'50');
     assert.equal(await page.getByRole('button',{name:/^Collecter mes données/}).count(),1);
+    // À certaines heures, le planning restauré demande si un créneau EE/IA
+    // passé a été réalisé. Répondre comme un élève, sans masquer le dialogue.
+    for (let i=0; i<20 && await page.locator('#eeRetourModal').isVisible(); i++) {
+      const dialogue=page.locator('#eeRetourModal');
+      const pasEncore=dialogue.getByRole('button',{name:'Pas encore'});
+      if (await pasEncore.isVisible()) await pasEncore.click();
+      else await dialogue.getByRole('button',{name:'Continuer'}).click();
+    }
+    assert.equal(await page.locator('#eeRetourModal').isVisible(),false,'les questions de suivi sont terminées');
     await page.getByRole('button',{name:'Retirer Analyse'}).click();
     assert.equal(await page.locator('.eeia-carte.is-memoire [role=progressbar]').getAttribute('aria-valuenow'),'100');
     await page.locator('.eeia-carte.is-memoire').getByRole('button',{name:'Finalisation'}).click();
