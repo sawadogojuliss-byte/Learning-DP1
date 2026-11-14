@@ -18,6 +18,7 @@
     var fondMontre = '', playlistChoisie = null, local = null, sonsPersonnels = [], generationAudio = 0;
     var volumeSalon = 1, discret = false, signalFin = 'visuel', contexteSignal = null, finObservee = 0, signalees = {};
     var generationMessages=0, arreterMessages=null, messagesSalon=[], messagesConnus=new Set(), messagesInitialises=false, messagesNonLus=0, messagesDisponibles=false, messageEnCours=false;
+    var reglagesSalon=null, voixSalon=null, prioritesSalon={}, volumesSalon={}, listesSalon=[], porteeSalon=null, filePortee=[], enAttentePartage={}, envoiPartage=false, timerPartage=null;
     var objectifTimer = null, fileMembre = Promise.resolve(), signatureGroupe = '', partageInitialise = false, miniSalon=null;
     try {
         var preference = JSON.parse(localStorage.getItem('studyPlanIB_salon_preferences') || '{}');
@@ -61,6 +62,12 @@
         var labels={objectif:'Objectif',groupe:'Groupe',preferences:'Préférences',bilan:'Bilan'};
         var descriptions={objectif:'Définis ton intention pour cette séance.',groupe:'Retrouve les personnes et les outils de votre salon.',preferences:'Personnalise ton expérience, à ton rythme.',bilan:'Célèbre le temps que vous avez partagé.'};
         var icones={objectif:'M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4',groupe:'M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM17 4a4 4 0 0 1 0 7M20 21v-2a4 4 0 0 0-2.5-3.7',preferences:'M4 6h16M4 12h16M4 18h16M8 4v4M16 10v4M10 16v4',bilan:'M12 3a9 9 0 1 0 9 9h-9V3ZM15 3.5V9h5.5A9 9 0 0 0 15 3.5Z'};
+        // Les fonctions propres au minuteur individuel ne sont pas présentées
+        // comme actives sur le minuteur commun.
+        [['focusOptNotif','Dans le salon, choisis le signal de fin dans Préférences. L’annonce vocale et la notification Pomodoro ne sont pas utilisées.'],['focusVoixActive','Le salon utilise son propre signal de fin : les annonces vocales du Pomodoro personnel ne s’y déclenchent pas.'],['focusOptAuto','Le minuteur commun ne passe pas automatiquement à la phase suivante.']].forEach(function(info){
+            var input=$(info[0]);if(!input)return;var label=input.closest('label');if(!label || label.nextElementSibling && label.nextElementSibling.classList.contains('salon-limite-reglage'))return;
+            var note=document.createElement('p');note.className='salon-limite-reglage';note.textContent=info[1];label.after(note);
+        });
         fichesSalon.forEach(function(nom){
             var id='reunion-'+nom, carte=document.querySelector('[data-salon-fiche="'+nom+'"]');
             if(!carte || document.querySelector('#focusReglages [data-page="'+id+'"]'))return;
@@ -147,11 +154,13 @@
     // Le lecteur Studyplan joue les playlists comme un ensemble de sons.
     var jouerListe = focusJouerListe;
     focusJouerListe = function (liste) {
+        if(contexteSalon()){var m={nom:coeur.texte(liste && liste.nom,40),sons:(liste && liste.sons || []).filter(focusSonParId).slice(0,20)};local.musique=m;audioAutorise=true;choisirPortee(['musique']);return;}
         playlistChoisie = { nom:coeur.texte(liste && liste.nom,40), sons:(liste && liste.sons || []).slice(0,20) };
         return jouerListe.apply(this, arguments);
     };
     function selectionPartagee() {
-        var p=coeur.contenus(options(),etatPersonnel());
+        var source=contexteSalon()?sourceEffectiveSalon():etatPersonnel();
+        var p=coeur.contenus(options(),source);
         // Les salons créés restent compatibles avec les anciennes règles ;
         // l'objectif partagé de séances n'est ajouté qu'à l'application explicite.
         if(p.durees){
@@ -161,6 +170,132 @@
         }
         return p;
     }
+    // Les mêmes commandes visuelles sont réutilisées, mais leurs valeurs et
+    // écritures sont isolées du Pomodoro personnel pendant le salon.
+    function contexteSalon(){return !!(session && local && reglagesSalon && ((!$('salonEcran').hidden) || editionPartage));}
+    var focusLirePersonnel=focusLireReglages, focusEcrirePersonnel=focusEcrireReglages, poserFondPersonnel=focusPoserFond;
+    var marquerThemesPersonnel=focusMarquerThemes, focusSonActifPersonnel=focusSonActif, volumePersonnel=focusVolume;
+    var reglerVolumePersonnel=focusReglerVolume, choisirSonPersonnel=focusChoisirSon, pauseSonPersonnel=focusPauseSon, reinitSonPersonnel=focusReinitSon;
+    var lireListesPersonnel=focusLireListes, sauverListesPersonnel=focusSauverListes;
+    function sauvegarderSalonLocal(){
+        if(!session || !local)return;
+        try{sessionStorage.setItem('studyPlanIB_salon_local_'+session.id+'_'+(session.uid||''),JSON.stringify({local:local,reglages:reglagesSalon,voix:voixSalon,priorites:prioritesSalon,volumes:volumesSalon,listes:listesSalon,portee:porteeSalon}));}catch(e){}
+    }
+    function sourceEffectiveSalon(){
+        var choix=coeur.autorisations(salle && salle.options), p=coeur.contenus(choix,salle && salle.partage||{}), r=Object.assign({},local);
+        if(choix.theme && !prioritesSalon.theme)r.theme=p.theme;
+        if(choix.horloge && !prioritesSalon.horloge)r.horloge=p.horloge;
+        if(choix.citations && !prioritesSalon.citations)r.citation=p.citation;
+        if(choix.sons && !prioritesSalon.sons)r.sons=p.sons;
+        if(choix.musique && !prioritesSalon.musique)r.musique=p.musique;
+        if(choix.minuteur)r.durees=p.durees;
+        return r;
+    }
+    function volumeSonSalon(id){return volumesSalon[id]==null?volumePersonnel(id):volumesSalon[id];}
+    function rafraichirSalon(){if(session && salle)peindre();}
+    function programmerPartage(){
+        if(timerPartage)clearTimeout(timerPartage);
+        timerPartage=setTimeout(diffuserSalon,160);
+    }
+    function diffuserSalon(){
+        timerPartage=null;var s=session;if(!s || !salle || s.role!=='hote')return;
+        if(envoiPartage || occupe){programmerPartage();return;}
+        var types=Object.keys(enAttentePartage);if(!types.length)return;
+        if(!connecte){types.forEach(function(k){prioritesSalon[k]=true;});sauvegarderSalonLocal();rafraichirSalon();statut('salonMessage','Changements en attente de reconnexion.');return;}
+        var opts=coeur.autorisations(salle.options), p=coeur.contenus(opts,salle.partage||{});
+        types.forEach(function(k){opts[k]=true;p[k==='citations'?'citation':k]=enAttentePartage[k];delete enAttentePartage[k];prioritesSalon[k]=false;});
+        envoiPartage=true;envoyer({options:opts,partage:p}).then(function(ok){
+            if(session!==s)return;envoiPartage=false;
+            if(!ok){types.forEach(function(k){if(!(k in enAttentePartage))prioritesSalon[k]=true;});sauvegarderSalonLocal();peindre();statut('salonMessage','Changement non partagé. Vérifie la connexion puis réessaie.');return;}
+            if(Object.keys(enAttentePartage).length)programmerPartage();
+        });
+    }
+    function appliquerPortee(types, partage){
+        if(!session || !local)return;
+        types.forEach(function(k){
+            // Une photo importée n'est jamais envoyée au groupe.
+            if(k==='theme' && local.themeLocal==='personnel-local'){
+                prioritesSalon.theme=true;statut('salonMessage','Ta photo personnelle reste uniquement sur ton appareil.');return;
+            }
+            if(partage && session.role==='hote'){
+                prioritesSalon[k]=false;
+                enAttentePartage[k]=k==='theme'?local.theme:local[k==='citations'?'citation':k];
+            }else prioritesSalon[k]=true;
+        });
+        sauvegarderSalonLocal();rafraichirSalon();
+        if(partage && Object.keys(enAttentePartage).length)programmerPartage();
+    }
+    function choisirPortee(types){
+        if(!session)return;
+        if(session.role!=='hote'){appliquerPortee(types,false);return;}
+        if(porteeSalon!==null){appliquerPortee(types,porteeSalon);return;}
+        filePortee.push(types);var d=$('salonChoixPartage');
+        if(!d.open)d.showModal();
+    }
+    window.salonChoisirPortee=function(partage){
+        if(!session)return;porteeSalon=!!partage;var d=$('salonChoixPartage');if(d.open)d.close();
+        var liste=filePortee.slice();filePortee=[];liste.forEach(function(types){appliquerPortee(types,porteeSalon);});sauvegarderSalonLocal();
+        if(contexteSalon())focusPeindreParametres();
+    };
+    focusLireReglages=function(){
+        if(!contexteSalon())return focusLirePersonnel();
+        var r=Object.assign({},reglagesSalon), choix=coeur.autorisations(salle && salle.options), p=coeur.contenus(choix,salle && salle.partage||{});
+        if(choix.horloge && !prioritesSalon.horloge && p.horloge){r.police=p.horloge.police;r.taille=p.horloge.taille;}
+        if(choix.citations && !prioritesSalon.citations && p.citation)r.citation=p.citation.visible;
+        return r;
+    };
+    focusEcrireReglages=function(r){
+        if(!contexteSalon())return focusEcrirePersonnel(r);
+        var ancien=focusLireReglages(), prochain=focusNormaliserReglages(r), types=[];
+        if(ancien.police!==prochain.police || ancien.taille!==prochain.taille)types.push('horloge');
+        if(ancien.citation!==prochain.citation || ancien.citationCategorie!==prochain.citationCategorie || ancien.citationPersonnelle!==prochain.citationPersonnelle)types.push('citations');
+        reglagesSalon=prochain;local.horloge={police:prochain.police,taille:prochain.taille};
+        var ancienPrioriteCitation=prioritesSalon.citations;prioritesSalon.citations=true;local.citation={visible:prochain.citation,texte:focusCitationDuJour()};prioritesSalon.citations=ancienPrioriteCitation;
+        sauvegarderSalonLocal();if(types.length || session.role==='hote' && porteeSalon===null)choisirPortee(types);else rafraichirSalon();
+    };
+    focusPoserFond=function(index,immediat){
+        if(!contexteSalon())return poserFondPersonnel(index,immediat);
+        if(!FOCUS_FONDS[index])return;var f=FOCUS_FONDS[index];if(f.remplacePar)f=FOCUS_FONDS[focusIndexParId(f.remplacePar)];if(!f)return;
+        local.themeLocal=f.id;local.theme=f.id==='personnel-local'?'':f.id;choisirPortee(['theme']);
+    };
+    focusMarquerThemes=function(){
+        marquerThemesPersonnel();if(!contexteSalon())return;
+        var id=sourceEffectiveSalon().theme || local.themeLocal;
+        document.querySelectorAll('#focusThemesCorps [data-index]').forEach(function(t){var f=FOCUS_FONDS[Number(t.getAttribute('data-index'))],on=!!f && f.id===id;t.classList.toggle('is-on',on);t.setAttribute('aria-pressed',String(on));});
+    };
+    focusSonActif=function(id){if(!contexteSalon())return focusSonActifPersonnel(id);var src=sourceEffectiveSalon();return (src.sons||[]).indexOf(id)>=0 || !!(src.musique && (src.musique.sons||[]).indexOf(id)>=0);};
+    focusVolume=function(id){return contexteSalon()?volumeSonSalon(id):volumePersonnel(id);};
+    focusReglerVolume=function(id,valeur){if(!contexteSalon())return reglerVolumePersonnel(id,valeur);volumesSalon[id]=Math.min(1,Math.max(0,Number(valeur)||0));if(lecteurs[id])lecteurs[id].volume=volumesSalon[id]*volumeSalon;sauvegarderSalonLocal();if(session.role==='hote' && porteeSalon===null)choisirPortee([]);};
+    focusChoisirSon=function(id){
+        if(!contexteSalon())return choisirSonPersonnel(id);if(!focusSonParId(id))return;
+        var selection=(sourceEffectiveSalon().sons||[]).slice(),i=selection.indexOf(id);if(i>=0)selection.splice(i,1);else selection.push(id);
+        local.sons=selection;audioAutorise=true;choisirPortee(['sons']);focusPeindreSons();
+    };
+    focusPauseSon=function(){if(!contexteSalon())return pauseSonPersonnel();audioAutorise=!audioAutorise;if(!audioAutorise)stopperAudio();rafraichirSalon();focusPeindreSons();};
+    focusReinitSon=function(){if(!contexteSalon())return reinitSonPersonnel();local.sons=[];local.musique={nom:'',sons:[]};choisirPortee(['sons','musique']);focusPeindreSons();};
+    focusLireListes=function(){return contexteSalon()?listesSalon:lireListesPersonnel();};
+    focusSauverListes=function(listes){if(!contexteSalon())return sauverListesPersonnel(listes);listesSalon=listes.slice(0,24);sauvegarderSalonLocal();};
+    var voixActivePersonnel=chronoVoixActive, voixVolumePersonnel=chronoVoixVolume, sauverVoixPersonnel=chronoSauverReglagesVoix, choisirVoixPersonnel=chronoChoisirVoix;
+    chronoVoixActive=function(){return contexteSalon()?voixSalon.active:voixActivePersonnel();};
+    chronoVoixVolume=function(){return contexteSalon()?voixSalon.volume:voixVolumePersonnel();};
+    chronoSauverReglagesVoix=function(){if(!contexteSalon())return sauverVoixPersonnel();voixSalon={active:$('focusVoixActive').checked,volume:Math.max(0,Math.min(1,Number($('focusVoixVolume').value)/100))};sauvegarderSalonLocal();if(session.role==='hote' && porteeSalon===null)choisirPortee([]);};
+    chronoChoisirVoix=function(type){if(!contexteSalon())return choisirVoixPersonnel(type);chronoChargerReglagesVoix();};
+    var choisirOptionPersonnel=focusChoisirOption;
+    focusChoisirOption=function(cle,actif){
+        if(!contexteSalon() || cle!=='notif')return choisirOptionPersonnel(cle,actif);
+        var s=session;
+        if(!actif || typeof Notification==='undefined' || Notification.permission==='denied'){
+            focusMajReglage('notif',false);focusPeindre();return;
+        }
+        if(Notification.permission==='granted'){focusMajReglage('notif',true);focusPeindre();return;}
+        Promise.resolve(Notification.requestPermission()).then(function(reponse){if(session!==s || !contexteSalon())return;focusMajReglage('notif',reponse==='granted');focusPeindre();},function(){if(session===s && contexteSalon()){focusMajReglage('notif',false);focusPeindre();}});
+    };
+    // Importer/supprimer modifierait la photo personnelle dans IndexedDB.
+    // Ces deux actions restent disponibles hors salon ; une photo déjà présente
+    // peut toujours être choisie localement dans le salon.
+    var importerPhotoPersonnel=focusPersonnelChoisir, supprimerPhotoPersonnel=focusPersonnelSupprimer;
+    focusPersonnelChoisir=function(input){if(!contexteSalon())return importerPhotoPersonnel(input);if(input)input.value='';focusPersonnelStatut('Pour préserver ta photo personnelle, importe une photo hors du salon.');};
+    focusPersonnelSupprimer=function(){if(!contexteSalon())return supprimerPhotoPersonnel();focusPersonnelStatut('Ta photo personnelle ne peut pas être supprimée depuis le salon.');};
     function erreur(e) {
         if (!navigator.onLine) return 'Connexion interrompue. Réessaie quand le réseau revient.';
         if (e && e.code === 'auth-required') return 'Connecte-toi à ton compte Google pour créer ou reprendre ton salon.';
@@ -234,6 +369,7 @@
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
         installerFiches();resumeSelection();
         $('salonMessagerie').addEventListener('keydown',function(event){if(event.key==='Escape'){event.preventDefault();window.salonFermerMessages();}});
+        $('salonChoixPartage').addEventListener('cancel',function(e){e.preventDefault();window.salonChoisirPortee(false);});
         $('salonLienCarte').addEventListener('cancel',function(event){event.preventDefault();window.salonFermerLien();});
         $('salonInvitation').addEventListener('cancel',function(event){event.preventDefault();window.salonAnnulerInvitation();});
         pret();
@@ -241,11 +377,14 @@
     setTimeout(init,0);
     function commencer(s, initial, pseudo) {
         if (!s || !/^[a-f0-9]{48}$/.test(s.id) || ['hote','invite'].indexOf(s.role) < 0 || typeof s.maintenant !== 'function' || typeof s.observer !== 'function' || typeof s.modifier !== 'function' || typeof s.quitter !== 'function' || typeof s.fermer !== 'function') throw new Error('Session invalide');
+        var reglagesDepart=focusLireReglages(), localDepart=initial || etatPersonnel(), listesDepart=focusLireListes(), voixDepart={active:chronoVoixActive(),volume:chronoVoixVolume()};
         session = s;
+        reglagesSalon=focusNormaliserReglages(reglagesDepart);voixSalon=voixDepart;prioritesSalon={};volumesSalon={};listesSalon=listesDepart.slice();porteeSalon=null;filePortee=[];enAttentePartage={};envoiPartage=false;clearTimeout(timerPartage);
+        try { var memoSalon=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_local_'+s.id+'_'+(s.uid||''))||'null');if(memoSalon){if(memoSalon.local)localDepart=memoSalon.local;if(memoSalon.reglages)reglagesSalon=focusNormaliserReglages(memoSalon.reglages);if(memoSalon.voix)voixSalon=memoSalon.voix;prioritesSalon=memoSalon.priorites||{};volumesSalon=memoSalon.volumes||{};if(Array.isArray(memoSalon.listes))listesSalon=memoSalon.listes;porteeSalon=typeof memoSalon.portee==='boolean'?memoSalon.portee:null;}} catch(e) {}
         if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
         adresseSalon(s.id);document.body.classList.add('salon-actif');$('salonEcran').classList.remove('salon-attente-invitation');protegerReglages(s.role==='invite');
         try { sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify({id:s.id,role:s.role,identite:s.identite||'',pseudo:coeur.texte(pseudo,30)})); } catch(e) {}
-        local = initial || etatPersonnel(); salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false; fileMembre=Promise.resolve();
+        local = localDepart; salle = null; connecte = false; fondMontre = ''; signatureGroupe=''; signatureParticipants=''; finObservee=0; signalees={}; partageInitialise=false; fileMembre=Promise.resolve();
         editionPartage=false;
         $('salonObjectif').value=''; $('salonObjectifFait').checked=false; $('salonObjectifPartager').checked=false;
         try { var obj=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_objectif_'+s.id)||'{}'); $('salonObjectif').value=coeur.texte(obj.texte,160); $('salonObjectifFait').checked=obj.fait===true; } catch(e) {}
@@ -255,13 +394,13 @@
         // laisser deux sessions et deux annonces tourner en parallèle.
         var minuteurPersonnelPause = !!focusEtat.running;
         if (minuteurPersonnelPause) focusPause();
-        sonsPersonnels = Object.keys(focusLecteurs).filter(focusSonActif);
+        sonsPersonnels = Object.keys(focusLecteurs).filter(focusSonActifPersonnel);
         focusCouperSon();
         if (typeof focusFermer === 'function') focusFermer('focusReglages');
         $('salonEcran').hidden = false; $('salonRaccourci').hidden = true;if($('salonRaccourci').parentNode!==document.body)document.body.appendChild($('salonRaccourci'));
         $('salonLienAffiche').value=coeur.lienInvitation(document.baseURI,s.id);
         if(initial && s.role==='hote')ouvrirLien();else window.salonFermerLien();
-        statut('salonLienStatut','Seules les personnes qui ont ce lien peuvent rejoindre.');statut('salonGroupePartageStatut','');
+        statut('salonLienStatut','');statut('salonGroupePartageStatut','');
         $('salonCommandes').hidden = session.role !== 'hote';$('salonPipInvite').hidden=false;
         $('salonAttente').hidden = session.role === 'hote';
         $('salonReglages').hidden = session.role !== 'hote';
@@ -275,13 +414,13 @@
                 salle = data;
                 if (session.uid && data.organisateurUid) {
                     var ancienRole=session.role;session.role = data.organisateurUid === session.uid ? 'hote' : 'invite';protegerReglages(session.role==='invite');
+                    if(ancienRole==='hote' && session.role!=='hote'){clearTimeout(timerPartage);enAttentePartage={};if($('salonChoixPartage').open)window.salonChoisirPortee(false);}
                     if(ancienRole!=='hote' && session.role==='hote' && focusOngletCourant==='minuteur')remplirDureesSalon();
                     try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.role=session.role; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
                 }
-                if (session.role === 'hote' && !playlistChoisie && data.options && data.options.musique && data.partage && data.partage.musique)
-                    playlistChoisie = coeur.contenus({musique:true},{musique:data.partage.musique}).musique;
             }
             statut('salonEtatConnexion', connecte ? '● Connecté en direct' : '○ Reconnexion en cours');
+            if(connecte && session.role==='hote' && Object.keys(enAttentePartage).length && !envoiPartage && !timerPartage)programmerPartage();
             peindre();
         }, function (e) { if(e && (e.code==='removed' || e.code==='room-closed')) { finirLocal(e.code==='removed'?'Tu as été retiré du salon.':'Le salon est fermé ou a expiré.'); return; } connecte=false;statut('salonEtatConnexion','○ Connexion interrompue');statut('salonMessage',erreur(e));peindre(); });
         demarrerMessages(s);
@@ -368,7 +507,7 @@
     };
     function lien() { return coeur.lienInvitation(document.baseURI, session.id); }
     function messageCopie(message) {
-        statut('salonLienStatut',message);statut('salonGroupePartageStatut',message);statut('salonMessage',message);
+        statut('salonLienStatut',message);statut('salonGroupePartageStatut',message);
     }
     function ouvrirLien(){var carte=$('salonLienCarte');carte.hidden=false;if(!carte.open)carte.showModal();}
     window.salonFermerLien=function(){var carte=$('salonLienCarte');if(carte.open)carte.close();carte.hidden=true;};
@@ -402,16 +541,25 @@
     window.salonActiverAudio=function () { audioAutorise=!audioAutorise;if (!audioAutorise) stopperAudio();signatureAudio='';peindre(); };
     function peindreAudio(partage, opts) {
         var ids=[];
-        var sons=opts.sons ? partage.sons : local.sons;
-        var musique=opts.musique ? partage.musique : local.musique;
+        var sons=opts.sons && !prioritesSalon.sons ? partage.sons : local.sons;
+        var musique=opts.musique && !prioritesSalon.musique ? partage.musique : local.musique;
         if (Array.isArray(sons)) ids=ids.concat(sons);
         if (musique && Array.isArray(musique.sons)) ids=ids.concat(musique.sons);
         ids=ids.filter(function(id,i,a){return a.indexOf(id)===i && !!focusSonParId(id);});
         propriete($('salonAutoriserAudio'),'hidden',!ids.length);
         statut('salonAutoriserAudio',audioAutorise?'Couper les sons':'Activer les sons');
         if (!audioAutorise) return;
-        var signature=JSON.stringify(ids);if(signature===signatureAudio)return;stopperAudio();signatureAudio=signature;var generation=generationAudio;
-        ids.forEach(function(id){ var son=focusSonParId(id), audio=new Audio(son.fichier);audio.loop=true;audio.volume=focusVolume(id)*volumeSalon;lecteurs[id]=audio;var p=audio.play();if(p&&p.catch)p.catch(function(){if(generation!==generationAudio)return;statut('salonMessage','La lecture est bloquée : touche « Activer les sons » pour réessayer.');audioAutorise=false;stopperAudio();}); });
+        var signature=JSON.stringify(ids);if(signature===signatureAudio)return;signatureAudio=signature;
+        // Conserver les lecteurs déjà audibles évite de recharger toutes les
+        // pistes lorsqu'une seule ambiance est ajoutée ou retirée.
+        Object.keys(lecteurs).forEach(function(id){if(ids.indexOf(id)>=0)return;var a=lecteurs[id];delete lecteurs[id];a.pause();a.removeAttribute('src');a.load();});
+        ids.forEach(function(id){
+            if(lecteurs[id])return;var son=focusSonParId(id);
+            var audio=focusSonAmorce && focusSonAmorce.id===id?focusSonAmorce.audio:new Audio(son.fichier);
+            if(focusSonAmorce && focusSonAmorce.id===id)focusSonAmorce=null;
+            audio.preload='auto';audio.loop=true;audio.volume=volumeSonSalon(id)*volumeSalon;lecteurs[id]=audio;
+            var p=audio.play();if(p&&p.catch)p.catch(function(e){if(lecteurs[id]!==audio || !audioAutorise || e && e.name==='AbortError')return;statut('salonMessage','La lecture est bloquée : touche « Activer les sons » pour réessayer.');audioAutorise=false;stopperAudio();});
+        });
     }
     function etatMessages() {
         var disponible=!!(session && messagesDisponibles && connecte);
@@ -479,7 +627,7 @@
     window.salonChangerVolume=function(v) {
         volumeSalon=Math.max(0,Math.min(1,Number(v)/100));
         $('salonVolumeValeur').textContent=Math.round(volumeSalon*100)+' %';
-        Object.keys(lecteurs).forEach(function(id){lecteurs[id].volume=focusVolume(id)*volumeSalon;}); sauvegarderPreferences();
+        Object.keys(lecteurs).forEach(function(id){lecteurs[id].volume=volumeSonSalon(id)*volumeSalon;}); sauvegarderPreferences();
     };
     window.salonChangerDiscret=function(v) { discret=!!v;sauvegarderPreferences();signatureGroupe='';peindre();peindreMessages(); };
     window.salonChangerSignal=function(v) {
@@ -603,13 +751,26 @@
         if(fond.video) { var v=document.createElement('video');v.muted=true;v.defaultMuted=true;v.loop=true;v.playsInline=true;v.poster=fond.src;v.src=fond.videoLeger||fond.video;v.setAttribute('aria-hidden','true');el.appendChild(v);v.addEventListener('playing',function(){$('salonRelancerVideo').hidden=true;});v.addEventListener('error',function(){$('salonRelancerVideo').hidden=false;});var p=v.play();if(p&&p.catch)p.catch(function(e){if(v.isConnected && (!e || e.name!=='AbortError'))$('salonRelancerVideo').hidden=false;}); }
     }
     window.salonRelancerVideo=function(){var v=$('salonDecor').querySelector('video');if(!v)return;if(v.error)v.load();var p=v.play();if(p&&p.catch)p.catch(function(){$('salonRelancerVideo').hidden=false;});};
+    function peindreStyleSalon(c){
+        var r=reglagesSalon, visuel=$('salonVisuel'), temps=$('salonTemps'), barre=$('salonBarre');
+        var style=r.style, fraction=Math.max(0,Math.min(1,c.restant/(c.total||1)));
+        if(visuel.getAttribute('data-style')!==style){visuel.setAttribute('data-style',style);visuel.innerHTML=focusHtmlStyle(style).replace(/focusCamGrad/g,'salonCamGrad');}
+        var dessous=style==='jauge'||style==='matrice'||style==='camembert';
+        propriete(visuel,'hidden',!dessous);temps.classList.toggle('is-dessous',dessous);
+        if(dessous && visuel.nextElementSibling!==temps)visuel.after(temps);
+        if(!dessous && visuel.previousElementSibling!==temps)visuel.before(temps);
+        var arc=visuel.querySelector('.focus-jauge-arc');if(arc)attribut(arc,'stroke-dashoffset',(FOCUS_CERCLE*(1-fraction)).toFixed(2));
+        var points=visuel.querySelectorAll('.focus-point'), allumes=Math.ceil(fraction*points.length);points.forEach(function(p,i){p.classList.toggle('is-allume',i<allumes);});
+        var part=visuel.querySelector('.focus-camembert-part');if(part)attribut(part,'d',focusSecteur(fraction));
+        propriete(barre,'hidden',!(r.barre||style==='barre'));propriete($('salonBarreRemplie').style,'width',(fraction*100).toFixed(2)+'%');
+    }
     function peindre() {
         if(!session || !salle) return;
         var choix=coeur.autorisations(salle.options), p=coeur.contenus(choix,salle.partage || {}), c;
         try { c=coeur.temps(salle.chrono,heure()); } catch(e) { statut('salonMessage','Le minuteur reçu est invalide.');return; }
         statut('salonTitre',coeur.texte(salle.nom,60));
         statut('salonPhase',({focus:'Concentration',short:'Pause courte',long:'Pause longue'})[c.mode]);
-        statut('salonTemps',focusTexte(c.restant));peindreMini(c);
+        statut('salonTemps',focusTexte(c.restant));peindreStyleSalon(c);peindreMini(c);
         statut('salonInfoChrono',c.restant===0?'Temps écoulé · en attente de l’organisateur':(c.running?'En cours':'En pause'));
         attribut($('salonDemarrer'),'aria-label',c.running?'Pause':'Démarrer');propriete($('salonIconPlay').style,'display',c.running?'none':'block');propriete($('salonIconPause').style,'display',c.running?'block':'none');
         statut('salonAstuce',FOCUS_ASTUCES[c.mode]||'');
@@ -620,14 +781,14 @@
         etatMessages();
         $('salonCommandes').querySelectorAll('button').forEach(function(b){propriete(b,'disabled',!connecte||occupe);});
         document.querySelectorAll('#salonEcran [data-mode]').forEach(function(b){propriete(b,'disabled',session.role!=='hote'||!connecte||occupe);b.classList.toggle('is-on',b.dataset.mode===c.mode);attribut(b,'aria-pressed',String(b.dataset.mode===c.mode));});
-        var h=choix.horloge && p.horloge ? p.horloge : local.horloge;
+        var h=choix.horloge && p.horloge && !prioritesSalon.horloge ? p.horloge : local.horloge;
         var police=FOCUS_POLICES.some(function(x){return x.id===h.police})?h.police:'gras';
         var taille=FOCUS_TAILLES.some(function(x){return x.id===h.taille})?h.taille:'normale';
         var classe='salon-ecran focus-police-'+police+' focus-taille-'+taille;if($('salonEcran').className!==classe)$('salonEcran').className=classe;
         statut('salonHeure',new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));
-        var citation=choix.citations && p.citation ? p.citation : local.citation;
+        var citation=choix.citations && p.citation && !prioritesSalon.citations ? p.citation : local.citation;
         statut('salonCitation',citation.visible?citation.texte:'');
-        var decorPartage = choix.theme && p.theme;
+        var decorPartage = choix.theme && p.theme && !prioritesSalon.theme;
         decor(decorPartage ? p.theme : local.themeLocal, !decorPartage);
         peindreAudio(p,choix);
         var membres=Array.isArray(salle.membres)?salle.membres:[];
@@ -649,11 +810,12 @@
     }
     function finirLocal(message, finOrganisateur) {
         var bilanFinal=salle && salle.bilan;
-        fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
+        fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer);clearTimeout(timerPartage);filePortee=[];enAttentePartage={};var choix=$('salonChoixPartage');if(choix && choix.open)choix.close(); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
-        try { sessionStorage.removeItem('studyPlanIB_salon_session'); } catch(e) {}
+        try { sessionStorage.removeItem('studyPlanIB_salon_session');sessionStorage.removeItem('studyPlanIB_salon_local_'+session.id+'_'+(session.uid||'')); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);window.salonFermerLien();
         focusFermer('focusReglages');focusFermer('focusTaches');focusFermer('focusSons');
+        focusPeindre();focusPeindreParametres();chronoChargerReglagesVoix();
         sonsPersonnels.forEach(focusLireSon);sonsPersonnels=[];focusPeindreSonBouton();connecte=false;occupe=false;
         $('salonSortieLocale').hidden=true;$('salonFormTitre').textContent='Créer un salon';$('salonCreer').hidden=false;$('salonMajPartage').hidden=true;$('salonRetour').hidden=true;$('salonNom').disabled=false;
         pret();statut('salonStatutCreation',message||'Tu as quitté le salon.');

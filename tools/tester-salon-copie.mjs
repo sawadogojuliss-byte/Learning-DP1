@@ -26,6 +26,7 @@ async function scenario(mode,viewport){
  await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon')});
  await page.locator('#salonNom').fill('Révisions ensemble');await page.locator('#salonCreer').click();await page.locator('#salonLienCarte').waitFor({state:'visible'});
  assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);assert.equal(await page.locator('#salonLienCarte').evaluate(e=>e.open),true,'carte de création en dialogue');
+ assert.match(await page.locator('#salonLienStatut').evaluate(e=>e.previousElementSibling.textContent),/Seules les personnes/);
  await page.getByRole('button',{name:'Copier le lien',exact:true}).click();
  if(['refuse','exception','absent'].includes(mode)){
   await page.waitForFunction(()=>document.getElementById('salonLienStatut').textContent.includes('manuellement'));
@@ -38,6 +39,8 @@ async function scenario(mode,viewport){
   const copie=mode==='reel'?await page.evaluate(()=>navigator.clipboard.readText()):await page.evaluate(()=>window.__copie);
   assert.equal(copie,attendu,'le contenu du presse-papiers est le lien Studyplan du salon');
  }
+ assert.match(await page.locator('#salonLienStatut').evaluate(e=>e.previousElementSibling.textContent),/Seules les personnes/,'message initial conservé au-dessus de la confirmation');
+ assert.doesNotMatch(await page.locator('#salonMessage').textContent(),/Lien copié|manuellement/,'aucune confirmation sur la page principale');
  // Même action depuis la feuille Groupe, notamment après fermeture de la carte.
  await page.locator('#salonLienCarte .salon-lien-fermer').click();
  await page.evaluate(()=>{window.__copie='';document.getElementById('salonGroupePartageStatut').textContent='';});

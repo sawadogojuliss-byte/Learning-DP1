@@ -941,9 +941,11 @@ function focusSynchroniserVideosFond() {
             clearTimeout(attente);
             attente = setTimeout(function () {
                 if (video.isConnected && (video.paused || video.readyState < 3)) {
-                    if (!passerPlusLeger()) focusVideoAide(video, 'Chargement du décor — réessayer');
+                    // Le poster reste visible pendant le chargement : pas de
+                    // message de relance pour une simple attente réseau.
+                    passerPlusLeger();
                 }
-            }, 10000);
+            }, 5000);
         }
         var mesureVideo;
         video.addEventListener('playing', function () {
