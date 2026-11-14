@@ -40,7 +40,7 @@ jobs:
           resultat=$?
           cat "$RUNNER_TEMP/salon-test/resultat.log"
           if [ "$resultat" -ne 0 ]; then
-            message=$(tail -c 6000 "$RUNNER_TEMP/salon-test/resultat.log" | python3 -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))')
+            message=$(tail -c 2200 "$RUNNER_TEMP/salon-test/resultat.log" | python3 -c 'import sys; print(sys.stdin.read().replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A"))')
             echo "::error::$message"
           fi
           exit "$resultat"
