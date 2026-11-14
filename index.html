@@ -77,15 +77,17 @@
             animation: bootHalo 2.4s ease-in-out infinite;
         }
         .boot-logo { position: relative; width: 64px; height: 64px; border-radius: 16px; animation: bootLogo 2.4s ease-in-out infinite; }
+        .boot-jauge { width: 172px; height: 4px; border-radius: 999px; background: #ecfdf5; overflow: hidden; }
+        .boot-jauge i { display: block; height: 100%; width: 6%; border-radius: 999px; background: linear-gradient(90deg, #10b981, #059669); transition: width 0.35s ease; }
         .boot-mot { margin: 0; color: #047857; font-weight: 700; font-size: 0.98rem; }
         body.boot-fini .boot-status { opacity: 0; }
         body.boot-erreur .boot-status { display: flex; opacity: 1; }
-        body.boot-erreur .boot-boite { display: none; }
+        body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge { display: none; }
         @keyframes bootHalo { 0%, 100% { transform: scale(1); opacity: 0.55; } 50% { transform: scale(1.18); opacity: 0.95; } }
         @keyframes bootLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.04); } }
         @media (prefers-reduced-motion: reduce) {
             .boot-halo, .boot-logo { animation: none; }
-            .boot-status { transition: none; }
+            .boot-jauge i, .boot-status { transition: none; }
         }
     </style>
 </head>
@@ -102,6 +104,7 @@
             <div class="boot-halo"></div>
             <img class="boot-logo" src="images/logo.png?v=20261108x" alt="" width="64" height="64">
         </div>
+        <div class="boot-jauge" id="boot-jauge" role="progressbar" aria-label="Chargement de Studyplan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="6"><i id="boot-jauge-fill"></i></div>
         <p class="boot-mot">Chargement de Studyplan…</p>
     </div>
 <script defer src="js/registre.js?v=20261108x"></script>

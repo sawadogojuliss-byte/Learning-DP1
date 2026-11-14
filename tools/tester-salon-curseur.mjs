@@ -56,8 +56,23 @@ try {
  // les notifications répétées d'un état inchangé.
  await p.evaluate(()=>{window.__mutationsSalon=[];window.__observateurSalon=new MutationObserver(ms=>ms.forEach(m=>window.__mutationsSalon.push([m.type,m.target.id||''])));window.__observateurSalon.observe(document.querySelector('#panelPomodoro'),{attributes:true,childList:true,subtree:true,attributeFilter:['class','style','hidden','disabled']});});
  await p.waitForTimeout(1500);const mutations=await p.evaluate(()=>{__observateurSalon.disconnect();return __mutationsSalon});
- assert.deepEqual(mutations,[],'un salon immobile ne réécrit pas ses contrôles');
+ assert.deepEqual(mutations.filter(([,id])=>id!=='salonHeure'),[],'un salon immobile ne réécrit pas ses contrôles (l’heure peut changer)');
  for(const s of ['#salonDemarrer','#salonEcran [data-mode=short]','#salonBtnMessages','#salonBtnReglages','#salonQuitterBouton']){await analyser(p,s);await analyser(p,s,'bord');}
+ // Le curseur reste sur la même cible pendant les ticks réels et les
+ // notifications répétées du transport ; tester aussi un décor animé.
+ await p.evaluate(()=>focusPoserFond(focusIndexParId('pluie-palmes-anime')));
+ if(await p.locator('#salonChoixPartage').evaluate(e=>e.open))await p.getByRole('button',{name:'Seulement pour moi'}).click();
+ await p.locator('#salonDecor video').waitFor({state:'attached'});
+ await p.locator('#salonDemarrer').click();await p.waitForFunction(()=>document.getElementById('salonDemarrer').getAttribute('aria-label')==='Pause');
+ const chrono=await p.locator('#salonTemps').innerText();
+ const bouton=p.locator('#salonDemarrer');const box=await bouton.boundingBox();
+ await p.mouse.move(0,0);await p.evaluate(()=>{window.__curseurTransitions=[];const b=document.getElementById('salonDemarrer');['mouseenter','mouseleave','pointerenter','pointerleave'].forEach(t=>b.addEventListener(t,()=>window.__curseurTransitions.push(t)));});
+ await p.mouse.move(box.x+box.width/2,box.y+box.height/2);
+ const suivis=await p.evaluate(async ({x,y})=>{const r=[];const fin=performance.now()+3500;while(performance.now()<fin){const e=document.elementFromPoint(x,y);r.push([e?.id,getComputedStyle(e).cursor]);await new Promise(f=>setTimeout(f,80));}return r},{x:box.x+box.width/2,y:box.y+box.height/2});
+ assert.ok(suivis.length>=5);assert.ok(suivis.every(([id,c])=>id==='salonDemarrer'&&c==='pointer'),'une seule cible malgré la vidéo et le chrono actif');
+ assert.deepEqual(await p.evaluate(()=>window.__curseurTransitions),['pointerenter','mouseenter'],'pas de sorties et entrées parasites');
+ assert.notEqual(await p.locator('#salonTemps').innerText(),chrono,'le chrono avançait pendant le survol');
+ await p.locator('#salonDemarrer').click();await p.waitForFunction(()=>document.getElementById('salonDemarrer').getAttribute('aria-label')==='Démarrer');
  await p.locator('#salonBtnMessages').click();await analyser(p,'#salonMessagerie button');assert.equal(await p.locator('#salonChatTexte').evaluate(e=>getComputedStyle(e).cursor),'text');await p.evaluate(()=>salonFermerMessages());
  await p.locator('#salonBtnReglages').click();await analyser(p,'[data-onglet="reunion-groupe"]');await p.locator('[data-onglet="reunion-groupe"]').click();await analyser(p,'#salonReglages');
  await p.locator('[data-onglet="reunion-objectif"]').click();assert.equal(await p.locator('#salonObjectif').evaluate(e=>getComputedStyle(e).cursor),'text');await p.locator('[data-onglet="themes"]').click();await analyser(p,'#focusThemesCorps button');await analyser(p,'#focusThemesCorps button','bord');

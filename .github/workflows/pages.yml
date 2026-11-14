@@ -61,7 +61,7 @@ jobs:
             python3 travail/tools/verifier-prises-lot7.py site
             python3 travail/tools/verifier-prises-lot8.py site
             python3 travail/tools/verifier-prises-lot9.py site
-            python3 travail/tests/voix/test_serveur.py
+            # Ne pas régénérer de voix masculines, même pour un essai temporaire.
             node --check site/js/compte.js
             node --check site/js/synchro.js
             cmp travail/js/compte.js site/js/compte.js
@@ -108,7 +108,7 @@ jobs:
           serveur=$!
           trap 'kill "$serveur"' EXIT
           executer_test travail/tools/tester-nouveau-design.mjs
-          executer_test travail/tools/tester-chargement-sans-barre.mjs
+          executer_test travail/tools/tester-chargement-avec-barre.mjs
           executer_test travail/tools/tester-jours-bac.mjs
           executer_test travail/tools/tester-modifier-taches.mjs
           executer_test travail/tools/tester-chevauchement.mjs
@@ -148,7 +148,7 @@ jobs:
           executer_test travail/tools/tester-voix.mjs
           executer_test travail/tools/tester-choix-voix.mjs
           executer_test travail/tools/tester-transitions-voix.mjs
-          executer_test travail/tests/voix/test_client.mjs
+          # Le test du service vocal régénère des annonces : il reste désactivé.
           executer_test travail/tools/tester-popup-reprise.mjs
           executer_test travail/tools/tester-citation-personnelle.mjs
           executer_test travail/tools/tester-citation-reception.mjs
@@ -227,7 +227,7 @@ jobs:
           executer_test tools/tester-lancement-minuteur.mjs
           executer_test tools/tester-pause-mobile.mjs
           executer_test tools/tester-voix.mjs
-          executer_test tests/voix/test_client.mjs
+          # Le service vocal n’est pas relancé lors de la vérification publique.
           executer_test tools/tester-choix-voix.mjs
           executer_test tools/tester-transitions-voix.mjs
           executer_test tools/tester-popup-reprise.mjs
@@ -240,7 +240,7 @@ jobs:
           executer_test tools/tester-theme-personnel.mjs
           executer_test tools/tester-rappels-activites.mjs
           executer_test tools/tester-nouveau-design.mjs
-          executer_test tools/tester-chargement-sans-barre.mjs
+          executer_test tools/tester-chargement-avec-barre.mjs
           executer_test tools/tester-jours-bac.mjs
           executer_test tools/tester-modifier-taches.mjs
           executer_test tools/tester-chevauchement.mjs

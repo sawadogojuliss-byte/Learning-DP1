@@ -5,6 +5,13 @@
 (function () {
     var root = document.getElementById('app-pages');
     var status = document.getElementById('boot-status');
+    var jauge = document.getElementById('boot-jauge-fill');
+    var barre = document.getElementById('boot-jauge');
+    function avancer(fait, total) {
+        var pourcentage = Math.max(6, Math.min(100, Math.round(fait / Math.max(1, total) * 100)));
+        if (jauge) jauge.style.width = pourcentage + '%';
+        if (barre) barre.setAttribute('aria-valuenow', String(pourcentage));
+    }
     function fail(message) {
         document.body.classList.remove('booting');
         document.body.classList.add('boot-erreur');
@@ -57,6 +64,7 @@ var version = '20261108x';
 
     var pages = window.STUDYPLAN_HTML || [];
     var scripts = window.STUDYPLAN_SCRIPTS || [];
+    var etapesFaites = 0, etapesTotales = pages.length + scripts.length;
 
     /* Une page retirée du site ne doit jamais bloquer le démarrage : on
        l'ignore et le reste s'ouvre normalement. */
@@ -65,9 +73,11 @@ var version = '20261108x';
             if (!res.ok) throw new Error('Page absente : ' + url);
             return res.text();
         }).then(function (texte) {
+            etapesFaites++; avancer(etapesFaites, etapesTotales);
             return texte;
         }).catch(function (e) {
             if (window.console && console.warn) console.warn(e.message);
+            etapesFaites++; avancer(etapesFaites, etapesTotales);
             return '';
         });
     })).then(function (parts) {
@@ -77,6 +87,8 @@ var version = '20261108x';
             return loadScript(src).catch(function (e) {
                 erreurs.push(src);
                 console.error('Module indisponible', src, e);
+            }).then(function () {
+                etapesFaites++; avancer(etapesFaites, etapesTotales);
             });
         })).then(function () {
             if (erreurs.length) {
@@ -89,6 +101,7 @@ var version = '20261108x';
             }
         });
     }).then(function () {
+        avancer(etapesTotales, etapesTotales);
         document.body.classList.add('boot-fini');
         if (status) status.hidden = true;
         window.__STUDYPLAN_READY = true;

@@ -364,22 +364,12 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Version publique inattendue dans ' + rel)
         text = text.replace('20261104az', version)
     if rel == 'js/boot.js':
-        # Même démarrage que la version de travail, sans jauge de chargement.
+        # Même démarrage et progression que la version de travail.
         text = (ROOT / rel).read_text(encoding='utf-8')
         text, remplacements = re.subn(r"var version = '[^']+';", "var version = '" + version + "';", text, count=1)
         if remplacements != 1:
             raise SystemExit('Version de démarrage introuvable')
     if rel == 'index.html':
-        jauge = '        <div class="boot-jauge" id="boot-jauge" role="progressbar" aria-label="Chargement de Studyplan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="6"><i id="boot-jauge-fill"></i></div>\n'
-        if text.count(jauge) != 1:
-            raise SystemExit('Jauge de démarrage publique inattendue')
-        text = text.replace(jauge, '')
-        text, styles = re.subn(r'        \.boot-jauge \{.*?        \.boot-mot \{', '        .boot-mot {', text, count=1, flags=re.S)
-        if styles != 1:
-            raise SystemExit('Styles de jauge publics inattendus')
-        text = text.replace('body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge', 'body.boot-erreur .boot-boite')
-        text = text.replace('.boot-jauge i, .boot-status { transition: none; }', '.boot-status { transition: none; }')
-        text = text.replace("        /* La lumière qui respire : le logo s'ouvre doucement, une lumière verte\n           passe derrière lui, et la barre suit le chargement réel. */", "        /* La lumière qui respire accompagne le chargement. */")
         # Récupérer le jeton avant les scripts tiers, puis l'enlever de l'URL.
         # Le texte exact du base tag peut varier ; insérer avant le titre.
         anchor_invitation = '    <title>'

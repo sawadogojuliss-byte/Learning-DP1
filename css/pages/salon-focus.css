@@ -411,3 +411,23 @@ body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMe
 /* Les messages d’erreur restent visibles, sans encart vide en fonctionnement normal. */
 .salon-note:empty {display:none;}
 .salon-chat-connexion:has(.salon-chat-etat:empty):has(.salon-chat-reessayer[hidden]) {display:none;}
+
+/* Une seule cible de souris par commande du salon, même sur son icône ou son
+   texte. Les champs et les cases restent natifs et accessibles au clavier. */
+:is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonInvitation,#salonChoixPartage,#salonFinDialog,#salonCelebrationDialog) button:not(:disabled) {
+    cursor: pointer !important;
+}
+:is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonInvitation,#salonChoixPartage,#salonFinDialog,#salonCelebrationDialog) button:disabled {
+    cursor: not-allowed !important;
+}
+:is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonInvitation,#salonChoixPartage,#salonFinDialog,#salonCelebrationDialog) button * {
+    pointer-events: none;
+}
+#focusReglages .salon-focus input[type=checkbox] {cursor:pointer;}
+/* Éviter les couches de flou recalculées en continu au-dessus du décor animé. */
+@media (hover:hover) and (pointer:fine) {
+    #salonEcran :is(.focus-glass,.focus-rond,.salon-action-secondaire) {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+    }
+}
