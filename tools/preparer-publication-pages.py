@@ -244,6 +244,15 @@ for anchor, ajout in [
     if text.count(anchor) != 1:
         raise SystemExit('Emplacement Salon focus public inattendu')
     text = text.replace(anchor, ajout + anchor, 1)
+# Le formulaire du salon se trouve dans la page Minuteur personnelle, hors
+# du fragment d'écran ci-dessus : l'assembler séparément sans écraser le
+# formulaire public ni ses autres réglages.
+minuteur_debut = source_salon.index('                    <div id="salonReglagesMinuteur"')
+minuteur_fin = source_salon.index('                    <div id="focusDureesPersonnelles"', minuteur_debut)
+ancre_durees = '                    <div class="focus-carte">\n                        <div class="focus-seances focus-seances-haut">'
+if text.count(ancre_durees) != 1:
+    raise SystemExit('Réglages de durée publics inattendus')
+text = text.replace(ancre_durees, source_salon[minuteur_debut:minuteur_fin] + '                    <div id="focusDureesPersonnelles" class="focus-carte">\n                        <div class="focus-seances focus-seances-haut">', 1)
 ancien_stats = 'Tes minuteurs terminés, enregistrés sur cet appareil.'
 if text.count(ancien_stats) != 1:
     raise SystemExit('Texte des statistiques public inattendu')
