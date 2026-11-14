@@ -66,13 +66,20 @@ var version = '20261108x';
     var scripts = window.STUDYPLAN_SCRIPTS || [];
     var etapesFaites = 0, etapesTotales = pages.length + scripts.length;
 
-    /* Une page retirée du site ne doit jamais bloquer le démarrage : on
-       l'ignore et le reste s'ouvre normalement. */
-    Promise.all(pages.map(function (url) {
+    /* Une panne momentanée ne doit pas faire disparaître une page entière
+       après actualisation. Une page durablement absente reste ignorée. */
+    function chargerPage(url, essai) {
         return fetch(url + '?v=' + version, { cache: 'no-store' }).then(function (res) {
             if (!res.ok) throw new Error('Page absente : ' + url);
             return res.text();
-        }).then(function (texte) {
+        }).catch(function (e) {
+            if (essai >= 2) throw e;
+            return new Promise(function (resolve) { setTimeout(resolve, 250 * (essai + 1)); })
+                .then(function () { return chargerPage(url, essai + 1); });
+        });
+    }
+    Promise.all(pages.map(function (url) {
+        return chargerPage(url, 0).then(function (texte) {
             etapesFaites++; avancer(etapesFaites, etapesTotales);
             return texte;
         }).catch(function (e) {

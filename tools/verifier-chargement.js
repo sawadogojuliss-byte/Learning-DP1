@@ -1,4 +1,4 @@
-/* Vérifie la page de chargement : la lumière qui respire sans barre,
+/* Vérifie la page de chargement : la lumière et la barre de progression,
    le message d'erreur qui reste visible, et le mouvement
    réduit respecté. Aucun navigateur nécessaire. */
 var fs = require('fs');
@@ -30,12 +30,13 @@ var boot = fs.readFileSync('js/boot.js', 'utf8');
     ok(html.indexOf(paire[0]) !== -1, paire[1]);
 });
 
-/* ── Pas de barre au chargement ou à l'actualisation ─────────────── */
-ok(html.indexOf('id="boot-jauge"') === -1, 'la barre doit disparaître');
-ok(html.indexOf('id="boot-jauge-fill"') === -1, 'le remplissage doit disparaître');
-ok(!/role="progressbar"/.test(html), 'aucune barre de progression au chargement');
+/* ── Barre au chargement et à l’actualisation ───────────────────── */
+ok(html.indexOf('id="boot-jauge"') !== -1, 'la barre doit être présente');
+ok(html.indexOf('id="boot-jauge-fill"') !== -1, 'le remplissage doit être présent');
+ok(/role="progressbar"/.test(html), 'la progression doit être accessible');
 ok(html.indexOf('Chargement de Studyplan') !== -1, 'le texte de chargement doit rester');
-ok(boot.indexOf('function avancer(fait, total)') === -1, 'aucun calcul de barre');
+ok(boot.indexOf('function avancer(fait, total)') !== -1, 'la barre doit suivre les étapes');
+ok(boot.indexOf('etapesFaites++; avancer(etapesFaites, etapesTotales)') !== -1, 'les ressources doivent faire avancer la barre');
 ok(boot.indexOf("document.body.classList.add('boot-fini')") !== -1, 'l\'écran doit s\'effacer en douceur');
 ok(html.indexOf('body.boot-fini .boot-status { opacity: 0; }') !== -1, 'l\'effacement doit être progressif');
 ok(html.indexOf('body:not(.booting) .boot-status { display: none; }') !== -1, 'l\'écran doit disparaître une fois prêt');
@@ -44,7 +45,7 @@ ok(html.indexOf('body:not(.booting) .boot-status { display: none; }') !== -1, 'l
 ok(boot.indexOf("classList.add('boot-erreur')") !== -1, 'l\'erreur doit garder l\'écran visible');
 ok(html.indexOf('body.boot-erreur .boot-status { display: flex; opacity: 1; }') !== -1,
     'l\'écran d\'erreur doit rester affiché');
-ok(html.indexOf('body.boot-erreur .boot-boite { display: none; }') !== -1,
+ok(html.indexOf('body.boot-erreur .boot-boite, body.boot-erreur .boot-jauge { display: none; }') !== -1,
     'la lumière doit s\'effacer devant le message d\'erreur');
 ok(boot.indexOf("mot.textContent = message") !== -1, 'le message d\'erreur doit remplacer le texte de chargement');
 
@@ -61,4 +62,4 @@ if (echecs) {
     console.error(echecs + ' échec(s)');
     process.exit(1);
 }
-console.log('chargement: lumière sans barre, erreur visible (0 échec)');
+console.log('chargement: lumière, barre de progression et erreur visible (0 échec)');

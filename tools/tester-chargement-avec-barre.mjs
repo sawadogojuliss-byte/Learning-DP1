@@ -34,10 +34,11 @@ try {
  }
  // Une page et un module manquants ne doivent ni bloquer la jauge, ni
  // laisser l'application sur un écran de chargement indéfini.
- const page=await browser.newPage({serviceWorkers:'block'});
+ const page=await browser.newPage({serviceWorkers:'block'});let tentativesPlanning=0;
  await page.addInitScript(()=>{window.__STUDYPLAN_E2E=true;});
  await page.route('**/*',async route=>{
   const url=route.request().url();if(!url.startsWith(site))return route.abort();
+  if(url.includes('/pages/planning.html') && ++tentativesPlanning===1)return route.fulfill({status:503,body:'indisponible temporairement'});
   if(url.includes('/js/registre.js')){
    const response=await route.fetch();const body=await response.text();
    return route.fulfill({response,body:body+"\nwindow.STUDYPLAN_HTML.push('pages/absente-pour-test.html');window.STUDYPLAN_SCRIPTS.push('js/module-absent-pour-test.js');"});
@@ -49,5 +50,7 @@ try {
  assert.equal(await page.locator('#boot-jauge').getAttribute('aria-valuenow'),'100');
  assert.equal(await page.locator('#boot-jauge').isVisible(),false);
  assert.equal(await page.locator('.boot-modules-erreur').count(),1);
+ assert.equal(tentativesPlanning,2,'une page temporairement indisponible est redemandée');
+ assert.equal(await page.locator('#planningModal').count(),1,'la page est présente après reconnexion');
  await page.close();console.log('OK progression et démarrage en cas de ressources absentes');
 }finally{await browser.close()}
