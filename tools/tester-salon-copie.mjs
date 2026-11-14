@@ -27,7 +27,14 @@ async function scenario(mode,viewport){
  await page.locator('#salonNom').fill('Révisions ensemble');await page.locator('#salonCreer').click();await page.locator('#salonLienCarte').waitFor({state:'visible'});
  assert.equal(await page.locator('#salonLienAffiche').inputValue(),attendu);assert.equal(await page.locator('#salonLienCarte').evaluate(e=>e.open),true,'carte de création en dialogue');
  assert.match(await page.locator('#salonLienStatut').evaluate(e=>e.previousElementSibling.textContent),/Seules les personnes/);
- await page.getByRole('button',{name:'Copier le lien',exact:true}).click();
+ // Cliquer au bord inférieur : l'apparition de la confirmation ne doit pas
+ // recentrer la fenêtre et retirer le bouton de sous la souris immobile.
+ const bouton=page.getByRole('button',{name:'Copier le lien',exact:true});
+ const avant=await bouton.boundingBox();assert.ok(avant);
+ const point={x:avant.x+avant.width/2,y:avant.y+avant.height-1};
+ await page.mouse.move(point.x,point.y);
+ await bouton.evaluate(el=>{window.__sortiesCopie=[];el.addEventListener('pointerleave',()=>window.__sortiesCopie.push('pointerleave'));el.addEventListener('mouseleave',()=>window.__sortiesCopie.push('mouseleave'));});
+ await page.mouse.click(point.x,point.y);
  if(['refuse','exception','absent'].includes(mode)){
   await page.waitForFunction(()=>document.getElementById('salonLienStatut').textContent.includes('manuellement'));
   assert.equal(await page.locator('#salonLienCarte').isVisible(),true);
@@ -39,6 +46,10 @@ async function scenario(mode,viewport){
   const copie=mode==='reel'?await page.evaluate(()=>navigator.clipboard.readText()):await page.evaluate(()=>window.__copie);
   assert.equal(copie,attendu,'le contenu du presse-papiers est le lien Studyplan du salon');
  }
+ const apres=await bouton.boundingBox();
+ assert.ok(Math.abs(avant.x-apres.x)<.5 && Math.abs(avant.y-apres.y)<.5, 'le bouton ne doit pas se déplacer à la confirmation : '+JSON.stringify({avant,apres}));
+ assert.equal(await bouton.evaluate((el,point)=>document.elementFromPoint(point.x,point.y)===el,point),true,'le bouton reste sous la souris immobile après la copie');
+ assert.deepEqual(await page.evaluate(()=>window.__sortiesCopie),[],'aucune sortie parasite du bouton');
  assert.match(await page.locator('#salonLienStatut').evaluate(e=>e.previousElementSibling.textContent),/Seules les personnes/,'message initial conservé au-dessus de la confirmation');
  assert.doesNotMatch(await page.locator('#salonMessage').textContent(),/Lien copié|manuellement/,'aucune confirmation sur la page principale');
  // Même action depuis la feuille Groupe, notamment après fermeture de la carte.

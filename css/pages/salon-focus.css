@@ -129,6 +129,9 @@ body.salon-actif #focusTaches,body.salon-actif #focusSons { z-index:95; } body.s
 .salon-ecran .salon-lien-fermer {right:.8rem;top:.55rem;width:2rem;height:2rem;border-radius:50%;font-size:1.3rem;}
 .salon-ecran .salon-lien-fermer:hover {background:#ffffff1a;}
 .salon-ecran .salon-lien-statut {color:#d3ead8;}
+/* La confirmation de copie ne doit pas recentrer la boîte et déplacer ses
+   boutons sous une souris immobile. Prévoir aussi le message de repli mobile. */
+.salon-ecran #salonLienStatut {min-height:4.05em;}
 @media(max-width:720px){
  .salon-ecran .salon-top {padding:1rem 1rem 0;}
  .salon-top-droite {max-width:44%;}

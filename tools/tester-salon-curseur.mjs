@@ -26,6 +26,7 @@ async function telephone(actor,viewport){
  await context.exposeFunction('__mobileBackend',(op,arg)=>backend(actor,op,arg));
  await context.addInitScript(()=>{
   window.__STUDYPLAN_E2E=true;
+  window.__copieTest='';Object.defineProperty(navigator,'clipboard',{value:{writeText:async value=>{window.__copieTest=value;}}});
   const call=(op,arg)=>window.__mobileBackend(op,arg).catch(e=>{let err=Error(e.message);for(const c of ['permission-denied','auth-required','revision-conflict'])if(e.message.includes(c))err.code=c;throw err;});
   const session=s=>({...s,maintenant:()=>Date.now(),observer(cb,err){let stop=false;const lire=()=>call('read').then(d=>{if(!stop)cb(d,{connecte:true})},e=>{if(!stop)err(e)});lire();const t=setInterval(lire,250);return()=>{stop=true;clearInterval(t)}},modifier:(revision,changement)=>call('modify',{revision,changement}),transferer:uid=>call('transfer',{uid}),quitter:()=>call('leave'),fermer:()=>call('close')});
   window.SALON_FOCUS_TRANSPORT={creer:d=>call('create',d).then(session),reprendre:id=>call('resume',{id}).then(session),rejoindre:(id,pseudo)=>call('join',{id,pseudo}).then(session),apercu:id=>call('preview',{id})};
@@ -42,16 +43,53 @@ async function analyser(page, selector, position='centre') {
  await page.mouse.move(Math.max(0,b.x-6),y);const avant=await e.boundingBox();
  await page.mouse.move(x,y,{steps:6});await page.waitForTimeout(200);const apres=await e.boundingBox();
  assert.ok(Math.abs(avant.x-apres.x)<.5 && Math.abs(avant.y-apres.y)<.5,selector+' ne doit pas bouger au survol');
- assert.equal(await e.evaluate((el,pt)=>{const cible=document.elementFromPoint(pt.x,pt.y);return cible===el || el.contains(cible);},{x,y}),true,selector+' reste sous le pointeur');
+ const cible=await e.evaluate((el,pt)=>{const pile=document.elementsFromPoint(pt.x,pt.y);return {ok:pile[0]===el||el.contains(pile[0]),pile:pile.slice(0,5).map(n=>({tag:n.tagName,id:n.id,classe:n.getAttribute('class')})),rect:el.getBoundingClientRect().toJSON(),point:pt,fenetre:[innerWidth,innerHeight]};},{x,y});
+ assert.equal(cible.ok,true,selector+' reste sous le pointeur : '+JSON.stringify(cible));
  const mesures=await page.evaluate(async ({x,y})=>{const r=[];for(let i=0;i<55;i++){const el=document.elementFromPoint(x,y);r.push({cursor:el?getComputedStyle(el).cursor:'',tag:el?.tagName,id:el?.id,classe:el?.getAttribute('class')});await new Promise(f=>requestAnimationFrame(f));}return r;},{x,y});
  const ensemble=[...new Set(mesures.map(m=>m.cursor))];assert.deepEqual(ensemble,['pointer'],selector+' : curseur de bouton instable');
+}
+// Surveiller une souris immobile pendant plusieurs cycles de deux secondes.
+// Ceci vérifie la cible DOM et le curseur CSS, pas le curseur natif du système.
+async function surveiller(page, selector, duree=6500) {
+ console.log('Surveillance', selector);
+ const bouton=page.locator(selector).first();await bouton.scrollIntoViewIfNeeded();
+ const box=await bouton.boundingBox();assert.ok(box,selector+' visible');
+ const x=box.x+box.width/2,y=box.y+box.height/2;
+ await page.mouse.move(0,0);
+ await page.evaluate(selector=>{
+  const bouton=document.querySelector(selector);window.__suiviCurseur=[];
+  window.__finSuivi=()=>['pointerenter','pointerleave','mouseenter','mouseleave'].forEach(t=>bouton.removeEventListener(t,window.__evtSuivi));
+  window.__evtSuivi=e=>window.__suiviCurseur.push(e.type);
+  ['pointerenter','pointerleave','mouseenter','mouseleave'].forEach(t=>bouton.addEventListener(t,window.__evtSuivi));
+ },selector);
+ await page.mouse.move(x,y);
+ const observations=await page.evaluate(async ({x,y,duree,selector})=>{
+  const attendu=document.querySelector(selector), valeurs=[],fin=performance.now()+duree;
+  while(performance.now()<fin){
+   const pile=document.elementsFromPoint(x,y), cible=pile[0];
+   valeurs.push({dedans:!!cible&&(cible===attendu||attendu.contains(cible)),cursor:cible?getComputedStyle(cible).cursor:'',pile:pile.slice(0,4).map(e=>e.id||e.tagName)});
+   await new Promise(r=>setTimeout(r,50));
+  }
+  return valeurs;
+ },{x,y,duree,selector});
+ const events=await page.evaluate(()=>{__finSuivi();return __suiviCurseur});
+ assert.ok(observations.length>=20,selector+' : échantillons insuffisants');
+ assert.ok(observations.every(v=>v.dedans&&v.cursor==='pointer'),selector+' : '+JSON.stringify(observations.filter(v=>!v.dedans||v.cursor!=='pointer').slice(0,4)));
+ assert.deepEqual(events,['pointerenter','mouseenter'],selector+' : sorties parasites');
 }
 try {
  const h=await telephone('host',{width:1280,height:800});const p=h.page;await p.goto(base,{waitUntil:'domcontentloaded'});await p.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),{timeout:60000});
  await p.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerReglages();focusChoisirOnglet('salon');});
+ console.log('Vérification du formulaire');
+ assert.equal(await p.locator('#salonNom').getAttribute('placeholder'),'Ex. Révision de mathématiques');
+ assert.equal(await p.locator('.salon-confidentialite').count(),0);
+ assert.ok(await p.locator('.salon-options').evaluate(e=>parseFloat(getComputedStyle(e).marginBottom))>=20,'espace après les options');
  await analyser(p,'#salonCreer');await analyser(p,'#salonCreer','bord');await analyser(p,'.salon-options label');
  await p.locator('#salonNom').fill('Curseur');await p.locator('#salonCreer').click();await p.locator('#salonLienCarte').waitFor();
- await analyser(p,'.salon-lien-fermer');await analyser(p,'#salonLienCarte .salon-copier');await p.locator('.salon-lien-fermer').click();await p.waitForFunction(()=>document.getElementById('salonEtatConnexion').textContent.includes('Connecté'));
+ await analyser(p,'.salon-lien-fermer');await analyser(p,'#salonLienCarte .salon-copier');
+ await surveiller(p,'#salonLienCarte .salon-copier');await p.locator('#salonLienCarte .salon-copier').click();
+ assert.match(await p.evaluate(()=>window.__copieTest),/#salon=/);await surveiller(p,'#salonLienCarte .salon-copier');
+ await p.locator('.salon-lien-fermer').click();await p.waitForFunction(()=>document.getElementById('salonEtatConnexion').textContent.includes('Connecté'));
  // Aucune réécriture inutile du badge ou des boutons pendant les ticks et
  // les notifications répétées d'un état inchangé.
  await p.evaluate(()=>{window.__mutationsSalon=[];window.__observateurSalon=new MutationObserver(ms=>ms.forEach(m=>window.__mutationsSalon.push([m.type,m.target.id||''])));window.__observateurSalon.observe(document.querySelector('#panelPomodoro'),{attributes:true,childList:true,subtree:true,attributeFilter:['class','style','hidden','disabled']});});
@@ -64,6 +102,7 @@ try {
  if(await p.locator('#salonChoixPartage').evaluate(e=>e.open))await p.getByRole('button',{name:'Seulement pour moi'}).click();
  await p.locator('#salonDecor video').waitFor({state:'attached'});
  await p.locator('#salonDemarrer').click();await p.waitForFunction(()=>document.getElementById('salonDemarrer').getAttribute('aria-label')==='Pause');
+ await surveiller(p,'#salonDemarrer');await surveiller(p,'#salonBtnMessages');
  const chrono=await p.locator('#salonTemps').innerText();
  const bouton=p.locator('#salonDemarrer');const box=await bouton.boundingBox();
  await p.mouse.move(0,0);await p.evaluate(()=>{window.__curseurTransitions=[];const b=document.getElementById('salonDemarrer');['mouseenter','mouseleave','pointerenter','pointerleave'].forEach(t=>b.addEventListener(t,()=>window.__curseurTransitions.push(t)));});
