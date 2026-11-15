@@ -103,13 +103,8 @@ function navigateTo(page) {
     verrouillerDefilement(panneauxOuverts());
 }
 
-/* ── Nettoyage au chargement / rechargement ──────────────────
-   Quand la page est (re)chargée, aucun panneau .app-panel ne
-   doit être actif : seul le planning doit être visible.
-   On vide aussi le hash de l'URL quand il pointe vers un
-   panneau, pour empêcher le mécanisme memoire.js de le
-   réactiver juste après. */
-
+/* Nettoyage explicite, réservé aux appels qui souhaitent fermer les panneaux.
+   Le chargement et le retour depuis le cache restaurent la page courante. */
 function nettoyerPanneauxEtHash() {
     document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
     verrouillerDefilement(false);
@@ -121,16 +116,3 @@ function nettoyerPanneauxEtHash() {
         } catch (e) {}
     }
 }
-
-/* Dès que le DOM est prêt, on nettoie. */
-document.addEventListener('DOMContentLoaded', nettoyerPanneauxEtHash);
-
-/* Et une seconde fois quand la page est complètement chargée
-   (après que memoire.js ait pu réactiver un panneau via le hash). */
-window.addEventListener('load', nettoyerPanneauxEtHash);
-
-/* Et aussi sur pageshow (rechargement depuis le cache navigateur). */
-window.addEventListener('pageshow', function (ev) {
-    if (!ev.persisted) return;
-    nettoyerPanneauxEtHash();
-});

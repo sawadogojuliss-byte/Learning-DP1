@@ -622,13 +622,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    /* Au rechargement (memoireNavSilence), aucun panneau plein écran ne
-       doit se réactiver : seul le planning est visible. Les panneaux
-       ne s'ouvrent que sur clic explicite via navigateTo(). */
-    if (memoireNavSilence && etape !== 'planning' && etape !== 'seances' && etape !== 'pomodoro') {
-        return;
-    }
-    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin') {
+    if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&
@@ -639,9 +633,8 @@ function memoireAller(etape) {
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active') && typeof generatePlanning === 'function') generatePlanning();
         else if (planning) planning.classList.add('active');
-        if (etape === 'planning') {
-            document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
-        } else if (typeof navigateTo === 'function') navigateTo(etape);
+        if (typeof navigateTo === 'function') navigateTo(etape);
+        else if (etape === 'planning') document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
         return;
     }
     memoireFermerVues();
@@ -693,8 +686,8 @@ function memoireEtapeConnue(etape) {
     var connues = {
         accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
-        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
-        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1,
+        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, devoirs: 1, emploi: 1, legende: 1,
+        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1, admin: 1,
         seances: 1, pomodoro: 1
     };
     return !!connues[etape];
@@ -703,7 +696,9 @@ function memoireEtapeConnue(etape) {
 function memoirePoserHash(etape) {
     var id = memoireEtapeConnue(etape) ? etape : 'accueil';
     var next = '#' + id;
-    var state = { app: 'studyplan', etape: id };
+    var ancien = history.state && history.state.app === 'studyplan' ? history.state : null;
+    var state = { app: 'studyplan', etape: id, precedent: ancien ? ancien.etape : '' };
+    if (ancien && ancien.etape === id) state.precedent = ancien.precedent || '';
     var url = location.pathname + location.search + next;
     var courant = history.state && history.state.app === 'studyplan' ? history.state.etape : '';
     try {
@@ -729,6 +724,18 @@ function memoireDepuisHistorique(etape) {
     }
     try { memoireSauvegarder(); } catch (e) {}
     memoireNavSilence = false;
+}
+
+/* Ne pas quitter le site si cette page n'a pas de précédent interne. */
+function memoireRetour() {
+    var state = history.state;
+    if (state && state.app === 'studyplan' && memoireEtapeConnue(state.precedent) && state.precedent !== state.etape) {
+        history.back();
+    } else {
+        memoireAller(window.__profilComplet ? 'planning' : (memoirePagePrecedente(memoireEtapeActive()) || 'accueil'));
+        memoirePoserHash(memoireEtapeActive());
+        memoireNoterEtape(memoireEtapeActive());
+    }
 }
 
 function memoireEtapeHash() {
@@ -814,7 +821,7 @@ function memoireNoterEtape(etape) {
 
 function memoireHistoriqueActiver() {
     memoireNavSilence = true;
-    try { memoireHistoriqueSemer(memoireEtapeActive()); } catch (e) { memoirePoserHash(memoireEtapeActive()); }
+    try { memoirePoserHash(memoireEtapeActive()); } catch (e) {}
     memoireNavPret = true;
     memoireNavSilence = false;
     if (window.__memoireHistorique) return;
@@ -996,8 +1003,7 @@ function memoireDemarrer() {
         var etape = data.etape || 'accueil';
         try {
             var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
-            if (hash === 'pomodoro') etape = 'pomodoro';
-            else if (hash === 'seances') etape = 'seances';
+            if (memoireEtapeConnue(hash)) etape = hash;
         } catch (e) {}
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;

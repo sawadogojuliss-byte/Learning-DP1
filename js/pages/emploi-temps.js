@@ -1004,7 +1004,8 @@ function goBackFromEmploi() {
     /* Pendant l'inscription, on revient à la page Temps libre. Depuis
        le menu d'un profil déjà complet, on revient au planning. */
     if (window.__profilComplet) {
-        if (typeof generatePlanning === 'function') generatePlanning();
+        if (typeof memoireRetour === 'function') memoireRetour();
+        else if (typeof generatePlanning === 'function') generatePlanning();
         return;
     }
     if (typeof goToFreeTime === 'function') goToFreeTime();

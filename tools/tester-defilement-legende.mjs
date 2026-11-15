@@ -27,7 +27,7 @@ try {
    await page.evaluate(id=>{document.querySelectorAll('.app-panel.active,.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById(id).classList.add('active')},id);
    await lock(page,id);await scrollReach(page,'#'+id);
   }
-  await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');userName='Test';subjects=[{name:'Mathématiques',icon:'📚',level:'HL'}];optionalSubjects=[];selectedDay=0;planningDecalageSemaine=0;renderPlanning();});
+  await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');userName='Test';ibYear='DP1';window.__profilComplet=true;subjects=[{name:'Mathématiques',icon:'📚',level:'HL'}];optionalSubjects=[];selectedDay=0;planningDecalageSemaine=0;renderPlanning();});
   await lock(page,'planning');await scrollReach(page,'#planningModal');
   await page.locator('#planningModal').evaluate(e=>{e.style.scrollBehavior='auto';e.scrollTop=0});
   await page.mouse.move(viewport.width/2,viewport.height/2);await page.mouse.wheel(0,350);await page.waitForTimeout(300);
@@ -76,7 +76,8 @@ try {
    await lock(page,id);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'hidden');await scrollReach(page,'#'+id);
   }
   // Légende : 12 catégories et couleurs d'origine, et retour au planning.
-  await page.evaluate(()=>navigateTo('legende'));
+  await page.evaluate(()=>navigateTo('planning'));await page.waitForFunction(()=>history.state?.etape==='planning');
+  await page.evaluate(()=>navigateTo('legende'));await page.waitForFunction(()=>history.state?.etape==='legende');
   const cards=page.locator('#panelLegende [style*="border-left:4px"]'); assert.equal(await cards.count(),12);
   const palette=await cards.evaluateAll(els=>els.map(e=>[e.textContent.trim(),e.style.borderLeftColor,e.style.borderLeftStyle]));
   assert.deepEqual(palette, [
@@ -90,7 +91,7 @@ try {
   assert.ok(await page.locator('#panelLegende').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
   await scrollReach(page,'#panelLegende');
   if(process.env.STUDY_TEST_CAPTURE){await page.locator('#panelLegende').evaluate(e=>e.scrollTop=0);await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/legende-ancienne-${viewport.width}.png`});}
-  await page.getByRole('button',{name:'Revenir au planning'}).click();assert.equal(await page.locator('#panelLegende').isVisible(),false);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'auto');
+  await page.getByRole('button',{name:'Revenir à la page précédente'}).click();await page.waitForFunction(()=>memoireEtapeActive()!=='legende');assert.equal(await page.locator('#panelLegende').isVisible(),false);assert.equal(await page.locator('#planningModal').evaluate(e=>getComputedStyle(e).overflowY),'auto');
   // Séances longues : un seul défilement, tous les boutons restent atteignables.
   await page.evaluate(()=>{navigateTo('seances');const list=document.getElementById('focusAccueilListe');list.innerHTML=Array.from({length:18},(_,i)=>'<button class="focus-seance" type="button">Séance fictive '+(i+1)+'</button>').join('')});
   assert.equal(await page.locator('#focusAccueilListe').evaluate(e=>getComputedStyle(e).overflowY),'visible');await scrollReach(page,'#focusAccueil');

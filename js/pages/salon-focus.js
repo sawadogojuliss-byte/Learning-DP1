@@ -5,9 +5,12 @@
     var coeur = window.SalonFocusCoeur;
     var transport = window.SALON_FOCUS_TRANSPORT || null;
     var session = null, salle = null, arreterEcoute = null, timer = null;
-    var invitation = window.__salonInvitation || null, reprise = null, verifierHote = false, generationInvitation = 0;
+    var invitation = window.__salonInvitation || null, reprise = null, repriseMasquee = null, verifierHote = false, generationInvitation = 0;
     try { var ancien = JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session') || 'null');
-        if (ancien && /^[a-f0-9]{48}$/.test(ancien.id) && ['hote','invite'].indexOf(ancien.role) >= 0 && (!invitation || invitation===ancien.id)) { invitation=ancien.id; reprise=ancien; }
+        if (ancien && /^[a-f0-9]{48}$/.test(ancien.id) && ['hote','invite'].indexOf(ancien.role) >= 0 && (!invitation || invitation===ancien.id)) {
+            if (ancien.masque && !invitation) repriseMasquee=ancien;
+            else { invitation=ancien.id; reprise=ancien; }
+        }
     } catch (e) {}
     // Ce repère ne donne aucun droit : le serveur vérifie toujours le compte.
     try { var repereHote=JSON.parse(localStorage.getItem('studyPlanIB_salon_hote') || 'null');
@@ -42,11 +45,16 @@
         try { var u=new URL(location.href);u.hash=id?'salon='+id:'';history.replaceState(history.state,'',u.href); } catch(e) {}
     }
     // La navigation du site emploie aussi le fragment pour ses pages.
-    // Conserver le lien secret pendant toute la session, y compris en arrière-plan.
+    // Le lien secret ne reste visible que pendant la vue du salon.
     var poserHashPersonnel=window.memoirePoserHash;
-    if(typeof poserHashPersonnel==='function') window.memoirePoserHash=function(){
+    if(typeof poserHashPersonnel==='function') window.memoirePoserHash=function(etape){
+        var salonVisible=!!(invitation || (session && $('salonEcran') && !$('salonEcran').hidden && $('panelPomodoro').classList.contains('active')));
+        var id=invitation || (session && session.id);
+        // La sauvegarde périodique ne doit pas ajouter une entrée à chaque
+        // passage ni faire clignoter deux fragments pour une page inchangée.
+        if(salonVisible && etape==='pomodoro' && history.state && history.state.app==='studyplan' && history.state.etape===etape && location.hash==='#salon='+id) return;
         var resultat=poserHashPersonnel.apply(this,arguments);
-        if(session || invitation)adresseSalon(session ? session.id : invitation);
+        if(salonVisible)adresseSalon(id);
         return resultat;
     };
     window.addEventListener('load',function(){
@@ -125,7 +133,9 @@
     function quitterVueSalon() {
         if(!session)return;
         editionPartage=false;
+        try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.masque=true; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=false;
+        if (location.hash.indexOf('#salon=')===0) adresseSalon(null);
         $('salonFormTitre').textContent='Créer un salon';$('salonCreer').hidden=false;$('salonMajPartage').hidden=true;$('salonRetour').hidden=true;$('salonNom').disabled=false;
         protegerReglages(session.role==='invite');
         if(focusOngletCourant.indexOf('reunion-')===0)focusChoisirOnglet('themes');
@@ -389,6 +399,7 @@
         if (!window.__STUDYPLAN_READY) { setTimeout(init, 80); return; }
         document.querySelectorAll('[name="salonPartage"]').forEach(function(e){e.addEventListener('change',resumeSelection);});
         installerFiches();resumeSelection();
+        if (repriseMasquee) { if($('salonRaccourci').parentNode!==document.body)document.body.appendChild($('salonRaccourci')); $('salonRaccourci').hidden=false; }
         $('salonMessagerie').addEventListener('keydown',function(event){if(event.key==='Escape'){event.preventDefault();window.salonFermerMessages();}});
         $('salonChoixPartage').addEventListener('cancel',function(e){e.preventDefault();window.salonChoisirPortee(false);});
         $('salonLienCarte').addEventListener('cancel',function(event){event.preventDefault();window.salonFermerLien();});
@@ -525,10 +536,12 @@
         editionPartage=true;resumeSelection();if($('focusReglages').hidden)focusBasculerReglages();focusChoisirOnglet('salon');
     };
     window.salonRevenir=function () {
+        if(!session && repriseMasquee) { reprise=repriseMasquee; invitation=reprise.id; repriseMasquee=null; $('salonRaccourci').hidden=true; pret(); return; }
         if(!session)return;
+        try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.masque=false; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
         editionPartage=false;$('salonRaccourci').hidden=true;$('salonEcran').hidden=false;
         protegerReglages(session.role==='invite');focusChoisirOnglet('themes');
-        ouvrirPomodoro();focusFermer('focusReglages');focusPeindreParametres();chronoChargerReglagesVoix();
+        ouvrirPomodoro();adresseSalon(session.id);focusFermer('focusReglages');focusPeindreParametres();chronoChargerReglagesVoix();
     };
     window.salonActualiserPartage=function () {
         envoyer({options:options(),partage:selectionPartagee()}).then(function(ok){if(ok)window.salonRevenir();});

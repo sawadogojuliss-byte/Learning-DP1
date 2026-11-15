@@ -9,6 +9,7 @@ const site = process.env.STUDY_SITE || 'http://127.0.0.1:8642/';
 const browser = await chromium.launch(portable ? { executablePath: await portable.executablePath(), args: portable.args.filter(x => x !== '--single-process') } : {});
 try {
   for (const viewport of [{width:320,height:568},{width:390,height:844},{width:1280,height:800}]) {
+    if (process.env.STUDY_TEST_WIDTH && Number(process.env.STUDY_TEST_WIDTH) !== viewport.width) continue;
     const page = await browser.newPage({viewport, serviceWorkers:'block'});
     const errors = [];
     page.on('pageerror', e => errors.push(String(e)));
@@ -26,7 +27,7 @@ try {
     await page.evaluate(() => openSideMenu());
     await page.locator('#sideMenu button[onclick*=\"eeia\"]').click();
     assert.equal(await page.locator('#panelEEia').isVisible(),true);
-    await page.getByRole('button',{name:'Revenir au planning'}).click();
+    await page.getByRole('button',{name:'Revenir à la page précédente'}).click();
     assert.equal(await page.locator('#panelEEia').isVisible(),false);
     // Dès la première image, le panneau est immobile et recouvre l'écran :
     // pas de planning visible pendant l'ouverture des différentes pages.
@@ -66,7 +67,7 @@ try {
     assert.equal(await page.evaluate(() => eePartiesOuvertes().some(p => p.kind === 'ia' && p.subject === 'Mathématiques' && p.text === 'Collecter mes données')),true);
     assert.equal(await page.evaluate(() => JSON.stringify(iaPlans['Physique'] || [])), '[]');
     await page.reload({waitUntil:'domcontentloaded'});
-    await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, {timeout:60000});
+    await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, {timeout:60000}).catch(async e => { console.error('Démarrage après rechargement:', await page.evaluate(() => ({ready:window.__STUDYPLAN_READY, classes:document.body.className, hash:location.hash, alerte:document.querySelector('.boot-error')?.textContent})), errors); throw e; });
     await page.evaluate(() => { document.getElementById('planningModal').classList.add('active'); navigateTo('eeia'); });
     assert.equal(await page.locator('.eeia-carte.is-memoire [role=progressbar]').getAttribute('aria-valuenow'),'50');
     assert.equal(await page.getByRole('button',{name:/^Collecter mes données/}).count(),1);
@@ -86,7 +87,13 @@ try {
     assert.equal(await page.locator('#eeRetourModal').evaluate(e=>Number(getComputedStyle(e).zIndex)>Number(getComputedStyle(document.getElementById('panelEEia')).zIndex)),true);
     await page.locator('#eeRetourModal').getByRole('button',{name:'Continuer'}).click();
     assert.equal(await page.locator('#eeRetourModal').isVisible(),false);
-    await page.getByRole('button',{name:'Revenir au planning'}).click();
+    // Revenir suit la page réellement visitée, ici le planning.
+    await page.evaluate(() => navigateTo('planning'));
+    await page.waitForFunction(() => history.state?.etape === 'planning');
+    await page.evaluate(() => navigateTo('eeia'));
+    await page.waitForFunction(() => history.state?.etape === 'eeia');
+    await page.getByRole('button',{name:'Revenir à la page précédente'}).click();
+    await page.waitForFunction(() => memoireEtapeActive() === 'planning');
     assert.equal(await page.locator('#panelEEia').isVisible(),false);
     assert.equal(await page.locator('#planningModal').isVisible(),true);
     await page.evaluate(() => { subjects = []; optionalSubjects = []; navigateTo('eeia'); });

@@ -438,8 +438,38 @@ self.addEventListener('notificationclick', function (event) {
         text = text.replace(old, new, 1)
     path.write_text(text, encoding='utf-8')
 
+# Navigation : n'appliquer à la base publique que les modifications prévues,
+# sans publier les autres travaux locaux de navigation/Exercices.
+path = output / 'js/pages/navigation.js'
+text = path.read_text(encoding='utf-8')
+debut = text.index('/* ── Nettoyage au chargement / rechargement')
+fonction = text.index('function nettoyerPanneauxEtHash()', debut)
+fin = text.index('/* Dès que le DOM est prêt, on nettoie. */', fonction)
+text = text[:debut] + '/* Nettoyage explicite : la restauration conserve la page affichée. */\n' + text[fonction:fin]
+path.write_text(text, encoding='utf-8')
+path = output / 'js/pages/emploi-temps.js'
+text = path.read_text(encoding='utf-8')
+ancien = "        if (typeof generatePlanning === 'function') generatePlanning();\n        return;\n    }\n    if (typeof goToFreeTime === 'function') goToFreeTime();"
+nouveau = "        if (typeof memoireRetour === 'function') memoireRetour();\n        else if (typeof generatePlanning === 'function') generatePlanning();\n        return;\n    }\n    if (typeof goToFreeTime === 'function') goToFreeTime();"
+if text.count(ancien) != 1:
+    raise SystemExit('Retour emploi public inattendu')
+path.write_text(text.replace(ancien, nouveau, 1), encoding='utf-8')
+pages_retour = ['soutien', 'exercices', 'devoirs', 'legende', 'ee-ia', 'feries', 'tutoriel', 'aide', 'feedback', 'annonce', 'boite']
+for nom in pages_retour:
+    path = output / ('pages/' + nom + '.html')
+    text = path.read_text(encoding='utf-8')
+    lignes = text.splitlines(keepends=True)
+    nombre = 0
+    for i, ligne in enumerate(lignes):
+        if "onclick=\"navigateTo('planning')\"" in ligne and any(x in ligne for x in ('fleche-icone', 'eeia-back', 'exo-back-btn', 'ed-back', 'dd-back', 'Revenir au planning')):
+            lignes[i] = ligne.replace("onclick=\"navigateTo('planning')\"", 'onclick="memoireRetour()"').replace('Retour au planning', 'Retour à la page précédente').replace('Revenir au planning', 'Revenir à la page précédente')
+            nombre += 1
+    if not nombre and 'onclick="memoireRetour()"' not in text:
+        raise SystemExit('Bouton de retour public introuvable : ' + nom)
+    path.write_text(''.join(lignes), encoding='utf-8')
+
 # Vérification finale : aucun autre fichier existant n'a changé.
-allowed = set(files + ['pages/devoirs.html', 'pages/pomodoro.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'js/accessibilite.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
+allowed = set(files + ['js/pages/navigation.js', 'js/pages/emploi-temps.js'] + [('pages/' + nom + '.html') for nom in pages_retour] + ['pages/devoirs.html', 'pages/pomodoro.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'js/accessibilite.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])
 for path in base.rglob('*'):
     if not path.is_file():
         continue
