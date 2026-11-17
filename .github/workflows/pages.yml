@@ -31,7 +31,8 @@ jobs:
       - name: Installer l'émulateur et les tests
         run: npm install --prefix "$RUNNER_TEMP/salon-test" --no-audit --no-fund firebase@10.14.1 @firebase/rules-unit-testing@3.0.4 firebase-tools@13.35.1 playwright
       - name: Préparer Chromium pour le test WebRTC
-        run: "$RUNNER_TEMP/salon-test/node_modules/.bin/playwright" install --with-deps chromium
+        run: >-
+          "$RUNNER_TEMP/salon-test/node_modules/.bin/playwright" install --with-deps chromium
       - name: Valider les règles et le transport, sans production
         env:
           STUDY_TEST_MODULES: ${{ runner.temp }}/salon-test/node_modules
