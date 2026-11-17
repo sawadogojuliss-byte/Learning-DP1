@@ -151,29 +151,46 @@
                Les adresses réseau peuvent figurer dans les descriptions SDP :
                seul le destinataire peut lire les signaux selon les règles. */
             function creerCanalVoix() {
-                var collection=room.collection('salon_voix_presence'), personnel=collection.doc(contexte.user.uid);
+                var collection=room.collection('salon_voix_presence'), personnel=null;
                 var actif=false, battementVoix=null, instanceActuelle='', fileSignal=Promise.resolve();
                 function horodate(){return firebase.firestore.FieldValue.serverTimestamp();}
                 function expiration(){return firebase.firestore.Timestamp.fromMillis(maintenant()+300000);}
                 async function joindre(instance) {
                     instanceActuelle=instance;
-                    await db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists)tx.update(personnel,{instance:instance,actif:true,vuLe:horodate(),expireLe:expiration()});else tx.set(personnel,{instance:instance,actif:true,vuLe:horodate(),expireLe:expiration()});});actif=true;
+                    // Des appareils d'un même compte peuvent coexister sans se
+                    // remplacer. Les quatre emplacements sont bornés par les règles.
+                    for(var i=0;i<4;i++) {
+                        var slot=String(i), ref=collection.doc(contexte.user.uid+'_'+slot);
+                        var obtenu=await db.runTransaction(async function(tx){
+                            var snap=await tx.get(ref), d=snap.exists?snap.data():null;
+                            if(d && (d.proprietaire!==contexte.user.uid || d.slot!==slot))return false;
+                            var expirationDoc=d && d.expireLe && typeof d.expireLe.toMillis==='function'?d.expireLe.toMillis():0;
+                            if(d && d.actif && d.instance!==instance && expirationDoc>maintenant()-10000)return false;
+                            var presence={instance:instance,actif:true,vuLe:horodate(),expireLe:expiration()};
+                            if(d)tx.update(ref,presence);else tx.set(ref,Object.assign({proprietaire:contexte.user.uid,slot:slot},presence));
+                            return true;
+                        });
+                        if(obtenu){personnel=ref;break;}
+                    }
+                    if(!personnel)throw erreur('voice-device-limit');
+                    actif=true;
                     battementVoix=setInterval(function(){
                         if(!actif)return;
                         db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists && s.data().instance===instance)tx.update(personnel,{vuLe:horodate(),expireLe:expiration()});}).catch(function(){});
                     },30000);
+                    return personnel.id;
                 }
                 function presences(callback,surErreur) {
                     var derniers=null;
                     function emettre(){
                         if(!derniers)return;
                         var membres=new Set(listeConfirmee.map(function(m){return m.uid;}));
-                        callback(derniers.filter(function(p){return membres.has(p.uid);}));
+                        callback(derniers.filter(function(p){return membres.has(p.proprietaire);}));
                     }
                     ecoutesVoix.add(emettre);
                     var stop=collection.orderBy('vuLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
                         if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
-                        derniers=snap.docs.filter(function(doc){return doc.data().actif===true;}).map(function(doc){var d=doc.data(),vu=d.vuLe && typeof d.vuLe.toMillis==='function'?d.vuLe.toMillis():0;return {uid:doc.id,instance:d.instance,recent:vu>0 && vu<=maintenant()+30000 && maintenant()-vu<100000};});emettre();
+                        derniers=snap.docs.filter(function(doc){return doc.data().actif===true && typeof doc.data().proprietaire==='string';}).map(function(doc){var d=doc.data(),vu=d.vuLe && typeof d.vuLe.toMillis==='function'?d.vuLe.toMillis():0;return {uid:doc.id,proprietaire:d.proprietaire,instance:d.instance,recent:vu>0 && vu<=maintenant()+30000 && maintenant()-vu<100000};});emettre();
                     },surErreur);
                     return function(){ecoutesVoix.delete(emettre);stop();};
                 }
@@ -196,7 +213,7 @@
                         await db.runTransaction(async function(tx){
                             var source=await tx.get(personnel);if(!source.exists || source.data().instance!==instanceActuelle)throw erreur('voice-unavailable');
                             tx.update(personnel,{signalLe:horodate(),signalId:ref.id,signalCible:dest});
-                            tx.set(ref,{auteur:contexte.user.uid,deInstance:instanceActuelle,versInstance:vers,type:type,sdp:sdp,creeLe:horodate(),expireLe:expiration()});
+                            tx.set(ref,{auteur:personnel.id,deInstance:instanceActuelle,versInstance:vers,type:type,sdp:sdp,creeLe:horodate(),expireLe:expiration()});
                         });
                         await new Promise(function(resolve){setTimeout(resolve,1100);});
                     });
@@ -204,6 +221,7 @@
                 }
                 async function quitter(instance) {
                     actif=false;clearInterval(battementVoix);battementVoix=null;
+                    if(!personnel)return;
                     try {await db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists && s.data().instance===instance)tx.update(personnel,{actif:false,vuLe:horodate(),expireLe:expiration()});});} catch(e) {}
                 }
                 return {joindre:joindre,presences:presences,signaux:signaux,envoyer:envoyer,quitter:quitter};

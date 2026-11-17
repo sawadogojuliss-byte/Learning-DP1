@@ -41,29 +41,36 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertFails(setDoc(doc(guest,chemin(id)+'/membres/guest'),{pseudo:'Camille'})); // le délai ne peut pas être effacé
   await assertFails(setDoc(doc(guest,prefix+autreMsg),message('Usurpation','Autre')));
 
-  // Voix : seuls les membres actifs peuvent enregistrer une présence et
-  // adresser un signal au destinataire, dans la même transaction limitée.
-  const vh=chemin(id)+'/salon_voix_presence/host', vg=chemin(id)+'/salon_voix_presence/guest';
-  const presence=instance=>({instance,actif:true,vuLe:serverTimestamp(),expireLe:Timestamp.fromMillis(Date.now()+300000)});
-  const hi='a'.repeat(32),gi='b'.repeat(32),sid='VoiceSignal123456789';
-  await assertFails(setDoc(doc(intrus,chemin(id)+'/salon_voix_presence/intrus'),presence('c'.repeat(32))));
-  await assertFails(setDoc(doc(guest,vh),presence(gi)));
-  await assertFails(setDoc(doc(guest,vg),presence('non-valide')));
-  await assertSucceeds(setDoc(doc(host,vh),presence(hi)));await assertSucceeds(setDoc(doc(guest,vg),presence(gi)));
+  // Plusieurs appareils du même compte ont des emplacements bornés et
+  // ne peuvent ni remplacer ni usurper les emplacements d'autrui.
+  const vh=chemin(id)+'/salon_voix_presence/host_0', vh1=chemin(id)+'/salon_voix_presence/host_1', vg=chemin(id)+'/salon_voix_presence/guest_0';
+  const presence=(owner,slot,instance)=>({proprietaire:owner,slot,instance,actif:true,vuLe:serverTimestamp(),expireLe:Timestamp.fromMillis(Date.now()+300000)});
+  const hi='a'.repeat(32),hi1='c'.repeat(32),gi='b'.repeat(32),sid='VoiceSignal123456789';
+  await assertFails(setDoc(doc(intrus,chemin(id)+'/salon_voix_presence/intrus_0'),presence('intrus','0',hi)));
+  await assertFails(setDoc(doc(guest,vh),presence('guest','0',gi)));
+  await assertFails(setDoc(doc(guest,vg),presence('guest','0','non-valide')));
+  await assertFails(setDoc(doc(host,chemin(id)+'/salon_voix_presence/host_4'),presence('host','4',hi)));
+  await assertSucceeds(setDoc(doc(host,vh),presence('host','0',hi)));await assertSucceeds(setDoc(doc(host,vh1),presence('host','1',hi1)));await assertSucceeds(setDoc(doc(guest,vg),presence('guest','0',gi)));
+  await assertFails(updateDoc(doc(host,vh),{instance:'d'.repeat(32),vuLe:serverTimestamp(),expireLe:Timestamp.fromMillis(Date.now()+300000)}));
+  await assertFails(updateDoc(doc(guest,vh),{actif:false,vuLe:serverTimestamp()}));
   await assertFails(getDocs(collection(intrus,chemin(id)+'/salon_voix_presence')));
   await assertFails(getDocs(collection(host,chemin(id)+'/salon_voix_presence')));
   await assertSucceeds(getDocs(query(collection(host,chemin(id)+'/salon_voix_presence'),orderBy('vuLe','desc'),limit(50))));
   const vs=vg+'/salon_voix_signaux/'+sid;
-  const signal={auteur:'host',deInstance:hi,versInstance:gi,type:'offer',sdp:'v=0\r\n',creeLe:serverTimestamp(),expireLe:Timestamp.fromMillis(Date.now()+300000)};
-  await assertFails(setDoc(doc(host,vs),signal)); // pas de mise à jour atomique de la présence
-  const faux=writeBatch(host);faux.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid,signalCible:'guest'});faux.set(doc(host,vs),{...signal,auteur:'guest'});await assertFails(faux.commit());
-  const emission=writeBatch(host);emission.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid,signalCible:'guest'});emission.set(doc(host,vs),signal);await assertSucceeds(emission.commit());
-  const rapide=writeBatch(host);const sid2='VoiceSignal987654321';rapide.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid2,signalCible:'guest'});rapide.set(doc(host,vg+'/salon_voix_signaux/'+sid2),signal);await assertFails(rapide.commit());
+  const signal={auteur:'host_0',deInstance:hi,versInstance:gi,type:'offer',sdp:'v=0\r\n',creeLe:serverTimestamp(),expireLe:Timestamp.fromMillis(Date.now()+300000)};
+  await assertFails(setDoc(doc(host,vs),signal));
+  const faux=writeBatch(host);faux.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid,signalCible:'guest_0'});faux.set(doc(host,vs),{...signal,auteur:'guest_0'});await assertFails(faux.commit());
+  const emission=writeBatch(host);emission.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid,signalCible:'guest_0'});emission.set(doc(host,vs),signal);await assertSucceeds(emission.commit());
+  const rapide=writeBatch(host);const sid2='VoiceSignal987654321';rapide.update(doc(host,vh),{signalLe:serverTimestamp(),signalId:sid2,signalCible:'guest_0'});rapide.set(doc(host,vg+'/salon_voix_signaux/'+sid2),signal);await assertFails(rapide.commit());
   await assertFails(getDoc(doc(host,vs)));await assertFails(getDoc(doc(intrus,vs)));await assertSucceeds(getDoc(doc(guest,vs)));
   await assertFails(getDocs(collection(guest,vg+'/salon_voix_signaux')));await assertSucceeds(getDocs(query(collection(guest,vg+'/salon_voix_signaux'),orderBy('creeLe','desc'),limit(50))));
   await assertFails(updateDoc(doc(guest,vs),{sdp:'modifié'}));await assertFails(deleteDoc(doc(host,vs)));
-  await assertFails(setDoc(doc(host,vh),presence(hi))); // ne peut pas effacer le délai d'envoi
-  await assertSucceeds(deleteDoc(doc(guest,vs)));await assertFails(deleteDoc(doc(host,vh)));await assertSucceeds(updateDoc(doc(guest,vg),presence(gi)));
+  await assertFails(setDoc(doc(host,vh),presence('host','0',hi)));
+  await assertSucceeds(deleteDoc(doc(guest,vs)));await assertFails(deleteDoc(doc(host,vh)));await assertSucceeds(updateDoc(doc(guest,vg),presence('guest','0',gi)));
+  const memeCompte=writeBatch(host), autreId='SameAccount123456789', cheminMeme=vh+'/salon_voix_signaux/'+autreId;
+  memeCompte.update(doc(host,vh1),{signalLe:serverTimestamp(),signalId:autreId,signalCible:'host_0'});
+  memeCompte.set(doc(host,cheminMeme),{...signal,auteur:'host_1',deInstance:hi1,versInstance:hi});await assertSucceeds(memeCompte.commit());
+  await assertSucceeds(getDoc(doc(host,cheminMeme)));await assertFails(getDoc(doc(guest,cheminMeme)));await assertSucceeds(deleteDoc(doc(host,cheminMeme)));
 
   await assertSucceeds(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
   await assertFails(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:Timestamp.fromMillis(Date.now()+3600000)}));
@@ -88,7 +95,7 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   await assertSucceeds(updateDoc(doc(host,chemin(id)),{revision:6,ferme:true}));
   await assertFails(getDoc(doc(guest,prefix+msgId)));
   await assertFails(getDocs(query(collection(guest,chemin(id)+'/salon_voix_presence'),limit(50))));
-  await assertFails(setDoc(doc(guest,vg),presence(gi)));
+  await assertFails(setDoc(doc(guest,vg),presence('guest','0',gi)));
   await assertFails(setDoc(doc(intrus,chemin(id)+'/membres/intrus'),{pseudo:'Intrus'}));
   await assertSucceeds(deleteDoc(doc(guest,chemin(id)+'/membres/guest')));
   console.log('OK règles Firestore : propriétaires, invités, fermeture, isolation et partage.');

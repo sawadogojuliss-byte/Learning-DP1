@@ -75,7 +75,7 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
         }
         async function demarrer() {
             if(!courant)return;
-            try {operationJoindre=canal.joindre(instance);await operationJoindre;if(!courant)return;
+            try {operationJoindre=canal.joindre(instance);var identite=await operationJoindre;if(!courant)return;if(typeof identite==='string' && identite)uid=identite;
                 arrets.push(canal.presences(actualiser,erreur));
                 arrets.push(canal.signaux(appliquer,erreur));
                 pret=true;actualiser(dernieresPresences);statut('pret');}
@@ -102,7 +102,7 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
             if(!courant || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
             flux=nouveauFlux;var piste=flux.getAudioTracks()[0];
             if(!piste){flux.getTracks().forEach(function(t){t.stop();});flux=null;throw new Error('micro-unavailable');}
-            piste.onended=function(){if(courant && flux===nouveauFlux)micro(false);};
+            piste.onended=function(){if(courant && flux===nouveauFlux)micro(false).then(function(){if(courant)statut('micro-interrompu');});};
             try {await Promise.all(Array.from(pairs.values()).map(function(p){return mettrePiste(p,piste,generation);}));}
             catch(e){await micro(false);throw e;}
             if(!courant || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
@@ -114,7 +114,7 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
             pairs.forEach(function(_,id){fermerPair(id);});arrets.forEach(function(f){if(typeof f==='function')f();});arrets=[];
             fermeture=Promise.resolve(operationJoindre).catch(function(){}).then(function(){return canal.quitter(instance);}).catch(function(){});return fermeture;
         }
-        return {demarrer:demarrer,micro:micro,fermer:fermer};
+        return {demarrer:demarrer,micro:micro,fermer:fermer,identite:function(){return uid;}};
     }
     var api={creer:creer};if(typeof module==='object' && module.exports)module.exports=api;else root.SalonVoix=api;
 })(typeof window==='undefined'?globalThis:window);

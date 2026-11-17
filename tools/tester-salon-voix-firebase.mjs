@@ -33,22 +33,26 @@ async function participant(uid,provider) {
 }
 async function audible(p,id){await p.waitForFunction(id=>{const a=incoming[id]?.analyser;if(!a)return false;const data=new Uint8Array(a.frequencyBinCount);a.getByteTimeDomainData(data);return Math.max(...Array.from(data,x=>Math.abs(x-128)))>3},id,{timeout:40000});}
 try {
- const h=await participant('host-webrtc','google.com'),g=await participant('guest-webrtc','anonymous');
+ const h=await participant('host-webrtc','google.com'),h2=await participant('host-webrtc','google.com'),g=await participant('guest-webrtc','anonymous');
  const id=await h.page.evaluate(async()=>{let s=await adapter.creer({nom:'Test vocal émulé',options:{},partage:{},chrono:{mode:'focus',total:1500,restant:1500,running:false,fin:0}});await start(s);return s.id});
+ await h2.page.evaluate(async id=>start(await adapter.reprendre(id)),id);
  await g.page.evaluate(async id=>start(await adapter.rejoindre(id,'Invité test')),id);
+ const ih=await h.page.evaluate(()=>voice.identite()),ih2=await h2.page.evaluate(()=>voice.identite()),ig=await g.page.evaluate(()=>voice.identite());
+ assert.notEqual(ih,ih2,'les deux appareils du même compte ont des emplacements distincts');
  try {
-  await Promise.all([h.page.waitForFunction(()=>events.includes('connecte'),null,{timeout:50000}),g.page.waitForFunction(()=>events.includes('connecte'),null,{timeout:50000})]);
-  await h.page.evaluate(()=>voice.micro(true));await audible(g.page,'host-webrtc');
-  await g.page.evaluate(()=>voice.micro(true));await audible(h.page,'guest-webrtc');
+  await Promise.all([h,h2,g].map(p=>p.page.waitForFunction(()=>events.filter(x=>x==='connecte').length>=2,null,{timeout:60000})));
+  await h.page.evaluate(()=>voice.micro(true));await Promise.all([audible(g.page,ih),audible(h2.page,ih)]);
+  await h2.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ih2),audible(g.page,ih2)]);
+  await g.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ig),audible(h2.page,ig)]);
   // Dépasse deux battements de présence à 30 secondes : aucune coupure.
   await new Promise(resolve=>setTimeout(resolve,65000));
-  await audible(h.page,'guest-webrtc');await audible(g.page,'host-webrtc');
-  for(const p of [h.page,g.page])assert.equal(await p.evaluate(()=>activeStreams[0].getAudioTracks()[0].readyState),'live');
-  for(const p of [h,g]){assert.deepEqual(await p.page.evaluate(()=>errors),[]);assert.deepEqual(p.errors,[])}
+  await Promise.all([audible(h.page,ih2),audible(h2.page,ih),audible(g.page,ih)]);
+  for(const p of [h.page,h2.page,g.page])assert.equal(await p.evaluate(()=>activeStreams[0].getAudioTracks()[0].readyState),'live');
+  for(const p of [h,h2,g]){assert.deepEqual(await p.page.evaluate(()=>errors),[]);assert.deepEqual(p.errors,[])}
   await h.page.evaluate(()=>voice.micro(false));assert.equal(await h.page.evaluate(()=>activeStreams[0].getAudioTracks()[0].readyState),'ended');
-  console.log('OK Firestore émulé + WebRTC : échanges bidirectionnels, maintien 65 secondes, battements et coupure.');
+  console.log('OK Firestore émulé + WebRTC : deux appareils du même compte, échanges de groupe, maintien 65 secondes, battements et coupure.');
  } catch(e) {
-  for(const [name,p] of [['host',h],['guest',g]])console.error(name,await p.page.evaluate(()=>({events,errors,receive:Object.keys(incoming)})),p.errors);
+  for(const [name,p] of [['host',h],['host2',h2],['guest',g]])console.error(name,await p.page.evaluate(()=>({events,errors,receive:Object.keys(incoming)})),p.errors);
   throw e;
- } finally {await Promise.all([h.page.evaluate(()=>{voice.fermer();stop()}),g.page.evaluate(()=>{voice.fermer();stop()})]);await h.context.close();await g.context.close()}
+ } finally {await Promise.all([h.page.evaluate(()=>{voice.fermer();stop()}),h2.page.evaluate(()=>{voice.fermer();stop()}),g.page.evaluate(()=>{voice.fermer();stop()})]);await h.context.close();await h2.context.close();await g.context.close()}
 }finally{await browser.close()}
