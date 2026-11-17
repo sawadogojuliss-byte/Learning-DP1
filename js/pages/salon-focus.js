@@ -960,9 +960,9 @@
     window.salonQuitter=function () {
         if(!session || occupe)return;
         if(session.role==='hote' && !window.confirm('Fermer le salon pour toutes les personnes présentes ?')) return;
-        var s=session;occupe=true;statut('salonMessage',s.role==='hote'?'Fermeture du salon…':'Départ du salon…');
+        var s=session;occupe=true;fermerConversation();statut('salonMessage',s.role==='hote'?'Fermeture du salon…':'Départ du salon…');
         var operation=s.role==='hote'?s.fermer():s.quitter();
-        Promise.resolve(operation).then(function(){if(session===s)finirLocal(s.role==='hote'?'Salon fermé.':'Tu as quitté le salon.');},function(e){occupe=false;$('salonSortieLocale').hidden=false;statut('salonMessage',erreur(e)+' Tu peux quitter cet appareil ; le salon peut rester ouvert pour les autres.');});
+        Promise.resolve(operation).then(function(){if(session===s)finirLocal(s.role==='hote'?'Salon fermé.':'Tu as quitté le salon.');},function(e){occupe=false;$('salonSortieLocale').hidden=false;statut('salonVoixStatut','Micro coupé.');$('salonVoixReessayer').hidden=false;statut('salonMessage',erreur(e)+' Tu peux quitter cet appareil ; le salon peut rester ouvert pour les autres.');});
     };
     window.salonSortieLocale=function(){if(!session)return;finirLocal('Tu as quitté sur cet appareil. Le salon peut être encore ouvert pour les autres.');};
 })();

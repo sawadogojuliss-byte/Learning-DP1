@@ -3,14 +3,14 @@ import assert from 'node:assert/strict';import path from 'node:path';import {cre
 const require=createRequire(process.env.STUDY_TEST_MODULES?path.resolve(process.env.STUDY_TEST_MODULES,'../package.json'):import.meta.url);
 const {chromium}=require('playwright');const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM?null:require('@sparticuz/chromium').default;
 const browser=await chromium.launch(portable?{executablePath:await portable.executablePath(),args:[...portable.args.filter(x=>x!=='--single-process'),'--autoplay-policy=no-user-gesture-required']}:{args:['--autoplay-policy=no-user-gesture-required']});
-const base=process.env.STUDY_SITE||'http://127.0.0.1:8653/',id='abcdef0123456789abcdef0123456789abcdef0123456789',clients=new Map(),slots=new Map(),messages=new Map();let room;
+const base=process.env.STUDY_SITE||'http://127.0.0.1:8653/',id='abcdef0123456789abcdef0123456789abcdef0123456789',clients=new Map(),slots=new Map(),messages=new Map();let room,retarderDepart=false,reprendreDepart=()=>{},notifierDepart=()=>{};const departAppele=new Promise(r=>notifierDepart=r);
 const clone=x=>structuredClone(x);const presence=()=>[...slots].map(([uid,instance])=>({uid,instance,recent:true}));
 async function publier(){await Promise.all([...clients.values()].map(p=>p.evaluate(v=>window.__voicePresence?.(v),presence()).catch(()=>{})))}
 async function backend(uid,op,arg){
  if(op==='create'){room={...clone(arg),revision:1,ferme:false,organisateurUid:'host',membres:[{uid:'host',pseudo:'Organisateur'}]};return {id,uid,role:'hote'}}
  if(op==='preview'||op==='read')return {...clone(room),maintenant:Date.now()};
  if(op==='join'){room.membres.push({uid,pseudo:arg.pseudo});return {id,uid,role:'invite'}}
- if(op==='leave'){room.membres=room.membres.filter(m=>m.uid!==uid);return}if(op==='close'){room.ferme=true;room.revision++;return}
+ if(op==='leave'){if(retarderDepart)await new Promise(r=>{reprendreDepart=r;notifierDepart()});room.membres=room.membres.filter(m=>m.uid!==uid);return}if(op==='close'){room.ferme=true;room.revision++;return}
  if(op==='modify'){Object.assign(room,clone(arg.changement));room.revision++;return clone(room)}
  if(op==='voiceJoin'){slots.set(uid,arg);await publier();return}
  if(op==='voiceQuit'){if(slots.get(uid)===arg)slots.delete(uid);await publier();return}
@@ -40,6 +40,8 @@ try{
  await hp.locator('#salonBtnMicro').click();await hp.waitForFunction(()=>document.querySelector('#salonBtnMicro').getAttribute('aria-pressed')==='false');assert.equal(await hp.evaluate(()=>__captures[0].getTracks()[0].readyState),'ended');
  await hp.locator('#salonBtnMicro').click();await hp.waitForFunction(()=>document.querySelector('#salonBtnMicro').getAttribute('aria-pressed')==='true');await hp.evaluate(()=>salonMasquer());assert.equal(await hp.evaluate(()=>__captures[1].getTracks()[0].readyState),'ended');await gp.waitForFunction(()=>![...document.querySelectorAll('audio')].some(a=>a.srcObject),null,{timeout:30000});
  await hp.evaluate(()=>salonRevenir());await hp.waitForFunction(()=>document.getElementById('salonVoixStatut').textContent.includes('écoute activée'));assert.equal(await hp.locator('#salonBtnMicro').getAttribute('aria-pressed'),'false');
+ await gp.locator('#salonBtnMicro').click();await gp.waitForFunction(()=>document.querySelector('#salonBtnMicro').getAttribute('aria-pressed')==='true');retarderDepart=true;
+ await gp.evaluate(()=>salonQuitter());assert.equal(await gp.evaluate(()=>__captures[0].getTracks()[0].readyState),'ended','micro arrêté immédiatement même si le départ réseau attend');await departAppele;reprendreDepart();await gp.waitForFunction(()=>document.getElementById('salonEcran').hidden);
  assert.deepEqual(h.errors,[]);assert.deepEqual(g.errors,[]);console.log('OK interface : micro coupé par défaut, son reçu, coupure, sortie et reprise à deux tailles mobiles.');
  await h.context.close();await g.context.close();
 }finally{await browser.close()}
