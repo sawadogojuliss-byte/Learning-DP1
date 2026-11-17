@@ -113,6 +113,7 @@ files = [
     'js/pages/salon-focus-coeur.js',
     'js/pages/salon-focus-firebase.js',
     'js/pages/salon-focus.js',
+    'js/pages/salon-voix.js',
     'css/pages/salon-focus.css',
     'css/curseur-stable.css',
     'js/pages/musique.js',
@@ -407,10 +408,10 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = "    'js/pages/pomodoro-parametres.js'\n"
         if text.count(anchor) != 1:
             raise SystemExit('Registre public inattendu')
-        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
+        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-voix.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
         anchor_salon = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-focus.js",', 1)
+        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-voix.js",\n    "js/pages/salon-focus.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')

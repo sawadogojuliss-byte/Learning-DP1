@@ -40,7 +40,7 @@
         async function session(contexte,id,role,offset) {
             validationId(id);
             var db=contexte.db, room=db.collection('salons_focus').doc(id), membre=room.collection('membres').doc(contexte.user.uid);
-            var messageEnAttente=null;
+            var messageEnAttente=null, ecoutesVoix=new Set();
             var delta=offset, ferme=false, listeConfirmee=[], presenceTimer=null, presenceEnCours=null, presenceActive=false, presenceSouhaitee=false, presenceDisponible=true;
             function maintenant(){return Math.round(horloge()+delta);}
             function objet(snap){ if(!snap.exists)throw erreur('not-found');return snap.data(); }
@@ -86,7 +86,7 @@
                 var b=room.collection('membres').onSnapshot({includeMetadataChanges:true},function(snap){
                     synchroniseMembres=!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites;
                     if(!synchroniseMembres) { emettre();return; }
-                    membres=snap.docs.map(function(d){var v=d.data();return {uid:d.id,pseudo:v.pseudo,vuLe:v.vuLe && typeof v.vuLe.toMillis==='function'?v.vuLe.toMillis():null};});listeConfirmee=membres;emettre();
+                    membres=snap.docs.map(function(d){var v=d.data();return {uid:d.id,pseudo:v.pseudo,vuLe:v.vuLe && typeof v.vuLe.toMillis==='function'?v.vuLe.toMillis():null};});listeConfirmee=membres;ecoutesVoix.forEach(function(f){f();});emettre();
                 },function(e){
                     if(arrete || (salle && salle.ferme))return;
                     // Les règles interdisent la liste des membres dès la fermeture.
@@ -147,6 +147,67 @@
                 });
                 if(messageEnAttente===tentative)messageEnAttente=null;
             }
+            /* Signalisation SDP par Firestore, distincte de la voix chiffrée WebRTC.
+               Les adresses réseau peuvent figurer dans les descriptions SDP :
+               seul le destinataire peut lire les signaux selon les règles. */
+            function creerCanalVoix() {
+                var collection=room.collection('salon_voix_presence'), personnel=collection.doc(contexte.user.uid);
+                var actif=false, battementVoix=null, instanceActuelle='', fileSignal=Promise.resolve();
+                function horodate(){return firebase.firestore.FieldValue.serverTimestamp();}
+                function expiration(){return firebase.firestore.Timestamp.fromMillis(maintenant()+300000);}
+                async function joindre(instance) {
+                    instanceActuelle=instance;
+                    await db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists)tx.update(personnel,{instance:instance,actif:true,vuLe:horodate(),expireLe:expiration()});else tx.set(personnel,{instance:instance,actif:true,vuLe:horodate(),expireLe:expiration()});});actif=true;
+                    battementVoix=setInterval(function(){
+                        if(!actif)return;
+                        db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists && s.data().instance===instance)tx.update(personnel,{vuLe:horodate(),expireLe:expiration()});}).catch(function(){});
+                    },30000);
+                }
+                function presences(callback,surErreur) {
+                    var derniers=null;
+                    function emettre(){
+                        if(!derniers)return;
+                        var membres=new Set(listeConfirmee.map(function(m){return m.uid;}));
+                        callback(derniers.filter(function(p){return membres.has(p.uid);}));
+                    }
+                    ecoutesVoix.add(emettre);
+                    var stop=collection.orderBy('vuLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
+                        if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
+                        derniers=snap.docs.filter(function(doc){return doc.data().actif===true;}).map(function(doc){var d=doc.data(),vu=d.vuLe && typeof d.vuLe.toMillis==='function'?d.vuLe.toMillis():0;return {uid:doc.id,instance:d.instance,recent:vu>0 && vu<=maintenant()+30000 && maintenant()-vu<100000};});emettre();
+                    },surErreur);
+                    return function(){ecoutesVoix.delete(emettre);stop();};
+                }
+                function signaux(callback,surErreur) {
+                    var deja=new Set();
+                    return personnel.collection('salon_voix_signaux').orderBy('creeLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
+                        if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
+                        snap.docs.forEach(function(doc){
+                            if(deja.has(doc.id))return;deja.add(doc.id);var d=doc.data(),ts=d.creeLe && typeof d.creeLe.toMillis==='function'?d.creeLe.toMillis():0;
+                            if(ts && maintenant()-ts<120000 && d.versInstance===instanceActuelle) callback(d);
+                            doc.ref.delete().catch(function(){});
+                        });
+                    },surErreur);
+                }
+                async function envoyer(dest,vers,type,sdp) {
+                    if(!actif || !instanceActuelle || !['offer','answer'].includes(type) || typeof sdp!=='string' || sdp.length>32000)throw erreur('voice-unavailable');
+                    var operation=fileSignal.then(async function(){
+                        if(!actif)throw erreur('voice-unavailable');
+                        var ref=collection.doc(dest).collection('salon_voix_signaux').doc();
+                        await db.runTransaction(async function(tx){
+                            var source=await tx.get(personnel);if(!source.exists || source.data().instance!==instanceActuelle)throw erreur('voice-unavailable');
+                            tx.update(personnel,{signalLe:horodate(),signalId:ref.id,signalCible:dest});
+                            tx.set(ref,{auteur:contexte.user.uid,deInstance:instanceActuelle,versInstance:vers,type:type,sdp:sdp,creeLe:horodate(),expireLe:expiration()});
+                        });
+                        await new Promise(function(resolve){setTimeout(resolve,1100);});
+                    });
+                    fileSignal=operation.catch(function(){});return operation;
+                }
+                async function quitter(instance) {
+                    actif=false;clearInterval(battementVoix);battementVoix=null;
+                    try {await db.runTransaction(async function(tx){var s=await tx.get(personnel);if(s.exists && s.data().instance===instance)tx.update(personnel,{actif:false,vuLe:horodate(),expireLe:expiration()});});} catch(e) {}
+                }
+                return {joindre:joindre,presences:presences,signaux:signaux,envoyer:envoyer,quitter:quitter};
+            }
             async function quitter(){await arreterPresence();try {await db.runTransaction(async function(tx){var snap=await tx.get(room);if(snap.exists && !snap.data().ferme && snap.data().organisateurUid===contexte.user.uid)throw erreur('still-organizer');tx.delete(membre);});} catch(e) {demarrerPresence();throw e;}}
             async function transferer(uid){
                 if(typeof uid!=='string' || !uid || uid===contexte.user.uid)throw erreur('invalid-argument');
@@ -162,7 +223,7 @@
                 await arreterPresence();
                 try {await db.runTransaction(async function(tx){var d=objet(await tx.get(room));if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');if(d.ferme)return;tx.update(room,{ferme:true,revision:d.revision+1});});ferme=true;} catch(e) {demarrerPresence();throw e;}
             }
-            return {id:id,uid:contexte.user.uid,role:role,identite:contexte.user.isAnonymous?'invite':'compte',transferer:transferer,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence,observerMessages:observerMessages,envoyerMessage:envoyerMessage};
+            return {id:id,uid:contexte.user.uid,role:role,identite:contexte.user.isAnonymous?'invite':'compte',transferer:transferer,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence,observerMessages:observerMessages,envoyerMessage:envoyerMessage,creerCanalVoix:creerCanalVoix};
         }
         async function creer(donnees) {
             var contexte=await organisateur(), delta=await heureServeur(contexte);

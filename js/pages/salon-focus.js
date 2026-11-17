@@ -64,6 +64,72 @@
             ouvrirPomodoro();adresseSalon(session ? session.id : invitation);
         }
     });
+    // Chaque salon démarre en écoute seule : le navigateur ne demande le
+    // microphone qu'après un geste explicite. Les flux ne sont jamais stockés.
+    var conversation=null, generationConversation=0, microActif=false, microEnCours=false, conversationPrete=false, sonsVoix=new Map(), fermetureConversation=Promise.resolve();
+    function peindreMicro() {
+        var b=$('salonBtnMicro');if(!b)return;
+        b.disabled=!session || microEnCours;
+        b.setAttribute('aria-pressed',microActif?'true':'false');
+        b.setAttribute('aria-label',microActif?'Couper le micro':'Activer le micro');
+        b.title=microActif?'Couper le micro':'Activer le micro';
+    }
+    function retirerSonVoix(id) {
+        var el=sonsVoix.get(id);if(!el)return;sonsVoix.delete(id);
+        el.pause();el.srcObject=null;el.remove();
+        if(!sonsVoix.size && $('salonVoixEcoute'))$('salonVoixEcoute').hidden=true;
+    }
+    function fermerConversation() {
+        generationConversation++;var ancienne=conversation;conversation=null;conversationPrete=false;microActif=false;microEnCours=false;
+        if(ancienne)fermetureConversation=Promise.all([fermetureConversation,ancienne.fermer()]).catch(function(){});Array.from(sonsVoix.keys()).forEach(retirerSonVoix);
+        if($('salonVoixEcoute'))$('salonVoixEcoute').hidden=true;if($('salonVoixReessayer'))$('salonVoixReessayer').hidden=true;statut('salonVoixStatut','');peindreMicro();
+    }
+    function demarrerConversation(s) {
+        fermerConversation();
+        if(!s || typeof s.creerCanalVoix!=='function' || !window.SalonVoix || !window.RTCPeerConnection || !window.crypto || !crypto.getRandomValues) {
+            statut('salonVoixStatut','Conversation vocale indisponible sur cet appareil ou dans ce salon.');peindreMicro();return;
+        }
+        var generation=generationConversation, octets=new Uint8Array(16);crypto.getRandomValues(octets);
+        var instance=Array.from(octets,function(n){return n.toString(16).padStart(2,'0');}).join('');
+        statut('salonVoixStatut','Connexion vocale…');
+        var voix=conversation=window.SalonVoix.creer({uid:s.uid,instance:instance,canal:s.creerCanalVoix(),
+            statut:function(etat,detail){
+                if(generation!==generationConversation)return;
+                if(etat==='pret'){conversationPrete=true;statut('salonVoixStatut','Micro coupé · écoute activée');}
+                else if(etat==='micro-coupe'){microActif=false;statut('salonVoixStatut','Micro coupé · écoute activée');}
+                else if(etat==='micro-actif'){microActif=true;statut('salonVoixStatut','Micro activé');}
+                else if(etat==='capacite')statut('salonVoixStatut','Conversation vocale limitée à huit personnes.');
+                else if(etat==='connexion-impossible' || etat==='erreur'){statut('salonVoixStatut','Connexion vocale interrompue. Vérifie ton réseau puis réessaie.');$('salonVoixReessayer').hidden=false;}
+                else if(etat==='remplace'){fermerConversation();statut('salonVoixStatut','La conversation est active dans un autre onglet : le micro est coupé ici.');$('salonVoixReessayer').hidden=false;return;}
+                peindreMicro();
+            },
+            audioRecu:function(id,flux){
+                if(generation!==generationConversation)return;retirerSonVoix(id);
+                var el=document.createElement('audio');el.autoplay=true;el.playsInline=true;el.srcObject=flux;el.hidden=true;document.body.appendChild(el);sonsVoix.set(id,el);
+                var lecture=el.play();if(lecture && lecture.catch)lecture.catch(function(){if(generation===generationConversation && sonsVoix.get(id)===el){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » pour entendre le groupe.');}});
+            },audioRetire:retirerSonVoix
+        });
+        fermetureConversation.then(function(){if(generation===generationConversation && voix===conversation)return voix.demarrer();}).catch(function(){if(generation!==generationConversation)return;conversationPrete=false;conversation=null;statut('salonVoixStatut','Connexion vocale indisponible. Vérifie les règles du salon puis réessaie.');$('salonVoixReessayer').hidden=false;peindreMicro();});
+        peindreMicro();
+    }
+    window.salonReessayerVoix=function(){if(session)demarrerConversation(session);};
+    window.salonReprendreEcoute=function(){
+        var generation=generationConversation, tentatives=Array.from(sonsVoix.values()).map(function(el){return Promise.resolve(el.play());});
+        Promise.all(tentatives).then(function(){if(generation!==generationConversation)return;$('salonVoixEcoute').hidden=true;statut('salonVoixStatut',microActif?'Micro activé':'Micro coupé · écoute activée');},function(){if(generation===generationConversation)statut('salonVoixStatut','Lecture audio bloquée : vérifie le son de ton navigateur.');});
+    };
+    window.salonBasculerMicro=function(){
+        if(!session || microEnCours)return;
+        if(!conversation || !conversationPrete){demarrerConversation(session);return;}
+        var voix=conversation,generation=generationConversation,activer=!microActif;microEnCours=true;peindreMicro();
+        // Relancer la lecture pendant ce même geste, notamment sur mobile.
+        window.salonReprendreEcoute();
+        voix.micro(activer).then(function(actif){if(generation!==generationConversation || voix!==conversation)return;microActif=actif;},function(e){
+            if(generation!==generationConversation)return;microActif=false;
+            statut('salonVoixStatut',e && (e.name==='NotAllowedError' || e.name==='PermissionDeniedError')?'Micro refusé : autorise-le dans ton navigateur pour parler.':'Micro indisponible : vérifie ton appareil et réessaie.');
+        }).finally(function(){if(generation===generationConversation){microEnCours=false;peindreMicro();}});
+    };
+    window.addEventListener('pagehide',fermerConversation);
+    window.addEventListener('pageshow',function(e){if(e.persisted && session && $('salonEcran') && !$('salonEcran').hidden)demarrerConversation(session);});
     var protections = null, editionPartage = false;
     var fichesSalon = ['objectif','groupe','preferences','bilan'];
     function installerFiches() {
@@ -132,7 +198,7 @@
     window.salonOuvrirSons=function() { if(session)focusBasculerSons(); };
     function quitterVueSalon() {
         if(!session)return;
-        editionPartage=false;
+        editionPartage=false;fermerConversation();
         try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.masque=true; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=false;
         if (location.hash.indexOf('#salon=')===0) adresseSalon(null);
@@ -457,7 +523,7 @@
             if(connecte && session.role==='hote' && Object.keys(enAttentePartage).length && !envoiPartage && !timerPartage)programmerPartage();
             peindre();
         }, function (e) { if(e && (e.code==='removed' || e.code==='room-closed')) { finirLocal(e.code==='removed'?'Tu as été retiré du salon.':'Le salon est fermé ou a expiré.'); return; } connecte=false;statut('salonEtatConnexion','○ Connexion interrompue');statut('salonMessage',erreur(e));peindre(); });
-        demarrerMessages(s);
+        demarrerMessages(s);demarrerConversation(s);
         timer = setInterval(peindre,250);
         peindre();
     }
@@ -530,7 +596,7 @@
     window.salonReinitialiser=function () { action('reinitialiser'); };
     window.salonModifierPartage=function () {
         if (!session || session.role !== 'hote') return;
-        $('salonEcran').hidden=true; $('salonRaccourci').hidden=false; $('salonCreer').hidden=true; $('salonFormTitre').textContent='Modifier le partage';$('salonMajPartage').hidden=false;$('salonRetour').hidden=false;
+        fermerConversation();$('salonEcran').hidden=true; $('salonRaccourci').hidden=false; $('salonCreer').hidden=true; $('salonFormTitre').textContent='Modifier le partage';$('salonMajPartage').hidden=false;$('salonRetour').hidden=false;
         $('salonNom').value=salle.nom;$('salonNom').disabled=true;
         Object.keys(salle.options || {}).forEach(function(k){var el=document.querySelector('[name="salonPartage"][value="'+k+'"]');if(el)el.checked=!!salle.options[k];});
         editionPartage=true;resumeSelection();if($('focusReglages').hidden)focusBasculerReglages();focusChoisirOnglet('salon');
@@ -541,7 +607,7 @@
         try { var memo=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_session')||'{}'); memo.masque=false; sessionStorage.setItem('studyPlanIB_salon_session',JSON.stringify(memo)); } catch(e) {}
         editionPartage=false;$('salonRaccourci').hidden=true;$('salonEcran').hidden=false;
         protegerReglages(session.role==='invite');focusChoisirOnglet('themes');
-        ouvrirPomodoro();adresseSalon(session.id);focusFermer('focusReglages');focusPeindreParametres();chronoChargerReglagesVoix();
+        ouvrirPomodoro();adresseSalon(session.id);focusFermer('focusReglages');focusPeindreParametres();chronoChargerReglagesVoix();demarrerConversation(session);
     };
     window.salonActualiserPartage=function () {
         envoyer({options:options(),partage:selectionPartagee()}).then(function(ok){if(ok)window.salonRevenir();});
@@ -870,7 +936,7 @@
     function finirLocal(message, finOrganisateur) {
         var bilanFinal=salle && salle.bilan;
         var celebration=$('salonCelebrationDialog');if(celebration && celebration.open)celebration.close();
-        fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer);clearTimeout(timerPartage);filePortee=[];enAttentePartage={};var choix=$('salonChoixPartage');if(choix && choix.open)choix.close(); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
+        fermerConversation();fermerMessagesSession();window.salonFermerMini();clearTimeout(objectifTimer);clearTimeout(timerPartage);filePortee=[];enAttentePartage={};var choix=$('salonChoixPartage');if(choix && choix.open)choix.close(); if(arreterEcoute)arreterEcoute();arreterEcoute=null;clearInterval(timer);timer=null;stopperAudio();audioAutorise=false;
         var video=$('salonDecor').querySelector('video');if(video){video.pause();video.removeAttribute('src');video.load();}
         try { sessionStorage.removeItem('studyPlanIB_salon_session');sessionStorage.removeItem('studyPlanIB_salon_seances_'+session.id);sessionStorage.removeItem('studyPlanIB_salon_local_'+session.id+'_'+(session.uid||'')); } catch(e) {}
         $('salonEcran').hidden=true;$('salonRaccourci').hidden=true;session=null;salle=null;adresseSalon(null);document.body.classList.remove('salon-actif');protegerReglages(false);window.salonFermerLien();

@@ -435,3 +435,11 @@ body.salon-actif :is(#salonEcran,#focusReglages,#focusSons,#focusTaches,#salonMe
         backdrop-filter: none;
     }
 }
+
+/* Conversation vocale : état explicite, indépendant des annonces du minuteur. */
+.salon-voix-etat { color:#fff; font-size:.78rem; text-align:center; max-width:min(34rem,90vw); text-shadow:0 1px 4px #102c24; }
+.salon-voix-etat:empty { display:none; }
+.salon-voix-etat button { color:#fff; background:#075c45; border:1px solid rgba(255,255,255,.6); border-radius:1rem; padding:.3rem .65rem; cursor:pointer; }
+#panelPomodoro .salon-ecran .salon-micro[aria-pressed="true"] { background:#047857; border-color:#d1fae5; }
+.salon-micro[aria-pressed="true"] .salon-micro-barre { display:none; }
+.salon-micro:disabled { opacity:.55; cursor:not-allowed; }

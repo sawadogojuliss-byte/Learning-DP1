@@ -540,6 +540,68 @@ service cloud.firestore {
               || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe <= request.time
               || get(/databases/$(database)/documents/salons_focus/$(salonId)).data.organisateurUid != uid);
       }
+      // Signalisation WebRTC : l'audio ne transite pas par Firestore.
+      // Les descriptions SDP peuvent contenir des adresses réseau. Chaque
+      // signal n'est lisible que par son destinataire, et est supprimé après
+      // réception ; une politique TTL doit aussi supprimer les signaux abandonnés.
+      match /salon_voix_presence/{uid} {
+        function salonVocalActif() {
+          return request.auth != null && salonIdValide(salonId)
+            && exists(/databases/$(database)/documents/salons_focus/$(salonId))
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.ferme == false
+            && get(/databases/$(database)/documents/salons_focus/$(salonId)).data.expireLe > request.time
+            && membre();
+        }
+        function presenceValide(d) {
+          return d.keys().hasAll(['instance','vuLe','expireLe','actif'])
+            && d.keys().hasOnly(['instance','vuLe','expireLe','actif','signalLe','signalId','signalCible'])
+            && d.instance is string && d.instance.matches('^[0-9a-f]{32}$')
+            && d.actif is bool && d.vuLe is timestamp && d.expireLe is timestamp
+            && d.expireLe > request.time && d.expireLe <= request.time + duration.value(10, 'm')
+            && (('signalLe' in d) == ('signalId' in d))
+            && (('signalLe' in d) == ('signalCible' in d))
+            && (!('signalLe' in d) || (d.signalLe is timestamp && d.signalId is string
+              && d.signalId.matches('^[A-Za-z0-9]{20}$') && d.signalCible is string && d.signalCible.size() <= 128));
+        }
+        function nouveauSignalValide() {
+          let d = request.resource.data;
+          let chemin = /databases/$(database)/documents/salons_focus/$(salonId)/salon_voix_presence/$(d.signalCible)/salon_voix_signaux/$(d.signalId);
+          return d.signalLe == request.time && (!('signalLe' in resource.data) || resource.data.signalLe <= request.time - duration.value(1, 's'))
+            && existsAfter(chemin) && getAfter(chemin).data.auteur == uid && getAfter(chemin).data.creeLe == request.time;
+        }
+        allow get: if request.auth != null && (request.auth.uid == uid || salonVocalActif());
+        allow list: if salonVocalActif() && request.query.limit != null && request.query.limit <= 50;
+        allow create: if salonVocalActif() && request.auth.uid == uid && presenceValide(request.resource.data)
+          && request.resource.data.vuLe == request.time && request.resource.data.actif == true && !('signalLe' in request.resource.data);
+        allow update: if salonVocalActif() && request.auth.uid == uid && presenceValide(request.resource.data)
+          && ((request.resource.data.diff(resource.data).affectedKeys().hasOnly(['instance','vuLe','expireLe','actif']) && request.resource.data.vuLe == request.time)
+            || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['signalLe','signalId','signalCible']) && nouveauSignalValide()));
+        // La présence est désactivée, puis effacée par TTL : on ne peut pas
+        // la recréer pour remettre à zéro la limitation d'envoi.
+        allow delete: if false;
+        match /salon_voix_signaux/{signalId} {
+          function source() { return /databases/$(database)/documents/salons_focus/$(salonId)/salon_voix_presence/$(request.auth.uid); }
+          function cible() { return /databases/$(database)/documents/salons_focus/$(salonId)/salon_voix_presence/$(uid); }
+          allow get: if salonVocalActif() && request.auth.uid == uid;
+          allow list: if salonVocalActif() && request.auth.uid == uid && request.query.limit != null && request.query.limit <= 50;
+          allow create: if salonVocalActif() && request.auth.uid != uid && signalId.matches('^[A-Za-z0-9]{20}$')
+            && exists(source()) && exists(cible()) && get(source()).data.actif == true && get(cible()).data.actif == true
+            && exists(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(uid))
+            && request.resource.data.keys().hasAll(['auteur','deInstance','versInstance','type','sdp','creeLe','expireLe'])
+            && request.resource.data.keys().hasOnly(['auteur','deInstance','versInstance','type','sdp','creeLe','expireLe'])
+            && request.resource.data.auteur == request.auth.uid
+            && request.resource.data.deInstance == get(source()).data.instance
+            && request.resource.data.versInstance == get(cible()).data.instance
+            && request.resource.data.type in ['offer','answer']
+            && request.resource.data.sdp is string && request.resource.data.sdp.size() > 0 && request.resource.data.sdp.size() <= 32000
+            && request.resource.data.creeLe == request.time && request.resource.data.expireLe is timestamp
+            && request.resource.data.expireLe > request.time && request.resource.data.expireLe <= request.time + duration.value(10, 'm')
+            && getAfter(source()).data.signalLe == request.time && getAfter(source()).data.signalId == signalId
+            && getAfter(source()).data.signalCible == uid;
+          allow update: if false;
+          allow delete: if request.auth != null && request.auth.uid == uid;
+        }
+      }
       // Les messages restent dans Firestore après la fermeture : prévoir une
       // suppression serveur/TTL séparée avant tout usage avec des données sensibles.
       match /messages/{messageId} {

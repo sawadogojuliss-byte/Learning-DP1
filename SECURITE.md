@@ -68,6 +68,18 @@ listées ici sont utilisées par une autre application sur **la même base**,
 vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
 collection sans règle correspondante sera inaccessible depuis les applications.
 
+## Conversation vocale du Salon focus
+
+Le site et les règles sont déployés séparément. **Avant d'activer la voix**, sauvegarder les règles actuellement publiées et vérifier que le fichier `firestore.rules` proposé conserve les autres règles nécessaires au projet ; s'il existe des différences propres à la production, faire examiner et fusionner ces différences par le responsable Firebase plutôt que de les écraser. Ne jamais utiliser les règles expérimentales d'un brouillon.
+
+La voix utilise deux sous-collections Firestore, `salon_voix_presence` et `salon_voix_signaux`. Les règles prévues limitent l'accès aux membres authentifiés d'un salon actif ; un signal n'est lisible que par son destinataire. **L'audio ne passe pas par Firestore** : WebRTC établit des connexions directes chiffrées entre participants. Les signaux SDP peuvent cependant contenir des adresses IP et des informations de connexion visibles par le destinataire et par les administrateurs du projet. Le lien du salon doit rester privé.
+
+Pour limiter la conservation des documents abandonnés après une fermeture imprévue, le responsable doit aussi configurer dans Firestore deux politiques **TTL** sur le champ `expireLe` : une pour le groupe de collections `salon_voix_presence`, une pour `salon_voix_signaux`. Vérifier d'abord que ces noms ne sont utilisés par aucune autre application du projet. Les TTL sont distincts des règles, peuvent entraîner des frais et la suppression n'est pas instantanée. Les signaux reçus sont normalement supprimés par le destinataire ; un TTL est nécessaire pour les signaux non reçus.
+
+Après publication du site, validation des règles et activation des TTL, publier les règles adaptées dans la console Firebase et essayer avec au moins deux personnes et appareils : chaque participant rejoint avec le micro coupé, autorise explicitement son micro pour parler, puis vérifie l'écoute et la coupure. Tester aussi le départ et le retour. Si l'écoute est bloquée par le navigateur, utiliser « Activer l'écoute ». Les règles et TTL ne sont **jamais déployés par GitHub Pages**.
+
+La version directe est limitée à huit participants vocaux et utilise un serveur STUN public, sans relais TURN. Selon les réseaux, pare-feu ou appareils, la connexion peut échouer ; une infrastructure TURN sécurisée pourra être nécessaire. Aucun résultat d'essai local ne garantit la qualité ou l'audibilité sur tous les réseaux réels.
+
 ## Conserver les emplois du temps et leurs versions
 
 **Ne supprimer ni `emplois_du_temps`, ni `emplois`, ni `boite`.** La demande

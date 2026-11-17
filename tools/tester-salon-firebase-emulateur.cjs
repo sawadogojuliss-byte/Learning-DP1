@@ -65,6 +65,19 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   } finally {g.firestore.runTransaction=original;}
   stopMessagesH();stopMessagesG();assert.deepEqual(erreursMessages,[]);
 
+  // Signalisation réelle de l'adaptateur à travers les règles de l'émulateur.
+  const canalH=host.creerCanalVoix(),canalG=guest.creerCanalVoix();
+  const instanceH='a'.repeat(32),instanceG='b'.repeat(32);let presH=[],presG=[],signauxH=[],signauxG=[],erreursVoix=[];
+  await canalH.joindre(instanceH);await canalG.joindre(instanceG);
+  const stopPH=canalH.presences(p=>presH=p,e=>erreursVoix.push(e));const stopPG=canalG.presences(p=>presG=p,e=>erreursVoix.push(e));
+  const stopSH=canalH.signaux(s=>signauxH.push(s),e=>erreursVoix.push(e));const stopSG=canalG.signaux(s=>signauxG.push(s),e=>erreursVoix.push(e));
+  await attendre(()=>presH.some(p=>p.uid===guest.uid && p.recent)&&presG.some(p=>p.uid===host.uid && p.recent),'présences vocales');
+  await canalH.envoyer(guest.uid,instanceG,'offer','v=0\r\n');await attendre(()=>signauxG.length===1,'offre vocale');
+  assert.equal(signauxG[0].deInstance,instanceH);assert.equal(signauxG[0].versInstance,instanceG);
+  await canalG.envoyer(host.uid,instanceH,'answer','v=0\r\n');await attendre(()=>signauxH.length===1,'réponse vocale');
+  await canalG.quitter(instanceG);await attendre(()=>!presH.some(p=>p.uid===guest.uid),'départ vocal');
+  stopPH();stopPG();stopSH();stopSG();await canalH.quitter(instanceH);assert.deepEqual(erreursVoix,[]);
+
   const demarre=core.commande(dataH.chrono,'demarrer',host.maintenant(),{});
   const revision=dataH.revision;await host.modifier(revision,{chrono:demarre});
   await assert.rejects(reprise.modifier(revision,{chrono:demarre}),e=>e.code==='revision-conflict');

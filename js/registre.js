@@ -80,5 +80,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/pomodoro-parametres.js',
     'js/pages/salon-focus-coeur.js',
     'js/pages/salon-focus-firebase.js',
+    'js/pages/salon-voix.js',
     'js/pages/salon-focus.js'
 ];
