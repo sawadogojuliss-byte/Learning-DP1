@@ -69,6 +69,15 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   const canalH=host.creerCanalVoix(),canalG=guest.creerCanalVoix();
   const instanceH='a'.repeat(32),instanceG='b'.repeat(32);let presH=[],presG=[],signauxH=[],signauxG=[],erreursVoix=[];
   const voixH=await canalH.joindre(instanceH),voixG=await canalG.joindre(instanceG);
+  // Deux onglets d'un même compte réclament en même temps des places
+  // différentes. Un cinquième appareil doit être refusé proprement.
+  const autres=[host.creerCanalVoix(),host.creerCanalVoix(),host.creerCanalVoix()];
+  const instances=['c'.repeat(32),'d'.repeat(32),'e'.repeat(32)];
+  const places=await Promise.all(autres.map((c,i)=>c.joindre(instances[i])));
+  assert.equal(new Set([voixH,...places]).size,4);
+  await assert.rejects(host.creerCanalVoix().joindre('f'.repeat(32)),e=>e.code==='voice-device-limit');
+  await Promise.all(autres.map((c,i)=>c.quitter(instances[i])));
+
   const stopPH=canalH.presences(p=>presH=p,e=>erreursVoix.push(e));const stopPG=canalG.presences(p=>presG=p,e=>erreursVoix.push(e));
   const stopSH=canalH.signaux(s=>signauxH.push(s),e=>erreursVoix.push(e));const stopSG=canalG.signaux(s=>signauxG.push(s),e=>erreursVoix.push(e));
   await attendre(()=>presH.some(p=>p.uid===voixG && p.proprietaire===guest.uid && p.recent)&&presG.some(p=>p.uid===voixH && p.proprietaire===host.uid && p.recent),'présences vocales');
