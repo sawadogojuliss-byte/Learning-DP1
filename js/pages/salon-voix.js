@@ -31,7 +31,14 @@
         }
         function envoyerCandidats(p,id,cle) {
             if(!courant || p.ferme || !p.descriptionEnvoyee || !p.candidatsLocaux.length || p.envoiCandidats)return;
-            var groupe=p.candidatsLocaux.splice(0,50);p.envoiCandidats=true;
+            var groupe=[], taille=2;
+            while(p.candidatsLocaux.length && groupe.length<50){
+                var candidat=p.candidatsLocaux.shift(), volume=JSON.stringify(candidat).length+1;
+                if(volume>28000)continue;
+                if(taille+volume>28000){p.candidatsLocaux.unshift(candidat);break;}
+                groupe.push(candidat);taille+=volume;
+            }
+            if(!groupe.length)return;p.envoiCandidats=true;
             envoyerAvecReprise(p,id,cle,'candidate',JSON.stringify(groupe)).finally(function(){
                 p.envoiCandidats=false;if(p.candidatsLocaux.length)planifierCandidats(p,id,cle);
             });
