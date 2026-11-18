@@ -13,6 +13,7 @@
             var p=pairs.get(id);if(!p)return;pairs.delete(id);p.ferme=true;
             p.attentesSignal.forEach(function(a){clearTimeout(a.timer);a.resolve();});p.attentesSignal.clear();
             if(p.repriseConnexion){clearTimeout(p.repriseConnexion);p.repriseConnexion=null;}
+            if(p.surveillanceConnexion){clearTimeout(p.surveillanceConnexion);p.surveillanceConnexion=null;}
             if(p.timerCandidats){clearTimeout(p.timerCandidats);p.timerCandidats=null;}
             try {p.pc.ontrack=null;p.pc.onconnectionstatechange=null;p.pc.close();} catch(e){}
             audioRetire(id);
@@ -69,7 +70,14 @@
                 p.repriseConnexion=null;if(!courant || p.ferme || p.pc.connectionState==='connected')return;
                 p.file=p.file.then(async function(){
                     if(!courant || p.ferme || p.pc.connectionState==='connected')return;
-                    if(p.pc.signalingState==='have-local-offer')await p.pc.setLocalDescription({type:'rollback'});
+                    if(p.pc.signalingState==='have-local-offer'){
+                        // Si la réponse a été perdue, annuler l'offre initiale
+                        // peut changer le mid audio. Le destinataire ayant déjà
+                        // répondu refuserait alors la nouvelle offre. Réexpédier
+                        // la même offre conserve l'identité de la section média.
+                        await envoyerAvecReprise(p,id,cle,'offer',p.pc.localDescription.sdp);
+                        return;
+                    }
                     if(p.pc.signalingState!=='stable')return;
                     p.descriptionEnvoyee=false;p.candidatsLocaux=[];
                     await p.pc.setLocalDescription(await p.pc.createOffer({iceRestart:true}));
@@ -77,12 +85,32 @@
                 }).catch(erreur).then(function(){if(p.pc.connectionState!=='connected')relancerConnexion(p,id,cle);});
             },delai);
         }
+        function surveillerConnexion(p,id,cle,delai) {
+            // Une offre ou une réponse peut se perdre sans que WebRTC passe à
+            // failed. L'initiateur seul relance, après un délai de grâce.
+            if(!courant || p.ferme || uid>=id || p.surveillanceConnexion || p.repriseConnexion)return;
+            p.surveillanceConnexion=setTimeout(function(){
+                p.surveillanceConnexion=null;
+                if(courant && !p.ferme && p.pc.connectionState!=='connected')relancerConnexion(p,id,cle);
+            },delai);
+        }
         function nouveau(id, cle) {
             var pc=creerConnexion({iceServers:rtc}), trans=uid<id?pc.addTransceiver('audio',{direction:'sendrecv'}):null;
             var p={pc:pc,trans:trans,cle:cle,file:Promise.resolve(),fileMicro:Promise.resolve(),ferme:false,descriptionEnvoyee:false,candidatsLocaux:[],candidatsDistants:[],envoiCandidats:false,attentesSignal:new Set()};pairs.set(id,p);
             pc.onicecandidate=function(ev){if(!courant || p.ferme || !ev.candidate)return;var c=ev.candidate.toJSON();if(p.candidatsLocaux.length<100)p.candidatsLocaux.push(c);planifierCandidats(p,id,cle);};
             pc.ontrack=function(ev){if(courant && !p.ferme)audioRecu(id,ev.streams && ev.streams[0] || new MediaStream([ev.track]));};
-            pc.onconnectionstatechange=function(){if(!courant || p.ferme)return;if(pc.connectionState==='failed'){statut('connexion-impossible',id);relancerConnexion(p,id,cle);}else if(pc.connectionState==='connected'){if(p.repriseConnexion)clearTimeout(p.repriseConnexion);p.repriseConnexion=null;p.delaiConnexion=3000;statut('connecte',id);}};
+            pc.onconnectionstatechange=function(){
+                if(!courant || p.ferme)return;
+                if(pc.connectionState==='failed'){
+                    if(p.surveillanceConnexion)clearTimeout(p.surveillanceConnexion);p.surveillanceConnexion=null;
+                    statut('connexion-impossible',id);relancerConnexion(p,id,cle);
+                } else if(pc.connectionState==='connected'){
+                    if(p.repriseConnexion)clearTimeout(p.repriseConnexion);p.repriseConnexion=null;
+                    if(p.surveillanceConnexion)clearTimeout(p.surveillanceConnexion);p.surveillanceConnexion=null;
+                    p.delaiConnexion=3000;statut('connecte',id);
+                } else if(pc.connectionState==='disconnected')surveillerConnexion(p,id,cle,12000);
+            };
+            surveillerConnexion(p,id,cle,20000);
             if(trans && flux && flux.getAudioTracks()[0])mettrePiste(p,flux.getAudioTracks()[0],versionMicro).catch(erreur);
             if(uid<id) {
                 p.file=p.file.then(async function(){
