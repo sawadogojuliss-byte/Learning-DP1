@@ -9,31 +9,79 @@
         var maxPairs=7, dernieresPresences=[], operationJoindre=null, fermeture=null;
         var microSouhaite=false, repriseMicro=null, delaiReprise=2000;
         function erreur(e){ if(courant)statut('erreur',e); }
-        function attendreGlace(pc) {
-            if(pc.iceGatheringState==='complete')return Promise.resolve();
-            return new Promise(function(resolve){
-                var timer=setTimeout(fin,8000);
-                function fin(){clearTimeout(timer);pc.removeEventListener('icegatheringstatechange',changement);resolve();}
-                function changement(){if(pc.iceGatheringState==='complete')fin();}
-                pc.addEventListener('icegatheringstatechange',changement);
-            });
-        }
         function fermerPair(id) {
             var p=pairs.get(id);if(!p)return;pairs.delete(id);p.ferme=true;
+            p.attentesSignal.forEach(function(a){clearTimeout(a.timer);a.resolve();});p.attentesSignal.clear();
+            if(p.repriseConnexion){clearTimeout(p.repriseConnexion);p.repriseConnexion=null;}
+            if(p.timerCandidats){clearTimeout(p.timerCandidats);p.timerCandidats=null;}
             try {p.pc.ontrack=null;p.pc.onconnectionstatechange=null;p.pc.close();} catch(e){}
             audioRetire(id);
         }
+        async function envoyerAvecReprise(p,id,cle,type,sdp) {
+            var delai=2000;
+            while(courant && !p.ferme) {
+                try {await canal.envoyer(id,cle,type,sdp);return;}
+                catch(e) {
+                    if(!courant || p.ferme)return;
+                    statut('signalisation-interrompue',e);
+                    await new Promise(function(resolve){var attente={resolve:resolve,timer:null};attente.timer=setTimeout(function(){p.attentesSignal.delete(attente);resolve();},delai);p.attentesSignal.add(attente);});
+                    delai=Math.min(delai*2,30000);
+                }
+            }
+        }
+        function envoyerCandidats(p,id,cle) {
+            if(!courant || p.ferme || !p.descriptionEnvoyee || !p.candidatsLocaux.length || p.envoiCandidats)return;
+            var groupe=p.candidatsLocaux.splice(0,50);p.envoiCandidats=true;
+            envoyerAvecReprise(p,id,cle,'candidate',JSON.stringify(groupe)).finally(function(){
+                p.envoiCandidats=false;if(p.candidatsLocaux.length)planifierCandidats(p,id,cle);
+            });
+        }
+        function planifierCandidats(p,id,cle) {
+            if(!p.descriptionEnvoyee || p.timerCandidats || p.ferme)return;
+            p.timerCandidats=setTimeout(function(){p.timerCandidats=null;envoyerCandidats(p,id,cle);},500);
+        }
+        async function ajouterCandidats(p,candidats) {
+            if(!Array.isArray(candidats) || candidats.length>50)return;
+            var ufrag=p.pc.remoteDescription && /(?:^|\r?\n)a=ice-ufrag:([^\r\n]+)/.exec(p.pc.remoteDescription.sdp || '');
+            for(var i=0;i<candidats.length;i++) {
+                var c=candidats[i];
+                if(!c || typeof c.candidate!=='string' || c.candidate.length>2048)continue;
+                if(!p.pc.remoteDescription || (c.usernameFragment && ufrag && c.usernameFragment!==ufrag[1])) {
+                    if(p.candidatsDistants.length<100)p.candidatsDistants.push(c);continue;
+                }
+                try {await p.pc.addIceCandidate(c);} catch(e) { /* Candidat expiré ou redondant. */ }
+            }
+        }
+        async function viderCandidatsDistants(p) {
+            var enAttente=p.candidatsDistants;p.candidatsDistants=[];await ajouterCandidats(p,enAttente);
+        }
+        function relancerConnexion(p,id,cle) {
+            if(!courant || p.ferme || uid>=id || p.repriseConnexion)return;
+            var delai=p.delaiConnexion||3000;p.delaiConnexion=Math.min(delai*2,30000);
+            p.repriseConnexion=setTimeout(function(){
+                p.repriseConnexion=null;if(!courant || p.ferme || p.pc.connectionState==='connected')return;
+                p.file=p.file.then(async function(){
+                    if(!courant || p.ferme || p.pc.connectionState==='connected')return;
+                    if(p.pc.signalingState==='have-local-offer')await p.pc.setLocalDescription({type:'rollback'});
+                    if(p.pc.signalingState!=='stable')return;
+                    p.descriptionEnvoyee=false;p.candidatsLocaux=[];
+                    await p.pc.setLocalDescription(await p.pc.createOffer({iceRestart:true}));
+                    if(!p.ferme && courant){await envoyerAvecReprise(p,id,cle,'offer',p.pc.localDescription.sdp);p.descriptionEnvoyee=true;planifierCandidats(p,id,cle);}
+                }).catch(erreur).then(function(){if(p.pc.connectionState!=='connected')relancerConnexion(p,id,cle);});
+            },delai);
+        }
         function nouveau(id, cle) {
             var pc=creerConnexion({iceServers:rtc}), trans=uid<id?pc.addTransceiver('audio',{direction:'sendrecv'}):null;
-            var p={pc:pc,trans:trans,cle:cle,file:Promise.resolve(),fileMicro:Promise.resolve(),ferme:false};pairs.set(id,p);
+            var p={pc:pc,trans:trans,cle:cle,file:Promise.resolve(),fileMicro:Promise.resolve(),ferme:false,descriptionEnvoyee:false,candidatsLocaux:[],candidatsDistants:[],envoiCandidats:false,attentesSignal:new Set()};pairs.set(id,p);
+            pc.onicecandidate=function(ev){if(!courant || p.ferme || !ev.candidate)return;var c=ev.candidate.toJSON();if(p.candidatsLocaux.length<100)p.candidatsLocaux.push(c);planifierCandidats(p,id,cle);};
             pc.ontrack=function(ev){if(courant && !p.ferme)audioRecu(id,ev.streams && ev.streams[0] || new MediaStream([ev.track]));};
-            pc.onconnectionstatechange=function(){if(!courant || p.ferme)return;if(pc.connectionState==='failed')statut('connexion-impossible',id);else if(pc.connectionState==='connected')statut('connecte',id);};
+            pc.onconnectionstatechange=function(){if(!courant || p.ferme)return;if(pc.connectionState==='failed'){statut('connexion-impossible',id);relancerConnexion(p,id,cle);}else if(pc.connectionState==='connected'){if(p.repriseConnexion)clearTimeout(p.repriseConnexion);p.repriseConnexion=null;p.delaiConnexion=3000;statut('connecte',id);}};
             if(trans && flux && flux.getAudioTracks()[0])mettrePiste(p,flux.getAudioTracks()[0],versionMicro).catch(erreur);
             if(uid<id) {
                 p.file=p.file.then(async function(){
                     if(p.ferme || !courant)return;
-                    await pc.setLocalDescription(await pc.createOffer());await attendreGlace(pc);
-                    if(!p.ferme && courant)await canal.envoyer(id,cle,'offer',pc.localDescription.sdp);
+                    await pc.setLocalDescription(await pc.createOffer());
+                    if(!p.ferme && courant){await envoyerAvecReprise(p,id,cle,'offer',pc.localDescription.sdp);p.descriptionEnvoyee=true;planifierCandidats(p,id,cle);}
                 }).catch(erreur);
             }
             return p;
@@ -46,16 +94,19 @@
             var p=pairs.get(signal.auteur);if(!p || p.cle!==cle)return;
             p.file=p.file.then(async function(){
                 if(p.ferme || !courant)return;
-                if(signal.type==='offer' && uid>signal.auteur && p.pc.signalingState==='stable') {
-                    await p.pc.setRemoteDescription({type:'offer',sdp:signal.sdp});
+                if(signal.type==='candidate') {
+                    try {await ajouterCandidats(p,JSON.parse(signal.sdp));} catch(e) {}
+                } else if(signal.type==='offer' && uid>signal.auteur && p.pc.signalingState==='stable') {
+                    await p.pc.setRemoteDescription({type:'offer',sdp:signal.sdp});await viderCandidatsDistants(p);
                     p.trans=p.pc.getTransceivers().find(function(t){return t.receiver && t.receiver.track && t.receiver.track.kind==='audio';});
                     if(!p.trans)throw new Error('audio-transceiver-missing');
                     p.trans.direction='sendrecv';
                     if(flux && flux.getAudioTracks()[0])await mettrePiste(p,flux.getAudioTracks()[0],versionMicro);
-                    await p.pc.setLocalDescription(await p.pc.createAnswer());await attendreGlace(p.pc);
-                    if(!p.ferme && courant)await canal.envoyer(signal.auteur,cle,'answer',p.pc.localDescription.sdp);
+                    p.descriptionEnvoyee=false;p.candidatsLocaux=[];
+                    await p.pc.setLocalDescription(await p.pc.createAnswer());
+                    if(!p.ferme && courant){await envoyerAvecReprise(p,signal.auteur,cle,'answer',p.pc.localDescription.sdp);p.descriptionEnvoyee=true;planifierCandidats(p,signal.auteur,cle);}
                 } else if(signal.type==='answer' && uid<signal.auteur && p.pc.signalingState==='have-local-offer') {
-                    await p.pc.setRemoteDescription({type:'answer',sdp:signal.sdp});
+                    await p.pc.setRemoteDescription({type:'answer',sdp:signal.sdp});await viderCandidatsDistants(p);
                 }
             }).catch(erreur);
         }

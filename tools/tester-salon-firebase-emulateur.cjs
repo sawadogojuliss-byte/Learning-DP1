@@ -84,6 +84,8 @@ function attendre(condition,etape,ms=12000){return new Promise((resolve,reject)=
   await canalH.envoyer(voixG,instanceG,'offer','v=0\r\n');await attendre(()=>signauxG.length===1,'offre vocale');
   assert.equal(signauxG[0].deInstance,instanceH);assert.equal(signauxG[0].versInstance,instanceG);
   await canalG.envoyer(voixH,instanceH,'answer','v=0\r\n');await attendre(()=>signauxH.length===1,'réponse vocale');
+  await canalG.envoyer(voixH,instanceH,'candidate',JSON.stringify([{candidate:'candidate:1 1 udp 2122260223 192.0.2.1 5000 typ host',sdpMid:'0',sdpMLineIndex:0}]));
+  await attendre(()=>signauxH.some(s=>s.type==='candidate'),'candidat ICE vocal');
   await canalG.quitter(instanceG);await attendre(()=>!presH.some(p=>p.uid===voixG),'départ vocal');
   stopPH();stopPG();stopSH();stopSG();await canalH.quitter(instanceH);assert.deepEqual(erreursVoix,[]);
 

@@ -206,7 +206,7 @@
                     },surErreur);
                 }
                 async function envoyer(dest,vers,type,sdp) {
-                    if(!actif || !instanceActuelle || !['offer','answer'].includes(type) || typeof sdp!=='string' || sdp.length>32000)throw erreur('voice-unavailable');
+                    if(!actif || !instanceActuelle || !['offer','answer','candidate'].includes(type) || typeof sdp!=='string' || sdp.length>32000)throw erreur('voice-unavailable');
                     var operation=fileSignal.then(async function(){
                         if(!actif)throw erreur('voice-unavailable');
                         var ref=collection.doc(dest).collection('salon_voix_signaux').doc();

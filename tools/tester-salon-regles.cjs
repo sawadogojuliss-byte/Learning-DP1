@@ -71,6 +71,10 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   memeCompte.update(doc(host,vh1),{signalLe:serverTimestamp(),signalId:autreId,signalCible:'host_0'});
   memeCompte.set(doc(host,cheminMeme),{...signal,auteur:'host_1',deInstance:hi1,versInstance:hi});await assertSucceeds(memeCompte.commit());
   await assertSucceeds(getDoc(doc(host,cheminMeme)));await assertFails(getDoc(doc(guest,cheminMeme)));await assertSucceeds(deleteDoc(doc(host,cheminMeme)));
+  const candId='GuestCandidate123456',candPath=vh+'/salon_voix_signaux/'+candId,cand=writeBatch(guest);
+  cand.update(doc(guest,vg),{signalLe:serverTimestamp(),signalId:candId,signalCible:'host_0'});
+  cand.set(doc(guest,candPath),{...signal,auteur:'guest_0',deInstance:gi,versInstance:hi,type:'candidate',sdp:'[]'});
+  await assertSucceeds(cand.commit());await assertSucceeds(getDoc(doc(host,candPath)));await assertFails(getDoc(doc(intrus,candPath)));await assertSucceeds(deleteDoc(doc(host,candPath)));
 
   await assertSucceeds(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:serverTimestamp()}));
   await assertFails(updateDoc(doc(guest,chemin(id)+'/membres/guest'),{vuLe:Timestamp.fromMillis(Date.now()+3600000)}));

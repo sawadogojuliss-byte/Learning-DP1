@@ -100,7 +100,13 @@
                 else if(etat==='micro-actif'){microActif=true;statut('salonVoixStatut','Micro activé');}
                 else if(etat==='micro-reconnexion'){microActif=true;statut('salonVoixStatut','Micro interrompu par l’appareil. Reconnexion automatique en cours ; vérifie ses autorisations si elle ne réussit pas.');}
                 else if(etat==='capacite')statut('salonVoixStatut','Conversation vocale limitée à huit personnes.');
-                else if(etat==='connexion-impossible' || etat==='erreur'){statut('salonVoixStatut','Connexion vocale interrompue. Vérifie ton réseau puis réessaie.');$('salonVoixReessayer').hidden=false;}
+                else if(etat==='signalisation-interrompue' || etat==='erreur'){
+                    var refuse=detail && (detail.code==='permission-denied' || detail.code==='unauthenticated');
+                    statut('salonVoixStatut',refuse?'Communication vocale refusée par Firebase. Vérifie les règles du salon et la connexion au compte.':'Échange vocal momentanément interrompu. Nouvelle tentative en cours ; vérifie la connexion si cela persiste.');
+                    $('salonVoixReessayer').hidden=false;
+                }
+                else if(etat==='connexion-impossible'){statut('salonVoixStatut','Les appareils n’ont pas pu établir de liaison audio. Certains réseaux nécessitent un relais vocal.');$('salonVoixReessayer').hidden=false;}
+                else if(etat==='connecte'){$('salonVoixReessayer').hidden=true;statut('salonVoixStatut',microActif?'Micro activé · liaison vocale établie':'Micro coupé · écoute activée · liaison vocale établie');}
                 else if(etat==='remplace'){fermerConversation();statut('salonVoixStatut','La conversation est active dans un autre onglet : le micro est coupé ici.');$('salonVoixReessayer').hidden=false;return;}
                 peindreMicro();
             },

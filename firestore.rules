@@ -598,7 +598,7 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/salons_focus/$(salonId)/membres/$(get(cible()).data.proprietaire))
             && request.resource.data.deInstance == get(source()).data.instance
             && request.resource.data.versInstance == get(cible()).data.instance
-            && request.resource.data.type in ['offer','answer']
+            && request.resource.data.type in ['offer','answer','candidate']
             && request.resource.data.sdp is string && request.resource.data.sdp.size() > 0 && request.resource.data.sdp.size() <= 32000
             && request.resource.data.creeLe == request.time && request.resource.data.expireLe is timestamp
             && request.resource.data.expireLe > request.time && request.resource.data.expireLe <= request.time + duration.value(10, 'm')
