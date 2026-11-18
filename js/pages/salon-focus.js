@@ -66,7 +66,7 @@
     });
     // Chaque salon démarre en écoute seule : le navigateur ne demande le
     // microphone qu'après un geste explicite. Les flux ne sont jamais stockés.
-    var conversation=null, generationConversation=0, microActif=false, microEnCours=false, conversationPrete=false, sonsVoix=new Map(), fermetureConversation=Promise.resolve();
+    var conversation=null, generationConversation=0, microActif=false, microEnCours=false, conversationPrete=false, sonsVoix=new Map(), fermetureConversation=Promise.resolve(), versionEcoute=0;
     function peindreMicro() {
         var b=$('salonBtnMicro');if(!b)return;
         b.disabled=!session || microEnCours || (!!conversation && !conversationPrete);
@@ -75,14 +75,14 @@
         b.title=microActif?'Couper le micro':'Activer le micro';
     }
     function retirerSonVoix(id) {
-        var el=sonsVoix.get(id);if(!el)return;sonsVoix.delete(id);
+        var el=sonsVoix.get(id);if(!el)return;versionEcoute++;sonsVoix.delete(id);
         el.pause();el.srcObject=null;el.remove();
         if(!sonsVoix.size && $('salonVoixEcoute'))$('salonVoixEcoute').hidden=true;
     }
     function fermerConversation() {
-        generationConversation++;var ancienne=conversation;conversation=null;conversationPrete=false;microActif=false;microEnCours=false;
+        generationConversation++;versionEcoute++;var ancienne=conversation;conversation=null;conversationPrete=false;microActif=false;microEnCours=false;
         if(ancienne)fermetureConversation=Promise.all([fermetureConversation,ancienne.fermer()]).catch(function(){});Array.from(sonsVoix.keys()).forEach(retirerSonVoix);
-        if($('salonVoixEcoute'))$('salonVoixEcoute').hidden=true;if($('salonVoixReessayer'))$('salonVoixReessayer').hidden=true;statut('salonVoixStatut','');peindreMicro();
+        if($('salonVoixEcoute'))$('salonVoixEcoute').hidden=true;if($('salonVoixReessayer'))$('salonVoixReessayer').hidden=true;if($('salonVoixDiagnosticResultat')){$('salonVoixDiagnosticResultat').hidden=true;statut('salonVoixDiagnosticResultat','');}if($('salonVoixDiagnostic'))$('salonVoixDiagnostic').disabled=false;statut('salonVoixStatut','');peindreMicro();
     }
     function demarrerConversation(s) {
         fermerConversation();
@@ -111,9 +111,17 @@
                 peindreMicro();
             },
             audioRecu:function(id,flux){
-                if(generation!==generationConversation)return;retirerSonVoix(id);
-                var el=document.createElement('audio');el.autoplay=true;el.playsInline=true;el.srcObject=flux;el.hidden=true;document.body.appendChild(el);sonsVoix.set(id,el);
-                var lecture=el.play();if(lecture && lecture.catch)lecture.catch(function(){if(generation===generationConversation && sonsVoix.get(id)===el){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » pour entendre le groupe.');}});
+                if(generation!==generationConversation)return;
+                var el=sonsVoix.get(id), ancien=el && el.srcObject, pistes=flux.getAudioTracks(), anciennes=ancien && ancien.getAudioTracks();
+                if(el && anciennes && pistes.length===anciennes.length && pistes.every(function(p,i){return p===anciennes[i];}))return;
+                // Garder le même lecteur lors d'une renégociation préserve le
+                // déblocage de lecture obtenu par un geste sur mobile.
+                versionEcoute++;
+                if(!el){el=document.createElement('audio');el.autoplay=true;el.playsInline=true;el.hidden=true;document.body.appendChild(el);sonsVoix.set(id,el);}
+                el.srcObject=flux;el.muted=false;el.volume=1;
+                var numero=el._salonLecture=(el._salonLecture||0)+1, lecture;
+                try {lecture=el.play();} catch(e) {lecture=Promise.reject(e);}
+                Promise.resolve(lecture).catch(function(e){if(generation===generationConversation && sonsVoix.get(id)===el && el._salonLecture===numero && (!e || e.name!=='AbortError')){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » pour entendre le groupe.');}});
             },audioRetire:retirerSonVoix
         });
         fermetureConversation.then(function(){if(generation===generationConversation && voix===conversation)return voix.demarrer();}).catch(function(e){if(generation!==generationConversation)return;conversationPrete=false;conversation=null;statut('salonVoixStatut',e && e.code==='voice-device-limit'?'Quatre appareils de ce compte sont déjà en conversation. Ferme la voix sur un appareil puis réessaie.':'Connexion vocale indisponible. Vérifie les règles du salon puis réessaie.');$('salonVoixReessayer').hidden=false;peindreMicro();});
@@ -121,8 +129,41 @@
     }
     window.salonReessayerVoix=function(){if(session)demarrerConversation(session);};
     window.salonReprendreEcoute=function(){
-        var generation=generationConversation, tentatives=Array.from(sonsVoix.values()).map(function(el){return Promise.resolve(el.play());});
-        Promise.all(tentatives).then(function(){if(generation!==generationConversation)return;$('salonVoixEcoute').hidden=true;statut('salonVoixStatut',microActif?'Micro activé':'Micro coupé · écoute activée');},function(){if(generation===generationConversation)statut('salonVoixStatut','Lecture audio bloquée : vérifie le son de ton navigateur.');});
+        var generation=generationConversation, version=++versionEcoute, elements=Array.from(sonsVoix.values()), bouton=$('salonVoixEcoute');
+        if(!elements.length){if(bouton)bouton.hidden=true;return;}
+        // play() doit être appelé directement pendant le geste utilisateur.
+        // Sa promesse peut rester en attente tant qu'aucun média n'arrive.
+        var tentatives=elements.map(function(el){el._salonLecture=(el._salonLecture||0)+1;try{return Promise.resolve(el.play());}catch(e){return Promise.reject(e);}}), termine=false;
+        var timer=setTimeout(function(){
+            if(!termine && generation===generationConversation && version===versionEcoute){bouton.hidden=false;statut('salonVoixStatut','Lecture en attente de son. Utilise « Vérifier la voix » pour diagnostiquer la liaison.');}
+        },3000);
+        Promise.all(tentatives).then(function(){
+            termine=true;clearTimeout(timer);if(generation!==generationConversation || version!==versionEcoute)return;
+            bouton.hidden=true;statut('salonVoixStatut',microActif?'Micro activé · lecture activée':'Micro coupé · lecture activée');
+        },function(){
+            termine=true;clearTimeout(timer);if(generation!==generationConversation || version!==versionEcoute)return;
+            bouton.hidden=false;statut('salonVoixStatut','Lecture audio bloquée : appuie sur « Activer l’écoute » et vérifie le volume.');
+        });
+    };
+    window.salonDiagnosticVoix=async function(){
+        var bouton=$('salonVoixDiagnostic'), resultat=$('salonVoixDiagnosticResultat'), voix=conversation, generation=generationConversation;
+        if(!bouton || !resultat)return;
+        resultat.hidden=false;
+        if(!voix || !conversationPrete || typeof voix.diagnostic!=='function'){statut('salonVoixDiagnosticResultat','La conversation vocale n’est pas prête sur cet appareil.');return;}
+        bouton.disabled=true;statut('salonVoixDiagnosticResultat','Vérification pendant deux secondes : parlez tous les deux pendant le test.');
+        try {
+            var d=await voix.diagnostic();if(generation!==generationConversation || voix!==conversation)return;
+            var message;
+            if(!d.participants)message='Aucune liaison vocale avec un autre appareil. Vérifie que l’autre personne a bien ouvert le salon.';
+            else if(!d.connectes)message=d.enEchec?'La liaison audio entre appareils a échoué.':'La liaison audio entre appareils est encore en cours.';
+            else if(!d.mesurablesReception)message='Liaison audio établie, mais la réception ne peut pas encore être mesurée. Demande à l’autre personne d’activer son micro et de parler.';
+            else if(!d.reception)message='Liaison audio établie, mais aucune donnée vocale reçue pendant le test. Demande à l’autre personne d’activer son micro et de parler.';
+            else if(Array.from(sonsVoix.values()).some(function(el){return el.paused || el.muted || el.volume===0;}))message='Des données vocales arrivent, mais la lecture semble bloquée. Appuie sur « Activer l’écoute » et vérifie le volume.';
+            else message='Des données vocales arrivent et la lecture est activée. Si tu n’entends rien, vérifie le volume et le périphérique de sortie.';
+            if(microActif && d.mesurablesEmission && !d.emission)message+=' Ton micro est activé, mais aucune donnée n’a été envoyée pendant le test : vérifie-le si tu parlais.';
+            statut('salonVoixDiagnosticResultat',message);
+        } catch(e) {if(generation===generationConversation)statut('salonVoixDiagnosticResultat','Impossible de vérifier la liaison sur ce navigateur.');}
+        finally {if(generation===generationConversation)bouton.disabled=false;}
     };
     window.salonBasculerMicro=function(){
         if(!session || microEnCours)return;

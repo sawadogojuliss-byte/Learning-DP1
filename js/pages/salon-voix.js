@@ -187,13 +187,41 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
             try{return await capturerMicro(generation);}
             catch(e){if(generation===versionMicro)microSouhaite=false;throw e;}
         }
+        async function diagnostic() {
+            // Pas de SDP, identifiant, adresse, enregistrement ou audio dans ce bilan.
+            var liste=Array.from(pairs.values()).filter(function(p){return !p.ferme;});
+            async function mesures() {
+                return Promise.all(liste.map(async function(p){
+                    try {
+                        var stats=await p.pc.getStats(), emis=0, recus=0, emisDisponible=false, recusDisponible=false;
+                        stats.forEach(function(s){
+                            if((s.kind || s.mediaType)!=='audio' || s.isRemote)return;
+                            if(s.type==='outbound-rtp' && typeof s.packetsSent==='number'){emis+=s.packetsSent;emisDisponible=true;}
+                            if(s.type==='inbound-rtp' && typeof s.packetsReceived==='number'){recus+=s.packetsReceived;recusDisponible=true;}
+                        });
+                        return {emis:emis,recus:recus,emisDisponible:emisDisponible,recusDisponible:recusDisponible};
+                    } catch(e) {return {emis:0,recus:0,emisDisponible:false,recusDisponible:false};}
+                }));
+            }
+            var avant=await mesures();await new Promise(function(resolve){setTimeout(resolve,2000);});var apres=await mesures();
+            var resultat={participants:0,connectes:0,enAttente:0,enEchec:0,mesurablesEmission:0,mesurablesReception:0,emission:0,reception:0};
+            liste.forEach(function(p,i){
+                if(p.ferme)return;resultat.participants++;
+                if(p.pc.connectionState==='connected')resultat.connectes++;
+                else if(p.pc.connectionState==='failed' || p.pc.iceConnectionState==='failed')resultat.enEchec++;
+                else resultat.enAttente++;
+                if(avant[i].emisDisponible && apres[i].emisDisponible){resultat.mesurablesEmission++;if(apres[i].emis>avant[i].emis)resultat.emission++;}
+                if(avant[i].recusDisponible && apres[i].recusDisponible){resultat.mesurablesReception++;if(apres[i].recus>avant[i].recus)resultat.reception++;}
+            });
+            return resultat;
+        }
         function fermer() {
             if(!courant)return fermeture || Promise.resolve();courant=false;versionMicro++;microSouhaite=false;annulerRepriseMicro();pret=false;
             if(flux)flux.getTracks().forEach(function(t){t.stop();});flux=null;
             pairs.forEach(function(_,id){fermerPair(id);});arrets.forEach(function(f){if(typeof f==='function')f();});arrets=[];
             fermeture=Promise.resolve(operationJoindre).catch(function(){}).then(function(){return canal.quitter(instance);}).catch(function(){});return fermeture;
         }
-        return {demarrer:demarrer,micro:micro,fermer:fermer,identite:function(){return uid;}};
+        return {demarrer:demarrer,micro:micro,fermer:fermer,diagnostic:diagnostic,identite:function(){return uid;}};
     }
     var api={creer:creer};if(typeof module==='object' && module.exports)module.exports=api;else root.SalonVoix=api;
 })(typeof window==='undefined'?globalThis:window);
