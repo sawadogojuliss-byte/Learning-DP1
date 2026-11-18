@@ -98,7 +98,7 @@
                 if(etat==='pret'){conversationPrete=true;statut('salonVoixStatut','Micro coupé · écoute activée');}
                 else if(etat==='micro-coupe'){microActif=false;statut('salonVoixStatut','Micro coupé · écoute activée');}
                 else if(etat==='micro-actif'){microActif=true;statut('salonVoixStatut','Micro activé');}
-                else if(etat==='micro-interrompu'){microActif=false;statut('salonVoixStatut','Le navigateur a interrompu le micro. Vérifie ton appareil puis réactive-le.');}
+                else if(etat==='micro-reconnexion'){microActif=true;statut('salonVoixStatut','Micro interrompu par l’appareil. Reconnexion automatique en cours ; vérifie ses autorisations si elle ne réussit pas.');}
                 else if(etat==='capacite')statut('salonVoixStatut','Conversation vocale limitée à huit personnes.');
                 else if(etat==='connexion-impossible' || etat==='erreur'){statut('salonVoixStatut','Connexion vocale interrompue. Vérifie ton réseau puis réessaie.');$('salonVoixReessayer').hidden=false;}
                 else if(etat==='remplace'){fermerConversation();statut('salonVoixStatut','La conversation est active dans un autre onglet : le micro est coupé ici.');$('salonVoixReessayer').hidden=false;return;}

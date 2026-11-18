@@ -7,6 +7,7 @@
         var rtc=options.iceServers||[{urls:'stun:stun.l.google.com:19302'}];
         var pairs=new Map(), presents=new Map(), attente=[], arrets=[], courant=true, flux=null, versionMicro=0, pret=false;
         var maxPairs=7, dernieresPresences=[], operationJoindre=null, fermeture=null;
+        var microSouhaite=false, repriseMicro=null, delaiReprise=2000;
         function erreur(e){ if(courant)statut('erreur',e); }
         function attendreGlace(pc) {
             if(pc.iceGatheringState==='complete')return Promise.resolve();
@@ -88,28 +89,48 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
             });
             p.fileMicro=operation.catch(function(){});return operation;
         }
+        function annulerRepriseMicro() {if(repriseMicro!==null){clearTimeout(repriseMicro);repriseMicro=null;}}
+        function programmerRepriseMicro(generation) {
+            if(!courant || !microSouhaite || generation!==versionMicro || repriseMicro!==null)return;
+            statut('micro-reconnexion');
+            var delai=delaiReprise;delaiReprise=Math.min(delaiReprise*2,30000);
+            repriseMicro=setTimeout(function(){
+                repriseMicro=null;
+                if(!courant || !microSouhaite || generation!==versionMicro)return;
+                capturerMicro(generation).catch(function(){programmerRepriseMicro(generation);});
+            },delai);
+        }
+        async function capturerMicro(generation) {
+            var nouveauFlux=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+            if(!courant || !microSouhaite || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
+            var piste=nouveauFlux.getAudioTracks()[0];
+            if(!piste || piste.readyState!=='live'){nouveauFlux.getTracks().forEach(function(t){t.stop();});throw new Error('micro-unavailable');}
+            flux=nouveauFlux;
+            piste.onended=function(){
+                if(courant && microSouhaite && generation===versionMicro && flux===nouveauFlux){flux=null;programmerRepriseMicro(generation);}
+            };
+            // Une liaison réseau défaillante ne doit jamais arrêter le micro local.
+            await Promise.all(Array.from(pairs.values()).map(function(p){return mettrePiste(p,piste,generation).catch(erreur);}));
+            if(!courant || !microSouhaite || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
+            if(flux!==nouveauFlux || piste.readyState!=='live'){programmerRepriseMicro(generation);return true;}
+            delaiReprise=2000;statut('micro-actif');return true;
+        }
         async function micro(actif) {
-            var generation=++versionMicro;
+            if(actif && courant && pret && microSouhaite && flux && flux.getAudioTracks().some(function(t){return t.readyState==='live';}))return true;
+            var generation=++versionMicro;microSouhaite=!!actif;annulerRepriseMicro();delaiReprise=2000;
             if(!actif) {
                 var ancien=flux;flux=null;
                 if(ancien)ancien.getTracks().forEach(function(t){t.stop();});
                 await Promise.all(Array.from(pairs.values()).map(function(p){return mettrePiste(p,null,generation).catch(erreur);}));
-                if(courant)statut('micro-coupe');return false;
+                if(courant && generation===versionMicro)statut('micro-coupe');return false;
             }
-            if(!courant || !pret)throw new Error('voice-unavailable');
+            if(!courant || !pret){microSouhaite=false;throw new Error('voice-unavailable');}
             if(flux && flux.getAudioTracks().some(function(t){return t.readyState==='live';}))return true;
-            var nouveauFlux=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
-            if(!courant || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
-            flux=nouveauFlux;var piste=flux.getAudioTracks()[0];
-            if(!piste){flux.getTracks().forEach(function(t){t.stop();});flux=null;throw new Error('micro-unavailable');}
-            piste.onended=function(){if(courant && flux===nouveauFlux)micro(false).then(function(){if(courant)statut('micro-interrompu');});};
-            try {await Promise.all(Array.from(pairs.values()).map(function(p){return mettrePiste(p,piste,generation);}));}
-            catch(e){await micro(false);throw e;}
-            if(!courant || generation!==versionMicro){nouveauFlux.getTracks().forEach(function(t){t.stop();});return false;}
-            statut('micro-actif');return true;
+            try{return await capturerMicro(generation);}
+            catch(e){if(generation===versionMicro)microSouhaite=false;throw e;}
         }
         function fermer() {
-            if(!courant)return fermeture || Promise.resolve();courant=false;versionMicro++;pret=false;
+            if(!courant)return fermeture || Promise.resolve();courant=false;versionMicro++;microSouhaite=false;annulerRepriseMicro();pret=false;
             if(flux)flux.getTracks().forEach(function(t){t.stop();});flux=null;
             pairs.forEach(function(_,id){fermerPair(id);});arrets.forEach(function(f){if(typeof f==='function')f();});arrets=[];
             fermeture=Promise.resolve(operationJoindre).catch(function(){}).then(function(){return canal.quitter(instance);}).catch(function(){});return fermeture;

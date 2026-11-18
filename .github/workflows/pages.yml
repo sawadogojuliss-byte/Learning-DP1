@@ -99,6 +99,7 @@ jobs:
             node travail/tools/tester-salon-coeur.cjs
             node travail/tools/tester-salon-transport.cjs
             node travail/tools/tester-salon-voix-courses.cjs
+            node travail/tools/tester-salon-micro-permanent.cjs
             node --check site/js/pages/boite.js
             node --check site/js/pages/exercices.js
             node --check site/js/pages/planning-interface.js

@@ -45,6 +45,11 @@ try{
  for(const p of [a,b,c])assert.deepEqual(await p.page.evaluate(()=>errors),[]);
  await a.page.evaluate(()=>node.micro(true));await Promise.all([signal(b.page,'a',true),signal(c.page,'a',true)]);
  await b.page.evaluate(()=>node.micro(true));await Promise.all([signal(a.page,'b',true),signal(c.page,'b',true)]);
+ // Simule une interruption du périphérique : la nouvelle piste reprend le son sans clic.
+ await b.page.evaluate(()=>{const t=captured[0].stream.getAudioTracks()[0];t.stop();t.dispatchEvent(new Event('ended'));});
+ await Promise.all([signal(a.page,'b',false),signal(c.page,'b',false)]);
+ await b.page.waitForFunction(()=>captured.length===2 && captured[1].stream.getAudioTracks()[0].readyState==='live',null,{timeout:15000});
+ await Promise.all([signal(a.page,'b',true),signal(c.page,'b',true)]);
  await a.page.evaluate(()=>node.micro(false));await Promise.all([signal(b.page,'a',false),signal(c.page,'a',false)]);await signal(c.page,'b',true);
  assert.equal(await a.page.evaluate(()=>captured[0].stream.getTracks()[0].readyState),'ended');
  await c.page.evaluate(()=>node.fermer());await c.context.close();clients.delete('c');await Promise.all([a.page.waitForFunction(()=>!incoming.c),b.page.waitForFunction(()=>!incoming.c)]);
@@ -52,5 +57,5 @@ try{
  await c2.page.evaluate(()=>{denied=true});await assert.rejects(c2.page.evaluate(()=>node.micro(true)),/NotAllowedError/);assert.equal(await c2.page.evaluate(()=>captured.length),0);
  await c2.page.evaluate(()=>{denied=false;hold=new Promise(r=>window.release=r)});const pending=c2.page.evaluate(()=>node.micro(true));await c2.page.waitForFunction(()=>typeof release==='function');await c2.page.evaluate(()=>{node.fermer();release()});assert.equal(await pending,false);assert.equal(await c2.page.evaluate(()=>captured[0].stream.getTracks()[0].readyState),'ended');
  for(const p of [a,b]){await p.page.evaluate(()=>node.fermer());await p.context.close()}await c2.context.close();
- console.log('OK : trois contextes distincts, son reçu par tous, parole simultanée, coupure, départ et reprise, refus et fermeture pendant la demande micro.');
+ console.log('OK : trois contextes distincts, son reçu par tous, reprise automatique du micro, coupure, départ et reprise, refus et fermeture pendant la demande micro.');
 }finally{await browser.close()}

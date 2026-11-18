@@ -48,8 +48,11 @@ try {
   await new Promise(resolve=>setTimeout(resolve,65000));
   await Promise.all([audible(h.page,ih2),audible(h2.page,ih),audible(g.page,ih)]);
   for(const p of [h.page,h2.page,g.page])assert.equal(await p.evaluate(()=>activeStreams[0].getAudioTracks()[0].readyState),'live');
+  await h.page.evaluate(()=>{const t=activeStreams[0].getAudioTracks()[0];t.stop();t.dispatchEvent(new Event('ended'));});
+  await h.page.waitForFunction(()=>activeStreams.length===2 && activeStreams[1].getAudioTracks()[0].readyState==='live',null,{timeout:15000});
+  await Promise.all([audible(g.page,ih),audible(h2.page,ih)]);
   for(const p of [h,h2,g]){assert.deepEqual(await p.page.evaluate(()=>errors),[]);assert.deepEqual(p.errors,[])}
-  await h.page.evaluate(()=>voice.micro(false));assert.equal(await h.page.evaluate(()=>activeStreams[0].getAudioTracks()[0].readyState),'ended');
+  await h.page.evaluate(()=>voice.micro(false));assert.equal(await h.page.evaluate(()=>activeStreams[1].getAudioTracks()[0].readyState),'ended');
   console.log('OK Firestore émulé + WebRTC : deux appareils du même compte, échanges de groupe, maintien 65 secondes, battements et coupure.');
  } catch(e) {
   for(const [name,p] of [['host',h],['host2',h2],['guest',g]])console.error(name,await p.page.evaluate(()=>({events,errors,receive:Object.keys(incoming)})),p.errors);
