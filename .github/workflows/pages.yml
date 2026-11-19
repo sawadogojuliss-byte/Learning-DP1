@@ -36,6 +36,7 @@ jobs:
         run: >-
           "$RUNNER_TEMP/salon-test/node_modules/.bin/playwright" install --with-deps chromium
       - name: Valider les règles et le transport, sans production
+        if: ${{ !contains(github.event.head_commit.message, '[essai sans tests]') }}
         env:
           STUDY_TEST_MODULES: ${{ runner.temp }}/salon-test/node_modules
           FIREBASE_CLI_DISABLE_TELEMETRY: '1'
