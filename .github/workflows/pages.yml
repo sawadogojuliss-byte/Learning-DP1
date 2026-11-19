@@ -100,6 +100,8 @@ jobs:
             node travail/tools/tester-salon-transport.cjs
             node travail/tools/tester-salon-voix-courses.cjs
             node travail/tools/tester-salon-voix-liaison.cjs
+            node travail/tools/tester-citations-motivation.cjs
+            cmp travail/js/pages/pomodoro-parametres.js site/js/pages/pomodoro-parametres.js
             node travail/tools/tester-salon-micro-permanent.cjs
             node --check site/js/pages/boite.js
             node --check site/js/pages/exercices.js
@@ -167,6 +169,7 @@ jobs:
           executer_test travail/tools/tester-salon-liens.mjs
           executer_test travail/tools/tester-salon-copie.mjs
           executer_test travail/tools/tester-salon-deux-telephones.mjs
+          executer_test travail/tools/tester-citations-categories.mjs
           executer_test travail/tools/tester-salon-voix-multi.mjs
           executer_test travail/tools/tester-salon-voix-lan.mjs
           executer_test travail/tools/tester-salon-voix-interface.mjs
