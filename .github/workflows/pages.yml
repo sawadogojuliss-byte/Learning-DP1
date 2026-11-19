@@ -49,7 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ESSAI_SANS_TESTS: ${{ contains(github.event.head_commit.message, '[essai sans tests]') }}
-    timeout-minutes: 20
+    # La suite complète inclut désormais les essais vocaux et les citations.
+    timeout-minutes: 45
     steps:
       - name: Récupérer le travail de la branche courante
         uses: actions/checkout@v4
