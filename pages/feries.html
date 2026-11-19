@@ -4,16 +4,15 @@
      Script : js/pages/onboarding-feries.js
      ============================================================ -->
 <div class="app-panel" id="panelFeries">
-    <div style="max-width:42rem;margin:0 auto;padding:0 1rem 4rem;">
-        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-                <button type="button" onclick="memoireRetour()" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-                <div>
-                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;margin:0;">Jours fériés</h2>
-                    <p style="font-size:0.75rem;color:#6b7280;margin:0.15rem 0 0;">Cette semaine et la suivante</p>
-                </div>
-            </div>
+    <header class="study-topbar">
+        <div class="study-topbar-inner">
+            <button type="button" class="study-back" onclick="memoireRetour()" aria-label="Revenir à la page précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+            <div class="study-topbar-brand"><span class="study-topbar-logo"><img src="images/logo.png" alt="Logo Studyplan" width="42" height="42"></span><span><strong>Studyplan</strong><small>MON ESPACE D’ÉTUDE</small></span></div>
+            <span class="study-topbar-note">Un pas à la fois <span aria-hidden="true">✦</span></span>
         </div>
+    </header>
+    <div style="max-width:42rem;margin:0 auto;padding:0 1rem 4rem;">
+        <div class="study-page-title"><h2>Jours fériés</h2><p>Cette semaine et la suivante</p></div>
 
         <div style="text-align:center;margin-bottom:1.25rem;">
             <div style="width:4.5rem;height:4.5rem;margin:0 auto 0.75rem;border-radius:1.25rem;background:#ecfdf5;display:flex;align-items:center;justify-content:center;font-size:2.2rem;">🎉</div>
