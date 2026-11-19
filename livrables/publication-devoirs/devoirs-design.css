@@ -4,7 +4,7 @@
 #panelDevoirs.dd-page button,#panelDevoirs.dd-page input,#panelDevoirs.dd-page select,#panelDevoirs.dd-page textarea { font-family:inherit; }
 #panelDevoirs.dd-page button { cursor:pointer; }
 #panelDevoirs.dd-page :is(button,input,textarea,select,[role=button]):focus-visible { outline:3px solid #54af8c; outline-offset:3px; }
-#panelDevoirs .dd-topbar { background:linear-gradient(110deg,#07553e 0%,#0d7453 58%,#168866 100%); border-bottom:1px solid #07553e; }
+#panelDevoirs .dd-topbar { margin:clamp(10px,1.4vw,18px); border:1px solid rgba(255,255,255,.15); border-radius:20px; background:linear-gradient(110deg,#07553e 0%,#0d7453 58%,#168866 100%); box-shadow:0 8px 22px rgba(7,85,62,.16); }
 #panelDevoirs .dd-topbar-inner { max-width:1176px; min-height:75px; padding:0 28px; margin:auto; display:flex; align-items:center; gap:18px; }
 #panelDevoirs .dd-back { display:grid; place-items:center; width:40px; height:40px; border:1px solid #e2ebe5; border-radius:12px; background:#fff; color:#345a4b; }
 #panelDevoirs .dd-back:hover { background:#edf7f0; }
