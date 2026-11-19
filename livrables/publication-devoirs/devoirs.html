@@ -35,7 +35,7 @@
                     <div role="button" tabindex="0" aria-label="Choisir une photo ou un PDF des devoirs" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('devoirsFichier').click()}" onclick="document.getElementById('devoirsFichier').click()" style="border:2px dashed #a7f3d0;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffa;">
                         <span class="dd-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></span>
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#065f46;">Choisis une photo du document</p>
-                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF — la lecture se fait dans ton navigateur</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF jusqu’à 20 pages — lecture sur ton appareil, puis vérification avant ajout</p>
                     </div>
                     <input type="file" id="devoirsFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument()">
                     <textarea id="devoirsTexteColle" aria-label="Texte du planning à analyser" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>
@@ -82,7 +82,7 @@
                     <div role="button" tabindex="0" aria-label="Choisir une photo ou un PDF des examens" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('devoirsFichierExam').click()}" onclick="document.getElementById('devoirsFichierExam').click()" style="border:2px dashed #99f6e4;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffe;">
                         <span class="dd-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg></span>
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
-                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF — la lecture se fait dans ton navigateur</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF jusqu’à 20 pages — lecture sur ton appareil, puis vérification avant ajout</p>
                     </div>
                     <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument('examens')">
                     <textarea id="devoirsTexteColleExam" aria-label="Texte du planning à analyser" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>

@@ -125,6 +125,7 @@ function emploiLirePlage(s) {
     if (!m) return null;
     function convertir(hh, mm, suffixe, autre) {
         var h = parseInt(hh, 10), min = mm ? parseInt(mm, 10) : 0;
+        if (min > 59 || h > 23 || ((suffixe === 'am' || suffixe === 'pm') && (h < 1 || h > 12))) return NaN;
         if (suffixe === 'pm') { if (h < 12) h += 12; }
         else if (suffixe === 'am') { if (h === 12) h = 0; }
         else if (autre === 'pm' && h <= 7) h += 12; /* « 1:25 - 2:55 pm » */
@@ -132,12 +133,12 @@ function emploiLirePlage(s) {
     }
     var d = convertir(m[1], m[2], m[3], m[6]);
     var f = convertir(m[4], m[5], m[6], m[3]);
-    if (f <= d) return null;
+    if (!Number.isFinite(d) || !Number.isFinite(f) || f <= d || f >= 1440) return null;
     return { debut: emploiM2H(d), fin: emploiM2H(f) };
 }
 
 function emploiContientPlage(s) {
-    return /(\d{1,2})\s*[:h.]\s*\d{2}\s*(am|pm)?\s*(?:-|–|—|to|à|a)\s*(\d{1,2})\s*[:h.]\s*\d{2}/i.test(String(s || ''));
+    return /\d{1,2}\s*(?:[:.]\s*\d{2}|h\s*\d{0,2}|\s*(?:am|pm))\s*(?:am|pm)?\s*(?:-|–|—|to|à|a)\s*\d{1,2}\s*(?:[:.]\s*\d{2}|h\s*\d{0,2}|\s*(?:am|pm))/i.test(String(s || ''));
 }
 
 /* Le nom de cours, nettoyé : préfixe de classe et niveaux retirés,
@@ -234,9 +235,14 @@ function emploiParseItems(items) {
             if (!emploiContientPlage(it.str)) return;
             var plage = emploiLirePlage(it.str);
             if (!plage) return;
-            var morceaux = [];
+            /* Certaines écoles mettent la matière et l'horaire sur la
+               même ligne, plutôt que dans deux cellules distinctes. */
+            var avantHeure = String(it.str).split(/\d{1,2}\s*(?:[:.]\s*\d{2}|h\s*\d{0,2}|\s*(?:am|pm))\s*(?:am|pm)?\s*(?:-|–|—|to|à|a)/i)[0]
+                .replace(/^p\d+\s*[·:\-–]?\s*/i, '').trim();
+            var nomSurLigne = emploiNomPotentiel(avantHeure);
+            var morceaux = nomSurLigne ? [avantHeure] : [];
             var yRef = it.y;
-            for (var k = i - 1; k >= 0 && morceaux.length < 2; k--) {
+            for (var k = i - 1; k >= 0 && !nomSurLigne && morceaux.length < 2; k--) {
                 var auDessus = colonne[k];
                 if (auDessus.y < yRef) break; /* en dessous : autre chose */
                 /* Le premier nom peut être espacé de son horaire (PDF ou
@@ -295,9 +301,14 @@ function emploiParseTexte(texte) {
             return;
         }
         if (emploiContientPlage(t)) {
+            /* Exemple : « Mardi Chimie 08:00 - 09:00 » sur une seule ligne. */
+            if (idx >= 0) {
+                jourCourant = idx; entetesPresents = true; buf = [];
+                t = t.slice(mot.length).replace(/^[\s.,:;–-]+/, '');
+            }
             var plage = emploiLirePlage(t);
             var nom = buf.length ? buf.join(' ').replace(/\s+/g, ' ').trim() :
-                t.replace(/^p\d+\s*[·:\-–]\s*/i, '').replace(/\d{1,2}\s*[:h.]\s*\d{2}.*$/, '').trim();
+                t.replace(/^p\d+\s*[·:\-–]\s*/i, '').replace(/\d{1,2}\s*(?:[:.]\s*\d{2}|h\s*\d{0,2}|\s*(?:am|pm)).*$/i, '').trim();
             buf = [];
             /* Sans en-tête de jour explicite, l'ordre des heures ne permet
                pas de déterminer le lundi ou le mardi : ne rien inventer. */
@@ -366,6 +377,54 @@ function emploiOcrItems(data) {
     return items;
 }
 
+/* Autre présentation courante : horaires dans la première colonne et
+   matières placées à leur hauteur sous les jours. Rien n'est déduit si
+   les jours ou les plages ne sont pas explicites. */
+function emploiParseGrille(items) {
+    var vide = function () { return [[], [], [], [], [], [], []]; };
+    var ents = (items || []).filter(function (it) { return it && it.str && Number.isFinite(it.x) && Number.isFinite(it.y); });
+    var candidats = ents.map(function (it) { return { idx: emploiMotJour(String(it.str).replace(/[^A-Za-zÀ-ÿ]+/g, ' ').trim()), x: it.x, y: it.y }; })
+        .filter(function (it) { return it.idx >= 0; });
+    var anchors = [], score = 0;
+    candidats.forEach(function (ref) {
+        var bande = candidats.filter(function (it) { return Math.abs(it.y - ref.y) <= 8; });
+        var uniques = [];
+        bande.forEach(function (a) { if (!uniques.some(function (b) { return b.idx === a.idx; })) uniques.push(a); });
+        if (uniques.length > score) { anchors = uniques; score = uniques.length; }
+    });
+    if (anchors.length < 2) return { jours: vide(), colonnes: 0 };
+    anchors.sort(function (a, b) { return a.x - b.x; });
+    var distance = anchors[1].x - anchors[0].x;
+    if (distance < 10) return { jours: vide(), colonnes: 0 };
+    var limite = anchors[0].x - Math.max(8, distance * 0.18);
+    var yEntete = Math.min.apply(null, anchors.map(function (a) { return a.y; }));
+    var lignes = ents.filter(function (it) { return it.x < limite && it.y < yEntete - 3 && emploiLirePlage(it.str); })
+        .map(function (it) { return { y: it.y, plage: emploiLirePlage(it.str) }; })
+        .sort(function (a, b) { return b.y - a.y; });
+    if (!lignes.length) return { jours: vide(), colonnes: anchors.length };
+    var cellules = {};
+    ents.forEach(function (it) {
+        if (it.x < limite || it.y >= yEntete - 3 || emploiLirePlage(it.str) || emploiMotJour(it.str) >= 0 || !emploiNomPotentiel(it.str)) return;
+        var col = anchors.reduce(function (a, b) { return Math.abs(b.x - it.x) < Math.abs(a.x - it.x) ? b : a; });
+        if (Math.abs(col.x - it.x) > distance * 0.65) return;
+        var ligne = lignes.reduce(function (a, b) { return Math.abs(b.y - it.y) < Math.abs(a.y - it.y) ? b : a; });
+        var index = lignes.indexOf(ligne), ecart = Infinity;
+        if (index > 0) ecart = Math.min(ecart, Math.abs(ligne.y - lignes[index-1].y));
+        if (index + 1 < lignes.length) ecart = Math.min(ecart, Math.abs(ligne.y - lignes[index+1].y));
+        if (Math.abs(ligne.y - it.y) > Math.min(45, ecart / 2)) return;
+        var key = col.idx + ':' + index;
+        (cellules[key] || (cellules[key] = [])).push(it);
+    });
+    var jours = vide();
+    Object.keys(cellules).forEach(function (cle) {
+        var parts = cle.split(':'), jour = Number(parts[0]), ligne = lignes[Number(parts[1])];
+        var nom = cellules[cle].sort(function (a,b) { return b.y - a.y || a.x - b.x; }).map(function (it) { return it.str.trim(); }).join(' ');
+        if (nom && !emploiNomGenerique(nom)) jours[jour].push({ nom: nom, plage: ligne.plage });
+    });
+    jours.forEach(function (liste) { liste.sort(function (a,b) { return a.plage.debut.localeCompare(b.plage.debut); }); });
+    return { jours: jours, colonnes: anchors.length };
+}
+
 /* Choisir la source qui contient effectivement des cours. Un PDF peut avoir
    une couche texte partielle (en-tête, date, heure isolée) au-dessus d'une
    grille scannée : elle ne doit pas empêcher la lecture de l'image. */
@@ -376,12 +435,20 @@ function emploiChoisirLecture(lisibles, ocr) {
         emploiParseTexte(lisibles.map(function (it) { return it.str; }).join('\n')),
         emploiParseTexte(ocr.filter(function (it) { return !it.ocrPos; }).map(function (it) { return it.str; }).join('\n'))
     ];
-    return essais.find(function (essai) { return essai.jours.some(function (liste) { return liste.length; }); }) || essais[0];
+    if (typeof devoirsPdfTexteVisuel === 'function') essais.push(emploiParseTexte(devoirsPdfTexteVisuel(lisibles)));
+    essais.push(emploiParseGrille(lisibles));
+    essais.push(emploiParseGrille(ocr.filter(function (it) { return it.ocrPos; })));
+    /* Priorité à la couche native à égalité ; ne jamais mélanger deux
+       interprétations contradictoires sans demander à l'élève. */
+    return essais.reduce(function (meilleur, candidat) {
+        function score(r) { return r.jours.reduce(function (n, liste) { return n + liste.length; }, 0); }
+        return score(candidat) > score(meilleur) ? candidat : meilleur;
+    }, essais[0]);
 }
 
 function emploiEstExportSite(texte) {
     var t = String(texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    return /study\s*plan\s*i[b8]/.test(t) && /(?:reveil|petit.dejeuner|temps libre|telephone)/.test(t) && /\bcours\b/.test(t);
+    return /study\s*plan(?:\s*i[b8])?/.test(t) && /(?:reveil|petit.dejeuner|temps libre|telephone)/.test(t) && /\bcours\b/.test(t);
 }
 
 function emploiDiagnosticLecture(texte) {
@@ -409,6 +476,15 @@ function emploiAnalyserLecture(items) {
         var ocr = page.filter(function (it) { return it.ocr; });
         emploiChoisirLecture(lisibles, ocr).jours.forEach(function (liste, idx) {
             jours[idx] = jours[idx].concat(liste);
+        });
+    });
+    jours = jours.map(function (liste) {
+        var vus = {};
+        return liste.filter(function (c) {
+            var cle = c.plage.debut + '|' + c.plage.fin + '|' + String(c.nom).toLowerCase().replace(/\s+/g, ' ').trim();
+            if (vus[cle]) return false;
+            vus[cle] = true;
+            return true;
         });
     });
     var texteLu = (items || []).map(function (it) { return it.str; }).join(' ');
@@ -440,57 +516,43 @@ function emploiProgression(info, page, total, actif) {
 }
 
 function emploiPdfItems(fichier, dire, actif) {
-    return devoirsChargerPdfJs().then(function () {
-        return fichier.arrayBuffer();
-    }).then(function (tampon) {
+    return devoirsChargerPdfJs().then(function () { return fichier.arrayBuffer(); }).then(function (tampon) {
         return window.pdfjsLib.getDocument({ data: tampon }).promise;
     }).then(function (doc) {
-        var pages = Math.min(doc.numPages, 3);
-        if (doc.numPages > 3 && dire) dire('Ce PDF contient ' + doc.numPages + ' pages : seules les 3 premières seront lues.');
-        var items = [];
+        var pages = doc.numPages, items = [];
+        if (pages > DEVOIRS_PDF_MAX_PAGES) {
+            if (doc.destroy) doc.destroy();
+            throw new Error('Ce PDF contient ' + pages + ' pages. Pour protéger ton appareil, sépare-le en documents de 20 pages maximum, puis réessaie.');
+        }
         function pageSuivante(n) {
-            if (!actif()) return items;
-            if (n > pages) return items;
-            if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
+            if (!actif() || n > pages) return items;
+            if (dire) dire('Lecture locale du document (page ' + n + ' sur ' + pages + ')…');
             return doc.getPage(n).then(function (page) {
                 return page.getTextContent().then(function (tc) {
-                    var coucheTexte = (tc.items || []).filter(function (it) { return it.str && it.str.trim() && it.transform; })
-                        .map(function (it) { return { str: it.str, x: it.transform[4], y: it.transform[5], page: n }; });
+                    var coucheTexte = devoirsPdfItemsVisuels(page, tc).map(function (it) { return Object.assign({ page: n }, it); });
                     coucheTexte.forEach(function (it) { items.push(it); });
-                    /* Une heure dans l'en-tête ne prouve pas que la grille
-                       scolaire est dans la couche texte. Si aucun cours n'y
-                       est identifiable, lire aussi l'image de cette page. */
-                    if (emploiChoisirLecture(coucheTexte, []).jours.some(function (liste) { return liste.length; })) {
-                        return pageSuivante(n + 1);
-                    }
-                    /* page scannée (ou couche texte incomplète) : rendu en
-                       image puis lecture automatique de la grille */
-                    var vp = page.getViewport({ scale: 1 });
-                    var echelle = Math.min(2.5, 2200 / Math.max(1, vp.width));
-                    var viewport = page.getViewport({ scale: echelle });
-                    var canvas = document.createElement('canvas');
-                    canvas.width = Math.floor(viewport.width);
-                    canvas.height = Math.floor(viewport.height);
-                    return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function () {
-                        return devoirsChargerTesseract().then(function () {
-                            return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', Object.assign({}, devoirsOcrOptions(), {
-                                logger: function (info) { emploiProgression(info, n, pages, actif); }
-                            }));
+                    return devoirsPdfImageImportante(page).then(function (image) {
+                        var cours = emploiChoisirLecture(coucheTexte, []).jours.some(function (liste) { return liste.length; });
+                        if (!actif() || (cours && !image)) return;
+                        return devoirsPdfCanvas(page).then(function (canvas) {
+                            return devoirsChargerTesseract().then(function () {
+                                if (!actif()) return null;
+                                return window.Tesseract.recognize(canvas, 'fra', Object.assign({}, devoirsOcrOptions(), {
+                                    logger: function (info) { emploiProgression(info, n, pages, actif); }
+                                }));
+                            }).then(function (res) {
+                                if (!actif() || !res) return;
+                                emploiOcrItems(res.data).forEach(function (it) { items.push(Object.assign({ ocr: true, page: n }, it)); });
+                                String((res.data && res.data.text) || '').split(/[\n\r]+/).forEach(function (l) {
+                                    if (l && l.trim()) items.push({ str: l, x: 0, y: 0, ocr: true, page: n });
+                                });
+                            }).finally(function () { canvas.width = 1; canvas.height = 1; });
                         });
-                    }).then(function (res) {
-                        emploiOcrItems(res && res.data).forEach(function (it) {
-                            items.push(Object.assign({ ocr: true, page: n }, it));
-                        });
-                        var lignes = String((res && res.data && res.data.text) || '').split(/[\n\r]+/);
-                        lignes.forEach(function (l) {
-                            if (l && l.trim()) items.push({ str: l, x: 0, y: 0, ocr: true, page: n });
-                        });
-                        return pageSuivante(n + 1);
-                    });
+                    }).then(function () { return pageSuivante(n + 1); });
                 });
             });
         }
-        return pageSuivante(1);
+        return Promise.resolve().then(function () { return pageSuivante(1); }).finally(function () { if (doc.destroy) doc.destroy(); });
     });
 }
 

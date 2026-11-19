@@ -111,6 +111,9 @@ jobs:
             node --check site/js/pages/exercices.js
             node --check site/js/pages/planning-interface.js
             node --check site/js/pages/devoirs.js
+            node --check site/js/pages/emploi-temps.js
+            cmp travail/js/pages/emploi-temps.js site/js/pages/emploi-temps.js
+            cmp travail/pages/emploi-temps.html site/pages/emploi-temps.html
             node --check site/js/accessibilite.js
             (cd site && node tools/verifier-devoirs.js && node tools/verifier-devoirs-edition.js)
             node --check site/service-worker.js
@@ -162,6 +165,8 @@ jobs:
           executer_test travail/tools/tester-defilement-legende.mjs
           executer_test travail/tools/tester-eeia-navigation.mjs
           executer_test travail/tools/tester-entetes-sections.mjs
+          executer_test travail/tools/tester-ocr-formats.mjs
+          executer_test travail/tools/tester-upload-emploi.cjs
           executer_test travail/tools/tester-navigation-retours.mjs
           executer_test travail/tools/tester-salon-navigation.mjs
           executer_test travail/tools/tester-latence-pomodoro.mjs
@@ -260,6 +265,8 @@ jobs:
           }
           executer_test tools/tester-eeia-navigation.mjs
           executer_test tools/tester-entetes-sections.mjs
+          executer_test tools/tester-ocr-formats.mjs
+          executer_test tools/tester-upload-emploi.cjs
           executer_test tools/tester-navigation-retours.mjs
           executer_test tools/tester-salon-navigation.mjs
           executer_test tools/tester-pomodoro-anime.mjs

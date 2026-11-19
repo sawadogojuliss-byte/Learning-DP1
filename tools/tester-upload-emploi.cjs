@@ -1,7 +1,10 @@
 /* Import réel de PDF court, photo de grille et PDF scanné : uniquement
    des documents fictifs fabriqués dans ce navigateur. Aucun compte/mail. */
 const assert = require('node:assert/strict');
-const { chromium } = require('playwright');
+const path = require('node:path');
+const { createRequire } = require('node:module');
+const chargeTest = process.env.STUDY_TEST_MODULES ? createRequire(path.resolve(process.env.STUDY_TEST_MODULES, '../package.json')) : require;
+const { chromium } = chargeTest('playwright');
 const SITE = process.env.STUDY_SITE || 'https://sawadogojuliss-byte.github.io/Learning-DP1/';
 
 function pdfFictif(jpeg, couchePartielle) {
@@ -39,8 +42,9 @@ function pdfFictif(jpeg, couchePartielle) {
 (async () => {
     const config = { headless: true };
     if (process.env.STUDY_CHROMIUM_LOCAL) {
-        const aws = require('@sparticuz/chromium');
-        config.executablePath = await aws.executablePath(); config.args = aws.args;
+        const moduleChromium = chargeTest('@sparticuz/chromium');
+        const aws = moduleChromium.default || moduleChromium;
+        config.executablePath = await aws.executablePath(); config.args = aws.args.filter(x => x !== '--single-process');
     }
     const browser = await chromium.launch(config);
     try {

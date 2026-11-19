@@ -450,7 +450,13 @@ function devoirsParserTexte(texte, connues) {
         /* date : 23/10, 23-10-2026, lundi 23, 23 octobre */
         var dateTrouvee = '';
         var dateIllisible = false;
-        var dm = norm.match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?\b/);
+        var iso = norm.match(/\b(\d{4})\s*[-\/.]\s*(\d{1,2})\s*[-\/.]\s*(\d{1,2})\b/);
+        if (iso) {
+            var dateIso = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+            if (dateIso.getFullYear() === Number(iso[1]) && dateIso.getMonth() === Number(iso[2]) - 1 && dateIso.getDate() === Number(iso[3])) dateTrouvee = devoirsCle(dateIso);
+            else dateIllisible = true;
+        }
+        var dm = iso ? null : norm.match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?\b/);
         /* « 13:00 - 15:00 » contient « 00 - 15 » : ce n'est pas
            une date erronée, mais une plage d'heures à conserver. */
         if (dm && /\d[:h.]$/.test(norm.slice(0, dm.index).trim())) dm = null;
@@ -465,10 +471,10 @@ function devoirsParserTexte(texte, connues) {
             else dateIllisible = true;
         }
         if (!dateTrouvee) {
-            var jm = norm.match(/\b(\d{1,2})(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/);
+            var jm = norm.match(/\b(\d{1,2})(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)(?:\s+(\d{4}))?\b/);
             if (jm) {
                 var moisLu = DEVOIRS_MOIS[jm[2]];
-                var anneeLue = devoirsAnneePour(moisLu);
+                var anneeLue = jm[3] ? Number(jm[3]) : devoirsAnneePour(moisLu);
                 var dateNomme = new Date(anneeLue, moisLu, Number(jm[1]));
                 if (dateNomme.getMonth() === moisLu && dateNomme.getDate() === Number(jm[1]))
                     dateTrouvee = devoirsCle(dateNomme);
@@ -660,50 +666,106 @@ function devoirsChargerPdfJs() {
     });
 }
 
-/* Les pages d'un PDF : celles qui ont du texte le donnent directement,
-   les autres (photos et scans) sont rendues en image puis lues. */
+/* Lecture PDF locale : limite explicite pour éviter de bloquer un téléphone.
+   Si le document est trop long, on ne produit pas un résultat partiel trompeur. */
+var DEVOIRS_PDF_MAX_PAGES = 20;
+
+/* Reconstruit les lignes par leurs positions visuelles, même si le PDF
+   stocke les cellules dans un autre ordre ou sépare chaque mot. */
+function devoirsPdfItemsVisuels(page, tc) {
+    var vp = page.getViewport({ scale: 1 });
+    var util = window.pdfjsLib && window.pdfjsLib.Util;
+    return (tc.items || []).filter(function (it) { return it.str && it.str.trim() && it.transform; }).map(function (it) {
+        var t = util && util.transform ? util.transform(vp.transform, it.transform) : it.transform;
+        return { str: it.str.trim(), x: t[4], y: -t[5], hauteur: Math.max(1, Math.hypot(t[2], t[3])), largeur: Math.abs(Number(it.width) || 0) };
+    });
+}
+
+function devoirsPdfTexteVisuel(items) {
+    var lignes = [];
+    items.slice().sort(function (a, b) { return b.y - a.y || a.x - b.x; }).forEach(function (it) {
+        var ligne = lignes.find(function (l) { return Math.abs(l.y - it.y) <= Math.max(2, Math.min(8, Math.max(l.h, it.hauteur) * 0.4)); });
+        if (!ligne) { ligne = { y: it.y, h: it.hauteur, items: [] }; lignes.push(ligne); }
+        ligne.items.push(it);
+    });
+    return lignes.sort(function (a, b) { return b.y - a.y; }).map(function (l) {
+        return l.items.sort(function (a, b) { return a.x - b.x; }).map(function (it) { return it.str; }).join(' ');
+    }).join('\n');
+}
+
+/* Détecte une image occupant une partie notable de la page : une couche
+   texte (par ex. un titre) peut masquer une grille ou un scan en dessous. */
+function devoirsPdfImageImportante(page) {
+    if (!page.getOperatorList || !window.pdfjsLib || !window.pdfjsLib.OPS) return Promise.resolve(false);
+    return page.getOperatorList().then(function (liste) {
+        var ops = window.pdfjsLib.OPS, pile = [], matrice = [1, 0, 0, 1, 0, 0];
+        var v = page.getViewport({ scale: 1 }), aire = Math.max(1, v.width * v.height);
+        for (var i = 0; i < liste.fnArray.length; i++) {
+            var op = liste.fnArray[i], a = liste.argsArray[i];
+            if (op === ops.save) pile.push(matrice.slice());
+            else if (op === ops.restore) { if (pile.length) matrice = pile.pop(); }
+            else if (op === ops.transform && a && a.length >= 6) {
+                var m = matrice;
+                matrice = [m[0]*a[0]+m[2]*a[1],m[1]*a[0]+m[3]*a[1],m[0]*a[2]+m[2]*a[3],m[1]*a[2]+m[3]*a[3],m[0]*a[4]+m[2]*a[5]+m[4],m[1]*a[4]+m[3]*a[5]+m[5]];
+            } else if ((op === ops.paintImageXObject || op === ops.paintInlineImageXObject || op === ops.paintJpegXObject) &&
+                       Math.abs(matrice[0]*matrice[3]-matrice[1]*matrice[2]) / aire >= 0.12) return true;
+        }
+        return false;
+    }).catch(function () { return false; });
+}
+
+/* Plafonner la surface, pas seulement la largeur : les PDF très hauts ne
+   doivent pas épuiser la mémoire du navigateur. */
+function devoirsPdfCanvas(page) {
+    var vp = page.getViewport({ scale: 1 });
+    var echelle = Math.min(2.5, 2200 / Math.max(1, vp.width), Math.sqrt(5000000 / Math.max(1, vp.width * vp.height)));
+    var vue = page.getViewport({ scale: echelle }), canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(vue.width)); canvas.height = Math.max(1, Math.floor(vue.height));
+    return page.render({ canvasContext: canvas.getContext('2d'), viewport: vue }).promise.then(function () { return canvas; });
+}
+
+function devoirsPdfFusionnerTexte(natif, ocr) {
+    var lignes = String(natif || '').split(/\n+/), deja = {};
+    function cle(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+    lignes.forEach(function (l) { if (cle(l)) deja[cle(l)] = true; });
+    String(ocr || '').split(/\n+/).forEach(function (l) { var k = cle(l); if (k && !deja[k]) { lignes.push(l); deja[k] = true; } });
+    return lignes.filter(function (l) { return l.trim(); }).join('\n');
+}
+
 function devoirsPdfEnTexte(fichier, dire) {
-    return devoirsChargerPdfJs().then(function () {
-        return fichier.arrayBuffer();
-    }).then(function (tampon) {
+    return devoirsChargerPdfJs().then(function () { return fichier.arrayBuffer(); }).then(function (tampon) {
         return window.pdfjsLib.getDocument({ data: tampon }).promise;
     }).then(function (doc) {
-        var pages = Math.min(doc.numPages, 8);
-        var morceaux = [];
+        var pages = doc.numPages, morceaux = [];
+        if (pages > DEVOIRS_PDF_MAX_PAGES) {
+            if (doc.destroy) doc.destroy();
+            throw new Error('Ce PDF contient ' + pages + ' pages. Pour protéger ton appareil, sépare-le en documents de 20 pages maximum, puis réessaie.');
+        }
         function pageSuivante(n) {
             if (n > pages) return morceaux.join('\n');
-            if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
+            if (dire) dire('Lecture locale du document (page ' + n + ' sur ' + pages + ')…');
             return doc.getPage(n).then(function (page) {
                 return page.getTextContent().then(function (tc) {
-                    var extrait = (tc.items || []).map(function (it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('').trim();
-                    if (extrait.length >= 40) {
-                        morceaux.push(extrait);
-                        return pageSuivante(n + 1);
-                    }
-                    /* page scannée : rendu en image puis lecture automatique */
-                    var brut = page.getViewport({ scale: 1 });
-                    var echelle = Math.min(2.5, 2200 / Math.max(1, brut.width));
-                    var viewport = page.getViewport({ scale: echelle });
-                    var canvas = document.createElement('canvas');
-                    canvas.width = Math.floor(viewport.width);
-                    canvas.height = Math.floor(viewport.height);
-                    return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function () {
-                        return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', devoirsOcrOptions());
-                    }).then(function (res) {
-                        morceaux.push((res && res.data && res.data.text) || '');
-                        return pageSuivante(n + 1);
-                    });
+                    var natif = devoirsPdfTexteVisuel(devoirsPdfItemsVisuels(page, tc));
+                    return devoirsPdfImageImportante(page).then(function (image) {
+                        if (natif.length >= 40 && !image) return natif;
+                        return devoirsPdfCanvas(page).then(function (canvas) {
+                            return devoirsChargerTesseract().then(function () { return window.Tesseract.recognize(canvas, 'fra', devoirsOcrOptions()); })
+                                .then(function (res) { return devoirsPdfFusionnerTexte(natif, res && res.data && res.data.text); })
+                                .finally(function () { canvas.width = 1; canvas.height = 1; });
+                        });
+                    }).then(function (texte) { morceaux.push(texte); return pageSuivante(n + 1); });
                 });
             });
         }
-        return pageSuivante(1);
+        return Promise.resolve().then(function () { return pageSuivante(1); }).finally(function () { if (doc.destroy) doc.destroy(); });
     });
 }
 
 function devoirsOcrImage(fichier, dire) {
+    /* Le moteur OCR est chargé seulement si une page ou photo en a besoin. */
+    if (devoirsEstPdf(fichier)) return devoirsPdfEnTexte(fichier, dire);
     return devoirsChargerTesseract().then(function () {
-        /* les PDF téléchargés s'ouvrent aussi : chaque page est lue */
-        if (devoirsEstPdf(fichier)) return devoirsPdfEnTexte(fichier, dire);
         return window.Tesseract.recognize(fichier, 'fra', devoirsOcrOptions()).then(function (res) {
             return (res && res.data && res.data.text) || '';
         });
