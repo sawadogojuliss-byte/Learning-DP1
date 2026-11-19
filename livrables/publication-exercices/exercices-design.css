@@ -15,10 +15,10 @@ body:has(#panelExercices.active) > .suppression-toast { z-index:100001 !importan
 #panelExercices .ed-brand { display:flex; gap:10px; align-items:center; }
 #panelExercices .ed-brand-mark { display:grid; place-items:center; width:36px; height:36px; border-radius:11px; background:#1a7958; color:white; }
 #panelExercices .ed-brand-mark svg { width:20px; height:20px; }
-#panelExercices .ed-brand strong { display:block; color:#173b2d; line-height:1.1; font-size:15px; letter-spacing:-.04em; }
-#panelExercices .ed-brand small { display:block; color:#93a59a; font-size:8px; font-weight:800; letter-spacing:.12em; margin-top:4px; }
-#panelExercices .ed-topbar-label { margin-left:auto; color:#8a9d91; font-size:12px; font-weight:600; }
-#panelExercices .ed-topbar-label span { color:#a7bfac; padding-left:5px; }
+#panelExercices .ed-brand strong { display:block; color:#fff; line-height:1.1; font-size:15px; letter-spacing:-.04em; }
+#panelExercices .ed-brand small { display:block; color:#e0f4e9; font-size:8px; font-weight:800; letter-spacing:.12em; margin-top:4px; }
+#panelExercices .ed-topbar-label { margin-left:auto; color:#f0fbf4; font-size:12px; font-weight:600; }
+#panelExercices .ed-topbar-label span { color:#d5f6e2; padding-left:5px; }
 #panelExercices .ed-shell { max-width:1176px; margin:0 auto; padding:47px 28px 35px; }
 #panelExercices .ed-hero { display:flex; align-items:center; justify-content:space-between; gap:30px; margin-bottom:37px; }
 #panelExercices .ed-hero-copy { max-width:640px; }
