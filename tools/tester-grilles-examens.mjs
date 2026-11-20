@@ -92,25 +92,32 @@ try {
     const r=await devoirsAnalyserFichier(f);return {grille:r.grille,props:r.propositions.map(p=>({matiere:p.matiere,date:p.date,debut:p.debut,fin:p.fin,indice:p.indice}))};
    },buffer.toString('base64'));
    assert.equal(r.grille,true,'grille non reconnue');
-   if(o.partial){
-    for(const p of r.props){
-     const options=[];
-     for(let row=0;row<2;row++) for(let j=0;j<5;j++){
-      const canon={Chemistry:'Chimie',Physics:'Physique',History:'Histoire',Maths:'Mathématiques AA',ESS:'ESS'}[mat[row][j]];
-      if(p.matiere===canon && p.indice.includes((row?'11:00–13:00':'08:15–10:30')) && p.indice.includes(jours[j])) options.push(true);
-     }
-     assert.ok(options.length, 'association non prouvée : '+JSON.stringify(p));
-    }
-    console.log(`OK ${i+1}/${cases.length} ${nom} (${r.props.length} propositions prudentes)`);continue;
-   }
-   assert.equal(r.props.length,10,'dix cellules attendues');
+   const attendues=[];
+   const joursLocaux=o.fr?['Lundi 20 octobre','Mardi 21 octobre','Mercredi 22 octobre','Jeudi 23 octobre','Vendredi 24 octobre']:jours;
    for(let row=0;row<2;row++) for(let j=0;j<5;j++){
-    let source=mat[row][j],canon={Chemistry:'Chimie',Physics:'Physique',History:'Histoire',Maths:'Mathématiques AA',ESS:'ESS'}[source];
-    const window=row?'11:00–13:00':'08:15–10:30', date=o.year?`2031-10-${20+j}`:'';
-    assert.ok(r.props.some(p=>p.matiere===canon&&p.date===date&&p.indice.includes((o.fr?['Lundi','Mardi','Mercredi','Jeudi','Vendredi']:['Monday','Tuesday','Wednesday','Thursday','Friday'])[j])&&(!o.noTime?p.indice.includes(window):p.indice.includes('à vérifier'))),`${source} jour ${j} session ${row}`);
+    const canon={Chemistry:'Chimie',Physics:'Physique',History:'Histoire',Maths:'Mathématiques AA',ESS:'ESS'}[mat[row][j]];
+    attendues.push({matiere:canon,jour:joursLocaux[j],plage:row?'11:00–13:00':'08:15–10:30',date:o.year?`2031-10-${20+j}`:''});
    }
-   assert.ok(r.props.every(p=>!p.debut&&!p.fin),'plage de session non automatiquement validée');
-   console.log(`OK ${i+1}/${cases.length} ${nom}`);
+   const vues=new Set();
+   for(const p of r.props){
+    assert.ok(!p.debut&&!p.fin,'plage de session non automatiquement validée');
+    // Une plage omise est acceptable, une plage erronée ne l'est jamais.
+    const indices=attendues.map((a,n)=>({a,n})).filter(({a})=>
+     p.matiere===a.matiere && p.date===a.date && p.indice.includes(a.jour) &&
+     (p.indice.includes(a.plage) || p.indice.includes('Plage de session à vérifier')));
+    assert.equal(indices.length,1,'association non prouvée : '+JSON.stringify(p));
+    assert.ok(!vues.has(indices[0].n),'cellule proposée deux fois : '+JSON.stringify(p));
+    vues.add(indices[0].n);
+   }
+   if(o.type==='native'){
+    assert.equal(vues.size,10,'les dix cellules du PDF natif doivent être lues');
+    if(!o.noTime) assert.ok(r.props.every(p=>p.indice.includes('Plage de la session')), 'plages attendues dans le texte natif');
+   }else if(!o.partial){
+    // Le rendu des polices et l'OCR diffèrent selon l'environnement. Ne pas
+    // sacrifier les contrôles de précision pour obtenir artificiellement 10/10.
+    assert.ok(vues.size>=4, `trop de cellules omises : ${10-vues.size}/10`);
+   }
+   console.log(`OK ${i+1}/${cases.length} ${nom} (${vues.size}/10 cellules, ${10-vues.size} omissions)`);
   }catch(e){erreurs++;console.error(`ECHEC ${i+1}/${cases.length} ${nom}: ${e.message}\n${JSON.stringify(r)}`)}
  }
  const incoherences=await page.evaluate(()=>{
@@ -126,6 +133,12 @@ try {
  assert.equal(incoherences.compatible,false,'dates voisines incompatibles');
  assert.equal(incoherences.fiables[4],false,'une colonne contradictoire doit être ignorée');
  assert.ok(incoherences.fiables.slice(0,4).every(Boolean));
+ const quantiemeImpossible=await page.evaluate(()=>{
+  const w=(texte,x)=>({texte,x,y:20,h:12,w:25});
+  const mots=[w('Monday',100),w('70',145),w('October',180),w('Tuesday',260),w('21',305),w('October',340)];
+  return devoirsDispositionGrille(mots).bandes[0].jours.map(j=>j.fiable);
+ });
+ assert.deepEqual(quantiemeImpossible,[false,true],'un quantième OCR impossible doit être omis');
  const fusion=await page.evaluate(()=>{
   // L'OCR a fusionné les en-têtes du mardi au jeudi : le centre
   // du mardi est alors décalé jusque dans la colonne du mercredi.

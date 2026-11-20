@@ -796,6 +796,10 @@ function devoirsDispositionGrille(mots) {
             j.fiable = (j.libelle.match(/\d{1,2}/g) || []).length <= 1 || /\b\d{4}\b/.test(j.libelle) && (j.libelle.match(/\d+/g) || []).length <= 2;
             j.fusion = !j.fiable;
             j.dateLue = devoirsDateGrille(j.libelle, j.jour);
+            /* Un quantième illisible ou impossible ne doit pas être présenté
+               comme un jour fiable (ex. « 70 October » lu au lieu de 20).
+               Il faut saisir cette épreuve manuellement. */
+            if (/\b\d{1,2}\b/.test(j.libelle) && j.dateLue.numero == null) j.fiable = false;
             j.date = j.dateLue.date;
         });
         var dates = b.jours.filter(function (j) { return j.fiable && j.dateLue && j.dateLue.numero != null; });
