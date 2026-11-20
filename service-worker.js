@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261108x';
+const VERSION = '20261124-care';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -13,6 +13,7 @@ const FICHIERS = [
     "css/pages/planning-panels.css",
     "livrables/publication-eeia/design.css",
     "livrables/publication-entetes/entetes.css",
+    "css/pages/soutien-aide-feedback.css",
     "css/pages/exercices.css",
     "css/pages/planning-semaines.css",
     "css/pages/retours.css",

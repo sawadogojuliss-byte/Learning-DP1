@@ -1,9 +1,5 @@
-<!-- ============================================================
-     PAGE : Feedback
-     Suggestions pour améliorer le site.
-     Script : js/pages/boite.js
-     ============================================================ -->
-<div class="app-panel" id="panelFeedback">
+<!-- Page Feedback : mise en forme partagée avec Soutien et Feedback. -->
+<div class="app-panel care-page" id="panelFeedback">
     <header class="study-topbar">
         <div class="study-topbar-inner">
             <button type="button" class="study-back" onclick="memoireRetour()" aria-label="Revenir à la page précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
@@ -11,20 +7,30 @@
             <span class="study-topbar-note">Un pas à la fois <span aria-hidden="true">✦</span></span>
         </div>
     </header>
-    <div style="max-width:480px;margin:0 auto;padding:0 1rem 4rem;">
-        <div class="study-page-title"><h2>Feedback</h2><p>Une suggestion pour le site</p></div>
-
-        <div style="background:linear-gradient(135deg,#059669,#10b981);border-radius:1.25rem;padding:1.25rem 1.35rem;margin-bottom:1.25rem;color:white;">
-            <p style="font-size:0.8rem;opacity:0.85;margin-bottom:0.2rem;" id="feedbackNom"></p>
-            <p style="font-size:0.95rem;font-weight:650;line-height:1.45;">As-tu une suggestion pour améliorer le site ? Si oui, renseigne-la ci-dessous.</p>
+    <main class="care-content">
+        <div class="care-hero">
+        <div class="study-page-title care-page-title"><div><span class="care-kicker">TON ESPACE STUDYPLAN</span><h2>Ton <em>feedback</em></h2><p>Tes idées font grandir Studyplan.</p></div><span class="care-title-icon" aria-hidden="true">✦</span></div>
+        <section class="care-intro" aria-labelledby="feedbackIntroTitre">
+            <div class="care-intro-art" aria-hidden="true"><span>✦</span></div>
+            <div class="care-intro-copy"><p class="care-intro-eyebrow">FAIS-NOUS PART DE TES IDÉES</p><h3 id="feedbackIntroTitre">Une idée à partager ?</h3><p>Une idée, une remarque ou une amélioration ? On aimerait beaucoup la découvrir.</p><p class="care-person" id="feedbackNom"></p></div>
+        </section>
         </div>
+        <div class="care-layout">
+        <div class="care-primary">
+        <section class="care-card care-form" aria-label="Ta suggestion">
+            <div class="care-card-heading"><span class="care-card-icon" aria-hidden="true">✎</span><div><h3>Ta suggestion</h3><p>Quelques mots suffisent pour commencer.</p></div></div>
+            <div class="care-field"><label for="feedbackEmail">Ton e-mail</label><p class="care-field-help" id="feedbackEmailInfo">Pour que nous puissions te répondre.</p><input id="feedbackEmail" type="email" autocomplete="email" maxlength="120" placeholder="prenom@email.com" aria-describedby="feedbackEmailInfo"></div>
+            <div class="care-field"><label for="feedbackTexte">Ta suggestion</label><textarea id="feedbackTexte" maxlength="800" rows="6" placeholder="Partage ton idée avec nous…"></textarea><p class="care-field-foot">800 caractères maximum</p></div>
+            <button type="button" id="feedbackEnvoi" class="care-button care-button-primary">Envoyer ma suggestion <span aria-hidden="true">↗</span></button>
 
-        <label for="feedbackEmail" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ton e-mail</label>
-        <input id="feedbackEmail" type="email" autocomplete="email" maxlength="120" placeholder="prenom@email.com" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.8rem 1rem;font:inherit;font-size:0.95rem;margin-bottom:0.85rem;">
-
-        <label for="feedbackTexte" style="display:block;font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.4rem;">Ta suggestion</label>
-        <textarea id="feedbackTexte" maxlength="800" rows="6" placeholder="Écris ici…" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:0.9rem;padding:0.85rem 1rem;font:inherit;font-size:0.95rem;resize:vertical;"></textarea>
-        <button type="button" id="feedbackEnvoi" style="width:100%;margin-top:0.85rem;padding:0.9rem 1rem;border:none;border-radius:0.9rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font-weight:800;font-size:0.95rem;cursor:pointer;">Envoyer</button>
-        <p id="feedbackStatut" style="min-height:1.25rem;margin-top:0.75rem;font-size:0.85rem;font-weight:650;color:#047857;"></p>
-    </div>
+            <p id="feedbackStatut" class="care-status" role="status" aria-live="polite"></p>
+        </section>
+        </div>
+        <aside class="care-side">
+            <div class="care-side-card"><p class="care-side-overline">TON AVIS COMPTE</p><h3>Une idée peut tout changer</h3><p>Qu’il s’agisse d’un détail ou d’une nouvelle idée, ton retour nous aide à avancer.</p><ul><li><span aria-hidden="true">✓</span>Dis-nous ce qui fonctionne</li><li><span aria-hidden="true">✓</span>Partage ce qui pourrait être amélioré</li><li><span aria-hidden="true">✓</span>Ajoute une capture si elle est utile</li></ul></div>
+            <div class="care-side-note"><span aria-hidden="true">✦</span><p><strong>Un pas à la fois.</strong><br>Chaque petit geste compte.</p></div>
+        </aside>
+        </div>
+        <p class="care-footer"><span aria-hidden="true">✦</span> Ensemble, un pas à la fois.</p>
+    </main>
 </div>

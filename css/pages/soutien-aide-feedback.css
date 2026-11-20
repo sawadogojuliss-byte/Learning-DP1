@@ -1,0 +1,131 @@
+/* Trois espaces, une même grammaire visuelle que Mes Exercices.
+   Sélecteurs limités aux pages concernées : aucun style global modifié. */
+.care-page.app-panel.active {
+    --care-ink: #17382c;
+    --care-muted: #61756a;
+    --care-border: #e3ece7;
+    --care-green: #047857;
+    background: radial-gradient(100% 420px at 100% 0%, #e9faf2 0, transparent 70%), linear-gradient(180deg, #f7fbf9, #fff 460px) !important;
+    color: var(--care-ink);
+    font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+.care-page *, .care-page *::before, .care-page *::after { box-sizing: border-box; }
+.care-page .care-content { width: min(100%, 36rem); margin: 0 auto; padding: 0 1rem 4.5rem; }
+.care-page .care-page-title { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: 1.5rem 0 1.1rem; }
+.care-page .care-kicker { display: block; margin-bottom: .35rem; color: #07815e; font-size: .62rem; font-weight: 800; letter-spacing: .14em; }
+.care-page .care-page-title h2 { margin: 0; color: #075c42; font-size: clamp(1.45rem, 4vw, 1.8rem); font-weight: 800; letter-spacing: -.045em; line-height: 1.12; }
+.care-page .care-page-title p { margin: .35rem 0 0; color: var(--care-muted); font-size: .84rem; line-height: 1.4; }
+.care-page .care-title-icon { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; flex: none; border: 1px solid #d7eee3; border-radius: 1rem; color: #098a65; background: #effaf4; font-size: 1.4rem; }
+.care-page .care-intro { position: relative; display: flex; align-items: center; gap: 1.1rem; overflow: hidden; padding: 1.25rem 1.35rem; margin-bottom: .9rem; border: 1px solid #d9eee3; border-radius: 1.2rem; background: linear-gradient(125deg,#e7f8ef 0%,#f7fdf9 68%,#edf9f2 100%); }
+.care-page .care-intro::after { content: ''; position: absolute; right: -3rem; top: -4.8rem; width: 12rem; height: 12rem; border: 1px solid rgba(5,150,105,.13); border-radius: 50%; box-shadow: 0 0 0 1.1rem rgba(16,185,129,.035), 0 0 0 2.2rem rgba(16,185,129,.025); pointer-events: none; }
+.care-page .care-intro-art { position: relative; z-index: 1; display: grid; place-items: center; flex: none; width: 4.1rem; height: 4.1rem; border-radius: 1.2rem; background: linear-gradient(145deg,#0b8d68,#05644b); box-shadow: 0 8px 17px rgba(4,120,87,.2); color: white; }
+.care-page .care-intro-art span { font-family: Georgia,serif; font-size: 2.15rem; line-height: 1; }
+.care-page .care-intro-copy { position: relative; z-index: 1; min-width: 0; }
+.care-page .care-intro-eyebrow { margin: 0 0 .35rem; color: #087957; font-size: .62rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.care-page .care-intro h3 { margin: 0 0 .3rem; color: #07543c; font-size: 1.13rem; font-weight: 800; letter-spacing: -.025em; line-height: 1.25; }
+.care-page .care-intro-copy > p:not(.care-intro-eyebrow):not(.care-person) { max-width: 24rem; margin: 0; color: #416758; font-size: .8rem; line-height: 1.5; }
+.care-page .care-person:not(:empty) { display: inline-block; margin: .55rem 0 0; padding: .2rem .55rem; border-radius: 999px; background: rgba(255,255,255,.75); color: #39715a; font-size: .7rem; font-weight: 700; }
+.care-page .care-card { position: relative; margin: 0 0 .85rem; padding: 1.15rem; border: 1px solid var(--care-border); border-radius: 1.15rem; background: #fff; box-shadow: 0 1px 2px rgba(6,78,59,.05), 0 10px 26px -18px rgba(6,78,59,.28); }
+.care-page .care-card::before { content: ''; position: absolute; left: 0; top: 1.05rem; bottom: 1.05rem; width: 3px; border-radius: 0 3px 3px 0; background: linear-gradient(#34d399,#059669); }
+.care-page .care-card-heading { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.1rem; }
+.care-page .care-card-icon { display: grid; place-items: center; width: 2.55rem; height: 2.55rem; flex: none; border: 1px solid #d7f1e3; border-radius: .8rem; background: #eefaf3; color: #07825d; font-size: 1.25rem; font-weight: 700; }
+.care-page .care-card-heading h3 { margin: 0; color: #1f2a26; font-size: .91rem; font-weight: 800; letter-spacing: -.01em; }
+.care-page .care-card-heading p { margin: .2rem 0 0; color: var(--care-muted); font-size: .76rem; line-height: 1.4; }
+.care-page .care-mood-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: .55rem; }
+.care-page .mood-btn { min-width: 0; min-height: 5.1rem; padding: .7rem .25rem; border: 1px solid #e3ece7; border-radius: .9rem; background: #fbfdfc; box-shadow: none; cursor: pointer; font: inherit; transition: background .18s, border-color .18s, box-shadow .18s; }
+.care-page .mood-btn:hover { border-color: #9edfc0; background: #f2fcf6; box-shadow: 0 4px 12px rgba(6,95,70,.07); }
+.care-page .mood-btn.selected { border-color: #10b981; background: #eafaf1; box-shadow: inset 0 0 0 1px #10b981; transform: none; }
+.care-page .care-mood-emoji { display: grid; place-items: center; margin-bottom: .35rem; color: #158060; }
+.care-page .care-mood-emoji svg { display: block; width: 1.55rem; height: 1.55rem; }
+.care-page .care-mood-label { display: block; color: #42594d; font-size: .7rem; font-weight: 700; line-height: 1.25; }
+.care-page .mood-btn.selected .care-mood-label { color: #047857; }
+.care-page .care-empty { display: flex; align-items: center; gap: .8rem; padding: 1rem 1.1rem; border: 1px dashed #b9dfcb; border-radius: 1rem; background: rgba(240,253,244,.65); }
+.care-page .care-empty-icon { display: grid; place-items: center; width: 2.2rem; height: 2.2rem; flex: none; border-radius: 50%; background: #def6e7; color: #08865e; }
+.care-page .care-empty strong { color: #155b40; font-size: .8rem; }
+.care-page .care-empty p { margin: .2rem 0 0; color: #638073; font-size: .75rem; line-height: 1.5; }
+.care-page .care-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.care-page #moodTipsList { display: flex; flex-direction: column; gap: .7rem; }
+.care-page .care-quote { position: relative; margin: 0 0 1rem; padding: 1.35rem 1.2rem; border: 1px solid #d2eee0; border-radius: 1.15rem; background: #f1fbf5; text-align: center; }
+.care-page .care-quote-mark { display: block; height: 1.35rem; color: #6cc6a2; font: 700 2.5rem/1 Georgia,serif; }
+.care-page #quoteText { margin: .65rem 0 0; color: #155941; font-size: .95rem; font-weight: 650; font-style: italic; line-height: 1.6; }
+.care-page #quoteAuthor { margin: .5rem 0 0; color: #698477; font-size: .74rem; }
+.care-page .care-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.care-page .care-field { margin-top: 1rem; }
+.care-page .care-field label { display: block; margin-bottom: .4rem; color: #263b30; font-size: .8rem; font-weight: 800; }
+.care-page .care-field-help { margin: -.1rem 0 .55rem; color: #718479; font-size: .74rem; line-height: 1.4; }
+.care-page .care-field input, .care-page .care-field textarea { display: block; width: 100%; border: 1px solid #dce8e1; border-radius: .85rem; padding: .85rem .95rem; background: #fbfdfc; color: #17382c; font: inherit; font-size: .9rem; line-height: 1.5; }
+.care-page .care-field textarea { min-height: 9rem; resize: vertical; }
+.care-page .care-field input::placeholder, .care-page .care-field textarea::placeholder { color: #9aaba1; }
+.care-page .care-field-foot { margin: .35rem 0 0; text-align: right; color: #829388; font-size: .69rem; }
+.care-page .care-button { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.9rem; padding: .8rem 1rem; border: 0; border-radius: .85rem; font: inherit; font-size: .86rem; font-weight: 800; cursor: pointer; }
+.care-page .care-button-primary { color: white; background: linear-gradient(105deg,#10b981,#059669); box-shadow: 0 6px 16px rgba(5,150,105,.18); }
+.care-page .care-button-primary:hover { background: linear-gradient(105deg,#059669,#047857); }
+.care-page .care-button-primary:disabled { opacity: .6; cursor: wait; }
+.care-page .care-form > .care-button { width: 100%; margin-top: 1rem; }
+.care-page .care-button-secondary { border: 1px solid #d8e9df; color: #246648; background: #f4faf6; }
+.care-page .care-choice { margin-top: 1rem; padding: 1rem; border: 1px solid #c7eeda; border-radius: .9rem; background: #effbf4; font-size: .85rem; }
+.care-page .care-choice strong { color: #064e3b; }
+.care-page .care-choice p { margin: .35rem 0 .8rem; color: #416758; line-height: 1.45; }
+.care-page .care-choice button { width: 100%; }
+.care-page .care-status { min-height: 1.2rem; margin: .65rem 0 0; color: #047857; font-size: .8rem; font-weight: 650; }
+.care-page .care-footer { margin: 1.4rem 0 0; color: #8b9e92; text-align: center; font-size: .72rem; font-weight: 600; }
+.care-page .care-footer span { color: #58b991; margin-right: .2rem; }
+.care-page :is(button,input,textarea):focus-visible { outline: 3px solid #34d399; outline-offset: 3px; }
+/* La pièce jointe est montée dynamiquement par boite.js. */
+.care-page .boite-images { margin-top: 1rem; padding: .9rem; border: 1px dashed #b8dfca; border-radius: .9rem; background: #f7fcf9; }
+.care-page .boite-images-intro { display: flex; align-items: center; gap: .7rem; color: #145d41; }
+.care-page .boite-images-icone { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex: none; border-radius: .75rem; color: #087c59; background: #e4f7eb; }
+.care-page .boite-images-intro strong { font-size: .82rem; }
+.care-page .boite-images-intro p, .care-page .boite-images-conseil, .care-page .boite-images-statut { margin: .2rem 0 0; color: #6b8173; font-size: .72rem; line-height: 1.45; }
+.care-page .boite-images-selection { position: relative; display: inline-flex; overflow: hidden; margin: .75rem 0 .35rem; padding: .55rem .75rem; border: 1px solid #b2ddc4; border-radius: .7rem; color: #087c59; background: white; font-size: .75rem; font-weight: 800; cursor: pointer; }
+.care-page .boite-images-selection:focus-within { outline: 3px solid #34d399; outline-offset: 2px; }
+.care-page .boite-images-selection input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.care-page .boite-images-apercus { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .55rem; margin-top: .65rem; }
+.care-page .boite-images-apercus:empty { display: none; }
+.care-page .boite-images-apercu { min-width: 0; padding: .4rem; border: 1px solid #d5eade; border-radius: .75rem; background: #fff; }
+.care-page .boite-images-apercu img { display: block; width: 100%; height: 6rem; object-fit: cover; border-radius: .45rem; }
+.care-page .boite-images-apercu span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: .35rem 0; font-size: .72rem; }
+.care-page .boite-images-apercu button { border: 0; background: transparent; color: #b42318; font: inherit; font-size: .75rem; font-weight: 700; cursor: pointer; }
+@media (max-width: 360px) {
+    .care-page .care-content { padding-left: .75rem; padding-right: .75rem; }
+    .care-page .care-intro { padding: 1rem; gap: .8rem; }
+    .care-page .care-intro-art { width: 3.2rem; height: 3.2rem; border-radius: 1rem; }
+    .care-page .care-card { padding: 1rem; }
+    .care-page .care-mood-grid { gap: .4rem; }
+    .care-page .care-mood-label { font-size: .66rem; }
+}
+@media (prefers-reduced-motion: reduce) { .care-page *, .care-page *::before, .care-page *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+/* Les grands écrans reprennent le rythme en deux colonnes de Mes Exercices. */
+.care-page .care-content { width: min(100%, 73.5rem); padding: 1.6rem 1.75rem 4.5rem; }
+.care-page .care-hero { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-bottom: 2.2rem; }
+.care-page .care-page-title { flex: 1; align-items: center; margin: 0; }
+.care-page .care-page-title h2 { color: #173d2f; font-size: clamp(2.25rem,4vw,3.2rem); font-weight: 750; letter-spacing: -.055em; }
+.care-page .care-page-title h2 em { color: #479b77; font-style: normal; }
+.care-page .care-page-title p { margin-top: .7rem; font-size: .88rem; line-height: 1.6; }
+.care-page .care-title-icon { display: none; }
+.care-page .care-intro { flex: 0 1 25rem; margin: 0; }
+.care-page .care-layout { display: grid; grid-template-columns: minmax(0,1.42fr) minmax(280px,1fr); align-items: start; gap: 1.15rem; }
+.care-page .care-primary { min-width: 0; }
+.care-page .care-side { display: grid; gap: .85rem; }
+.care-page .care-side-card { padding: 1.4rem; border: 1px solid #e3ece7; border-radius: 1.15rem; background: #fff; box-shadow: 0 8px 30px #325b3d08; }
+.care-page .care-side-overline { margin: 0 0 .7rem !important; color: #459675 !important; font-size: .62rem !important; font-weight: 800; letter-spacing: .14em; }
+.care-page .care-side-card h3 { margin: 0 0 .45rem; color: #294739; font-size: 1rem; font-weight: 800; letter-spacing: -.02em; }
+.care-page .care-side-card > p { margin: 0; color: #708579; font-size: .78rem; line-height: 1.6; }
+.care-page .care-side-card ul { display: grid; gap: .85rem; margin: 1.2rem 0 0; padding: 1.1rem 0 0; border-top: 1px solid #edf2ee; list-style: none; }
+.care-page .care-side-card li { display: flex; align-items: center; gap: .65rem; color: #536e5e; font-size: .76rem; font-weight: 650; line-height: 1.4; }
+.care-page .care-side-card li span { display: grid; place-items: center; width: 1.45rem; height: 1.45rem; flex: none; border-radius: 50%; color: #23835d; background: #e9f7ee; font-size: .75rem; }
+.care-page .care-side-note { display: flex; align-items: flex-start; gap: .65rem; padding: .95rem 1rem; border: 1px solid #e2eee4; border-radius: 1rem; background: #f1f8f1; }
+.care-page .care-side-note > span { color: #76aa84; }
+.care-page .care-side-note p { margin: 0; color: #81998a; font-size: .72rem; line-height: 1.6; }
+.care-page .care-side-note strong { color: #658a70; }
+@media (max-width: 700px) {
+    .care-page .care-content { width: min(100%, 36rem); padding: 1.15rem 1rem 4rem; }
+    .care-page .care-hero { display: block; margin-bottom: 1rem; }
+    .care-page .care-page-title { margin-bottom: 1.1rem; }
+    .care-page .care-page-title h2 { font-size: clamp(2rem,9vw,2.35rem); }
+    .care-page .care-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: .85rem; }
+    .care-page .care-side-card { padding: 1.15rem; }
+}
+@media (max-width: 360px) { .care-page .care-content { padding-left: .75rem; padding-right: .75rem; } }

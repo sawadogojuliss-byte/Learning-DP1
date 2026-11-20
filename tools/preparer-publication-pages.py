@@ -47,6 +47,7 @@ for rel, expected_hash in {
     'js/memoire.js': 'c6bff3e8fbb064baea991b35bc61783634d67439',
     'js/pages/statistiques.js': '10aa882d785ec3527767ad1a80a23efa4bfc6ef9',
     'js/pages/onboarding-classe.js': 'ba748e565e99d44f79c3424f3250f9b242179138',
+    'js/pages/soutien.js': '4636ecc5689dd555df580ff24801f5303f781685',
 }.items():
     found = subprocess.check_output(['git', 'hash-object', str(base / rel)], text=True).strip()
     if found != expected_hash:
@@ -112,6 +113,8 @@ files = [
     'pages/ee-ia.html',
     'pages/feries.html',
     'pages/soutien.html',
+    'js/pages/soutien.js',
+    'css/pages/soutien-aide-feedback.css',
     'pages/feedback.html',
     'pages/aide.html',
     'livrables/publication-entetes/entetes.css',
@@ -409,7 +412,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Styles des rappels introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">'
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/soutien-aide-feedback.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -427,7 +430,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",\n    "css/pages/soutien-aide-feedback.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;

@@ -207,9 +207,9 @@ function initSoutien() {
     document.getElementById('soutienDate').textContent = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
     const h = now.getHours();
     const greet = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
-    document.getElementById('soutienGreet').textContent = greet + ', ' + (typeof userName !== 'undefined' ? userName : 'champion') + ' ! 👋';
+    document.getElementById('soutienGreet').textContent = greet + ', ' + (typeof userName !== 'undefined' ? userName : 'champion') + ' !';
     // Reset mood selection
-    document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.mood-btn').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); });
     document.getElementById('encouragementSection').style.display = 'none';
     var videInit = document.getElementById('soutienVide'); if (videInit) videInit.style.display = 'block';
     // Streak
@@ -224,14 +224,14 @@ function updateStreak() {
 }
 
 function selectMood(mood) {
-    if (!mood) { document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected')); document.getElementById('encouragementSection').style.display = 'none'; var vide = document.getElementById('soutienVide'); if (vide) vide.style.display = 'block'; var annonce = document.getElementById('soutienAnnonce'); if (annonce) annonce.textContent = ''; return; }
+    if (!mood) { document.querySelectorAll('.mood-btn').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); }); document.getElementById('encouragementSection').style.display = 'none'; var vide = document.getElementById('soutienVide'); if (vide) vide.style.display = 'block'; var annonce = document.getElementById('soutienAnnonce'); if (annonce) annonce.textContent = ''; return; }
     currentMood = mood;
-    document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('selected', b.dataset.mood === mood));
+    document.querySelectorAll('.mood-btn').forEach(b => { const choisi = b.dataset.mood === mood; b.classList.toggle('selected', choisi); b.setAttribute('aria-pressed', String(choisi)); });
     const data = moodData[mood];
     // Encouragement card
     document.getElementById('encouragementCard').style.cssText = 'background:' + data.bg + ';border:2px solid ' + data.border + ';border-radius:1.25rem;padding:1.5rem;margin-bottom:1rem;animation:fadeInUp 0.4s ease-out;text-align:center;';
     document.getElementById('encouragementCard').innerHTML =
-        '<div style="font-size:2.5rem;margin-bottom:0.75rem;">' + data.emoji + '</div>' +
+        '<div aria-hidden="true" style="font-size:2rem;margin-bottom:0.75rem;color:#07825d;">&#10022;</div>' +
         '<h3 style="font-size:1.125rem;font-weight:800;color:' + data.color + ';margin-bottom:0.5rem;">' + data.label + '</h3>' +
         '<p style="color:#374151;line-height:1.6;font-size:0.9rem;">' + data.msg + '</p>';
     // Tips
