@@ -31,7 +31,7 @@
                 <p id="emploiNomFichier" hidden style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;overflow-wrap:anywhere;"></p>
                 <button type="button" onclick="emploiLireDocument()" style="width:100%;margin-top:0.6rem;padding:0.75rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;font-size:0.9rem;cursor:pointer;">Lire le document</button>
                 <button type="button" id="emploiAnnulerLecture" hidden onclick="emploiAnnulerLecture()" style="margin-top:0.5rem;border:1.5px solid #a7f3d0;background:#fff;color:#065f46;border-radius:0.7rem;padding:0.5rem 0.8rem;font:inherit;font-size:0.83rem;cursor:pointer;">Annuler la lecture</button>
-                <p style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;">Lecture sur ton appareil : PDF jusqu’à 20 pages. Pour un fichier plus long, sépare-le avant l’import. Annuler ignore le résultat en cours ; vérifie les propositions avant d’enregistrer.</p>
+                <p style="margin:0.45rem 0 0;color:#374151;font-size:0.78rem;">Lecture sur ton appareil : PDF jusqu’à 20 pages. Pour un fichier plus long, sépare-le avant l’import. Annuler ignore le résultat en cours ; vérifie chaque proposition et ajoute à la main les cours manquants avant d’enregistrer. Français et anglais sont pris en charge.</p>
                 <p id="emploiOcrStatut" role="status" aria-live="polite" style="margin:0.4rem 0 0;font-size:0.78rem;min-height:1.1rem;"></p>
             </div>
 
@@ -42,7 +42,7 @@
                 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
                     <label for="emploiManuelJour" style="flex:1 1 auto;font-size:0.82rem;">Jour</label>
                     <select id="emploiManuelJour" style="flex:1 1 6.5rem;border:1px solid #e5e7eb;border-radius:0.6rem;padding:0.5rem;font:inherit;font-size:0.82rem;">
-                        <option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option>
+                        <option value="">Choisir un jour</option><option value="0">Lundi</option><option value="1">Mardi</option><option value="2">Mercredi</option>
                         <option value="3">Jeudi</option><option value="4">Vendredi</option><option value="5">Samedi</option><option value="6">Dimanche</option>
                     </select>
                     <label for="emploiManuelNom" style="flex:1 1 auto;font-size:0.82rem;">Nom du cours</label>

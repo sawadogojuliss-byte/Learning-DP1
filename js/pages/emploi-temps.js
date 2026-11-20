@@ -128,9 +128,9 @@ function emploiLirePlage(s) {
         if (min > 59 || h > 23 || ((suffixe === 'am' || suffixe === 'pm') && (h < 1 || h > 12))) return NaN;
         if (suffixe === 'pm') { if (h < 12) h += 12; }
         else if (suffixe === 'am') { if (h === 12) h = 0; }
-        else if (autre === 'pm' && h <= 7) h += 12; /* « 1:25 - 2:55 pm » */
         return h * 60 + min;
     }
+    if ((m[3] === 'am' || m[3] === 'pm' || m[6] === 'am' || m[6] === 'pm') && !(m[3] && m[6])) return null;
     var d = convertir(m[1], m[2], m[3], m[6]);
     var f = convertir(m[4], m[5], m[6], m[3]);
     if (!Number.isFinite(d) || !Number.isFinite(f) || f <= d || f >= 1440) return null;
@@ -537,7 +537,7 @@ function emploiPdfItems(fichier, dire, actif) {
                         return devoirsPdfCanvas(page).then(function (canvas) {
                             return devoirsChargerTesseract().then(function () {
                                 if (!actif()) return null;
-                                return window.Tesseract.recognize(canvas, 'fra', Object.assign({}, devoirsOcrOptions(), {
+                                return window.Tesseract.recognize(canvas, 'fra+eng', Object.assign({}, devoirsOcrOptions(), {
                                     logger: function (info) { emploiProgression(info, n, pages, actif); }
                                 }));
                             }).then(function (res) {
@@ -583,7 +583,7 @@ function emploiLireDocument() {
     } else {
         promesse = devoirsChargerTesseract().then(function () {
             if (!actif()) return '';
-            return window.Tesseract.recognize(fichier, 'fra', Object.assign({}, devoirsOcrOptions(), {
+            return window.Tesseract.recognize(fichier, 'fra+eng', Object.assign({}, devoirsOcrOptions(), {
                 logger: function (info) { emploiProgression(info, 1, 1, actif); }
             })).then(function (res) {
                 var items = emploiOcrItems(res && res.data);
@@ -623,7 +623,7 @@ function emploiMontrerPropositions(res) {
         emploiPropositions = [];
         var raison = document.createElement('div');
         raison.style.cssText = 'background:#fffbeb;border:1.5px solid #fde68a;border-radius:1rem;padding:0.9rem 1rem;font-size:0.85rem;color:#92400e;';
-        raison.textContent = (res && res.diagnostic) || emploiDiagnosticLecture('');
+        raison.textContent = ((res && res.diagnostic) || emploiDiagnosticLecture('')) + ' Complète les informations manquantes avec le formulaire « Ajouter un cours à la main » ci-dessous.';
         zone.replaceChildren(raison);
         emploiDire('Aucun cours ajouté. La raison est indiquée ci-dessous.', true);
         return;
@@ -867,7 +867,8 @@ function emploiChoisirConflit(conflits, suite) {
 }
 
 function emploiAjouterManuel() {
-    var jour = Number((document.getElementById('emploiManuelJour') || {}).value);
+    var jourLu = (document.getElementById('emploiManuelJour') || {}).value;
+    var jour = jourLu === '' || jourLu == null ? NaN : Number(jourLu);
     var nom = String((document.getElementById('emploiManuelNom') || {}).value || '').trim();
     var debut = (document.getElementById('emploiManuelDebut') || {}).value || '';
     var fin = (document.getElementById('emploiManuelFin') || {}).value || '';

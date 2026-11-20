@@ -166,6 +166,7 @@ jobs:
           executer_test travail/tools/tester-eeia-navigation.mjs
           executer_test travail/tools/tester-entetes-sections.mjs
           executer_test travail/tools/tester-ocr-formats.mjs
+          executer_test travail/tools/tester-corpus-ocr.mjs
           executer_test travail/tools/tester-upload-emploi.cjs
           executer_test travail/tools/tester-navigation-retours.mjs
           executer_test travail/tools/tester-salon-navigation.mjs
@@ -266,6 +267,7 @@ jobs:
           executer_test tools/tester-eeia-navigation.mjs
           executer_test tools/tester-entetes-sections.mjs
           executer_test tools/tester-ocr-formats.mjs
+          executer_test tools/tester-corpus-ocr.mjs
           executer_test tools/tester-upload-emploi.cjs
           executer_test tools/tester-navigation-retours.mjs
           executer_test tools/tester-salon-navigation.mjs
