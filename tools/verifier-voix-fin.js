@@ -75,8 +75,11 @@ ok(moduleSrc.indexOf("CHRONO_VOIX_EXT = '.wav'") !== -1, 'la voix doit être en 
    Si le premier échoue sur un appareil, le suivant prend le relais. */
 ok(moduleSrc.indexOf('function chronoVoixJouerTampons') !== -1, 'le premier chemin (AudioContext) manque');
 ok(moduleSrc.indexOf('function chronoVoixJouerLecteurs') !== -1, 'le second chemin (lecteurs audio) manque');
-ok(/function chronoAnnoncerPause[\s\S]*?chronoVoixJouerTampons\(noms[\s\S]*?chronoVoixJouerLecteurs\(noms[\s\S]*?chronoVoixSynthese/.test(moduleSrc),
-    'la voix doit essayer les trois chemins, sans jamais rester muette');
+const moteurAnnonce = moduleSrc.slice(moduleSrc.indexOf('function chronoLancerAnnonce'), moduleSrc.indexOf('/* Fin de concentration'));
+ok(moteurAnnonce.includes('chronoVoixJouerTampons(noms') && moteurAnnonce.includes('chronoVoixJouerLecteurs(options && options.nomsSecours || noms') && moteurAnnonce.includes('chronoVoixSynthese(phrase'),
+    'la voix doit garder le décodage, le lecteur et la synthèse de secours');
+ok(moteurAnnonce.includes("typeVoix === 'feminine'") && moteurAnnonce.includes('20000'),
+    'une panne ne doit ni mélanger les voix ni bloquer indéfiniment le minuteur');
 ok(moduleSrc.indexOf('delete chronoVoixChargements[nom]') !== -1,
     'un chargement raté doit pouvoir être retenté (pas de panne définitive)');
 ok(moduleSrc.indexOf('lecteur.pause()') !== -1,
@@ -155,6 +158,34 @@ for (let n = 21; n <= 30; n++) {
 ok(memeListe(bac.chronoVoixMorceauxNombre(45), ['n-40', 'n-5']),
     'quarante-cinq se compose de « quarante » et « cinq » : ' + JSON.stringify(bac.chronoVoixMorceauxNombre(45)));
 
+/* La fin de série est seule ; les autres pauses restent inchangées. */
+ok(fs.existsSync(path.join(racine, 'livrables/stock-voix/messages/fin-serie.wav')), 'prise de fin de série manquante');
+const lancerOriginal = bac.chronoLancerAnnonce;
+let annonceCapturee;
+bac.chronoLancerAnnonce = function (noms, type, phrase, suite, options) { annonceCapturee = { noms, type, phrase, options: options || {} }; };
+for (const type of ['feminine', 'masculine']) {
+    bac.chronoVoixType = () => type;
+    bac.chronoAnnoncerPause(21, function () {}, true);
+    ok(memeListe(annonceCapturee.noms, ['masculine-fin-serie']) && annonceCapturee.type === 'masculine', 'fin de série seule attendue : ' + type);
+    ok(annonceCapturee.phrase === 'Tes séances de révisions sont terminées.', 'texte de fin incorrect');
+    bac.chronoAnnoncerPause(21, function () {}, false);
+    ok(!annonceCapturee.noms.includes('masculine-fin-serie'), 'message final entendu sur une séance intermédiaire');
+}
+bac.chronoVoixType = () => 'masculine';
+const approuves = Array.from({ length: 60 }, (_, i) => i + 1);
+for (let n = 1; n <= 60; n++) {
+    for (const finale of [false, true]) {
+        bac.chronoAnnoncerPause(n, function () {}, finale);
+        const attendu = finale ? ['masculine-fin-serie'] : ['masculine-complet-' + n];
+        ok(memeListe(annonceCapturee.noms, attendu), 'annonce inattendue pour ' + n + ' minutes, finale=' + finale);
+        ok(!annonceCapturee.options.nomsSecours, 'ne pas rejouer les fragments pour la prise approuvée ' + n);
+        const url = bac.chronoVoixUrl('masculine-complet-' + n).split('?')[0];
+        ok(fs.existsSync(path.join(racine, url)), 'prise approuvée absente : ' + url);
+    }
+}
+bac.chronoLancerAnnonce = lancerOriginal;
+bac.chronoVoixType = () => 'feminine';
+
 const phrase5 = bac.chronoVoixPhrasePause(5);
 ok(memeListe(phrase5, ['seance-fin', 'n-5', 'minutes-de-pause']),
     'la phrase de 5 minutes est mal composée : ' + JSON.stringify(phrase5));
@@ -165,28 +196,31 @@ ok(phrase1 && phrase1[phrase1.length - 1] === 'minute-de-pause',
 /* ── 4. Le minuteur s'en sert, avec la pause configurée ─────────────── */
 const page = lire('js/pages/pomodoro-page.js');
 ok(page.indexOf('function focusPhaseSuivante') !== -1, 'la fin de phase du minuteur n\'existe plus');
-ok(page.indexOf('chronoAnnoncerPause(minutesPause)') !== -1,
+ok(page.indexOf('chronoAnnoncerPause(minutesPause, demarrerPause, false)') !== -1,
     'la fin de concentration doit annoncer la pause');
 ok(page.indexOf('var minutesPause = focusDurees()[modePause];') !== -1,
     'la pause annoncée doit venir de la configuration de l\'élève');
-ok(page.indexOf('chronoAnnoncerReprise()') !== -1, 'la fin de pause doit garder son signal');
+ok(page.indexOf('chronoAnnoncerReprise(reprisePrete)') !== -1, 'la fin de pause doit garder son signal');
 ok(page.indexOf('chronoVoixPreparer(') !== -1, 'le son doit être préparé au départ, sur le geste de l\'élève');
 ok(page.indexOf('chronoRendreMusique()') !== -1, 'la musique doit revenir au temps de concentration suivant');
 ok(moduleSrc.indexOf('function chronoCouperMusique') !== -1, 'le module doit savoir couper la musique');
-ok(/function chronoAnnoncerPause[\s\S]{0,220}chronoCouperMusique\(\)/.test(moduleSrc),
-    'la musique doit être coupée AVANT que la voix parle');
-ok(page.indexOf('else focusBip(2)') !== -1 && page.indexOf('else focusBip(1)') !== -1,
+ok(moteurAnnonce.indexOf('chronoCouperMusique()') >= 0 && moteurAnnonce.indexOf('chronoCouperMusique()') < moteurAnnonce.indexOf('chronoBipDoux()'),
+    'la musique doit être coupée AVANT le bip et la voix');
+ok(page.includes('focusBip(2)') && page.includes('focusBip(1)') && moteurAnnonce.includes('chronoBipDoux()'),
     'le bip doit rester quand la voix n\'est pas disponible');
-/* Rien ne se relance tout seul : la phase suivante est proposée, pas lancée. */
-ok(page.indexOf('focusEtat.running = false;\n    focusStopIntervalle();') !== -1,
-    'la fin de phase doit arrêter le chronomètre');
-ok(page.indexOf("focusChoisirMode(modePause, false)") !== -1,
-    'la pause doit être proposée sans démarrer');
-ok(page.indexOf("focusChoisirMode('focus', false)") !== -1,
-    'la concentration suivante doit être proposée sans démarrer');
-ok(page.indexOf('focusChoisirMode(modePause, true)') === -1 &&
-   page.indexOf("focusChoisirMode('focus', true)") === -1,
-    'plus aucune phase ne doit s\'enchaîner automatiquement');
+/* La pause démarre après l'annonce ; les séries restantes attendent une
+   confirmation, et une série terminée ne redémarre pas. */
+const transition = page.slice(page.indexOf('function focusPhaseSuivante'), page.indexOf('function focusTick'));
+ok(transition.includes('focusEtat.running = false;') && transition.includes('focusStopIntervalle();'),
+    'la phase précédente doit être arrêtée avant la suivante');
+ok(transition.includes("focusEtat.transition = 'pause-annonce'") &&
+   transition.includes('chronoAnnoncerPause(minutesPause, demarrerPause, false)') &&
+   /function demarrerPause\(\)[\s\S]*?focusLancerPhase\(\)/.test(transition),
+    'la pause intermédiaire doit attendre son annonce');
+ok(transition.includes('focusEtat.serie >= objectif') && transition.includes('focusTerminerSerie(silencieux)') &&
+   page.includes("focusEtat.transition = 'fin-annonce'") && page.includes('chronoAnnoncerFinSerie(terminer)') &&
+   transition.includes("'attente-reprise'"),
+    'la fin de série doit s arrêter sans pause et la reprise doit attendre confirmation');
 
 /* Une pause réglée à 15 minutes doit être dite « quinze minutes » :
    le nombre suit la configuration, jamais une valeur écrite à part. */

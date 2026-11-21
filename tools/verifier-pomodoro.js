@@ -164,8 +164,8 @@ var blocMenu = menuPomo.slice(debutMenu, menuPomo.indexOf('</button>', debutMenu
     if (rel === 'pages/planning.html') texte = texte.replace(blocMenu, '');
     ok(texte.indexOf('🍅') === -1, 'il reste une tomate dans ' + rel + ' (seule l\u2019icône du menu Pomodoro y a droit)');
 });
-ok(script.indexOf("' × ' + focusDurees().focus") !== -1, 'le décompte suit la durée réglée');
-ok(script.indexOf("'sessions de ' + focusDurees().focus") !== -1, 'la statistique suit la durée réglée');
+ok(script.indexOf('function focusPossibilites') !== -1 && script.indexOf('focusPauseApres(n)') !== -1, 'le décompte tient compte des pauses');
+ok(script.indexOf('sessions possibles') !== -1 && script.indexOf('focusMinutesDisponibles(s)') !== -1, 'la statistique suit le temps restant');
 
 /* ── 7. Les fonds WebP, posés d'un coup, jamais de fondu ── */
 ['lumiere', 'kiosque', 'sommets', 'hublot', 'dunes', 'chalet', 'pont', 'riviere', 'prairie', 'noel', 'cafe', 'cafe-nuit', 'foret', 'campagne', 'tente', 'savane', 'recif', 'sentier', 'pluie-nuit', 'lecture', 'cabine', 'tunnel', 'stade'].forEach(function (id) {

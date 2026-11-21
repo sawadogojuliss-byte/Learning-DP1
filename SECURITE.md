@@ -68,6 +68,24 @@ listées ici sont utilisées par une autre application sur **la même base**,
 vérifier leurs règles avant de remplacer l'ensemble du fichier : toute
 collection sans règle correspondante sera inaccessible depuis les applications.
 
+## Conversation vocale du Salon focus
+
+Le site et les règles sont déployés séparément. **Avant d'activer la voix**, sauvegarder les règles actuellement publiées et vérifier que le fichier `firestore.rules` proposé conserve les autres règles nécessaires au projet ; s'il existe des différences propres à la production, faire examiner et fusionner ces différences par le responsable Firebase plutôt que de les écraser. Ne jamais utiliser les règles expérimentales d'un brouillon.
+
+La version corrigée exige la mise à jour des règles même si une version antérieure des règles vocales est déjà publiée. Actualiser tous les onglets après leur publication : plusieurs appareils du même compte peuvent ensuite coexister sans se remplacer.
+
+La voix utilise deux sous-collections Firestore, `salon_voix_presence` et `salon_voix_signaux`. Les règles prévues limitent l'accès aux membres authentifiés d'un salon actif ; un signal n'est lisible que par son destinataire. **L'audio ne passe pas par Firestore** : WebRTC établit des connexions directes chiffrées entre participants. Les signaux SDP et candidats ICE peuvent cependant contenir des adresses IP et des informations de connexion visibles par le destinataire et par les administrateurs du projet. Le lien du salon doit rester privé.
+
+Le bouton « Vérifier la voix » effectue localement une courte vérification des états de connexion et des compteurs de paquets WebRTC. Il ne collecte ni ne transmet d'audio, de SDP, d'adresse réseau ou d'identifiant. Une réception de paquets ne garantit pas que le haut-parleur ou la voix de l'autre personne soient audibles.
+
+Après autorisation explicite, le microphone reste demandé tant que l'utilisateur ne le coupe pas et reste dans la vue du salon. Si le navigateur ou l'appareil interrompt la piste, l'application affiche une reconnexion et essaie de la rétablir automatiquement ; la coupure volontaire ou la sortie annule toute reprise. Une autorisation retirée, une fermeture de page ou une restriction du système ne peut pas être contournée.
+
+Pour limiter la conservation des documents abandonnés après une fermeture imprévue, le responsable doit aussi configurer dans Firestore deux politiques **TTL** sur le champ `expireLe` : une pour le groupe de collections `salon_voix_presence`, une pour `salon_voix_signaux`. Vérifier d'abord que ces noms ne sont utilisés par aucune autre application du projet. Les TTL sont distincts des règles, peuvent entraîner des frais et la suppression n'est pas instantanée. Les signaux reçus sont normalement supprimés par le destinataire ; un TTL est nécessaire pour les signaux non reçus.
+
+Après publication du site, validation des règles et activation des TTL, publier les règles adaptées dans la console Firebase et essayer avec au moins deux personnes et appareils : chaque participant rejoint avec le micro coupé, autorise explicitement son micro pour parler, puis vérifie l'écoute et la coupure. Tester aussi le départ et le retour. Si l'écoute est bloquée par le navigateur, utiliser « Activer l'écoute ». Les règles et TTL ne sont **jamais déployés par GitHub Pages**.
+
+La version directe est limitée à huit appareils vocaux au total, dont quatre au maximum par compte, et utilise un serveur STUN public, sans relais TURN. L'initiateur réessaie une offre restée sans réponse et relance la liaison après une interruption prolongée ; une courte coupure peut se rétablir sans renégociation. Même sur un Wi-Fi partagé, l'isolation des appareils ou le blocage du multicast peuvent empêcher la liaison directe ; certains routeurs ne permettent pas non plus de chemin via les adresses publiques. Une infrastructure TURN sécurisée pourra être nécessaire. Les tests entre deux processus navigateur sur la même machine ne simulent ni un véritable point d'accès, ni Android, ni toutes les conditions réseau et ne garantissent pas l'audibilité sur les appareils réels.
+
 ## Conserver les emplois du temps et leurs versions
 
 **Ne supprimer ni `emplois_du_temps`, ni `emplois`, ni `boite`.** La demande

@@ -9,12 +9,17 @@
             <!-- Header -->
             <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
                 <div style="display:flex;align-items:center;gap:0.75rem;">
-                    <button onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+                    <button onclick="memoireRetour()" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
                     <div><h2 style="font-size:1.1rem;font-weight:800;color:#111827;">Devoirs et Examens</h2><p style="font-size:0.75rem;color:#6b7280;">Tes compositions et ton programme de révisions</p></div>
                 </div>
             </div>
 
-            <!-- Réglage du bac national (DP2) -->
+            <aside class="study-welcome-card" aria-label="Bienvenue dans cet espace"><span class="study-welcome-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="16" rx="3"/><path d="M8 3v4m8-4v4M4 10h16m-12 5h3m2 0h3"/></svg></span><div class="study-welcome-copy"><span class="study-welcome-kicker">TES PROCHAINES ÉPREUVES</span><strong class="study-welcome-title">Avance en confiance</strong><span class="study-welcome-desc">Organise tes devoirs et prépare tes examens pas à pas.</span></div></aside>
+
+            <section id="devoirsBacReglage" hidden style="margin:0 0 1rem;padding:1rem;border:1px solid #d7e8dc;border-radius:1rem;background:#f4faf5;">
+                <strong>Bac national : <span id="devoirsBacEtat">Pas encore répondu</span></strong>
+                <button type="button" onclick="devoirsModifierBac()" style="margin-left:0.7rem;padding:0.45rem 0.7rem;border:1px solid #a7cfb6;border-radius:0.6rem;background:white;color:#176844;font-weight:700;cursor:pointer;">Modifier ma réponse</button>
+            </section>
 
             <!-- Onglets -->
             <div style="display:flex;background:#f3f4f6;border-radius:0.875rem;padding:0.25rem;margin-bottom:1rem;">
@@ -33,7 +38,7 @@
                     <div onclick="document.getElementById('devoirsFichier').click()" style="border:2px dashed #a7f3d0;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffa;">
                         <p style="margin:0;font-size:1.5rem;">📷</p>
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#065f46;">Choisis une photo du document</p>
-                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF jusqu’à 20 pages — lecture approfondie en français ou anglais sur ton appareil, parfois plus longue. Vérifie les jours, les heures et chaque ligne avant ajout.</p>
                     </div>
                     <input type="file" id="devoirsFichier" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument()">
                     <textarea id="devoirsTexteColle" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Mathématiques — lundi 23/10, 8h00 à 13h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>
@@ -80,7 +85,7 @@
                     <div onclick="document.getElementById('devoirsFichierExam').click()" style="border:2px dashed #99f6e4;border-radius:0.875rem;padding:1.1rem;text-align:center;cursor:pointer;background:#f8fffe;">
                         <p style="margin:0;font-size:1.5rem;">📷</p>
                         <p style="margin:0.35rem 0 0;font-size:0.85rem;font-weight:700;color:#134e4a;">Choisis une photo du planning</p>
-                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG ou PNG — la lecture se fait dans ton navigateur</p>
+                        <p style="margin:0.2rem 0 0;font-size:0.72rem;color:#6b7280;">JPG, PNG ou PDF jusqu’à 20 pages — lecture approfondie en français ou anglais sur ton appareil, parfois plus longue. Vérifie les jours, les heures et chaque ligne avant ajout.</p>
                     </div>
                     <input type="file" id="devoirsFichierExam" accept="image/*,application/pdf,.pdf" style="display:none;" onchange="devoirsLireDocument('examens')">
                     <textarea id="devoirsTexteColleExam" rows="3" placeholder="…ou colle ici le texte du planning (ex. : Physique — mardi 24/10, 8h00 à 10h00)" style="width:100%;box-sizing:border-box;margin-top:0.6rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;padding:0.6rem;font:inherit;font-size:0.82rem;resize:vertical;"></textarea>

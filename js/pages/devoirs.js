@@ -30,21 +30,29 @@ function devoirsLireStore() {
             return {
                 bac: (d.bac === true || d.bac === false) ? d.bac : null,
                 bacDemande: d.bacDemande === 2 ? 2 : 0,
+                bacModifieAt: Number.isFinite(Number(d.bacModifieAt)) && Number(d.bacModifieAt) > 0 ? Number(d.bacModifieAt) : 0,
                 devoirs: Array.isArray(d.devoirs) ? d.devoirs.filter(function (x) { return x && x.id; }) : [],
                 examens: Array.isArray(d.examens) ? d.examens.filter(function (x) { return x && x.id; }) : []
             };
         }
     } catch (e) {}
-    return { bac: null, bacDemande: 0, devoirs: [], examens: [] };
+    return { bac: null, bacDemande: 0, bacModifieAt: 0, devoirs: [], examens: [] };
 }
 
 /* Chaque écriture date les devoirs modifiés et note les suppressions
    (js/synchro.js). `brut` : restauration d'une sauvegarde, rien n'est daté. */
 function devoirsEcrireStore(store, opts) {
-    if (!(opts && opts.brut) && store && typeof syncEstampiller === 'function') {
+    if (!(opts && opts.brut) && store) {
         var avant = devoirsLireStore();
-        syncEstampiller('devoirs', store.devoirs, avant.devoirs);
-        syncEstampiller('examens', store.examens, avant.examens);
+        // La réponse est un champ indépendant des devoirs : dater tout changement
+        // pour qu'une ancienne copie du compte ne puisse pas rétablir l'inverse.
+        if ((store.bac === true || store.bac === false) && store.bac !== avant.bac)
+            store.bacModifieAt = Math.max(Date.now(), avant.bacModifieAt + 1);
+        else if (!store.bacModifieAt) store.bacModifieAt = avant.bacModifieAt;
+        if (typeof syncEstampiller === 'function') {
+            syncEstampiller('devoirs', store.devoirs, avant.devoirs);
+            syncEstampiller('examens', store.examens, avant.examens);
+        }
     }
     try { localStorage.setItem(DEVOIRS_CLE, JSON.stringify(store)); } catch (e) {}
 }
@@ -55,7 +63,7 @@ function devoirsFaitBac() {
 
 function devoirsStoreCompact() {
     var s = devoirsLireStore();
-    return { bac: s.bac, bacDemande: s.bacDemande, devoirs: s.devoirs, examens: s.examens };
+    return { bac: s.bac, bacDemande: s.bacDemande, bacModifieAt: s.bacModifieAt, devoirs: s.devoirs, examens: s.examens };
 }
 
 function devoirsId(prefixe) {
@@ -75,12 +83,12 @@ function devoirsBacADemander() {
     return true;
 }
 
-function devoirsPoserQuestionBac(apres) {
+function devoirsPoserQuestionBac(apres, forcer) {
     var store = devoirsLireStore();
     /* Déjà répondu sous la version actuelle : plus jamais de popup.
        Une réponse plus ancienne (avant que « Oui » n'applique vraiment
        les créneaux du bac) mérite une nouvelle demande. */
-    if (store.bacDemande === 2 && (store.bac === true || store.bac === false)) {
+    if (!forcer && store.bacDemande === 2 && (store.bac === true || store.bac === false)) {
         if (typeof apres === 'function') apres();
         return;
     }
@@ -97,11 +105,13 @@ function devoirsPoserQuestionBac(apres) {
         '<div style="display:flex;gap:0.6rem;">' +
         '<button id="bacQuestionNon" style="flex:1;padding:0.8rem;border:1.5px solid #e5e7eb;border-radius:0.8rem;background:#f9fafb;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Non</button>' +
         '<button id="bacQuestionOui" style="flex:1;padding:0.8rem;border:none;border-radius:0.8rem;background:linear-gradient(135deg,#059669,#10b981);color:white;font:inherit;font-weight:800;cursor:pointer;">Oui, je fais le bac</button>' +
-        '</div></div>';
+        '</div>' + (forcer ? '<button type="button" id="bacQuestionAnnuler" style="margin-top:0.8rem;border:0;background:none;color:#4b5563;font:inherit;cursor:pointer;">Annuler</button>' : '') + '</div>';
     document.body.appendChild(voile);
     function repondre(oui) {
         var s = devoirsLireStore();
         s.bac = oui;
+        // Même une réponse identique reconfirmée est une décision récente.
+        s.bacModifieAt = Math.max(Date.now(), s.bacModifieAt + 1);
         s.bacDemande = 2; /* la réponse s'applique vraiment au planning */
         devoirsEcrireStore(s);
         voile.remove();
@@ -109,8 +119,17 @@ function devoirsPoserQuestionBac(apres) {
         else if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) {} }
         if (typeof devoirsRendreSiVisible === 'function') { try { devoirsRendreSiVisible(); } catch (e) {} }
     }
+    if (forcer) voile.querySelector('#bacQuestionAnnuler').onclick = function () { voile.remove(); };
     voile.querySelector('#bacQuestionOui').onclick = function () { repondre(true); };
     voile.querySelector('#bacQuestionNon').onclick = function () { repondre(false); };
+}
+
+/* Permet de corriger une réponse restaurée incorrectement, sans quitter Devoirs. */
+function devoirsModifierBac() {
+    devoirsPoserQuestionBac(function () {
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        if (typeof renderPlanning === 'function') { try { renderPlanning(); } catch (e) {} }
+    }, true);
 }
 
 /* ── Matières connues ──────────────────────────────────────────────── */
@@ -313,17 +332,10 @@ function devoirsTrouverMatiere(texteNormalise, connues) {
 
 /* ── Analyse d'un texte (OCR ou collé) ─────────────────────────────── */
 
-var DEVOIRS_JOURS = { lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6, dimanche: 0 };
-var DEVOIRS_MOIS = { janvier: 0, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5, juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11 };
+var DEVOIRS_MOIS = { janvier: 0, fevrier: 1, mars: 2, avril: 3, mai: 4, juin: 5, juillet: 6, aout: 7, septembre: 8, octobre: 9, novembre: 10, decembre: 11, january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11 };
 
 function devoirsCle(d) {
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-}
-
-function devoirsAnneePour(mois) {
-    var maintenant = new Date();
-    if (mois < maintenant.getMonth() - 6) return maintenant.getFullYear() + 1;
-    return maintenant.getFullYear();
 }
 
 function devoirsNormaliserGarde(s) {
@@ -334,9 +346,9 @@ function devoirsNormaliserGarde(s) {
 
 /* l'après-midi à l'anglaise : « 1:25 pm » devient « 13:25 » */
 function devoirsNormaliserApresMidi(norm) {
-    norm = norm.replace(/(\d{1,2})(:\d{2})\s*pm\b/g, function (x, h, mn) { return ((Number(h) % 12) + 12) + mn; });
-    norm = norm.replace(/(\d{1,2})\s*pm\b/g, function (x, h) { return ((Number(h) % 12) + 12) + ':00'; });
-    norm = norm.replace(/(\d{1,2})(:\d{2})?\s*am\b/g, function (x, h, mn) { return ('0' + (Number(h) % 12)).slice(-2) + (mn || ':00'); });
+    norm = norm.replace(/(\d{1,2})(:\d{2})\s*pm\b/g, function (x, h, mn) { return Number(h) < 1 || Number(h) > 12 ? 'heure invalide' : ((Number(h) % 12) + 12) + mn; });
+    norm = norm.replace(/(\d{1,2})\s*pm\b/g, function (x, h) { return Number(h) < 1 || Number(h) > 12 ? 'heure invalide' : ((Number(h) % 12) + 12) + ':00'; });
+    norm = norm.replace(/(\d{1,2})(:\d{2})?\s*am\b/g, function (x, h, mn) { return Number(h) < 1 || Number(h) > 12 ? 'heure invalide' : ('0' + (Number(h) % 12)).slice(-2) + (mn || ':00'); });
     return norm;
 }
 
@@ -370,10 +382,9 @@ function devoirsParserTexte(texte, connues) {
     var dateCourante = ''; /* dernière date rencontrée : elle vaut pour les lignes suivantes */
     var dateCouranteIncertaine = false; /* le document mentionne une date, mais elle est illisible */
     var i, j;
-    /* Un planning d'épreuves se présente souvent en tableau : une date,
-       puis plusieurs créneaux horaires, puis les matières, puis les
-       « Paper … », les durées et les surveillants. On regroupe par bloc
-       de date et on apparie heures et matières dans l'ordre. */
+    /* Les tableaux regroupent parfois les heures et les matières par date.
+       Plusieurs colonnes rendent leur association incertaine : demander
+       alors les heures au lieu de se fier à l'ordre d'extraction. */
     var blocHeures = [];
     var blocMatieres = [];
     var enPapiers = false;
@@ -385,18 +396,22 @@ function devoirsParserTexte(texte, connues) {
     var profilConnu = famillesEleve.length > 0;
 
     function devoirsH2Mvalide(h) {
-        return h && devoirsH2M(h.fin) > devoirsH2M(h.debut);
+        return h && /^([01]\d|2[0-3]):[0-5]\d$/.test(h.debut) && /^([01]\d|2[0-3]):[0-5]\d$/.test(h.fin) && devoirsH2M(h.fin) > devoirsH2M(h.debut);
     }
     function viderBloc(dernier) {
-        var n = Math.min(blocHeures.length, blocMatieres.length);
         var k;
-        for (k = 0; k < n; k++) {
-            if (devoirsH2Mvalide(blocHeures[k])) {
-                propositions.push({ matiere: blocMatieres[k], date: dateCourante, debut: blocHeures[k].debut, fin: blocHeures[k].fin, ligne: '' });
-            }
+        if (blocHeures.length && blocMatieres.length) {
+            /* Dans une lecture en colonnes, l'ordre d'extraction ne prouve
+               pas quelle heure appartient à quelle matière. Ne l'associer que
+               s'il n'y a qu'une matière et une seule plage dans le bloc. */
+            var associationSure = blocHeures.length === 1 && blocMatieres.length === 1 && devoirsH2Mvalide(blocHeures[0]);
+            blocMatieres.forEach(function (matiere) {
+                propositions.push({ matiere: matiere, date: dateCourante,
+                    debut: associationSure ? blocHeures[0].debut : '',
+                    fin: associationSure ? blocHeures[0].fin : '', ligne: '' });
+            });
         }
-        /* des matières sans heures pour ce jour-là : le créneau du jour
-           les recevra — les heures se complètent à la confirmation */
+        /* Les matières sans heures sont conservées à compléter. */
         if (!blocHeures.length && blocMatieres.length && (dateCourante || dateCouranteIncertaine || (dernier && !propositions.length))) {
             blocMatieres.forEach(function (mm) {
                 propositions.push({ matiere: mm, date: dateCourante, debut: '', fin: '', ligne: '' });
@@ -431,50 +446,44 @@ function devoirsParserTexte(texte, connues) {
         /* date : 23/10, 23-10-2026, lundi 23, 23 octobre */
         var dateTrouvee = '';
         var dateIllisible = false;
-        var dm = norm.match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?\b/);
+        var iso = norm.match(/\b(\d{4})\s*[-\/.]\s*(\d{1,2})\s*[-\/.]\s*(\d{1,2})\b/);
+        if (iso) {
+            var dateIso = new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+            if (dateIso.getFullYear() === Number(iso[1]) && dateIso.getMonth() === Number(iso[2]) - 1 && dateIso.getDate() === Number(iso[3])) dateTrouvee = devoirsCle(dateIso);
+            else dateIllisible = true;
+        }
+        var dm = iso ? null : norm.match(/\b(\d{1,2})\s*[\/\-.]\s*(\d{1,2})(?:\s*[\/\-.]\s*(\d{2,4}))?\b/);
         /* « 13:00 - 15:00 » contient « 00 - 15 » : ce n'est pas
            une date erronée, mais une plage d'heures à conserver. */
         if (dm && /\d[:h.]$/.test(norm.slice(0, dm.index).trim())) dm = null;
         if (dm) {
-            var an = dm[3] ? (dm[3].length === 2 ? 2000 + Number(dm[3]) : Number(dm[3])) : devoirsAnneePour(Number(dm[2]) - 1);
-            var dObj = new Date(an, Number(dm[2]) - 1, Number(dm[1]));
+            var an = dm[3] && dm[3].length === 4 ? Number(dm[3]) : 0;
+            var jourNumerique = Number(dm[1]), moisNumerique = Number(dm[2]);
+            if (jourNumerique <= 12 && moisNumerique > 12) { var tmp = jourNumerique; jourNumerique = moisNumerique; moisNumerique = tmp; }
+            var nonAmbigue = Number(dm[1]) > 12 || Number(dm[2]) > 12;
+            var dObj = new Date(an, moisNumerique - 1, jourNumerique);
             /* Date() corrige silencieusement « 31/02 » en mars :
                ne jamais inventer un autre jour pour une date illisible. */
-            if (Number(dm[1]) >= 1 && Number(dm[2]) >= 1 && Number(dm[2]) <= 12 &&
-                dObj.getFullYear() === an && dObj.getMonth() === Number(dm[2]) - 1 &&
-                dObj.getDate() === Number(dm[1])) dateTrouvee = devoirsCle(dObj);
+            if (an && nonAmbigue && jourNumerique >= 1 && moisNumerique >= 1 && moisNumerique <= 12 &&
+                dObj.getFullYear() === an && dObj.getMonth() === moisNumerique - 1 &&
+                dObj.getDate() === jourNumerique) dateTrouvee = devoirsCle(dObj);
             else dateIllisible = true;
         }
-        if (!dateTrouvee) {
-            var jm = norm.match(/\b(\d{1,2})(?:er)?\s+(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)\b/);
-            if (jm) {
-                var moisLu = DEVOIRS_MOIS[jm[2]];
-                var anneeLue = devoirsAnneePour(moisLu);
-                var dateNomme = new Date(anneeLue, moisLu, Number(jm[1]));
-                if (dateNomme.getMonth() === moisLu && dateNomme.getDate() === Number(jm[1]))
+        if (!dateTrouvee && !iso && !dm) {
+            var moisPattern = Object.keys(DEVOIRS_MOIS).join('|');
+            var jm = norm.match(new RegExp('\\b(\\d{1,2})(?:er|st|nd|rd|th)?\\s+(' + moisPattern + ')(?:\\s+(\\d{4}))?\\b'));
+            var mj = norm.match(new RegExp('\\b(' + moisPattern + ')\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+(\\d{4}))?\\b'));
+            if (jm || mj) {
+                var jourLu = Number(jm ? jm[1] : mj[2]);
+                var moisLu = DEVOIRS_MOIS[jm ? jm[2] : mj[1]];
+                var anneeLue = Number((jm || mj)[3]);
+                var dateNomme = new Date(anneeLue, moisLu, jourLu);
+                if (anneeLue >= 1000 && dateNomme.getFullYear() === anneeLue && dateNomme.getMonth() === moisLu && dateNomme.getDate() === jourLu)
                     dateTrouvee = devoirsCle(dateNomme);
                 else dateIllisible = true;
-            }
-        }
-        if (!dateTrouvee) {
-            var clesJours = Object.keys(DEVOIRS_JOURS);
-            for (j = 0; j < clesJours.length; j++) {
-                if (norm.indexOf(clesJours[j]) !== -1) {
-                    var avecJour = norm.match(new RegExp(clesJours[j] + '\\s+(\\d{1,2})'));
-                    if (avecJour) {
-                        /* lundi 23 du mois en cours ou du suivant */
-                        var essai = new Date();
-                        for (var k = 0; k < 60; k++) {
-                            if (essai.getDate() === Number(avecJour[1]) && essai.getDay() === DEVOIRS_JOURS[clesJours[j]]) {
-                                dateTrouvee = devoirsCle(essai);
-                                break;
-                            }
-                            essai.setDate(essai.getDate() + 1);
-                        }
-                        if (!dateTrouvee) dateIllisible = true;
-                    }
-                    break;
-                }
+            } else if (/\b(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+\d{1,2}\b/.test(norm)) {
+                /* Un jour et un quantième ne suffisent pas à déterminer le mois. */
+                dateIllisible = true;
             }
         }
 
@@ -641,54 +650,515 @@ function devoirsChargerPdfJs() {
     });
 }
 
-/* Les pages d'un PDF : celles qui ont du texte le donnent directement,
-   les autres (photos et scans) sont rendues en image puis lues. */
+/* Lecture PDF locale : limite explicite pour éviter de bloquer un téléphone.
+   Si le document est trop long, on ne produit pas un résultat partiel trompeur. */
+var DEVOIRS_PDF_MAX_PAGES = 20;
+
+/* Reconstruit les lignes par leurs positions visuelles, même si le PDF
+   stocke les cellules dans un autre ordre ou sépare chaque mot. */
+function devoirsPdfItemsVisuels(page, tc) {
+    var vp = page.getViewport({ scale: 1 });
+    var util = window.pdfjsLib && window.pdfjsLib.Util;
+    return (tc.items || []).filter(function (it) { return it.str && it.str.trim() && it.transform; }).map(function (it) {
+        var t = util && util.transform ? util.transform(vp.transform, it.transform) : it.transform;
+        return { str: it.str.trim(), x: t[4], y: -t[5], hauteur: Math.max(1, Math.hypot(t[2], t[3])), largeur: Math.abs(Number(it.width) || 0) };
+    });
+}
+
+function devoirsPdfTexteVisuel(items) {
+    var lignes = [];
+    items.slice().sort(function (a, b) { return b.y - a.y || a.x - b.x; }).forEach(function (it) {
+        var ligne = lignes.find(function (l) { return Math.abs(l.y - it.y) <= Math.max(2, Math.min(8, Math.max(l.h, it.hauteur) * 0.4)); });
+        if (!ligne) { ligne = { y: it.y, h: it.hauteur, items: [] }; lignes.push(ligne); }
+        ligne.items.push(it);
+    });
+    return lignes.sort(function (a, b) { return b.y - a.y; }).map(function (l) {
+        return l.items.sort(function (a, b) { return a.x - b.x; }).map(function (it) { return it.str; }).join(' ');
+    }).join('\n');
+}
+
+/* Détecte une image occupant une partie notable de la page : une couche
+   texte (par ex. un titre) peut masquer une grille ou un scan en dessous. */
+function devoirsPdfImageImportante(page) {
+    if (!page.getOperatorList || !window.pdfjsLib || !window.pdfjsLib.OPS) return Promise.resolve(false);
+    return page.getOperatorList().then(function (liste) {
+        var ops = window.pdfjsLib.OPS, pile = [], matrice = [1, 0, 0, 1, 0, 0];
+        var v = page.getViewport({ scale: 1 }), aire = Math.max(1, v.width * v.height);
+        for (var i = 0; i < liste.fnArray.length; i++) {
+            var op = liste.fnArray[i], a = liste.argsArray[i];
+            if (op === ops.save) pile.push(matrice.slice());
+            else if (op === ops.restore) { if (pile.length) matrice = pile.pop(); }
+            else if (op === ops.transform && a && a.length >= 6) {
+                var m = matrice;
+                matrice = [m[0]*a[0]+m[2]*a[1],m[1]*a[0]+m[3]*a[1],m[0]*a[2]+m[2]*a[3],m[1]*a[2]+m[3]*a[3],m[0]*a[4]+m[2]*a[5]+m[4],m[1]*a[4]+m[3]*a[5]+m[5]];
+            } else if ((op === ops.paintImageXObject || op === ops.paintInlineImageXObject || op === ops.paintJpegXObject) &&
+                       Math.abs(matrice[0]*matrice[3]-matrice[1]*matrice[2]) / aire >= 0.12) return true;
+        }
+        return false;
+    }).catch(function () { return false; });
+}
+
+/* Plafonner la surface, pas seulement la largeur : les PDF très hauts ne
+   doivent pas épuiser la mémoire du navigateur. */
+function devoirsPdfCanvas(page) {
+    var vp = page.getViewport({ scale: 1 });
+    var echelle = Math.min(2.5, 2200 / Math.max(1, vp.width), Math.sqrt(5000000 / Math.max(1, vp.width * vp.height)));
+    var vue = page.getViewport({ scale: echelle }), canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.floor(vue.width)); canvas.height = Math.max(1, Math.floor(vue.height));
+    return page.render({ canvasContext: canvas.getContext('2d'), viewport: vue }).promise.then(function () { return canvas; });
+}
+
+/* Analyse positionnelle prudente des grilles d'examens. Les coordonnées
+   restent propres à chaque page ; aucune association entre pages n'est faite. */
+var DEVOIRS_JOURS_GRILLE = {
+    lundi: 1, monday: 1, mardi: 2, tuesday: 2, mercredi: 3, wednesday: 3,
+    jeudi: 4, thursday: 4, vendredi: 5, friday: 5, samedi: 6, saturday: 6,
+    dimanche: 0, sunday: 0
+};
+function devoirsMotsPdfGrille(items) {
+    var mots = [];
+    (items || []).forEach(function (it) {
+        var s = String(it.str || ''), re = /\S+/g, m;
+        while ((m = re.exec(s))) {
+            var largeur = Math.max(1, it.largeur || (it.hauteur * s.length * 0.5));
+            mots.push({ texte: m[0], x: it.x + largeur * (m.index + m[0].length / 2) / s.length,
+                y: -it.y - (it.hauteur || 10), h: it.hauteur || 10, w: largeur * m[0].length / s.length });
+        }
+    });
+    return mots;
+}
+function devoirsMotsOcrGrille(data) {
+    return ((data && data.words) || []).filter(function (w) {
+        return w && w.text && w.bbox && isFinite(w.bbox.x0) && isFinite(w.bbox.y0) && isFinite(w.bbox.x1) && isFinite(w.bbox.y1);
+    }).map(function (w) {
+        return { texte: String(w.text).trim(), x: (w.bbox.x0 + w.bbox.x1) / 2,
+            y: w.bbox.y0, h: Math.max(1, w.bbox.y1 - w.bbox.y0), w: Math.max(1,w.bbox.x1-w.bbox.x0) };
+    });
+}
+function devoirsMotSimple(s) {
+    return devoirsNormaliser(s).replace(/\s+/g, ' ').trim();
+}
+function devoirsDateGrille(s, jour) {
+    var mois = Object.keys(DEVOIRS_MOIS).join('|');
+    var norm = devoirsNormaliserGarde(s);
+    var dm = norm.match(new RegExp('\\b(\\d{1,2})(?:er|st|nd|rd|th)?\\s+(' + mois + ')(?:\\s+(\\d{4}))?\\b'));
+    var md = norm.match(new RegExp('\\b(' + mois + ')\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:\\s+(\\d{4}))?\\b'));
+    if (!dm && !md) return { date: '', jour: jour };
+    var d = Number(dm ? dm[1] : md[2]), m = DEVOIRS_MOIS[dm ? dm[2] : md[1]], a = Number((dm || md)[3]);
+    var essai = new Date(2000, m, d);
+    if (essai.getMonth() !== m || essai.getDate() !== d) return { date: '', jour: jour };
+    var resultat = { date: '', jour: jour, numero: d, mois: m, anneeSource: a || null };
+    var date = new Date(a, m, d);
+    if (a >= 1000 && date.getFullYear() === a && date.getMonth() === m && date.getDate() === d && date.getDay() === jour) resultat.date = devoirsCle(date);
+    return resultat;
+}
+/* Un même en-tête peut être lu avec un quantième ou un jour erroné.
+   Les colonnes datées du même tableau doivent être cohérentes entre elles ;
+   en cas de contradiction, on s'abstient plutôt que corriger soi-même. */
+function devoirsDatesGrilleCompatibles(a, b) {
+    if (!a || !b || a.numero == null || b.numero == null) return true;
+    var bases = a.anneeSource && b.anneeSource ? [[a.anneeSource,b.anneeSource]] : [[2000,2000],[2001,2001]];
+    if (!a.anneeSource && !b.anneeSource && Math.abs(a.mois-b.mois) > 6) bases = [[2000,2001],[2001,2000],[2001,2002],[2002,2001]];
+    var attendu = (b.jour-a.jour+7)%7;
+    return bases.some(function (years) {
+        var da = new Date(Date.UTC(years[0],a.mois,a.numero));
+        var db = new Date(Date.UTC(years[1],b.mois,b.numero));
+        if (da.getUTCMonth() !== a.mois || da.getUTCDate() !== a.numero || db.getUTCMonth() !== b.mois || db.getUTCDate() !== b.numero) return false;
+        var jours = Math.round((db-da)/86400000);
+        return (jours%7+7)%7 === attendu;
+    });
+}
+function devoirsDispositionGrille(mots) {
+    var jours = (mots || []).map(function (m) {
+        return { mot: m, jour: DEVOIRS_JOURS_GRILLE[devoirsMotSimple(m.texte)] };
+    }).filter(function (a) { return a.jour !== undefined; });
+    var bandes = [];
+    jours.forEach(function (j) {
+        var ligne = bandes.find(function (b) { return Math.abs(b.y - j.mot.y) <= Math.max(8, Math.min(18, j.mot.h)); });
+        if (!ligne) { ligne = { y: j.mot.y, jours: [] }; bandes.push(ligne); }
+        if (!ligne.jours.some(function (x) { return x.jour === j.jour; })) ligne.jours.push(j);
+    });
+    bandes = bandes.filter(function (b) { return b.jours.length >= 2; }).sort(function (a,b) { return a.y - b.y; });
+    bandes.forEach(function (b) {
+        b.jours.sort(function (a,c) { return a.mot.x - c.mot.x; });
+        /* Le mot du jour est souvent centré avec le quantième et le mois :
+           calculer le centre de toute l'en-tête, pas celui de « Monday ». */
+        b.jours.forEach(function (j, i) {
+            var prochain = b.jours[i+1];
+            var fragments = mots.filter(function (m) {
+                return m.x >= j.mot.x - 3 && (!prochain || m.x < prochain.mot.x - 3) &&
+                    Math.abs(m.y - b.y) <= Math.max(10, Math.min(20, m.h));
+            }).sort(function (a,c) { return a.x - c.x; });
+            j.centre = fragments.length ? (j.mot.x + fragments[fragments.length-1].x) / 2 : j.mot.x;
+            j.libelle = fragments.map(function (m) { return m.texte; }).join(' ');
+            /* Plusieurs quantièmes dans une seule en-tête indiquent des
+               colonnes fusionnées par l'OCR : ne pas attribuer leurs cases. */
+            j.fiable = (j.libelle.match(/\d{1,2}/g) || []).length <= 1 || /\b\d{4}\b/.test(j.libelle) && (j.libelle.match(/\d+/g) || []).length <= 2;
+            j.fusion = !j.fiable;
+            j.dateLue = devoirsDateGrille(j.libelle, j.jour);
+            /* Un quantième illisible ou impossible ne doit pas être présenté
+               comme un jour fiable (ex. « 70 October » lu au lieu de 20).
+               Il faut saisir cette épreuve manuellement. */
+            if (/\b\d{1,2}\b/.test(j.libelle) && j.dateLue.numero == null) j.fiable = false;
+            j.date = j.dateLue.date;
+        });
+        var dates = b.jours.filter(function (j) { return j.fiable && j.dateLue && j.dateLue.numero != null; });
+        dates.forEach(function (j) {
+            var contradictions = dates.filter(function (autre) { return autre !== j && !devoirsDatesGrilleCompatibles(j.dateLue, autre.dateLue); }).length;
+            if (contradictions && (dates.length <= 3 || contradictions >= 2)) j.fiable = false;
+        });
+        /* Une fusion fausse aussi le centre et les frontières des colonnes
+           immédiatement voisines. Mieux vaut les omettre que leur attribuer
+           une matière située dans une colonne disparue. */
+        b.jours.forEach(function (j, i) {
+            if ((i && b.jours[i-1].fusion) || (i+1 < b.jours.length && b.jours[i+1].fusion)) j.fiable = false;
+        });
+        var ecarts = b.jours.slice(1).map(function (j,i) { return j.centre-b.jours[i].centre; }).sort(function(a,c) { return a-c; });
+        /* Un en-tête manquant ne doit pas étirer une colonne voisine.
+           La plus petite distance limite l'association aux zones sûres ;
+           cela peut omettre des cellules, à ajouter manuellement. */
+        var demi = ecarts[0] * 0.6;
+        b.jours.forEach(function (j, i) {
+            j.gauche = Math.max(j.centre-demi, i ? (b.jours[i-1].centre + j.centre)/2 : -Infinity);
+            j.droite = Math.min(j.centre+demi, i+1 < b.jours.length ? (j.centre + b.jours[i+1].centre)/2 : Infinity);
+        });
+    });
+    var etiquettes = (mots || []).filter(function (m) { return /^(?:subject|subiect|matiere)/.test(devoirsMotSimple(m.texte)); })
+        .sort(function (a,b) { return a.y - b.y; });
+    var papiers = (mots || []).filter(function (m) { return /^(?:paper|papier|epreuve)/.test(devoirsMotSimple(m.texte)); });
+    var surveillants = (mots || []).filter(function (m) { return /^(?:supervisor|surveillant)/.test(devoirsMotSimple(m.texte)); });
+    var lignes = [];
+    etiquettes.forEach(function (e, i) {
+        var suivant = etiquettes[i+1];
+        var papier = papiers.filter(function (p) { return Math.abs(p.x - e.x) < Math.max(50, e.h * 5) && p.y > e.y && (!suivant || p.y < suivant.y); })
+            .sort(function (a,b) { return a.y - b.y; })[0];
+        var entete = bandes.filter(function (b) { return b.y < e.y; }).slice(-1)[0];
+        if (!papier) {
+            var sup = surveillants.filter(function (p) { return Math.abs(p.x - e.x) < Math.max(50, e.h * 5) && p.y > e.y && (!suivant || p.y < suivant.y); }).sort(function (a,b) { return a.y-b.y; })[0];
+            if (sup && sup.y-e.y > 20 && sup.y-e.y < 250) papier = { y: e.y + (sup.y-e.y)*0.62 };
+        }
+        if (!papier || !entete) return;
+        var ecart = papier.y - e.y;
+        if (ecart < 8 || ecart > 180) return;
+        lignes.push({ etiquette: e, papier: papier, bande: entete,
+            haut: Math.max(entete.y + 12, e.y - ecart * 0.72),
+            bas: e.y + ecart * 0.55,
+            finBloc: suivant ? suivant.y - ecart * 0.72 : Infinity });
+    });
+    return { bandes: bandes, lignes: lignes };
+}
+function devoirsFamilleMotGrille(mot) {
+    var n = devoirsMotSimple(mot);
+    if (!n || n.indexOf(' ') !== -1) return null;
+    return DEVOIRS_FAMILLES.find(function (f) {
+        if (f.canon === 'Bac national') return false;
+        return f.cles.some(function (c) { return c.length >= 3 && n.indexOf(c) === 0; });
+    }) || null;
+}
+function devoirsHeuresGrille(mots, ligne) {
+    var limiteX = ligne.etiquette.x - (ligne.etiquette.w || ligne.etiquette.h * 3)/2 - Math.max(3, ligne.etiquette.h * 0.12);
+    var choix = [];
+    mots.filter(function (m) { return m.x < limiteX && m.y >= ligne.haut && m.y < ligne.finBloc; })
+        .sort(function (a,b) { return a.y - b.y || a.x - b.x; }).forEach(function (m) {
+            var re = /\b(\d{1,2})\s*[:h]\s*(\d{2})\b/gi, v;
+            while ((v = re.exec(m.texte))) {
+                var h = Number(v[1]), mn = Number(v[2]);
+                if (h < 24 && mn < 60) choix.push(('0' + h).slice(-2) + ':' + ('0' + mn).slice(-2));
+            }
+        });
+    return choix.length === 2 && choix[0] < choix[1] && devoirsH2M(choix[1]) - devoirsH2M(choix[0]) <= 480 ? choix : [];
+}
+function devoirsPropositionsGrille(mots, disposition, heuresParLigne) {
+    var famillesEleve = devoirsFamillesEleve();
+    var propositions = [];
+    disposition.lignes.forEach(function (ligne, index) {
+        var heures = (heuresParLigne && heuresParLigne[index]) || devoirsHeuresGrille(mots, ligne);
+        var cellules = mots.filter(function (m) { return m.y + Math.min(8, m.h * 0.4) >= ligne.haut && m.y < ligne.bas; })
+            .map(function (m) { return { mot: m, famille: devoirsFamilleMotGrille(m.texte) }; })
+            .filter(function (v) { return v.famille; });
+        cellules.forEach(function (v) {
+            var col = ligne.bande.jours.find(function (j) { return j.fiable && v.mot.x >= j.gauche && v.mot.x < j.droite; });
+            if (!col) return;
+            var famille = famillesEleve.find(function (f) { return f.famille === v.famille; });
+            if (famillesEleve.length && !famille) return;
+            var nombreMemeFamille = cellules.filter(function (c) { return c.famille === v.famille && c.mot.x >= col.gauche && c.mot.x < col.droite; }).length;
+            var proches = mots.filter(function (m) {
+                var autres = cellules.filter(function (c) { return c !== v && c.mot.x >= col.gauche && c.mot.x < col.droite; });
+                var proche = autres.every(function (c) { return Math.abs(m.x-v.mot.x) < Math.abs(m.x-c.mot.x); });
+                return m.y + Math.min(8, m.h * 0.4) >= ligne.haut && m.y < ligne.bas && m.x >= col.gauche && m.x < col.droite && proche;
+            }).sort(function (a,b) { return a.x - b.x || a.y - b.y; }).map(function (m) { return m.texte; }).join(' ');
+            /* Une plage de session peut être plus longue qu'une épreuve.
+               Montrer la plage comme indice, jamais comme horaire établi. */
+            propositions.push({ matiere: nombreMemeFamille > 1 || (famille && famille.noms.length > 1) ? '' : (famille ? famille.noms[0] : v.famille.canon),
+                date: col.date, debut: '', fin: '', ligne: '', dateLue: col.dateLue, plageSession: heures,
+                indice: [col.libelle, proches || v.mot.texte, heures.length === 2 ? 'Plage de la session : ' + heures[0] + '–' + heures[1] : 'Plage de session à vérifier'].filter(Boolean).join(' · ') });
+        });
+    });
+    return propositions;
+}
+
+function devoirsPdfFusionnerTexte(natif, ocr) {
+    var lignes = String(natif || '').split(/\n+/), deja = {};
+    function cle(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); }
+    lignes.forEach(function (l) { if (cle(l)) deja[cle(l)] = true; });
+    String(ocr || '').split(/\n+/).forEach(function (l) { var k = cle(l); if (k && !deja[k]) { lignes.push(l); deja[k] = true; } });
+    return lignes.filter(function (l) { return l.trim(); }).join('\n');
+}
+
 function devoirsPdfEnTexte(fichier, dire) {
-    return devoirsChargerPdfJs().then(function () {
-        return fichier.arrayBuffer();
-    }).then(function (tampon) {
+    return devoirsChargerPdfJs().then(function () { return fichier.arrayBuffer(); }).then(function (tampon) {
         return window.pdfjsLib.getDocument({ data: tampon }).promise;
     }).then(function (doc) {
-        var pages = Math.min(doc.numPages, 8);
-        var morceaux = [];
+        var pages = doc.numPages, morceaux = [];
+        if (pages > DEVOIRS_PDF_MAX_PAGES) {
+            if (doc.destroy) doc.destroy();
+            throw new Error('Ce PDF contient ' + pages + ' pages. Pour protéger ton appareil, sépare-le en documents de 20 pages maximum, puis réessaie.');
+        }
         function pageSuivante(n) {
             if (n > pages) return morceaux.join('\n');
-            if (dire) dire('Lecture du document (page ' + n + ' sur ' + pages + ')…');
+            if (dire) dire('Lecture locale du document (page ' + n + ' sur ' + pages + ')…');
             return doc.getPage(n).then(function (page) {
                 return page.getTextContent().then(function (tc) {
-                    var extrait = (tc.items || []).map(function (it) { return (it.str || '') + (it.hasEOL ? '\n' : ' '); }).join('').trim();
-                    if (extrait.length >= 40) {
-                        morceaux.push(extrait);
-                        return pageSuivante(n + 1);
-                    }
-                    /* page scannée : rendu en image puis lecture automatique */
-                    var brut = page.getViewport({ scale: 1 });
-                    var echelle = Math.min(2.5, 2200 / Math.max(1, brut.width));
-                    var viewport = page.getViewport({ scale: echelle });
-                    var canvas = document.createElement('canvas');
-                    canvas.width = Math.floor(viewport.width);
-                    canvas.height = Math.floor(viewport.height);
-                    return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise.then(function () {
-                        return window.Tesseract.recognize(canvas.toDataURL('image/png'), 'fra', devoirsOcrOptions());
-                    }).then(function (res) {
-                        morceaux.push((res && res.data && res.data.text) || '');
-                        return pageSuivante(n + 1);
-                    });
+                    var natif = devoirsPdfTexteVisuel(devoirsPdfItemsVisuels(page, tc));
+                    return devoirsPdfImageImportante(page).then(function (image) {
+                        if (natif.length >= 40 && !image) return natif;
+                        return devoirsPdfCanvas(page).then(function (canvas) {
+                            return devoirsChargerTesseract().then(function () { return window.Tesseract.recognize(canvas, 'fra+eng', devoirsOcrOptions()); })
+                                .then(function (res) { return devoirsPdfFusionnerTexte(natif, res && res.data && res.data.text); })
+                                .finally(function () { canvas.width = 1; canvas.height = 1; });
+                        });
+                    }).then(function (texte) { morceaux.push(texte); return pageSuivante(n + 1); });
                 });
             });
         }
-        return pageSuivante(1);
+        return Promise.resolve().then(function () { return pageSuivante(1); }).finally(function () { if (doc.destroy) doc.destroy(); });
     });
 }
 
 function devoirsOcrImage(fichier, dire) {
+    /* Le moteur OCR est chargé seulement si une page ou photo en a besoin. */
+    if (devoirsEstPdf(fichier)) return devoirsPdfEnTexte(fichier, dire);
     return devoirsChargerTesseract().then(function () {
-        /* les PDF téléchargés s'ouvrent aussi : chaque page est lue */
-        if (devoirsEstPdf(fichier)) return devoirsPdfEnTexte(fichier, dire);
-        return window.Tesseract.recognize(fichier, 'fra', devoirsOcrOptions()).then(function (res) {
+        return window.Tesseract.recognize(fichier, 'fra+eng', devoirsOcrOptions()).then(function (res) {
             return (res && res.data && res.data.text) || '';
         });
     });
+}
+
+/* Une seconde lecture cible les horaires sur fond sombre. Les créneaux
+   détectés restent des indices : ils ne sont jamais enregistrés seuls. */
+function devoirsLireHeuresColonne(worker, canvas, ligne, echelle) {
+    var ratio = echelle || 1;
+    var xFin = Math.max(1, Math.min(canvas.width, (ligne.etiquette.x - (ligne.etiquette.w || ligne.etiquette.h * 3)/2 - Math.max(3, ligne.etiquette.h * 0.12)) * ratio));
+    var haut = Math.max(0, Math.floor(ligne.haut * ratio));
+    var bas = Math.min(canvas.height, Math.ceil(ligne.finBloc * ratio));
+    if (!(bas > haut + 10) || xFin < 15 || (bas-haut)*xFin > 3000000) return Promise.resolve([]);
+    var crop = document.createElement('canvas'), facteur = Math.min(3, Math.sqrt(3000000 / Math.max(1, xFin*(bas-haut))));
+    crop.width = Math.max(1, Math.floor(xFin * facteur)); crop.height = Math.max(1, Math.floor((bas-haut) * facteur));
+    var ctx = crop.getContext('2d');
+    ctx.drawImage(canvas, 0, haut, xFin, bas-haut, 0, 0, crop.width, crop.height);
+    var data = ctx.getImageData(0, 0, crop.width, crop.height), echantillon = [];
+    for (var y = 0; y < crop.height; y += Math.max(1, Math.floor(crop.height/20))) {
+        for (var x = 0; x < crop.width; x += Math.max(1, Math.floor(crop.width/20))) {
+            var i = (y * crop.width + x) * 4;
+            echantillon.push((data.data[i] + data.data[i+1] + data.data[i+2])/3);
+        }
+    }
+    echantillon.sort(function(a,b) { return a-b; });
+    var fondSombre = echantillon[Math.floor(echantillon.length/2)] < 150;
+    for (var p = 0; p < data.data.length; p += 4) {
+        var lum = (data.data[p] + data.data[p+1] + data.data[p+2]) / 3;
+        var val = fondSombre ? (lum > 190 ? 0 : 255) : (lum < 125 ? 0 : 255);
+        data.data[p] = val; data.data[p+1] = val; data.data[p+2] = val;
+    }
+    ctx.putImageData(data,0,0);
+    function lire(mode) {
+        return worker.setParameters({ tessedit_pageseg_mode: mode, tessedit_char_whitelist: '0123456789:h-' })
+            .then(function () { return worker.recognize(crop); }).then(function (res) {
+                var words = devoirsMotsOcrGrille(res && res.data);
+                return devoirsHeuresGrille(words, { etiquette: { x: crop.width + 100, h: 10 }, haut: 0, finBloc: crop.height });
+            });
+    }
+    /* Deux segmentations indépendantes : une divergence ou une plage trop
+       longue reste à vérifier au lieu d'être présentée comme une heure sûre. */
+    return lire('6').then(function (a) {
+        return lire('11').then(function (b) { return a.length === 2 && a.join('-') === b.join('-') ? a : []; });
+    }).finally(function () { crop.width = 1; crop.height = 1; });
+}
+
+/* Repère les bandeaux sombres très larges, souvent des en-têtes à texte
+   clair. Leur OCR séparé est un second regard, non une preuve absolue. */
+function devoirsBandeauxSombres(canvas) {
+    var ctx = canvas.getContext('2d'), pixels = ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    var runs = [], debut = -1, w = canvas.width, h = canvas.height, pas = Math.max(1,Math.floor(w/100));
+    for (var y=0; y<h; y++) {
+        var sombre=0,total=0;
+        for (var x=0; x<w; x+=pas) {
+            var i=(y*w+x)*4;
+            if ((pixels[i]+pixels[i+1]+pixels[i+2])/3 < 175) sombre++;
+            total++;
+        }
+        var ligne = sombre/total >= 0.45;
+        if (ligne && debut < 0) debut = y;
+        if ((!ligne || y === h-1) && debut >= 0) {
+            var fin = ligne ? y+1 : y;
+            if (fin-debut >= Math.max(8,h*0.008) && fin-debut <= h*0.15) runs.push({ haut: debut, bas: fin });
+            debut = -1;
+        }
+    }
+    var fusion = [];
+    runs.forEach(function (r) {
+        var precedent = fusion[fusion.length-1];
+        if (precedent && r.haut - precedent.bas <= Math.max(20, h*0.025) && r.bas - precedent.haut <= h*0.16) precedent.bas = r.bas;
+        else fusion.push(r);
+    });
+    return fusion.slice(0,8);
+}
+function devoirsLireBandeaux(worker, canvas) {
+    var bandes = devoirsBandeauxSombres(canvas), mots = [], i = 0;
+    function prochaine() {
+        if (i >= bandes.length) return Promise.resolve(mots);
+        var b = bandes[i++], crop = document.createElement('canvas');
+        var original = canvas.getContext('2d').getImageData(0,b.haut,canvas.width,b.bas-b.haut);
+        var gauche = -1, droite = -1, hauteur = b.bas-b.haut;
+        for (var x=0; x<canvas.width; x++) {
+            var sombre=0, nombre=0;
+            for (var y=0; y<hauteur; y+=Math.max(1,Math.floor(hauteur/10))) {
+                var q=(y*canvas.width+x)*4;
+                if ((original.data[q]+original.data[q+1]+original.data[q+2])/3 < 175) sombre++;
+                nombre++;
+            }
+            if (sombre/nombre > 0.55) { if (gauche < 0) gauche=x; droite=x+1; }
+        }
+        if (gauche < 0 || droite-gauche < canvas.width*0.3) return prochaine();
+        var facteur = Math.min(2, 3000/(droite-gauche)), marge=12;
+        crop.width = Math.max(1,Math.floor((droite-gauche)*facteur)+marge*2);
+        crop.height = Math.max(1,Math.floor(hauteur*facteur)+marge*2);
+        var ctx=crop.getContext('2d');ctx.fillStyle='white';ctx.fillRect(0,0,crop.width,crop.height);
+        ctx.drawImage(canvas,gauche,b.haut,droite-gauche,hauteur,marge,marge,crop.width-2*marge,crop.height-2*marge);
+        var image=ctx.getImageData(marge,marge,crop.width-2*marge,crop.height-2*marge);
+        for(var p=0;p<image.data.length;p+=4){var lum=(image.data[p]+image.data[p+1]+image.data[p+2])/3;var val=lum>190?0:255;image.data[p]=val;image.data[p+1]=val;image.data[p+2]=val;}
+        ctx.putImageData(image,marge,marge);
+        return worker.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:''}).then(function(){return worker.recognize(crop);})
+            .then(function(res){
+                devoirsMotsOcrGrille(res && res.data).forEach(function(m){m.x=gauche+(m.x-marge)/facteur;m.y=b.haut+(m.y-marge)/facteur;m.h/=facteur;m.w/=facteur;mots.push(m);});
+            }).finally(function(){crop.width=1;crop.height=1;}).then(prochaine);
+    }
+    return prochaine();
+}
+
+function devoirsCanvasImage(fichier) {
+    var url = URL.createObjectURL(fichier), image = new Image();
+    return new Promise(function (resolve, reject) {
+        image.onload = function () {
+            try {
+                var echelle = Math.min(1.6, 2400 / Math.max(1,image.width), Math.sqrt(5000000 / Math.max(1,image.width*image.height)));
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.max(1,Math.floor(image.width*echelle)); canvas.height = Math.max(1,Math.floor(image.height*echelle));
+                var ctx = canvas.getContext('2d'); ctx.fillStyle = 'white'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.drawImage(image,0,0,canvas.width,canvas.height); resolve(canvas);
+            } catch (e) { reject(e); }
+            URL.revokeObjectURL(url);
+        };
+        image.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Cette image ne peut pas être ouverte.')); };
+        image.src = url;
+    });
+}
+
+/* Chaque page est analysée seule pour éviter qu'une date d'une page soit
+   attribuée à une épreuve d'une autre. L'OCR est local et séquentiel. */
+function devoirsAnalyserFichier(fichier, dire) {
+    var worker = null, textes = [], propositions = [], grilles = 0;
+    function chargerWorker() {
+        if (worker) return Promise.resolve(worker);
+        return devoirsChargerTesseract().then(function () { return window.Tesseract.createWorker('fra+eng', 1, devoirsOcrOptions()); })
+            .then(function (w) { worker = w; return w; });
+    }
+    function analyser(mots, texte, canvas, ratio, natif) {
+        var disposition = devoirsDispositionGrille(mots);
+        var ressemble = /subject|subiect|matiere/i.test(devoirsNormaliser(texte)) && (disposition.bandes.length || /paper|papier|supervisor|surveillant/i.test(devoirsNormaliser(texte)));
+        if (!disposition.lignes.length) {
+            /* Ne pas aplatir une grille reconnue mais incomplète : cela peut
+               relier des matières à de mauvais jours. */
+            if (ressemble) { grilles++; return Promise.resolve(); }
+            textes.push(texte); return Promise.resolve();
+        }
+        grilles++;
+        var heures = [], n = 0;
+        function lireLigne() {
+            if (n >= disposition.lignes.length) {
+                propositions.push.apply(propositions, devoirsPropositionsGrille(mots, disposition, heures));
+                return Promise.resolve();
+            }
+            var i = n++, l = disposition.lignes[i];
+            heures[i] = devoirsHeuresGrille(mots, l);
+            if (!canvas || (natif && heures[i].length === 2)) return lireLigne();
+            if (dire) dire('Lecture approfondie locale : vérification de la colonne des horaires…');
+            return chargerWorker().then(function (w) { return devoirsLireHeuresColonne(w, canvas, l, ratio); })
+                .then(function (h) {
+                    if (heures[i].length === 2 && h.length === 2 && heures[i].join('-') !== h.join('-')) heures[i] = [];
+                    else heures[i] = h;
+                    return lireLigne();
+                });
+        }
+        return lireLigne();
+    }
+    function reconnaitre(canvas, natif) {
+        return chargerWorker().then(function (w) {
+            return w.setParameters({ tessedit_pageseg_mode: '6', tessedit_char_whitelist: '' }).then(function () { return w.recognize(canvas); });
+        }).then(function (r) {
+            var data = r && r.data || {}, texte = devoirsPdfFusionnerTexte(natif || '', data.text || '');
+            var mots = devoirsMotsOcrGrille(data);
+            if (devoirsDispositionGrille(mots).bandes.length) return analyser(mots, texte, canvas, 1);
+            if (dire) dire('Lecture approfondie locale : vérification des en-têtes…');
+            return devoirsLireBandeaux(worker, canvas).then(function (entetes) {
+                return analyser(mots.concat(entetes), texte, canvas, 1);
+            });
+        });
+    }
+    var travail;
+    if (devoirsEstPdf(fichier)) {
+        travail = devoirsChargerPdfJs().then(function () { return fichier.arrayBuffer(); }).then(function (b) { return window.pdfjsLib.getDocument({data:b}).promise; })
+            .then(function (doc) {
+                if (doc.numPages > DEVOIRS_PDF_MAX_PAGES) {
+                    if (doc.destroy) doc.destroy();
+                    throw new Error('Ce PDF contient ' + doc.numPages + ' pages. Pour protéger ton appareil, sépare-le en documents de 20 pages maximum, puis réessaie.');
+                }
+                function prochaine(n) {
+                    if (n > doc.numPages) return Promise.resolve();
+                    if (dire) dire('Lecture approfondie locale : page ' + n + ' sur ' + doc.numPages + '…');
+                    return doc.getPage(n).then(function (page) {
+                        return page.getTextContent().then(function (tc) {
+                            var items = devoirsPdfItemsVisuels(page,tc), natif = devoirsPdfTexteVisuel(items);
+                            var mots = devoirsMotsPdfGrille(items), grille = devoirsDispositionGrille(mots);
+                            return devoirsPdfImageImportante(page).then(function (image) {
+                                if (grille.lignes.length && !image) {
+                                    /* On conserve la précision de la couche texte mais
+                                       on rend la page pour relire les heures difficiles. */
+                                    return devoirsPdfCanvas(page).then(function (canvas) {
+                                        var ratio = canvas.width / page.getViewport({scale:1}).width;
+                                        return analyser(mots, natif, canvas, ratio, true).finally(function () { canvas.width=1; canvas.height=1; });
+                                    });
+                                }
+                                if (natif.length >= 40 && !image) return analyser(mots,natif,null,1);
+                                return devoirsPdfCanvas(page).then(function (canvas) {
+                                    return reconnaitre(canvas,natif).finally(function () { canvas.width=1; canvas.height=1; });
+                                });
+                            });
+                        });
+                    }).then(function () { return prochaine(n+1); });
+                }
+                return Promise.resolve().then(function () { return prochaine(1); }).finally(function () { if (doc.destroy) doc.destroy(); });
+            });
+    } else {
+        travail = devoirsCanvasImage(fichier).then(function (canvas) {
+            return reconnaitre(canvas,'').finally(function () { canvas.width=1; canvas.height=1; });
+        });
+    }
+    return travail.then(function () {
+        textes.forEach(function (texte) { propositions.push.apply(propositions, devoirsParserTexte(texte)); });
+        return { propositions: propositions, grille: !!grilles };
+    }).finally(function () { if (worker) return worker.terminate(); });
 }
 
 function devoirsDire(id, texte, erreur) {
@@ -715,9 +1185,9 @@ function devoirsLireDocument(genreChoisi) {
         if (devoirsOcrEnCours) return;
         devoirsOcrEnCours = true;
         devoirsDireOcr(genre, 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
-        devoirsOcrImage(fichier, function (message) { devoirsDireOcr(genre, message, false); }).then(function (texte) {
+        devoirsAnalyserFichier(fichier, function (message) { devoirsDireOcr(genre, message, false); }).then(function (resultat) {
             devoirsOcrEnCours = false;
-            devoirsMontrerPropositions(texte, genre, true);
+            devoirsMontrerPropositions('', genre, true, resultat.propositions, resultat.grille);
         }).catch(function (e) {
             devoirsOcrEnCours = false;
             devoirsDireOcr(genre, (e && e.message) || 'La lecture a échoué. Ajoute les créneaux à la main ci-dessous.', true);
@@ -753,7 +1223,8 @@ function devoirsMH(m) {
     return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2);
 }
 
-/* Les propositions sans heures reçoivent celles du créneau du jour :
+/* Fonction historique pour les anciens usages, non utilisée par l'import.
+   Les propositions sans heures reçoivent celles du créneau du jour :
    une matière prend le créneau entier, plusieurs se le partagent avec
    une pause entre deux. L'élève peut tout corriger avant de confirmer. */
 function devoirsRemplirCreneaux(propositions) {
@@ -778,15 +1249,15 @@ function devoirsRemplirCreneaux(propositions) {
     return propositions;
 }
 
-function devoirsMontrerPropositions(texte, genre, estOcr) {
+function devoirsMontrerPropositions(texte, genre, estOcr, propositionsLues, grille) {
     genre = genre === 'examens' ? 'examens' : 'devoirs';
     devoirsPropositionsGenre = genre;
-    var propositions = devoirsParserTexte(texte);
-    var rienReconnu = estOcr && !propositions.length;
+    var propositions = Array.isArray(propositionsLues) ? propositionsLues : devoirsParserTexte(texte);
+    var rienReconnu = !propositions.length;
     /* Même si la photo n'a rien donné, l'élève peut remplir la ligne
        sous le document : l'OCR ne crée jamais une date ou un cours. */
     if (rienReconnu) propositions = [{ matiere: '', date: '', debut: '', fin: '', ligne: '' }];
-    if (genre === 'devoirs') devoirsRemplirCreneaux(propositions);
+    /* Les heures manquantes ne viennent pas du document : ne pas les inventer. */
     devoirsPropositions = propositions.map(function (p, i) {
         p.cle = 'prop' + i;
         return p;
@@ -802,16 +1273,18 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     }
     var sansDate = devoirsPropositions.filter(function (p) { return !p.date; }).length;
     var sansMatiere = devoirsPropositions.filter(function (p) { return !p.matiere; }).length;
-    var sansHeures = genre === 'examens' ? devoirsPropositions.filter(function (p) { return !p.debut || !p.fin; }).length : 0;
+    var sansHeures = devoirsPropositions.filter(function (p) { return !p.debut || !p.fin; }).length;
     var lignes = devoirsPropositions.map(function (p) {
         var passe = p.date && devoirsEstPasse(p.date, p.fin);
         var doublon = p.matiere && p.date && devoirsChercherDoublon(devoirsLireStore(), genre, p);
         return '<div data-prop="' + p.cle + '" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.8rem;padding:0.6rem;' + (passe ? 'opacity:0.55;' : '') + '">' +
+            (p.indice ? '<span style="flex:1 0 100%;font-size:0.75rem;color:#92400e;">' + devoirsEchap(p.indice) + ' — repère à vérifier ; indique les heures exactes de ton épreuve.</span>' +
+                (p.plageSession && p.plageSession.length === 2 ? '<button type="button" onclick="devoirsUtiliserPlage(\'' + p.cle + '\')" style="font:inherit;font-size:0.73rem;">Utiliser ces heures si elles correspondent à mon épreuve</button>' : '') : '') +
             (passe ? '<span style="font-size:0.7rem;font-weight:800;color:#56665e;border:1px solid #e5e7eb;border-radius:0.5rem;padding:0.15rem 0.4rem;white-space:nowrap;">Passé</span>' : '') +
             (doublon ? '<span style="font-size:0.72rem;font-weight:800;color:#065f46;">Mettre à jour le créneau existant</span>' : '') +
             (!p.date ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Date à préciser</span>' : '') +
             (!p.matiere ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Matière à préciser</span>' : '') +
-            (genre === 'examens' && (!p.debut || !p.fin) ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Heures à préciser</span>' : '') +
+            ((!p.debut || !p.fin) ? '<span style="font-size:0.72rem;font-weight:800;color:#92400e;">Heures à préciser</span>' : '') +
             '<input class="prop-matiere" aria-label="Matière du créneau" list="devoirsMatiereListe" value="' + devoirsEchap(p.matiere) + '" placeholder="Matière" style="flex:2 1 9rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-date" type="date" aria-label="Date à préciser ou à vérifier" value="' + devoirsEchap(p.date) + '" style="flex:1 1 8rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
             '<input class="prop-debut" aria-label="Heure de début" type="time" value="' + devoirsEchap(p.debut) + '" style="flex:1 1 6rem;border:1px solid #e5e7eb;border-radius:0.55rem;padding:0.45rem 0.55rem;font:inherit;font-size:0.85rem;">' +
@@ -823,7 +1296,8 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     zone.innerHTML =
         '<div style="background:#f0fdf4;border:1.5px solid #a7f3d0;border-radius:1rem;padding:0.9rem 1rem;">' +
         '<p style="margin:0 0 0.6rem;font-size:0.85rem;font-weight:700;color:#065f46;">' +
-        (genre === 'examens' ? 'Examens à vérifier : ' : 'Devoirs à vérifier : ') + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne avant d\'ajouter. Les créneaux marqués « Passé » resteront hors du planning :</p>' +
+        (genre === 'examens' ? 'Examens à vérifier : ' : 'Devoirs à vérifier : ') + (grille ? 'Tableau détecté : les plages sont des repères, pas forcément les heures exactes. ' : '') + devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') + ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + ' — vérifie chaque ligne dans le document et ajoute à la main les lignes manquantes. Les créneaux marqués « Passé » resteront hors du planning :</p>' +
+        (grille ? '<div style="margin:0 0 0.7rem;"><label for="devoirsAnneeGrille">Année indiquée dans ton document :</label> <input id="devoirsAnneeGrille" type="number" min="1900" max="2100" placeholder="Année" style="width:6rem;padding:0.35rem;"> <button type="button" onclick="devoirsAppliquerAnneeGrille()">Appliquer aux dates incomplètes</button><p id="devoirsAnneeGrilleStatut" role="status" style="font-size:0.75rem;"></p></div>' : '') +
         '<div style="display:flex;flex-direction:column;gap:0.5rem;">' + lignes + '</div>' +
         '<div style="display:flex;gap:0.6rem;margin-top:0.75rem;">' +
         '<button type="button" onclick="devoirsViderPropositions()" style="flex:1;padding:0.7rem;border:1.5px solid #e5e7eb;border-radius:0.75rem;background:white;color:#374151;font:inherit;font-weight:700;cursor:pointer;">Tout effacer</button>' +
@@ -831,7 +1305,7 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
         '</div></div>';
     devoirsDireOcr(genre,
         (rienReconnu ? 'Aucun créneau reconnu avec certitude. Complète la ligne ci-dessous : matière, date' +
-            (genre === 'examens' ? ' et heures.' : ', et heures si tu ne connais pas de créneau scolaire.') :
+            ' et heures.' :
             devoirsPropositions.length + ' créneau' + (devoirsPropositions.length > 1 ? 'x' : '') +
             ' détecté' + (devoirsPropositions.length > 1 ? 's' : '') + '.' +
             (sansDate ? ' Date à préciser pour ' + sansDate + ' ligne' + (sansDate > 1 ? 's' : '') + '.' : '') +
@@ -844,6 +1318,34 @@ function devoirsMontrerPropositions(texte, genre, estOcr) {
     var selecteurManquant = sansMatiere ? '.prop-matiere' : sansDate ? '.prop-date' : sansHeures ? '.prop-debut' : '';
     var premierChamp = selecteurManquant && zone.querySelector ? zone.querySelector(selecteurManquant) : null;
     if (premierChamp && typeof premierChamp.focus === 'function') premierChamp.focus();
+}
+
+/* L'année n'est fournie que par l'élève ; si le jour de semaine ne
+   correspond pas, on laisse le champ vide au lieu de le deviner. */
+function devoirsAppliquerAnneeGrille() {
+    var anneeEl = document.getElementById('devoirsAnneeGrille');
+    var statut = document.getElementById('devoirsAnneeGrilleStatut');
+    var annee = Number(anneeEl && anneeEl.value), rempli = 0, incertain = 0;
+    if (!Number.isInteger(annee) || annee < 1900 || annee > 2100) {
+        if (statut) statut.textContent = 'Indique une année complète entre 1900 et 2100.';
+        return;
+    }
+    devoirsPropositions.forEach(function (p) {
+        var l = p.dateLue, ligne = document.querySelector('[data-prop="' + p.cle + '"]');
+        var champ = ligne && ligne.querySelector('.prop-date');
+        if (!l || l.numero == null || l.mois == null || !champ || champ.value) return;
+        var date = new Date(annee, l.mois, l.numero);
+        if ((l.anneeSource && l.anneeSource !== annee) || date.getFullYear() !== annee || date.getMonth() !== l.mois || date.getDate() !== l.numero || date.getDay() !== l.jour) { incertain++; return; }
+        champ.value = devoirsCle(date); rempli++;
+    });
+    if (statut) statut.textContent = rempli + ' date(s) complétée(s).' + (incertain ? ' ' + incertain + ' date(s) ne correspondent pas au jour indiqué : vérifie-les manuellement.' : ' Vérifie-les dans le document.');
+}
+function devoirsUtiliserPlage(cle) {
+    var p = devoirsPropositions.find(function (v) { return v.cle === cle; });
+    var ligne = document.querySelector('[data-prop="' + cle + '"]');
+    if (!p || !ligne || !p.plageSession || p.plageSession.length !== 2) return;
+    var debut = ligne.querySelector('.prop-debut'), fin = ligne.querySelector('.prop-fin');
+    if (debut && fin) { debut.value = p.plageSession[0]; fin.value = p.plageSession[1]; }
 }
 
 function devoirsRetirerProposition(cle) {
@@ -883,7 +1385,7 @@ function devoirsConfirmerPropositions(genre) {
         var fin = champ('.prop-fin', p.fin);
         if (!matiere.valeur) manque = { texte: 'Matière à préciser avant l’ajout.', champ: matiere.input };
         else if (!date.valeur) manque = { texte: 'Date à préciser avant l’ajout au planning.', champ: date.input };
-        else if (!!debut.valeur !== !!fin.valeur || (genre === 'examens' && !debut.valeur && !fin.valeur)) {
+        else if (!debut.valeur || !fin.valeur) {
             manque = { texte: 'Heures de début et de fin à préciser pour planifier ce créneau.', champ: debut.input };
         }
         if (!manque) {
@@ -909,10 +1411,10 @@ function devoirsConfirmerPropositions(genre) {
         var el = document.querySelector('[data-prop="' + p.cle + '"]');
         var matiere = p.matiere, date = p.date, debut = p.debut, fin = p.fin;
         if (el) {
-            matiere = (el.querySelector('.prop-matiere') || {}).value || matiere;
-            date = (el.querySelector('.prop-date') || {}).value || date;
-            debut = (el.querySelector('.prop-debut') || {}).value || debut;
-            fin = (el.querySelector('.prop-fin') || {}).value || fin;
+            matiere = el.querySelector('.prop-matiere').value.trim();
+            date = el.querySelector('.prop-date').value.trim();
+            debut = el.querySelector('.prop-debut').value.trim();
+            fin = el.querySelector('.prop-fin').value.trim();
         }
         var champs = devoirsValider({ matiere: matiere, date: date, debut: debut, fin: fin }, genre);
         if (champs.erreur) { refuse = champs.erreur; traiter(index + 1); return; }
@@ -991,7 +1493,8 @@ function devoirsActualiserPlanning() {
 function devoirsChercherDoublon(store, genre, champs) {
     var matiere = devoirsNormaliser(champs.matiere);
     return (store[genre] || []).find(function (d) {
-        return d.date === champs.date && devoirsNormaliser(d.matiere) === matiere;
+        return d.date === champs.date && devoirsNormaliser(d.matiere) === matiere &&
+            (genre !== 'examens' || (!!champs.debut && !!champs.fin && d.debut === champs.debut && d.fin === champs.fin));
     }) || null;
 }
 
@@ -1410,12 +1913,19 @@ function devoirsDelai(date) {
 
 function devoirsRendre() {
     var store = devoirsLireStore();
+    var bacReglage = document.getElementById('devoirsBacReglage');
+    if (bacReglage) {
+        bacReglage.hidden = typeof ibYear === 'undefined' || ibYear !== 'DP2';
+        var bacEtat = document.getElementById('devoirsBacEtat');
+        if (bacEtat) bacEtat.textContent = store.bac === true ? 'Oui' : store.bac === false ? 'Non' : 'Pas encore répondu';
+    }
     var listeM = document.getElementById('devoirsMatiereListe');
     if (listeM) {
         /* la saisie ne propose que les matières de l'élève (toutes
            seulement s'il n'a pas encore de profil) */
         var matieresProposees = devoirsMatieresEleve();
         if (!matieresProposees.length) matieresProposees = devoirsMatieresConnues();
+        if (!devoirsFaitBac()) matieresProposees = matieresProposees.filter(function(m) { return devoirsNormaliser(m) !== 'bac national'; });
         listeM.innerHTML = matieresProposees.map(function (m) {
             return '<option value="' + devoirsEchap(m) + '"></option>';
         }).join('');
@@ -1462,8 +1972,7 @@ function devoirsRendre() {
             (filtre === 'avenir' || !passes.length ? '' : '<details class="devoirs-passes"' + (filtre === 'passes' ? ' open' : '') + '><summary>Passés (' + passes.length + ')</summary>' + rendreLignes(passes) + '</details>');
         if (!zone.innerHTML) zone.innerHTML = '<p>Aucun créneau trouvé.</p>';
     });
-    /* Le réglage du bac n'est plus sur cette page : la question est
-       posée par le popup, une seule fois, à tous les DP2. */
+
 }
 
 function devoirsRendreSiVisible() {

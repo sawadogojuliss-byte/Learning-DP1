@@ -20,6 +20,9 @@
 
 var chronoAnnonceEnCours = false;
 var chronoAnnonceGeneration = 0;
+var chronoAnnonceSuite = null;
+var chronoAnnonceGarde = null;
+var chronoPreparationSaisie = null;
 var chronoSonsAttente = [];
 function chronoVoixActive() {
     try { return localStorage.getItem('studyPlanIB_voixActive') !== 'false'; } catch (e) { return true; }
@@ -27,18 +30,37 @@ function chronoVoixActive() {
 function chronoVoixVolume() {
     try { var lu = localStorage.getItem('studyPlanIB_voixVolume'); if (lu === null) return 0.7; var v = Number(lu); return isFinite(v) && v >= 0 && v <= 1 ? v : 0.7; } catch (e) { return 0.7; }
 }
+function chronoVoixType() {
+    /* La préférence féminine conservée n'est pas effacée, mais cette voix
+       est temporairement indisponible : seule la masculine est active. */
+    return 'masculine';
+}
 function chronoChargerReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
     if (active) active.checked = chronoVoixActive();
     if (volume) volume.value = String(Math.round(chronoVoixVolume() * 100));
+    var choix = document.querySelectorAll('input[name="focusVoixType"]');
+    for (var i = 0; i < choix.length; i++) choix[i].checked = choix[i].value === chronoVoixType();
+}
+function chronoChoisirVoix(type) {
+    if (type !== 'masculine') { chronoChargerReglagesVoix(); return; }
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
+    try { localStorage.setItem('studyPlanIB_voixType', type); } catch (e) {}
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
+    chronoChargerReglagesVoix();
+    /* Préparer les sons pendant l'interaction, sans jouer d'annonce. */
+    if (chronoVoixActive()) chronoVoixPreparer();
 }
 function chronoSauverReglagesVoix() {
     var active = document.getElementById('focusVoixActive'), volume = document.getElementById('focusVoixVolume');
+    if (typeof syncFocusCourant === 'function') syncFocusCourant();
     try {
         if (active) localStorage.setItem('studyPlanIB_voixActive', String(active.checked));
         if (volume) localStorage.setItem('studyPlanIB_voixVolume', String(Math.min(1, Math.max(0, Number(volume.value) / 100))));
     } catch (e) {}
-    if (!chronoVoixActive()) chronoVoixArreter();
+    if (typeof syncFocusNotifier === 'function') syncFocusNotifier();
+    if (!chronoVoixActive() && chronoAnnonceEnCours) chronoInterrompreAnnonce(true);
+    else if (!chronoVoixActive()) chronoVoixArreter();
 }
 function chronoMettreSonEnAttente(id) {
     if (chronoSonsAttente.indexOf(id) === -1) chronoSonsAttente.push(id);
@@ -46,6 +68,11 @@ function chronoMettreSonEnAttente(id) {
 function chronoFinAnnonce(generation) {
     if (generation !== chronoAnnonceGeneration) return;
     chronoAnnonceEnCours = false;
+    if (chronoAnnonceGarde) clearTimeout(chronoAnnonceGarde);
+    chronoAnnonceGarde = null;
+    var suite = chronoAnnonceSuite;
+    chronoAnnonceSuite = null;
+    if (typeof suite === 'function') suite();
     var sons = chronoSonsAttente.slice();
     chronoSonsAttente = [];
     if (typeof focusEtat !== 'undefined' && focusEtat.mode === 'focus' && focusEtat.running) {
@@ -120,7 +147,58 @@ function chronoVoixMorceauxNombre(nombre) {
     return null;
 }
 
+/* Service facultatif : il n'est utilisé qu'après configuration explicite et
+   validation à l'écoute. Sans lui, les prises existantes restent prioritaires. */
+function chronoVoixServiceBase() {
+    var base = window.STUDYPLAN_VOIX_BACKEND;
+    if (typeof base !== 'string' || !base.trim()) return null;
+    try {
+        var url = new URL(base.trim(), window.location.href);
+        if ((url.protocol !== 'https:' && url.origin !== window.location.origin) || url.username || url.password || url.search || url.hash) return null;
+        return url.href.replace(/\/$/, '');
+    } catch (e) { return null; }
+}
+function chronoVoixServiceNom(minutes, finale) {
+    if (!chronoVoixServiceBase() || chronoVoixType() !== 'masculine') return null;
+    var debit = window.STUDYPLAN_VOIX_DEBIT;
+    if (['lent', 'normal', 'rapide'].indexOf(debit) === -1) return null;
+    return 'service-pause-' + minutes + '-' + debit + '-' + (finale ? '1' : '0');
+}
+
+/* Phrases entières écoutées et approuvées ; les essais refusés restent exclus. */
+function chronoVoixCompleteApprouvee(minutes) {
+    return Number.isInteger(minutes) && minutes >= 1 && minutes <= 60;
+}
+
 function chronoVoixUrl(nom) {
+    var service = /^service-pause-([1-9]|[1-5][0-9]|60)-(lent|normal|rapide)-([01])$/.exec(nom);
+    if (service && chronoVoixServiceBase()) return chronoVoixServiceBase() + '/v1/audio?message=pause&minutes=' + service[1] + '&debit=' + service[2] + '&finale=' + service[3];
+    var male = /^masculine-n-(\d+)$/.exec(nom);
+    if (male) {
+        var n = Number(male[1]);
+        if (n >= 1 && n <= 49) {
+            var fichier = n === 21 ? '21-minutes-approuve.mp3' : String(n).padStart(2, '0') + '-minutes.wav';
+            return 'livrables/stock-voix/durees/' + fichier + '?v=' + CHRONO_VOIX_VERSION;
+        }
+        if (n >= 50 && n <= 60) return 'livrables/publication-voix/essai-' + n + '-minutes.mp3?v=' + CHRONO_VOIX_VERSION;
+    }
+    if (nom === 'masculine-debut') return 'livrables/stock-voix/messages/annonce-debut.wav?v=' + CHRONO_VOIX_VERSION;
+    if (nom === 'masculine-pause') return 'livrables/stock-voix/messages/annonce-de-pause.wav?v=' + CHRONO_VOIX_VERSION;
+    if (nom === 'masculine-reprise') return 'livrables/stock-voix/messages/reprise-proposition.wav?v=' + CHRONO_VOIX_VERSION;
+    if (nom === 'masculine-fin-serie') return 'livrables/stock-voix/messages/fin-serie.wav?v=' + CHRONO_VOIX_VERSION;
+    var complet = /^masculine-complet-(\d+)$/.exec(nom);
+    if (complet && chronoVoixCompleteApprouvee(Number(complet[1]))) {
+        var minute = Number(complet[1]);
+        if (minute === 5) return 'livrables/publication-voix/essai-prononciation-claire-5.mp3?v=' + CHRONO_VOIX_VERSION;
+        var lot = minute >= 53 && minute <= 60 ? 'essai-prises-lot9' :
+            (minute >= 43 && minute <= 52 ? 'essai-prises-lot8' :
+            ([26, 34, 35, 36, 37, 38, 39, 40, 41, 42].indexOf(minute) !== -1 ? 'essai-prises-lot7' :
+            ([14, 20, 22, 23, 24, 25].indexOf(minute) !== -1 ? 'essai-prises-lot5' :
+            ([17, 18, 19, 31].indexOf(minute) !== -1 ? 'essai-prises-lot6' :
+            ([27, 28, 29, 30, 32, 33].indexOf(minute) !== -1 ? 'essai-prises-lot4' :
+            ([6, 7, 8, 9, 11, 12, 13, 16].indexOf(minute) !== -1 ? 'essai-prises-lot2' : 'essai-prises-continues'))))));
+        return 'livrables/publication-voix/' + lot + '/' + complet[1].padStart(2, '0') + '.mp3?v=' + CHRONO_VOIX_VERSION;
+    }
     return CHRONO_VOIX_DOSSIER + nom + CHRONO_VOIX_EXT + '?v=' + CHRONO_VOIX_VERSION;
 }
 
@@ -156,7 +234,8 @@ function chronoBipDoux() {
             osc.start(debut);
             osc.stop(debut + 0.36);
         });
-    } catch (e) {}
+        return now + 0.78;
+    } catch (e) { return null; }
 }
 
 /* Charge un morceau une seule fois, puis le garde décodé en mémoire :
@@ -210,7 +289,7 @@ function chronoVoixLecteur(nom) {
    annonce la longue sans avoir le temps de la télécharger. */
 function chronoVoixPreparer(minutes) {
     chronoVoixContexte();
-    var noms = ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et'];
+    var noms = chronoVoixType() === 'masculine' ? ['masculine-debut', 'masculine-pause', 'masculine-reprise', 'masculine-fin-serie'] : ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et', 'masculine-reprise', 'masculine-fin-serie'];
     var pauses = [];
     if (Array.isArray(minutes)) pauses = minutes.slice();
     else if (minutes != null) pauses = [minutes];
@@ -221,13 +300,39 @@ function chronoVoixPreparer(minutes) {
         }
     } catch (e) {}
     pauses.forEach(function (m) {
-        var nombre = chronoVoixMorceauxNombre(m);
-        if (nombre) noms = noms.concat(nombre);
+        var n = Math.round(Number(m));
+        if (chronoVoixType() === 'masculine' && isFinite(n) && n >= 1 && n <= 60) {
+            noms.push(chronoVoixCompleteApprouvee(n) ? 'masculine-complet-' + n : 'masculine-n-' + n);
+        }
+        else if (chronoVoixType() === 'feminine') {
+            var nombre = chronoVoixMorceauxNombre(m);
+            if (nombre) noms = noms.concat(nombre);
+        }
     });
     noms.forEach(function (nom) {
         chronoVoixCharger(nom).catch(function () {});
         chronoVoixLecteur(nom);
     });
+    /* Le résultat serveur doit être entièrement décodé avant la fin du
+       minuteur. S'il tarde ou échoue, on utilise les sons actuels. */
+    if (chronoVoixActive()) pauses.forEach(function (m) {
+        var n = Math.round(Number(m));
+        if (!isFinite(n) || n < 1 || n > 60 || chronoVoixCompleteApprouvee(n)) return;
+        [false, true].forEach(function (finale) {
+            var nom = chronoVoixServiceNom(n, finale);
+            if (nom) chronoVoixCharger(nom).catch(function () {});
+        });
+    });
+}
+
+/* Pendant la saisie, préparer sans attendre la perte du focus ni mémoriser
+   une valeur incomplète. Un petit délai évite de charger chaque chiffre. */
+function chronoPreparerDureeSaisie(champ) {
+    if (chronoPreparationSaisie) clearTimeout(chronoPreparationSaisie);
+    var brut = champ && String(champ.value).trim();
+    if (!/^\d+$/.test(brut) || Number(brut) < 1 || Number(brut) > 60) return;
+    var n = Number(brut);
+    chronoPreparationSaisie = setTimeout(function () { chronoVoixPreparer(n); }, 150);
 }
 
 /* ── La musique s'arrête avant que la voix parle ─────────────────────── */
@@ -244,7 +349,7 @@ function chronoCouperMusique() {
             });
         }
     } catch (e) {}
-    chronoSonsCoupes = actifs.length ? actifs : null;
+    if (actifs.length) chronoSonsCoupes = actifs;
 
     try {
         if (typeof focusLecteurs !== 'undefined' && focusLecteurs) {
@@ -308,37 +413,72 @@ function chronoVoixArreter() {
     } catch (e) {}
 }
 
-/* Premier chemin : les morceaux décodés, joués à la suite. Les WAV
-   gardent 90 ms de marge autour des phonèmes : pas de longue attente
-   après « vous avez droit à », ni de mot coupé au début du nombre. */
-function chronoVoixJouerTampons(noms, suite) {
+/* Les bords silencieux sont réduits sans toucher aux phonèmes : on conserve
+   25 ms de marge, et on programme les prises dos à dos sur l'horloge audio. */
+function chronoVoixBornes(tampon) {
+    var seuil = 0.0015, premiere = tampon.length, derniere = -1;
+    for (var canal = 0; canal < tampon.numberOfChannels; canal++) {
+        var donnees = tampon.getChannelData(canal);
+        var a = 0, b = donnees.length - 1;
+        while (a < donnees.length && Math.abs(donnees[a]) < seuil) a++;
+        while (b >= a && Math.abs(donnees[b]) < seuil) b--;
+        premiere = Math.min(premiere, a); derniere = Math.max(derniere, b);
+    }
+    if (derniere < 0) return { debut: 0, duree: tampon.duration, avantVoix: 0 };
+    var marge = Math.round(tampon.sampleRate * 0.025);
+    var debut = Math.max(0, premiere - marge) / tampon.sampleRate;
+    var fin = Math.min(tampon.length, derniere + marge + 1) / tampon.sampleRate;
+    return { debut: debut, duree: fin - debut, avantVoix: premiere / tampon.sampleRate - debut };
+}
+
+/* Premier chemin : toutes les prises sont chargées avant programmation.
+   La dernière source, et non une durée estimée, annonce la vraie fin. */
+function chronoVoixJouerTampons(noms, suite, options) {
     var ctx = chronoVoixContexte();
     if (!ctx) { if (suite) suite(false); return; }
     Promise.all(noms.map(chronoVoixCharger)).then(function (tampons) {
-        if (!tampons.length) { if (suite) suite(false); return; }
-        var quand = ctx.currentTime + 0.08;
-        tampons.forEach(function (tampon) {
-            var source = ctx.createBufferSource();
-            source.buffer = tampon;
-            var gain = ctx.createGain();
-            gain.gain.value = chronoVoixVolume();
-            source.connect(gain);
-            gain.connect(ctx.destination);
-            source.start(quand);
-            quand += tampon.duration + 0.07;
-            chronoVoixSources.push(source);
-        });
-        var attente = Math.max(0, (quand - ctx.currentTime) * 1000 + 150);
-        setTimeout(function () { if (suite) suite(true); }, attente);
+        if (options && options.generation != null && (options.generation !== chronoAnnonceGeneration || !chronoAnnonceEnCours)) return;
+        if (!tampons.length || ctx.state === 'suspended' || ctx.state === 'closed') { if (suite) suite(false); return; }
+        var bornesTampons = tampons.map(chronoVoixBornes);
+        var quand = Math.max(ctx.currentTime + 0.01, (options && options.debut || 0) - bornesTampons[0].avantVoix);
+        var sources = [], abandonne = false;
+        try {
+            tampons.forEach(function (tampon, index) {
+                /* Une respiration entre le message de série et l'annonce de
+                   pause, mais aucune coupure ajoutée à l'intérieur de celle-ci. */
+                if (index === 1 && options && options.pauseApresPremier) quand += 0.3;
+                var source = ctx.createBufferSource();
+                var bornes = bornesTampons[index];
+                source.buffer = tampon;
+                var gain = ctx.createGain();
+                gain.gain.value = chronoVoixVolume();
+                source.connect(gain);
+                gain.connect(ctx.destination);
+                sources.push(source);
+                chronoVoixSources.push(source);
+                source.onended = function () {
+                    var i = chronoVoixSources.indexOf(source);
+                    if (i !== -1) chronoVoixSources.splice(i, 1);
+                    if (!abandonne && index === tampons.length - 1 && suite) suite(true);
+                };
+                source.start(quand, bornes.debut, bornes.duree);
+                quand += bornes.duree;
+            });
+        } catch (e) {
+            abandonne = true;
+            sources.forEach(function (source) { try { source.stop(); } catch (_) {} });
+            if (suite) suite(false);
+        }
     }, function () {
         if (suite) suite(false);
     });
 }
 
 /* Deuxième chemin : les mêmes fichiers, lus par des lecteurs ordinaires. */
-function chronoVoixJouerLecteurs(noms, suite) {
+function chronoVoixJouerLecteurs(noms, suite, options) {
     var i = 0;
     function suivant() {
+        if (options && options.generation != null && (options.generation !== chronoAnnonceGeneration || !chronoAnnonceEnCours)) return;
         if (i >= noms.length) { if (suite) suite(true); return; }
         var son = chronoVoixLecteur(noms[i++]);
         if (!son) { if (suite) suite(false); return; }
@@ -346,7 +486,8 @@ function chronoVoixJouerLecteurs(noms, suite) {
         function apres(ok) {
             if (fini) return;
             fini = true;
-            if (ok) suivant();
+            if (ok && i === 1 && options && options.pauseApresPremier) setTimeout(suivant, 300);
+            else if (ok) suivant();
             else if (suite) suite(false);
         }
         try {
@@ -362,11 +503,13 @@ function chronoVoixJouerLecteurs(noms, suite) {
 }
 
 /* Troisième chemin : la voix du navigateur, phrase en toutes lettres. */
-function chronoVoixSynthese(phrase) {
+function chronoVoixSynthese(phrase, suite) {
     function dire() {
         try {
-            if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') return;
+            if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') { if (suite) suite(false); return; }
             var dit = new SpeechSynthesisUtterance(phrase);
+            dit.onend = function () { if (suite) suite(true); };
+            dit.onerror = function () { if (suite) suite(false); };
             dit.lang = 'fr-FR';
             dit.rate = 0.92;
             dit.pitch = 1.05;
@@ -382,7 +525,7 @@ function chronoVoixSynthese(phrase) {
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(dit);
             if (window.speechSynthesis.resume) window.speechSynthesis.resume();
-        } catch (e) {}
+        } catch (e) { if (suite) suite(false); }
     }
     try {
         var voixDispo = (window.speechSynthesis.getVoices() || []).length;
@@ -413,49 +556,100 @@ function chronoPhrasePause(minutes) {
 function chronoVoixPhrasePause(minutes) {
     var n = Math.round(Number(minutes));
     if (!isFinite(n) || n < 1) return null;
+    if (chronoVoixType() === 'masculine') {
+        if (n > 60) return null;
+        if (chronoVoixCompleteApprouvee(n)) return ['masculine-complet-' + n];
+        return ['masculine-debut', 'masculine-n-' + n, 'masculine-pause'];
+    }
     var nombre = chronoVoixMorceauxNombre(n);
     if (!nombre) return null;
     return ['seance-fin'].concat(nombre, [n > 1 ? 'minutes-de-pause' : 'minute-de-pause']);
 }
 
-/* Fin d'une concentration : la musique s'arrête, le bip retentit, puis la
-   voix donne la pause exacte de la configuration de l'élève. */
-function chronoAnnoncerPause(minutes) {
-    var n = Math.round(Number(minutes));
-    if (!isFinite(n) || n < 1) n = 5;
-    var generation = ++chronoAnnonceGeneration;
-    chronoAnnonceEnCours = true;
-    chronoCouperMusique();
-    chronoBipDoux();
-    var noms = chronoVoixPhrasePause(n);
-    setTimeout(function () {
-        if (generation !== chronoAnnonceGeneration) return;
-        chronoVoixArreter();
-        if (!chronoVoixActive()) { chronoFinAnnonce(generation); return; }
-        if (!noms) {
-            chronoVoixSynthese(chronoPhrasePause(n));
-            setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
-            return;
-        }
-        chronoVoixJouerTampons(noms, function (ok) {
-            if (generation !== chronoAnnonceGeneration) return;
-            if (ok) { chronoFinAnnonce(generation); return; }
-            chronoVoixJouerLecteurs(noms, function (ok2) {
-                if (generation !== chronoAnnonceGeneration) return;
-                if (!ok2) chronoVoixSynthese(chronoPhrasePause(n));
-                if (ok2) chronoFinAnnonce(generation);
-                else setTimeout(function () { chronoFinAnnonce(generation); }, 12000);
-            });
-        });
-    }, 760);
+/* Une intervention manuelle annule l'ancienne annonce ; couper la voix
+   pendant celle-ci libère aussi la transition, sans bloquer le minuteur. */
+function chronoInterrompreAnnonce(terminer) {
+    var suite = chronoAnnonceSuite;
+    ++chronoAnnonceGeneration;
+    chronoAnnonceSuite = null;
+    chronoAnnonceEnCours = false;
+    if (chronoAnnonceGarde) clearTimeout(chronoAnnonceGarde);
+    chronoAnnonceGarde = null;
+    chronoVoixArreter();
+    if (terminer && typeof suite === 'function') suite();
 }
 
-/* Fin d'une pause : le bip seul si aucune voix n'est enregistrée pour
-   cette phrase ; sinon elle est dite, avec la même voix. */
-function chronoAnnoncerReprise() {
-    chronoBipDoux();
-    if (!chronoVoixActive() || chronoVoixAbsents['pause-fin']) return;
-    setTimeout(function () {
-        chronoVoixJouerTampons(['pause-fin'], null);
-    }, 760);
+/* Le bip et les sources partagent l'horloge audio : le premier phonème est
+   programmé dès la fin du bip, les morceaux se suivent sans délai ajouté.
+   Si l'appareil refuse l'audio, un secours borné évite de bloquer la phase. */
+function chronoLancerAnnonce(noms, typeVoix, phrase, suite, options) {
+    chronoInterrompreAnnonce(false);
+    var generation = ++chronoAnnonceGeneration;
+    chronoAnnonceEnCours = true;
+    chronoAnnonceSuite = typeof suite === 'function' ? suite : null;
+    chronoCouperMusique();
+    var finBip = chronoBipDoux();
+    var ctx = chronoVoixCtx;
+    var delaiBip = finBip != null && ctx ? Math.max(0, (finBip - ctx.currentTime) * 1000) : 780;
+    function valide() { return generation === chronoAnnonceGeneration && chronoAnnonceEnCours; }
+    function fini() { if (valide()) chronoFinAnnonce(generation); }
+    chronoAnnonceGarde = setTimeout(function () {
+        if (!valide()) return;
+        chronoVoixArreter();
+        fini();
+    }, 20000);
+    if (!chronoVoixActive()) { setTimeout(fini, delaiBip); return; }
+    function secours() {
+        if (!valide()) return;
+        if (!noms || !noms.length) {
+            if (typeVoix === 'feminine' && phrase) chronoVoixSynthese(phrase, fini);
+            else fini();
+            return;
+        }
+        chronoVoixJouerLecteurs(options && options.nomsSecours || noms, function (ok) {
+            if (!valide()) return;
+            if (!ok && typeVoix === 'feminine' && phrase) chronoVoixSynthese(phrase, fini);
+            else fini();
+        }, { generation: generation, pauseApresPremier: !!(options && (options.nomsSecours ? options.pauseSecours : options.pauseApresPremier)) });
+    }
+    if (!noms || !noms.length) { setTimeout(secours, delaiBip); return; }
+    chronoVoixJouerTampons(noms, function (ok) {
+        if (!valide()) return;
+        if (ok) fini();
+        else setTimeout(secours, Math.max(0, finBip != null && ctx ? (finBip - ctx.currentTime) * 1000 : delaiBip));
+    }, { debut: finBip, generation: generation, pauseApresPremier: !!(options && options.pauseApresPremier) });
+}
+
+/* La fin de série est un message autonome : aucune annonce de pause. */
+function chronoAnnoncerFinSerie(suite) {
+    chronoLancerAnnonce(['masculine-fin-serie'], 'masculine',
+        'Tes séances de révisions sont terminées.', suite);
+}
+
+/* Fin de concentration intermédiaire : annonce la durée exacte choisie. */
+function chronoAnnoncerPause(minutes, suite, derniereSeance) {
+    // Compatibilité avec les anciens appelants : ne jamais ajouter une pause
+    // à la fin de la série, même si une durée est encore transmise.
+    if (derniereSeance) { chronoAnnoncerFinSerie(suite); return; }
+    var n = Math.round(Number(minutes));
+    if (!isFinite(n) || n < 1 || n > 60) n = 5;
+    var noms = chronoVoixPhrasePause(n);
+    var texte = chronoPhrasePause(n);
+    if (chronoVoixCompleteApprouvee(n) && chronoVoixType() === 'masculine') {
+        /* Ne jamais rejouer l'ancienne phrase assemblée pour ces durées,
+           même si la prise ne peut pas être lue : la transition continue. */
+        chronoLancerAnnonce(noms, 'masculine', texte, suite);
+        return;
+    }
+    var nomService = chronoVoixServiceNom(n, false);
+    if (nomService && chronoVoixTampons[nomService]) {
+        chronoLancerAnnonce([nomService], chronoVoixType(), texte, suite, { nomsSecours: noms });
+    } else {
+        chronoLancerAnnonce(noms, chronoVoixType(), texte, suite);
+    }
+}
+
+/* Fin de pause : la phrase demandée est toujours la voix masculine choisie. */
+function chronoAnnoncerReprise(suite) {
+    chronoLancerAnnonce(['masculine-reprise'], 'masculine', '', suite);
 }

@@ -1,0 +1,5 @@
+.rappel-activite { padding: .7rem; background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: .85rem; }
+.rappel-activite button { width: 100%; border: 1px solid #059669; border-radius: .7rem; padding: .65rem; color: #065f46; background: white; font-weight: 700; cursor: pointer; }
+.rappel-activite button[aria-pressed="true"] { background: #047857; color: white; }
+.rappel-activite button:focus-visible { outline: 3px solid #10b981; outline-offset: 2px; }
+.rappel-activite p { margin: .4rem 0 0; font-size: .75rem; line-height: 1.4; color: #374151; }

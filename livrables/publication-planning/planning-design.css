@@ -1,0 +1,87 @@
+/* Fenêtre de modification : présentation isolée, sans changer la logique. */
+#editEventModal.ep-voile { position:fixed; inset:0; z-index:220; align-items:center; justify-content:center; padding:18px; background:rgba(13,39,30,.38); backdrop-filter:blur(3px); }
+#editEventModal * { box-sizing:border-box; }
+#editEventModal .ep-dialogue { width:min(100%,500px); max-height:min(90dvh,850px); overflow:auto; background:#fff; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; font-family:Inter,system-ui,sans-serif; color:#244638; }
+#editEventModal .ep-header { display:flex; gap:14px; align-items:flex-start; padding:24px 24px 20px; border-bottom:1px solid #e9f0eb; background:#fff; }
+#editEventModal .ep-icon { flex:none; width:46px; height:46px; border-radius:14px; display:grid; place-items:center; color:#238562; background:#e4f4e9; }
+#editEventModal .ep-icon svg { width:23px; height:23px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+#editEventModal .ep-kicker { margin:1px 0 6px; color:#579a79; font-size:9px; letter-spacing:.14em; font-weight:800; }
+#editEventModal .ep-header h3 { margin:0; color:#173d2f; font-size:21px; line-height:1.2; letter-spacing:-.035em; }
+#editEventModal .ep-header div>p:last-child { margin:6px 0 0; color:#71877a; font-size:12px; line-height:1.45; }
+#editEventModal .ep-close { margin-left:auto; flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; color:#6b8274; background:#fff; font-size:24px; line-height:1; cursor:pointer; }
+#editEventModal .ep-body { padding:22px 24px 24px; }
+#editEventModal .ep-label { display:block; margin:0 0 8px; color:#456253; font-size:12px; font-weight:750; }
+#editEventModal .ep-input { display:block; width:100%; min-width:0; min-height:46px; padding:10px 13px; border:1px solid #dce9df; border-radius:10px; background:#fbfdfb; color:#264636; font:inherit; font-size:14px; }
+#editEventModal .ep-duration { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:19px 0; }
+#editEventModal .ep-duration .ep-label { margin-bottom:4px; }
+#editEventModal .ep-duration p { margin:0; color:#879a8e; font-size:11px; }
+#editEventModal .ep-duration-control { display:flex; align-items:center; gap:10px; }
+#editEventModal .ep-duration-control button { width:38px; height:38px; border:1px solid #deebe1; border-radius:10px; background:#f2f9f3; color:#28805d; font-size:20px; font-weight:700; cursor:pointer; }
+#editEventModal .ep-duration-control strong { min-width:59px; text-align:center; font-size:14px; }
+#editEventModal .ep-times { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#editEventModal .ep-hint,#editEventModal .ep-info { margin:14px 0 0; padding:12px 14px; border-radius:11px; background:#eff8f1; color:#527261; font-size:12px; line-height:1.55; }
+#editEventModal .ep-error { color:#b54440; font-size:12px; font-weight:700; line-height:1.5; }
+#editEventModal .ep-actions { display:grid; gap:9px; margin-top:18px; }
+#editEventModal .ep-actions>button { width:100%; min-height:44px; padding:10px; border-radius:10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }
+#editEventModal .ep-save { border:1px solid #16815d; background:#16815d; color:#fff; }
+#editEventModal .ep-delete { border:1px solid #f1dfdc; background:#fff9f8; color:#bd5a53; }
+#editEventModal .ep-cancel { border:0; background:transparent; color:#758b7e; }
+#editEventModal button:focus-visible,#editEventModal input:focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+#editEventModal .rappel-activite { margin-bottom:3px; }
+#chevauchementPopup.chev-voile { padding:18px; background:rgba(13,39,30,.58); backdrop-filter:blur(5px); }
+#chevauchementPopup .chev-dialogue { width:min(100%,560px); max-height:90dvh; padding:25px; border:1px solid #dce9df; border-radius:22px; box-shadow:0 24px 80px #102b2060; color:#244638; font-family:Inter,system-ui,sans-serif; }
+#chevauchementPopup .chev-entete { align-items:flex-start; gap:14px; }
+#chevauchementPopup .chev-symbole { width:46px; height:46px; border-radius:14px; background:#e7f5ea; color:#258760; font-size:23px; }
+#chevauchementPopup .chev-kicker { display:block; margin:2px 0 6px; color:#559875; font-size:9px; font-weight:800; letter-spacing:.14em; }
+#chevauchementPopup .chev-entete h2 { color:#173d2f; letter-spacing:-.035em; font-size:21px; line-height:1.2; }
+#chevauchementPopup .chev-close { margin-left:auto; flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; background:#fff; color:#6b8274; font-size:24px; line-height:1; cursor:pointer; }
+#chevauchementPopup .chev-intro { color:#60796b; line-height:1.6; font-size:13px; }
+#chevauchementPopup .chev-section { margin-top:20px; color:#758d7c; font-size:10px; letter-spacing:.1em; }
+#chevauchementPopup .chev-carte { border-radius:14px; padding:13px; }
+#chevauchementPopup .chev-carte-moi { background:#eff8f1; border-color:#c9e9d2; }
+#chevauchementPopup .chev-carte-deja { background:#fffbf5; border-color:#f2e4cd; }
+#chevauchementPopup .chev-carte-corps strong { color:#274737; }
+/* Les créneaux à cocher restent distincts des avertissements. */
+#chevauchementPopup .chev-retrait { background:#eff8f1; border-color:#b9dec4; color:#244638; }
+#chevauchementPopup .chev-retrait:has(input:checked) { background:#d9f2e1; border-color:#45a873; }
+#chevauchementPopup .chev-retrait input { accent-color:#16815d; }
+#chevauchementPopup .chev-actions { gap:9px; }
+#chevauchementPopup .chev-bouton { border-radius:11px; padding:12px 14px; line-height:1.45; }
+#chevauchementPopup .chev-bouton-vert { background:#16815d; border-color:#16815d; }
+#chevauchementPopup .chev-bouton-clair { color:#2a6248; border-color:#dcebe0; background:#f8fbf8; }
+#chevauchementPopup .chev-bouton small { display:block; margin-top:4px; font-size:11px; line-height:1.4; font-weight:500; text-align:left; }
+#chevauchementPopup .chev-bouton[data-autre-creneau],#chevauchementPopup .chev-bouton[data-deplacer],#chevauchementPopup .chev-bouton[data-remplacer] { text-align:left; }
+#chevauchementPopup :is(button,input,select):focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+@media(max-width:500px) { #editEventModal.ep-voile,#chevauchementPopup.chev-voile { padding:10px; } #editEventModal .ep-dialogue,#chevauchementPopup .chev-dialogue { max-height:92dvh; border-radius:18px; } #editEventModal .ep-header,#editEventModal .ep-body,#chevauchementPopup .chev-dialogue { padding:18px; } }
+/* Alerte calme et parcours explicatif des chevauchements. */
+#chevauchementJour.cv-alerte { display:flex; align-items:center; gap:13px; margin:0 0 14px; padding:14px 16px; border:1px solid #cce8d4; border-radius:16px; background:#edf8ef; color:#245a3f; font-family:Inter,system-ui,sans-serif; }
+.cv-alerte-icone { flex:none; width:39px; height:39px; display:grid; place-items:center; background:#d9f0df; color:#16815d; border-radius:12px; font-size:20px; font-weight:800; }
+.cv-alerte-texte { flex:1; min-width:0; display:grid; gap:4px; }
+.cv-alerte-texte strong { font-size:13px; line-height:1.3; }.cv-alerte-texte span { color:#60806c; font-size:11px; line-height:1.45; overflow-wrap:anywhere; }
+.cv-voir { flex:none; min-height:38px; padding:0 13px; border:1px solid #c6e4ce; border-radius:10px; background:#fff; color:#197450; font:inherit; font-size:12px; font-weight:750; cursor:pointer; }
+.cv-explication-voile { position:fixed; inset:0; z-index:450; display:flex; align-items:center; justify-content:center; padding:16px; background:#10271fc0; backdrop-filter:blur(4px); }
+.cv-explication,.cv-explication * { box-sizing:border-box; }
+.cv-explication { width:min(100%,490px); max-height:90dvh; overflow:auto; border-radius:22px; padding:25px; background:white; color:#274939; font-family:Inter,system-ui,sans-serif; box-shadow:0 24px 80px #102b2060; }
+.cv-explication-entete { display:flex; align-items:flex-start; gap:13px; }
+.cv-explication-entete>span { flex:none; display:grid; place-items:center; width:46px; height:46px; border-radius:14px; background:#e7f5ea; color:#258760; font-size:23px; font-weight:800; }
+.cv-explication-entete div { flex:1; }.cv-explication-entete small { color:#559875; font-size:9px; letter-spacing:.14em; font-weight:800; }.cv-explication-entete h2 { margin:6px 0 0; color:#173d2f; font-size:21px; line-height:1.2; letter-spacing:-.035em; }
+.cv-fermer { flex:none; width:34px; height:34px; border:1px solid #e5eee7; border-radius:10px; background:white; color:#6b8274; font-size:24px; cursor:pointer; }
+.cv-explication>p { color:#61796b; font-size:13px; line-height:1.6; margin:18px 0; }
+.cv-evenement { display:flex; align-items:center; gap:10px; padding:13px; margin:7px 0; border:1px solid #e0eee3; border-radius:12px; background:#f7fbf7; font-size:12px; }.cv-evenement strong { flex:1; overflow-wrap:anywhere; }.cv-evenement span:last-child { color:#64816d; white-space:nowrap; }.cv-point { width:8px; height:8px; border-radius:50%; background:#5aac7b; flex:none; }
+.cv-explication .cv-indication { padding:12px 14px; border-radius:12px; background:#edf8ef; color:#52705d; font-size:12px; }
+.cv-resoudre,.cv-annuler { display:block; width:100%; min-height:44px; border-radius:10px; font:inherit; font-size:13px; font-weight:750; cursor:pointer; }.cv-resoudre { border:0; background:#16815d; color:white; }.cv-annuler { margin-top:8px; border:1px solid #e2ebe4; background:#fff; color:#6b8274; }
+.cv-explication button:focus-visible,.cv-voir:focus-visible { outline:3px solid #54af8c; outline-offset:2px; }
+@media(max-width:400px) { #chevauchementJour.cv-alerte { gap:9px; padding:12px; }.cv-explication { padding:19px; }.cv-evenement { flex-wrap:wrap; }.cv-evenement span:last-child { margin-left:18px; } }
+/* Le conflit lui-même reste dans la palette verte ; les confirmations de
+   retrait essentiel conservent leur signal de prudence distinct. */
+#chevauchementPopup .chev-carte-deja { background:#f4faf5; border-color:#d5ebd9; }
+#chevauchementPopup .chev-proposition-occupee { background:#f5faf5; border-color:#cfe7d4; color:#345f47; }
+#chevauchementPopup .chev-proposition-occupee:hover { background:#eaf7ec; border-color:#83bd94; }
+#chevauchementPopup .chev-proposition-occupee .chev-proposition-effet { color:#607c67; }
+
+.cv-sommeil-avertissement { margin:0 0 14px; padding:14px; border:1px solid #a7cfa9; border-radius:14px; background:#eff8e9; color:#315c35; font-size:13px; line-height:1.5; }
+.cv-sommeil-avertissement p { margin:5px 0; }
+.cv-sommeil-avertissement div { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-top:6px; }
+.cv-sommeil-avertissement button { border:1px solid #80ae83; border-radius:8px; background:#fff; color:#315c35; padding:6px 10px; cursor:pointer; }
+/* Chaque étape commence en haut, y compris avec le défilement global fluide. */
+#chevauchementPopup .chev-dialogue { scroll-behavior:auto; }

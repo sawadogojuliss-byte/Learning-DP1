@@ -140,6 +140,7 @@ function memoireLireEtat() {
         suppressions: typeof syncLireRegistre === 'function' ? syncLireRegistre() : {},
         /* Réglages du minuteur, datés (lot 9, point 5). */
         focusReglages: typeof syncFocusCourant === 'function' ? syncFocusCourant() : null,
+        statsFocus: typeof syncStatsPourCompte === 'function' ? syncStatsPourCompte(syncStatsLire()) : [],
         modifsSemaine: (function () {
             try { return JSON.parse(localStorage.getItem('studyPlanIB_modifsSemaine') || 'null'); } catch (e) { return null; }
         })(),
@@ -464,13 +465,15 @@ function memoireAppliquerCorps(data, opts) {
            avec le compte, fusionnés par identifiant (DE-25). */
         var recu = data.devoirsStore;
         if (recu && typeof recu === 'object') {
-            var actuel = devoirsLireStore();
+            // Ne jamais fusionner la réponse ou les devoirs d'un autre compte.
+            var actuel = window.compteChangementDeCompte ? {bac:null,bacDemande:0,bacModifieAt:0,devoirs:[],examens:[]} : devoirsLireStore();
             var fusion = typeof syncFusionnerStore === 'function'
                 ? syncFusionnerStore(actuel, recu, registre)
                 : null;
             devoirsEcrireStore({
-                bac: (recu.bac === true || recu.bac === false) ? recu.bac : actuel.bac,
-                bacDemande: recu.bacDemande === 2 ? 2 : actuel.bacDemande,
+                bac: fusion ? fusion.bac : ((actuel.bac === true || actuel.bac === false) ? actuel.bac : recu.bac),
+                bacDemande: fusion ? fusion.bacDemande : actuel.bacDemande,
+                bacModifieAt: fusion ? fusion.bacModifieAt : actuel.bacModifieAt,
                 devoirs: fusion ? fusion.devoirs : (Array.isArray(recu.devoirs) ? recu.devoirs : actuel.devoirs),
                 examens: fusion ? fusion.examens : (Array.isArray(recu.examens) ? recu.examens : actuel.examens)
             }, { brut: true });
@@ -480,7 +483,10 @@ function memoireAppliquerCorps(data, opts) {
             }
         }
     }
+    if (depuisCompte && window.compteChangementDeCompte && !data.devoirsStore && typeof devoirsEcrireStore === 'function')
+        devoirsEcrireStore({bac:null,bacDemande:0,bacModifieAt:0,devoirs:[],examens:[]}, {brut:true});
     if (typeof syncFocusAppliquer === 'function' && depuisCompte && data.focusReglages) syncFocusAppliquer(data.focusReglages);
+    if (typeof syncStatsAppliquer === 'function' && Array.isArray(data.statsFocus)) syncStatsAppliquer(data.statsFocus);
     if (depuisCompte && Array.isArray(data.exercices) && typeof exercices !== 'undefined') exercices = filtrer(data.exercices, 'exercices');
     else if (!depuisCompte) {
         var exos = memoireJson('studyPlanIB_exercices');
@@ -616,7 +622,7 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    if (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin') {
+    if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&
@@ -627,9 +633,8 @@ function memoireAller(etape) {
         var planning = document.getElementById('planningModal');
         if (planning && !planning.classList.contains('active') && typeof generatePlanning === 'function') generatePlanning();
         else if (planning) planning.classList.add('active');
-        if (etape === 'planning') {
-            document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
-        } else if (typeof navigateTo === 'function') navigateTo(etape);
+        if (typeof navigateTo === 'function') navigateTo(etape);
+        else if (etape === 'planning') document.querySelectorAll('.app-panel').forEach(function (el) { el.classList.remove('active'); });
         return;
     }
     memoireFermerVues();
@@ -681,8 +686,8 @@ function memoireEtapeConnue(etape) {
     var connues = {
         accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
-        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, legende: 1,
-        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1,
+        libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, devoirs: 1, emploi: 1, legende: 1,
+        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1, admin: 1,
         seances: 1, pomodoro: 1
     };
     return !!connues[etape];
@@ -691,7 +696,9 @@ function memoireEtapeConnue(etape) {
 function memoirePoserHash(etape) {
     var id = memoireEtapeConnue(etape) ? etape : 'accueil';
     var next = '#' + id;
-    var state = { app: 'studyplan', etape: id };
+    var ancien = history.state && history.state.app === 'studyplan' ? history.state : null;
+    var state = { app: 'studyplan', etape: id, precedent: ancien ? ancien.etape : '' };
+    if (ancien && ancien.etape === id) state.precedent = ancien.precedent || '';
     var url = location.pathname + location.search + next;
     var courant = history.state && history.state.app === 'studyplan' ? history.state.etape : '';
     try {
@@ -717,6 +724,18 @@ function memoireDepuisHistorique(etape) {
     }
     try { memoireSauvegarder(); } catch (e) {}
     memoireNavSilence = false;
+}
+
+/* Ne pas quitter le site si cette page n'a pas de précédent interne. */
+function memoireRetour() {
+    var state = history.state;
+    if (state && state.app === 'studyplan' && memoireEtapeConnue(state.precedent) && state.precedent !== state.etape) {
+        history.back();
+    } else {
+        memoireAller(window.__profilComplet ? 'planning' : (memoirePagePrecedente(memoireEtapeActive()) || 'accueil'));
+        memoirePoserHash(memoireEtapeActive());
+        memoireNoterEtape(memoireEtapeActive());
+    }
 }
 
 function memoireEtapeHash() {
@@ -802,7 +821,7 @@ function memoireNoterEtape(etape) {
 
 function memoireHistoriqueActiver() {
     memoireNavSilence = true;
-    try { memoireHistoriqueSemer(memoireEtapeActive()); } catch (e) { memoirePoserHash(memoireEtapeActive()); }
+    try { memoirePoserHash(memoireEtapeActive()); } catch (e) {}
     memoireNavPret = true;
     memoireNavSilence = false;
     if (window.__memoireHistorique) return;
@@ -889,7 +908,7 @@ function memoireSauvegarder() {
 
 function memoireCleDuCompte(cle, sub) {
     if (!cle) return false;
-    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle.indexOf(sub) !== -1;
+    return cle === MEMOIRE_KEY || cle === 'studyPlanIB_customEvents_juliss' || cle === 'studyPlanIB_exercices' || cle === 'studyPlanIB_exoBrouillon' || cle === 'studyPlanIB_sauvegarde:locale' || cle === 'studyPlanIB_proprietaire' || cle === 'studyPlanIB_googleSession' || cle === 'studyPlanIB_suppressions' || cle === 'studyPlanIB_focusReglages' || cle === 'studyPlanIB_statsFocus' || cle.indexOf(sub) !== -1;
 }
 
 function memoireEffacerSuite() {
@@ -984,8 +1003,7 @@ function memoireDemarrer() {
         var etape = data.etape || 'accueil';
         try {
             var hash = decodeURIComponent((location.hash || '').replace(/^#/, '').split('?')[0] || '');
-            if (hash === 'pomodoro') etape = 'pomodoro';
-            else if (hash === 'seances') etape = 'seances';
+            if (memoireEtapeConnue(hash)) etape = hash;
         } catch (e) {}
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;

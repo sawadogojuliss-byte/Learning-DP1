@@ -1,19 +1,21 @@
-<!-- ============================================================
-     PAGE : EE & IA
-     Avancement du mémoire et de chaque évaluation interne.
-     Script : js/pages/onboarding-travaux.js
-     ============================================================ -->
-<div class="app-panel" id="panelEEia">
-    <div style="max-width:46rem;margin:0 auto;padding:0 1rem 4rem;">
-        <div style="position:sticky;top:0;z-index:10;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:0.875rem 0;margin-bottom:1.25rem;border-bottom:1px solid #f3f4f6;">
-            <div style="display:flex;align-items:center;gap:0.75rem;">
-                <button type="button" onclick="navigateTo('planning')" style="width:2.25rem;height:2.25rem;background:#ecfdf5;border:1.5px solid #a7f3d0;border-radius:0.625rem;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:#059669;"><svg class="fleche-icone" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
-                <div>
-                    <h2 style="font-size:1.1rem;font-weight:800;color:#111827;margin:0;">EE &amp; IA</h2>
-                    <p style="font-size:0.75rem;color:#6b7280;margin:0.15rem 0 0;">Mémoire et évaluations internes</p>
-                </div>
+<!-- Suivi du mémoire et des évaluations internes ; données gérées par onboarding-travaux.js. -->
+<div class="app-panel eeia-page" id="panelEEia">
+    <header class="study-topbar">
+        <div class="study-topbar-inner">
+            <button type="button" class="study-back" onclick="memoireRetour()" aria-label="Revenir à la page précédente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+            <div class="study-topbar-brand"><span class="study-topbar-logo"><img src="images/logo.png" alt="Logo Studyplan" width="42" height="42"></span><span><strong>Studyplan</strong><small>MON ESPACE D’ÉTUDE</small></span></div>
+            <span class="study-topbar-note">Un pas à la fois <span aria-hidden="true">✦</span></span>
+        </div>
+    </header>
+    <main class="eeia-shell">
+        <div class="eeia-hero">
+            <div>
+                <p class="eeia-eyebrow"><span></span> TON PARCOURS IB · EE &amp; IA</p>
+                <h1>Ton mémoire et tes IA,<br><em>une étape à la fois.</em></h1>
+                <p>Retrouve ton mémoire et tes évaluations internes au même endroit. Découpe ton travail et suis tes progrès.</p>
             </div>
+            <aside class="study-welcome-card" aria-label="Bienvenue dans cet espace"><span class="study-welcome-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21V5.5Zm3 2h9m-9 4h7"/></svg></span><div class="study-welcome-copy"><span class="study-welcome-kicker">TON PARCOURS IB</span><strong class="study-welcome-title">Chaque étape compte</strong><span class="study-welcome-desc">Ton mémoire et tes IA prennent forme, à ton rythme.</span></div></aside>
         </div>
         <div id="eeiaBody"></div>
-    </div>
+    </main>
 </div>

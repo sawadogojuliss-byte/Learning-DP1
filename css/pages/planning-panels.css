@@ -1,9 +1,49 @@
 /* Styles des panneaux Planning, Soutien et Exercices */
 .menu-item-btn:hover { transform:translateX(3px); box-shadow:0 4px 12px rgba(16,185,129,0.15); }
 /* ─── PAGE PANELS ─── */
-.app-panel { display:none;position:fixed;inset:0;z-index:80;background:white;overflow-y:auto;animation:slideInRight 0.3s ease-out; }
-.app-panel.active { display:block; }
-@keyframes slideInRight { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+.app-panel {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    background:#fff;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    /* Une page plein écran ne doit pas laisser apparaître le planning derrière elle. */
+    animation:none;
+}
+
+.app-panel.active {
+    display:block !important;
+    width:100vw !important;
+    height:100vh !important;
+    min-height:100vh !important;
+    background:#fff !important;
+    opacity:1 !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+}
+
+/* Voile blanc opaque plein écran pour masquer totalement tout contenu derrière le panneau */
+.app-panel.active::before {
+    content:'';
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    z-index:-1 !important;
+    background:#fff !important;
+    opacity:1 !important;
+}
+
+/* S'assurer qu'aucun autre élément ne s'affiche au-dessus du panneau quand il est ouvert */
+html:has(.app-panel.active),
+body:has(.app-panel.active) {
+    overflow:hidden !important;
+}
 /* ─── MOOD BUTTONS ─── */
 .mood-btn { border:2.5px solid transparent;border-radius:1.25rem;padding:1rem;cursor:pointer;transition:all 0.25s;text-align:center;background:white; }
 .mood-btn:hover { transform:translateY(-4px);box-shadow:0 12px 28px rgba(0,0,0,0.12); }
@@ -486,6 +526,17 @@
     background-position: center center;
     transition: none;
 }
+/* Le décor statique reste sous la vidéo et sert de repli si elle ne joue pas. */
+.focus-fond-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    visibility: hidden;
+}
+.focus-fond-video.is-visible { visibility: visible; }
 .focus-shade {
     background: linear-gradient(180deg, rgba(6, 30, 24, 0.28), transparent 18%);
     pointer-events: none;
@@ -612,6 +663,13 @@
     background: #111;
     color: #fff;
 }
+
+/* Vidéo du mini-lecteur local, derrière le minuteur et ses commandes. */
+.focus-pip-scene .pip-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; }
+.focus-pip-scene .focus-pip-temps, .focus-pip-scene .focus-pip-play, .focus-pip-scene .focus-pip-coin { position:relative; z-index:1; }
+.focus-pip-scene .focus-pip-coin { position:absolute; }
+.focus-pip-scene .pip-video-reessayer { position:absolute; z-index:3; left:50%; bottom:.4rem; transform:translateX(-50%); min-height:32px; padding:.35rem .55rem; border:1px solid #b7e3c8; border-radius:.5rem; background:#173f2e; color:#fff; font:600 .7rem system-ui,sans-serif; cursor:pointer; white-space:nowrap; }
+
 .focus-pip[hidden] { display: none; }
 .focus-pip-fermer {
     position: absolute;
@@ -1351,7 +1409,7 @@ body.v3-deplacement, body.v3-deplacement * {
     justify-content:center; background:rgba(15,23,42,.68); backdrop-filter:blur(4px);
 }
 #chevauchementPopup .chev-dialogue {
-    box-sizing:border-box; width:min(100%,34rem); max-height:calc(100dvh - 2rem); overflow-y:auto;
+    box-sizing:border-box; width:min(100%,34rem); max-height:calc(100dvh - 2rem); overflow-y:auto; scroll-behavior:auto;
     padding:clamp(1rem,3vw,1.5rem); border-radius:1.4rem; background:#fff; color:#1f2937;
     box-shadow:0 26px 70px rgba(0,0,0,.3); font-family:Inter,system-ui,sans-serif;
 }
@@ -1371,15 +1429,18 @@ body.v3-deplacement, body.v3-deplacement * {
 #chevauchementPopup .chev-carte-corps strong { font-size:.94rem; color:#111827; overflow-wrap:anywhere; }
 #chevauchementPopup .chev-actions { display:grid; gap:.5rem; margin-top:1rem; }
 #chevauchementPopup .chev-bouton { box-sizing:border-box; width:100%; padding:.72rem .8rem; border-radius:.75rem; border:1.5px solid #d1d5db; background:white; color:#374151; font:inherit; font-size:.85rem; font-weight:750; cursor:pointer; text-align:center; }
+#chevauchementPopup .chev-bouton small { display:block; margin-top:.25rem; font-size:.75rem; line-height:1.4; font-weight:500; text-align:left; }
+#chevauchementPopup .chev-bouton[data-autre-creneau], #chevauchementPopup .chev-bouton[data-deplacer], #chevauchementPopup .chev-bouton[data-remplacer] { text-align:left; }
 #chevauchementPopup .chev-bouton-vert { background:#047857; color:#fff; border-color:#047857; }
 #chevauchementPopup .chev-bouton-clair { background:#f0fdf4; color:#065f46; border-color:#a7f3d0; }
 #chevauchementPopup .chev-bouton-lien { background:white; color:#4b5563; border-color:#e5e7eb; }
 #chevauchementPopup .chev-bouton:disabled { opacity:.5; cursor:not-allowed; }
 #chevauchementPopup .chev-mode, #chevauchementPopup .chev-retrait { display:flex; align-items:center; gap:.7rem; margin:.45rem 0; padding:.72rem .85rem; border:1px solid #d1fae5; border-radius:.8rem; background:#f8fffb; font-size:.83rem; line-height:1.4; cursor:pointer; }
 #chevauchementPopup .chev-mode:has(input:checked) { border-color:#059669; background:#ecfdf5; color:#065f46; font-weight:700; }
-#chevauchementPopup .chev-retrait { background:#fffbeb; border-color:#fde68a; }
-#chevauchementPopup .chev-retrait:has(input:checked) { border-color:#d97706; background:#fef3c7; }
+#chevauchementPopup .chev-retrait { background:#eff8f1; border-color:#b9dec4; color:#244638; }
+#chevauchementPopup .chev-retrait:has(input:checked) { border-color:#45a873; background:#d9f2e1; }
 #chevauchementPopup .chev-mode input, #chevauchementPopup .chev-retrait input { flex:none; width:1.05rem; height:1.05rem; accent-color:#047857; }
+#chevauchementPopup .chev-retrait input { accent-color:#16815d; }
 #chevauchementPopup #chevSource { box-sizing:border-box; width:100%; padding:.7rem; border:1px solid #9ca3af; border-radius:.7rem; background:#fff; font:inherit; color:#111827; }
 #chevauchementPopup .chev-resultat { padding:.7rem .85rem; margin:.7rem 0; border-radius:.8rem; background:#ecfdf5; color:#065f46; font-size:.84rem; font-weight:700; }
 #chevauchementPopup .chev-verdict { margin:.6rem 0; font-size:.81rem; line-height:1.45; font-weight:700; color:#9a3412; }
@@ -1421,4 +1482,421 @@ body.v3-deplacement, body.v3-deplacement * {
     #chevauchementPopup .chev-ligne b { white-space:normal; }
 }
 
+/* ============================================================
+   PAGE MES EXERCICES — déplacée dans css/pages/exercices.css
+   (une barre oblique suivie d'une étoile, mal fermée plus bas,
+   avalait ce bloc ; la page
+   garde ici le strict minimum : le blanc plein écran du panneau).
+   ============================================================ */
 
+
+.exo-header-inner {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.exo-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.exo-back-btn {
+    width: 2.25rem;
+    height: 2.25rem;
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    border-radius: 0.625rem;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #059669;
+}
+
+.exo-back-btn .fleche-icone {
+    width: 1rem;
+    height: 1rem;
+}
+
+.exo-header-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.exo-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #111827;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.exo-subtitle {
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin: 0;
+}
+
+.exo-badge {
+    background: #ecfdf5;
+    border: 1.5px solid #a7f3d0;
+    border-radius: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #059669;
+    white-space: nowrap;
+}
+
+/* Onglets */
+.exo-tabs {
+    display: flex;
+    background: #f3f4f6;
+    border-radius: 1rem;
+    padding: 0.3rem;
+    margin-bottom: 1.5rem;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.exo-tab {
+    flex: 1;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.875rem;
+    border: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s;
+    background: transparent;
+}
+
+.exo-tab.active {
+    background: white;
+    color: #059669;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.12);
+}
+
+.exo-tabpanel {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Sections cartes */
+.exo-card {
+    background: white;
+    border: 1.5px solid #e5e7eb;
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.exo-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #374151;
+    display: block;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Matière */
+.exo-subject-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.exo-error {
+    margin: 0.5rem 0 0;
+    color: #b45309;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+/* Drag & drop */
+.exo-dropzone {
+    border: 2.5px dashed #a7f3d0;
+    border-radius: 1rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.3s;
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    cursor: pointer;
+    margin-bottom: 1rem;
+}
+
+.exo-dropzone-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.exo-dropzone-title {
+    font-weight: 700;
+    color: #059669;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.exo-dropzone-help {
+    font-size: 0.78rem;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.exo-file-info {
+    display: none;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1rem;
+    font-size: 0.85rem;
+    color: #059669;
+    margin-bottom: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Séparateur OU */
+.exo-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.875rem;
+}
+
+.exo-divider-line {
+    flex: 1;
+    height: 1px;
+    background: #e5e7eb;
+}
+
+.exo-divider-text {
+    font-size: 0.75rem;
+    color: #56665e;
+    font-weight: 600;
+}
+
+/* Champs de saisie */
+.exo-textarea,
+.exo-input {
+    width: 100%;
+    padding: 0.75rem 0.875rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.875rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    line-height: 1.5;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: white;
+    box-sizing: border-box;
+}
+
+.exo-textarea {
+    resize: none;
+    min-height: 8rem;
+}
+
+.exo-input {
+    min-height: 3.25rem;
+}
+
+/* Durée */
+.exo-duration-presets {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.exo-preset {
+    padding: 0.625rem;
+    border-radius: 0.75rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.exo-preset.active {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.exo-duration-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.exo-slider {
+    flex: 1;
+    accent-color: #10b981;
+}
+
+.exo-slider-value {
+    font-weight: 800;
+    color: #059669;
+    font-size: 1rem;
+    min-width: 3.5rem;
+    text-align: right;
+}
+
+/* Boutons */
+.exo-btn-clear {
+    width: 100%;
+    padding: 0.75rem;
+    background: #f9fafb;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.15s;
+    margin-bottom: 0.5rem;
+}
+
+.exo-btn-clear:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.exo-btn-add {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(to right, #10b981, #059669);
+    color: white;
+    font-weight: 800;
+    border: none;
+    border-radius: 0.875rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
+}
+
+.exo-btn-add:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(16, 185, 129, 0.4);
+}
+
+.exo-btn-add:active {
+    transform: translateY(0);
+}
+
+/* Filtres */
+.exo-filters {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.exo-filter {
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.65rem;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #374151;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.exo-filter.active {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #047857;
+}
+
+/* Liste vide */
+.exo-list-container {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.exo-empty {
+    text-align: center;
+    padding: 4rem 1rem;
+    color: #6b7280;
+}
+
+.exo-empty-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    display: block;
+}
+
+.exo-empty-title {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.exo-empty-text {
+    font-size: 0.85rem;
+    color: #6b7280;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .exo-page {
+        padding: 0 0.75rem 3rem;
+    }
+    .exo-duration-presets {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .exo-header-inner {
+        padding: 0 0.75rem;
+    }
+    .exo-tabs {
+        padding: 0.3rem;
+    }
+}
+
+
+
+/* Une arrivée immobile : pas de translation qui évoque un retour arrière. */
+#panelSeances.app-panel, #panelSeances .focus-accueil-boite { animation: none; }
+.focus-choix-seance { width: min(29rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); box-sizing: border-box; padding: 0; border: 1px solid #56836a; border-radius: 1.4rem; background: #102a20; color: #f4fff8; box-shadow: 0 24px 80px #0009; font-family: Inter, system-ui, sans-serif; }
+.focus-choix-seance::backdrop { background: rgba(0, 12, 8, .78); backdrop-filter: blur(5px); }
+.focus-choix-contenu { padding: clamp(1.2rem, 4vw, 2rem); }
+.focus-choix-sur-titre { color: #a1e9bd; font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
+.focus-choix-seance h2 { font-size: 1.5rem; margin: .55rem 0; }
+.focus-choix-seance p { line-height: 1.5; color: #d4e9db; }
+.focus-choix-seance label { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font-weight: 700; }
+.focus-choix-seance label[hidden] { display: none; }
+.focus-choix-seance input { width: 4.5rem; padding: .65rem; border: 1px solid #83b99a; border-radius: .7rem; background: #193d2c; color: white; font: inherit; }
+.focus-choix-seance .focus-choix-note { font-size: .8rem; color: #aecdbb; }
+.focus-choix-actions { display: flex; gap: .6rem; margin-top: 1.2rem; }
+.focus-choix-actions button { min-height: 44px; padding: .7rem 1rem; border-radius: .7rem; border: 1px solid #739e83; background: transparent; color: white; font: 700 .9rem Inter, system-ui, sans-serif; cursor: pointer; }
+.focus-choix-actions button:last-child { flex: 1; background: #a6ecc7; border-color: #a6ecc7; color: #103826; }
+.focus-choix-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.focus-choix-seance :focus-visible { outline: 2px solid #d2ffdf; outline-offset: 3px; }

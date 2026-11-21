@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#061510">
+  <title>Studyplan — Choisir la fenêtre de reprise</title>
+  <style>
+    :root{color-scheme:dark;--mint:#92e4c0;--deep:#061510;--text:#f1faf5;--muted:#a5bdb1;--border:rgba(170,223,192,.16)}
+    *{box-sizing:border-box} [hidden]{display:none!important}
+    html{background:var(--deep)} body{margin:0;background:radial-gradient(ellipse at 55% -20%,#173e2d 0,transparent 54%),#061510;color:var(--text);font-family:Degular,Inter,system-ui,sans-serif;font-size:16px;line-height:1.45}
+    button{font:inherit} button:focus-visible{outline:2px solid #d0ffdf;outline-offset:3px} .wrap{width:min(1100px,calc(100% - 48px));margin:auto}
+    .top{border-bottom:1px solid var(--border)}.top-inner{height:68px;display:flex;align-items:center;justify-content:space-between;gap:15px}.brand{font-weight:700;letter-spacing:-.045em;font-size:1.34rem;color:#fff;text-decoration:none}.brand span{color:var(--mint)}.top-tag{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#9cb9a8;font-weight:700}
+    main{padding:64px 0 70px}.eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--mint);font-weight:700;letter-spacing:.16em;font-size:.67rem;text-transform:uppercase}.eyebrow:before{content:'';width:25px;height:1px;background:var(--mint)}
+    h1{max-width:700px;margin:0;font-size:clamp(2.25rem,5vw,4.3rem);letter-spacing:-.055em;font-weight:600;line-height:1.03}h1 em{font-family:Georgia,serif;font-weight:400;color:#b3e8c7}.intro{max-width:610px;margin:16px 0 0;color:#afc3b7;font-size:1rem;line-height:1.6}
+    .chooser{display:flex;gap:10px;flex-wrap:wrap;margin:32px 0 20px}.choice{display:flex;align-items:center;gap:10px;min-height:50px;padding:0 17px;border:1px solid var(--border);border-radius:10px;background:#10241c;color:#bbd0c4;cursor:pointer;text-align:left;transition:background .2s,border-color .2s}.choice:hover{border-color:#80cda4}.choice[aria-pressed=true]{background:#174433;border-color:#79d4a5;color:#fff}.choice b{font-size:.68rem;letter-spacing:.08em;color:#90d5af}.choice span{font-size:.91rem;font-weight:600}
+    .preview-header{display:flex;justify-content:space-between;align-items:end;gap:12px;margin:22px 0 10px}.preview-header h2{font-size:.95rem;font-weight:600;margin:0}.preview-header p{font-size:.73rem;color:#91aa9a;margin:0;text-align:right}
+    .stage{position:relative;isolation:isolate;min-height:520px;overflow:hidden;border:1px solid rgba(207,245,222,.16);border-radius:16px;background:#102a1e url('../../images/pomodoro/foret-automne-anime.webp') center/cover no-repeat}
+    .stage:before{position:absolute;inset:0;content:'';background:linear-gradient(180deg,rgba(1,15,9,.66),rgba(1,14,8,.63)),linear-gradient(90deg,rgba(3,13,8,.42),transparent 75%);z-index:-1}
+    .mock-top{display:flex;justify-content:space-between;gap:16px;padding:28px 30px;color:rgba(255,255,255,.82);font-size:.78rem}.mock-brand{font-weight:700;letter-spacing:-.03em;font-size:1.05rem}.mock-quote{opacity:.72;text-align:right;max-width:205px}
+    .mock-clock{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%);text-align:center;white-space:nowrap}.mock-clock small{display:block;color:#c5e1d0;font-size:.62rem;letter-spacing:.18em;font-weight:700}.mock-clock strong{display:block;font-size:clamp(3rem,7vw,5.2rem);font-weight:600;letter-spacing:-.06em;line-height:1.16}.mock-clock span{color:#a8c8b4;font-size:.77rem}
+    .popup{position:absolute;right:24px;bottom:24px;width:min(382px,calc(100% - 48px));border-radius:14px;box-shadow:0 18px 55px rgba(0,0,0,.38);animation:arrive .28s ease both}.popup button{cursor:pointer}.popup button:focus-visible{outline:2px solid #31a86e;outline-offset:3px}@keyframes arrive{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+    .popup-head{display:flex;align-items:flex-start;gap:12px}.popup-icon{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:12px;font-size:1.05rem}.popup-label{margin:0 0 5px;text-transform:uppercase;font-weight:700;letter-spacing:.11em;font-size:.64rem}.popup h3{font-size:1.27rem;letter-spacing:-.025em;line-height:1.2;margin:0}.popup-description{font-size:.84rem;line-height:1.48;margin:8px 0 0}.popup-actions{display:flex;align-items:center;gap:9px;margin-top:20px}.popup-actions button{min-height:40px;border-radius:8px;padding:0 15px;font-size:.8rem;font-weight:700;border:0}.primary{background:#a6ecc7;color:#103826}.secondary{background:transparent;color:inherit;opacity:.78}.secondary:hover{opacity:1}
+    .popup-a{padding:22px;background:rgba(9,31,23,.96);border:1px solid rgba(172,237,196,.3);color:#f2fbf5;backdrop-filter:blur(15px)}.popup-a .popup-icon{background:#204b37;color:#a1e9bd}.popup-a .popup-label{color:#9cddb3}.popup-a .popup-description{color:#bdcec3}.popup-a .popup-actions .primary{flex:1}.popup-a .secondary{border:1px solid rgba(255,255,255,.16)}
+    .popup-b{padding:22px 23px 21px 27px;background:#f4f6ef;color:#173c2b;border:1px solid #fff;overflow:hidden;color-scheme:light}.popup-b:before{content:'';position:absolute;inset:0 auto 0 0;width:5px;background:#30a66d}.popup-b .popup-icon{background:#dbeee0;color:#248659}.popup-b .popup-label{color:#48846a}.popup-b .popup-description{color:#526e5e}.popup-b .progress{display:flex;gap:5px;align-items:center;margin-top:15px}.popup-b .progress i{width:26px;height:4px;border-radius:5px;background:#cee0d3}.popup-b .progress i.on{background:#42a77a}.popup-b .progress span{margin-left:6px;color:#6f8979;font-size:.7rem}.popup-b .popup-actions{margin-top:15px}.popup-b .primary{background:#176c48;color:#fff}.popup-b .secondary{color:#426750}
+    .popup-c{padding:0;background:#102820;color:#f4fcf6;border:1px solid rgba(189,231,204,.22);overflow:hidden}.popup-c .popup-kicker{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:#194634;color:#b3eac5;font-size:.66rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}.popup-c .popup-kicker span:last-child{letter-spacing:0;color:#bcd7c5;font-weight:400}.popup-c .popup-inner{padding:20px}.popup-c .popup-icon{border-radius:50%;border:1px solid #70c393;background:transparent;color:#b4f0cb}.popup-c .popup-label{color:#8bd2a7}.popup-c .popup-description{color:#bed0c5}.popup-c .popup-actions{margin-top:17px}.popup-c .primary{flex:1}.popup-c .secondary{border:1px solid rgba(199,237,213,.2)}
+    .note{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-top:22px;color:#99b5a5;font-size:.8rem}.note p{margin:0;max-width:680px;line-height:1.55}.note strong{color:#cde7d6}.demo-status{color:#b1edc7;min-height:1.4em;margin-top:6px;font-size:.78rem}
+    @media(max-width:600px){.wrap{width:calc(100% - 32px)}.top-inner{height:59px}.top-tag{font-size:.58rem}main{padding:39px 0 48px}h1{font-size:clamp(2rem,8.5vw,2.35rem)}.intro{font-size:.93rem}.chooser{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:25px 0 18px}.choice{padding:9px 8px;min-height:48px;justify-content:center;gap:5px}.choice b{font-size:.6rem}.choice span{font-size:.75rem}.preview-header{align-items:start}.preview-header p{max-width:140px}.stage{min-height:510px}.mock-top{padding:20px 18px}.mock-quote{font-size:.68rem;max-width:135px}.mock-clock{top:31%}.popup{bottom:15px;right:15px;width:calc(100% - 30px)}.popup-a,.popup-b{padding:18px}.popup-b{padding-left:23px}.popup h3{font-size:1.17rem}.popup-actions{margin-top:16px}.note{display:block}}
+    @media(max-width:345px){.choice{flex-direction:column;line-height:1.15}.popup-actions button{padding:0 10px}.popup-description{font-size:.8rem}.stage{min-height:500px}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="wrap top-inner"><a class="brand" href="../../">Study<span>plan</span></a><span class="top-tag">Pomodoro · aperçu</span></div></header>
+  <main class="wrap">
+    <p class="eyebrow">Une pause, puis la suite</p>
+    <h1>À quoi ressemblera<br>le <em>moment de reprise&nbsp;?</em></h1>
+    <p class="intro">Trois propositions pour la fenêtre qui apparaît après une pause, lorsqu’il reste une séance à faire. Choisis un style pour le voir dans son contexte.</p>
+    <div class="chooser" role="group" aria-label="Choisir une proposition à visualiser">
+      <button type="button" class="choice" data-choice="a" aria-pressed="true"><b>01</b><span>L’essentiel</span></button>
+      <button type="button" class="choice" data-choice="b" aria-pressed="false"><b>02</b><span>L’élan</span></button>
+      <button type="button" class="choice" data-choice="c" aria-pressed="false"><b>03</b><span>Le cocon</span></button>
+    </div>
+    <div class="preview-header"><h2 id="preview-title">01 · L’essentiel</h2><p>Simulation dans le minuteur</p></div>
+    <section class="stage" aria-label="Aperçu du minuteur et de la fenêtre de reprise">
+      <div class="mock-top"><span class="mock-brand">Studyplan</span><span class="mock-quote">Un jour après l’autre, tu avances</span></div>
+      <div class="mock-clock" aria-hidden="true"><small>PAUSE TERMINÉE</small><strong>00:00</strong><span>La prochaine séance t’attend</span></div>
+      <article class="popup popup-a" data-popup="a" aria-label="Proposition 1 : L’essentiel">
+        <div class="popup-head"><span class="popup-icon" aria-hidden="true">✦</span><div><p class="popup-label">Pause terminée</p><h3>Prêt·e à reprendre ?</h3><p class="popup-description">Ta prochaine séance de concentration t’attend.</p></div></div>
+        <div class="popup-actions"><button type="button" class="primary" data-demo="reprendre">Reprendre ma séance <span aria-hidden="true">→</span></button><button type="button" class="secondary" data-demo="attendre">Pas encore</button></div>
+      </article>
+      <article class="popup popup-b" data-popup="b" aria-label="Proposition 2 : L’élan" hidden>
+        <div class="popup-head"><span class="popup-icon" aria-hidden="true">✓</span><div><p class="popup-label">Un moment pour toi</p><h3>On continue ensemble&nbsp;?</h3><p class="popup-description">Ta pause est terminée. Prends ton temps avant de reprendre.</p></div></div>
+        <div class="progress" aria-label="Exemple : séance 2 sur 4"><i class="on"></i><i class="on"></i><i></i><i></i><span>Séance 2 sur 4</span></div>
+        <div class="popup-actions"><button type="button" class="primary" data-demo="reprendre">Oui, je reprends →</button><button type="button" class="secondary" data-demo="attendre">Pas encore</button></div>
+      </article>
+      <article class="popup popup-c" data-popup="c" aria-label="Proposition 3 : Le cocon" hidden>
+        <div class="popup-kicker"><span>Pause terminée</span><span>Séance 2 sur 4</span></div>
+        <div class="popup-inner"><div class="popup-head"><span class="popup-icon" aria-hidden="true">↗</span><div><p class="popup-label">À ton rythme</p><h3>La suite t’attend.</h3><p class="popup-description">Tu te sens prêt·e pour une nouvelle séance ?</p></div></div>
+          <div class="popup-actions"><button type="button" class="primary" data-demo="reprendre">Je suis prêt·e</button><button type="button" class="secondary" data-demo="attendre">Un peu plus tard</button></div>
+        </div>
+      </article>
+    </section>
+    <div class="note"><div><p><strong>Ceci est une maquette.</strong> Le minuteur et les boutons ci-dessus ne lancent pas de séance. Les numéros de séance sont des exemples.</p><div class="demo-status" role="status" aria-live="polite"></div></div><p>Dis-moi ensuite si tu préfères le design <strong>01, 02 ou 03</strong>.</p></div>
+  </main>
+  <script>
+    (()=>{
+      const names={a:'01 · L’essentiel',b:'02 · L’élan',c:'03 · Le cocon'};
+      const buttons=[...document.querySelectorAll('[data-choice]')];
+      const cards=[...document.querySelectorAll('[data-popup]')];
+      const status=document.querySelector('.demo-status');
+      buttons.forEach(button=>button.addEventListener('click',()=>{
+        const selected=button.dataset.choice;
+        buttons.forEach(item=>item.setAttribute('aria-pressed',String(item===button)));
+        cards.forEach(card=>card.hidden=card.dataset.popup!==selected);
+        document.querySelector('#preview-title').textContent=names[selected];
+        status.textContent='';
+      }));
+      document.querySelectorAll('[data-demo]').forEach(button=>button.addEventListener('click',()=>{
+        status.textContent='Aperçu uniquement : aucune séance n’a été lancée.';
+      }));
+    })();
+  </script>
+</body>
+</html>

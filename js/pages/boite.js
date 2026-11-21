@@ -447,11 +447,12 @@ function boiteMessageDepuisFirestore(collection, data, identifiant) {
     var type = collection === 'questions' ? 'question' : 'feedback';
     if (technique.type !== type) return null;
     var cleTexte = type === 'question' ? '04_question' : '04_feedback';
+    var contenu = boiteImagesDecoder(String(data[cleTexte] || ''));
     return {
         type: type, id: String(technique.id || identifiant || ''),
         at: String(technique.at || ''),
         nom: String(data['02_nom_utilisateur'] || ''),
-        texte: String(data[cleTexte] || ''),
+        texte: contenu.texte, images: contenu.images,
         email: String(technique.email_reponse || ''),
         google: String(technique.google_connecte || ''),
         googleNom: String(technique.google_nom || '')
@@ -1484,11 +1485,12 @@ function boiteChargerListes(force) {
     return lecture;
 }
 
-function boiteCarte(titre, meta, corps) {
+function boiteCarte(titre, meta, corps, images) {
     return '<article style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
         + '<p style="font-weight:800;color:#111827;">' + titre + '</p>'
         + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + meta + '</p>'
         + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + corps + '</p>'
+        + boiteImagesAdmin(images)
         + '</article>';
 }
 
@@ -1508,7 +1510,7 @@ function boiteRendreRetours(fusion) {
             html: boiteCarte(
                 'Suggestion · ' + boiteEchap(qui.nom),
                 meta,
-                boiteEchap(item.texte || '')
+                boiteEchap(item.texte || ''), item.images
             )
         });
     });
@@ -1624,7 +1626,8 @@ function boiteCarteQuestion(item, reponses) {
         + '<div style="flex:1;min-width:0;">'
         + '<p style="font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + '</p>'
         + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte + '</p>'
-        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
+        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>'
+        + boiteImagesAdmin(item.images);
     reponses.forEach(function (rep) {
         if (!String(rep.texte || '').trim()) return;
         var ok = boiteMailConfirme(rep) || cochee;
@@ -2516,7 +2519,7 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
         return;
     }
-    boiteEnvoyer(record).then(function () {
+    boiteEnvoyerAvecImages(record, 'aide').then(function () {
         if (texte) texte.value = '';
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
@@ -2531,6 +2534,7 @@ function boiteQuestion(session) {
 function initAide() {
     boiteMajMenu();
     boiteReessayerUneFois();
+    boiteImagesMonter('aide');
     var nom = document.getElementById('aideNom');
     if (nom) nom.textContent = boiteNom() || 'Ton prénom';
     var mailAide = document.getElementById('aideEmail');
@@ -2559,6 +2563,7 @@ function initAide() {
 
 function initFeedback() {
     boiteMajMenu();
+    boiteImagesMonter('feedback');
     var nom = document.getElementById('feedbackNom');
     if (nom) nom.textContent = boiteNom() || 'toi';
     var email = document.getElementById('feedbackEmail');
@@ -2615,7 +2620,7 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
             return;
         }
-        boiteEnvoyer(record).then(function () {
+        boiteEnvoyerAvecImages(record, 'feedback').then(function () {
             if (champ) champ.value = '';
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
         }).catch(function () {
@@ -3405,5 +3410,113 @@ if (typeof document !== 'undefined') {
                 if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
             }).catch(function () {});
         }
+    });
+}
+/* Images jointes aux messages : elles restent privées dans le même document
+   Firestore que le message, dont la lecture est réservée aux administrateurs.
+   Un format borné permet de conserver les règles et les anciens messages. */
+var BOITE_IMAGE_MARQUE = '[studyplan-images-v1]\n';
+var BOITE_IMAGE_LIMITE = 200000; /* caractères base64 par image */
+var boiteImagesEtat = { aide: {images: [], charge: false, revision: 0}, feedback: {images: [], charge: false, revision: 0} };
+function boiteImageValide(src) {
+    return typeof src === 'string' && src.length <= BOITE_IMAGE_LIMITE && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(src);
+}
+function boiteImagesDecoder(valeur) {
+    var texte = String(valeur || '');
+    if (texte.indexOf(BOITE_IMAGE_MARQUE) !== 0) return { texte: texte, images: [] };
+    if (texte.length > 410000) return { texte: 'Message avec pièce jointe illisible.', images: [] };
+    try {
+        var data = JSON.parse(texte.slice(BOITE_IMAGE_MARQUE.length));
+        if (!data || typeof data.texte !== 'string' || data.texte.length > 800 || !Array.isArray(data.images) || data.images.length > 2 || !data.images.every(boiteImageValide)) throw new Error('format');
+        return { texte: data.texte, images: data.images };
+    } catch (e) { return { texte: texte.slice(0, 800), images: [] }; }
+}
+function boiteImagesAdmin(images) {
+    var valides = Array.isArray(images) ? images.slice(0, 2).filter(boiteImageValide) : [];
+    if (!valides.length) return '';
+    return '<div class="boite-images-recues"><p>Images jointes</p><div>' + valides.map(function (src, index) {
+        return '<a href="' + src + '" target="_blank" rel="noopener noreferrer" download="studyplan-image-' + (index + 1) + '.jpg" aria-label="Télécharger l’image jointe ' + (index + 1) + '"><img src="' + src + '" alt="Image jointe ' + (index + 1) + '" loading="lazy"></a>';
+    }).join('') + '</div></div>';
+}
+function boiteImagesMonter(type) {
+    var envoyer = document.getElementById(type + 'Envoi');
+    if (!envoyer || !envoyer.parentElement || document.getElementById(type + 'Images')) return;
+    var bloc = document.createElement('section');
+    bloc.id = type + 'Images'; bloc.className = 'boite-images';
+    bloc.innerHTML = '<div class="boite-images-intro"><div class="boite-images-icone" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.4"/><path d="M4 17l5-5 3 3 3-3 5 5"/></svg></div><div><strong>Ajouter une image</strong><p>Une capture d’écran peut nous aider à comprendre.</p></div></div>'
+        + '<label class="boite-images-selection"><span>+ Choisir des images</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="Choisir jusqu’à deux images"></label>'
+        + '<p class="boite-images-conseil">JPG, PNG ou WebP · 2 images maximum · 10 Mo chacune. Elles seront réduites pour l’envoi. Évite les informations sensibles.</p>'
+        + '<div class="boite-images-apercus"></div><p class="boite-images-statut" role="status" aria-live="polite"></p>';
+    envoyer.parentElement.insertBefore(bloc, envoyer);
+    bloc.querySelector('input').addEventListener('change', function () {
+        var fichiers = Array.from(this.files || []); this.value = '';
+        if (!fichiers.length) return;
+        boiteImagesAjouter(type, fichiers);
+    });
+    boiteImagesPeindre(type);
+}
+function boiteImagesPeindre(type, statut) {
+    var bloc = document.getElementById(type + 'Images'), state = boiteImagesEtat[type];
+    if (!bloc || !state) return;
+    var liste = bloc.querySelector('.boite-images-apercus'); liste.textContent = '';
+    state.images.forEach(function (image, index) {
+        var carte = document.createElement('div'); carte.className = 'boite-images-apercu';
+        var img = document.createElement('img'); img.src = image.src; img.alt = 'Aperçu de l’image ' + (index + 1);
+        var nom = document.createElement('span'); nom.textContent = image.nom;
+        var bouton = document.createElement('button'); bouton.type = 'button'; bouton.textContent = 'Retirer'; bouton.setAttribute('aria-label', 'Retirer ' + image.nom);
+        bouton.addEventListener('click', function () { state.images.splice(index, 1); boiteImagesPeindre(type, 'Image retirée.'); });
+        carte.appendChild(img); carte.appendChild(nom); carte.appendChild(bouton); liste.appendChild(carte);
+    });
+    bloc.querySelector('.boite-images-statut').textContent = statut || (state.images.length ? state.images.length + ' image' + (state.images.length > 1 ? 's' : '') + ' prête' + (state.images.length > 1 ? 's' : '') + ' à envoyer.' : '');
+    var boutonEnvoi = document.getElementById(type + 'Envoi');
+    if (boutonEnvoi) boutonEnvoi.disabled = !!state.charge;
+    bloc.querySelector('input').disabled = !!state.charge;
+}
+function boiteImageCompresser(file) {
+    return new Promise(function (resolve, reject) {
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024 || !file.size) return reject(new Error('Choisis une image JPG, PNG ou WebP de 10 Mo maximum.'));
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Cette image ne peut pas être ouverte.')); };
+        img.onload = function () {
+            URL.revokeObjectURL(url);
+            if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth * img.naturalHeight > 24000000) return reject(new Error('Cette image est trop grande. Choisis une image de 24 mégapixels maximum.'));
+            try {
+                var taille = 1600, src = '';
+                while (taille >= 800) {
+                    var ratio = Math.min(1, taille / Math.max(img.naturalWidth, img.naturalHeight));
+                    var canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio)); canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+                    var ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas indisponible');
+                    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    for (var q = 0.86; q >= 0.46; q -= 0.1) { src = canvas.toDataURL('image/jpeg', q); if (boiteImageValide(src)) return resolve({src: src, nom: String(file.name || 'Image').slice(0, 80)}); }
+                    taille -= 200;
+                }
+                reject(new Error('Cette image est trop détaillée pour être envoyée. Essaie une capture plus petite.'));
+            } catch (e) { reject(new Error('Cette image ne peut pas être préparée.')); }
+        };
+        img.src = url;
+    });
+}
+async function boiteImagesAjouter(type, fichiers) {
+    var state = boiteImagesEtat[type]; if (!state || state.charge) return;
+    if (state.images.length + fichiers.length > 2) { boiteImagesPeindre(type, 'Tu peux joindre deux images maximum.'); return; }
+    var revision = ++state.revision; state.charge = true; boiteImagesPeindre(type, 'Préparation des images…');
+    try {
+        var nouvelles = [];
+        for (var i = 0; i < fichiers.length; i++) nouvelles.push(await boiteImageCompresser(fichiers[i]));
+        if (revision === state.revision) { state.images = state.images.concat(nouvelles); boiteImagesPeindre(type); }
+    } catch (e) { if (revision === state.revision) boiteImagesPeindre(type, e.message || 'Image indisponible.'); }
+    finally { if (revision === state.revision) { state.charge = false; var b = document.getElementById(type + 'Envoi'); if (b) b.disabled = false; var input = document.querySelector('#' + type + 'Images input'); if (input) input.disabled = false; } }
+}
+function boiteEnvoyerAvecImages(record, type) {
+    var state = boiteImagesEtat[type];
+    if (!state || !state.images.length) return boiteEnvoyer(record);
+    if (state.charge) return Promise.reject(new Error('images_en_preparation'));
+    var champ = record.type === 'question' ? '04_question' : '04_feedback';
+    var copie = Object.assign({}, record);
+    copie[champ] = BOITE_IMAGE_MARQUE + JSON.stringify({texte: String(record[champ] || '').slice(0,800), images: state.images.map(function (a) { return a.src; })});
+    /* Ne pas conserver d'image privée dans une file locale partagée par les
+       comptes de cet appareil. Un échec conserve le formulaire pour réessayer. */
+    return boiteEcrireBoite(copie).then(function () {
+        state.images = []; state.revision++; boiteImagesPeindre(type, ''); return true;
     });
 }

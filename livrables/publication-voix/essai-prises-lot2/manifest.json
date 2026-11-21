@@ -1,0 +1,62 @@
+[
+  {
+    "minutes": 6,
+    "wav_sha256": "659bb5a5c9757b58f880e2636b77d2ef95c590a3f1a79892a9bfea242d1deb1b",
+    "mp3_sha256": "9594b41e0ae28f8a703e657f572644d076eaa4829cfc6419cd85f6395489fede",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 16,
+    "wav_sha256": "19aa96aaafa0130bc78cfed673b9bcd1fad835e6eb51b257c2e570750ec61c1a",
+    "mp3_sha256": "c441563199634fd058db5410f3e5ceb4d314163943f9a80a1bc5b643c21b581e",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 19,
+    "wav_sha256": "cbe7d3d5f95fff4c31dd9cced2e1816ea633372d45aff25ce1434ef112c9bd27",
+    "mp3_sha256": "a41440f41613adcbed377478be2cbee719eba6557a6a35d29db3e0f17ae9f8b0",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 7,
+    "wav_sha256": "b9c0d89b53a7aa58399c2f83959d3d692a37fec3e76f519edbc8ef2f03380c34",
+    "mp3_sha256": "6de6135d623f06c7305ebb0de269640f14adeffcf3e7fd262da6d05f99cb3deb",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 8,
+    "wav_sha256": "ac09c55ead6a694e7df07041e2595ec805c8f73b4375316193605825f239d9f5",
+    "mp3_sha256": "eb79f4b0605e9218f2405c29988c543dfef1685a7604b92215cfceba42d1daa8",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 9,
+    "wav_sha256": "e14f33566d00c8de72de5c6d3822834a33f9ccaac5dddd6e6e72d5b4a0e86d15",
+    "mp3_sha256": "d77d890eb827c0a07fc1bdbe0ed4f0636195f03eacfb87860665473d850f55aa",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 11,
+    "wav_sha256": "85a643dfac9af320be16d573d357aac9e1c21086cfb3fff9c3e9bc03f137d426",
+    "mp3_sha256": "2605a52b5dda9d031a07a39c114a9562d6b0d52d8b3e59adfae178d9986d3548",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 12,
+    "wav_sha256": "2b4dd0fb1fe82ba998276459a1869dd533c487ddf56a2b2f50128c74d7373469",
+    "mp3_sha256": "bf075796c9b671001d4f5dae9fcbf6d736ee847b07161644abe5cbc7381b1a9d",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 13,
+    "wav_sha256": "5dc07f1728ce590ce6df575d7e17254ad62356c2907676bd7083101928e0a733",
+    "mp3_sha256": "b06b7c140faf006c264d126bf80060644af0948a1a33ac673eb40abc7d5b0c6a",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  },
+  {
+    "minutes": 14,
+    "wav_sha256": "844def12814920b57bd296adca0bdad2c83a2a11480633e2438f7e9628524e16",
+    "mp3_sha256": "f1bbc2a7842ae83c0fa5f80ca086e18a52f8cce7a5d890812e1fe751f4a803a4",
+    "traitement": "encodage MP3 uniquement, aucun découpage"
+  }
+]

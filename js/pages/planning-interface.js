@@ -870,24 +870,49 @@ function v3FermerChoixChevauchement() {
 
 function v3DireChevauchement(message) {
     var erreur = document.getElementById('chevauchementErreur');
-    if (erreur) erreur.textContent = message || '';
+    if (erreur) {
+        erreur.textContent = message || '';
+        if (message && typeof erreur.scrollIntoView === 'function') erreur.scrollIntoView({ block: 'nearest' });
+    }
 }
 
-function v3AppliquerChoixChevauchement(ctx, choix) {
-    if (!planningJourModifiable(ctx.day) || (ctx.date || '') !== planningDateEdition(ctx.day)) {
-        v3DireChevauchement('La date a changé. Ferme la fenêtre et réessaie.'); return false;
+/* Le report hebdomadaire de v3Save peut ajouter des blocs après l'aperçu.
+   Il ne doit pas modifier le résultat approuvé au moment de sa confirmation. */
+function v3SauverChoixChevauchement() {
+    var precedent = window.__v3SaveEnCours;
+    window.__v3SaveEnCours = true;
+    try { v3Save(); } finally { window.__v3SaveEnCours = precedent; }
+}
+
+function v3SimulerChoixChevauchement(ctx, choix) {
+    if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver++;
+    try { return v3AppliquerChoixChevauchement(ctx, choix, { simuler: true }); }
+    finally { if (typeof emploiNePasSauver !== 'undefined') emploiNePasSauver--; }
+}
+
+function v3AppliquerChoixChevauchement(ctx, choix, options) {
+    options = options || {};
+    function refuser(message) {
+        if (options.simuler) return { valid: false, error: message };
+        v3DireChevauchement(message);
+        return false;
     }
-    var valid = v3VerifierChoixChevauchement(ctx, choix);
-    if (!valid.valid) { v3DireChevauchement(valid.error); return false; }
+    if (!planningJourModifiable(ctx.day) || (ctx.date || '') !== planningDateEdition(ctx.day)) {
+        return refuser('La date a changé. Ferme la fenêtre et réessaie.');
+    }
     var depart = customEvents.slice();
-    var idAffiche = '';
-    // Le remplacement ne peut pas faire disparaître ou déplacer en secret un
-    // autre bloc lorsque le moteur reconstruit la journée.
-    var avant = (choix.supprimerIds || []).length ? v3EvenementsJour(ctx.day) : [];
-    // Capturer la sélection avant tout recalcul : retirer le premier bloc
-    // peut réordonner les blocs générés qui suivent dans la journée.
-    var selection = v3ConflitsCreneau(ctx.day, choix.utilisateur.start, choix.utilisateur.end, ctx.excludeIds);
+    var stockageAvant;
+    try { stockageAvant = localStorage.getItem('studyPlanIB_customEvents_juliss'); } catch (ignore) {}
     try {
+        var valid = v3VerifierChoixChevauchement(ctx, choix);
+        if (!valid.valid) return refuser(valid.error);
+        var idAffiche = '';
+        // Capturer la journée et la sélection avant de recalculer.
+        var avant = v3EvenementsJour(ctx.day);
+        var selection = v3ConflitsCreneau(ctx.day, choix.utilisateur.start, choix.utilisateur.end, ctx.excludeIds);
+        if ((choix.supprimerIds || []).concat(choix.conflitId ? [choix.conflitId] : []).some(function (id) {
+            return avant.filter(function (ev) { return ev.id === id; }).length !== 1;
+        })) return refuser('Ce créneau apparaît plusieurs fois et ne peut pas être modifié sans risque. Choisis un autre horaire. Rien n’a été enregistré.');
         (choix.supprimerIds || []).forEach(function (id) {
             var ev = selection.find(function (item) { return item.id === id; });
             if (!ev) throw new Error('Le créneau à retirer a changé');
@@ -933,12 +958,44 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
             var ev = (apres || []).find(function (item) { return item.id === id; });
             return !!(ev && ev.startTime === plage.start && ev.endTime === plage.end);
         }
-        if (!horaireAttendu(idAffiche, choix.utilisateur) ||
-            avant.some(function (ev) {
-                if ((choix.supprimerIds || []).indexOf(ev.id) !== -1 || ev.id === idAffiche) return false;
-                var garde = (apres || []).find(function (item) { return item.id === ev.id; });
-                return !garde || garde.startTime !== ev.startTime || garde.endTime !== ev.endTime;
-            }) ||
+        // Plusieurs blocs peuvent partager le même identifiant. Apparier
+        // d'abord les occurrences exactement identiques, puis les changements
+        // restants, pour que l'aperçu ne cache ni n'invente de modification.
+        var anciens = avant.filter(function (ev) {
+            return (choix.supprimerIds || []).indexOf(ev.id) === -1 && ev.id !== idAffiche && ev.id !== choix.conflitId;
+        });
+        var nouveaux = (apres || []).filter(function (ev) { return ev.id !== idAffiche && ev.id !== choix.conflitId; }).slice();
+        var aComparer = [];
+        anciens.forEach(function (ev) {
+            var identique = nouveaux.findIndex(function (item) {
+                return item.id === ev.id && item.startTime === ev.startTime && item.endTime === ev.endTime && item.title === ev.title && item.type === ev.type;
+            });
+            if (identique !== -1) nouveaux.splice(identique, 1);
+            else aComparer.push(ev);
+        });
+        var effets = aComparer.map(function (ev) {
+            var index = nouveaux.findIndex(function (item) { return item.id === ev.id; });
+            return { avant: ev, apres: index === -1 ? null : nouveaux.splice(index, 1)[0] };
+        });
+        nouveaux.forEach(function (ev) { effets.push({ avant: null, apres: ev }); });
+        function pairesEnConflit(events) {
+            var paires = new Set();
+            (events || []).forEach(function (a, i) {
+                if (!a || a.id === 'sleep' || a.id === 'wakeup' || a.id === idAffiche) return;
+                events.slice(i + 1).forEach(function (b) {
+                    if (!b || b.id === 'sleep' || b.id === 'wakeup' || b.id === idAffiche || a.id === b.id ||
+                        (a.parallele && b.parallele && a.type === 'school' && b.type === 'school')) return;
+                    if (v3IntervallesSeCroisent(a.startTime, a.endTime, b.startTime, b.endTime)) {
+                        paires.add(JSON.stringify([[a.id, a.startTime, a.endTime], [b.id, b.startTime, b.endTime]].sort(function (x, y) { return JSON.stringify(x).localeCompare(JSON.stringify(y)); })));
+                    }
+                });
+            });
+            return paires;
+        }
+        var conflitsAvant = pairesEnConflit(avant);
+        var conflitsApres = pairesEnConflit(apres);
+        var conflitNouveau = Array.from(conflitsApres).some(function (cle) { return !conflitsAvant.has(cle); });
+        if (conflitNouveau || !horaireAttendu(idAffiche, choix.utilisateur) ||
             (choix.supprimerIds || []).some(function (id) {
                 return (apres || []).some(function (ev) { return ev.id === id; });
             }) ||
@@ -948,17 +1005,39 @@ function v3AppliquerChoixChevauchement(ctx, choix) {
                     v3IntervallesSeCroisent(choix.utilisateur.start, choix.utilisateur.end, ev.startTime, ev.endTime);
             })) {
             customEvents = depart;
-            v3DireChevauchement('Le planning ne peut pas garder ces deux horaires. Choisis un autre créneau. Rien n’a été changé.');
-            return false;
+            return refuser('Le planning ne peut pas appliquer ce choix sans conflit ou sans respecter les horaires demandés. Choisis un autre horaire. Rien n’a été enregistré.');
         }
-        v3Save();
+        // La signature couvre toute la journée, pas seulement les changements visibles :
+        // si le planning évolue pendant la confirmation, il faut refaire l’aperçu.
+        function signature(events, idNouveau) {
+            return JSON.stringify((events || []).map(function (ev) {
+                return [ev.id === idNouveau && ctx.mode === 'ajout' ? '__nouveau__' : ev.id,
+                    ev.title, ev.type, ev.startTime, ev.endTime];
+            }).sort(function (a, b) { return JSON.stringify(a).localeCompare(JSON.stringify(b)); }));
+        }
+        var empreinte = JSON.stringify(depart) + '|' + signature(avant, '') + '|' + signature(apres, idAffiche);
+        if (options.simuler) {
+            customEvents = depart;
+            return { valid: true, effets: effets, empreinte: empreinte };
+        }
+        if ((options.empreinte && options.empreinte !== empreinte) || (!options.empreinte && effets.length)) {
+            customEvents = depart;
+            return refuser(options.empreinte
+                ? 'Le planning a changé depuis l’aperçu. Reviens au choix pour le vérifier à nouveau. Rien n’a été enregistré.'
+                : 'Ce choix modifierait aussi d’autres créneaux. Vérifie l’aperçu avant de confirmer. Rien n’a été enregistré.');
+        }
+        v3SauverChoixChevauchement();
     } catch (e) {
         customEvents = depart;
         // Si l'écriture locale avait réussi avant qu'une étape suivante
         // échoue, on remet aussi la copie locale de départ.
-        try { localStorage.setItem('studyPlanIB_customEvents_juliss', JSON.stringify(depart)); } catch (ignore) {}
-        v3DireChevauchement('La sauvegarde a été interrompue. Vérifie tes horaires avant de réessayer.');
-        return false;
+        if (!options.simuler) {
+            try {
+                if (stockageAvant === null) localStorage.removeItem('studyPlanIB_customEvents_juliss');
+                else if (stockageAvant !== undefined) localStorage.setItem('studyPlanIB_customEvents_juliss', stockageAvant);
+            } catch (ignore) {}
+        }
+        return refuser(options.simuler ? 'Impossible de vérifier ce choix. Réessaie ou choisis un autre horaire.' : 'La sauvegarde a été interrompue. Vérifie tes horaires avant de réessayer.');
     }
     v3FermerChoixChevauchement();
     if (ctx.mode === 'edition') closeEditModal();
@@ -1037,29 +1116,30 @@ function v3SignalerChevauchementJour(events, day) {
 }
 
 function v3OuvrirChoixChevauchement(ctx) {
+    var retourFocus = document.getElementById('chevauchementPopup') ? window.__chevauchementRetourFocus : document.activeElement;
     v3FermerChoixChevauchement();
     ctx.conflits = ctx.conflits || [];
     ctx.excludeIds = ctx.excludeIds || [];
     ctx.date = planningDateEdition(ctx.day);
     window.__chevauchementCtx = ctx;
-    window.__chevauchementRetourFocus = document.activeElement;
+    window.__chevauchementRetourFocus = retourFocus;
     var jour = V3_DAY_NAMES[ctx.day] || 'ce jour';
     var duree = timeToMinutes(ctx.end) - timeToMinutes(ctx.start);
     var peutDeplacer = ctx.conflits.length === 1 ? v3DestinationDeplacement(ctx, ctx.conflits[0]) : null;
     var premier = ctx.conflits[0];
     var titre = ctx.selectionne ? 'Ton créneau choisi' :
         ctx.conflits.length > 1 ? 'Plusieurs créneaux se chevauchent' : 'Deux créneaux sont prévus en même temps';
-    var lignes = (ctx.selectionne ? [] : ctx.conflits).map(function (ev) {
+    var lignes = ctx.conflits.map(function (ev) {
         var type = ev.type === 'school' ? 'Cours' : ev.type === 'transport' ? 'Trajet' :
             v3EstActivite(ev) ? 'Activité' : 'Créneau du planning';
         return '<div class="chev-carte chev-carte-deja">' +
             '<span class="chev-icone" aria-hidden="true">' + iconeHtml(ev.icon || '📌', '1.4rem') + '</span>' +
-            '<div class="chev-carte-corps"><span class="chev-etiquette">' + type + ' déjà prévu</span>' +
+            '<div class="chev-carte-corps"><span class="chev-etiquette">' + type + (type === 'Activité' ? ' déjà prévue' : ' déjà prévu') + '</span>' +
             '<strong>' + v3Escape(ev.title) + '</strong><span>' + v3Escape(ev.startTime) + ' → ' +
             v3Escape(ev.endTime) + ' · ' + v3DureeCourte(timeToMinutes(ev.endTime) - timeToMinutes(ev.startTime)) + '</span></div></div>';
     }).join('');
     var explication = ctx.selectionne
-        ? 'Tu as choisi ' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' pour « ' + v3Escape(ctx.title) + ' ». Les activités déjà prévues ne changent que si tu choisis leur déplacement ou leur retrait.'
+        ? 'Tu as choisi ' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' pour « ' + v3Escape(ctx.title) + ' ». Cet horaire est occupé : choisis comment résoudre le conflit.'
         : ctx.conflits.length > 1
         ? 'Ton créneau recouvre ' + ctx.conflits.length + ' autres créneaux le ' + jour + '. Regarde les horaires de la journée et leurs conséquences avant de choisir.'
         : 'Tu veux placer « ' + v3Escape(ctx.title) + ' » le ' + jour + ', mais « ' + v3Escape(premier.title) + ' » est déjà prévu à ce moment-là.';
@@ -1068,44 +1148,45 @@ function v3OuvrirChoixChevauchement(ctx) {
     el.className = 'chev-voile';
     el.innerHTML = '<section class="chev-dialogue" role="dialog" aria-modal="true" aria-labelledby="chevTitre" aria-describedby="chevIntro">' +
         '<div class="chev-entete"><span class="chev-symbole" aria-hidden="true">↔</span><div>' +
-        '<h2 id="chevTitre">' + titre + '</h2></div></div>' +
+        '<h2 id="chevTitre" tabindex="-1">' + titre + '</h2></div></div>' +
         '<p id="chevIntro" class="chev-intro">' + explication + '</p>' +
         '<div id="chevauchementChoix">' +
-        '<span class="chev-section">Ton choix</span><div class="chev-carte chev-carte-moi">' +
+        '<div id="chevEtapeInitiale"><span class="chev-section">Ton choix</span><div class="chev-carte chev-carte-moi">' +
         '<span class="chev-icone" aria-hidden="true">' + iconeHtml(ctx.icon || '✨', '1.4rem') + '</span>' +
         '<div class="chev-carte-corps"><span class="chev-etiquette">' + v3Escape(jour) + ' · à placer</span>' +
         '<strong>' + v3Escape(ctx.title) + '</strong><span>' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) +
         ' · ' + v3DureeCourte(duree) + '</span></div></div>' +
-        (ctx.selectionne ? '' : '<span class="chev-section" data-deja>Ce qui est déjà prévu</span>' + lignes) +
-        '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-autre-creneau' + (ctx.selectionne ? ' hidden' : '') + '>Choisir un autre créneau</button>' +
-        (peutDeplacer ? '<button type="button" class="chev-bouton chev-bouton-clair" data-deplacer>Garder mon horaire et déplacer ' + v3Escape(premier.title) + '</button>' : '') +
-        '<button type="button" class="chev-bouton chev-bouton-clair" data-remplacer>' + (ctx.selectionne ? 'Choisir les créneaux à retirer' : 'Prendre la place d’un créneau') + '</button>' +
-        (ctx.selectionne ? '</div><p class="chev-note">Choisis ce qui doit arriver aux activités concernées. Continuer reste désactivé tant que le résultat n’est pas possible.</p>' :
-            '<button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div>') +
+        '<span class="chev-section" data-deja>Ce qui est déjà prévu</span>' + lignes +
+        '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-autre-creneau><strong>Choisir un autre créneau</strong><small>Place ton activité à une autre heure. Les autres restent en place si possible.</small></button>' +
+        (peutDeplacer ? '<button type="button" class="chev-bouton chev-bouton-clair" data-deplacer>Garder mon horaire et déplacer ' + v3Escape(premier.title) + '<small>Déplacer à ' + v3Escape(peutDeplacer.autre.start) + ' → ' + v3Escape(peutDeplacer.autre.end) + ', sans retirer cette activité.</small></button>' : '') +
+        '<button type="button" class="chev-bouton chev-bouton-clair" data-remplacer>' + (ctx.conflits.length === 1 ? 'Retirer « ' + v3Escape(premier.title) + ' » pour garder cet horaire' : 'Choisir les créneaux à retirer') + '<small>Tu choisis ce qui sera retiré pour libérer cet horaire.</small></button>' +
+        (ctx.selectionne ? '<button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div><p class="chev-note">Choisis quoi faire avec les créneaux déjà prévus pour pouvoir continuer.</p>' :
+            '<button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div>') + '</div>' +
         '<div id="chevauchementAutres" hidden><span class="chev-section">Horaires du ' + v3Escape(jour) + ' · ' + v3DureeCourte(duree) + '</span>' +
-        '<p class="chev-note">Chaque proposition indique quelles activités sont concernées. Rien ne change sans ta confirmation.</p>' +
+        '<p class="chev-note">Choisis un horaire. Un horaire occupé peut nécessiter le retrait d’un autre créneau.</p>' +
         '<div class="chev-filtres" role="group" aria-label="Filtrer les horaires">' +
-        '<button type="button" data-filtre-horaire="tous" aria-pressed="true">Tous</button>' +
-        '<button type="button" data-filtre-horaire="libres" aria-pressed="false">Libres</button>' +
+        '<button type="button" data-filtre-horaire="tous" aria-pressed="false">Tous</button>' +
+        '<button type="button" data-filtre-horaire="libres" aria-pressed="true">Libres</button>' +
         '<button type="button" data-filtre-horaire="occupes" aria-pressed="false">Occupés</button></div>' +
-        '<div class="chev-propositions" data-propositions></div>' +
+        '<div class="chev-propositions" data-propositions></div><p class="chev-note" data-aucun-horaire hidden>Aucun horaire dans cette catégorie. Essaie les horaires occupés ou saisis une autre heure.</p>' +
         '<label class="chev-libelle" for="chevauchementDebut">Ou choisis l’heure de début</label>' +
         '<div class="chev-manuel"><input id="chevauchementDebut" type="time" value="' + v3Escape(ctx.start) + '">' +
         '<span>Fin : <strong id="chevauchementFin"></strong></span></div>' +
         '<p id="chevauchementVerdict" class="chev-verdict" role="status" aria-live="polite"></p>' +
-        '<button type="button" class="chev-bouton chev-bouton-clair" data-placer disabled>Choisir cet horaire</button></div>' +
-        '<div id="chevRemplacement" hidden><span class="chev-section">Quel résultat veux-tu ?</span>' +
-        '<label class="chev-mode"><input type="radio" name="chevMode" value="garder" checked> Garder mes heures (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' · ' + v3DureeCourte(duree) + ')</label>' +
-        '<label class="chev-mode"' + (ctx.selectionne ? ' style="display:none"' : '') + '><input type="radio" name="chevMode" value="prendre"> Prendre les heures et la durée du créneau choisi <span id="chevExactExemple"></span></label>' +
-        '<div id="chevSourceGroupe" hidden><label class="chev-libelle" for="chevSource">Créneau dont prendre les heures et la durée</label><select id="chevSource"></select></div>' +
+        '<button type="button" class="chev-bouton chev-bouton-clair" data-placer disabled>Choisir cet horaire</button>' +
+        '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-lien" data-retour-autres>Retour</button><button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div></div>' +
+        '<div id="chevRemplacement" hidden><div id="chevHoraireMode"' + (ctx.selectionne ? ' hidden' : '') + '><span class="chev-section">Choisis ton horaire</span>' +
+        '<label class="chev-mode"><input type="radio" name="chevMode" value="garder" checked> Garder l’horaire demandé (' + v3Escape(ctx.start) + ' → ' + v3Escape(ctx.end) + ' · ' + v3DureeCourte(duree) + ')</label>' +
+        '<label class="chev-mode"' + (ctx.selectionne ? ' style="display:none"' : '') + '><input type="radio" name="chevMode" value="prendre"> Utiliser l’horaire du créneau à retirer <span id="chevExactExemple"></span></label>' +
+        '<div id="chevSourceGroupe" hidden><label class="chev-libelle" for="chevSource">Créneau dont prendre les heures et la durée</label><select id="chevSource"></select></div></div>' +
         '<p id="chevResultat" class="chev-resultat"></p>' +
-        '<span class="chev-section">Quels créneaux retirer du planning ?</span>' +
+        '<span class="chev-section">Coche les créneaux à retirer pour libérer cet horaire</span>' +
         '<div id="chevListeRetraits"></div>' +
         '<p id="chevRetraitVerdict" class="chev-verdict" role="status" aria-live="polite"></p>' +
-        (ctx.selectionne ? '</div><p id="chevSelectionEffet" class="chev-resultat" role="status" aria-live="polite"></p>' +
-            '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-continuer-selection disabled>Continuer</button>' +
-            '<button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div>' :
-            '<button type="button" class="chev-bouton chev-bouton-vert" data-continuer disabled>Continuer avec ce choix</button></div>') +
+        (ctx.selectionne ? '</div><div id="chevSelectionActions" hidden>' +
+            '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-continuer-selection disabled>Voir les changements</button>' +
+            '<button type="button" class="chev-bouton chev-bouton-lien" data-retour-selection>Retour</button><button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div></div>' :
+            '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-continuer disabled>Voir les changements</button><button type="button" class="chev-bouton chev-bouton-lien" data-retour-remplacement>Retour</button><button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div></div>') +
         '</div>' +
         '<div id="chevauchementApercu" hidden></div>' +
         '<p id="chevauchementErreur" class="chev-erreur" role="alert" aria-live="assertive"></p>' +
@@ -1148,19 +1229,11 @@ function v3OuvrirChoixChevauchement(ctx) {
             bouton.type = 'button';
             bouton.className = 'chev-proposition ' + (plage.conflits.length ? 'chev-proposition-occupee' : 'chev-proposition-libre');
             bouton.dataset.occupe = plage.conflits.length ? 'true' : 'false';
-            var effet = '« ' + v3Escape(ctx.title) + ' » : ' + v3Escape(ctx.origineStart || ctx.start) + ' → ' +
-                v3Escape(ctx.origineEnd || ctx.end) + ' deviendrait ' + v3Escape(plage.start) + ' → ' + v3Escape(plage.end) + '. ' +
-                (plage.conflits.length
-                    ? 'Activités concernées : ' + plage.conflits.map(function (ev) {
-                        return '« ' + v3Escape(ev.title) + ' » (' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + ')';
-                    }).join(', ') + '. ' + (plage.conflits.length === 1 && v3PeutDeplacerChevauchement(plage.conflits[0])
-                        ? 'Tu pourras choisir un déplacement si un horaire sûr est trouvé, ou décider de son retrait.'
-                        : 'Tu pourras décider quels créneaux retirer.') +
-                        (plage.conflits.some(v3Fondamental) ? ' Un créneau essentiel demandera une seconde confirmation.' : '') +
-                        ' Rien n’est modifié par ce clic.'
-                    : 'Aucune autre activité modifiée.');
+            var effet = plage.conflits.length
+                ? 'Déjà prévu : ' + plage.conflits.map(function (ev) { return v3Escape(ev.title); }).join(', ') + '.'
+                : 'Aucun conflit à cet horaire.';
             bouton.innerHTML = '<span class="chev-proposition-tete"><strong>' + v3Escape(plage.start) + ' → ' + v3Escape(plage.end) + '</strong>' +
-                '<small>' + (plage.conflits.length ? plage.conflits.length + ' activité' + (plage.conflits.length > 1 ? 's' : '') + ' concernée' + (plage.conflits.length > 1 ? 's' : '') : 'Libre') + '</small></span>' +
+                '<small>' + (plage.conflits.length ? plage.conflits.length + ' créneau' + (plage.conflits.length > 1 ? 'x' : '') + ' occupé' + (plage.conflits.length > 1 ? 's' : '') : 'Libre') + '</small></span>' +
                 '<span class="chev-proposition-effet">' + effet + '</span>';
             bouton.onclick = function () { ouvrirPlage(plage); };
             zoneProps.appendChild(bouton);
@@ -1172,6 +1245,11 @@ function v3OuvrirChoixChevauchement(ctx) {
         zoneProps.querySelectorAll('.chev-proposition').forEach(function (bouton) {
             bouton.hidden = actif !== 'tous' && (actif === 'occupes') !== (bouton.dataset.occupe === 'true');
         });
+        var vide = el.querySelector('[data-aucun-horaire]');
+        vide.hidden = !!zoneProps.querySelector('.chev-proposition:not([hidden])');
+        vide.textContent = actif === 'libres' ? 'Aucun horaire libre proposé. Essaie les horaires occupés ou saisis une autre heure.' :
+            actif === 'occupes' ? 'Aucun horaire occupé proposé. Regarde les horaires libres ou saisis une autre heure.' :
+            'Aucun horaire proposé. Essaie de saisir une autre heure.';
         zoneProps.querySelectorAll('.chev-periode').forEach(function (titre) {
             var suivant = titre.nextElementSibling;
             var trouve = false;
@@ -1195,7 +1273,7 @@ function v3OuvrirChoixChevauchement(ctx) {
         var mins = debut ? timeToMinutes(debut) + duree : 1440;
         var fin = mins < 1440 ? v3Horloge(mins) : '';
         var plage = { start: debut, end: fin };
-        el.querySelector('#chevauchementFin').textContent = fin || 'jour suivant (impossible)';
+        el.querySelector('#chevauchementFin').textContent = fin || (debut ? 'jour suivant (impossible)' : 'à renseigner');
         var conflits = fin ? v3ConflitsCreneau(ctx.day, debut, fin, ctx.excludeIds) : [];
         var candidat = contextePour(plage, conflits);
         var choix = { utilisateur: plage };
@@ -1204,11 +1282,11 @@ function v3OuvrirChoixChevauchement(ctx) {
             choix.supprimerIds = conflits.map(function (ev) { return ev.id; });
         }
         var verdict = fin ? v3VerifierChoixChevauchement(candidat, choix)
-            : { valid: false, error: 'Cette heure dépasse minuit.' };
+            : { valid: false, error: debut ? 'Cette heure dépasse minuit.' : 'Saisis une heure de début.' };
         el.querySelector('#chevauchementVerdict').textContent = verdict.valid
             ? (conflits.length ? 'Cet horaire concerne : ' + conflits.map(function (ev) { return '« ' + ev.title + ' »'; }).join(', ') +
                 '. Choisis cet horaire pour voir les options de déplacement ou de retrait. Rien ne change encore.'
-                : 'Créneau libre : ' + debut + ' → ' + fin + '. Aucune autre activité modifiée.') : verdict.error;
+                : 'Créneau libre : ' + debut + ' → ' + fin + '. Vérifie les changements avant de confirmer.') : verdict.error;
         el.querySelector('#chevauchementVerdict').dataset.valide = verdict.valid ? 'true' : 'false';
         el.querySelector('[data-placer]').disabled = !verdict.valid;
     }
@@ -1238,6 +1316,7 @@ function v3OuvrirChoixChevauchement(ctx) {
         return { utilisateur: plage, supprimerIds: ids, type: exact ? 'remplacerExact' : 'remplacer', sourceId: exact ? ev.id : '' };
     }
     function majRetraits(reconstruire) {
+        v3DireChevauchement('');
         var ev = ctx.conflits[Number(source.value)] || ctx.conflits[0];
         var exact = mode() === 'prendre' && ev;
         var plage = exact ? { start: ev.startTime, end: ev.endTime } : { start: ctx.start, end: ctx.end };
@@ -1269,8 +1348,9 @@ function v3OuvrirChoixChevauchement(ctx) {
         var verdict = v3VerifierChoixChevauchement(ctx, choix);
         var texteVerdict = el.querySelector('#chevRetraitVerdict');
         texteVerdict.dataset.valide = verdict.valid ? 'true' : 'false';
-        texteVerdict.textContent = verdict.valid
-            ? 'Retirés du planning si tu continues : ' + choix.supprimerIds.map(function (id) {
+        texteVerdict.textContent = verdict.valid && !choix.supprimerIds.length
+            ? 'Cet horaire est libre. Vérifie les changements avant de confirmer.'
+            : verdict.valid ? 'Retirés du planning si tu continues : ' + choix.supprimerIds.map(function (id) {
                 var selection = v3ConflitsCreneau(ctx.day, plage.start, plage.end, ctx.excludeIds);
                 var touche = selection.find(function (item) { return item.id === id; });
                 return touche ? '« ' + touche.title + ' »' : id;
@@ -1279,23 +1359,25 @@ function v3OuvrirChoixChevauchement(ctx) {
         if (continuer) continuer.disabled = !verdict.valid;
         if (ctx.selectionne && ctx.choixType === 'retirer') el.querySelector('[data-continuer-selection]').disabled = !verdict.valid;
     }
-    function confirmerDirect(choix, zone) {
+    function confirmerDirect(choix, zone, simulation) {
         var valid = v3VerifierChoixChevauchement(ctx, choix);
         if (!valid.valid) { v3DireChevauchement(valid.error); return; }
         v3DireChevauchement('');
         var retires = v3ConflitsCreneau(ctx.day, choix.utilisateur.start, choix.utilisateur.end, ctx.excludeIds)
             .filter(function (ev) { return (choix.supprimerIds || []).indexOf(ev.id) !== -1; });
-        var essentiels = retires.filter(v3Fondamental);
-        if (!essentiels.length) { v3AppliquerChoixChevauchement(ctx, choix); return; }
+        var essentiels = retires.filter(v3Fondamental).concat(simulation.effets.filter(function (effet) {
+            return effet.avant && v3Fondamental(effet.avant);
+        }).map(function (effet) { return effet.avant; }));
+        if (!essentiels.length) { v3AppliquerChoixChevauchement(ctx, choix, { empreinte: simulation.empreinte }); return; }
         var suite = zone.querySelector('#chevConfirmEssentiels');
         if (!suite) {
             suite = document.createElement('div');
             suite.id = 'chevConfirmEssentiels';
             suite.className = 'chev-confirm-essentiels';
-            suite.innerHTML = '<p><strong>Deuxième confirmation :</strong> tu as choisi de retirer ' +
+            suite.innerHTML = '<p><strong>Deuxième confirmation :</strong> le changement concerne ' +
                 essentiels.map(function (ev) { return '« ' + v3Escape(ev.title) + ' »'; }).join(', ') +
-                '. Ce créneau est essentiel. Veux-tu vraiment le retirer du planning ?</p>' +
-                '<button type="button" class="chev-bouton chev-bouton-vert" data-confirmer-essentiel>Oui, retirer et enregistrer</button>' +
+                '. Ces créneaux essentiels seront retirés ou modifiés. Veux-tu vraiment appliquer les changements affichés ?</p>' +
+                '<button type="button" class="chev-bouton chev-bouton-vert" data-confirmer-essentiel>Oui, appliquer les changements</button>' +
                 '<button type="button" class="chev-bouton chev-bouton-clair" data-renoncer-essentiel>Non, revenir au choix</button>';
             zone.appendChild(suite);
         }
@@ -1305,7 +1387,7 @@ function v3OuvrirChoixChevauchement(ctx) {
             if (bouton) bouton.focus();
         }
         suite.querySelector('[data-confirmer-essentiel]').onclick = function () {
-            if (!v3AppliquerChoixChevauchement(ctx, choix)) revenirDuSecondAccord();
+            if (!v3AppliquerChoixChevauchement(ctx, choix, { empreinte: simulation.empreinte })) revenirDuSecondAccord();
         };
         suite.querySelector('[data-renoncer-essentiel]').onclick = revenirDuSecondAccord;
         suite.querySelector('[data-confirmer-essentiel]').focus();
@@ -1314,12 +1396,13 @@ function v3OuvrirChoixChevauchement(ctx) {
         var valid = v3VerifierChoixChevauchement(ctx, choix);
         if (!valid.valid) { v3DireChevauchement(valid.error); return; }
         v3DireChevauchement('');
+        var simulation = v3SimulerChoixChevauchement(ctx, choix);
+        if (!simulation.valid) { v3DireChevauchement(simulation.error); return; }
         ctx.choix = choix;
         // Après sélection, les cartes « déjà prévu » ne font plus partie
         // de l’écran final. Cela ne retire aucune activité du planning.
-        el.querySelectorAll('.chev-carte-deja').forEach(function (carte) { carte.remove(); });
-        el.querySelector('#chevTitre').textContent = 'Ton créneau choisi';
-        el.querySelector('#chevIntro').textContent = 'Continuer enregistre exactement les horaires indiqués ci-dessous. Annuler ne change rien.';
+        el.querySelector('#chevTitre').textContent = 'Vérifie les changements';
+        el.querySelector('#chevIntro').textContent = 'Rien n’est enregistré pour le moment. Vérifie les changements avant de confirmer.';
         var partie = el.querySelector('#chevauchementApercu');
         var autre = ctx.conflits[0];
         var ancienDebut = ctx.origineStart || ctx.start;
@@ -1330,37 +1413,57 @@ function v3OuvrirChoixChevauchement(ctx) {
                 .find(function (ev) { return ev.id === id; });
         }).filter(Boolean);
         partie.innerHTML = '<span class="chev-section">Voici ce qui va changer</span>' +
-            '<div class="chev-ligne"><strong>' + v3Escape(ctx.title) + '</strong><span>' + v3Escape(ancienDebut) + ' → ' +
-            v3Escape(ancienneFin) + '</span><b>→ ' + v3Escape(choix.utilisateur.start) + ' → ' + v3Escape(choix.utilisateur.end) + '</b></div>' +
+            '<div class="chev-ligne"><strong>' + v3Escape(ctx.title) + '</strong>' +
+            (ancienDebut === choix.utilisateur.start && ancienneFin === choix.utilisateur.end ? '<span></span><b>' :
+                '<span>' + v3Escape(ancienDebut) + ' → ' + v3Escape(ancienneFin) + '</span><b>→ ') +
+            v3Escape(choix.utilisateur.start) + ' → ' + v3Escape(choix.utilisateur.end) + '</b></div>' +
             (choix.conflitId ? '<div class="chev-ligne"><strong>' + v3Escape(autre.title) + '</strong><span>' +
                 v3Escape(autre.startTime) + ' → ' + v3Escape(autre.endTime) + '</span><b>→ ' +
                 v3Escape(choix.autre.start) + ' → ' + v3Escape(choix.autre.end) + '</b></div>' : '') +
             (retires.length ? '<p class="chev-retrait-titre">Retirés du planning :</p>' + retires.map(function (ev) {
                 return '<p class="chev-retrait-apercu">' + v3Escape(ev.title) + ' · ' + v3Escape(ev.startTime) + ' → ' + v3Escape(ev.endTime) + '</p>';
             }).join('') : '') +
-            '<p class="chev-note">' + (choix.type === 'remplacerExact' ? 'Tu prends les heures exactes du créneau choisi.' : 'La durée demandée est conservée.') +
-            ' Aucun autre créneau choisi ne sera décalé.</p>' +
+            (simulation.effets.length ? '<p class="chev-retrait-titre">Autres changements dus au recalcul :</p>' + simulation.effets.map(function (effet) {
+                var ev = effet.avant || effet.apres;
+                var heures = function (item) { return v3Escape(item.startTime) + ' → ' + v3Escape(item.endTime); };
+                return '<p class="chev-retrait-apercu"><strong>' + v3Escape(ev.title) + '</strong> : ' +
+                    (!effet.avant ? 'ajouté à ' + heures(effet.apres) : !effet.apres ? 'retiré (' + heures(effet.avant) + ')' :
+                        heures(effet.avant) + ' devient ' + heures(effet.apres) +
+                        (effet.avant.title !== effet.apres.title ? ' · renommé « ' + v3Escape(effet.apres.title) + ' »' : '') +
+                        (effet.avant.type !== effet.apres.type ? ' · type modifié' : '')) + '</p>';
+            }).join('') : '<p class="chev-note">Aucun autre créneau ne sera modifié.</p>') +
+            '<p class="chev-note">' + (ctx.date ? 'Ces changements concernent uniquement le ' + v3Escape(ctx.date.split('-').reverse().join('/')) + '.' : 'Ces changements concernent le planning habituel du ' + v3Escape(jour) + '.') + '</p>' +
             (doublon ? '<p class="chev-note">Attention : une activité nommée « ' + v3Escape(ctx.title) + ' » existe déjà ce jour. Confirmer l’ajoutera quand même.</p>' : '') +
-            '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-confirmer>Continuer</button>' +
+            '<div class="chev-actions"><button type="button" class="chev-bouton chev-bouton-vert" data-confirmer>Confirmer les changements</button><button type="button" class="chev-bouton chev-bouton-clair" data-retour-apercu>Retour au choix</button>' +
             '<button type="button" class="chev-bouton chev-bouton-lien" data-annuler>Annuler · ne rien changer</button></div>';
         el.querySelector('#chevauchementChoix').hidden = true;
         partie.hidden = false;
-        partie.querySelector('[data-confirmer]').onclick = function () { confirmerDirect(choix, partie); };
+        partie.querySelector('[data-confirmer]').onclick = function () { confirmerDirect(choix, partie, simulation); };
+        partie.querySelector('[data-retour-apercu]').onclick = function () {
+            partie.hidden = true; el.querySelector('#chevauchementChoix').hidden = false;
+            el.querySelector('#chevTitre').textContent = titre; el.querySelector('#chevIntro').innerHTML = explication;
+            v3DireChevauchement('');
+            var retour = !el.querySelector('#chevRemplacement').hidden
+                ? (ctx.selectionne ? el.querySelector('#chevListeRetraits input') : el.querySelector('#chevRemplacement input:not(:disabled)'))
+                : el.querySelector('[data-autre-creneau]');
+            if (retour) retour.focus();
+        };
         partie.querySelector('[data-annuler]').onclick = v3FermerChoixChevauchement;
-        partie.querySelector('[data-confirmer]').focus();
+        el.querySelector('.chev-dialogue').scrollTop = 0;
+        el.querySelector('#chevTitre').focus({ preventScroll: true });
     }
     el.querySelector('[data-remplacer]').onclick = function () {
-        var sectionDeja = el.querySelector('[data-deja]');
-        if (sectionDeja) sectionDeja.remove();
-        el.querySelectorAll('.chev-carte-deja').forEach(function (carte) { carte.remove(); });
+        el.querySelector('#chevEtapeInitiale').hidden = true;
+        el.querySelector('#chevauchementAutres').hidden = true;
         if (ctx.selectionne) {
             ctx.choixType = 'retirer';
+            el.querySelector('#chevSelectionActions').hidden = false;
             el.querySelector('[data-continuer-selection]').disabled = true;
-            el.querySelector('#chevSelectionEffet').textContent = 'Seuls les créneaux cochés seront retirés. Les autres resteront en place.';
         }
         el.querySelector('#chevRemplacement').hidden = false;
         majRetraits(true);
-        el.querySelector('#chevRemplacement').scrollIntoView({ block: 'nearest' });
+        var focusRetrait = ctx.selectionne ? el.querySelector('#chevListeRetraits input') : el.querySelector('#chevRemplacement input:not(:disabled)');
+        if (focusRetrait) focusRetrait.focus();
     };
     el.querySelectorAll('input[name="chevMode"]').forEach(function (input) {
         input.onchange = function () { majRetraits(true); };
@@ -1371,23 +1474,22 @@ function v3OuvrirChoixChevauchement(ctx) {
     if (continuerRetrait) continuerRetrait.onclick = function () { apercu(choixRetrait()); };
     if (ctx.selectionne) {
         el.querySelector('[data-continuer-selection]').onclick = function () {
-            var choix = ctx.choixType === 'deplacer' ? peutDeplacer : ctx.choixType === 'retirer' ? choixRetrait() : null;
-            if (choix) confirmerDirect(choix, el.querySelector('#chevauchementChoix'));
+            var choix = ctx.choixType === 'retirer' ? choixRetrait() : null;
+            if (choix) apercu(choix);
         };
     }
     el.querySelector('[data-autre-creneau]').onclick = function () {
+        v3DireChevauchement('');
+        el.querySelector('#chevEtapeInitiale').hidden = true;
+        el.querySelector('#chevRemplacement').hidden = true;
+        if (ctx.selectionne) el.querySelector('#chevSelectionActions').hidden = true;
         el.querySelector('#chevauchementAutres').hidden = false;
         afficherPropositions();
-        el.querySelector('[data-propositions]').scrollIntoView({ block: 'nearest' });
+        el.querySelector('[data-filtre-horaire="libres"]').focus();
     };
     if (peutDeplacer) el.querySelector('[data-deplacer]').onclick = function () {
-        if (!ctx.selectionne) { apercu(peutDeplacer); return; }
-        ctx.choixType = 'deplacer';
-        el.querySelector('#chevRemplacement').hidden = true;
-        el.querySelector('#chevSelectionEffet').textContent = '« ' + ctx.title + ' » : ' + ctx.start + ' → ' + ctx.end +
-            '. « ' + ctx.conflits[0].title + ' » : ' + ctx.conflits[0].startTime + ' → ' + ctx.conflits[0].endTime +
-            ' sera déplacé à ' + peutDeplacer.autre.start + ' → ' + peutDeplacer.autre.end + '. Aucune activité retirée.';
-        el.querySelector('[data-continuer-selection]').disabled = false;
+        v3DireChevauchement('');
+        apercu(peutDeplacer);
     };
     el.querySelector('#chevauchementDebut').addEventListener('input', majFin);
     el.querySelector('#chevauchementDebut').addEventListener('change', majFin);
@@ -1396,24 +1498,47 @@ function v3OuvrirChoixChevauchement(ctx) {
         var fin = debut && timeToMinutes(debut) + duree < 1440 ? v3Horloge(timeToMinutes(debut) + duree) : '';
         ouvrirPlage({ start: debut, end: fin });
     };
-    el.querySelector('[data-annuler]').onclick = v3FermerChoixChevauchement;
+    el.querySelectorAll('[data-annuler]').forEach(function (bouton) { bouton.onclick = v3FermerChoixChevauchement; });
+    el.querySelector('[data-retour-autres]').onclick = function () {
+        v3DireChevauchement('');
+        el.querySelector('#chevauchementAutres').hidden = true;
+        el.querySelector('#chevEtapeInitiale').hidden = false;
+        el.querySelector('[data-autre-creneau]').focus();
+    };
+    var retourSelection = el.querySelector('[data-retour-selection]');
+    if (retourSelection) retourSelection.onclick = function () {
+        v3DireChevauchement('');
+        ctx.choixType = ''; el.querySelector('#chevRemplacement').hidden = true;
+        el.querySelector('#chevSelectionActions').hidden = true;
+        el.querySelector('#chevEtapeInitiale').hidden = false;
+        el.querySelector('[data-continuer-selection]').disabled = true;
+        el.querySelector('[data-remplacer]').focus();
+    };
+    var retourRemplacement = el.querySelector('[data-retour-remplacement]');
+    if (retourRemplacement) retourRemplacement.onclick = function () {
+        v3DireChevauchement('');
+        el.querySelector('#chevRemplacement').hidden = true;
+        el.querySelector('#chevEtapeInitiale').hidden = false;
+        el.querySelector('[data-remplacer]').focus();
+    };
     el.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') { event.preventDefault(); v3FermerChoixChevauchement(); }
         if (event.key !== 'Tab') return;
-        var actifs = Array.from(el.querySelectorAll('button:not([hidden]), input:not([hidden])')).filter(function (item) {
+        var actifs = Array.from(el.querySelectorAll('button:not([hidden]):not(:disabled), input:not([hidden]):not(:disabled), select:not([hidden]):not(:disabled)')).filter(function (item) {
             return item.getClientRects().length > 0;
         });
         if (!actifs.length) return;
         var first = actifs[0], last = actifs[actifs.length - 1];
-        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+        if (event.shiftKey && (document.activeElement === first || actifs.indexOf(document.activeElement) === -1)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && (document.activeElement === last || actifs.indexOf(document.activeElement) === -1)) { event.preventDefault(); first.focus(); }
     });
     el.addEventListener('click', function (event) { if (event.target === el) v3FermerChoixChevauchement(); });
     majFin();
-    if (ctx.selectionne) {
-        el.querySelector('#chevSelectionEffet').textContent = 'Choisis d’abord ce qui arrive aux activités concernées. Rien ne change avant Continuer.';
-        el.querySelector('[data-remplacer]').focus();
-    } else el.querySelector('[data-autre-creneau]').focus();
+    // L'observateur d'accessibilité doit d'abord repérer cette nouvelle
+    // fenêtre, sinon le focus peut être renvoyé vers la fenêtre précédente.
+    setTimeout(function () {
+        if (el.isConnected && !el.contains(document.activeElement)) el.querySelector('#chevTitre').focus({ preventScroll: true });
+    }, 0);
 }
 
 // ═══════════════════════════════════════════════════════════════════
