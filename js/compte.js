@@ -164,6 +164,37 @@ function compteFlammeChoisie(copies) {
     return meilleure;
 }
 
+/* Une date modifiée (ou décochée) est prioritaire sur toutes les anciennes
+   copies sans version. Chaque date fusionne indépendamment des autres. */
+function compteFusionnerFeries(copies, base) {
+    var versions = {};
+    copies.forEach(function (src) {
+        var source = src.holidayVersions;
+        if (!source || typeof source !== 'object' || Array.isArray(source)) return;
+        Object.keys(source).forEach(function (cle) {
+            var v = source[cle];
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(cle) || !v || !(Number(v.at) > 0) ||
+                (v.mode !== null && ['keep', 'light', 'free'].indexOf(v.mode) === -1)) return;
+            var candidat = { at: Number(v.at), mode: v.mode, dropped: Array.isArray(v.dropped) ? v.dropped.slice() : [] };
+            var ancien = versions[cle];
+            /* Égalité d'horloge : choix stable quelle que soit l'ordre de fusion. */
+            if (!ancien || candidat.at > ancien.at || (candidat.at === ancien.at && JSON.stringify(candidat) > JSON.stringify(ancien))) versions[cle] = candidat;
+        });
+    });
+    base.holidayDates = compteFusionnerObjets(base.holidayDates, {});
+    base.holidayDroppedDates = compteFusionnerObjets(base.holidayDroppedDates, {});
+    Object.keys(versions).sort().forEach(function (cle) {
+        var v = versions[cle];
+        if (v.mode === null) { delete base.holidayDates[cle]; delete base.holidayDroppedDates[cle]; }
+        else {
+            base.holidayDates[cle] = v.mode;
+            if (v.dropped.length) base.holidayDroppedDates[cle] = v.dropped.slice();
+            else delete base.holidayDroppedDates[cle];
+        }
+    });
+    base.holidayVersions = versions;
+}
+
 function compteFusionnerProfils(copies) {
     var tous = (copies || []).filter(function (c) { return c && typeof c === 'object' && !c.efface; });
     var utiles = tous.filter(function (c) { return compteUtile(c); });
@@ -186,7 +217,7 @@ function compteFusionnerProfils(copies) {
     };
     utiles.slice(1).forEach(function (src) {
         Object.keys(src).forEach(function (k) {
-            if (k === 'statsFocus') return;
+            if (k === 'statsFocus' || k === 'holidayVersions') return;
             if (k === 'savedAt' || k === 'google' || k === 'utilisateurId' || k === 'joursConnectes' || k === 'dernierJour' || k === 'flammes' || k === 'flammeJour' || k === 'subjects' || k === 'optionalSubjects' || k === 'emploiFige' || k === 'selectedActivities' || k === 'phoneDays') return;
             var b = src[k];
             /* L'emploi du temps se fusionne par cours (ET-16). */
@@ -223,6 +254,7 @@ function compteFusionnerProfils(copies) {
             base[k] = syncFusionnerListes([base[k], src[k]], k, registre, { cle: tableaux[k], dates: k === 'customEvents', etats: k === 'exercices' });
         });
     });
+    compteFusionnerFeries(tous, base);
     var maxJours = 0;
     var dernier = '';
     tous.forEach(function (src) {
@@ -503,7 +535,7 @@ function compteClasseAGarder(data) {
    emploi du temps figé, etc.). Une liste vide ou une valeur « non » reste une vraie valeur. */
 var COMPTE_CHAMPS_PROFIL = ['userName', 'targetScore', 'ibYear', 'memoirLevel', 'iaLevel', 'iaLevels', 'memoirPlan', 'iaPlans',
     'eeVus', 'eeDemandes', 'transportMode', 'carDeparture', 'carToSchool', 'carFromSchool', 'motoDeparture', 'motoReturn',
-    'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates', 'holidayDroppedDates', 'sameFreeTime',
+    'motoToSchool', 'motoFromSchool', 'selectedActivities', 'holidayDates', 'holidayDroppedDates', 'holidayVersions', 'sameFreeTime',
     'freeTimeMinutes', 'freeTimeByDay', 'weekdayWakeup', 'saturdayWakeup', 'sundayWakeup', 'weekdaySleepHours',
     'saturdaySleepHours', 'sundaySleepHours', 'habitudesDefinies', 'prepMatinMinutes', 'prepMatinDebut', 'prepMatinFin',
     'prepSoirMinutes', 'prepSoirDebut', 'prepSoirFin', 'petitDejHeure', 'petitDejMinutes', 'dinerHeure', 'dinerMinutes',

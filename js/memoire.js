@@ -113,6 +113,7 @@ function memoireLireEtat() {
         modifsSemaine: memoireArchiveSemaine(),
         holidayDates: typeof holidayDates !== 'undefined' ? holidayDates : {},
         holidayDroppedDates: typeof holidayDroppedDates !== 'undefined' ? holidayDroppedDates : {},
+        holidayVersions: typeof holidayVersions !== 'undefined' ? holidayVersions : {},
         sameFreeTime: sameFreeTime,
         freeTimeMinutes: freeTimeMinutes,
         freeTimeByDay: freeTimeByDay,
@@ -390,6 +391,7 @@ function memoireAppliquerCorps(data, opts) {
        ils ne sont plus repris — la page Jours fériés repart à vide. */
     if (data.holidayDates && typeof data.holidayDates === 'object') holidayDates = data.holidayDates;
     if (data.holidayDroppedDates && typeof data.holidayDroppedDates === 'object') holidayDroppedDates = data.holidayDroppedDates;
+    if (typeof holidayVersions !== 'undefined') holidayVersions = data.holidayVersions && typeof data.holidayVersions === 'object' ? data.holidayVersions : {};
     if (typeof data.sameFreeTime === 'boolean') sameFreeTime = data.sameFreeTime;
     if (data.freeTimeMinutes != null) freeTimeMinutes = Math.min(180, Math.max(0, Number(data.freeTimeMinutes) || 0));
     if (data.freeTimeByDay && typeof data.freeTimeByDay === 'object') {
@@ -573,6 +575,7 @@ function memoireReinitialiser() {
     selectedActivities = [];
     holidayDates = {};
     holidayDroppedDates = {};
+    if (typeof holidayVersions !== 'undefined') holidayVersions = {};
     sameFreeTime = true;
     freeTimeMinutes = 60;
     freeTimeByDay = { 0: 60, 1: 60, 2: 60, 3: 60, 4: 60, 5: 60, 6: 60 };

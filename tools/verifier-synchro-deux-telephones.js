@@ -451,6 +451,35 @@ async function ouvrirEnDirect(c, nuage) {
   verif('24 export des statistiques borné à 200 ko', Buffer.byteLength(JSON.stringify(exportLimite), 'utf8') <= 200000, true);
   verif('24b export conserve les événements récents', exportLimite[exportLimite.length - 1].u, 'test-05999');
 
+  /* Fériés : la transaction et les écoutes reçoivent une vieille copie après
+     décochage, puis les dates indépendantes et le recochage convergent. */
+  const ferie1 = geste(a, 'holidayCleDate(holidayDateDuJour(0, 1))');
+  const ferie2 = geste(a, 'holidayCleDate(holidayDateDuJour(1, 1))');
+  const agirFerie = (c, code) => geste(c, code + '; memoireSauvegarder()');
+  agirFerie(a, `holidayBasculerDate(${JSON.stringify(ferie1)})`);
+  await envoyer(a); await attendre(800);
+  verif('Fériés sélection reçue', geste(b, `holidayEstFerie(${JSON.stringify(ferie1)})`), true);
+  const ancienneFerie = JSON.parse(JSON.stringify(a.memoireLireEtat()));
+  agirFerie(a, `holidayBasculerDate(${JSON.stringify(ferie1)})`);
+  await envoyer(a); await attendre(800);
+  verif('Fériés décochage reçu', geste(b, `holidayEstFerie(${JSON.stringify(ferie1)})`), false);
+  const fusionAncienneFerie = a.compteFusionnerProfils([ancienneFerie, a.memoireLireEtat()]);
+  verif('Fériés ancienne copie ne rétablit pas la date', Object.hasOwn(fusionAncienneFerie.holidayDates, ferie1), false);
+  a = await recharger(a, nuage);
+  verif('Fériés décochage conservé au rechargement', geste(a, `holidayEstFerie(${JSON.stringify(ferie1)})`), false);
+  agirFerie(b, `holidayBasculerDate(${JSON.stringify(ferie1)})`);
+  agirFerie(a, `holidayBasculerDate(${JSON.stringify(ferie2)})`);
+  await envoyer(b); await envoyer(a); await attendre(1200);
+  verif('Fériés recochage et autre date convergent',
+    [a,b].every(c => geste(c, `holidayEstFerie(${JSON.stringify(ferie1)}) && holidayEstFerie(${JSON.stringify(ferie2)})`)), true);
+  agirFerie(a, `holidayPoserMode(${JSON.stringify(ferie1)}, 'light')`);
+  agirFerie(a, `holidayDecocher(${JSON.stringify(ferie1)}, 'activite-test')`);
+  await envoyer(a); await attendre(800);
+  verif('Fériés activité retirée transmise', geste(b, `holidayDroppedDates[${JSON.stringify(ferie1)}][0]`), 'activite-test');
+  agirFerie(b, `holidayDecocher(${JSON.stringify(ferie1)}, 'activite-test')`);
+  await envoyer(b); await attendre(800);
+  verif('Fériés activité remise transmise', geste(a, `(holidayDroppedDates[${JSON.stringify(ferie1)}] || []).length`), 0);
+
   /* BAC : la même chaîne compte/nuage que les deux téléphones, avec une
      ancienne copie et les deux sens de modification. */
   const choisirBac = (c, valeur) => geste(c, `var bacTest=devoirsLireStore();bacTest.bac=${valeur};bacTest.bacDemande=2;devoirsEcrireStore(bacTest);memoireSauvegarder();`);

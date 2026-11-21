@@ -12,6 +12,16 @@
 
 let holidayDates = {};        /* 'YYYY-MM-DD' -> 'keep' | 'light' | 'free' */
 let holidayDroppedDates = {}; /* 'YYYY-MM-DD' -> [ids des activités retirées] */
+/* Une version par date, y compris pour une suppression, voyage avec le profil. */
+let holidayVersions = {};
+
+function holidayEnregistrerVersion(cle) {
+    cle = String(cle);
+    var precedente = holidayVersions[cle];
+    var at = Math.max(Date.now(), (precedente && Number(precedente.at) || 0) + 1);
+    holidayVersions[cle] = { at: at, mode: holidayEstFerie(cle) ? holidayDates[cle] : null,
+        dropped: holidayEstFerie(cle) && Array.isArray(holidayDroppedDates[cle]) ? holidayDroppedDates[cle].slice() : [] };
+}
 
 const HOLIDAY_MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const HOLIDAY_JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
@@ -58,14 +68,17 @@ function holidayEstFerie(cle) {
 
 function holidayPoserDate(cle, mode) {
     holidayDates[String(cle)] = mode || 'keep';
+    holidayEnregistrerVersion(cle);
 }
 
 function holidayRetirerDate(cle) {
     delete holidayDates[String(cle)];
     delete holidayDroppedDates[String(cle)];
+    holidayEnregistrerVersion(cle);
 }
 
 function holidayToutEffacer() {
+    Object.keys(holidayDates).forEach(holidayRetirerDate);
     holidayDates = {};
     holidayDroppedDates = {};
 }
@@ -171,6 +184,7 @@ function holidayBasculerDate(cle) {
 
 function holidayPoserMode(cle, mode) {
     holidayDates[String(cle)] = mode;
+    holidayEnregistrerVersion(cle);
     holidayApresChangement();
 }
 
@@ -181,6 +195,7 @@ function holidayDecocher(cle, id) {
     if (at === -1) list.push(id);
     else list.splice(at, 1);
     holidayDroppedDates[cle] = list;
+    holidayEnregistrerVersion(cle);
     holidayApresChangement();
 }
 

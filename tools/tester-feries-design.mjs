@@ -37,7 +37,11 @@ try {
   await page.evaluate(()=>memoireSauvegarder());await page.reload({waitUntil:'domcontentloaded'});await pret(page);
   assert.equal(await page.evaluate(()=>window.__holidayScrolls.length),0,'pas de défilement forcé à la réouverture');assert.equal(await page.evaluate(c=>holidayDates[c],dates.next),'light');assert.deepEqual(await page.evaluate(c=>holidayDroppedDates[c],dates.next),['test-1']);
   assert.equal(await date.getAttribute('aria-pressed'),'true');assert.equal(await light.getAttribute('aria-pressed'),'true');
-  await date.click();assert.equal(await date.getAttribute('aria-pressed'),'false');assert.equal(await panel.locator('#holidayOptions').isVisible(),false,'options masquées après retrait de la dernière date');assert.equal(await page.evaluate(c=>Object.hasOwn(holidayDroppedDates,c),dates.next),false);
+  const copieAncienne=await page.evaluate(()=>memoireLireEtat());
+  await date.click();assert.equal(await date.getAttribute('aria-pressed'),'false');assert.equal(await panel.locator('#holidayOptions').isVisible(),false,'options masquées après retrait de la dernière date');
+  await page.evaluate(ancienne=>{const fusion=compteFusionnerProfils([ancienne,memoireLireEtat()]);compteAfficherProfil(fusion);},copieAncienne);
+  assert.equal(await date.getAttribute('aria-pressed'),'false','une ancienne copie reçue ne recoche pas le jour');
+  await page.reload({waitUntil:'domcontentloaded'});await pret(page);assert.equal(await date.getAttribute('aria-pressed'),'false','décochage conservé après rechargement');assert.equal(await page.evaluate(c=>Object.hasOwn(holidayDroppedDates,c),dates.next),false);
   await panel.locator('.holiday-day[data-holiday-date="'+dates.current+'"]').click();assert.equal(await panel.locator('.holiday-date-card').count(),1);
   await date.click();assert.equal(await panel.locator('.holiday-date-card').count(),2,'plusieurs dates indépendantes');await page.waitForFunction(d=>document.activeElement?.dataset.holidayCard===d,dates.next);await page.evaluate(()=>memoireSauvegarder());assert.equal(await page.evaluate(d=>document.activeElement?.dataset.holidayCard===d,dates.next),true,'focus conservé lors du rafraîchissement');await panel.locator('.holiday-choice[data-holiday-date="'+dates.next+'"][data-holiday-mode="free"]').click();assert.deepEqual(await page.evaluate(d=>[holidayDates[d.current],holidayDates[d.next]],dates),['keep','free']);
   await date.click();assert.equal(await panel.locator('.holiday-date-card').count(),1,'retirer une date conserve les autres');

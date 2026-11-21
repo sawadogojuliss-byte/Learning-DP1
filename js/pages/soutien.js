@@ -48,7 +48,7 @@ const moodData = {
             'Mange quelque chose de léger et bois de l\'eau fraîche'
         ],
         quotes: [
-            { text: 'Se reposer est aussi important que travailler. C\'est un investissement, pas une perte de temps.', author: '— Studyplan · source non précisée' },
+            { text: 'Se reposer est aussi important que travailler. C\'est un investissement, pas une perte de temps.', author: '— L’équipe StudyPlan' },
             { text: 'Prendre soin de soi n\'est pas de l\'égoïsme, c\'est de la sagesse.', author: '— Audre Lorde' }
         ]
     },
@@ -64,7 +64,7 @@ const moodData = {
             'Rappelle-toi : tu as déjà surmonté des moments difficiles avant'
         ],
         quotes: [
-            { text: 'Tu n\'as pas à tout contrôler. Fais ce que tu peux, et fais confiance au processus.', author: '— Studyplan · source non précisée' },
+            { text: 'Tu n\'as pas à tout contrôler. Fais ce que tu peux, et fais confiance au processus.', author: '— L’équipe StudyPlan' },
             { text: 'Le succès vient de ceux qui ne lâchent pas, même sous pression.', author: '— Serena Williams' }
         ]
     },
@@ -81,7 +81,7 @@ const moodData = {
             '💪 Les meilleurs élèves rebondissent. Ce n\'est pas la chute qui compte, c\'est le relèvement'
         ],
         quotes: [
-            { text: 'Chaque expert a d\'abord été un débutant. Chaque champion a d\'abord été un perdant.', author: '— Studyplan · source non précisée' },
+            { text: 'Chaque expert a d\'abord été un débutant. Chaque champion a d\'abord été un perdant.', author: '— L’équipe StudyPlan' },
             { text: 'L\'échec est le fondement de la réussite.', author: '— Lao-Tseu' }
         ]
     },
@@ -97,8 +97,8 @@ const moodData = {
             'Concentre-toi sur UNE seule chose à la fois — pas tout à la fois'
         ],
         quotes: [
-            { text: 'On ne se perd que pour mieux se trouver.', author: '— Studyplan · source non précisée' },
-            { text: 'Chaque étape vers l\'avant, même la plus petite, est un vrai progrès.', author: '— Studyplan · source non précisée' }
+            { text: 'On ne se perd que pour mieux se trouver.', author: '— L’équipe StudyPlan' },
+            { text: 'Chaque étape vers l\'avant, même la plus petite, est un vrai progrès.', author: '— L’équipe StudyPlan' }
         ]
     },
     anxieux: {
@@ -113,7 +113,7 @@ const moodData = {
             'Si l\'anxiété dure, parle-en à quelqu\'un de confiance autour de toi'
         ],
         quotes: [
-            { text: 'L\'action est le remède à l\'anxiété. Commence n\'importe où.', author: '— Studyplan · source non précisée' },
+            { text: 'L\'action est le remède à l\'anxiété. Commence n\'importe où.', author: '— L’équipe StudyPlan' },
             { text: 'Tu ne peux pas contrôler les vagues, mais tu peux apprendre à surfer.', author: '— Jon Kabat-Zinn' }
         ]
     },
@@ -130,7 +130,7 @@ const moodData = {
         ],
         quotes: [
             { text: 'Les difficultés préparent les gens ordinaires à un destin extraordinaire.', author: '— C.S. Lewis' },
-            { text: 'La persévérance est la clé de toutes les portes.', author: '— Studyplan · source non précisée' }
+            { text: 'La persévérance est la clé de toutes les portes.', author: '— L’équipe StudyPlan' }
         ]
     },
     depasse: {
@@ -162,7 +162,7 @@ const moodData = {
         ],
         quotes: [
             { text: 'Le succès, c\'est tomber sept fois et se relever huit.', author: '— Proverbe japonais' },
-            { text: 'Sois fier de ce que tu as accompli et confiant en ce que tu peux encore réaliser.', author: '— Studyplan · source non précisée' }
+            { text: 'Sois fier de ce que tu as accompli et confiant en ce que tu peux encore réaliser.', author: '— L’équipe StudyPlan' }
         ]
     },
     ennuye: {
@@ -177,8 +177,8 @@ const moodData = {
             'Lance un minuteur de 25 min : juste 25 minutes et tu peux t\'arrêter'
         ],
         quotes: [
-            { text: 'L\'ennui est souvent la porte d\'entrée de quelque chose de grand.', author: '— Studyplan · source non précisée' },
-            { text: 'La créativité naît souvent de la contrainte et de l\'ennui.', author: '— Studyplan · source non précisée' }
+            { text: 'L\'ennui est souvent la porte d\'entrée de quelque chose de grand.', author: '— L’équipe StudyPlan' },
+            { text: 'La créativité naît souvent de la contrainte et de l\'ennui.', author: '— L’équipe StudyPlan' }
         ]
     },
     neutre: {
@@ -192,7 +192,7 @@ const moodData = {
             'Un petit objectif atteint aujourd\'hui = grande satisfaction ce soir'
         ],
         quotes: [
-            { text: 'La constance est plus puissante que la perfection.', author: '— Studyplan · source non précisée' },
+            { text: 'La constance est plus puissante que la perfection.', author: '— L’équipe StudyPlan' },
             { text: 'Ce n\'est pas la force mais la persévérance qui fait les grandes choses.', author: '— Samuel Johnson' }
         ]
     }

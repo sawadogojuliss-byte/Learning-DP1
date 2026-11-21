@@ -46,7 +46,7 @@ try {
     assert.equal(await panel.locator('[data-mood=neutre]').getAttribute('aria-pressed'),'true','humeur conservée au retour');
     assert.equal(await panel.locator('#quoteText').innerText(),q,'citation conservée au retour');
     const citations=await page.evaluate(()=>Object.values(moodData).flatMap(m=>m.quotes.map(q=>q.author)));
-    assert.ok(citations.some(a=>a.includes('Studyplan')));assert.ok(citations.some(a=>a.includes('Winston Churchill')));assert.ok(citations.every(a=>!/anonyme/i.test(a)));
+    assert.ok(citations.some(a=>a === '— L’équipe StudyPlan'));assert.ok(citations.some(a=>a.includes('Winston Churchill')));assert.ok(citations.every(a=>!/anonyme/i.test(a)));
     await panel.getByRole('button',{name:'Changer d’humeur'}).click();
     assert.equal(await panel.locator('.mood-btn[aria-pressed="true"]').count(),0);
     assert.equal(await panel.locator('#soutienVide').isVisible(),true);
