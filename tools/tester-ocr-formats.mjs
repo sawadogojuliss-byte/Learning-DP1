@@ -69,11 +69,10 @@ try {
  assert.ok(results.devoirs.some(x=>x.matiere==='Chimie'&&x.date==='2030-12-23'),JSON.stringify(results));
  assert.match(results.erreur,/20 pages maximum/);assert.match(results.erreurEmploi,/20 pages maximum/);
  assert.deepEqual(externe,[], 'la lecture PDF/OCR ne doit pas envoyer le document à un service externe');
- const avant=await page.evaluate(()=>localStorage.getItem(DEVOIRS_CLE));
  await page.evaluate(()=>{ibYear='DP1';navigateTo('devoirs');});
  await page.locator('#devoirsFichierExam').setInputFiles({name:'examen-mixte.pdf',mimeType:'application/pdf',buffer:mixte});
  await page.waitForFunction(()=>!devoirsOcrEnCours,null,{timeout:90000});
- assert.ok(await page.evaluate(()=>devoirsPropositions.some(p=>p.matiere==='Chimie'&&p.date==='2030-12-23')),'proposition examinable dans l’interface');
- assert.equal(await page.evaluate(()=>localStorage.getItem(DEVOIRS_CLE)),avant,'lecture sans enregistrement avant confirmation');
+ assert.ok(await page.evaluate(()=>devoirsLireStore().examens.some(p=>p.matiere==='Chimie'&&p.date==='2030-12-23'&&p.debut==='08:00'&&p.fin==='09:00')),'examen enregistré automatiquement');
+ assert.equal(await page.locator('#devoirsConfirmation button').count(),0,'aucune confirmation demandée');
  console.log('OK OCR local : grille, dates, quatrième page, scan mixte, dédoublonnage et limite explicite');
 }finally{await browser.close()}

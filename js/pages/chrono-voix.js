@@ -80,7 +80,7 @@ function chronoFinAnnonce(generation) {
     }
 }
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261024d';
+var CHRONO_VOIX_VERSION = '20261204-une-seance';
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────
@@ -185,6 +185,7 @@ function chronoVoixUrl(nom) {
     if (nom === 'masculine-debut') return 'livrables/stock-voix/messages/annonce-debut.wav?v=' + CHRONO_VOIX_VERSION;
     if (nom === 'masculine-pause') return 'livrables/stock-voix/messages/annonce-de-pause.wav?v=' + CHRONO_VOIX_VERSION;
     if (nom === 'masculine-reprise') return 'livrables/stock-voix/messages/reprise-proposition.wav?v=' + CHRONO_VOIX_VERSION;
+    if (nom === 'masculine-fin-une-seance') return 'livrables/stock-voix/messages/fin-une-seance.wav?v=' + CHRONO_VOIX_VERSION;
     if (nom === 'masculine-fin-serie') return 'livrables/stock-voix/messages/fin-serie.wav?v=' + CHRONO_VOIX_VERSION;
     var complet = /^masculine-complet-(\d+)$/.exec(nom);
     if (complet && chronoVoixCompleteApprouvee(Number(complet[1]))) {
@@ -289,7 +290,7 @@ function chronoVoixLecteur(nom) {
    annonce la longue sans avoir le temps de la télécharger. */
 function chronoVoixPreparer(minutes) {
     chronoVoixContexte();
-    var noms = chronoVoixType() === 'masculine' ? ['masculine-debut', 'masculine-pause', 'masculine-reprise', 'masculine-fin-serie'] : ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et', 'masculine-reprise', 'masculine-fin-serie'];
+    var noms = chronoVoixType() === 'masculine' ? ['masculine-debut', 'masculine-pause', 'masculine-reprise', 'masculine-fin-serie', 'masculine-fin-une-seance'] : ['seance-fin', 'minutes-de-pause', 'minute-de-pause', 'et', 'masculine-reprise', 'masculine-fin-serie', 'masculine-fin-une-seance'];
     var pauses = [];
     if (Array.isArray(minutes)) pauses = minutes.slice();
     else if (minutes != null) pauses = [minutes];
@@ -621,9 +622,9 @@ function chronoLancerAnnonce(noms, typeVoix, phrase, suite, options) {
 }
 
 /* La fin de série est un message autonome : aucune annonce de pause. */
-function chronoAnnoncerFinSerie(suite) {
-    chronoLancerAnnonce(['masculine-fin-serie'], 'masculine',
-        'Tes séances de révisions sont terminées.', suite);
+function chronoAnnoncerFinSerie(suite, uneSeance) {
+    chronoLancerAnnonce([uneSeance ? 'masculine-fin-une-seance' : 'masculine-fin-serie'], 'masculine',
+        uneSeance ? 'Ta séance de révision est terminée.' : 'Tes séances de révisions sont terminées.', suite);
 }
 
 /* Fin de concentration intermédiaire : annonce la durée exacte choisie. */

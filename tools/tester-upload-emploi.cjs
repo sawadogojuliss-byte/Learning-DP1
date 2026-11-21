@@ -82,13 +82,11 @@ function pdfFictif(jpeg, couchePartielle) {
             await page.waitForFunction(n => emploiLectureNumero > n, numero, { timeout: 10000 });
             await page.waitForFunction(() => !emploiOcrEnCours, null, { timeout: 90000 });
             const resultat = await page.evaluate(() => ({ statut: document.getElementById('emploiOcrStatut').textContent,
-                propositions: emploiPropositions.map(p => [p.jour,p.nom,p.debut,p.fin]),
-                enregistrés: emploiScolaireLire().jours.map(j => j.length) }));
-            assert.deepEqual(resultat.propositions.map(([jour,nom,debut,fin])=>[jour,nom,debut,fin]),
-                [[0,'Maths AA','08:00','09:00'],[1,'Chimie','10:00','11:00']],
-                fichier.name + ' : cours corrects, sans invention : ' + JSON.stringify(resultat));
-            assert.deepEqual(resultat.enregistrés, [0,0,1,0,0,0,0],
-                'la lecture ne doit modifier aucun ancien cours avant accord');
+                cours: emploiScolaireLire().jours.map(j => j.map(c => [c.nom,c.debut,c.fin,c.src])) }));
+            assert.deepEqual(resultat.cours[0], [['Maths AA','08:00','09:00','doc']], fichier.name);
+            assert.deepEqual(resultat.cours[1], [['Chimie','10:00','11:00','doc']], fichier.name);
+            assert.deepEqual(resultat.cours[2], [['Français','11:00','12:00','manuel']], 'cours existant conservé');
+            assert.match(resultat.statut, /automatiquement|déjà enregistrés/);
         }
         await importer({ name:'petit-emploi.pdf', mimeType:'application/pdf', buffer:pdfFictif() }, true);
         await importer({ name:'photo-emploi.png', mimeType:'image/png', buffer:png });
@@ -112,11 +110,10 @@ function pdfFictif(jpeg, couchePartielle) {
         await page.locator('#emploiFichier').setInputFiles({ name:'planning-exporte.png', mimeType:'image/png', buffer:Buffer.from(exportSite,'base64') });
         await page.waitForFunction(() => !emploiOcrEnCours, null, { timeout: 90000 });
         assert.equal(await page.evaluate(() => emploiPropositions.length), 0, 'aucun vrai cours ne peut être déduit de l’export du planning');
-        assert.match(await page.locator('#emploiConfirmation').innerText(), /planning exporté par Studyplan.*matières.*heures de fin/s);
+        assert.match(await page.locator('#emploiOcrStatut').innerText(), /planning exporté par Studyplan.*matières.*heures de fin/s);
         assert.match(await page.locator('#emploiNomFichier').innerText(), /planning-exporte.png/);
         assert.equal(await page.evaluate(() => JSON.stringify(emploiScolaireLire())), avantExport, 'l’échec ne touche pas aux cours enregistrés');
         await importer({ name:'scan-emploi.pdf', mimeType:'application/pdf', buffer:pdfFictif(jpeg) });
-        await page.locator('#emploiConfirmation').getByRole('button', { name: 'Enregistrer mes cours' }).click();
         const sauves = await page.evaluate(() => emploiScolaireLire().jours.map(j => j.map(c => [c.nom,c.debut,c.fin,c.src])));
         assert.deepEqual(sauves[0], [['Maths AA','08:00','09:00','doc']]);
         assert.deepEqual(sauves[1], [['Chimie','10:00','11:00','doc']]);

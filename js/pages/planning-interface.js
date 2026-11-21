@@ -165,7 +165,7 @@ function renderPlanning() {
         const avecAvant = memeEpreuve(events[idx - 1], event);
         const avecApres = memeEpreuve(event, events[idx + 1]);
         if (!avecAvant && avecApres) eventsHtml += '<div class="devoirs-paralleles">';
-        const modifiable = planningJourModifiable(selectedDay) && event.editable;
+        const modifiable = planningJourModifiable(selectedDay) && (event.editable || event.id === 'wakeup' || /^bac-(samedi|vendredi)$/.test(event.id));
         eventsHtml += '<div data-v3-idx="' + idx + '" data-v3-type="' + v3Escape(event.type) + '" onclick="' + (modifiable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (modifiable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (modifiable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
@@ -208,7 +208,7 @@ function v3LibreVertical() {
 
 function v3OpenEditByIndex(idx) {
     const ev = v3LastRendered[idx];
-    if (!planningJourModifiable(selectedDay) || !ev || !ev.editable) return;
+    if (!planningJourModifiable(selectedDay) || !ev || !(ev.editable || ev.id === 'wakeup' || /^bac-(samedi|vendredi)$/.test(ev.id))) return;
     openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
 }
 
@@ -254,6 +254,10 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
         kind: evt ? evt.kind : (record ? 'pinned' : 'flex'),
         isCustom: !!record
     };
+    var titreChamp = document.getElementById('editEventTitle');
+    titreChamp.readOnly = id === 'wakeup';
+    var suppression = document.querySelector('#editEventModal [onclick="deleteEditedEvent()"]');
+    if (suppression) suppression.hidden = id === 'wakeup';
     document.getElementById('editEventTitle').value = title;
     document.getElementById('editEventStart').value = startTime;
     document.getElementById('editEventEnd').value = endTime;
@@ -302,6 +306,16 @@ function saveEditedEventCascade() {
 
     const day = selectedDay;
     if (!planningJourModifiable(day)) return;
+    if (editingEvent.id === 'wakeup') {
+        if (newEnd <= newStart) { showErr("L'heure de fin doit être après le début."); return; }
+        var dateReveil = planningCleDate(planningDateSelectionnee(day));
+        var dernier = customEvents.reduce(function (max, e) { return e && e.date === dateReveil && e.day === day ? Math.max(max, Number(e.timestamp) || 0) : max; }, 0);
+        customEvents = customEvents.filter(function (e) { return !(e && e.day === day && e.date === dateReveil && e.replacesId === 'wakeup'); });
+        customEvents.push({id:generateEventId('wakeup', 'Réveil', day), day:day, date:dateReveil, title:'Réveil', startTime:newStart, endTime:newEnd, type:'wakeup', icon:'🌅', source:'custom', replacesId:'wakeup', pinned:true, timestamp:Math.max(Date.now(), dernier + 1)});
+        v3Save(); closeEditModal(); renderPlanning();
+        v3Toast('Réveil modifié pour le ' + dateReveil, 'success');
+        return;
+    }
     if (!window.__ignorerChevauchementActivite) {
         var voisines = v3ConflitsCreneau(day, newStart, newEnd, [editingEvent.id]);
         if (voisines.length) {
@@ -383,6 +397,7 @@ function saveEditedEventCascade() {
 function saveEditedEvent() { saveEditedEventCascade(); }
 
 function deleteEditedEvent() {
+    if (editingEvent && editingEvent.id === 'wakeup') return;
     if (!editingEvent) return;
     const day = selectedDay;
     if (!planningJourModifiable(day)) return;

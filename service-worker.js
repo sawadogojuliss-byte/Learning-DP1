@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261204-feries';
+const VERSION = '20261204-import';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -87,6 +87,7 @@ const FICHIERS = [
     "js/pages/emploi-temps-moteur.js",
     "js/pages/planning-moteur.js",
     "js/pages/chrono-voix.js",
+    "livrables/stock-voix/messages/fin-une-seance.wav",
     "js/pages/planning-interface.js",
     "js/pages/planning-export.js",
     "js/pages/musique.js",

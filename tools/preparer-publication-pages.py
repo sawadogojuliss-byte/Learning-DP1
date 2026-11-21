@@ -35,6 +35,7 @@ boite_actual = subprocess.check_output(['git', 'hash-object', str(base / 'js/pag
 if not boite_actual.startswith('d5ad249'):
     raise SystemExit('La boîte publique a changé : réconcilier avant publication')
 for rel, expected_hash in {
+    'js/pages/planning-base.js': 'a7626f871284a46ac09fd72e7ab7e96bbedaa7f9',
     'js/pages/planning-interface.js': '91dcc0a4eafa879ec119363ba35d7c455f444fe4',
     'pages/planning.html': '5d479c0b95d409c573ecc3ebbfa38058e44e3a77',
     'pages/onboarding-habitudes.html': '30a3e2f84b34e63accc852a05319d274afb044f4',
@@ -91,6 +92,8 @@ files = [
     'livrables/stock-voix/messages/reprise-proposition.wav',
     'livrables/stock-voix/messages/fin-serie.wav',
     'js/pages/chrono-voix.js',
+    'js/pages/planning-base.js',
+    'livrables/stock-voix/messages/fin-une-seance.wav',
     'css/pages/focus-parametres.css',
     'js/synchro.js',
     'js/compte.js',
@@ -432,6 +435,10 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Registre public inattendu')
         text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-voix.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
+        ancre_voix_une = '    "js/pages/chrono-voix.js",'
+        if text.count(ancre_voix_une) != 1:
+            raise SystemExit('Cache vocal public inattendu')
+        text = text.replace(ancre_voix_une, ancre_voix_une + '\n    "livrables/stock-voix/messages/fin-une-seance.wav",', 1)
         anchor_salon = '    "css/pages/planning-panels.css",'
         text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-voix.js",\n    "js/pages/salon-focus.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'

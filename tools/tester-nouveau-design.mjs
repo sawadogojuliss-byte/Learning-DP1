@@ -17,7 +17,7 @@ try {for(const viewport of viewports){
  const panel=page.locator('#panelDevoirs'); await within(panel); assert.equal(await panel.locator('.dd-brand-mark img').evaluate(e=>e.complete&&e.naturalWidth>0),true);
  if(process.env.STUDY_TEST_CAPTURE) await page.screenshot({path:`${process.env.STUDY_TEST_CAPTURE}/devoirs-${viewport.width}.png`});
  await page.locator('#devoirsTexteColle').fill('Mathématiques 14/06/2035 08:00 10:00');
- await panel.locator('button[onclick="devoirsLireDocument()"]').click();assert.match(await page.locator('#devoirsConfirmation').innerText(),/1 créneau/);await page.evaluate(()=>devoirsViderPropositions());
+ await panel.locator('button[onclick="devoirsLireDocument()"]').click();assert.match(await page.locator('#devoirsOcrStatut').innerText(),/1 créneau/);await page.evaluate(()=>{let st=devoirsLireStore();st.devoirs=[];devoirsEcrireStore(st);devoirsRendre();});
  await panel.locator('button[onclick="devoirsAjouterManuel()"]').first().click(); assert.match(await page.locator('#devoirsAjoutStatut').innerText(),/Matière et date/);
  await page.locator('#devManuelMatiere').fill('Mathématiques');await page.locator('#devManuelDate').fill('2035-06-14');
  await panel.locator('button[onclick="devoirsAjouterManuel()"]').first().click(); await page.locator('#seancesQuestionAucune').click();

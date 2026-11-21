@@ -17,11 +17,17 @@ var V3_ICONES_ACTIVITES = ['🏃', '🎯', '🏆'];
 
 /* La nuit est une limite absolue, pas un créneau remplaçable. Les anciennes
    données sont conservées ; un bloc hors limite est signalé, pas déplacé. */
-function v3BornesSommeil(day) {
+function v3BornesSommeil(day, date) {
     var reveil = typeof planningReveilDuJour === 'function' ? planningReveilDuJour(day) : (day === 5 ? saturdayWakeup : day === 6 ? sundayWakeup : weekdayWakeup);
+    var cible = date instanceof Date ? date : (typeof planningDateSelectionnee === 'function' ? planningDateSelectionnee(day) : null);
+    var cle = cible && planningCleDate(cible);
+    var records = (customEvents || []).filter(function(e) { return e && e.day === day && e.date === cle; });
+    var reset = records.reduce(function(m,e) { return e.resetDate ? Math.max(m, Number(e.timestamp)||0) : m; }, 0);
+    var changement = records.filter(function(e) { return e.replacesId === 'wakeup' && !e.deleted && (!reset || Number(e.timestamp) > reset); }).sort(function(a,b) { return (Number(b.timestamp)||0)-(Number(a.timestamp)||0); })[0];
+    if (changement && changement.startTime) reveil = changement.startTime;
     var coucher = day === 5 && typeof devoirsFaitBac === 'function' && devoirsFaitBac()
-        ? calculateBedtime(reveil, saturdaySleepHours) : bedtimeForDay(day);
-    return { reveil: timeToMinutes(reveil), coucher: timeToMinutes(coucher), reveilTexte: reveil, coucherTexte: coucher };
+        ? calculateBedtime(reveil, saturdaySleepHours) : changement ? calculateBedtime(reveil, sleepHoursForDay(day)) : bedtimeForDay(day);
+    return { reveil: timeToMinutes(reveil), coucher: timeToMinutes(coucher), reveilTexte: reveil, coucherTexte: coucher, modifie: !!changement };
 }
 function v3DureeHoraire(debut, fin) {
     var duree = timeToMinutes(fin) - timeToMinutes(debut);
@@ -33,8 +39,8 @@ function syncEditDurationFromTimes() {
     var duree = v3DureeHoraire(s, e);
     if (duree > 0) { editCurrentDuration = duree; updateEditDurationDisplay(); }
 }
-function v3SommeilInterdit(debut, fin, day) {
-    var b = v3BornesSommeil(day), s = typeof debut === 'number' ? debut : timeToMinutes(debut), e = typeof fin === 'number' ? fin : timeToMinutes(fin);
+function v3SommeilInterdit(debut, fin, day, date) {
+    var b = v3BornesSommeil(day, date), s = typeof debut === 'number' ? debut : timeToMinutes(debut), e = typeof fin === 'number' ? fin : timeToMinutes(fin);
     if (!isFinite(s) || !isFinite(e) || !isFinite(b.reveil) || !isFinite(b.coucher)) return true;
     if (e <= s) e += 1440;
     if (e - s >= 1440) return true;
@@ -79,14 +85,16 @@ planningAppliquerDate = function (events, jour, date) {
 var v3GenererJourOriginal = generateDayEvents;
 var v3SommeilHorsPlanning = [];
 generateDayEvents = function (day, date) {
-    var events = v3GenererJourOriginal(day, date) || [], b = v3BornesSommeil(day);
+    var events = v3GenererJourOriginal(day, date) || [], b = v3BornesSommeil(day, date);
+    events = events.map(function (e) { return e && /^bac-(samedi|vendredi)$/.test(e.id) ? Object.assign({}, e, {editable:true}) : e; });
     var reveil = events.find(function (e) { return e && (e.id === 'wakeup' || e.type === 'wakeup'); });
     var coucher = events.find(function (e) { return e && (e.id === 'sleep' || e.type === 'sleep'); });
     if (!reveil) reveil = {id:'wakeup',title:'Réveil',startTime:b.reveilTexte,endTime:addMinutes(b.reveilTexte,10),type:'wakeup',icon:'🌅',editable:false,kind:'fixed'};
     if (!coucher) coucher = {id:'sleep',title:'Coucher',startTime:b.coucherTexte,endTime:b.reveilTexte,type:'sleep',icon:'😴',editable:false,kind:'fixed'};
+    if (b.modifie && reveil.startTime === b.reveilTexte) { coucher = Object.assign({}, coucher, {startTime:b.coucherTexte, endTime:b.reveilTexte}); }
     var hors = [], milieu = events.filter(function (e) {
         if (!e || e.id === reveil.id || e.id === coucher.id || e.type === 'wakeup' || e.type === 'sleep') return false;
-        if (!e.startTime || !e.endTime || v3SommeilInterdit(e.startTime, e.endTime, day)) { hors.push(e); return false; }
+        if (!e.startTime || !e.endTime || v3SommeilInterdit(e.startTime, e.endTime, day, date)) { hors.push(e); return false; }
         return true;
     });
     milieu.sort(function (a, c) {
@@ -245,7 +253,7 @@ function renderPlanning() {
         const avecAvant = memeEpreuve(events[idx - 1], event);
         const avecApres = memeEpreuve(event, events[idx + 1]);
         if (!avecAvant && avecApres) eventsHtml += '<div class="devoirs-paralleles">';
-        const modifiable = planningJourModifiable(selectedDay) && event.editable;
+        const modifiable = planningJourModifiable(selectedDay) && (event.editable || event.id === 'wakeup' || /^bac-(samedi|vendredi)$/.test(event.id));
         eventsHtml += '<div data-v3-idx="' + idx + '" data-v3-type="' + v3Escape(event.type) + '" onclick="' + (modifiable ? 'v3OpenEditByIndex(' + idx + ')' : '') + '" style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:' + bBg + ';border-radius:0.875rem;border-left:4px solid ' + bColor + ';box-shadow:0 1px 4px rgba(0,0,0,0.08);cursor:' + (modifiable ? 'pointer' : 'default') + ';transition:all 0.2s;margin-bottom:0.5rem;" ' + (modifiable ? 'onmouseover="this.style.transform=\'translateX(2px)\';this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 1px 4px rgba(0,0,0,0.08)\'"' : '') + '>' +
             '<div style="width:2.75rem;height:2.75rem;background:white;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,0.08);border:1.5px solid #f3f4f6;"><span style="font-size:1.375rem;">' + iconeHtml(event.icon, '1.45rem') + '</span></div>' +
             '<div style="flex:1;min-width:0;">' +
@@ -289,7 +297,7 @@ function v3LibreVertical() {
 
 function v3OpenEditByIndex(idx) {
     const ev = v3LastRendered[idx];
-    if (!planningJourModifiable(selectedDay) || !ev || !ev.editable) return;
+    if (!planningJourModifiable(selectedDay) || !ev || !(ev.editable || ev.id === 'wakeup' || /^bac-(samedi|vendredi)$/.test(ev.id))) return;
     openEditModal(ev.id, ev.title, ev.startTime, ev.endTime, ev.type, ev.icon, ev);
 }
 
@@ -343,6 +351,10 @@ function openEditModal(id, title, startTime, endTime, type, icon, evt) {
         cibleDebut: evt && evt._v3CibleDebut, cibleFin: evt && evt._v3CibleFin,
         isCustom: !!record
     };
+    var titreChamp = document.getElementById('editEventTitle');
+    titreChamp.readOnly = id === 'wakeup';
+    var suppression = document.querySelector('#editEventModal [onclick="deleteEditedEvent()"]');
+    if (suppression) suppression.hidden = id === 'wakeup';
     document.getElementById('editEventTitle').value = title;
     document.getElementById('editEventStart').value = startTime;
     document.getElementById('editEventEnd').value = endTime;
@@ -380,6 +392,16 @@ function saveEditedEventCascade() {
 
     const day = selectedDay;
     if (!planningJourModifiable(day)) return;
+    if (editingEvent.id === 'wakeup') {
+        if (newEnd <= newStart) { showErr("L'heure de fin doit être après le début."); return; }
+        var dateReveil = planningCleDate(planningDateSelectionnee(day));
+        var dernier = customEvents.reduce(function (max, e) { return e && e.date === dateReveil && e.day === day ? Math.max(max, Number(e.timestamp) || 0) : max; }, 0);
+        customEvents = customEvents.filter(function (e) { return !(e && e.day === day && e.date === dateReveil && e.replacesId === 'wakeup'); });
+        customEvents.push({id:generateEventId('wakeup', 'Réveil', day), day:day, date:dateReveil, title:'Réveil', startTime:newStart, endTime:newEnd, type:'wakeup', icon:'🌅', source:'custom', replacesId:'wakeup', pinned:true, timestamp:Math.max(Date.now(), dernier + 1)});
+        v3Save(); closeEditModal(); renderPlanning();
+        v3Toast('Réveil modifié pour le ' + dateReveil, 'success');
+        return;
+    }
     if (v3SommeilInterdit(newStart, newEnd, day)) { showErr('Ce créneau tombe pendant le sommeil. Choisis un horaire entre le réveil et le coucher.'); return; }
     const memeHoraire = newStart === editingEvent.startTime && newEnd === editingEvent.endTime;
     const ctx = { mode:'edition', day:day, title:newTitle, icon:editingEvent.icon, type:editingEvent.type,
@@ -396,6 +418,7 @@ function saveEditedEventCascade() {
 function saveEditedEvent() { saveEditedEventCascade(); }
 
 function deleteEditedEvent() {
+    if (editingEvent && editingEvent.id === 'wakeup') return;
     if (!editingEvent || !planningJourModifiable(selectedDay)) return;
     const day = selectedDay, date = planningCleDate(planningDateSelectionnee(day));
     const snapshot = customEvents.slice(), title = editingEvent.title;

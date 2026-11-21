@@ -8,8 +8,8 @@
      exercices sur les matières à examiner, sans CAS, mémoire ni éval
      interne ; semaine des examens : les épreuves + quelques révisions,
      et une matière composée n'est plus jamais révisée).
-   La lecture automatique (OCR) propose, l'élève confirme : chaque ligne
-   détectée est vérifiable et corrigeable avant d'entrer dans le planning.
+   La lecture automatique ajoute les lignes complètes : elles restent
+   modifiables, et les lignes incomplètes ne sont pas inventées.
    Vue : pages/devoirs.html
    ============================================================ */
 
@@ -1187,16 +1187,50 @@ function devoirsLireDocument(genreChoisi) {
         devoirsDireOcr(genre, 'Lecture du document… Premier usage : le lecteur se télécharge une fois, puis reste dans le navigateur.', false);
         devoirsAnalyserFichier(fichier, function (message) { devoirsDireOcr(genre, message, false); }).then(function (resultat) {
             devoirsOcrEnCours = false;
-            devoirsMontrerPropositions('', genre, true, resultat.propositions, resultat.grille);
+            devoirsImporterLecture(resultat.propositions, genre);
         }).catch(function (e) {
             devoirsOcrEnCours = false;
             devoirsDireOcr(genre, (e && e.message) || 'La lecture a échoué. Ajoute les créneaux à la main ci-dessous.', true);
         });
     } else if (colle) {
-        devoirsMontrerPropositions(colle, genre, false);
+        devoirsImporterLecture(devoirsParserTexte(colle), genre);
     } else {
         devoirsDireOcr(genre, 'Choisis une photo du document, ou colle son texte dans la zone.', true);
     }
+}
+
+/* Import direct des seules lignes complètes : ne jamais inventer une date,
+   une matière ou des heures, ni écraser une saisie existante. */
+function devoirsImporterLecture(propositions, genre) {
+    genre = genre === 'examens' ? 'examens' : 'devoirs';
+    var ajoutes = 0, ignores = 0, doublons = 0, passes = 0, sessions = 0;
+    (propositions || []).forEach(function (p) {
+        var plage = p && Array.isArray(p.plageSession) && p.plageSession.length === 2 ? p.plageSession : null;
+        var entree = Object.assign({}, p || {});
+        if ((!entree.debut || !entree.fin) && plage) { entree.debut = plage[0]; entree.fin = plage[1]; }
+        var champs = devoirsValider(entree, genre);
+        if (champs.erreur || !champs.debut || !champs.fin) { ignores++; return; }
+        if (devoirsEstPasse(champs.date, champs.fin)) { passes++; return; }
+        if (devoirsChercherDoublon(devoirsLireStore(), genre, champs)) { doublons++; return; }
+        var id = devoirsAjouter(genre, Object.assign({}, champs, genre === 'devoirs' ? {seances:'auto'} : {}));
+        if (id) { ajoutes++; if (plage && (!p.debut || !p.fin)) sessions++; } else ignores++;
+    });
+    devoirsPropositions = [];
+    var zone = document.getElementById('devoirsConfirmation');
+    if (zone) zone.innerHTML = '';
+    devoirsRendre();
+    if (ajoutes) {
+        devoirsRecalculerPlanning();
+        devoirsActualiserPlanning();
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+    }
+    devoirsDireOcr(genre, ajoutes + ' créneau(x) ajouté(s) automatiquement.' +
+        (!(propositions || []).length ? ' Aucune ligne reconnue : essaie un document plus lisible ou saisis les créneaux à la main.' : '') +
+        (doublons ? ' ' + doublons + ' déjà enregistré(s), conservé(s) sans modification.' : '') +
+        (passes ? ' ' + passes + ' déjà passé(s), ignoré(s).' : '') +
+        (sessions ? ' ' + sessions + ' horaire(s) repris des plages de session ; ils peuvent différer des heures exactes des épreuves.' : '') +
+        (ignores ? ' ' + ignores + ' ligne(s) incomplète(s) ou incertaine(s) non ajoutée(s) : tu peux les saisir à la main.' : '') +
+        ' Tu peux modifier les créneaux dans la liste.', !ajoutes && !!ignores);
 }
 
 /* Le créneau des devoirs d'un jour dans l'emploi du temps scolaire de

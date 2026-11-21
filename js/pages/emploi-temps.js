@@ -601,13 +601,45 @@ function emploiLireDocument() {
         if (!actif()) return;
         emploiOcrEnCours = false;
         if (annuler) annuler.hidden = true;
-        emploiMontrerPropositions(res);
+        emploiImporterLecture(res);
     }).catch(function (e) {
         if (!actif()) return;
         emploiOcrEnCours = false;
         if (annuler) annuler.hidden = true;
         emploiDire((e && e.message) || 'La lecture a échoué. Ajoute les cours à la main ci-dessous.', true);
     });
+}
+
+/* Les cours lus sont ajoutés au modèle courant, sans effacer les anciens. */
+function emploiImporterLecture(res) {
+    var store = emploiScolaireLire(), ajoutes = 0, doublons = 0;
+    var importId = 'doc:' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    if (!res || res.exportSite) {
+        emploiDire((res && res.diagnostic) || 'Aucun cours reconnu. Ajoute les cours manuellement.', true); return;
+    }
+    (res.jours || []).forEach(function (liste, jour) {
+        if (jour > 6 || !Array.isArray(liste)) return;
+        liste.forEach(function (c) {
+            var nom = emploiNettoyerNom(c.nom), plage = c.plage || {};
+            if (!nom || !/^\d{2}:\d{2}$/.test(plage.debut || '') || !/^\d{2}:\d{2}$/.test(plage.fin || '') || plage.fin <= plage.debut) return;
+            var existant = store.jours[jour].some(function (e) {
+                return e.debut === plage.debut && e.fin === plage.fin && e.nom.toLowerCase().replace(/\s+/g, ' ').trim() === nom.toLowerCase().replace(/\s+/g, ' ').trim();
+            });
+            if (existant) { doublons++; return; }
+            var parallele = false;
+            store.jours[jour].forEach(function (e) { if (plage.debut < e.fin && plage.fin > e.debut) { e.parallele = true; parallele = true; } });
+            store.jours[jour].push({id:emploiId(), nom:nom.slice(0,80), matiere:emploiMatiereDe(nom), debut:plage.debut, fin:plage.fin, src:'doc', importId:importId, parallele:parallele});
+            ajoutes++;
+        });
+    });
+    if (!ajoutes) { emploiDire(doublons ? 'Ces cours sont déjà enregistrés.' : ((res.diagnostic || 'Aucun cours reconnu.') + ' Ajoute les cours manquants à la main.'), !doublons); return; }
+    store.jours.forEach(function (liste) { liste.sort(function (a,b) { return a.debut.localeCompare(b.debut); }); });
+    store.at = new Date().toISOString();
+    if (!emploiScolaireEcrire(store)) { emploiDire('Enregistrement impossible sur cet appareil. Les anciens cours sont conservés.', true); return; }
+    emploiPropositions = []; emploiImportBrut = null;
+    emploiRendre();
+    if (typeof generatePlanning === 'function') { try { generatePlanning(); } catch (e) { console.error('Planning après import', e); } }
+    emploiDire(ajoutes + ' cours ajouté(s) automatiquement. Tu peux les modifier dans la liste ; complète les cours manquants à la main.', false);
 }
 
 function emploiMontrerPropositions(res) {

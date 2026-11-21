@@ -14,6 +14,7 @@ Ces fichiers sont conservés dans le dépôt. Les durées de 1 à 60 sont utilis
 ## Messages
 
 - `reprise-proposition.wav` : « Ta pause est terminée. C’est parti pour une nouvelle séance de concentration ! » ; voix choisie pour les nouveaux extraits, pas encore validée à l'écoute.
+- `fin-une-seance.wav` : extrait de la première phrase de `fin-seance-proposition.wav`, sans annonce de pause ; pour une seule séance. Découpage non validé à l’écoute.
 - `fin-seance-proposition.wav` : proposition « Ta séance de révision est terminée. Tu as droit maintenant à une pause. » avec cette même voix ; formulation et prononciation à valider avant utilisation.
 - `fin-seance-test-masculine-2-original.mp3` : extrait original du test Masculine 2, conservé à titre de référence. Il ne faut pas le présenter comme la même voix que celle sélectionnée pour les nouveaux enregistrements : leur identité exacte n'a pas pu être garantie.
 - `annonce-debut.wav` et `annonce-de-pause.wav` : nouveaux morceaux utilisés avec les durées ; leur rendu global n'a pas encore été validé à l'écoute.

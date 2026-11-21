@@ -1249,6 +1249,7 @@ function focusLancerPhase() {
 /* Arrête la série sans lancer de pause. Un changement de réglage pendant
    une annonce invalide son callback avant d'annoncer la fin de série. */
 function focusTerminerSerie(silencieux) {
+    var uneSeance = (focusEtat.objectif || focusDurees().seances) === 1;
     var generation = ++focusTransitionGeneration;
     if (typeof chronoInterrompreAnnonce === 'function') chronoInterrompreAnnonce(false);
     focusEtat.running = false;
@@ -1266,7 +1267,7 @@ function focusTerminerSerie(silencieux) {
         focusPeindre();
     }
     if (silencieux) terminer();
-    else if (typeof chronoAnnoncerFinSerie === 'function') chronoAnnoncerFinSerie(terminer);
+    else if (typeof chronoAnnoncerFinSerie === 'function') chronoAnnoncerFinSerie(terminer, uneSeance);
     else { focusBip(1); setTimeout(terminer, 800); }
 }
 

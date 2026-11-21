@@ -160,6 +160,7 @@ ok(memeListe(bac.chronoVoixMorceauxNombre(45), ['n-40', 'n-5']),
 
 /* La fin de série est seule ; les autres pauses restent inchangées. */
 ok(fs.existsSync(path.join(racine, 'livrables/stock-voix/messages/fin-serie.wav')), 'prise de fin de série manquante');
+ok(fs.existsSync(path.join(racine, 'livrables/stock-voix/messages/fin-une-seance.wav')), 'prise singulière manquante');
 const lancerOriginal = bac.chronoLancerAnnonce;
 let annonceCapturee;
 bac.chronoLancerAnnonce = function (noms, type, phrase, suite, options) { annonceCapturee = { noms, type, phrase, options: options || {} }; };
@@ -171,6 +172,8 @@ for (const type of ['feminine', 'masculine']) {
     bac.chronoAnnoncerPause(21, function () {}, false);
     ok(!annonceCapturee.noms.includes('masculine-fin-serie'), 'message final entendu sur une séance intermédiaire');
 }
+bac.chronoAnnoncerFinSerie(function () {}, true);
+ok(memeListe(annonceCapturee.noms, ['masculine-fin-une-seance']) && annonceCapturee.phrase === 'Ta séance de révision est terminée.', 'fin singulière attendue');
 bac.chronoVoixType = () => 'masculine';
 const approuves = Array.from({ length: 60 }, (_, i) => i + 1);
 for (let n = 1; n <= 60; n++) {
@@ -218,7 +221,7 @@ ok(transition.includes("focusEtat.transition = 'pause-annonce'") &&
    /function demarrerPause\(\)[\s\S]*?focusLancerPhase\(\)/.test(transition),
     'la pause intermédiaire doit attendre son annonce');
 ok(transition.includes('focusEtat.serie >= objectif') && transition.includes('focusTerminerSerie(silencieux)') &&
-   page.includes("focusEtat.transition = 'fin-annonce'") && page.includes('chronoAnnoncerFinSerie(terminer)') &&
+   page.includes("focusEtat.transition = 'fin-annonce'") && page.includes('chronoAnnoncerFinSerie(terminer, uneSeance)') &&
    transition.includes("'attente-reprise'"),
     'la fin de série doit s arrêter sans pause et la reprise doit attendre confirmation');
 
