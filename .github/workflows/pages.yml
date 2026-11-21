@@ -167,6 +167,7 @@ jobs:
           executer_test travail/tools/tester-entetes-sections.mjs
           executer_test travail/tools/tester-soutien-aide-feedback.mjs
           executer_test travail/tools/tester-legende-soutien.mjs
+          executer_test travail/tools/tester-feries-design.mjs
           executer_test travail/tools/tester-organisation-personnelle.mjs
           executer_test travail/tools/tester-parcours-messages.mjs
           executer_test travail/tools/tester-ocr-formats.mjs
@@ -273,6 +274,7 @@ jobs:
           executer_test tools/tester-entetes-sections.mjs
           executer_test tools/tester-soutien-aide-feedback.mjs
           executer_test tools/tester-legende-soutien.mjs
+          executer_test tools/tester-feries-design.mjs
           executer_test tools/tester-organisation-personnelle.mjs
           executer_test tools/tester-parcours-messages.mjs
           executer_test tools/tester-ocr-formats.mjs

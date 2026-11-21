@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261201-parcours';
+const VERSION = '20261202-feries';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -15,6 +15,7 @@ const FICHIERS = [
     "livrables/publication-entetes/entetes.css",
     "css/pages/soutien-aide-feedback.css",
     "css/pages/legende-design.css",
+    "css/pages/feries-design.css",
     "css/pages/organisation-personnelle.css",
     "css/pages/exercices.css",
     "css/pages/planning-semaines.css",

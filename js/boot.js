@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261201-parcours';
+var version = '20261202-feries';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un
