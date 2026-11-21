@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261126-soutien';
+const VERSION = '20261127-organisation';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -14,6 +14,7 @@ const FICHIERS = [
     "livrables/publication-eeia/design.css",
     "livrables/publication-entetes/entetes.css",
     "css/pages/soutien-aide-feedback.css",
+    "css/pages/organisation-personnelle.css",
     "css/pages/exercices.css",
     "css/pages/planning-semaines.css",
     "css/pages/retours.css",

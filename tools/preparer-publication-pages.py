@@ -37,6 +37,8 @@ if not boite_actual.startswith('d5ad249'):
 for rel, expected_hash in {
     'js/pages/planning-interface.js': '91dcc0a4eafa879ec119363ba35d7c455f444fe4',
     'pages/planning.html': '5d479c0b95d409c573ecc3ebbfa38058e44e3a77',
+    'pages/onboarding-habitudes.html': '30a3e2f84b34e63accc852a05319d274afb044f4',
+    'js/pages/onboarding-habitudes.js': '54eff056c0a182c1e9fa81ce6bd754cd8fa330ed',
     'pages/devoirs.html': '71e0fa0c1f9cf5ea3ccf10586d06a12af818f5a6',
     'js/pages/devoirs.js': 'cf3824b3b0ff7d7bdd77580bffeb93366f4563f2',
     'js/accessibilite.js': '26665dd3d801395941440d417377896a24eaf1a9',
@@ -107,6 +109,8 @@ files = [
     'js/pages/minuteur-compteurs.js',
     'pages/seances.html',
     'pages/emploi-temps.html',
+    'pages/onboarding-habitudes.html',
+    'css/pages/organisation-personnelle.css',
     'js/pages/emploi-temps.js',
     'lib/ocr/langs/eng.traineddata.gz',
     'lib/ocr/LICENCES.txt',
@@ -412,7 +416,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Styles des rappels introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">'
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/soutien-aide-feedback.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/soutien-aide-feedback.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/organisation-personnelle.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -430,7 +434,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",\n    "css/pages/soutien-aide-feedback.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",\n    "css/pages/soutien-aide-feedback.css",\n    "css/pages/organisation-personnelle.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;
