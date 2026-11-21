@@ -231,7 +231,7 @@ function selectMood(mood) {
     // Encouragement card
     document.getElementById('encouragementCard').style.cssText = 'background:' + data.bg + ';border:2px solid ' + data.border + ';border-radius:1.25rem;padding:1.5rem;margin-bottom:1rem;animation:fadeInUp 0.4s ease-out;text-align:center;';
     document.getElementById('encouragementCard').innerHTML =
-        '<div aria-hidden="true" style="font-size:2rem;margin-bottom:0.75rem;color:#07825d;">&#10022;</div>' +
+        '<div aria-hidden="true" style="font-size:2.5rem;margin-bottom:0.75rem;">' + data.emoji + '</div>' +
         '<h3 style="font-size:1.125rem;font-weight:800;color:' + data.color + ';margin-bottom:0.5rem;">' + data.label + '</h3>' +
         '<p style="color:#374151;line-height:1.6;font-size:0.9rem;">' + data.msg + '</p>';
     // Tips

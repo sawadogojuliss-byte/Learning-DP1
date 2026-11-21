@@ -25,6 +25,10 @@ try {
    if(process.env.STUDY_CAPTURE && width===390) await panel.screenshot({path:`/tmp/study-${name}.png`});
    if(name==='soutien') {
     assert.equal(await panel.locator('.mood-btn').count(),12);
+    assert.deepEqual(await panel.locator('.care-mood-emoji').allTextContents(),['🔥','😊','😴','😰','📉','😕','😟','😞','🤯','🏆','😑','😐']);
+    const position=await panel.locator('.care-layout').evaluate(el=>{const r=el.getBoundingClientRect(),p=el.parentElement.getBoundingClientRect();return {offset:Math.abs((r.left+r.right-p.left-p.right)/2), grid:el.querySelector('.care-mood-grid').getBoundingClientRect().top,guide:el.querySelector('.care-side').getBoundingClientRect().top}});
+    assert.ok(position.offset<2,'grille centrée');assert.ok(position.guide>position.grid,'guide sous la grille');
+
     for(const btn of await panel.locator('.mood-btn').all()){
      await btn.click();assert.equal(await btn.getAttribute('aria-pressed'),'true');
      assert.equal(await panel.locator('.mood-btn[aria-pressed="true"]').count(),1);

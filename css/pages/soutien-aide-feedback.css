@@ -129,3 +129,45 @@
     .care-page .care-side-card { padding: 1.15rem; }
 }
 @media (max-width: 360px) { .care-page .care-content { padding-left: .75rem; padding-right: .75rem; } }
+
+/* La page Humeur garde sa grille au centre ; le guide passe en dessous,
+   comme une invitation discrète plutôt qu'une colonne concurrente. */
+#panelSoutien .care-layout { display: flex; flex-direction: column; width: min(100%, 52rem); margin-inline: auto; gap: .95rem; }
+#panelSoutien .care-primary, #panelSoutien .care-side { width: 100%; min-width: 0; }
+#panelSoutien .care-moods { padding: clamp(1.05rem, 3vw, 1.7rem); }
+#panelSoutien .care-card-heading { justify-content: center; text-align: left; }
+#panelSoutien .care-mood-grid { gap: .7rem; }
+#panelSoutien .mood-btn { min-height: 6.3rem; }
+#panelSoutien .care-mood-emoji { display: block; margin: 0 0 .45rem; color: initial; font-family: 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size: 2rem; line-height: 1.15; }
+#panelSoutien .care-mood-label { font-size: .78rem; }
+#panelSoutien .care-side-card { background: linear-gradient(120deg,#f7fcf8,#eff9f2); }
+#panelSoutien .care-side-card ul { display: flex; flex-wrap: wrap; gap: .65rem 1.25rem; }
+#panelSoutien .care-side-note { margin-top: .7rem; padding: .75rem 1rem; }
+@media (max-width: 500px) {
+    #panelSoutien .care-mood-grid { gap: .4rem; }
+    #panelSoutien .mood-btn { min-height: 5.4rem; }
+    #panelSoutien .care-mood-emoji { font-size: 1.75rem; }
+    #panelSoutien .care-mood-label { font-size: .68rem; }
+    #panelSoutien .care-side-card ul { display: grid; }
+}
+/* Cartes d'accueil, adaptées aux trois espaces d'organisation. */
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-card { position:relative; display:flex; align-items:center; gap:1rem; min-width:0; max-width:29rem; padding:1.2rem 1.3rem; overflow:hidden; border:1px solid #d9eee3; border-radius:1.2rem; background:linear-gradient(125deg,#e7f8ef,#f7fdf9 68%,#edf9f2); color:#17382c; box-sizing:border-box; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-card::after { content:''; position:absolute; right:-3rem; top:-4.8rem; width:12rem; height:12rem; border:1px solid rgba(5,150,105,.13); border-radius:50%; box-shadow:0 0 0 1.1rem rgba(16,185,129,.035),0 0 0 2.2rem rgba(16,185,129,.025); pointer-events:none; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-icon { position:relative; z-index:1; display:grid; place-items:center; flex:none; width:3.7rem; height:3.7rem; border-radius:1.1rem; background:linear-gradient(145deg,#0b8d68,#05644b); box-shadow:0 8px 17px rgba(4,120,87,.2); color:white; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-icon svg { display:block; width:1.65rem; height:1.65rem; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-copy { position:relative; z-index:1; min-width:0; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-kicker { display:block; margin:0 0 .35rem; color:#087957; font-size:.62rem; font-weight:800; letter-spacing:.1em; line-height:1.4; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-title { display:block; margin:0 0 .3rem; color:#07543c; font-size:1.05rem; font-weight:800; line-height:1.25; letter-spacing:-.025em; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-desc { display:block; margin:0; color:#416758; font-size:.78rem; line-height:1.5; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-person { display:inline-block; max-width:100%; margin:.5rem .3rem 0 0; padding:.2rem .55rem; overflow-wrap:anywhere; border-radius:999px; background:rgba(255,255,255,.8); color:#39715a; font-size:.7rem; font-weight:700; }
+:is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-person:empty { display:none; }
+#panelExercices .study-welcome-count { display:inline-block; padding:.2rem .55rem; margin:.5rem 0 0; border-radius:999px; color:#39715a; background:rgba(255,255,255,.8); font-size:.7rem; font-weight:700; }
+#panelExercices.exo-page > .study-welcome-card { margin:.9rem auto; width:calc(100% - 2rem); }
+#panelDevoirs:not(.dd-page) .study-welcome-card { max-width:none; margin:0 0 1rem; }
+#panelEEia .eeia-hero .study-welcome-card,#panelDevoirs.dd-page .dd-hero .study-welcome-card,#panelExercices.ed-page .ed-hero .study-welcome-card { flex:0 1 25rem; }
+@media(max-width:700px) {
+    #panelEEia .eeia-hero, #panelDevoirs.dd-page .dd-hero { flex-direction:column; align-items:stretch; }
+    #panelEEia .eeia-hero .study-welcome-card,#panelDevoirs.dd-page .dd-hero .study-welcome-card,#panelExercices.ed-page .ed-hero .study-welcome-card { flex:auto; max-width:none; width:100%; }
+    :is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-card { padding:1rem; gap:.8rem; }
+    :is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-icon { width:3.2rem; height:3.2rem; border-radius:1rem; }
+}
