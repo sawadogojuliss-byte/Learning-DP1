@@ -80,3 +80,15 @@
 @media(max-width:700px) { .routine-page .routine-shell { padding:1.15rem 1rem 4rem; } .routine-page .routine-hero { display:block; margin-bottom:1.5rem; } .routine-page .routine-hero h1 { font-size:clamp(2rem,9vw,2.35rem); } .routine-page .routine-welcome { margin-top:1.15rem; padding:1rem; } .routine-page .routine-welcome-icon { width:3.2rem; height:3.2rem; } .routine-page .routine-emploi-grid { grid-template-columns:minmax(0,1fr); } .routine-page .routine-emploi-main { display:contents; } .routine-page .routine-list-card { order:3; } .routine-page .routine-manual { order:2; } }
 @media(max-width:540px) { .routine-page .routine-grid { grid-template-columns:minmax(0,1fr); } .routine-page .routine-preparation { grid-column:auto; } .routine-page .routine-prep-groups { grid-template-columns:minmax(0,1fr); } .routine-page .routine-card { padding:1.1rem; } .routine-page .routine-actions > button { flex:1; } }
 @media(prefers-reduced-motion:reduce) { .routine-page *, .routine-page *::before,.routine-page *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+/* Un accès discret au planning reste disponible pendant le parcours initial. */
+#emploiModal .study-topbar { position:sticky; top:8px; z-index:20; }
+#emploiModal .study-topbar .study-back { margin:0; }
+#emploiModal .study-topbar .emploi-top-action { flex:none; width:auto; margin:0 0 0 auto; padding:.65rem .85rem; border:1px solid rgba(255,255,255,.4); border-radius:.75rem; background:rgba(255,255,255,.14); box-shadow:none; color:#fff; font:inherit; font-size:.76rem; font-weight:800; white-space:nowrap; }
+#emploiModal .study-topbar .emploi-top-action:hover { transform:none; background:rgba(255,255,255,.23); }
+#emploiModal .routine-list-card { width:min(100%, 48rem); margin:1.4rem auto 0; padding:clamp(1.15rem,3vw,1.65rem); background:linear-gradient(160deg,#fff,#f9fcfa); }
+#emploiModal .routine-list-card .routine-card-head { justify-content:center; text-align:left; }
+#emploiModal #emploiListe > p:only-child { text-align:center; line-height:1.6; }
+#emploiModal #emploiListe { min-width:0; }
+#habitsModal .routine-emoji { font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size:1.4rem; line-height:1; }
+@media(max-width:390px) { #emploiModal .study-topbar-inner { padding:0 12px; gap:8px; } #emploiModal .study-topbar .emploi-top-action { padding:.6rem .55rem; font-size:.68rem; } }

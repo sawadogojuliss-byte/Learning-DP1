@@ -19,6 +19,7 @@ try {
   await page.evaluate(()=>showHabitsPage('planning'));
   const habits=page.locator('#habitsModal');assert.equal(await habits.isVisible(),true);
   assert.equal(await habits.locator('.routine-welcome').isVisible(),true);
+  assert.deepEqual(await habits.locator('.routine-card-head .routine-emoji').allTextContents(),['🚿','🥐','🍽️']);
   assert.equal(await habits.locator('#habitsProgress').isVisible(),false,'progression masquée depuis le planning');
   assert.equal(await habits.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'habitudes : débordement horizontal');
   if(process.env.STUDY_CAPTURE_ORGANISATION) await habits.screenshot({path:`/tmp/habitudes-${width}.png`});
@@ -35,6 +36,9 @@ try {
   await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');localStorage.removeItem(EMPLOI_CLE);showEmploiPage();});
   const emploi=page.locator('#emploiModal');assert.equal(await emploi.isVisible(),true);
   assert.equal(await emploi.locator('.routine-welcome').isVisible(),true);
+  assert.equal(await emploi.locator('.routine-actions').count(),0,'ancienne rangée retirée');
+  assert.equal(await emploi.getByRole('button',{name:'Voir mon planning'}).isVisible(),true);
+  const centre=await emploi.locator('.routine-list-card').evaluate(el=>{const a=el.getBoundingClientRect(),p=el.closest('.routine-shell').getBoundingClientRect();return Math.abs((a.left+a.right-p.left-p.right)/2)});assert.ok(centre<2,'cours centrés');
   assert.equal(await emploi.evaluate(e=>e.scrollWidth<=e.clientWidth+1),true,'emploi : débordement horizontal');
   if(process.env.STUDY_CAPTURE_ORGANISATION) await emploi.screenshot({path:`/tmp/emploi-${width}.png`});
   await emploi.locator('#emploiAjouterBouton').click();assert.match(await emploi.locator('#emploiAjoutStatut').innerText(),/nécessaires/);
@@ -45,6 +49,7 @@ try {
   assert.match(await emploi.locator('#emploiListe').innerText(),/Physique/);assert.doesNotMatch(await emploi.locator('#emploiListe').innerText(),/Maths/);
   await emploi.locator('#emploiManuelNom').fill('Chimie');await emploi.locator('#emploiManuelDebut').fill('09:30');await emploi.locator('#emploiManuelFin').fill('10:30');await emploi.locator('#emploiAjouterBouton').click();
   assert.equal(await emploi.locator('#emploiConflit').isVisible(),true);await emploi.locator('#emploiConflitAnnuler').click();assert.doesNotMatch(await emploi.locator('#emploiListe').innerText(),/Chimie/);
+  await emploi.getByRole('button',{name:'Voir mon planning'}).click();assert.equal(await emploi.isVisible(),false);assert.equal(await page.locator('#planningModal').isVisible(),true,'planning accessible');
   assert.deepEqual(errors,[]);await page.close();console.log('OK',width,'habitudes et emploi');
  }
 } finally {await browser.close()}
