@@ -161,6 +161,12 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
+# Premier lot féminin : uniquement pour écoute, sans activation dans le minuteur.
+files.append('livrables/publication-voix/essai-feminine/index.html')
+files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 8))
+files.extend(f'livrables/publication-voix/essai-feminine/{nom}.mp3'
+             for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
+
 # Échantillons servis par le backend en local, publiés uniquement pour écoute.
 files.extend(f'livrables/publication-voix/essai-backend/{message}-{debit}.mp3'
              for message in ('fin-serie', 'pause-05', 'pause-21')
