@@ -18,7 +18,7 @@
         <div class="care-layout">
         <div class="care-primary">
         <section class="care-card care-moods" aria-labelledby="humeurTitre">
-            <div class="care-card-heading"><span class="care-card-icon" aria-hidden="true">☺</span><div><h3 id="humeurTitre">Comment tu te sens ?</h3><p>Choisis l’humeur qui te ressemble en ce moment.</p></div></div>
+            <div class="care-card-heading"><div><span class="care-mood-kicker">UN INSTANT POUR TOI</span><h3 id="humeurTitre">Comment tu te sens ?</h3><p>Choisis l’humeur qui te ressemble en ce moment.</p></div></div>
             <div id="moodGrid" class="care-mood-grid" role="group" aria-label="Choisir mon humeur">
                 <button type="button" class="mood-btn" onclick="selectMood('motive')" data-mood="motive" aria-pressed="false"><span class="care-mood-emoji" aria-hidden="true">🔥</span><span class="care-mood-label">Super motivé</span></button>
                 <button type="button" class="mood-btn" onclick="selectMood('bien')" data-mood="bien" aria-pressed="false"><span class="care-mood-emoji" aria-hidden="true">😊</span><span class="care-mood-label">Je vais bien</span></button>
@@ -43,10 +43,6 @@
             <div class="care-actions"><button type="button" class="care-button care-button-secondary" onclick="selectMood(null)">Changer d’humeur</button><button type="button" class="care-button care-button-primary" onclick="navigateTo('planning')">Mon planning <span aria-hidden="true">↗</span></button></div>
         </div>
         </div>
-        <aside class="care-side">
-            <div class="care-side-card"><p class="care-side-overline">À TON RYTHME</p><h3>Un moment pour souffler</h3><p>Il n’y a pas de bonne ou de mauvaise réponse. Choisis simplement ce qui te ressemble aujourd’hui.</p><ul><li><span aria-hidden="true">✓</span>Accueille ton ressenti</li><li><span aria-hidden="true">✓</span>Découvre des pistes adaptées</li><li><span aria-hidden="true">✓</span>Reviens quand tu en as besoin</li></ul></div>
-            <div class="care-side-note"><span aria-hidden="true">✦</span><p><strong>Un pas à la fois.</strong><br>Chaque petit geste compte.</p></div>
-        </aside>
         </div>
         <p class="care-footer"><span aria-hidden="true">✦</span> Ensemble, un pas à la fois.</p>
     </main>

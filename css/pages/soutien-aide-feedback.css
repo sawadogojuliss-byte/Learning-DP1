@@ -130,25 +130,32 @@
 }
 @media (max-width: 360px) { .care-page .care-content { padding-left: .75rem; padding-right: .75rem; } }
 
-/* La page Humeur garde sa grille au centre ; le guide passe en dessous,
-   comme une invitation discrète plutôt qu'une colonne concurrente. */
-#panelSoutien .care-layout { display: flex; flex-direction: column; width: min(100%, 52rem); margin-inline: auto; gap: .95rem; }
-#panelSoutien .care-primary, #panelSoutien .care-side { width: 100%; min-width: 0; }
-#panelSoutien .care-moods { padding: clamp(1.05rem, 3vw, 1.7rem); }
-#panelSoutien .care-card-heading { justify-content: center; text-align: left; }
+/* Soutien : un seul espace calme, centré, sans colonne ni barre latérale. */
+#panelSoutien .care-layout { display: block; width: min(100%, 48rem); margin-inline: auto; }
+#panelSoutien .care-primary { width: 100%; min-width: 0; }
+#panelSoutien .care-card::before { content: none; }
+#panelSoutien .care-moods { padding: clamp(1.1rem, 3.5vw, 2.35rem); border-color: #e0eee6; border-radius: 1.5rem; background: linear-gradient(165deg, #ffffff 45%, #f8fcf9 100%); box-shadow: 0 16px 46px -30px rgba(29, 100, 65, .25); }
+#panelSoutien .care-moods .care-card-heading { justify-content: center; margin-bottom: 1.55rem; text-align: center; }
+#panelSoutien .care-mood-kicker { display: block; margin-bottom: .55rem; color: #51967a; font-size: .6rem; font-weight: 800; letter-spacing: .15em; }
+#panelSoutien .care-moods .care-card-heading h3 { color: #214a39; font-size: clamp(1.15rem, 2.4vw, 1.45rem); letter-spacing: -.035em; }
+#panelSoutien .care-moods .care-card-heading p { margin-top: .45rem; color: #778e80; font-size: .8rem; }
 #panelSoutien .care-mood-grid { gap: .7rem; }
-#panelSoutien .mood-btn { min-height: 6.3rem; }
-#panelSoutien .care-mood-emoji { display: block; margin: 0 0 .45rem; color: initial; font-family: 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size: 2rem; line-height: 1.15; }
+#panelSoutien .mood-btn { min-height: 6.6rem; padding: .9rem .3rem; border-color: #e4eee7; border-radius: 1rem; background: rgba(255,255,255,.92); transition: background .18s, border-color .18s, box-shadow .18s, transform .18s; }
+#panelSoutien .mood-btn:hover { border-color: #a7ddc0; background: #f4fcf7; box-shadow: 0 8px 22px rgba(27,110,69,.08); transform: translateY(-2px); }
+#panelSoutien .mood-btn.selected { border-color: #10b981; background: #ebfaf1; box-shadow: inset 0 0 0 1px #10b981; transform: none; }
+#panelSoutien .care-mood-emoji { display: block; margin: 0 0 .5rem; color: initial; font-family: 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size: 2rem; line-height: 1.15; }
 #panelSoutien .care-mood-label { font-size: .78rem; }
-#panelSoutien .care-side-card { background: linear-gradient(120deg,#f7fcf8,#eff9f2); }
-#panelSoutien .care-side-card ul { display: flex; flex-wrap: wrap; gap: .65rem 1.25rem; }
-#panelSoutien .care-side-note { margin-top: .7rem; padding: .75rem 1rem; }
+#panelSoutien .care-empty { justify-content: center; padding: 1rem 1.2rem; border: 0; border-radius: 1rem; background: #edf8f1; }
+#panelSoutien .care-empty-icon { background: #dff3e6; }
+#panelSoutien .care-tips { padding: 1.4rem; border-radius: 1.25rem; }
+#panelSoutien .care-footer { margin-top: 1.6rem; }
 @media (max-width: 500px) {
+    #panelSoutien .care-moods { padding: 1.25rem .9rem; }
+    #panelSoutien .care-moods .care-card-heading { margin-bottom: 1.2rem; }
     #panelSoutien .care-mood-grid { gap: .4rem; }
-    #panelSoutien .mood-btn { min-height: 5.4rem; }
+    #panelSoutien .mood-btn { min-height: 5.5rem; border-radius: .85rem; }
     #panelSoutien .care-mood-emoji { font-size: 1.75rem; }
     #panelSoutien .care-mood-label { font-size: .68rem; }
-    #panelSoutien .care-side-card ul { display: grid; }
 }
 /* Cartes d'accueil, adaptées aux trois espaces d'organisation. */
 :is(#panelExercices,#panelEEia,#panelDevoirs) .study-welcome-card { position:relative; display:flex; align-items:center; gap:1rem; min-width:0; max-width:29rem; padding:1.2rem 1.3rem; overflow:hidden; border:1px solid #d9eee3; border-radius:1.2rem; background:linear-gradient(125deg,#e7f8ef,#f7fdf9 68%,#edf9f2); color:#17382c; box-sizing:border-box; }
