@@ -699,13 +699,13 @@ if (feriesE2E.demainIdx > 6) {
     }
 }
 
-/* 9. le bouton Continuer de la page Emploi du temps mène vraiment au
-   planning (la page se ferme), et le Retour y ramène depuis le menu */
+/* 9. le Retour de la page Emploi du temps mène vraiment au planning.
+   L'ancien bouton Continuer reste seulement dans le parcours d'inscription. */
 await page.evaluate(() => { showEmploiPage(); });
 if (!await page.evaluate(() => document.getElementById('emploiModal').classList.contains('active'))) {
     echec("la page Emploi du temps ne s'ouvre pas");
 }
-await page.click('#emploiModal .btn-continue');
+await page.click('#emploiModal .btn-back');
 await page.waitForFunction(() =>
     !document.getElementById('emploiModal').classList.contains('active') &&
     document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });

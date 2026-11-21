@@ -21,7 +21,7 @@
 .routine-page .routine-section-heading span { color:#49a078; font-size:.62rem; font-weight:800; letter-spacing:.13em; }
 .routine-page .routine-section-heading h2 { margin:.35rem 0; color:#254334; font-size:1.22rem; letter-spacing:-.035em; }
 .routine-page .routine-section-heading p { margin:0; color:#7b8f83; font-size:.78rem; line-height:1.5; }
-.routine-page .routine-grid { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:1rem; align-items:start; }
+.routine-page .routine-grid { display:grid; grid-template-columns:1.15fr 1fr 1fr; gap:1rem; align-items:stretch; }
 .routine-page .routine-emploi-grid { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(280px,.8fr); gap:1rem; align-items:start; }
 .routine-page .routine-emploi-main { display:grid; gap:1rem; min-width:0; }
 .routine-page .routine-card { min-width:0; padding:1.35rem; border:1px solid #e0ebe4; border-radius:1.2rem; background:#fff; box-shadow:0 9px 30px -22px rgba(20,80,50,.28); }
@@ -76,22 +76,31 @@
 .routine-page .routine-progress .progress-step { width:1.6rem; height:1.6rem; font-size:.7rem; }
 .routine-page .routine-progress .progress-line { width:1.5rem; }
 .routine-page :is(button,input,select,[role=button]):focus-visible { outline:3px solid #34d399; outline-offset:3px; }
-@media(max-width:950px) { .routine-page .routine-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .routine-page .routine-preparation { grid-column:1/-1; } .routine-page .routine-prep-groups { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media(max-width:700px) { .routine-page .routine-shell { padding:1.15rem 1rem 4rem; } .routine-page .routine-hero { display:block; margin-bottom:1.5rem; } .routine-page .routine-hero h1 { font-size:clamp(2rem,9vw,2.35rem); } .routine-page .routine-welcome { margin-top:1.15rem; padding:1rem; } .routine-page .routine-welcome-icon { width:3.2rem; height:3.2rem; } .routine-page .routine-emploi-grid { grid-template-columns:minmax(0,1fr); } .routine-page .routine-emploi-main { display:contents; } .routine-page .routine-list-card { order:3; } .routine-page .routine-manual { order:2; } }
+@media (min-width:701px) and (max-width:950px) { #habitsModal .routine-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } #habitsModal .routine-time-pair { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:700px) { .routine-page .routine-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .routine-page .routine-preparation { grid-column:1/-1; } .routine-page .routine-prep-groups { grid-template-columns:repeat(2,minmax(0,1fr)); } .routine-page .routine-shell { padding:1.15rem 1rem 4rem; } .routine-page .routine-hero { display:block; margin-bottom:1.5rem; } .routine-page .routine-hero h1 { font-size:clamp(2rem,9vw,2.35rem); } .routine-page .routine-welcome { margin-top:1.15rem; padding:1rem; } .routine-page .routine-welcome-icon { width:3.2rem; height:3.2rem; } .routine-page .routine-emploi-grid { grid-template-columns:minmax(0,1fr); } .routine-page .routine-emploi-main { display:contents; } .routine-page .routine-list-card { order:3; } .routine-page .routine-manual { order:2; } }
 @media(max-width:540px) { .routine-page .routine-grid { grid-template-columns:minmax(0,1fr); } .routine-page .routine-preparation { grid-column:auto; } .routine-page .routine-prep-groups { grid-template-columns:minmax(0,1fr); } .routine-page .routine-card { padding:1.1rem; } .routine-page .routine-actions > button { flex:1; } }
 @media(prefers-reduced-motion:reduce) { .routine-page *, .routine-page *::before,.routine-page *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 
-/* Un accès discret au planning reste disponible pendant le parcours initial. */
+/* Barre de section : le retour reste accessible sans action supplémentaire. */
 #emploiModal .study-topbar { position:sticky; top:8px; z-index:20; }
 #emploiModal .study-topbar .study-back { margin:0; }
-#emploiModal .study-topbar .emploi-top-action { flex:none; width:auto; margin:0 0 0 auto; padding:.65rem .85rem; border:1px solid rgba(255,255,255,.4); border-radius:.75rem; background:rgba(255,255,255,.14); box-shadow:none; color:#fff; font:inherit; font-size:.76rem; font-weight:800; white-space:nowrap; }
-#emploiModal .study-topbar .emploi-top-action:hover { transform:none; background:rgba(255,255,255,.23); }
 #emploiModal .routine-list-card { width:min(100%, 48rem); margin:1.4rem auto 0; padding:clamp(1.15rem,3vw,1.65rem); background:linear-gradient(160deg,#fff,#f9fcfa); }
 #emploiModal .routine-list-card .routine-card-head { justify-content:center; text-align:left; }
 #emploiModal #emploiListe > p:only-child { text-align:center; line-height:1.6; }
 #emploiModal #emploiListe { min-width:0; }
 #habitsModal .routine-emoji { font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size:1.4rem; line-height:1; }
-@media(max-width:390px) { #emploiModal .study-topbar-inner { padding:0 12px; gap:8px; } #emploiModal .study-topbar .emploi-top-action { padding:.6rem .55rem; font-size:.68rem; } }
+@media(max-width:390px) { #emploiModal .study-topbar-inner { padding:0 12px; gap:8px; } }
 
 /* Les décors du parcours d'origine restent dans l'écran sur téléphone. */
 .context-modal[data-routine-mode="profil"] .context-shape { left:0 !important; right:auto !important; animation:none; max-width:100%; }
+
+/* Trois cartes harmonisées, sans sacrifier leur lisibilité sur téléphone. */
+#habitsModal.routine-page .routine-grid > .routine-card { display:flex; flex-direction:column; }
+#habitsModal.routine-page .routine-meal::after { content:'Un moment pour toi, à ton rythme.'; display:block; margin-top:auto; padding-top:1.4rem; color:#94aa9b; font-size:.7rem; line-height:1.5; }
+#habitsModal .routine-heading-actions { align-items:center; gap:1rem; }
+#habitsModal .routine-save { flex:none; padding:.75rem 1rem; border:1px solid #bce7cc; border-radius:.8rem; background:#effaf3; color:#087552; font:inherit; font-size:.79rem; font-weight:800; cursor:pointer; }
+#habitsModal .routine-save:hover { background:#dff4e5; }
+#habitsModal .routine-saved { margin:0 0 .8rem; color:#087552; font-size:.78rem; line-height:1.5; }
+#habitsModal .routine-saved:empty { display:none; }
+#habitsModal.routine-page #habitsError { margin:0 0 .8rem; }
+@media(max-width:540px) { #habitsModal .routine-heading-actions { align-items:flex-start; } #habitsModal .routine-save { padding:.65rem .7rem; } }

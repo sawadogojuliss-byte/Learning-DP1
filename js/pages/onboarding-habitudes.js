@@ -135,6 +135,8 @@ function habitudesSuiteEffective() {
 }
 
 function habitudesErreur(message) {
+    var statut = document.getElementById('habitsSaved');
+    if (statut) statut.textContent = '';
     var el = document.getElementById('habitsError');
     if (!el) return;
     el.style.display = message ? 'block' : 'none';
@@ -247,6 +249,7 @@ function hideHabitsPage() {
     if (habitudesSuiteEffective() === 'planning') {
         var planning = document.getElementById('planningModal');
         if (planning) planning.classList.add('active');
+        if (typeof renderPlanning === 'function') renderPlanning();
         return;
     }
     var sleep = document.getElementById('sleepModal');
@@ -378,7 +381,7 @@ function appliquerHabitudes(data) {
     habitudesBrouillon = null;
 }
 
-function validateHabits() {
+function validateHabits(rester) {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
     var matinDebut = document.getElementById('prepMatinDebutInput');
     var matinFin = document.getElementById('prepMatinFinInput');
@@ -415,6 +418,14 @@ function validateHabits() {
     habitudesOublierCorrections();
     if (typeof memoireSauvegarder === 'function') {
         try { memoireSauvegarder(); } catch (e) {}
+    }
+    if (rester === true && habitudesSuiteEffective() === 'planning') {
+        habitudesBrouillon = habitudesBrouillonInitial();
+        habitudesErreur('');
+        renderHabitudes();
+        var statut = document.getElementById('habitsSaved');
+        if (statut) statut.textContent = 'Tes habitudes sont enregistrées et ton planning est à jour.';
+        return;
     }
     var modal = document.getElementById('habitsModal');
     if (modal) modal.classList.remove('active');

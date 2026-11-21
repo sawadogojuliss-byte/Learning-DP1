@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261202-feries';
+var version = '20261203-habitudes';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un
