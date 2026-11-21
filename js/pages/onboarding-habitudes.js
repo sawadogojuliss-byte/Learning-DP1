@@ -211,8 +211,22 @@ function renderHabitudes() {
     peindreChoixRepas('diner', b.dinerChoix);
 }
 
+/* Les deux parcours partagent les mêmes champs, jamais deux formulaires actifs. */
+function routineChangerVue(id, ancien) {
+    var modal = document.getElementById(id + 'Modal');
+    var modele = document.getElementById(id + 'AncienModele');
+    if (!modal || !modele) return;
+    var mode = ancien ? 'profil' : 'section';
+    if (modal.dataset.routineMode === mode) return;
+    if (!modal.dataset.routineMode) modal._routineSectionHTML = modal.innerHTML;
+    modal.innerHTML = ancien ? modele.innerHTML : modal._routineSectionHTML;
+    modal.classList.toggle('routine-page', !ancien);
+    modal.dataset.routineMode = mode;
+}
+
 function showHabitsPage(suite) {
     habitudesSuite = suite === 'planning' ? 'planning' : 'transport';
+    routineChangerVue('habits', habitudesSuite !== 'planning');
     habitudesBrouillon = habitudesBrouillonInitial();
     document.querySelectorAll('.context-modal').forEach(function (el) {
         if (el.id !== 'habitsModal') el.classList.remove('active');

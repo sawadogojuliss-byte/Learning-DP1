@@ -110,6 +110,7 @@ files = [
     'pages/seances.html',
     'pages/emploi-temps.html',
     'pages/onboarding-habitudes.html',
+    'js/pages/onboarding-habitudes.js',
     'css/pages/organisation-personnelle.css',
     'js/pages/emploi-temps.js',
     'lib/ocr/langs/eng.traineddata.gz',
@@ -465,17 +466,6 @@ debut = text.index('/* ── Nettoyage au chargement / rechargement')
 fonction = text.index('function nettoyerPanneauxEtHash()', debut)
 fin = text.index('/* Dès que le DOM est prêt, on nettoie. */', fonction)
 text = text[:debut] + '/* Nettoyage explicite : la restauration conserve la page affichée. */\n' + text[fonction:fin]
-path.write_text(text, encoding='utf-8')
-path = output / 'js/pages/emploi-temps.js'
-text = path.read_text(encoding='utf-8')
-ancien = "        if (typeof generatePlanning === 'function') generatePlanning();\n        return;\n    }\n    if (typeof goToFreeTime === 'function') goToFreeTime();"
-nouveau = "        if (typeof memoireRetour === 'function') memoireRetour();\n        else if (typeof generatePlanning === 'function') generatePlanning();\n        return;\n    }\n    if (typeof goToFreeTime === 'function') goToFreeTime();"
-if text.count(nouveau) == 1:
-    pass  # Le fichier de travail contient déjà le retour corrigé.
-elif text.count(ancien) == 1:
-    text = text.replace(ancien, nouveau, 1)
-else:
-    raise SystemExit('Retour emploi public inattendu')
 path.write_text(text, encoding='utf-8')
 pages_retour = ['soutien', 'exercices', 'devoirs', 'legende', 'ee-ia', 'feries', 'tutoriel', 'aide', 'feedback', 'annonce', 'boite']
 for nom in pages_retour:

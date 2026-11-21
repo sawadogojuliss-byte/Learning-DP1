@@ -622,6 +622,11 @@ function memoireAller(etape) {
         return;
     }
     if (etape === 'travaux') etape = 'transport';
+    /* Un profil inachevé reprend l'ancienne étape sans générer le planning. */
+    if (etape === 'emploi' && !window.__profilComplet && typeof showEmploiPage === 'function') {
+        showEmploiPage();
+        return;
+    }
     if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
@@ -664,7 +669,13 @@ function memoireAller(etape) {
     try {
         if (etape === 'objectif') updateScoreUI();
         if (etape === 'sommeil') updateBedtimes();
-        if (etape === 'habitudes' && typeof renderHabitudes === 'function') renderHabitudes();
+        if (etape === 'habitudes' && typeof renderHabitudes === 'function') {
+            habitudesSuite = window.__profilComplet ? 'planning' : 'transport';
+            if (typeof routineChangerVue === 'function') routineChangerVue('habits', habitudesSuite !== 'planning');
+            var progressionHabitudes = document.getElementById('habitsProgress');
+            if (progressionHabitudes) progressionHabitudes.style.display = habitudesSuite === 'planning' ? 'none' : '';
+            renderHabitudes();
+        }
         if (etape === 'classe' && typeof renderClasse === 'function') renderClasse();
         if (etape === 'matieres') updateSubjectsUI();
         if (etape === 'travaux' && typeof renderTravaux === 'function') renderTravaux();

@@ -31,8 +31,11 @@ try {
   await habits.locator('.btn-continue').click();
   assert.equal(await page.evaluate(()=>habitudesDefinies),true);assert.equal(await page.evaluate(()=>prepMatinFin),'07:25');assert.equal(await page.evaluate(()=>petitDejHeure),'');
   assert.equal(await page.locator('#transportModal').isVisible(),true,'continuer suit le parcours existant');
-  await page.evaluate(()=>showHabitsPage('transport'));assert.equal(await habits.locator('#habitsProgress').isVisible(),true,'progression visible pendant inscription');
-  await habits.locator('.study-back').click();assert.equal(await page.locator('#sleepModal').isVisible(),true,'retour vers sommeil');
+  await page.evaluate(()=>{window.__profilComplet=false;showHabitsPage('transport')});assert.equal(await habits.locator('#habitsProgress').isVisible(),true,'progression visible pendant inscription');
+  assert.equal(await habits.locator('.context-card').isVisible(),true,'ancienne carte blanche pour le profil');
+  assert.equal(await habits.locator('.study-topbar').count(),0);
+  await habits.locator('.btn-back').click();assert.equal(await page.locator('#sleepModal').isVisible(),true,'retour vers sommeil');
+  await page.evaluate(()=>window.__profilComplet=true);
   await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');localStorage.removeItem(EMPLOI_CLE);showEmploiPage();});
   const emploi=page.locator('#emploiModal');assert.equal(await emploi.isVisible(),true);
   assert.equal(await emploi.locator('.routine-welcome').isVisible(),true);

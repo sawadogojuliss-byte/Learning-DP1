@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261129-legende';
+var version = '20261201-parcours';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

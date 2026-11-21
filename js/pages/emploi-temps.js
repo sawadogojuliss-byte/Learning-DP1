@@ -1050,6 +1050,7 @@ function emploiToutEffacer() {
 /* ── Navigation dans le parcours ──────────────────────────────────── */
 
 function showEmploiPage() {
+    if (typeof routineChangerVue === 'function') routineChangerVue('emploi', !window.__profilComplet);
     document.querySelectorAll('.context-modal').forEach(function (el) {
         if (el.id !== 'emploiModal') el.classList.remove('active');
     });
@@ -1067,8 +1068,8 @@ function goBackFromEmploi() {
     /* Pendant l'inscription, on revient à la page Temps libre. Depuis
        le menu d'un profil déjà complet, on revient au planning. */
     if (window.__profilComplet) {
-        if (typeof memoireRetour === 'function') memoireRetour();
-        else if (typeof generatePlanning === 'function') generatePlanning();
+        if (typeof generatePlanning === 'function') generatePlanning();
+        else { var planning = document.getElementById('planningModal'); if (planning) planning.classList.add('active'); }
         return;
     }
     if (typeof goToFreeTime === 'function') goToFreeTime();

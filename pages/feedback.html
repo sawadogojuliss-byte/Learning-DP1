@@ -20,7 +20,7 @@
         <section class="care-card care-form" aria-label="Ta suggestion">
             <div class="care-card-heading"><span class="care-card-icon" aria-hidden="true">✎</span><div><h3>Ta suggestion</h3><p>Quelques mots suffisent pour commencer.</p></div></div>
             <div class="care-field"><label for="feedbackEmail">Ton e-mail</label><p class="care-field-help" id="feedbackEmailInfo">Pour que nous puissions te répondre.</p><input id="feedbackEmail" type="email" autocomplete="email" maxlength="120" placeholder="prenom@email.com" aria-describedby="feedbackEmailInfo"></div>
-            <div class="care-field"><label for="feedbackTexte">Ta suggestion</label><textarea id="feedbackTexte" maxlength="800" rows="6" placeholder="Partage ton idée avec nous…"></textarea><p class="care-field-foot">800 caractères maximum</p></div>
+            <div class="care-field"><label for="feedbackTexte">Ta suggestion</label><textarea id="feedbackTexte" maxlength="100000" rows="6" aria-describedby="feedbackCompteur" placeholder="Partage ton idée avec nous…"></textarea><p class="care-field-foot" id="feedbackCompteur">0 / 1 000 mots · 100 000 caractères maximum</p></div>
             <button type="button" id="feedbackEnvoi" class="care-button care-button-primary">Envoyer ma suggestion <span aria-hidden="true">↗</span></button>
 
             <p id="feedbackStatut" class="care-status" role="status" aria-live="polite"></p>

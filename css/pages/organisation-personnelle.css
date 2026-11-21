@@ -92,3 +92,6 @@
 #emploiModal #emploiListe { min-width:0; }
 #habitsModal .routine-emoji { font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif; font-size:1.4rem; line-height:1; }
 @media(max-width:390px) { #emploiModal .study-topbar-inner { padding:0 12px; gap:8px; } #emploiModal .study-topbar .emploi-top-action { padding:.6rem .55rem; font-size:.68rem; } }
+
+/* Les décors du parcours d'origine restent dans l'écran sur téléphone. */
+.context-modal[data-routine-mode="profil"] .context-shape { left:0 !important; right:auto !important; animation:none; max-width:100%; }

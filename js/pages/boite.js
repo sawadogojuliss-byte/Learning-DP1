@@ -2469,6 +2469,37 @@ function boiteLierGoogle() {
     return Promise.resolve(boiteSession());
 }
 
+/* Un mot est une suite de caractères séparée par des espaces, retours ou tabulations. */
+var BOITE_MOTS_MAX = 1000;
+var BOITE_TEXTE_MAX = 100000; /* garde-fou technique, distinct de la limite de mots */
+function boiteNombreMots(texte) {
+    var propre = String(texte || '').trim();
+    return propre ? propre.split(/\s+/u).length : 0;
+}
+function boiteVerifierTexte(type, texte) {
+    if (boiteNombreMots(texte) > BOITE_MOTS_MAX) {
+        boiteDire(type + 'Statut', 'Ton message dépasse 1 000 mots. Réduis-le avant de l’envoyer.', true);
+        return false;
+    }
+    if (texte.length > BOITE_TEXTE_MAX) {
+        boiteDire(type + 'Statut', 'Ton message dépasse 100 000 caractères. Réduis-le avant de l’envoyer.', true);
+        return false;
+    }
+    return true;
+}
+function boiteCompteurMots(type) {
+    var champ = document.getElementById(type + 'Texte');
+    var compteur = document.getElementById(type + 'Compteur');
+    if (!champ || !compteur) return;
+    function actualiser() {
+        var n = boiteNombreMots(champ.value);
+        compteur.textContent = n.toLocaleString('fr-FR') + ' / 1 000 mots · 100 000 caractères maximum';
+        compteur.style.color = n > BOITE_MOTS_MAX ? '#b42318' : '';
+    }
+    if (!champ._compteurMots) { champ.addEventListener('input', actualiser); champ._compteurMots = true; }
+    actualiser();
+}
+
 function boiteQuestion(session) {
     var texte = document.getElementById('aideTexte');
     var valeur = texte ? texte.value.trim() : '';
@@ -2476,6 +2507,7 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
         return;
     }
+    if (!boiteVerifierTexte('aide', valeur)) return;
     if (boiteEnvoiEnCours) return;
     boiteEnvoiEnCours = true;
     boiteDire('aideStatut', 'Envoi…', false);
@@ -2506,7 +2538,7 @@ function boiteQuestion(session) {
                 hour: '2-digit', minute: '2-digit', hour12: false
             }) + ' (Ouagadougou)',
             '02_nom_utilisateur': boiteNom() || 'Sans nom',
-            '04_question': valeur.slice(0, 800),
+            '04_question': valeur,
             z_email_reponse: email
         };
         if (gmail) record['03_compte_gmail'] = gmail;
@@ -2521,6 +2553,7 @@ function boiteQuestion(session) {
     }
     boiteEnvoyerAvecImages(record, 'aide').then(function () {
         if (texte) texte.value = '';
+        boiteCompteurMots('aide');
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
         boiteDire('aideStatut', 'Question envoyée.', false);
@@ -2532,6 +2565,7 @@ function boiteQuestion(session) {
 }
 
 function initAide() {
+    boiteCompteurMots('aide');
     boiteMajMenu();
     boiteReessayerUneFois();
     boiteImagesMonter('aide');
@@ -2562,6 +2596,7 @@ function initAide() {
 }
 
 function initFeedback() {
+    boiteCompteurMots('feedback');
     boiteMajMenu();
     boiteImagesMonter('feedback');
     var nom = document.getElementById('feedbackNom');
@@ -2586,6 +2621,7 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'Écris ta suggestion avant de l\'envoyer.', true);
             return;
         }
+        if (!boiteVerifierTexte('feedback', texte)) return;
         if (boiteEnvoiEnCours) return;
         boiteEnvoiEnCours = true;
         boiteDire('feedbackStatut', 'Envoi…', false);
@@ -2608,7 +2644,7 @@ function initFeedback() {
                     hour: '2-digit', minute: '2-digit', hour12: false
                 }) + ' (Ouagadougou)',
                 '02_nom_utilisateur': boiteNom() || 'Sans nom',
-                '04_feedback': texte.slice(0, 800),
+                '04_feedback': texte,
                 z_email_reponse: adresse.slice(0, 120)
             };
             if (gmail) record['03_compte_gmail'] = gmail;
@@ -2622,6 +2658,7 @@ function initFeedback() {
         }
         boiteEnvoyerAvecImages(record, 'feedback').then(function () {
             if (champ) champ.value = '';
+            boiteCompteurMots('feedback');
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
         }).catch(function () {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
@@ -3424,10 +3461,10 @@ function boiteImageValide(src) {
 function boiteImagesDecoder(valeur) {
     var texte = String(valeur || '');
     if (texte.indexOf(BOITE_IMAGE_MARQUE) !== 0) return { texte: texte, images: [] };
-    if (texte.length > 410000) return { texte: 'Message avec pièce jointe illisible.', images: [] };
+    if (texte.length > 1000000) return { texte: 'Message avec pièce jointe illisible.', images: [] };
     try {
         var data = JSON.parse(texte.slice(BOITE_IMAGE_MARQUE.length));
-        if (!data || typeof data.texte !== 'string' || data.texte.length > 800 || !Array.isArray(data.images) || data.images.length > 2 || !data.images.every(boiteImageValide)) throw new Error('format');
+        if (!data || typeof data.texte !== 'string' || data.texte.length > BOITE_TEXTE_MAX || !Array.isArray(data.images) || data.images.length > 2 || !data.images.every(boiteImageValide)) throw new Error('format');
         return { texte: data.texte, images: data.images };
     } catch (e) { return { texte: texte.slice(0, 800), images: [] }; }
 }
@@ -3513,7 +3550,7 @@ function boiteEnvoyerAvecImages(record, type) {
     if (state.charge) return Promise.reject(new Error('images_en_preparation'));
     var champ = record.type === 'question' ? '04_question' : '04_feedback';
     var copie = Object.assign({}, record);
-    copie[champ] = BOITE_IMAGE_MARQUE + JSON.stringify({texte: String(record[champ] || '').slice(0,800), images: state.images.map(function (a) { return a.src; })});
+    copie[champ] = BOITE_IMAGE_MARQUE + JSON.stringify({texte: String(record[champ] || ''), images: state.images.map(function (a) { return a.src; })});
     /* Ne pas conserver d'image privée dans une file locale partagée par les
        comptes de cet appareil. Un échec conserve le formulaire pour réessayer. */
     return boiteEcrireBoite(copie).then(function () {
