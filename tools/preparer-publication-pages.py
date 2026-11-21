@@ -119,6 +119,7 @@ files = [
     'pages/soutien.html',
     'js/pages/soutien.js',
     'css/pages/soutien-aide-feedback.css',
+    'css/pages/legende-design.css',
     'pages/feedback.html',
     'pages/aide.html',
     'livrables/publication-entetes/entetes.css',
@@ -416,7 +417,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Styles des rappels introuvables')
         text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="livrables/publication-retours/images.css?v=' + version + '">'
-        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/soutien-aide-feedback.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/organisation-personnelle.css?v=' + version + '">', 1)
+        text = text.replace(anchor, anchor + '\n    <link rel="stylesheet" href="livrables/publication-planning/planning-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-devoirs/devoirs-design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-eeia/design.css?v=' + version + '">\n    <link rel="stylesheet" href="livrables/publication-entetes/entetes.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/soutien-aide-feedback.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/legende-design.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/organisation-personnelle.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/accessibilite.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Styles d’accessibilité publics inattendus')
@@ -434,7 +435,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Liste hors-ligne publique inattendue')
         text = text.replace(anchor, anchor + '\n    "css/pages/exercices-design.css",\n    "css/pages/defilement.css",', 1)
         anchor = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",\n    "css/pages/soutien-aide-feedback.css",\n    "css/pages/organisation-personnelle.css",', 1)
+        text = text.replace(anchor, anchor + '\n    "livrables/publication-pomodoro/videos.css",\n    "livrables/publication-pomodoro/mobile.css",\n    "livrables/publication-pomodoro/reprise.css",\n    "livrables/publication-rappels/rappels.js",\n    "livrables/publication-rappels/rappels.css",\n    "livrables/publication-retours/images.css",\n    "livrables/publication-planning/planning-design.css",\n    "livrables/publication-devoirs/devoirs-design.css",\n    "livrables/publication-eeia/design.css",\n    "livrables/publication-entetes/entetes.css",\n    "css/pages/soutien-aide-feedback.css",\n    "css/pages/legende-design.css",\n    "css/pages/organisation-personnelle.css",', 1)
         text += '''
 self.addEventListener('notificationclick', function (event) {
     if (!event.notification.tag || !event.notification.tag.startsWith('studyplan-rappel-')) return;

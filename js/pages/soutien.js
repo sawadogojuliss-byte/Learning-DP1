@@ -48,7 +48,7 @@ const moodData = {
             'Mange quelque chose de léger et bois de l\'eau fraîche'
         ],
         quotes: [
-            { text: 'Se reposer est aussi important que travailler. C\'est un investissement, pas une perte de temps.', author: '— Anonyme' },
+            { text: 'Se reposer est aussi important que travailler. C\'est un investissement, pas une perte de temps.', author: '— Studyplan · source non précisée' },
             { text: 'Prendre soin de soi n\'est pas de l\'égoïsme, c\'est de la sagesse.', author: '— Audre Lorde' }
         ]
     },
@@ -64,7 +64,7 @@ const moodData = {
             'Rappelle-toi : tu as déjà surmonté des moments difficiles avant'
         ],
         quotes: [
-            { text: 'Tu n\'as pas à tout contrôler. Fais ce que tu peux, et fais confiance au processus.', author: '— Anonyme' },
+            { text: 'Tu n\'as pas à tout contrôler. Fais ce que tu peux, et fais confiance au processus.', author: '— Studyplan · source non précisée' },
             { text: 'Le succès vient de ceux qui ne lâchent pas, même sous pression.', author: '— Serena Williams' }
         ]
     },
@@ -81,7 +81,7 @@ const moodData = {
             '💪 Les meilleurs élèves rebondissent. Ce n\'est pas la chute qui compte, c\'est le relèvement'
         ],
         quotes: [
-            { text: 'Chaque expert a d\'abord été un débutant. Chaque champion a d\'abord été un perdant.', author: '— Anonyme' },
+            { text: 'Chaque expert a d\'abord été un débutant. Chaque champion a d\'abord été un perdant.', author: '— Studyplan · source non précisée' },
             { text: 'L\'échec est le fondement de la réussite.', author: '— Lao-Tseu' }
         ]
     },
@@ -97,8 +97,8 @@ const moodData = {
             'Concentre-toi sur UNE seule chose à la fois — pas tout à la fois'
         ],
         quotes: [
-            { text: 'On ne se perd que pour mieux se trouver.', author: '— Anonyme' },
-            { text: 'Chaque étape vers l\'avant, même la plus petite, est un vrai progrès.', author: '— Anonyme' }
+            { text: 'On ne se perd que pour mieux se trouver.', author: '— Studyplan · source non précisée' },
+            { text: 'Chaque étape vers l\'avant, même la plus petite, est un vrai progrès.', author: '— Studyplan · source non précisée' }
         ]
     },
     anxieux: {
@@ -113,7 +113,7 @@ const moodData = {
             'Si l\'anxiété dure, parle-en à quelqu\'un de confiance autour de toi'
         ],
         quotes: [
-            { text: 'L\'action est le remède à l\'anxiété. Commence n\'importe où.', author: '— Anonyme' },
+            { text: 'L\'action est le remède à l\'anxiété. Commence n\'importe où.', author: '— Studyplan · source non précisée' },
             { text: 'Tu ne peux pas contrôler les vagues, mais tu peux apprendre à surfer.', author: '— Jon Kabat-Zinn' }
         ]
     },
@@ -130,7 +130,7 @@ const moodData = {
         ],
         quotes: [
             { text: 'Les difficultés préparent les gens ordinaires à un destin extraordinaire.', author: '— C.S. Lewis' },
-            { text: 'La persévérance est la clé de toutes les portes.', author: '— Anonyme' }
+            { text: 'La persévérance est la clé de toutes les portes.', author: '— Studyplan · source non précisée' }
         ]
     },
     depasse: {
@@ -162,7 +162,7 @@ const moodData = {
         ],
         quotes: [
             { text: 'Le succès, c\'est tomber sept fois et se relever huit.', author: '— Proverbe japonais' },
-            { text: 'Sois fier de ce que tu as accompli et confiant en ce que tu peux encore réaliser.', author: '— Anonyme' }
+            { text: 'Sois fier de ce que tu as accompli et confiant en ce que tu peux encore réaliser.', author: '— Studyplan · source non précisée' }
         ]
     },
     ennuye: {
@@ -177,8 +177,8 @@ const moodData = {
             'Lance un minuteur de 25 min : juste 25 minutes et tu peux t\'arrêter'
         ],
         quotes: [
-            { text: 'L\'ennui est souvent la porte d\'entrée de quelque chose de grand.', author: '— Anonyme' },
-            { text: 'La créativité naît souvent de la contrainte et de l\'ennui.', author: '— Anonyme' }
+            { text: 'L\'ennui est souvent la porte d\'entrée de quelque chose de grand.', author: '— Studyplan · source non précisée' },
+            { text: 'La créativité naît souvent de la contrainte et de l\'ennui.', author: '— Studyplan · source non précisée' }
         ]
     },
     neutre: {
@@ -192,7 +192,7 @@ const moodData = {
             'Un petit objectif atteint aujourd\'hui = grande satisfaction ce soir'
         ],
         quotes: [
-            { text: 'La constance est plus puissante que la perfection.', author: '— Anonyme' },
+            { text: 'La constance est plus puissante que la perfection.', author: '— Studyplan · source non précisée' },
             { text: 'Ce n\'est pas la force mais la persévérance qui fait les grandes choses.', author: '— Samuel Johnson' }
         ]
     }
@@ -208,10 +208,13 @@ function initSoutien() {
     const h = now.getHours();
     const greet = h < 12 ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
     document.getElementById('soutienGreet').textContent = greet + ', ' + (typeof userName !== 'undefined' ? userName : 'champion') + ' !';
-    // Reset mood selection
-    document.querySelectorAll('.mood-btn').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); });
-    document.getElementById('encouragementSection').style.display = 'none';
-    var videInit = document.getElementById('soutienVide'); if (videInit) videInit.style.display = 'block';
+    // Restaurer l'humeur existante sans faire defiler la page ni changer une citation deja affichee.
+    var choixVisible = document.querySelector('#panelSoutien .mood-btn.selected');
+    if (currentMood && Object.prototype.hasOwnProperty.call(moodData, currentMood)) {
+        if (!choixVisible || choixVisible.dataset.mood !== currentMood || document.getElementById('encouragementSection').style.display === 'none') soutienAfficherHumeur(currentMood, true);
+    } else {
+        soutienAfficherHumeur(null, true);
+    }
     // Streak
     updateStreak();
 }
@@ -224,9 +227,13 @@ function updateStreak() {
 }
 
 function selectMood(mood) {
-    if (!mood) { document.querySelectorAll('.mood-btn').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); }); document.getElementById('encouragementSection').style.display = 'none'; var vide = document.getElementById('soutienVide'); if (vide) vide.style.display = 'block'; var annonce = document.getElementById('soutienAnnonce'); if (annonce) annonce.textContent = ''; return; }
+    soutienAfficherHumeur(mood, false);
+}
+
+function soutienAfficherHumeur(mood, restauration) {
+    if (!mood || !Object.prototype.hasOwnProperty.call(moodData, mood)) { currentMood = null; document.querySelectorAll('#panelSoutien .mood-btn').forEach(b => { b.classList.remove('selected'); b.setAttribute('aria-pressed', 'false'); }); document.getElementById('encouragementSection').style.display = 'none'; var vide = document.getElementById('soutienVide'); if (vide) vide.style.display = ''; var annonce = document.getElementById('soutienAnnonce'); if (annonce) annonce.textContent = ''; return; }
     currentMood = mood;
-    document.querySelectorAll('.mood-btn').forEach(b => { const choisi = b.dataset.mood === mood; b.classList.toggle('selected', choisi); b.setAttribute('aria-pressed', String(choisi)); });
+    document.querySelectorAll('#panelSoutien .mood-btn').forEach(b => { const choisi = b.dataset.mood === mood; b.classList.toggle('selected', choisi); b.setAttribute('aria-pressed', String(choisi)); });
     const data = moodData[mood];
     // Encouragement card
     document.getElementById('encouragementCard').style.cssText = 'background:' + data.bg + ';border:2px solid ' + data.border + ';border-radius:1.25rem;padding:1.5rem;margin-bottom:1rem;animation:fadeInUp 0.4s ease-out;text-align:center;';
@@ -245,5 +252,7 @@ function selectMood(mood) {
     document.getElementById('encouragementSection').style.display = 'block';
     var videMasque = document.getElementById('soutienVide'); if (videMasque) videMasque.style.display = 'none';
     var annonceTexte = document.getElementById('soutienAnnonce'); if (annonceTexte) annonceTexte.textContent = 'Conseils affichés : ' + data.label;
-    document.getElementById('encouragementSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!restauration) {
+        document.getElementById('encouragementSection').scrollIntoView({ behavior: 'auto', block: 'start' });
+    }
 }

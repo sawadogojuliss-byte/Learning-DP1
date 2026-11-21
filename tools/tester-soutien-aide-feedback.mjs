@@ -35,10 +35,22 @@ try {
      assert.equal(await panel.locator('.mood-btn[aria-pressed="true"]').count(),1);
      assert.equal(await panel.locator('#encouragementSection').isVisible(),true);
      assert.ok(await panel.locator('#quoteText').innerText());
+     assert.doesNotMatch(await panel.locator('#quoteAuthor').innerText(),/anonyme/i);
+     await panel.evaluate(e=>{e.scrollTop=0});
+     assert.equal(await btn.getAttribute('aria-pressed'),'true','sélection conservée après défilement');
+     assert.equal(await btn.evaluate(e=>e.classList.contains('selected')),true);
+     assert.equal(await btn.evaluate(e=>getComputedStyle(e,'::after').content),'"✓"','sélection visible sans survol');
     }
+    const q=await panel.locator('#quoteText').innerText();
+    await page.evaluate(()=>{navigateTo('planning');navigateTo('soutien')});
+    assert.equal(await panel.locator('[data-mood=neutre]').getAttribute('aria-pressed'),'true','humeur conservée au retour');
+    assert.equal(await panel.locator('#quoteText').innerText(),q,'citation conservée au retour');
+    const citations=await page.evaluate(()=>Object.values(moodData).flatMap(m=>m.quotes.map(q=>q.author)));
+    assert.ok(citations.some(a=>a.includes('Studyplan')));assert.ok(citations.some(a=>a.includes('Winston Churchill')));assert.ok(citations.every(a=>!/anonyme/i.test(a)));
     await panel.getByRole('button',{name:'Changer d’humeur'}).click();
     assert.equal(await panel.locator('.mood-btn[aria-pressed="true"]').count(),0);
     assert.equal(await panel.locator('#soutienVide').isVisible(),true);
+    assert.equal(await page.evaluate(()=>currentMood),null,'réinitialisation explicite');
    } else {
     assert.equal(await panel.locator(`#${name}Images`).count(),1,'images disponibles');
     if(width===390){
