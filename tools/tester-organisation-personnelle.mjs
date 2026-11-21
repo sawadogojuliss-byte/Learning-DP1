@@ -26,6 +26,7 @@ try {
   if(width>=701) { const rects=await habits.locator('.routine-grid > .routine-card').evaluateAll(els=>els.map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}})); assert.equal(rects.length,3);assert.ok(rects.every(r=>Math.abs(r.top-rects[0].top)<1 && Math.abs(r.bottom-rects[0].bottom)<1),'trois cartes alignées en hauteur');assert.ok(rects[0].right<=rects[1].left && rects[1].right<=rects[2].left,'trois cartes sur la même ligne'); }
   if(process.env.STUDY_CAPTURE_ORGANISATION) await habits.screenshot({path:`/tmp/habitudes-${width}.png`});
   await habits.locator('#petitDejBtnHeure').click();assert.equal(await habits.locator('#petitDejChamps').isVisible(),true);
+  assert.equal(await habits.locator('#petitDejBtnHeure').evaluate(e=>getComputedStyle(e).borderColor),'rgb(16, 185, 129)','choix de l’heure en vert');
   await habits.locator('[aria-label="Augmenter la durée du petit-déjeuner"]').click();assert.equal(await habits.locator('#petitDejDureeLabel').innerText(),'35 min');
   await habits.locator('#petitDejBtnAucun').click();assert.equal(await habits.locator('#petitDejVide').isVisible(),true);
   await habits.locator('#dinerBtnAucun').click();
@@ -57,6 +58,7 @@ try {
   await emploi.locator('#emploiManuelJour').selectOption('0');await emploi.locator('#emploiManuelNom').fill('Maths');
   await emploi.locator('#emploiManuelDebut').fill('09:00');await emploi.locator('#emploiManuelFin').fill('10:00');await emploi.locator('#emploiAjouterBouton').click();
   assert.match(await emploi.locator('#emploiListe').innerText(),/Maths/);
+  if(process.env.STUDY_CAPTURE_ORGANISATION) await emploi.locator('.routine-list-card').screenshot({path:`/tmp/cours-${width}.png`});
   await emploi.getByRole('button',{name:'Modifier Maths'}).click();await emploi.locator('#emploiManuelNom').fill('Physique');await emploi.locator('#emploiAjouterBouton').click();
   assert.match(await emploi.locator('#emploiListe').innerText(),/Physique/);assert.doesNotMatch(await emploi.locator('#emploiListe').innerText(),/Maths/);
   await emploi.locator('#emploiManuelNom').fill('Chimie');await emploi.locator('#emploiManuelDebut').fill('09:30');await emploi.locator('#emploiManuelFin').fill('10:30');await emploi.locator('#emploiAjouterBouton').click();

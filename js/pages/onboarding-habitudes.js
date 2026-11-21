@@ -174,8 +174,9 @@ function peindreChoixRepas(cle, choix) {
     var actif = choix === 'heure';
     var aucun = choix === 'aucun';
     if (heureBtn) {
-        heureBtn.style.background = actif ? (cle === 'diner' ? '#ecfdf5' : '#faf5ff') : 'white';
-        heureBtn.style.borderColor = actif ? (cle === 'diner' ? '#10b981' : '#a855f7') : (cle === 'diner' ? '#a7f3d0' : '#e9d5ff');
+        heureBtn.style.background = actif ? '#ecfdf5' : 'white';
+        heureBtn.style.borderColor = actif ? '#10b981' : '#a7f3d0';
+        heureBtn.style.color = '#065f46';
     }
     if (aucunBtn) {
         aucunBtn.style.background = aucun ? '#f3f4f6' : 'white';

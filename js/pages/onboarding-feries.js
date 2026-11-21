@@ -105,6 +105,11 @@ function holidayFormaterDate(cle) {
 }
 
 function holidayRetablirFocus(repere) {
+    if (repere && repere.card) {
+        var carte = Array.from(document.querySelectorAll('#panelFeries [data-holiday-card]')).find(function (el) { return el.dataset.holidayCard === repere.card; });
+        if (carte) carte.focus({preventScroll:true});
+        return;
+    }
     if (!repere || !repere.date) return;
     var elements = Array.from(document.querySelectorAll('#panelFeries [data-holiday-date]'));
     var cible = elements.find(function (el) {
@@ -135,9 +140,33 @@ function goBackFromHolidays() {
 /* Poser ou retirer un férié pour une date précise. */
 function holidayBasculerDate(cle) {
     cle = String(cle);
-    if (holidayEstFerie(cle)) holidayRetirerDate(cle);
+    var ajout = !holidayEstFerie(cle);
+    var premiere = Object.keys(holidayDates).length === 0;
+    if (!ajout) holidayRetirerDate(cle);
     else holidayPoserDate(cle, null);
     holidayApresChangement();
+    if (!ajout) return;
+    /* Uniquement après un choix explicite : pas de défilement au chargement,
+       au changement d'option ni quand on retire une date. */
+    var panel = document.getElementById('panelFeries');
+    var options = document.getElementById('holidayOptions');
+    if (!panel || !panel.classList.contains('active') || !options) return;
+    if (premiere) {
+        options.classList.remove('is-revealing');
+        void options.offsetWidth;
+        options.classList.add('is-revealing');
+    }
+    requestAnimationFrame(function () {
+        if (!holidayEstFerie(cle) || !panel.classList.contains('active') || options.hidden) return;
+        var titre = document.getElementById('holidayOptionsTitre');
+        var reduire = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var cartes = options.querySelectorAll('.holiday-date-card');
+        var cible = premiere ? options : Array.from(cartes).find(function (carte) { return carte.dataset.holidayCard === cle; }) || options;
+        var focus = premiere ? titre : cible;
+        if (focus) focus.focus({preventScroll:true});
+        var haut = panel.scrollTop + cible.getBoundingClientRect().top - panel.getBoundingClientRect().top - 16;
+        panel.scrollTo({top:Math.max(0, haut), behavior:reduire ? 'auto' : 'smooth'});
+    });
 }
 
 function holidayPoserMode(cle, mode) {
@@ -171,7 +200,7 @@ function renderHolidays() {
     const grid = document.getElementById('holidayDaysGrid');
     if (!grid) return;
     const actif = document.activeElement;
-    const repere = actif && actif.dataset ? {date: actif.dataset.holidayDate, mode: actif.dataset.holidayMode, activity: actif.dataset.holidayActivity} : null;
+    const repere = actif && actif.dataset ? {date: actif.dataset.holidayDate, mode: actif.dataset.holidayMode, activity: actif.dataset.holidayActivity, card: actif.dataset.holidayCard} : null;
     holidayPurger();
     const aujourdhui = holidayCleDate(new Date());
 
@@ -195,10 +224,15 @@ function renderHolidays() {
 
     const feries = Object.keys(holidayDates).sort();
     const box = document.getElementById('holidayCartes');
+    const options = document.getElementById('holidayOptions');
+    if (options) {
+        options.hidden = !feries.length;
+        if (!feries.length) options.classList.remove('is-revealing');
+    }
 
     if (!feries.length) {
         grid.innerHTML = sections;
-        if (box) box.innerHTML = '<div class="holiday-empty"><span class="holiday-empty-icon" aria-hidden="true">✧</span><div><strong>Un espace pour tes journées spéciales</strong><p>Aucun jour férié pour cette semaine ni la suivante. Sélectionne une date ci-dessus pour commencer.</p></div></div>';
+        if (box) box.innerHTML = '';
         holidayRetablirFocus(repere);
         return;
     }
@@ -216,7 +250,7 @@ function renderHolidays() {
                 return '<button type="button" class="holiday-choice" data-holiday-date="' + cle + '" data-holiday-mode="' + choice[0] + '" aria-pressed="' + String(selected) + '" onclick="holidayPoserMode(\'' + cle + '\', \'' + choice[0] + '\')"><span class="holiday-choice-icon" aria-hidden="true">' + choice[1] + '</span><strong>' + choice[2] + '</strong><small>' + choice[3] + '</small>' + (selected ? '<span class="holiday-choice-state">✓ Choisi</span>' : '') + '</button>';
             }).join('');
             const jour = new Date(cle + 'T12:00:00').getDate();
-            return '<section class="holiday-date-card"><div class="holiday-date-title"><div class="holiday-date-badge" aria-hidden="true">' + jour + '</div><div><span>TA JOURNÉE FÉRIÉE</span><h3>' + holidayEscape(holidayFormaterDate(cle)) + '</h3></div></div><div class="holiday-choices" role="group" aria-label="Organisation du ' + holidayEscape(holidayFormaterDate(cle)) + '">' + cards + '</div>' + (current === 'light' ? holidayDropList(cle) : '') + '</section>';
+            return '<section class="holiday-date-card" tabindex="-1" data-holiday-card="' + cle + '"><div class="holiday-date-title"><div class="holiday-date-badge" aria-hidden="true">' + jour + '</div><div><span>TA JOURNÉE FÉRIÉE</span><h3>' + holidayEscape(holidayFormaterDate(cle)) + '</h3></div></div><div class="holiday-choices" role="group" aria-label="Organisation du ' + holidayEscape(holidayFormaterDate(cle)) + '">' + cards + '</div>' + (current === 'light' ? holidayDropList(cle) : '') + '</section>';
         }).join('');
     }
 

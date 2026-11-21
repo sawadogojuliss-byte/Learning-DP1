@@ -1001,9 +1001,9 @@ function emploiRendre() {
         var liste = store.jours[idx];
         if (!liste.length) return '';
         total += liste.length;
-        return '<div style="margin-bottom:0.6rem;"><p style="margin:0 0 0.3rem;font-size:0.8rem;font-weight:800;color:#374151;">' + nom + '</p>' +
+        return '<div class="emploi-jour" style="margin-bottom:0.6rem;"><p class="emploi-jour-titre" style="margin:0 0 0.3rem;font-size:0.8rem;font-weight:800;color:#374151;">' + nom + '</p>' +
             liste.map(function (c) {
-                return '<div style="display:flex;align-items:center;gap:0.5rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.7rem;padding:0.45rem 0.6rem;margin-bottom:0.3rem;">' +
+                return '<div class="emploi-cours" style="display:flex;align-items:center;gap:0.5rem;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:0.7rem;padding:0.45rem 0.6rem;margin-bottom:0.3rem;">' +
                     '<span style="font-size:0.95rem;">🏫</span>' +
                     '<div style="flex:1;min-width:0;"><p style="margin:0;font-weight:700;color:#111827;font-size:0.82rem;">' + emploiEchap(c.nom) + (c.matiere && c.matiere !== c.nom ? ' <span style="font-weight:600;color:#059669;font-size:0.72rem;">· ' + emploiEchap(c.matiere) + '</span>' : '') + '</p>' +
                     '<p style="margin:0;font-size:0.72rem;color:#6b7280;">' + c.debut + ' → ' + c.fin + '</p></div>' +
@@ -1012,10 +1012,10 @@ function emploiRendre() {
             }).join('') + '</div>';
     }).join('');
     zone.innerHTML = total
-        ? '<div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">' +
+        ? '<div class="emploi-resume" style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.6rem;">' +
             '<p style="margin:0;font-size:0.82rem;font-weight:700;color:#065f46;">' + total + ' cours enregistré' + (total > 1 ? 's' : '') + ' — modèle appliqué chaque semaine</p>' +
             '<button type="button" onclick="emploiToutEffacer()" style="border:1px solid #fca5a5;background:#fff;color:#b91c1c;border-radius:0.5rem;padding:0.4rem;font:inherit;font-weight:700;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Tout effacer</button></div>' + html
-        : '<p style="margin:0;font-size:0.82rem;color:#56665e;">Aucun cours pour l\u2019instant : sans emploi du temps, le planning garde des créneaux « Cours » génériques.</p>';
+        : '<p class="emploi-vide" style="margin:0;font-size:0.82rem;color:#56665e;">Aucun cours pour l\u2019instant : sans emploi du temps, le planning garde des créneaux « Cours » génériques.</p>';
 }
 
 function emploiExporterAvantEffacement() {
