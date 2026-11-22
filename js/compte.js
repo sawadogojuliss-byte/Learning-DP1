@@ -1670,6 +1670,94 @@ function compteProgressionPlanifier() {
     }, 2500);
 }
 
+/* TEMPORAIRE — correction unique demandée pour ce compte. À retirer après
+   confirmation sur son appareil. La marque privée et la progression sont
+   écrites dans une même transaction, jamais un simple drapeau local. */
+function compteCorrectionCible(email) {
+    if (typeof crypto === 'undefined' || !crypto.subtle || typeof TextEncoder === 'undefined') return Promise.resolve(false);
+    return crypto.subtle.digest('SHA-256', new TextEncoder().encode(compteEmailCle(email))).then(function (bits) {
+        var hex = Array.from(new Uint8Array(bits), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+        return hex === 'b88fc72c0540284a4eccc938b84d699c115e8a918222c011801d1b0c6dc5d8cd';
+    }).catch(function () { return false; });
+}
+function compteCorrectionFlammeUnique(session, user) {
+    var adresse = compteEmailCle(session && session.email);
+    if (!session || !session.sub || !adresse ||
+        !user || !user.uid || user.emailVerified !== true || compteEmailCle(user.email) !== adresse ||
+        !firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid ||
+        !window.compteSession || window.compteSession.sub !== session.sub) return Promise.resolve(false);
+    var google = (user.providerData || []).filter(function (p) { return p && p.providerId === 'google.com'; })[0];
+    if (!google || google.uid !== session.sub) return Promise.resolve(false);
+    if (typeof boiteJourCle !== 'function') return Promise.resolve(false);
+    var jour = boiteJourCle(new Date());
+    var db = firebase.firestore();
+    var fiche = db.collection('comptes').doc(user.uid);
+    var ref = db.collection('progressions').doc(user.uid);
+    var cle = 'studyPlanIB_correctionFlamme18:' + user.uid;
+    return compteCorrectionCible(adresse).then(function (cible) {
+        if (!cible || !window.compteSession || window.compteSession.sub !== session.sub ||
+            !firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid) return null;
+        return db.runTransaction(function (tx) {
+            return Promise.all([tx.get(fiche), tx.get(ref)]).then(function (docs) {
+                var compte = docs[0] && docs[0].exists ? docs[0].data() : {};
+                var doc = docs[1] && docs[1].exists ? docs[1].data() : null;
+                var progression;
+                try { progression = doc && JSON.parse(doc.progression); } catch (e) { return null; }
+                if (!progression || typeof progression !== 'object' || Array.isArray(progression) || !compteUtile(progression)) return null;
+                var marque = compte && compte.correctionFlamme18;
+                if (marque && marque.version === 1) return { progression: progression, appliquee: false };
+                /* Une horloge future doit être corrigée avant de modifier une série. */
+                if (String(progression.flammeJour || '') > jour) return null;
+                progression.flammes = 18;
+                progression.flammeJour = jour;
+                tx.set(ref, { progression: JSON.stringify(progression), progressionLe: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                tx.set(fiche, { correctionFlamme18: { version: 1, jour: jour } }, { merge: true });
+                return { progression: progression, appliquee: true };
+            });
+        });
+    }).then(function (resultat) {
+        if (!resultat || !window.compteSession || window.compteSession.sub !== session.sub ||
+            !firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid) return false;
+        var deja = localStorage.getItem(cle) === '1';
+        if (!resultat.appliquee && deja) return false;
+        var data = resultat.progression;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(data.flammeJour || '')) ||
+            !Number.isInteger(data.flammes) || data.flammes < 0) return false;
+        /* Ne changer que les copies locales identifiées comme appartenant à ce
+           compte ; les autres données des profils restent intactes. */
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (!k || !/^(studyPlanIB_profil|studyPlanIB_sauvegarde|studyPlanIB_archive)(:|$)/.test(k)) continue;
+            var copie;
+            try { copie = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { continue; }
+            if (!copie || typeof copie !== 'object' || Array.isArray(copie)) continue;
+            var id = (copie.google && copie.google.sub) || copie.utilisateurId || '';
+            var mail = compteEmailCle(copie.google && copie.google.email);
+            var propre = id && compteMemeCompte(id, session.sub) && (!mail || mail === adresse) && comptePeutJoindreLocal(copie, session);
+            if (!propre) continue;
+            copie.flammes = data.flammes;
+            copie.flammeJour = data.flammeJour;
+            localStorage.setItem(k, JSON.stringify(copie));
+        }
+        localStorage.setItem('studyPlanIB_flamme', String(data.flammes));
+        localStorage.setItem('studyPlanIB_flammeJour', data.flammeJour);
+        localStorage.setItem(cle, '1');
+        /* Au retour d'un autre appareil, appliquer ensuite le cycle normal. */
+        var n = typeof boiteFlammes === 'function' ? boiteFlammes() : data.flammes;
+        if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
+        var planning = document.getElementById('joursCompte');
+        var soutien = document.getElementById('streakCount');
+        var focus = document.getElementById('focusFlamme');
+        if (planning) planning.textContent = String(n);
+        if (soutien) soutien.textContent = n + ' jour' + (n > 1 ? 's' : '');
+        if (focus) focus.textContent = String(n);
+        return true;
+    }).catch(function (err) {
+        console.warn('Correction ponctuelle de la série non appliquée', err);
+        return false;
+    });
+}
+
 /* Changement de série de flammes : seule la série part vers le nuage, sur la copie du nuage. Envoyer tout
    le profil ici renverrait une copie peut-être plus ancienne (un autre téléphone a pu retirer une activité)
    et l'écraserait. La copie du nuage gagne sauf si ce téléphone a une série plus haute pour le même jour. */
@@ -2012,9 +2100,12 @@ function compteRetrouverApresChargement(essai) {
     }).then(function () {
         var courant = typeof memoireLireEtat === 'function' ? memoireLireEtat() : null;
         if (courant) compteFigerNom(session, [courant]);
-        window.compteRestaurationEnCours = false;
-        compteEcouterNuage();
-        return comptePublierProgression(session);
+        var user = window.firebase && firebase.apps && firebase.apps.length ? firebase.auth().currentUser : null;
+        return compteCorrectionFlammeUnique(session, user).then(function () {
+            window.compteRestaurationEnCours = false;
+            compteEcouterNuage();
+            return comptePublierProgression(session);
+        });
     }).catch(function () {
         window.compteRestaurationEnCours = false;
     });
@@ -2374,6 +2465,8 @@ function compteOnCredential(resp) {
         var user = (ouvert && ouvert.user) || (window.firebase && firebase.apps && firebase.apps.length && firebase.auth().currentUser);
         var suite = user ? compteFirebaseEcrire(user, nomLie) : Promise.resolve();
         return suite.then(function () {
+            return compteCorrectionFlammeUnique(session, user);
+        }).then(function () {
             window.compteRestaurationEnCours = false;
             /* Le stockage local doit refléter ce qui vient d'être restauré : sinon un rechargement
                relit l'ancienne copie et la renvoie au nuage. */
@@ -2675,6 +2768,18 @@ if (sauve && sauve.sub) {
                 firebase.auth().onAuthStateChanged(function (user) {
                     if (!user || !window.compteSession) return;
                     compteFirebaseEcrire(user, compteNomLie(window.compteSession.sub) || user.displayName || '');
+                    /* Si Firebase s'est authentifié après le délai initial de lecture,
+                       reprendre la restauration pour ne pas manquer la correction. */
+                    if (!window.compteRestaurationEnCours && user.emailVerified === true &&
+                        compteEmailCle(user.email) === compteEmailCle(window.compteSession.email) &&
+                        localStorage.getItem('studyPlanIB_correctionFlamme18:' + user.uid) !== '1') {
+                        var sub = window.compteSession.sub;
+                        compteCorrectionCible(user.email).then(function (cible) {
+                            if (cible && !window.compteRestaurationEnCours && window.compteSession &&
+                                window.compteSession.sub === sub && firebase.auth().currentUser &&
+                                firebase.auth().currentUser.uid === user.uid) compteRetrouverApresChargement(0);
+                        });
+                    }
                 });
             }).catch(function () {});
         }, 1200);
