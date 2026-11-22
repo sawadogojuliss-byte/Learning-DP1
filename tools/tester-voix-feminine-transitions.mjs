@@ -1,4 +1,4 @@
-/* Lecture réelle des nouvelles prises féminines, sans écoute humaine. */
+/* Lecture réelle des prises féminines et du relais masculin, sans écoute humaine. */
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import path from 'node:path';
@@ -18,8 +18,8 @@ try {
   const result = await page.evaluate(async () => {
     localStorage.setItem('studyPlanIB_voixType','feminine');
     localStorage.setItem('studyPlanIB_voixActive','true');
-    chronoVoixPreparer([18, 60]);
-    const names = ['feminine-complet-18','feminine-complet-60','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'];
+    chronoVoixPreparer([16, 37, 38]);
+    const names = ['feminine-complet-16','feminine-complet-37','masculine-complet-38','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'];
     await Promise.all(names.map(chronoVoixCharger));
     const ctx = chronoVoixContexte();
     await ctx.resume();
@@ -27,15 +27,16 @@ try {
     const original = chronoVoixJouerTampons;
     chronoVoixJouerTampons = (noms, done, opts) => original(noms, ok => {played.push({nom:noms[0], ok}); done(ok);}, opts);
     try {
-      await new Promise(done => chronoAnnoncerPause(18, done));
-      await new Promise(done => chronoAnnoncerPause(60, done));
+      await new Promise(done => chronoAnnoncerPause(16, done));
+      await new Promise(done => chronoAnnoncerPause(37, done));
+      await new Promise(done => chronoAnnoncerPause(38, done));
       await new Promise(done => chronoAnnoncerFinSerie(done, true));
       await new Promise(done => chronoAnnoncerFinSerie(done, false));
       await new Promise(done => chronoAnnoncerReprise(done));
     } finally {chronoVoixJouerTampons = original;}
     return played;
   });
-  assert.deepEqual(result, ['feminine-complet-18','feminine-complet-60','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'].map(nom => ({nom, ok:true})));
+  assert.deepEqual(result, ['feminine-complet-16','feminine-complet-37','masculine-complet-38','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'].map(nom => ({nom, ok:true})));
   const panne = await page.evaluate(async () => {
     let synthese = false;
     const tampon = chronoVoixJouerTampons, lecteur = chronoVoixJouerLecteurs, original = chronoVoixSynthese;
@@ -48,5 +49,5 @@ try {
   });
   assert.deepEqual(panne, {synthese:false, enCours:false});
   assert.deepEqual(errors, []);
-  console.log('OK lecture féminine, pauses 18 et 60 minutes, fins, reprise et panne bornée');
+  console.log('OK lecture féminine, pauses 16 et 37 minutes, relais masculin 38 minutes, fins, reprise et panne bornée');
 } finally {await browser.close();}

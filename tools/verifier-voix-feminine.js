@@ -25,6 +25,9 @@ for (let n = 1; n <= 60; n++) {
   }
 }
 must(Object.keys(manifest).length === 43, 'inventaire des durées 18 à 60 inattendu');
+for (const file of ['16-nouvelle.mp3', 'harmonise/16-nouvelle.mp3'])
+  must(fs.statSync(path.join(publicDir, file)).size > 5000, 'nouvelle prise de 16 minutes manquante : ' + file);
+must(sha(path.join(publicDir, 'harmonise/16-nouvelle.mp3')) !== sha(path.join(publicDir, 'harmonise/16.mp3')), 'la nouvelle prise de 16 minutes doit différer de la précédente');
 for (const name of ['fin-une', 'fin-plusieurs', 'reprise'])
   must(fs.statSync(path.join(publicDir, 'harmonise', name + '.mp3')).size > 5000, 'message manquant : ' + name);
 console.log('OK : 60 pauses féminines, messages et conservation des 43 nouvelles prises');

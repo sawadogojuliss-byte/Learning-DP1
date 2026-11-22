@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261207-feminine-60';
+var version = '20261208-feminine-37';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

@@ -2,8 +2,10 @@
 
 L'utilisateur a demandé de conserver tous les enregistrements puis de les publier
 ensemble. Les prises de 18 à 60 minutes sont maintenant complètes et recopiées
-vers `livrables/publication-voix/essai-feminine/` pour intégration. Les copies de
-cette archive permettent de conserver les originaux et les versions harmonisées.
+vers `livrables/publication-voix/essai-feminine/`. À la demande de l’utilisateur,
+seules les durées 18 à 37 sont publiées pour le moment ; les durées 38 à 60
+restent dans le dépôt. Les copies de cette archive conservent les originaux et
+les versions harmonisées de ces lots.
 
 - Chaque prise est une phrase complète : « Ta séance de révision est terminée.
   Tu as droit maintenant à … minutes de pause. » Pour 21, 31, 41 et 51 minutes,

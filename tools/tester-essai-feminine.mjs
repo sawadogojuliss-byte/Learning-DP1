@@ -12,8 +12,10 @@ try {
     const page = await browser.newPage({viewport: {width, height: 800}, serviceWorkers: 'block'});
     const response = await page.goto(new URL('livrables/publication-voix/essai-feminine/', site).href);
     assert.equal(response.status(), 200);
-    assert.equal(await page.locator('audio').count(), 63);
-    assert.equal(await page.locator('audio[aria-label]').count(), 63);
+    assert.equal(await page.locator('audio').count(), 40);
+    assert.equal(await page.locator('audio[aria-label]').count(), 40);
+    assert.equal(await page.locator('audio[aria-label="Écouter : Pause de 16 minutes"]').getAttribute('src'), 'harmonise/16-nouvelle.mp3');
+    assert.equal(await page.locator('audio[aria-label="Écouter : Pause de 38 minutes"]').count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true, `débordement à ${width}px`);
     if (width === 1280) {
     const result = await page.evaluate(async () => {
@@ -30,10 +32,10 @@ try {
         return resultats;
       } finally { await context.close(); }
     });
-    assert.equal(result.length, 63);
+    assert.equal(result.length, 40);
     assert.ok(result.every(x => x.duration > 0.5 && x.duration < 20 && x.channels >= 1));
     }
     await page.close();
   }
-  console.log('OK : page responsive et 63 pistes décodées en navigateur (qualité auditive non vérifiée)');
+  console.log('OK : page responsive et 40 pistes décodées en navigateur (qualité auditive non vérifiée)');
 } finally { await browser.close(); }
