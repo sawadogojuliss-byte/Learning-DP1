@@ -1,8 +1,8 @@
-# Voix féminine : premier lot
+# Voix féminine : annonces de 1 à 60 minutes
 
 Prises générées avec la voix choisie lors de la nouvelle audition : fins
-singulière et plurielle, reprise, pauses de 1 à 17 minutes. Le lot de 8 à 17
-minutes utilise la même voix et conserve également les fichiers d’origine. L'identifiant de la
+singulière et plurielle, reprise, pauses de 1 à 60 minutes. Les différents lots utilisent la même voix et
+conservent également les fichiers d’origine. L'identifiant de la
 « féminine 2 » d'un ancien test n'était pas disponible ; l'identité avec
 l'ancienne voix n'est donc pas garantie.
 
@@ -17,6 +17,6 @@ volontairement la hauteur. Les autres phrases gardent leur débit d'origine :
 leur texte diffère et la durée seule ne suffit pas à mesurer le débit parlé.
 Il faut une écoute humaine pour valider la prononciation et le naturel.
 
-À la demande de l'utilisateur, les pauses de 18 à 60 minutes utilisent
-provisoirement les prises masculines complètes. Les messages de fin et de reprise
-utilisent la voix sélectionnée. Les deux choix restent disponibles.
+Les pauses de 1 à 60 minutes, les fins et la reprise utilisent la voix
+sélectionnée. Les deux choix restent disponibles. Les durées 18 à 60 et leurs
+empreintes sont aussi conservées dans `livrables/voix-feminine-en-cours/`.

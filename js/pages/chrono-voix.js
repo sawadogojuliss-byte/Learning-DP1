@@ -79,8 +79,8 @@ function chronoFinAnnonce(generation) {
     }
 }
 var CHRONO_VOIX_DOSSIER = 'audio/voix/';
-var CHRONO_VOIX_VERSION = '20261206-feminine-17';
-var CHRONO_VOIX_FEMININE_MAX = 17;
+var CHRONO_VOIX_VERSION = '20261207-feminine-60';
+var CHRONO_VOIX_FEMININE_MAX = 60;
 var CHRONO_VOIX_EXT = '.wav';
 
 /* ── Comment on prononce les nombres, de 1 à 60 ────────────────────────
@@ -173,7 +173,7 @@ function chronoVoixCompleteApprouvee(minutes) {
 function chronoVoixUrl(nom) {
     var service = /^service-pause-([1-9]|[1-5][0-9]|60)-(lent|normal|rapide)-([01])$/.exec(nom);
     if (service && chronoVoixServiceBase()) return chronoVoixServiceBase() + '/v1/audio?message=pause&minutes=' + service[1] + '&debit=' + service[2] + '&finale=' + service[3];
-    var feminine = /^feminine-complet-([1-9]|1[0-7])$/.exec(nom);
+    var feminine = /^feminine-complet-([1-9]|[1-5][0-9]|60)$/.exec(nom);
     if (feminine) return 'livrables/publication-voix/essai-feminine/harmonise/' + feminine[1].padStart(2, '0') + '.mp3?v=' + CHRONO_VOIX_VERSION;
     var messagesFeminins = {'feminine-fin-une-seance': 'fin-une', 'feminine-fin-serie': 'fin-plusieurs', 'feminine-reprise': 'reprise'};
     if (Object.prototype.hasOwnProperty.call(messagesFeminins, nom)) return 'livrables/publication-voix/essai-feminine/harmonise/' + messagesFeminins[nom] + '.mp3?v=' + CHRONO_VOIX_VERSION;

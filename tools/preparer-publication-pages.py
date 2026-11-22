@@ -161,12 +161,12 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
-# Premier lot féminin : annonces originales et prises harmonisées actives.
+# Annonces féminines originales et prises harmonisées actives.
 files.append('livrables/publication-voix/essai-feminine/index.html')
-files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 18))
+files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 61))
 files.extend(f'livrables/publication-voix/essai-feminine/{nom}.mp3'
              for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
-files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{n:02d}.mp3' for n in range(1, 18))
+files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{n:02d}.mp3' for n in range(1, 61))
 files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3'
              for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
 
@@ -448,7 +448,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if text.count(ancre_voix_une) != 1:
             raise SystemExit('Cache vocal public inattendu')
         text = text.replace(ancre_voix_une, ancre_voix_une + '\n    "livrables/stock-voix/messages/fin-une-seance.wav",', 1)
-        pistes_feminines = [f'{n:02d}' for n in range(1, 18)] + ['fin-une', 'fin-plusieurs', 'reprise']
+        pistes_feminines = [f'{n:02d}' for n in range(1, 61)] + ['fin-une', 'fin-plusieurs', 'reprise']
         text = text.replace(ancre_voix_une, ancre_voix_une + ''.join(
             f'\n    "livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3",'
             for nom in pistes_feminines), 1)

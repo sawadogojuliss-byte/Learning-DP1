@@ -1,6 +1,6 @@
 # Stock des annonces vocales pour utilisation ultérieure
 
-Ces fichiers sont conservés dans le dépôt. Les durées de 1 à 60 sont utilisées par la voix masculine du minuteur ; la voix féminine existante reste inchangée. Ce stockage n'est pas une base de données applicative.
+Ces fichiers sont conservés dans le dépôt. Les durées de 1 à 60 sont utilisées par la voix masculine du minuteur. Les prises féminines sont conservées séparément dans `livrables/publication-voix/essai-feminine/` ; elles restent à valider à l’écoute. Ce stockage n'est pas une base de données applicative.
 
 ## Durées
 
