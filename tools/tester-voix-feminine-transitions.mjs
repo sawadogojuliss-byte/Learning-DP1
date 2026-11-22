@@ -18,8 +18,8 @@ try {
   const result = await page.evaluate(async () => {
     localStorage.setItem('studyPlanIB_voixType','feminine');
     localStorage.setItem('studyPlanIB_voixActive','true');
-    chronoVoixPreparer([5, 8]);
-    const names = ['feminine-complet-5','masculine-complet-8','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'];
+    chronoVoixPreparer([17, 18]);
+    const names = ['feminine-complet-17','masculine-complet-18','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'];
     await Promise.all(names.map(chronoVoixCharger));
     const ctx = chronoVoixContexte();
     await ctx.resume();
@@ -27,15 +27,15 @@ try {
     const original = chronoVoixJouerTampons;
     chronoVoixJouerTampons = (noms, done, opts) => original(noms, ok => {played.push({nom:noms[0], ok}); done(ok);}, opts);
     try {
-      await new Promise(done => chronoAnnoncerPause(5, done));
-      await new Promise(done => chronoAnnoncerPause(8, done));
+      await new Promise(done => chronoAnnoncerPause(17, done));
+      await new Promise(done => chronoAnnoncerPause(18, done));
       await new Promise(done => chronoAnnoncerFinSerie(done, true));
       await new Promise(done => chronoAnnoncerFinSerie(done, false));
       await new Promise(done => chronoAnnoncerReprise(done));
     } finally {chronoVoixJouerTampons = original;}
     return played;
   });
-  assert.deepEqual(result, ['feminine-complet-5','masculine-complet-8','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'].map(nom => ({nom, ok:true})));
+  assert.deepEqual(result, ['feminine-complet-17','masculine-complet-18','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise'].map(nom => ({nom, ok:true})));
   const panne = await page.evaluate(async () => {
     let synthese = false;
     const tampon = chronoVoixJouerTampons, lecteur = chronoVoixJouerLecteurs, original = chronoVoixSynthese;
@@ -48,5 +48,5 @@ try {
   });
   assert.deepEqual(panne, {synthese:false, enCours:false});
   assert.deepEqual(errors, []);
-  console.log('OK lecture féminine, secours masculin 8 minutes, fins, reprise et panne bornée');
+  console.log('OK lecture féminine, secours masculin 18 minutes, fins, reprise et panne bornée');
 } finally {await browser.close();}

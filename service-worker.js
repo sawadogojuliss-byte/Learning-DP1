@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261205-feminine';
+const VERSION = '20261206-feminine-17';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -94,6 +94,16 @@ const FICHIERS = [
     "livrables/publication-voix/essai-feminine/harmonise/05.mp3",
     "livrables/publication-voix/essai-feminine/harmonise/06.mp3",
     "livrables/publication-voix/essai-feminine/harmonise/07.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/08.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/09.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/10.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/11.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/12.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/13.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/14.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/15.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/16.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/17.mp3",
     "livrables/publication-voix/essai-feminine/harmonise/fin-une.mp3",
     "livrables/publication-voix/essai-feminine/harmonise/fin-plusieurs.mp3",
     "livrables/publication-voix/essai-feminine/harmonise/reprise.mp3",
