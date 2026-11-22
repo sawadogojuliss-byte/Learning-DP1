@@ -558,6 +558,17 @@ function compteAfficherProfil(data) {
     if (!data || typeof memoireAppliquer !== 'function') return;
     /* Pendant un changement de compte, la page ouverte appartient à l'autre compte : on ne la garde pas. */
     var ouverte = window.compteChangementDeCompte ? '' : comptePageOuverte();
+    var modeRoutineOuvert = ouverte && typeof memoireModeRoutineAffiche === 'function' ? memoireModeRoutineAffiche(ouverte) : '';
+    /* Une synchronisation ne doit pas effacer un formulaire en cours de saisie. */
+    var brouillonHabitudes = ouverte === 'habitudes' && typeof habitudesBrouillon !== 'undefined' && habitudesBrouillon
+        ? Object.assign({}, habitudesBrouillon) : null;
+    var saisiesHabitudes = {};
+    if (ouverte === 'habitudes') {
+        ['prepMatinDebutInput', 'prepMatinFinInput', 'prepSoirDebutInput', 'prepSoirFinInput', 'petitDejHeureInput', 'dinerHeureInput'].forEach(function (id) {
+            var champ = document.getElementById(id);
+            if (champ) saisiesHabitudes[id] = champ.value;
+        });
+    }
     var locale = typeof memoireJson === 'function' ? memoireJson(MEMOIRE_KEY) : null;
     /* Un profil complet restauré ouvre le planning, même si cet appareil était encore sur l'accueil. */
     var accueilLocal = !ouverte && !data.profilComplet && !!locale && locale.etape === 'accueil';
@@ -590,7 +601,12 @@ function compteAfficherProfil(data) {
     if (data.profilComplet) window.__profilComplet = true;
     var etape = ouverte || (accueilLocal ? 'accueil' : (data.profilComplet ? 'planning' : (data.etape || 'accueil')));
     if (ouverte === 'pomodoro') etape = 'pomodoro';
-    if (typeof memoireAller === 'function' && ouverte !== 'pomodoro') memoireAller(etape);
+    if (brouillonHabitudes && typeof habitudesBrouillon !== 'undefined') habitudesBrouillon = brouillonHabitudes;
+    if (typeof memoireAller === 'function' && ouverte !== 'pomodoro') memoireAller(etape, modeRoutineOuvert);
+    Object.keys(saisiesHabitudes).forEach(function (id) {
+        var champ = document.getElementById(id);
+        if (champ) champ.value = saisiesHabitudes[id];
+    });
     if (data.profilComplet && typeof renderPlanning === 'function') {
         try { renderPlanning(); } catch (e) {}
     }

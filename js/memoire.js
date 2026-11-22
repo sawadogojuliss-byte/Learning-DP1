@@ -619,15 +619,43 @@ function memoireFermerCouches() {
     }
 }
 
-function memoireAller(etape) {
+/* L'origine du formulaire est propre à la navigation, pas au statut du profil. */
+function memoireModeRoutineAffiche(etape) {
+    var id = etape === 'habitudes' ? 'habitsModal' : etape === 'emploi' ? 'emploiModal' : '';
+    var el = id && document.getElementById(id);
+    var mode = el && el.classList.contains('active') && el.dataset && el.dataset.routineMode;
+    return mode === 'profil' || mode === 'section' ? mode : '';
+}
+
+function memoireModeRoutineHistorique(etape) {
+    var state = history.state;
+    var mode = state && state.app === 'studyplan' && state.etape === etape && state.routineMode;
+    return mode === 'profil' || mode === 'section' ? mode : '';
+}
+
+/* Reprendre aussi la bonne présentation dans un nouvel onglet : cette indication
+   reste locale, elle ne fait pas partie du profil synchronisé entre appareils. */
+function memoireModeRoutineLocal(etape) {
+    try {
+        var garde = JSON.parse(localStorage.getItem('studyPlanIB_routineNavigation') || 'null');
+        var sub = window.compteSession && window.compteSession.sub || '';
+        if (garde && garde.etape === etape && garde.sub === sub && (garde.mode === 'profil' || garde.mode === 'section')) return garde.mode;
+    } catch (e) {}
+    return '';
+}
+
+function memoireAller(etape, modeRoutine) {
+    if (etape === 'habitudes' || etape === 'emploi') {
+        modeRoutine = modeRoutine || memoireModeRoutineAffiche(etape) || (window.__profilComplet ? 'section' : 'profil');
+    }
     if (!etape || etape === 'accueil') {
         memoireFermerVues();
         return;
     }
     if (etape === 'travaux') etape = 'transport';
-    /* Un profil inachevé reprend l'ancienne étape sans générer le planning. */
-    if (etape === 'emploi' && !window.__profilComplet && typeof showEmploiPage === 'function') {
-        showEmploiPage();
+    /* La page du parcours profil reste blanche, même après restauration d'un compte complet. */
+    if (etape === 'emploi' && modeRoutine === 'profil' && typeof showEmploiPage === 'function') {
+        showEmploiPage('profil');
         return;
     }
     if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
@@ -673,7 +701,7 @@ function memoireAller(etape) {
         if (etape === 'objectif') updateScoreUI();
         if (etape === 'sommeil') updateBedtimes();
         if (etape === 'habitudes' && typeof renderHabitudes === 'function') {
-            habitudesSuite = window.__profilComplet ? 'planning' : 'transport';
+            habitudesSuite = modeRoutine === 'section' ? 'planning' : 'transport';
             if (typeof routineChangerVue === 'function') routineChangerVue('habits', habitudesSuite !== 'planning');
             var progressionHabitudes = document.getElementById('habitsProgress');
             if (progressionHabitudes) progressionHabitudes.style.display = habitudesSuite === 'planning' ? 'none' : '';
@@ -712,11 +740,20 @@ function memoirePoserHash(etape) {
     var next = '#' + id;
     var ancien = history.state && history.state.app === 'studyplan' ? history.state : null;
     var state = { app: 'studyplan', etape: id, precedent: ancien ? ancien.etape : '' };
+    var mode = memoireModeRoutineAffiche(id);
+    if (mode) state.routineMode = mode;
+    try {
+        if (mode) localStorage.setItem('studyPlanIB_routineNavigation', JSON.stringify({ etape: id, mode: mode, sub: window.compteSession && window.compteSession.sub || '' }));
+        else localStorage.removeItem('studyPlanIB_routineNavigation');
+    } catch (e) {}
     if (ancien && ancien.etape === id) state.precedent = ancien.precedent || '';
     var url = location.pathname + location.search + next;
     var courant = history.state && history.state.app === 'studyplan' ? history.state.etape : '';
     try {
-        if (courant === id && (location.hash === next || location.hash === '#' + id)) return;
+        if (courant === id && (location.hash === next || location.hash === '#' + id)) {
+            if ((ancien.routineMode || '') !== (state.routineMode || '')) history.replaceState(state, '', url);
+            return;
+        }
         if (!memoireNavPret || memoireNavSilence) {
             history.replaceState(state, '', url);
             return;
@@ -731,8 +768,9 @@ function memoireDepuisHistorique(etape) {
     memoireNavSilence = true;
     try {
         memoireFermerCouches();
-        memoireAller(etape);
-        if (memoireEtapeActive() !== etape && etape !== 'accueil') memoireAller(etape);
+        var mode = memoireModeRoutineHistorique(etape) || (window.__profilComplet ? 'section' : 'profil');
+        memoireAller(etape, mode);
+        if (memoireEtapeActive() !== etape && etape !== 'accueil') memoireAller(etape, mode);
     } catch (e) {
         console.error(e);
     }
@@ -1022,7 +1060,7 @@ function memoireDemarrer() {
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;
         } else {
-            try { memoireAller(etape); } catch (e) { console.error(e); }
+            try { memoireAller(etape, memoireModeRoutineHistorique(etape) || memoireModeRoutineLocal(etape)); } catch (e) { console.error(e); }
         }
     }
     [

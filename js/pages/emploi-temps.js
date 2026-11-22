@@ -1081,8 +1081,13 @@ function emploiToutEffacer() {
 
 /* ── Navigation dans le parcours ──────────────────────────────────── */
 
-function showEmploiPage() {
-    if (typeof routineChangerVue === 'function') routineChangerVue('emploi', !window.__profilComplet);
+function showEmploiPage(mode) {
+    /* Le parcours de profil reste blanc même si le compte est déjà complet. */
+    var libre = document.getElementById('freeTimeModal');
+    if (mode !== 'profil' && mode !== 'section') {
+        mode = (libre && libre.classList.contains('active')) || !window.__profilComplet ? 'profil' : 'section';
+    }
+    if (typeof routineChangerVue === 'function') routineChangerVue('emploi', mode === 'profil');
     document.querySelectorAll('.context-modal').forEach(function (el) {
         if (el.id !== 'emploiModal') el.classList.remove('active');
     });
@@ -1097,9 +1102,9 @@ function showEmploiPage() {
 function goBackFromEmploi() {
     var modal = document.getElementById('emploiModal');
     if (modal) modal.classList.remove('active');
-    /* Pendant l'inscription, on revient à la page Temps libre. Depuis
-       le menu d'un profil déjà complet, on revient au planning. */
-    if (window.__profilComplet) {
+    /* Le retour dépend du parcours affiché, pas de l'état du compte. */
+    var mode = modal && modal.dataset && modal.dataset.routineMode;
+    if (mode === 'section' || (!mode && window.__profilComplet)) {
         if (typeof generatePlanning === 'function') generatePlanning();
         else { var planning = document.getElementById('planningModal'); if (planning) planning.classList.add('active'); }
         return;
