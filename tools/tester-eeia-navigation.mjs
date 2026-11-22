@@ -15,6 +15,17 @@ try {
     page.on('pageerror', e => errors.push(String(e)));
     await page.route('**/*', r => r.request().url().startsWith(site) ? r.continue() : r.abort());
     await page.addInitScript(() => { window.__STUDYPLAN_E2E = true; });
+    // Un créneau créé par le planning peut déjà être passé à l'heure du test.
+    // Répondre aux questions au moment où elles apparaissent, comme un élève.
+    const repondreSuivi = async () => {
+      for (let i=0; i<20 && await page.locator('#eeRetourModal').isVisible(); i++) {
+        const dialogue=page.locator('#eeRetourModal');
+        const pasEncore=dialogue.getByRole('button',{name:'Pas encore'});
+        if (await pasEncore.isVisible()) await pasEncore.click();
+        else await dialogue.getByRole('button',{name:'Continuer'}).click();
+      }
+      assert.equal(await page.locator('#eeRetourModal').isVisible(),false,'les questions de suivi sont terminées');
+    };
     await page.goto(site, {waitUntil:'domcontentloaded'});
     await page.waitForFunction(() => window.__STUDYPLAN_READY && !document.body.classList.contains('booting'), null, {timeout:60000});
     await page.evaluate(() => {
@@ -53,10 +64,13 @@ try {
     await mem.getByRole('button',{name:'Plan',exact:true}).click();
     await page.locator('#eeIn-memoir--1').fill('Introduction');
     await page.locator('#eeIn-memoir--1').press('Enter');
+    await repondreSuivi();
     await page.locator('#eeIn-memoir--1').fill('Analyse');
     await mem.getByRole('button',{name:'Ajouter'}).click();
+    await repondreSuivi();
     assert.equal(await mem.getByRole('progressbar').getAttribute('aria-valuenow'),'0');
     await mem.getByRole('button',{name:/^Introduction/}).click();
+    await repondreSuivi();
     assert.equal(await mem.getByRole('progressbar').getAttribute('aria-valuenow'),'50');
     assert.equal(await page.evaluate(() => eePartiesOuvertes().some(p => p.kind === 'memoir' && p.text === 'Analyse')),true);
     assert.equal(await page.evaluate(() => eePartiesOuvertes().some(p => p.kind === 'memoir' && p.text === 'Introduction')),false);
@@ -64,6 +78,7 @@ try {
     await math.getByRole('button',{name:'Plan',exact:true}).click();
     await page.locator('#eeIn-ia-0').fill('Collecter mes données');
     await math.getByRole('button',{name:'Ajouter'}).click();
+    await repondreSuivi();
     assert.equal(await page.evaluate(() => eePartiesOuvertes().some(p => p.kind === 'ia' && p.subject === 'Mathématiques' && p.text === 'Collecter mes données')),true);
     assert.equal(await page.evaluate(() => JSON.stringify(iaPlans['Physique'] || [])), '[]');
     await page.reload({waitUntil:'domcontentloaded'});
@@ -73,20 +88,14 @@ try {
     assert.equal(await page.getByRole('button',{name:/^Collecter mes données/}).count(),1);
     // À certaines heures, le planning restauré demande si un créneau EE/IA
     // passé a été réalisé. Répondre comme un élève, sans masquer le dialogue.
-    for (let i=0; i<20 && await page.locator('#eeRetourModal').isVisible(); i++) {
-      const dialogue=page.locator('#eeRetourModal');
-      const pasEncore=dialogue.getByRole('button',{name:'Pas encore'});
-      if (await pasEncore.isVisible()) await pasEncore.click();
-      else await dialogue.getByRole('button',{name:'Continuer'}).click();
-    }
-    assert.equal(await page.locator('#eeRetourModal').isVisible(),false,'les questions de suivi sont terminées');
+    await repondreSuivi();
     await page.getByRole('button',{name:'Retirer Analyse'}).click();
     assert.equal(await page.locator('.eeia-carte.is-memoire [role=progressbar]').getAttribute('aria-valuenow'),'100');
     await page.locator('.eeia-carte.is-memoire').getByRole('button',{name:'Finalisation'}).click();
     assert.equal(await page.locator('#eeRetourModal').isVisible(),true);
     assert.equal(await page.locator('#eeRetourModal').evaluate(e=>Number(getComputedStyle(e).zIndex)>Number(getComputedStyle(document.getElementById('panelEEia')).zIndex)),true);
     await page.locator('#eeRetourModal').getByRole('button',{name:'Continuer'}).click();
-    assert.equal(await page.locator('#eeRetourModal').isVisible(),false);
+    await repondreSuivi();
     // Revenir suit la page réellement visitée, ici le planning.
     await page.evaluate(() => navigateTo('planning'));
     await page.waitForFunction(() => history.state?.etape === 'planning');
