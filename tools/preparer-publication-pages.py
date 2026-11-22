@@ -58,13 +58,6 @@ for rel, expected_hash in {
         raise SystemExit('Base publique modifiée : réconcilier ' + rel)
 shutil.copytree(base, output)
 
-# Seules les 37 premières prises féminines sont actives et publiées. Même si
-# une future base les contient, ne pas servir les pistes 38–60 par accident ;
-# les originaux restent conservés dans le dépôt de travail.
-for dossier in ('', 'harmonise'):
-    for n in range(38, 61):
-        (output / 'livrables/publication-voix/essai-feminine' / dossier / f'{n:02d}.mp3').unlink(missing_ok=True)
-
 files = [
     'livrables/propositions-pomodoro/index.html',
     'livrables/publication-voix/vingte-une-minute-essai.mp3',
@@ -170,14 +163,16 @@ files = [
 ]
 # Annonces féminines originales et prises harmonisées actives.
 files.append('livrables/publication-voix/essai-feminine/index.html')
-files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 38))
+files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 61))
 files.extend(f'livrables/publication-voix/essai-feminine/{nom}.mp3'
              for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
-files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{n:02d}.mp3' for n in range(1, 38))
+files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{n:02d}.mp3' for n in range(1, 61))
 files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3'
              for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
-files.extend(['livrables/publication-voix/essai-feminine/16-nouvelle.mp3',
-              'livrables/publication-voix/essai-feminine/harmonise/16-nouvelle.mp3'])
+prises_corrigees = ('16-sese', '42-nouvelle', '43-nouvelle', '51-cinquante-tiret-une', '56-nouvelle', '57-nouvelle')
+for nom in prises_corrigees:
+    files.extend([f'livrables/publication-voix/essai-feminine/{nom}.mp3',
+                  f'livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3'])
 
 # Échantillons servis par le backend en local, publiés uniquement pour écoute.
 files.extend(f'livrables/publication-voix/essai-backend/{message}-{debit}.mp3'
@@ -457,7 +452,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if text.count(ancre_voix_une) != 1:
             raise SystemExit('Cache vocal public inattendu')
         text = text.replace(ancre_voix_une, ancre_voix_une + '\n    "livrables/stock-voix/messages/fin-une-seance.wav",', 1)
-        pistes_feminines = [f'{n:02d}' for n in range(1, 38) if n != 16] + ['16-nouvelle', 'fin-une', 'fin-plusieurs', 'reprise']
+        pistes_feminines = [f'{n:02d}' for n in range(1, 61) if n not in (16, 42, 43, 51, 56, 57)] + list(prises_corrigees) + ['fin-une', 'fin-plusieurs', 'reprise']
         text = text.replace(ancre_voix_une, ancre_voix_une + ''.join(
             f'\n    "livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3",'
             for nom in pistes_feminines), 1)

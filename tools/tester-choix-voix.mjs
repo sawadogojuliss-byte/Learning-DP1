@@ -37,7 +37,7 @@ try {
     assert.equal(await page.locator('.focus-voix-option').first().isVisible(), true);
     assert.equal(await feminine.isDisabled(), false, 'la voix féminine doit être disponible');
     assert.equal(await masculine.isChecked(), true, 'la voix masculine doit être sélectionnée par défaut');
-    assert.match(await page.locator('.focus-voix-option').first().innerText(), /38 à 60 min/);
+    assert.match(await page.locator('.focus-voix-option').first().innerText(), /1 à 60 min/);
     const options = page.locator('.focus-voix-option'); assert.equal(await options.count(), 2);
     for (const option of await options.all()) {
       await option.scrollIntoViewIfNeeded();
@@ -49,9 +49,12 @@ try {
     assert.equal(await page.evaluate(() => chronoVoixType()), 'feminine');
     assert.equal(await page.evaluate(() => localStorage.getItem('studyPlanIB_voixType')), 'feminine');
     for (let n = 1; n <= 60; n++) {
-      assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), [n <= 37 ? 'feminine-complet-' + n : 'masculine-complet-' + n]);
+      assert.deepEqual(await page.evaluate(n => chronoVoixPhrasePause(n), n), ['feminine-complet-' + n]);
     }
-    assert.match(await page.evaluate(() => chronoVoixUrl('feminine-complet-16')), /16-nouvelle\.mp3/);
+    for (const [n, nom] of [[16,'16-sese'], [42,'42-nouvelle'], [43,'43-nouvelle'], [51,'51-cinquante-tiret-une'], [56,'56-nouvelle'], [57,'57-nouvelle']]) {
+      const url = await page.evaluate(n => chronoVoixUrl('feminine-complet-' + n), n);
+      assert.ok(url.includes('/' + nom + '.mp3?'), 'mauvaise prise : ' + n);
+    }
     const annonces = await page.evaluate(() => {
       const original = chronoLancerAnnonce, calls = [];
       chronoLancerAnnonce = (noms, type, phrase) => calls.push({noms, type, phrase});
@@ -61,16 +64,16 @@ try {
       } finally { chronoLancerAnnonce = original; }
       return calls;
     });
-    assert.deepEqual(annonces.map(a => a.noms[0]), ['feminine-complet-1','feminine-complet-16','feminine-complet-37','masculine-complet-38','masculine-complet-60','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise']);
-    assert.deepEqual(annonces.map(a => a.type), ['feminine','feminine','feminine','masculine','masculine','feminine','feminine','feminine']);
+    assert.deepEqual(annonces.map(a => a.noms[0]), ['feminine-complet-1','feminine-complet-16','feminine-complet-37','feminine-complet-38','feminine-complet-60','feminine-fin-une-seance','feminine-fin-serie','feminine-reprise']);
+    assert.deepEqual(annonces.map(a => a.type), Array(8).fill('feminine'));
     if (viewport.width === 1280) {
     const feminines = await page.evaluate(async () => {
-      const noms = Array.from({length: 37}, (_, i) => 'feminine-complet-' + (i + 1)).concat(['feminine-fin-une-seance', 'feminine-fin-serie', 'feminine-reprise']);
+      const noms = Array.from({length: 60}, (_, i) => 'feminine-complet-' + (i + 1)).concat(['feminine-fin-une-seance', 'feminine-fin-serie', 'feminine-reprise']);
       const result = [];
       for (let i = 0; i < noms.length; i += 5) result.push(...await Promise.all(noms.slice(i, i + 5).map(async nom => (await chronoVoixCharger(nom)).duration)));
       return result;
     });
-    assert.equal(feminines.length, 40);
+    assert.equal(feminines.length, 63);
     assert.ok(feminines.every(d => d > .5 && d < 20));
     }
     // Changement manuel et test du choix masculin existant.
@@ -124,8 +127,8 @@ try {
     assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(17)), ['feminine-complet-17']);
     assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(18)), ['feminine-complet-18']);
     assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(37)), ['feminine-complet-37']);
-    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(38)), ['masculine-complet-38']);
-    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(60)), ['masculine-complet-60']);
+    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(38)), ['feminine-complet-38']);
+    assert.deepEqual(await page.evaluate(() => chronoVoixPhrasePause(60)), ['feminine-complet-60']);
     await page.locator('label.focus-interrupteur').filter({ has: page.locator('#focusVoixActive') }).click();
     assert.equal(await page.evaluate(() => chronoVoixActive()), false);
     assert.deepEqual(errors, []); await page.close();

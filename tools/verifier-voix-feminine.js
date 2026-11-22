@@ -28,6 +28,16 @@ must(Object.keys(manifest).length === 43, 'inventaire des durées 18 à 60 inatt
 for (const file of ['16-nouvelle.mp3', 'harmonise/16-nouvelle.mp3'])
   must(fs.statSync(path.join(publicDir, file)).size > 5000, 'nouvelle prise de 16 minutes manquante : ' + file);
 must(sha(path.join(publicDir, 'harmonise/16-nouvelle.mp3')) !== sha(path.join(publicDir, 'harmonise/16.mp3')), 'la nouvelle prise de 16 minutes doit différer de la précédente');
+// Les dernières reprises choisies restent distinctes des originaux archivés.
+for (const nom of ['42-nouvelle', '43-nouvelle', '51-cinquante-tiret-une', '56-nouvelle', '57-nouvelle']) {
+  for (const [dossier, pub] of [['original', ''], ['harmonise', 'harmonise']]) {
+    const copie = path.join(publicDir, pub, nom + '.mp3');
+    must(fs.statSync(copie).size > 5000, 'prise corrigée absente : ' + nom);
+    must(sha(copie) === sha(path.join(archive, dossier, nom + '.mp3')), 'prise corrigée différente de son archive : ' + nom);
+  }
+}
+for (const dossier of ['', 'harmonise'])
+  must(fs.statSync(path.join(publicDir, dossier, '16-sese.mp3')).size > 5000, 'prise 16 sèse manquante');
 for (const name of ['fin-une', 'fin-plusieurs', 'reprise'])
   must(fs.statSync(path.join(publicDir, 'harmonise', name + '.mp3')).size > 5000, 'message manquant : ' + name);
 console.log('OK : 60 pauses féminines, messages et conservation des 43 nouvelles prises');
