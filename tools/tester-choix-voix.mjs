@@ -37,7 +37,9 @@ try {
     assert.equal(await page.locator('.focus-voix-option').first().isVisible(), true);
     assert.equal(await feminine.isDisabled(), false, 'la voix féminine doit être disponible');
     assert.equal(await masculine.isChecked(), true, 'la voix masculine doit être sélectionnée par défaut');
-    assert.match(await page.locator('.focus-voix-option').first().innerText(), /1 à 60 min/);
+    assert.equal(await page.locator('.focus-voix-option small').count(), 0, 'aucune description sous les choix');
+    assert.equal(await page.getByRole('radio', {name: 'Voix féminine'}).count(), 1);
+    assert.equal(await page.getByRole('radio', {name: 'Voix masculine'}).count(), 1);
     const options = page.locator('.focus-voix-option'); assert.equal(await options.count(), 2);
     for (const option of await options.all()) {
       await option.scrollIntoViewIfNeeded();
