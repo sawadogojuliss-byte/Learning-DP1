@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261204-import';
+const VERSION = '20261205-feminine';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -87,6 +87,16 @@ const FICHIERS = [
     "js/pages/emploi-temps-moteur.js",
     "js/pages/planning-moteur.js",
     "js/pages/chrono-voix.js",
+    "livrables/publication-voix/essai-feminine/harmonise/01.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/02.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/03.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/04.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/05.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/06.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/07.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/fin-une.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/fin-plusieurs.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/reprise.mp3",
     "livrables/stock-voix/messages/fin-une-seance.wav",
     "js/pages/planning-interface.js",
     "js/pages/planning-export.js",

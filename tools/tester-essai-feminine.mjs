@@ -1,4 +1,4 @@
-/* Test des pistes d'essai, sans les activer dans le minuteur. */
+/* Test de la page d’écoute des pistes actuellement activées. */
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import path from 'node:path';

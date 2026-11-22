@@ -161,10 +161,13 @@ files = [
     'images/pomodoro/arbres-rivage-anime.webp',
     'images/pomodoro/mini/arbres-rivage-anime.webp',
 ]
-# Premier lot féminin : uniquement pour écoute, sans activation dans le minuteur.
+# Premier lot féminin : annonces originales et prises harmonisées actives.
 files.append('livrables/publication-voix/essai-feminine/index.html')
 files.extend(f'livrables/publication-voix/essai-feminine/{n:02d}.mp3' for n in range(1, 8))
 files.extend(f'livrables/publication-voix/essai-feminine/{nom}.mp3'
+             for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
+files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{n:02d}.mp3' for n in range(1, 8))
+files.extend(f'livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3'
              for nom in ('fin-une', 'fin-plusieurs', 'reprise'))
 
 # Échantillons servis par le backend en local, publiés uniquement pour écoute.
@@ -445,6 +448,10 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         if text.count(ancre_voix_une) != 1:
             raise SystemExit('Cache vocal public inattendu')
         text = text.replace(ancre_voix_une, ancre_voix_une + '\n    "livrables/stock-voix/messages/fin-une-seance.wav",', 1)
+        pistes_feminines = [f'{n:02d}' for n in range(1, 8)] + ['fin-une', 'fin-plusieurs', 'reprise']
+        text = text.replace(ancre_voix_une, ancre_voix_une + ''.join(
+            f'\n    "livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3",'
+            for nom in pistes_feminines), 1)
         anchor_salon = '    "css/pages/planning-panels.css",'
         text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-voix.js",\n    "js/pages/salon-focus.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'

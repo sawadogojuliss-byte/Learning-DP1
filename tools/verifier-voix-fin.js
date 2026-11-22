@@ -167,7 +167,7 @@ bac.chronoLancerAnnonce = function (noms, type, phrase, suite, options) { annonc
 for (const type of ['feminine', 'masculine']) {
     bac.chronoVoixType = () => type;
     bac.chronoAnnoncerPause(21, function () {}, true);
-    ok(memeListe(annonceCapturee.noms, ['masculine-fin-serie']) && annonceCapturee.type === 'masculine', 'fin de série seule attendue : ' + type);
+    ok(memeListe(annonceCapturee.noms, [type + '-fin-serie']) && annonceCapturee.type === type, 'fin de série seule attendue : ' + type);
     ok(annonceCapturee.phrase === 'Tes séances de révisions sont terminées.', 'texte de fin incorrect');
     bac.chronoAnnoncerPause(21, function () {}, false);
     ok(!annonceCapturee.noms.includes('masculine-fin-serie'), 'message final entendu sur une séance intermédiaire');
@@ -190,10 +190,10 @@ bac.chronoLancerAnnonce = lancerOriginal;
 bac.chronoVoixType = () => 'feminine';
 
 const phrase5 = bac.chronoVoixPhrasePause(5);
-ok(memeListe(phrase5, ['seance-fin', 'n-5', 'minutes-de-pause']),
+ok(memeListe(phrase5, ['feminine-complet-5']),
     'la phrase de 5 minutes est mal composée : ' + JSON.stringify(phrase5));
 const phrase1 = bac.chronoVoixPhrasePause(1);
-ok(phrase1 && phrase1[phrase1.length - 1] === 'minute-de-pause',
+ok(memeListe(phrase1, ['feminine-complet-1']),
     'une minute de pause doit se dire au singulier : ' + JSON.stringify(phrase1));
 
 /* ── 4. Le minuteur s'en sert, avec la pause configurée ─────────────── */
