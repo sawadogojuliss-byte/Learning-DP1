@@ -35,6 +35,7 @@ try {
       boiteListesCache = __fusionTest;
       boiteRendreEmplois(__fusionTest);
     });
+    assert.equal(await page.locator('#panelEmplois .emploi-atelier-note').count(),0, 'note retirée');
     const rows = page.locator('#emploisListe .emploi-atelier-personne');
     assert.equal(await rows.count(),3);
     assert.match(await rows.filter({hasText:'Alice'}).innerText(),/18/);

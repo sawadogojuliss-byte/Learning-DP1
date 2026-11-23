@@ -509,14 +509,13 @@ for nom in pages_retour:
         raise SystemExit('Bouton de retour public introuvable : ' + nom)
     path.write_text(''.join(lignes), encoding='utf-8')
 
-# Explication des flammes dans l'Atelier, sans importer d'autres changements de page.
+# Retirer l'ancienne note de l'Atelier sans importer d'autres modifications de page.
 path = output / 'pages/boite.html'
 text = path.read_text(encoding='utf-8')
-ancienne_note = 'Un contact sans emploi reçu reste distinct d’une semaine enregistrée. Les emplois non envoyés ne sont pas visibles ici.'
-nouvelle_note = '🔥 Série issue du compte vérifié ; — si elle est indisponible. Les filtres concernent les plannings reçus.'
+ancienne_note = '                    <p class="emploi-atelier-note">Un contact sans emploi reçu reste distinct d’une semaine enregistrée. Les emplois non envoyés ne sont pas visibles ici.</p>\n'
 if text.count(ancienne_note) != 1:
     raise SystemExit('Note Atelier publique inattendue')
-path.write_text(text.replace(ancienne_note, nouvelle_note), encoding='utf-8')
+path.write_text(text.replace(ancienne_note, ''), encoding='utf-8')
 
 # Vérification finale : aucun autre fichier existant n'a changé.
 allowed = set(files + ['js/pages/navigation.js', 'js/pages/emploi-temps.js'] + [('pages/' + nom + '.html') for nom in pages_retour] + ['pages/devoirs.html', 'pages/pomodoro.html', 'pages/planning.html', 'js/pages/devoirs.js', 'js/pages/planning-interface.js', 'js/accessibilite.js', 'pages/exercices.html', 'pages/legende.html', 'js/pages/exercices.js', 'css/pages/exercices-design.css', 'css/pages/defilement.css', 'css/pages/planning-panels.css', 'index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'])

@@ -55,7 +55,6 @@
 #panelEmplois .emploi-atelier-flamme-nombre { padding-right:.08rem; }
 #panelEmplois .emploi-atelier-flamme-unite { font-size:.66rem;font-weight:700;color:#98633f; }
 #panelEmplois .emploi-atelier-flamme.indisponible { color:#788c7c;background:#f1f5ef;border-color:#e1eae0;box-shadow:none;font-weight:700; }
-#panelEmplois .emploi-atelier-note { margin:1rem .45rem .25rem;padding-top:.8rem;border-top:1px solid #ecf1e9;color:#829587;font-size:.68rem;line-height:1.5; }
 #panelEmplois .emploi-atelier-fiche { padding:clamp(1rem,2.2vw,2rem); }
 #panelEmplois .emploi-atelier-fiche-entete { display:flex;justify-content:space-between;align-items:flex-start;gap:.7rem; }
 #panelEmplois .emploi-atelier-fiche-eyebrow { text-transform:uppercase;color:#619477;font-size:.66rem;letter-spacing:.16em;font-weight:800;margin:0; }
