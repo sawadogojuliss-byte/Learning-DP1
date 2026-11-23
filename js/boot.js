@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261212-parcours-profil';
+var version = '20261213-flammes-admin';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

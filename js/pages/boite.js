@@ -875,6 +875,7 @@ function boiteNettoyerSession() {
     boiteErreurEmplois = '';
     boiteErreurFeedbacks = '';
     boiteLectureEnCours = null;
+    boiteFlammesCache = Object.create(null);
     boiteReceptionPresente = {};
     boiteControleReceptionEnCours = {};
     boiteAdminVerifie = false;
@@ -1446,6 +1447,57 @@ function boiteFusionner(items) {
     };
 }
 
+/* Seul un emploi authentifié à l'adresse emplois_du_temps/{uid} prouve
+   l'association. Une adresse, un nom ou une archive ne sont pas une preuve. */
+var boiteFlammesCache = Object.create(null);
+function boiteFlammesLire(fusion, generation) {
+    var panneau = document.getElementById('panelEmplois');
+    if (!boiteEstAdmin() || !panneau || !panneau.classList.contains('active')) return Promise.resolve(fusion);
+    var permis = Object.create(null);
+    boiteBruts.forEach(function (brut) {
+        var item = boiteEmploiDepuisDocument(brut);
+        if (item && item.type === 'emploi' && item.docColl === 'emplois_du_temps' &&
+            item.firebaseUid && item.docId === item.firebaseUid) permis[item.firebaseUid] = true;
+    });
+    var uids = Object.create(null);
+    boitePersonnes(fusion).forEach(function (item) {
+        if (item.firebaseUid && permis[item.firebaseUid]) uids[item.firebaseUid] = true;
+    });
+    return Promise.all(Object.keys(uids).map(function (uid) {
+        var existant = boiteFlammesCache[uid];
+        if (existant && Date.now() - existant.luLe < 60000) return Promise.resolve();
+        return firebase.firestore().collection('documents').doc(uid).get({ source: 'server' }).then(function (snap) {
+            if (generation !== boiteSessionGeneration) return;
+            var data = snap && snap.exists ? snap.data() || {} : {};
+            var valable = (!data.uid || data.uid === uid) && Number.isInteger(data.flammes) &&
+                data.flammes >= 0 && data.flammes <= 100000 && /^\d{4}-\d{2}-\d{2}$/.test(String(data.flammeJour || ''));
+            boiteFlammesCache[uid] = valable
+                ? { nombre: data.flammes, jour: data.flammeJour, luLe: Date.now() }
+                : { luLe: Date.now() };
+        }, function () {
+            if (generation === boiteSessionGeneration) boiteFlammesCache[uid] = { luLe: Date.now() };
+        });
+    })).then(function () {
+        var resultats = Object.create(null);
+        if (generation === boiteSessionGeneration) Object.keys(uids).forEach(function (uid) {
+            resultats[uid] = boiteFlammesCache[uid];
+        });
+        fusion.flammesComptes = resultats;
+        return fusion;
+    });
+}
+
+function boiteBadgeFlammes(item, fusion) {
+    var valeur = item.firebaseUid && fusion.flammesComptes && fusion.flammesComptes[item.firebaseUid];
+    if (!valeur || typeof valeur.nombre !== 'number') {
+        return '<span class="emploi-atelier-flamme indisponible" aria-label="Flammes indisponibles" title="Flammes indisponibles : compte non vérifié ou données non accessibles"><span aria-hidden="true">✧</span> <span>—</span></span>';
+    }
+    var nombre = valeur.nombre.toLocaleString('fr-FR');
+    var jour = valeur.jour.split('-').reverse().join('/');
+    var texte = nombre + ' flamme' + (valeur.nombre > 1 ? 's' : '') + ' · dernière activité : ' + jour;
+    return '<span class="emploi-atelier-flamme" aria-label="' + boiteEchap(texte) + '" title="' + boiteEchap(texte) + '"><span class="emploi-atelier-flamme-icone" aria-hidden="true">🔥</span><span class="emploi-atelier-flamme-texte"><span class="emploi-atelier-flamme-nombre">' + boiteEchap(nombre) + '</span><small class="emploi-atelier-flamme-date">au ' + boiteEchap(jour) + '</small></span></span>';
+}
+
 /* Relit la boîte : Firestore pour tout le monde (partie publique), et
    la partie privée pour les quatre admins seulement. Le fichier local
    ne sert plus qu'à garder les envois pas encore partis. */
@@ -1472,9 +1524,12 @@ function boiteChargerListes(force) {
         /* Un admin dont la session Firebase a expiré doit le savoir :
            sinon la boîte paraît vide sans raison. */
         fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
-        boiteListesCache = fusion;
-        boiteMemoriserVus();
-        return fusion;
+        return boiteFlammesLire(fusion, generation).then(function () {
+            if (generation !== boiteSessionGeneration) return boiteFusionner([]);
+            boiteListesCache = fusion;
+            boiteMemoriserVus();
+            return fusion;
+        });
     });
     boiteLectureEnCours = { generation: generation, promise: lecture };
     lecture.then(function () {
@@ -2220,12 +2275,11 @@ function boiteRendreEmplois(fusion) {
         liste.innerHTML = rows.map(function (item, index) {
             var nom = item.nom || item.googleNom || 'Sans nom';
             var initiales = nom.trim().split(/\s+/).slice(0, 2).map(function (partie) { return partie.charAt(0).toUpperCase(); }).join('');
-            var recu = boiteEmploiRecu(item);
             return '<button type="button" class="emploi-atelier-personne" data-emploi-personne="' + index + '" aria-current="'
                 + (boiteCleAfficheEmploi(item) === boiteEmploiSelection ? 'true' : 'false') + '">'
                 + '<span class="emploi-atelier-avatar" aria-hidden="true">' + boiteEchap(initiales) + '</span>'
                 + '<span class="emploi-atelier-identite"><strong>' + boiteEchap(nom) + '</strong><small>' + boiteEchap(item.classe || 'Classe non indiquée') + '</small></span>'
-                + '<span class="emploi-atelier-badge ' + (recu ? 'recu' : 'absent') + '">' + (recu ? 'Reçu' : 'Absent') + '</span></button>';
+                + boiteBadgeFlammes(item, fusion) + '</button>';
         }).join('');
         var choix = rows.filter(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })[0] || rows[0];
         var versions = boiteVersionsPourEmploi(choix, fusion);
@@ -2277,6 +2331,7 @@ function boiteSignatureEmplois(fusion) {
     return JSON.stringify({
         partiel: !!(fusion && fusion.partiel),
         erreurEmplois: fusion && fusion.erreurEmplois || '',
+        flammes: fusion && fusion.flammesComptes || {},
         personnes: boitePersonnes(fusion).map(function (item) {
             return [item.id || '', item.nom || '', item.classe || '', item.google || item.email || '', item.at || '', item.jours || []];
         }),
@@ -2345,6 +2400,7 @@ function boiteRafraichirAdmin() {
         if (el) el.textContent = 'Chargement…';
     });
     boiteListesCache = null;
+    boiteFlammesCache = Object.create(null);
     boiteChargerListes(true).then(function (fusion) {
         boiteRendreRetours(fusion);
         boiteRendreQuestions(fusion);

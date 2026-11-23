@@ -1793,17 +1793,41 @@ function compteFlammesPousser() {
             try { texte = JSON.parse(distant.progression); } catch (e) { return null; }
             if (!texte || typeof texte !== 'object') return null;
             var choisie = compteFlammeChoisie([{ flammeJour: texte.flammeJour, flammes: texte.flammes }, locale]);
-            if (!choisie || String(choisie.flammeJour) < String(texte.flammeJour || '') ||
-                (choisie.flammeJour === texte.flammeJour && choisie.flammes === texte.flammes)) return texte;
-            texte.flammeJour = choisie.flammeJour;
-            texte.flammes = choisie.flammes;
-            tx.set(ref, { progression: JSON.stringify(texte), progressionLe: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            if (choisie && String(choisie.flammeJour) >= String(texte.flammeJour || '') &&
+                (choisie.flammeJour !== texte.flammeJour || choisie.flammes !== texte.flammes)) {
+                texte.flammeJour = choisie.flammeJour;
+                texte.flammes = choisie.flammes;
+                tx.set(ref, { progression: JSON.stringify(texte), progressionLe: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+            }
             return texte;
         });
     }).then(function (texte) {
-        if (texte && firebase.auth().currentUser && firebase.auth().currentUser.uid === user.uid &&
-            typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+        if (texte && firebase.auth().currentUser && firebase.auth().currentUser.uid === user.uid) {
+            if (typeof memoireRestaurerFlamme === 'function') memoireRestaurerFlamme(texte);
+            return compteFlammesProjeter(user);
+        }
     }).catch(function (err) { console.warn('Série de flammes non envoyée', err); });
+}
+
+/* La projection est séparée : si l'accès aux fiches admin est refusé, cela ne
+   doit jamais empêcher la sauvegarde privée de la série. Sa transaction relit
+   la progression pour ne pas publier la réponse périmée d'un autre appareil. */
+function compteFlammesProjeter(user) {
+    var db = firebase.firestore();
+    return db.runTransaction(function (tx) {
+        return tx.get(db.collection('progressions').doc(user.uid)).then(function (snap) {
+            var data = null;
+            try {
+                var brut = snap && snap.exists && (snap.data() || {}).progression;
+                data = typeof brut === 'string' ? JSON.parse(brut) : brut;
+            } catch (e) {}
+            if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(String(data.flammeJour || '')) ||
+                !Number.isInteger(data.flammes) || data.flammes < 0 || data.flammes > 100000) return;
+            tx.set(db.collection('documents').doc(user.uid), {
+                uid: user.uid, flammes: data.flammes, flammeJour: data.flammeJour
+            }, { merge: true });
+        });
+    }).catch(function (err) { console.warn('Série indisponible dans la fiche admin', err); });
 }
 
 /* Avant chaque envoi, la série de flammes est comparée à celle du nuage. Sans cela, un téléphone qui
@@ -1976,14 +2000,37 @@ function compteFicheEnregistrer(user, data) {
     var fiche = compteFicheDonnees(data, user.uid);
     var empreinte = JSON.stringify(fiche);
     if (empreinte === compteFicheDerniere) return Promise.resolve();
-    fiche.misAJourLe = firebase.firestore.FieldValue.serverTimestamp();
-    return firebase.firestore().collection('documents').doc(user.uid).set(fiche, { merge: true })
-        .then(function () {
-            compteFicheDerniere = empreinte;
-            compteDocumentsDerniers = fiche.iaDocs || compteDocumentsDerniers;
-        }, function (err) {
-            console.warn('Fiche élève non enregistrée', err);
+    var db = firebase.firestore();
+    var progression = db.collection('progressions').doc(user.uid);
+    var documentRef = db.collection('documents').doc(user.uid);
+    /* Lire la progression dans la transaction évite qu'une fiche tardive
+       écrase la série mise à jour par un autre appareil. */
+    return db.runTransaction(function (tx) {
+        return tx.get(progression).then(function (snap) {
+            var source = null;
+            try {
+                var donnees = snap && snap.exists && (snap.data() || {}).progression;
+                source = typeof donnees === 'string' ? JSON.parse(donnees) : donnees;
+            } catch (e) {}
+            var copie = Object.assign({}, fiche);
+            if (source && /^\d{4}-\d{2}-\d{2}$/.test(String(source.flammeJour || '')) &&
+                Number.isInteger(source.flammes) && source.flammes >= 0 && source.flammes <= 100000) {
+                copie.flammes = source.flammes;
+                copie.flammeJour = source.flammeJour;
+            } else {
+                /* Pas de valeur vérifiée : conserver celle déjà présente, sans inventer zéro. */
+                delete copie.flammes; delete copie.flammeJour;
+            }
+            copie.misAJourLe = firebase.firestore.FieldValue.serverTimestamp();
+            tx.set(documentRef, copie, { merge: true });
         });
+    }).then(function () {
+        if (!firebase.auth().currentUser || firebase.auth().currentUser.uid !== user.uid) return;
+        compteFicheDerniere = empreinte;
+        compteDocumentsDerniers = fiche.iaDocs || compteDocumentsDerniers;
+    }, function (err) {
+        console.warn('Fiche élève non enregistrée', err);
+    });
 }
 
 /* Documents IA de l'élève : collection documents/{uid}, texte JSON, même UID. */

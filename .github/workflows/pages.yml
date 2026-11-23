@@ -170,6 +170,7 @@ jobs:
           executer_test travail/tools/tester-feries-design.mjs
           executer_test travail/tools/tester-organisation-personnelle.mjs
           executer_test travail/tools/tester-parcours-profil-routine.mjs
+          executer_test travail/tools/tester-flammes-admin.mjs
           executer_test travail/tools/tester-parcours-messages.mjs
           executer_test travail/tools/tester-import-planning-voix.mjs
           executer_test travail/tools/tester-ocr-formats.mjs
@@ -201,7 +202,7 @@ jobs:
           executer_test travail/tools/tester-curseur-stable.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
-          (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js)
+          (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js && node tools/verifier-flammes-admin.cjs)
           executer_test travail/tools/tester-pomodoro-reprise.mjs
           executer_test travail/tools/tester-lancement-minuteur.mjs
           executer_test travail/tools/tester-pause-mobile.mjs
@@ -281,6 +282,7 @@ jobs:
           executer_test tools/tester-feries-design.mjs
           executer_test tools/tester-organisation-personnelle.mjs
           executer_test tools/tester-parcours-profil-routine.mjs
+          executer_test tools/tester-flammes-admin.mjs
           executer_test tools/tester-parcours-messages.mjs
           executer_test tools/tester-import-planning-voix.mjs
           executer_test tools/tester-ocr-formats.mjs
