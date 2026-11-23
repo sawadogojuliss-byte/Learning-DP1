@@ -62,14 +62,16 @@ async function lire() { return c.boiteFlammesLire(fusion(),c.boiteSessionGenerat
 (async () => {
   let f = await lire();
   assert.deepEqual(lectures.sort(), ['alice','bob']);
-  assert.match(c.boiteBadgeFlammes(alice,f), /10 flamme/);
-  assert.match(c.boiteBadgeFlammes(bob,f), /0 flamme/);
+  assert.match(c.boiteBadgeFlammes(alice,f), /10 jours de flammes/);
+  assert.match(c.boiteBadgeFlammes(bob,f), /0 jour de flammes/);
   assert.match(c.boiteBadgeFlammes({firebaseUid:'triche'},f), /indisponible/);
   assert.match(c.boiteBadgeFlammes({nom:'Alice'},f), /indisponible/);
   c.boiteRendreEmplois(f);
   assert.doesNotMatch(elements.emploisListe.innerHTML, />Reçu<|>Absent</);
   assert.equal(elements.emploisRecus.textContent,'3');
   assert.match(elements.emploisListe.innerHTML, /emploi-atelier-flamme/);
+  assert.doesNotMatch(elements.emploisListe.innerHTML, /dernière activité|01\/11\/2026|emploi-atelier-flamme-date/);
+  assert.match(c.boiteBadgeFlammes({firebaseUid:'un'}, {flammesComptes:{un:{nombre:1,jour:'2026-11-01'}}}), /1 jour de flammes/);
   const sig = c.boiteSignatureEmplois(f);
   docs.set('progressions/alice',{progression:JSON.stringify({flammes:10,flammeJour:'2026-11-01',autre:'intact'})});
   store.studyPlanIB_flamme='11'; store.studyPlanIB_flammeJour='2026-11-02';
@@ -79,7 +81,7 @@ async function lire() { return c.boiteFlammesLire(fusion(),c.boiteSessionGenerat
   await c.compteFicheEnregistrer({uid:'alice'},{nom:'Alice',flammes:8,flammeJour:'2026-11-01'});
   assert.equal(docs.get('documents/alice').flammes,11,'une vieille fiche ne remplace pas la progression');
   c.boiteFlammesCache = Object.create(null); f = await lire();
-  assert.match(c.boiteBadgeFlammes(alice,f), /11 flamme/);
+  assert.match(c.boiteBadgeFlammes(alice,f), /11 jours de flammes/);
   assert.notEqual(c.boiteSignatureEmplois(f),sig,'changement détecté sans nouveau planning');
   store.studyPlanIB_flamme='0'; store.studyPlanIB_flammeJour='2026-11-07';
   await c.compteFlammesPousser();
@@ -92,7 +94,7 @@ async function lire() { return c.boiteFlammesLire(fusion(),c.boiteSessionGenerat
   assert.equal(docs.get('documents/alice').flammes,0);
   store.studyPlanIB_flamme='0'; store.studyPlanIB_flammeJour='2026-11-07';
   c.boiteFlammesCache = Object.create(null); f = await lire();
-  assert.match(c.boiteBadgeFlammes(alice,f), /0 flamme/);
+  assert.match(c.boiteBadgeFlammes(alice,f), /0 jour de flammes/);
   offline = true; c.boiteFlammesCache = Object.create(null); f = await lire();
   assert.match(c.boiteBadgeFlammes(alice,f), /indisponible/, 'pas de valeur périmée hors ligne');
   offline = false; docs.delete('documents/alice'); c.boiteFlammesCache = Object.create(null); f = await lire();

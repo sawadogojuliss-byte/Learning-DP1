@@ -1493,9 +1493,9 @@ function boiteBadgeFlammes(item, fusion) {
         return '<span class="emploi-atelier-flamme indisponible" aria-label="Flammes indisponibles" title="Flammes indisponibles : compte non vérifié ou données non accessibles"><span aria-hidden="true">✧</span> <span>—</span></span>';
     }
     var nombre = valeur.nombre.toLocaleString('fr-FR');
-    var jour = valeur.jour.split('-').reverse().join('/');
-    var texte = nombre + ' flamme' + (valeur.nombre > 1 ? 's' : '') + ' · dernière activité : ' + jour;
-    return '<span class="emploi-atelier-flamme" aria-label="' + boiteEchap(texte) + '" title="' + boiteEchap(texte) + '"><span class="emploi-atelier-flamme-icone" aria-hidden="true">🔥</span><span class="emploi-atelier-flamme-texte"><span class="emploi-atelier-flamme-nombre">' + boiteEchap(nombre) + '</span><small class="emploi-atelier-flamme-date">au ' + boiteEchap(jour) + '</small></span></span>';
+    var unite = 'jour' + (valeur.nombre > 1 ? 's' : '');
+    var texte = nombre + ' ' + unite + ' de flammes';
+    return '<span class="emploi-atelier-flamme" aria-label="' + boiteEchap(texte) + '" title="' + boiteEchap(texte) + ' · dernière série enregistrée"><span class="emploi-atelier-flamme-icone" aria-hidden="true">🔥</span><span class="emploi-atelier-flamme-nombre">' + boiteEchap(nombre) + '</span><span class="emploi-atelier-flamme-unite">' + unite + '</span></span>';
 }
 
 /* Relit la boîte : Firestore pour tout le monde (partie publique), et

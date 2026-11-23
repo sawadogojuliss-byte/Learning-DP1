@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261213-flammes-admin';
+var version = '20261214-jours-flammes';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

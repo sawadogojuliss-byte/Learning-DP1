@@ -40,8 +40,10 @@ try {
     assert.match(await rows.filter({hasText:'Alice'}).innerText(),/18/);
     assert.match(await rows.filter({hasText:'Bob'}).innerText(),/0/);
     assert.match(await rows.filter({hasText:'Contact'}).innerText(),/—/);
-    assert.match(await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme').getAttribute('aria-label'),/18 flammes.*01\/11\/2026/);
-    assert.equal(await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme-date').innerText(),'au 01/11/2026');
+    assert.equal(await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme').getAttribute('aria-label'),'18 jours de flammes');
+    assert.equal((await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme').innerText()).replace(/\s+/g, ' ').trim(),'🔥 18 jours');
+    assert.doesNotMatch(await rows.filter({hasText:'Alice'}).innerText(), /01\/11\/2026|dernière activité/);
+    assert.match(await rows.filter({hasText:'Bob'}).innerText(), /0\s+jour/);
     assert.notEqual(await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme').evaluate(el => getComputedStyle(el).backgroundImage),'none');
     assert(await rows.filter({hasText:'Alice'}).locator('.emploi-atelier-flamme').evaluate(el => el.getBoundingClientRect().right <= el.closest('button').getBoundingClientRect().right + 1), 'badge dans la carte');
     await page.locator('#emploisFiltre').fill('Alice');
