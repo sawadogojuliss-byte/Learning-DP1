@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261219-reponses-fiables';
+var version = '20261220-diagnostic-mail';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

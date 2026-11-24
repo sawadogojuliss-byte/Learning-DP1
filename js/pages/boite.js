@@ -1931,8 +1931,14 @@ function boiteMessageEchecMail(err, data) {
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
     if (type === 'salutation') return 'Le mail doit commencer par Bonjour ou Bonsoir, avec le nom sur la même ligne. Il n\'est pas parti.';
     if (type === 'script') return 'L\'envoi au nom de l\'équipe Studyplan n\'est pas encore activé. La question reste en attente.';
+    if (type === 'mail_session') return 'La connexion Google admin à Firebase est absente ou a changé. Reconnecte ton compte puis réessaie ; le mail n’est pas parti.';
+    if (type === 'mail_acces') return 'Accès refusé à la configuration privée du mail. Vérifie les droits admin et les règles Firestore ; le mail n’est pas parti.';
+    if (type === 'mail_configuration') return 'Configuration privée du mail absente ou invalide (config/mail). Le mail n’est pas parti.';
+    if (type === 'mail_adresse') return 'Adresse du service mail invalide ou introuvable dans la configuration du site. Le mail n’est pas parti.';
+    if (type === 'mail_reseau') return 'Impossible de lire la configuration du mail. Vérifie la connexion et réessaie ; le mail n’est pas parti.';
     if (type === 'incertain') return 'Envoi non confirmé : le mail a peut-être été envoyé. Vérifie les messages envoyés avant de réessayer.';
-    if (type === 'refus') return 'Envoi refusé par le service mail. Vérifie la configuration du script et du secret, puis réessaie.';
+    if (type === 'refus' && err.raison === 'secret') return 'Le service mail a refusé la configuration : le secret du script ne correspond pas. Le mail n’est pas parti.';
+    if (type === 'refus') return 'Le service mail signale un échec. Vérifie les messages envoyés et les autorisations du script avant de réessayer.';
     if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
@@ -1992,13 +1998,12 @@ function boiteMailAccepte(data, nonce) {
 
 function boiteUrlScript() {
     return boiteFetch('data/mail-script.json?t=' + Date.now(), { cache: 'no-store' }, 8000).then(function (res) {
-        return res.ok ? res.json() : {};
-    }).catch(function () {
-        return {};
-    }).then(function (data) {
+        if (!res.ok) throw new Error('mail_adresse');
+        return res.json().catch(function () { throw new Error('mail_adresse'); });
+    }, function () { throw new Error('mail_reseau'); }).then(function (data) {
         var url = String((data && data.url) || '').trim();
         if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)) {
-            throw new Error('script');
+            throw new Error('mail_adresse');
         }
         return url;
     });
@@ -2013,16 +2018,22 @@ function boiteSecretMail() {
     var generation = boiteSessionGeneration;
     if (boiteSecretCache && boiteEstAdmin() && window.firebase && firebase.auth().currentUser) return Promise.resolve(boiteSecretCache);
     return boiteFirebasePret().then(function (user) {
-        if (!user || !boiteEstAdmin()) throw new Error('script');
-        return firebase.firestore().collection('config').doc('mail').get();
+        if (!user || !boiteEstAdmin() || generation !== boiteSessionGeneration) throw new Error('mail_session');
+        /* Une copie locale périmée ne prouve pas que la configuration existe
+           encore. Lire le serveur et ne jamais exposer la valeur du secret. */
+        return firebase.firestore().collection('config').doc('mail').get({ source: 'server' });
     }).then(function (snap) {
+        if (generation !== boiteSessionGeneration) throw new Error('mail_session');
         var data = snap && snap.exists ? snap.data() : null;
-        var secret = data && data.secret ? String(data.secret) : '';
-        if (!secret || generation !== boiteSessionGeneration) throw new Error('script');
+        var secret = data && typeof data.secret === 'string' ? data.secret : '';
+        if (!secret.trim()) throw new Error('mail_configuration');
         boiteSecretCache = secret;
         return secret;
-    }).catch(function () {
-        throw new Error('script');
+    }).catch(function (err) {
+        if (generation !== boiteSessionGeneration) throw new Error('mail_session');
+        if (err && (err.message === 'mail_session' || err.message === 'mail_configuration')) throw err;
+        if (err && err.code === 'permission-denied') throw new Error('mail_acces');
+        throw new Error('mail_reseau');
     });
 }
 
@@ -2100,7 +2111,7 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
     var generation = boiteSessionGeneration;
     var moment = quand instanceof Date ? quand : new Date();
     return Promise.all([boiteUrlScript(), boiteSecretMail()]).then(function (prets) {
-        if (generation !== boiteSessionGeneration || !boiteEstAdmin()) throw new Error('script');
+        if (generation !== boiteSessionGeneration || !boiteEstAdmin()) throw new Error('mail_session');
         var url = prets[0];
         var payload = boitePayloadMail(email, message, question, nonce, nom, moment, prets[1]);
         if (!boiteMailCommenceBien(payload)) return Promise.reject(new Error('salutation'));
