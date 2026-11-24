@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261218-turn-prepare';
+var version = '20261219-reponses-fiables';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

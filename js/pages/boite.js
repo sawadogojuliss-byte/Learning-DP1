@@ -859,6 +859,7 @@ function boiteGarderVu() { boiteMemoriserVus(); }
 
 function boiteNettoyerSession() {
     boiteSessionGeneration++;
+    boiteReponsesEnCours = Object.create(null);
     /* Les brouillons d’annonce appartiennent à un seul compte Google. */
     if (typeof annonceBrouillons !== 'undefined') annonceBrouillons = [];
     if (typeof annonceBrouillonCourant !== 'undefined') annonceBrouillonCourant = '';
@@ -1549,10 +1550,57 @@ function boiteCarte(titre, meta, corps, images) {
         + '</article>';
 }
 
+/* Les deux listes contiennent chacune leurs propres éditeurs. Conserver les
+   cartes actives pendant un rafraîchissement, y compris leurs contrôles et les
+   références utilisées par une vérification ou un envoi en cours. Rien n'est
+   stocké sur l'appareil : la déconnexion efface les données privées. */
+function boiteGarderEditeurs(liste) {
+    if (!liste.querySelectorAll) return [];
+    var actif = document.activeElement;
+    return Array.prototype.map.call(liste.querySelectorAll('[data-reponse-texte]'), function (champ) {
+        var article = champ.closest('article');
+        var bouton = article && article.querySelector('[data-repondre]');
+        var statut = article && article.querySelector('[data-reponse-statut]');
+        var analyse = article && article.querySelector('[data-reponse-analyse]');
+        if (!article || !(champ.value || article.contains(actif) || (bouton && bouton.disabled) ||
+            (statut && statut.textContent) || (analyse && analyse.childNodes.length))) return null;
+        return { id: champ.getAttribute('data-reponse-texte'), article: article,
+            actif: article.contains(actif) ? actif : null,
+            debut: actif === champ ? champ.selectionStart : null,
+            fin: actif === champ ? champ.selectionEnd : null,
+            direction: actif === champ ? champ.selectionDirection : null };
+    }).filter(Boolean);
+}
+
+function boiteRestaurerEditeurs(liste, gardes) {
+    if (!liste.querySelectorAll) return;
+    var champs = liste.querySelectorAll('[data-reponse-texte]');
+    gardes.forEach(function (garde) {
+        var nouveau = Array.prototype.find.call(champs, function (champ) {
+            return champ.getAttribute('data-reponse-texte') === garde.id;
+        });
+        if (nouveau) nouveau.closest('article').replaceWith(garde.article);
+        else {
+            /* Une lecture partielle ou une réponse sur un autre appareil ne
+               doit pas détruire le texte : prévenir avant un éventuel envoi. */
+            var bouton = garde.article.querySelector('[data-repondre]');
+            if (bouton) bouton.disabled = true;
+            boiteDireDans(garde.article.querySelector('[data-reponse-statut]'),
+                'Question modifiée ou indisponible. Copie ton texte avant de quitter et vérifie son état.', true);
+            liste.appendChild(garde.article);
+        }
+        if (garde.actif && garde.actif.focus) {
+            garde.actif.focus({ preventScroll: true });
+            if (garde.debut !== null && garde.actif.setSelectionRange) garde.actif.setSelectionRange(garde.debut, garde.fin, garde.direction);
+        }
+    });
+}
+
 function boiteRendreRetours(fusion) {
     var liste = document.getElementById('retoursListe');
     var statut = document.getElementById('retoursStatut');
     if (!liste) return;
+    var editeurs = boiteGarderEditeurs(liste);
     var cartes = [];
     fusion.feedbacks.forEach(function (item) {
         var qui = boiteNomExpediteur(item);
@@ -1587,6 +1635,7 @@ function boiteRendreRetours(fusion) {
             : fusion.partiel ? 'Une partie des messages n\'a pas pu être rechargée.'
             : (cartes.length + ' message' + (cartes.length > 1 ? 's' : ''));
     }
+    boiteRestaurerEditeurs(liste, editeurs);
     boiteMajConnexion(fusion);
 }
 
@@ -1716,6 +1765,7 @@ function boiteRendreQuestions(fusion) {
     var liste = document.getElementById('questionsListe');
     var statut = document.getElementById('questionsStatut');
     if (!liste) return;
+    var editeurs = boiteGarderEditeurs(liste);
     var attente = [];
     var repondues = [];
     (fusion.questions || []).forEach(function (item) {
@@ -1745,6 +1795,7 @@ function boiteRendreQuestions(fusion) {
             ? 'Une partie des questions n\'a pas pu être rechargée.'
             : (attente.length + ' en attente · ' + repondues.length + ' répondue' + (repondues.length > 1 ? 's' : ''));
     }
+    boiteRestaurerEditeurs(liste, editeurs);
 }
 
 function boiteOctets(str) {
@@ -1880,6 +1931,8 @@ function boiteMessageEchecMail(err, data) {
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
     if (type === 'salutation') return 'Le mail doit commencer par Bonjour ou Bonsoir, avec le nom sur la même ligne. Il n\'est pas parti.';
     if (type === 'script') return 'L\'envoi au nom de l\'équipe Studyplan n\'est pas encore activé. La question reste en attente.';
+    if (type === 'incertain') return 'Envoi non confirmé : le mail a peut-être été envoyé. Vérifie les messages envoyés avant de réessayer.';
+    if (type === 'refus') return 'Envoi refusé par le service mail. Vérifie la configuration du script et du secret, puis réessaie.';
     if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
@@ -1934,7 +1987,7 @@ function boiteNonce() {
 }
 
 function boiteMailAccepte(data, nonce) {
-    return !!(data && nonce && String(data.id || '') === String(nonce));
+    return !!(data && data.success === true && nonce && String(data.id || '') === String(nonce));
 }
 
 function boiteUrlScript() {
@@ -1994,9 +2047,9 @@ function boiteMailCommenceBien(payload) {
     var ligne = String(payload && payload.salutation || '');
     var texte = String(payload && payload.text || '');
     var html = String(payload && payload.html || '');
-    if (!/^(Bonjour|Bonsoir) [^,\n]+,$/.test(ligne)) return false;
+    if (!/^(Bonjour|Bonsoir)(?: [^,\n]+)?,$/.test(ligne)) return false;
     if (texte.indexOf(ligne + '\n') !== 0) return false;
-    if (html.indexOf('>' + ligne + '<') === -1) return false;
+    if (html.indexOf('>' + boiteEchap(ligne) + '<') === -1) return false;
     return true;
 }
 
@@ -2044,24 +2097,30 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var nonce = boiteNonce();
+    var generation = boiteSessionGeneration;
     var moment = quand instanceof Date ? quand : new Date();
     return Promise.all([boiteUrlScript(), boiteSecretMail()]).then(function (prets) {
+        if (generation !== boiteSessionGeneration || !boiteEstAdmin()) throw new Error('script');
         var url = prets[0];
         var payload = boitePayloadMail(email, message, question, nonce, nom, moment, prets[1]);
         if (!boiteMailCommenceBien(payload)) return Promise.reject(new Error('salutation'));
-        return fetch(url, {
-            method: 'POST',
-            redirect: 'follow',
+        /* Ne pas réémettre après une réponse illisible : le serveur a peut-être
+           déjà envoyé le message. Une erreur explicite reste distinguable. */
+        return boiteFetch(url, {
+            method: 'POST', redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
-        }).then(function (res) {
+        }, 30000).then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (data) {
                 if (res.ok && boiteMailAccepte(data, nonce)) return data;
-                return boitePosterChamps(url, payload);
+                if (data && data.success === false && data.error) {
+                    var erreur = new Error('refus');
+                    erreur.raison = String(data.error);
+                    throw erreur;
+                }
+                throw new Error('incertain');
             });
-        }).catch(function () {
-            return boitePosterChamps(url, payload);
-        });
+        }, function () { throw new Error('incertain'); });
     });
 }
 
@@ -2094,6 +2153,8 @@ function boiteMontrerAnalyse(questionId, article, texte, erreurs) {
     if (zone.scrollIntoView) zone.scrollIntoView({ block: 'nearest' });
 }
 
+var boiteReponsesEnCours = Object.create(null);
+
 function boiteRepondre(questionId, origine, forcer) {
     if (!boiteEstAdmin() || !boiteListesCache) return;
     var question = null;
@@ -2117,12 +2178,23 @@ function boiteRepondre(questionId, origine, forcer) {
         return;
     }
     if (bouton && bouton.disabled) return;
+    if (boiteReponsesEnCours[questionId]) { boiteDireDans(zone, 'Une réponse est déjà en cours pour cette question.', true); return; }
+    var generation = boiteSessionGeneration;
+    boiteReponsesEnCours[questionId] = true;
     if (bouton) bouton.disabled = true;
     function envoyer() {
+        if (generation !== boiteSessionGeneration) return;
+        if (champ && champ.value.trim() !== texte) {
+            delete boiteReponsesEnCours[questionId];
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le texte a changé. Vérifie-le puis relance l’envoi.', true);
+            return;
+        }
         boiteMontrerAnalyse(questionId, article, texte, []);
         var nomMail = boiteNomPourMail(question);
         var quand = new Date();
         var ligneMail = boiteSalutation(nomMail, quand);
+        if (champ) champ.readOnly = true;
         boiteDireDans(zone, 'Envoi vers ' + email + ' — ' + ligneMail, false);
         boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', nomMail, quand).then(function (data) {
             var gmailId = String(data && data.id || '');
@@ -2141,12 +2213,26 @@ function boiteRepondre(questionId, origine, forcer) {
                 gmailId: gmailId.length >= 16 ? gmailId : '',
                 partage: true
             };
-            boiteGarderVu(record);
-            boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
-            boiteRendreQuestions(boiteListesCache);
-            boiteRendreRetours(boiteListesCache);
-            boiteEnvoyer(record).catch(function () {});
+            if (generation !== boiteSessionGeneration) return;
+            /* La confirmation Gmail ne garantit pas l'écriture de l'historique.
+               Ne jamais relancer le mail si cette seconde opération échoue. */
+            boiteDireDans(zone, 'Mail accepté. Enregistrement de la réponse…', false);
+            boiteEcrireBoite(record).then(function () {
+                if (generation !== boiteSessionGeneration) return;
+                delete boiteReponsesEnCours[questionId];
+                if (article && article.remove) article.remove();
+                if (!boiteListesCache) return;
+                boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+                boiteRendreQuestions(boiteListesCache);
+                boiteRendreRetours(boiteListesCache);
+            }).catch(function () {
+                if (generation !== boiteSessionGeneration) return;
+                boiteDireDans(zone, 'Mail accepté, mais historique non enregistré. Ne renvoie pas le mail ; copie ce message et contacte l’administrateur.', true);
+            });
         }).catch(function (err) {
+            if (generation !== boiteSessionGeneration) return;
+            delete boiteReponsesEnCours[questionId];
+            if (champ) champ.readOnly = false;
             if (bouton) bouton.disabled = false;
             boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
         });
@@ -2157,7 +2243,15 @@ function boiteRepondre(questionId, origine, forcer) {
     }
     boiteDireDans(zone, 'Vérification de l\'orthographe, de la grammaire et de la conjugaison…', false);
     langueAnalyser(texte.slice(0, 800)).then(function (erreurs) {
+        if (generation !== boiteSessionGeneration) return;
+        if (champ && champ.value.trim() !== texte) {
+            delete boiteReponsesEnCours[questionId];
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le texte a changé. Vérifie-le puis relance l’envoi.', true);
+            return;
+        }
         if (erreurs && erreurs.length) {
+            delete boiteReponsesEnCours[questionId];
             if (bouton) bouton.disabled = false;
             boiteDireDans(zone, 'Le message n\'a pas été envoyé. Les erreurs sont indiquées ci-dessus.', true);
             boiteMontrerAnalyse(questionId, article, texte.slice(0, 800), erreurs);
@@ -3611,5 +3705,15 @@ function boiteEnvoyerAvecImages(record, type) {
        comptes de cet appareil. Un échec conserve le formulaire pour réessayer. */
     return boiteEcrireBoite(copie).then(function () {
         state.images = []; state.revision++; boiteImagesPeindre(type, ''); return true;
+    });
+}
+
+/* Prévenir avant un rechargement : les brouillons privés restent en mémoire
+   uniquement et ne sont jamais écrits dans le stockage du navigateur. */
+if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('beforeunload', function (event) {
+        if (!document.querySelectorAll) return;
+        var brouillon = Array.prototype.some.call(document.querySelectorAll('[data-reponse-texte]'), function (champ) { return !!champ.value.trim(); });
+        if (brouillon) { event.preventDefault(); event.returnValue = ''; }
     });
 }

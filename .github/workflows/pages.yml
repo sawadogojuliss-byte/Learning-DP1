@@ -174,6 +174,7 @@ jobs:
           executer_test travail/tools/tester-parcours-profil-routine.mjs
           executer_test travail/tools/tester-flammes-admin.mjs
           executer_test travail/tools/tester-parcours-messages.mjs
+          executer_test travail/tools/tester-reponses-brouillons.mjs
           executer_test travail/tools/tester-import-planning-voix.mjs
           executer_test travail/tools/tester-ocr-formats.mjs
           executer_test travail/tools/tester-corpus-ocr.mjs
@@ -206,7 +207,7 @@ jobs:
           executer_test travail/tools/tester-curseur-stable.mjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
-          (cd travail && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js && node tools/verifier-flammes-admin.cjs)
+          (cd travail && node tools/tester-reponses-transport.cjs && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js && node tools/verifier-flammes-admin.cjs)
           executer_test travail/tools/tester-pomodoro-reprise.mjs
           executer_test travail/tools/tester-lancement-minuteur.mjs
           executer_test travail/tools/tester-pause-mobile.mjs
