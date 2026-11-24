@@ -159,7 +159,9 @@
         try {
             var d=await voix.diagnostic();if(generation!==generationConversation || voix!==conversation)return;
             var message;
-            if(!d.participants)message='Aucune liaison vocale avec un autre appareil. Vérifie que l’autre personne a bien ouvert le salon.';
+            if(d.signalisationErreur==='refus')message='Firebase refuse la communication vocale : les règles du salon doivent autoriser les présences et les signaux vocaux.';
+            else if(d.signalisationErreur==='interrompue')message='La réception des présences ou des signaux vocaux est interrompue. Une nouvelle tentative est en cours.';
+            else if(!d.participants)message='Aucune liaison vocale avec un autre appareil. Vérifie que l’autre personne a bien ouvert le salon.';
             else if(!d.connectes)message=d.enEchec?'La liaison audio entre appareils a échoué.':'La liaison audio entre appareils est encore en cours.';
             else if(!d.mesurablesReception)message='Liaison audio établie, mais la réception ne peut pas encore être mesurée. Demande à l’autre personne d’activer son micro et de parler.';
             else if(!d.reception)message='Liaison audio établie, mais aucune donnée vocale reçue pendant le test. Demande à l’autre personne d’activer son micro et de parler.';

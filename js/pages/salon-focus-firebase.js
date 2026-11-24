@@ -194,10 +194,11 @@
                     },surErreur);
                     return function(){ecoutesVoix.delete(emettre);stop();};
                 }
-                function signaux(callback,surErreur) {
+                function signaux(callback,surErreur,surPret) {
                     var deja=new Set();
                     return personnel.collection('salon_voix_signaux').orderBy('creeLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
                         if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
+                        if(typeof surPret==='function')surPret();
                         // La requête descendante garde les 50 signaux les plus récents,
                         // mais ils doivent être appliqués dans l'ordre d'envoi : une
                         // offre ou réponse peut précéder un candidat dans le même lot.

@@ -55,10 +55,14 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  // Un lot Firestore est trié du plus récent au plus ancien par la requête.
  // Le moteur doit néanmoins recevoir les descriptions avant les signaux suivants.
  const canalOrdre=g.creerCanalVoix(), instanceOrdre='a'.repeat(32);
- const voixOrdre=await canalOrdre.joindre(instanceOrdre), ordre=[];
- const stopOrdre=canalOrdre.signaux(s=>ordre.push(s.type),e=>{throw e});
+ const voixOrdre=await canalOrdre.joindre(instanceOrdre), ordre=[];let confirmations=0;
+ const stopOrdre=canalOrdre.signaux(s=>ordre.push(s.type),e=>{throw e},()=>confirmations++);
  await new Promise(r=>setTimeout(r,0));
  const ecouteOrdre=ecoutes.find(x=>x.type==='collection' && x.path.endsWith('/salon_voix_presence/'+voixOrdre+'/salon_voix_signaux'));
+ assert.equal(confirmations,1,'une boîte vide confirmée rétablit la signalisation');
+ ecouteOrdre.cb({metadata:{fromCache:true,hasPendingWrites:false},docs:[]});
+ ecouteOrdre.cb({metadata:{fromCache:false,hasPendingWrites:true},docs:[]});
+ assert.equal(confirmations,1,'le cache et les écritures non confirmées ne rétablissent pas la signalisation');
  const docSignal=(id,type,ms)=>({id,data:()=>({type,versInstance:instanceOrdre,creeLe:new Timestamp(ms)}),ref:{delete:async()=>{}}});
  const maintenant=g.maintenant();ecouteOrdre.cb({metadata:{fromCache:false,hasPendingWrites:false},docs:[docSignal('recent','offer',maintenant),docSignal('ancien','answer',maintenant-1000)]});
  assert.deepEqual(ordre,['answer','offer'],'un lot reçu ensemble est traité du plus ancien au plus récent');

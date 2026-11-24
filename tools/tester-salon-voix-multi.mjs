@@ -25,10 +25,12 @@ async function client(uid,inst){
    if(denied)throw new DOMException('Refusé','NotAllowedError');if(hold)await hold;
    const dest=ctx.createMediaStreamDestination(),src=ctx.createOscillator(),gain=ctx.createGain();src.frequency.value=uid==='a'?440:uid==='b'?700:900;gain.gain.value=.35;src.connect(gain).connect(dest);src.start();captured.push({stream:dest.stream,src});return dest.stream;
   }},configurable:true});
+  let echecsPresence=uid==='a'?1:0,echecsEcouteSignaux=uid==='b'?1:0;
+  window.ouvertures={presences:0,signaux:0};
   const canal={
     joindre:serverJoin,quitter:serverQuit,
-    presences(cb){window._presence=cb;serverPresence().then(cb);return()=>{window._presence=null}},
-    signaux(cb){window._drain=async()=>{for(const s of await serverDrain())cb(s)};window._drain();return()=>{window._drain=null}},
+    presences(cb,err){ouvertures.presences++;if(echecsPresence-- > 0){queueMicrotask(()=>err(new Error('écoute présence interrompue')));return()=>{}}window._presence=cb;serverPresence().then(cb);return()=>{window._presence=null}},
+    signaux(cb,err){ouvertures.signaux++;if(echecsEcouteSignaux-- > 0){queueMicrotask(()=>err(new Error('écoute signaux interrompue')));return()=>{}}window._drain=async()=>{for(const s of await serverDrain())cb(s)};window._drain();return()=>{window._drain=null}},
     envoyer:serverSend
   };
   window.node=SalonVoix.creer({uid,instance:inst,canal,iceServers:[],creerConnexion:config=>{const p=new RTCPeerConnection(config);let handler=null;p.addEventListener('icecandidate',e=>setTimeout(()=>handler?.call(p,e),2500));Object.defineProperty(p,'onicecandidate',{configurable:true,get(){return handler},set(f){handler=f}});pcs.push(p);return p;},
@@ -44,6 +46,8 @@ try{
  for(const p of [a,b,c])await p.page.waitForFunction(()=>Object.keys(incoming).length===2,null,{timeout:30000});
  for(const p of [a,b,c])assert.deepEqual(await p.page.evaluate(()=>errors),[]);
  assert.ok(await a.page.evaluate(()=>etats.includes('signalisation-interrompue')),'reprise après échec réel de signalisation');
+ assert.equal(await a.page.evaluate(()=>ouvertures.presences),2,'écoute de présence rétablie après erreur terminale');
+ assert.equal(await b.page.evaluate(()=>ouvertures.signaux),2,'écoute de signalisation rétablie après erreur terminale');
  await a.page.evaluate(()=>node.micro(true));await Promise.all([signal(b.page,'a',true),signal(c.page,'a',true)]);
  assert.ok(candidatsEnvoyes>0,'connexion grâce aux candidats ICE transmis après l’offre');
  await b.page.evaluate(()=>node.micro(true));await Promise.all([signal(a.page,'b',true),signal(c.page,'b',true)]);

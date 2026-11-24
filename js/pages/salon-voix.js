@@ -7,8 +7,36 @@
         var rtc=options.iceServers||[{urls:'stun:stun.l.google.com:19302'}];
         var pairs=new Map(), presents=new Map(), attente=[], arrets=[], courant=true, flux=null, versionMicro=0, pret=false;
         var maxPairs=7, dernieresPresences=[], operationJoindre=null, fermeture=null;
-        var microSouhaite=false, repriseMicro=null, delaiReprise=2000;
+        var microSouhaite=false, repriseMicro=null, delaiReprise=2000, erreursEcoute={presences:null,signaux:null};
         function erreur(e){ if(courant)statut('erreur',e); }
+        function ecouter(type,callback) {
+            // Firestore ferme définitivement une écoute après son callback
+            // d'erreur. Sans réabonnement, le micro peut rester actif alors que
+            // plus aucune présence ou offre ne peut être reçue.
+            var ferme=false, timer=null, stop=null, generation=0, delai=2000;
+            function ouvrir() {
+                if(ferme || !courant)return;
+                var version=++generation;
+                function panne(e) {
+                    if(ferme || version!==generation)return;
+                    generation++;erreursEcoute[type]=e || new Error('voice-listener-error');
+                    if(stop){stop();stop=null;}
+                    statut('signalisation-interrompue',e);
+                    timer=setTimeout(function(){timer=null;ouvrir();},delai);delai=Math.min(delai*2,30000);
+                }
+                try {
+                    function confirme(){if(!ferme && version===generation){erreursEcoute[type]=null;delai=2000;}}
+                    var fermeture=canal[type](function(valeur){
+                        if(ferme || version!==generation)return;
+                        confirme();callback(valeur);
+                    },panne,confirme);
+                    if(version!==generation || ferme){if(typeof fermeture==='function')fermeture();}
+                    else stop=fermeture;
+                } catch(e) {panne(e);}
+            }
+            ouvrir();
+            return function(){ferme=true;generation++;if(timer)clearTimeout(timer);if(typeof stop==='function')stop();};
+        }
         function fermerPair(id) {
             var p=pairs.get(id);if(!p)return;pairs.delete(id);p.ferme=true;
             p.attentesSignal.forEach(function(a){clearTimeout(a.timer);a.resolve();});p.attentesSignal.clear();
@@ -21,10 +49,10 @@
         async function envoyerAvecReprise(p,id,cle,type,sdp) {
             var delai=2000;
             while(courant && !p.ferme) {
-                try {await canal.envoyer(id,cle,type,sdp);return;}
+                try {await canal.envoyer(id,cle,type,sdp);p.erreurEnvoi=null;return;}
                 catch(e) {
                     if(!courant || p.ferme)return;
-                    statut('signalisation-interrompue',e);
+                    p.erreurEnvoi=e || new Error('voice-send-error');statut('signalisation-interrompue',e);
                     await new Promise(function(resolve){var attente={resolve:resolve,timer:null};attente.timer=setTimeout(function(){p.attentesSignal.delete(attente);resolve();},delai);p.attentesSignal.add(attente);});
                     delai=Math.min(delai*2,30000);
                 }
@@ -163,8 +191,8 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
         async function demarrer() {
             if(!courant)return;
             try {operationJoindre=canal.joindre(instance);var identite=await operationJoindre;if(!courant)return;if(typeof identite==='string' && identite)uid=identite;
-                arrets.push(canal.presences(actualiser,erreur));
-                arrets.push(canal.signaux(appliquer,erreur));
+                arrets.push(ecouter('presences',actualiser));
+                arrets.push(ecouter('signaux',appliquer));
                 pret=true;actualiser(dernieresPresences);statut('pret');}
             catch(e){erreur(e);fermer();throw e;}
         }
@@ -232,7 +260,9 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
                 }));
             }
             var avant=await mesures();await new Promise(function(resolve){setTimeout(resolve,2000);});var apres=await mesures();
-            var resultat={participants:0,connectes:0,enAttente:0,enEchec:0,mesurablesEmission:0,mesurablesReception:0,emission:0,reception:0};
+            var erreurs=[erreursEcoute.presences,erreursEcoute.signaux].concat(liste.map(function(p){return p.erreurEnvoi;})).filter(Boolean);
+            var signalisationErreur=erreurs.some(function(e){return e.code==='permission-denied' || e.code==='unauthenticated';})?'refus':erreurs.length?'interrompue':'';
+            var resultat={participants:0,connectes:0,enAttente:0,enEchec:0,mesurablesEmission:0,mesurablesReception:0,emission:0,reception:0,signalisationErreur:signalisationErreur};
             liste.forEach(function(p,i){
                 if(p.ferme)return;resultat.participants++;
                 if(p.pc.connectionState==='connected')resultat.connectes++;

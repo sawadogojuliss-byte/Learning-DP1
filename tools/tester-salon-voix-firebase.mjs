@@ -45,7 +45,7 @@ try {
   await h2.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ih2),audible(g.page,ih2)]);
   await g.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ig),audible(h2.page,ig)]);
   const diag=await g.page.evaluate(()=>voice.diagnostic());assert.equal(diag.connectes,2);assert.equal(diag.reception,2);assert.equal(diag.emission,2);
-  assert.deepEqual(Object.keys(diag).sort(),['participants','connectes','enAttente','enEchec','mesurablesEmission','mesurablesReception','emission','reception'].sort());
+  assert.deepEqual(Object.keys(diag).sort(),['participants','connectes','enAttente','enEchec','mesurablesEmission','mesurablesReception','emission','reception','signalisationErreur'].sort());assert.equal(diag.signalisationErreur,'');
   // Dépasse deux battements de présence à 30 secondes : aucune coupure.
   await new Promise(resolve=>setTimeout(resolve,65000));
   await Promise.all([audible(h.page,ih2),audible(h2.page,ih),audible(g.page,ih)]);

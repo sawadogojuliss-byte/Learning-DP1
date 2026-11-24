@@ -103,6 +103,7 @@ jobs:
             node travail/tools/tester-salon-coeur.cjs
             node travail/tools/tester-salon-transport.cjs
             node travail/tools/tester-salon-voix-courses.cjs
+            node travail/tools/tester-salon-voix-ecoutes.cjs
             node travail/tools/tester-salon-voix-liaison.cjs
             node travail/tools/tester-citations-motivation.cjs
             cmp travail/js/pages/pomodoro-parametres.js site/js/pages/pomodoro-parametres.js
