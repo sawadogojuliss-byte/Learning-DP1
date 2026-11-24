@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Créer une clé privée pour Studyplan</title>
+<style>
+body{font-family:system-ui,sans-serif;color:#17211d;background:#f1f7f3;margin:0;padding:1.2rem;line-height:1.55}main{max-width:36rem;margin:3rem auto;background:white;border:1px solid #d8e7de;border-radius:1rem;padding:1.4rem;box-shadow:0 8px 30px #1232}h1{font-size:1.45rem;margin-top:0}button{font:inherit;font-weight:700;color:white;background:#047857;border:0;border-radius:.6rem;padding:.8rem 1rem;cursor:pointer;margin:.35rem .3rem .35rem 0}button:disabled{opacity:.5}textarea{display:block;box-sizing:border-box;width:100%;font:1rem monospace;overflow-wrap:anywhere;padding:.8rem;border:1px solid #94a3b8;border-radius:.5rem;resize:none}p.note{background:#fffbeb;padding:.8rem;border-radius:.5rem}#statut{min-height:1.5rem;color:#065f46}
+</style>
+</head>
+<body><main>
+<h1>Créer une clé privée pour le mail</h1>
+<p>La clé est créée sur cet appareil. Ce fichier ne l’envoie et ne l’enregistre nulle part.</p>
+<p class="note"><strong>Ne partage pas cette clé</strong> dans une conversation ou une capture d’écran. Conserve-la dans ton gestionnaire de mots de passe : elle sera nécessaire dans Apps Script et Firebase.</p>
+<button type="button" id="creer">Créer une nouvelle clé</button>
+<label for="cle">Clé générée :</label>
+<textarea id="cle" rows="3" readonly spellcheck="false" placeholder="Appuie sur Créer une nouvelle clé"></textarea>
+<button type="button" id="copier" disabled>Copier la clé</button>
+<p id="statut" role="status"></p>
+</main>
+<script>
+(function () {
+  var cle = document.getElementById('cle'), statut = document.getElementById('statut'), copier = document.getElementById('copier');
+  document.getElementById('creer').addEventListener('click', function () {
+    if (!window.crypto || !window.crypto.getRandomValues) { statut.textContent = 'La génération sécurisée n’est pas disponible dans ce navigateur.'; return; }
+    var octets = new Uint8Array(32); window.crypto.getRandomValues(octets);
+    cle.value = Array.prototype.map.call(octets, function (n) { return n.toString(16).padStart(2, '0'); }).join('');
+    copier.disabled = false; statut.textContent = 'Clé créée. Copie-la sans la partager.';
+  });
+  copier.addEventListener('click', function () {
+    function selectionner() { cle.focus(); cle.select(); statut.textContent = 'Sélectionne et copie la clé manuellement.'; }
+    if (!navigator.clipboard || !navigator.clipboard.writeText) { selectionner(); return; }
+    navigator.clipboard.writeText(cle.value).then(function () { statut.textContent = 'Clé copiée. Ne la colle que dans Apps Script et Firebase.'; }, selectionner);
+  });
+}());
+</script></body></html>

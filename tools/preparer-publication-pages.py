@@ -59,6 +59,7 @@ for rel, expected_hash in {
 shutil.copytree(base, output)
 
 files = [
+    'livrables/generer-cle-mail.html',
     'livrables/propositions-pomodoro/index.html',
     'livrables/publication-voix/vingte-une-minute-essai.mp3',
     'livrables/publication-voix/essai-annonce-masculine.mp3',
