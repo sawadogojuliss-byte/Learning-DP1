@@ -49,6 +49,19 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  await assert.rejects(a.modifier(1,{chrono:debut}),e=>e.code==='revision-conflict');
  docs.get('salons_focus/'+a.id+'/membres/host-1').pseudo='Organisateur';await host.reprendre(a.id);assert.equal(docs.get('salons_focus/'+a.id+'/membres/host-1').pseudo,'Julien Test','nom restauré à la reprise');
  const g=await guest.rejoindre(a.id,'Camille');assert.ok(Math.abs(g.maintenant()-Date.now())<2000,'horloge invitée recalée');assert.equal(hostAuth.user.uid,'host-1','le compte principal reste connecté');assert.equal(guestAuth.persistence,'SESSION');
+ // Contrat du futur service TURN : aucun appel par défaut ; identité de la
+ // session invitée, HTTPS, pas de cookies ni de redirection, et pas de secret local.
+ assert.equal(await g.obtenirServeursVoix(),null);
+ const vraiFetch=global.fetch;let requete;
+ try {
+  guestAuth.user.getIdToken=async()=> 'jeton-test-fictif';global.STUDYPLAN_TURN_ENDPOINT='https://turn.exemple.test/credentials';
+  global.fetch=async(url,options)=>{requete={url,options};return {ok:true,json:async()=>({iceServers:[],expireLe:123})}};
+  assert.deepEqual(await g.obtenirServeursVoix(),{iceServers:[],expireLe:123});
+  assert.equal(requete.url,'https://turn.exemple.test/credentials');assert.equal(requete.options.headers.Authorization,'Bearer jeton-test-fictif');
+  assert.deepEqual(JSON.parse(requete.options.body),{salonId:a.id});assert.equal(requete.options.credentials,'omit');assert.equal(requete.options.redirect,'error');assert.equal(requete.options.cache,'no-store');
+  global.STUDYPLAN_TURN_ENDPOINT='http://turn.exemple.test/credentials';await assert.rejects(g.obtenirServeursVoix(),e=>e.code==='turn-config-invalid');
+ } finally {delete global.STUDYPLAN_TURN_ENDPOINT;global.fetch=vraiFetch;delete guestAuth.user.getIdToken;}
+
  guestDB.perdreAccuse=true;await assert.rejects(g.envoyerMessage('Bonjour'),/accusé perdu/);await g.envoyerMessage('Bonjour');
  assert.equal([...docs.keys()].filter(k=>k.startsWith('salons_focus/'+a.id+'/messages/')).length,1,'réessayer après accusé perdu ne duplique pas');
  await g.envoyerMessage('Bonjour');assert.equal([...docs.keys()].filter(k=>k.startsWith('salons_focus/'+a.id+'/messages/')).length,2,'un nouvel envoi identique confirmé reste possible');

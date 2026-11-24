@@ -93,6 +93,7 @@
         var instance=Array.from(octets,function(n){return n.toString(16).padStart(2,'0');}).join('');
         statut('salonVoixStatut','Connexion vocale…');
         var voix=conversation=window.SalonVoix.creer({uid:s.uid,instance:instance,canal:s.creerCanalVoix(),
+            obtenirServeurs:typeof s.obtenirServeursVoix==='function'?function(signal){return s.obtenirServeursVoix(signal);}:null,
             statut:function(etat,detail){
                 if(generation!==generationConversation)return;
                 if(etat==='pret'){conversationPrete=true;statut('salonVoixStatut','Micro coupé · écoute activée');}
@@ -167,6 +168,8 @@
             else if(!d.reception)message='Liaison audio établie, mais aucune donnée vocale reçue pendant le test. Demande à l’autre personne d’activer son micro et de parler.';
             else if(Array.from(sonsVoix.values()).some(function(el){return el.paused || el.muted || el.volume===0;}))message='Des données vocales arrivent, mais la lecture semble bloquée. Appuie sur « Activer l’écoute » et vérifie le volume.';
             else message='Des données vocales arrivent et la lecture est activée. Si tu n’entends rien, vérifie le volume et le périphérique de sortie.';
+            if(!d.connectes && d.participants && d.relais==='absent')message+=' Aucun relais TURN n’est configuré pour les réseaux qui en ont besoin.';
+            if(!d.connectes && d.participants && d.relais==='indisponible')message+=' Le relais vocal n’est pas disponible ; la connexion directe reste tentée.';
             if(microActif && d.mesurablesEmission && !d.emission)message+=' Ton micro est activé, mais aucune donnée n’a été envoyée pendant le test : vérifie-le si tu parlais.';
             statut('salonVoixDiagnosticResultat',message);
         } catch(e) {if(generation===generationConversation)statut('salonVoixDiagnosticResultat','Impossible de vérifier la liaison sur ce navigateur.');}

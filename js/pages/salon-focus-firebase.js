@@ -150,6 +150,20 @@
             /* Signalisation SDP par Firestore, distincte de la voix chiffrée WebRTC.
                Les adresses réseau peuvent figurer dans les descriptions SDP :
                seul le destinataire peut lire les signaux selon les règles. */
+            async function obtenirServeursVoix(signal) {
+                // L'URL est facultative et doit désigner un service HTTPS de
+                // confiance. Le secret du relais ne doit jamais être ici.
+                var endpoint=root.STUDYPLAN_TURN_ENDPOINT;
+                if(!endpoint)return null;
+                var url;try {url=new URL(endpoint);} catch(e) {throw erreur('turn-config-invalid');}
+                if(url.protocol!=='https:' || url.username || url.password || url.hash)throw erreur('turn-config-invalid');
+                if(ferme || !contexte.user || typeof contexte.user.getIdToken!=='function')throw erreur('turn-auth-unavailable');
+                var jeton=await contexte.user.getIdToken();
+                if(signal && signal.aborted)throw erreur('turn-cancelled');
+                var response=await fetch(url.href,{method:'POST',headers:{'Authorization':'Bearer '+jeton,'Content-Type':'application/json'},body:JSON.stringify({salonId:id}),credentials:'omit',cache:'no-store',redirect:'error',referrerPolicy:'no-referrer',signal:signal});
+                if(!response.ok)throw erreur('turn-unavailable');
+                return response.json();
+            }
             function creerCanalVoix() {
                 var collection=room.collection('salon_voix_presence'), personnel=null;
                 var actif=false, battementVoix=null, instanceActuelle='', fileSignal=Promise.resolve();
@@ -245,7 +259,7 @@
                 await arreterPresence();
                 try {await db.runTransaction(async function(tx){var d=objet(await tx.get(room));if(d.organisateurUid!==contexte.user.uid)throw erreur('permission-denied');if(d.ferme)return;tx.update(room,{ferme:true,revision:d.revision+1});});ferme=true;} catch(e) {demarrerPresence();throw e;}
             }
-            return {id:id,uid:contexte.user.uid,role:role,identite:contexte.user.isAnonymous?'invite':'compte',transferer:transferer,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence,observerMessages:observerMessages,envoyerMessage:envoyerMessage,creerCanalVoix:creerCanalVoix};
+            return {id:id,uid:contexte.user.uid,role:role,identite:contexte.user.isAnonymous?'invite':'compte',transferer:transferer,maintenant:maintenant,observer:observer,modifier:modifier,quitter:quitter,fermer:fermer,actualiserPresence:actualiserPresence,observerMessages:observerMessages,envoyerMessage:envoyerMessage,creerCanalVoix:creerCanalVoix,obtenirServeursVoix:obtenirServeursVoix};
         }
         async function creer(donnees) {
             var contexte=await organisateur(), delta=await heureServeur(contexte);

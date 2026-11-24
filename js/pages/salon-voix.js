@@ -5,6 +5,23 @@
         var canal=options.canal, uid=options.uid, instance=options.instance, statut=options.statut||function(){}, audioRecu=options.audioRecu||function(){}, audioRetire=options.audioRetire||function(){};
         var creerConnexion=options.creerConnexion||function(config){return new RTCPeerConnection(config);};
         var rtc=options.iceServers||[{urls:'stun:stun.l.google.com:19302'}];
+        var relais='absent', controleRelais=null;
+        function verifierRelais(d) {
+            // Les salons expirent après 12 h. Un seul jeu d'identifiants doit
+            // couvrir la session entière : ne jamais conserver une allocation
+            // TURN dont l'authentification expirerait pendant l'appel.
+            if(!d || !Number.isFinite(d.expireLe) || d.expireLe<Date.now()+13*60*60*1000 || d.expireLe>Date.now()+48*60*60*1000 || !Array.isArray(d.iceServers) || !d.iceServers.length || d.iceServers.length>8)return null;
+            var turn=false, serveurs=[];
+            for(var i=0;i<d.iceServers.length;i++) {
+                var s=d.iceServers[i], urls=s && (Array.isArray(s.urls)?s.urls:[s.urls]);
+                if(!urls || !urls.length || urls.length>8 || urls.some(function(u){return typeof u!=='string' || u.length>512 || !/^(stun|stuns|turn|turns):[^\s@]+$/i.test(u);}))return null;
+                var estTurn=urls.some(function(u){return /^turns?:/i.test(u);});
+                if(estTurn && (typeof s.username!=='string' || !s.username || s.username.length>512 || typeof s.credential!=='string' || !s.credential || s.credential.length>1024))return null;
+                if(estTurn)turn=true;
+                serveurs.push(estTurn?{urls:urls,username:s.username,credential:s.credential}:{urls:urls});
+            }
+            return turn?serveurs:null;
+        }
         var pairs=new Map(), presents=new Map(), attente=[], arrets=[], courant=true, flux=null, versionMicro=0, pret=false;
         var maxPairs=7, dernieresPresences=[], operationJoindre=null, fermeture=null;
         var microSouhaite=false, repriseMicro=null, delaiReprise=2000, erreursEcoute={presences:null,signaux:null};
@@ -190,7 +207,21 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
         }
         async function demarrer() {
             if(!courant)return;
-            try {operationJoindre=canal.joindre(instance);var identite=await operationJoindre;if(!courant)return;if(typeof identite==='string' && identite)uid=identite;
+            try {
+                if(typeof options.obtenirServeurs==='function') {
+                    controleRelais=typeof AbortController==='function'?new AbortController():null;
+                    var timerRelais;
+                    try {
+                        var configuration=await Promise.race([
+                            Promise.resolve().then(function(){return options.obtenirServeurs(controleRelais && controleRelais.signal);}),
+                            new Promise(function(_,rejeter){timerRelais=setTimeout(function(){if(controleRelais)controleRelais.abort();rejeter(new Error('turn-timeout'));},10000);})
+                        ]);
+                        if(!courant)return;
+                        if(configuration){var serveurs=verifierRelais(configuration);if(!serveurs)throw new Error('turn-configuration-invalide');rtc=rtc.concat(serveurs);relais='configure';}
+                    } catch(e) {if(!courant)return;relais='indisponible';statut('relais-indisponible');}
+                    finally {clearTimeout(timerRelais);controleRelais=null;}
+                }
+                operationJoindre=canal.joindre(instance);var identite=await operationJoindre;if(!courant)return;if(typeof identite==='string' && identite)uid=identite;
                 arrets.push(ecouter('presences',actualiser));
                 arrets.push(ecouter('signaux',appliquer));
                 pret=true;actualiser(dernieresPresences);statut('pret');}
@@ -262,7 +293,7 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
             var avant=await mesures();await new Promise(function(resolve){setTimeout(resolve,2000);});var apres=await mesures();
             var erreurs=[erreursEcoute.presences,erreursEcoute.signaux].concat(liste.map(function(p){return p.erreurEnvoi;})).filter(Boolean);
             var signalisationErreur=erreurs.some(function(e){return e.code==='permission-denied' || e.code==='unauthenticated';})?'refus':erreurs.length?'interrompue':'';
-            var resultat={participants:0,connectes:0,enAttente:0,enEchec:0,mesurablesEmission:0,mesurablesReception:0,emission:0,reception:0,signalisationErreur:signalisationErreur};
+            var resultat={participants:0,connectes:0,enAttente:0,enEchec:0,mesurablesEmission:0,mesurablesReception:0,emission:0,reception:0,signalisationErreur:signalisationErreur,relais:relais};
             liste.forEach(function(p,i){
                 if(p.ferme)return;resultat.participants++;
                 if(p.pc.connectionState==='connected')resultat.connectes++;
@@ -275,6 +306,7 @@ presents=new Map(valides.map(function(x){return [x.uid,x.instance];}));
         }
         function fermer() {
             if(!courant)return fermeture || Promise.resolve();courant=false;versionMicro++;microSouhaite=false;annulerRepriseMicro();pret=false;
+            if(controleRelais)controleRelais.abort();
             if(flux)flux.getTracks().forEach(function(t){t.stop();});flux=null;
             pairs.forEach(function(_,id){fermerPair(id);});arrets.forEach(function(f){if(typeof f==='function')f();});arrets=[];
             fermeture=Promise.resolve(operationJoindre).catch(function(){}).then(function(){return canal.quitter(instance);}).catch(function(){});return fermeture;

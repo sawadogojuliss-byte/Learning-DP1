@@ -103,6 +103,7 @@ jobs:
             node travail/tools/tester-salon-coeur.cjs
             node travail/tools/tester-salon-transport.cjs
             node travail/tools/tester-salon-voix-courses.cjs
+            node travail/tools/tester-salon-voix-turn.cjs
             node travail/tools/tester-salon-voix-ecoutes.cjs
             node travail/tools/tester-salon-voix-liaison.cjs
             node travail/tools/tester-citations-motivation.cjs
@@ -129,7 +130,7 @@ jobs:
           STUDY_PLAYWRIGHT_SYSTEM: '1'
         run: |
           set -euo pipefail
-          npm install --prefix /tmp/study-test playwright
+          npm install --prefix /tmp/study-test playwright node-turn@0.0.6
           /tmp/study-test/node_modules/.bin/playwright install --with-deps chromium
           executer_test() {
             local fichier="$1" journal detail
@@ -193,6 +194,7 @@ jobs:
           executer_test travail/tools/tester-citations-categories.mjs
           executer_test travail/tools/tester-salon-voix-multi.mjs
           executer_test travail/tools/tester-salon-voix-lan.mjs
+          executer_test travail/tools/tester-salon-voix-relais.mjs
           executer_test travail/tools/tester-salon-voix-interface.mjs
           STUDY_TEST_BLOQUE_LECTURE=1 executer_test travail/tools/tester-salon-voix-interface.mjs
           STUDY_TEST_ATTENTE_LECTURE=1 executer_test travail/tools/tester-salon-voix-interface.mjs

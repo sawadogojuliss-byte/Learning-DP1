@@ -24,7 +24,7 @@ async function participant(uid,provider) {
   window.start=async s=>{
     window.s=s;window.stop=s.observer(()=>{},e=>errors.push('observer:'+String(e)));
     const a=crypto.getRandomValues(new Uint8Array(16)),instance=Array.from(a,n=>n.toString(16).padStart(2,'0')).join('');
-    window.voice=SalonVoix.creer({uid:s.uid,instance,canal:s.creerCanalVoix(),statut:(state,e)=>{events.push(state);if(state==='erreur'||state==='remplace'||state==='connexion-impossible')errors.push(state+':'+String(e))},
+    window.voice=SalonVoix.creer({uid:s.uid,instance,canal:s.creerCanalVoix(),obtenirServeurs:signal=>s.obtenirServeursVoix(signal),statut:(state,e)=>{events.push(state);if(state==='erreur'||state==='remplace'||state==='connexion-impossible')errors.push(state+':'+String(e))},
       audioRecu:(id,stream)=>{const el=document.createElement('audio');el.srcObject=stream;el.autoplay=true;el.playsInline=true;document.body.appendChild(el);el.play().catch(e=>errors.push('play:'+String(e)));const source=ctx.createMediaStreamSource(stream),analyser=ctx.createAnalyser(),gain=ctx.createGain();gain.gain.value=.01;source.connect(analyser).connect(gain).connect(ctx.destination);incoming[id]={el,source,analyser,gain}},
       audioRetire:id=>{const x=incoming[id];if(x){x.el.remove();x.source.disconnect();x.gain.disconnect();delete incoming[id]}}
     });await voice.demarrer();
@@ -45,7 +45,7 @@ try {
   await h2.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ih2),audible(g.page,ih2)]);
   await g.page.evaluate(()=>voice.micro(true));await Promise.all([audible(h.page,ig),audible(h2.page,ig)]);
   const diag=await g.page.evaluate(()=>voice.diagnostic());assert.equal(diag.connectes,2);assert.equal(diag.reception,2);assert.equal(diag.emission,2);
-  assert.deepEqual(Object.keys(diag).sort(),['participants','connectes','enAttente','enEchec','mesurablesEmission','mesurablesReception','emission','reception','signalisationErreur'].sort());assert.equal(diag.signalisationErreur,'');
+  assert.deepEqual(Object.keys(diag).sort(),['participants','connectes','enAttente','enEchec','mesurablesEmission','mesurablesReception','emission','reception','signalisationErreur','relais'].sort());assert.equal(diag.signalisationErreur,'');assert.equal(diag.relais,'absent');
   // Dépasse deux battements de présence à 30 secondes : aucune coupure.
   await new Promise(resolve=>setTimeout(resolve,65000));
   await Promise.all([audible(h.page,ih2),audible(h2.page,ih),audible(g.page,ih)]);
