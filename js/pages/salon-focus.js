@@ -119,9 +119,14 @@
                 versionEcoute++;
                 if(!el){el=document.createElement('audio');el.autoplay=true;el.playsInline=true;el.hidden=true;document.body.appendChild(el);sonsVoix.set(id,el);}
                 el.srcObject=flux;el.muted=false;el.volume=1;
-                var numero=el._salonLecture=(el._salonLecture||0)+1, lecture;
+                var numero=el._salonLecture=(el._salonLecture||0)+1, lecture, fini=false;
+                // Sur mobile play() peut rester indéfiniment en attente, sans
+                // rejet : proposer aussi un geste explicite dans ce cas.
+                var attenteLecture=setTimeout(function(){
+                    if(!fini && generation===generationConversation && sonsVoix.get(id)===el && el._salonLecture===numero){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » si tu n’entends pas le groupe.');}
+                },3000);
                 try {lecture=el.play();} catch(e) {lecture=Promise.reject(e);}
-                Promise.resolve(lecture).catch(function(e){if(generation===generationConversation && sonsVoix.get(id)===el && el._salonLecture===numero && (!e || e.name!=='AbortError')){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » pour entendre le groupe.');}});
+                Promise.resolve(lecture).then(function(){fini=true;clearTimeout(attenteLecture);},function(e){fini=true;clearTimeout(attenteLecture);if(generation===generationConversation && sonsVoix.get(id)===el && el._salonLecture===numero && (!e || e.name!=='AbortError')){$('salonVoixEcoute').hidden=false;statut('salonVoixStatut','Appuie sur « Activer l’écoute » pour entendre le groupe.');}});
             },audioRetire:retirerSonVoix
         });
         fermetureConversation.then(function(){if(generation===generationConversation && voix===conversation)return voix.demarrer();}).catch(function(e){if(generation!==generationConversation)return;conversationPrete=false;conversation=null;statut('salonVoixStatut',e && e.code==='voice-device-limit'?'Quatre appareils de ce compte sont déjà en conversation. Ferme la voix sur un appareil puis réessaie.':'Connexion vocale indisponible. Vérifie les règles du salon puis réessaie.');$('salonVoixReessayer').hidden=false;peindreMicro();});

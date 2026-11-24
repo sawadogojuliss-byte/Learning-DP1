@@ -16,6 +16,7 @@ class Ref {
 class Coll {
  constructor(db,path){this.db=db;this.path=path}
  doc(id){return new Ref(this.db,this.path+'/'+(id||crypto.randomUUID().replace(/-/g,'').slice(0,20)))}
+ orderBy(){return this} limit(){return this}
  onSnapshot(opts,cb,err){let item={path:this.path,cb,err,type:'collection'};ecoutes.push(item);queueMicrotask(()=>notifier(item));return()=>{ecoutes.splice(ecoutes.indexOf(item),1)}}
 }
 function notifier(item){if(item.type==='doc')return item.cb(snapshot(item.path));const prefix=item.path+'/';const liste=[...docs.keys()].filter(k=>k.startsWith(prefix)&&!k.slice(prefix.length).includes('/')).map(snapshot);item.cb({docs:liste,metadata:{fromCache:false,hasPendingWrites:false}});}
@@ -51,6 +52,17 @@ const donnees={nom:'Salon A',options:{theme:true},partage:{theme:'foret',citatio
  guestDB.perdreAccuse=true;await assert.rejects(g.envoyerMessage('Bonjour'),/accusé perdu/);await g.envoyerMessage('Bonjour');
  assert.equal([...docs.keys()].filter(k=>k.startsWith('salons_focus/'+a.id+'/messages/')).length,1,'réessayer après accusé perdu ne duplique pas');
  await g.envoyerMessage('Bonjour');assert.equal([...docs.keys()].filter(k=>k.startsWith('salons_focus/'+a.id+'/messages/')).length,2,'un nouvel envoi identique confirmé reste possible');
+ // Un lot Firestore est trié du plus récent au plus ancien par la requête.
+ // Le moteur doit néanmoins recevoir les descriptions avant les signaux suivants.
+ const canalOrdre=g.creerCanalVoix(), instanceOrdre='a'.repeat(32);
+ const voixOrdre=await canalOrdre.joindre(instanceOrdre), ordre=[];
+ const stopOrdre=canalOrdre.signaux(s=>ordre.push(s.type),e=>{throw e});
+ await new Promise(r=>setTimeout(r,0));
+ const ecouteOrdre=ecoutes.find(x=>x.type==='collection' && x.path.endsWith('/salon_voix_presence/'+voixOrdre+'/salon_voix_signaux'));
+ const docSignal=(id,type,ms)=>({id,data:()=>({type,versInstance:instanceOrdre,creeLe:new Timestamp(ms)}),ref:{delete:async()=>{}}});
+ const maintenant=g.maintenant();ecouteOrdre.cb({metadata:{fromCache:false,hasPendingWrites:false},docs:[docSignal('recent','offer',maintenant),docSignal('ancien','answer',maintenant-1000)]});
+ assert.deepEqual(ordre,['answer','offer'],'un lot reçu ensemble est traité du plus ancien au plus récent');
+ stopOrdre();await canalOrdre.quitter(instanceOrdre);
  assert.equal(await g.actualiserPresence(),true);
  assert.ok(docs.get('salons_focus/'+a.id+'/membres/invite-1').vuLe instanceof Timestamp,'présence horodatée par le serveur');
  const recu=await new Promise((resolve,reject)=>{const stop=g.observer((room,etat)=>{if(etat.connecte){stop();resolve(room)}},reject)});

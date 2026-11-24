@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261215-sans-note';
+var version = '20261216-ecoute-salon';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

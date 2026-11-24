@@ -198,7 +198,10 @@
                     var deja=new Set();
                     return personnel.collection('salon_voix_signaux').orderBy('creeLe','desc').limit(50).onSnapshot({includeMetadataChanges:true},function(snap){
                         if(snap.metadata.fromCache || snap.metadata.hasPendingWrites)return;
-                        snap.docs.forEach(function(doc){
+                        // La requête descendante garde les 50 signaux les plus récents,
+                        // mais ils doivent être appliqués dans l'ordre d'envoi : une
+                        // offre ou réponse peut précéder un candidat dans le même lot.
+                        snap.docs.slice().reverse().forEach(function(doc){
                             if(deja.has(doc.id))return;deja.add(doc.id);var d=doc.data(),ts=d.creeLe && typeof d.creeLe.toMillis==='function'?d.creeLe.toMillis():0;
                             if(ts && maintenant()-ts<120000 && d.versInstance===instanceActuelle) callback(d);
                             doc.ref.delete().catch(function(){});

@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';import path from 'node:path';import {createRequire} from 'node:module';
 const require=createRequire(process.env.STUDY_TEST_MODULES?path.resolve(process.env.STUDY_TEST_MODULES,'../package.json'):import.meta.url);
 const {chromium}=require('playwright');const portable=process.env.STUDY_PLAYWRIGHT_SYSTEM?null:require('@sparticuz/chromium').default;
-const lectureBloquee=process.env.STUDY_TEST_BLOQUE_LECTURE==='1';
+const lectureEnAttente=process.env.STUDY_TEST_ATTENTE_LECTURE==='1';
+const lectureBloquee=process.env.STUDY_TEST_BLOQUE_LECTURE==='1'||lectureEnAttente;
 const politique=lectureBloquee?'--autoplay-policy=user-gesture-required':'--autoplay-policy=no-user-gesture-required';
 const browser=await chromium.launch(portable?{executablePath:await portable.executablePath(),args:[...portable.args.filter(x=>x!=='--single-process' && x!=='--autoplay-policy=no-user-gesture-required'),politique]}:{args:[politique]});
 const base=process.env.STUDY_SITE||'http://127.0.0.1:8653/',id='abcdef0123456789abcdef0123456789abcdef0123456789',clients=new Map(),slots=new Map(),messages=new Map();let room,retarderDepart=false,reprendreDepart=()=>{},notifierDepart=()=>{};const departAppele=new Promise(r=>notifierDepart=r);
@@ -21,15 +22,15 @@ async function backend(uid,op,arg){
  if(op==='voiceDrain'){const m=messages.get(uid)||[];messages.set(uid,[]);return m}
  throw Error('operation '+op);
 }
-async function creer(uid,viewport){const context=await browser.newContext({viewport,isMobile:viewport.width<500,hasTouch:viewport.width<500});await context.exposeFunction('__testBackend',(op,arg)=>backend(uid,op,arg));await context.addInitScript((lectureBloquee)=>{
- if(lectureBloquee){const play=HTMLMediaElement.prototype.play;window.__testDeblocage=false;document.addEventListener('click',e=>{if(e.target && e.target.id==='salonVoixEcoute')window.__testDeblocage=true},true);HTMLMediaElement.prototype.play=function(){if(this.srcObject && !window.__testDeblocage)return Promise.reject(new DOMException('Lecture bloquée','NotAllowedError'));return play.call(this)};}
+async function creer(uid,viewport){const context=await browser.newContext({viewport,isMobile:viewport.width<500,hasTouch:viewport.width<500});await context.exposeFunction('__testBackend',(op,arg)=>backend(uid,op,arg));await context.addInitScript(({lectureBloquee,lectureEnAttente})=>{
+ if(lectureBloquee){const play=HTMLMediaElement.prototype.play;window.__testDeblocage=false;document.addEventListener('click',e=>{if(e.target && e.target.id==='salonVoixEcoute')window.__testDeblocage=true},true);HTMLMediaElement.prototype.play=function(){if(this.srcObject && !window.__testDeblocage)return lectureEnAttente?new Promise(()=>{}):Promise.reject(new DOMException('Lecture bloquée','NotAllowedError'));return play.call(this)};}
  window.__pcs=[];const NativeRTC=window.RTCPeerConnection;window.RTCPeerConnection=class extends NativeRTC{constructor(c){super(c);window.__pcs.push(this)}};
  window.__STUDYPLAN_E2E=true;const call=(op,arg)=>window.__testBackend(op,arg);
  window.__captures=[];window.__ctx=null;Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async()=>{const ctx=window.__ctx||(window.__ctx=new AudioContext());await ctx.resume();const d=ctx.createMediaStreamDestination(),osc=ctx.createOscillator();osc.frequency.value=470;osc.connect(d);osc.start();window.__captures.push(d.stream);return d.stream}}});
  const canal=()=>({joindre:i=>call('voiceJoin',i),quitter:i=>call('voiceQuit',i),envoyer:(dest,versInstance,type,sdp)=>call('voiceSend',{dest,versInstance,type,sdp}),presences(cb){window.__voicePresence=cb;call('voicePresence').then(cb);return()=>window.__voicePresence=null},signaux(cb){window.__voiceDrain=async()=>{for(const d of await call('voiceDrain'))cb(d)};window.__voiceDrain();return()=>window.__voiceDrain=null}});
  const session=s=>({...s,maintenant:()=>Date.now(),observer(cb,err){let stop=false;function lire(){call('read').then(d=>{if(!stop)cb(d,{connecte:true})},e=>{if(!stop)err(e)})}lire();const t=setInterval(lire,250);return()=>{stop=true;clearInterval(t)}},modifier:(revision,changement)=>call('modify',{revision,changement}),quitter:()=>call('leave'),fermer:()=>call('close'),creerCanalVoix:canal});
  window.SALON_FOCUS_TRANSPORT={creer:d=>call('create',d).then(session),rejoindre:(id,pseudo)=>call('join',{id,pseudo}).then(session),apercu:()=>call('preview'),reprendre:()=>Promise.reject(Object.assign(Error('auth-required'),{code:'auth-required'}))};
- },lectureBloquee);const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));clients.set(uid,page);return {page,context,errors}}
+ },{lectureBloquee,lectureEnAttente});const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));clients.set(uid,page);return {page,context,errors}}
 try{
  const h=await creer('host',lectureBloquee?{width:1280,height:720}:{width:390,height:844}),g=await creer('guest',{width:320,height:568}),hp=h.page,gp=g.page;
  await hp.goto(base,{waitUntil:'domcontentloaded'});await hp.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),null,{timeout:60000});
