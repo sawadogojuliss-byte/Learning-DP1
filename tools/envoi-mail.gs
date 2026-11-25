@@ -81,7 +81,10 @@ function assurerSalutation(data) {
 }
 
 function doGet() {
-  return reponse({ success: false, service: 'study-plan-ib', version: 3 });
+  /* Diagnostic public sans clé : une version active et la présence d'une
+     configuration ne confirment ni l'égalité des clés ni la livraison. */
+  var configure = !!PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
+  return reponse({ success: false, service: 'study-plan-ib', version: 4, secretConfigure: configure });
 }
 
 function doPost(e) {
