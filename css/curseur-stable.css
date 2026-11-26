@@ -1,0 +1,8 @@
+/* Ne pas déplacer les zones cliquables au survol : à leurs bords, le mouvement
+   peut alterner sans fin entre pointeur et flèche sous une souris immobile. */
+:is(.menu-item-btn,.mood-btn,.add-choice,.focus-seance,.focus-accueil-continuer,.exo-btn-add,.exo-back-btn,.exo-liste-carte,.slot-chip,.admin-atelier-carte,.admin-nav-lien,.ed-back,.ed-submit,.transport-card,.feature-card,.btn-primary,.btn-hero-primary,.btn-cta,.btn-continue):hover {transform:none!important;}
+/* Une icône ou un libellé décoratif dans une commande garde le même curseur que
+   son parent, sans modifier les vrais champs de saisie et curseurs de glissement. */
+:is(button:not(:disabled),a[href],[role="button"]:not([aria-disabled="true"]),summary) {cursor:pointer;}
+:is(button,a[href],[role="button"],summary) :is(svg,svg *,img,span,strong,em,i) {cursor:inherit;}
+#eventsContainer [data-v3-idx]:hover {transform:none!important;}

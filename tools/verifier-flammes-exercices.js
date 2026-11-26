@@ -107,6 +107,7 @@ function creerNuage() {
   }
   const db = { collection: (c) => ({ doc: (id) => doc(c, id), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }),
     where: () => ({ orderBy: () => ({ limit: () => ({ get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }), get: () => Promise.resolve({ docs: [], empty: true, forEach() {} }) }) }) };
+  require('./nuage-factice.cjs')(db);
   return { docs, journal, ecoutes, db };
 }
 function firebaseFactice(nuage, uid, user) {
@@ -296,6 +297,7 @@ const fiche = (nuage) => nuage.docs['documents/' + SUB] || nuage.docs['documents
   lire(c, 'boiteFlammes()');
   verif('F2 lendemain, autre téléphone : 11 flammes', lire(c, "localStorage.getItem('studyPlanIB_flamme')"), '11');
   verif('F3 lendemain : la nouvelle valeur est dans le nuage sans action de l\'élève', fiche(nuage).flammes, 11);
+  verif('F3b fiche admin : date et série du lendemain', fiche(nuage).flammeJour, cleJour(new Date(Date.now() + 86400000)));
   await attendre(800);
   verif('F4 lendemain : le téléphone resté ouvert (A) affiche 11', lire(a, "localStorage.getItem('studyPlanIB_flamme')"), '11');
 

@@ -1,10 +1,10 @@
 /* ============================================================
    STATISTIQUES du minuteur — Paramètres > Statistiques
 
-   Les chiffres viennent des minuteurs de révision de cet appareil :
+   Les chiffres viennent des minuteurs de révision :
    chaque concentration ou pause qui se termine, chaque lancement,
    chaque tâche cochée est notée dans studyPlanIB_statsFocus.
-   Rien n'est envoyé vers Firestore ni vers un autre téléphone.
+   Le journal est inclus dans la progression du compte connecté.
 
    Types d'entrées :
      lance    : une concentration démarrée à zéro
@@ -12,7 +12,7 @@
      short    : une pause courte terminée (m = minutes)
      long     : une pause longue terminée (m = minutes)
      tache    : une tâche cochée (id = identifiant de la tâche)
-   Ordre des scripts : après pomodoro-page.js dans js/registre.js.
+   Ordre des scripts : avant pomodoro-page.js dans js/registre.js.
    ============================================================ */
 
 var STATS_CLE = 'studyPlanIB_statsFocus';
@@ -40,10 +40,10 @@ function statsCleJour(date) {
 
 function statsLire() {
     var brut = [];
-    try { brut = JSON.parse(localStorage.getItem(STATS_CLE) || '[]'); } catch (e) { brut = []; }
+    try { brut = typeof syncStatsLire === 'function' ? syncStatsLire() : JSON.parse(localStorage.getItem(STATS_CLE) || '[]'); } catch (e) { brut = []; }
     if (!Array.isArray(brut)) return [];
     return brut.filter(function (e) {
-        return e && typeof e === 'object'
+        return e && typeof e === 'object' && !e.supprime
             && /^\d{4}-\d{2}-\d{2}$/.test(String(e.d || ''))
             && STATS_TYPES.indexOf(e.k) !== -1;
     });
@@ -55,23 +55,27 @@ function statsEcrire(liste) {
 
 function statsEnregistrer(evt) {
     if (!evt || STATS_TYPES.indexOf(evt.k) === -1) return;
-    var liste = statsLire();
+    var liste = typeof syncStatsLire === 'function' ? syncStatsLire() : statsLire();
     var entree = { k: evt.k, d: statsCleJour(new Date()) };
+    if (typeof syncStatsId === 'function') entree.u = syncStatsId();
     if (evt.m) entree.m = Math.max(1, Math.round(Number(evt.m) || 0));
     if (evt.s) entree.s = String(evt.s).slice(0, 60);
     if (evt.id !== undefined && evt.id !== null) entree.id = String(evt.id).slice(0, 60);
     liste.push(entree);
     statsEcrire(liste);
+    if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
 }
 
 /* Une tâche décochée n'est plus comptée : on retire sa dernière coche. */
 function statsRetirerTache(id) {
-    var liste = statsLire();
+    var liste = typeof syncStatsLire === 'function' ? syncStatsLire() : statsLire();
     var texte = String(id);
     for (var i = liste.length - 1; i >= 0; i--) {
-        if (liste[i].k === 'tache' && liste[i].id === texte) {
-            liste.splice(i, 1);
+        if (liste[i].k === 'tache' && liste[i].id === texte && !liste[i].supprime) {
+            if (liste[i].u) liste[i].supprime = true;
+            else liste.splice(i, 1);
             statsEcrire(liste);
+            if (typeof memoireSauvegarder === 'function') memoireSauvegarder();
             return;
         }
     }

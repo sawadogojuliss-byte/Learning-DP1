@@ -135,6 +135,8 @@ function habitudesSuiteEffective() {
 }
 
 function habitudesErreur(message) {
+    var statut = document.getElementById('habitsSaved');
+    if (statut) statut.textContent = '';
     var el = document.getElementById('habitsError');
     if (!el) return;
     el.style.display = message ? 'block' : 'none';
@@ -172,8 +174,9 @@ function peindreChoixRepas(cle, choix) {
     var actif = choix === 'heure';
     var aucun = choix === 'aucun';
     if (heureBtn) {
-        heureBtn.style.background = actif ? (cle === 'diner' ? '#ecfdf5' : '#faf5ff') : 'white';
-        heureBtn.style.borderColor = actif ? (cle === 'diner' ? '#10b981' : '#a855f7') : (cle === 'diner' ? '#a7f3d0' : '#e9d5ff');
+        heureBtn.style.background = actif ? '#ecfdf5' : 'white';
+        heureBtn.style.borderColor = actif ? '#10b981' : '#a7f3d0';
+        heureBtn.style.color = '#065f46';
     }
     if (aucunBtn) {
         aucunBtn.style.background = aucun ? '#f3f4f6' : 'white';
@@ -211,8 +214,22 @@ function renderHabitudes() {
     peindreChoixRepas('diner', b.dinerChoix);
 }
 
+/* Les deux parcours partagent les mêmes champs, jamais deux formulaires actifs. */
+function routineChangerVue(id, ancien) {
+    var modal = document.getElementById(id + 'Modal');
+    var modele = document.getElementById(id + 'AncienModele');
+    if (!modal || !modele) return;
+    var mode = ancien ? 'profil' : 'section';
+    if (modal.dataset.routineMode === mode) return;
+    if (!modal.dataset.routineMode) modal._routineSectionHTML = modal.innerHTML;
+    modal.innerHTML = ancien ? modele.innerHTML : modal._routineSectionHTML;
+    modal.classList.toggle('routine-page', !ancien);
+    modal.dataset.routineMode = mode;
+}
+
 function showHabitsPage(suite) {
     habitudesSuite = suite === 'planning' ? 'planning' : 'transport';
+    routineChangerVue('habits', habitudesSuite !== 'planning');
     habitudesBrouillon = habitudesBrouillonInitial();
     document.querySelectorAll('.context-modal').forEach(function (el) {
         if (el.id !== 'habitsModal') el.classList.remove('active');
@@ -233,6 +250,7 @@ function hideHabitsPage() {
     if (habitudesSuiteEffective() === 'planning') {
         var planning = document.getElementById('planningModal');
         if (planning) planning.classList.add('active');
+        if (typeof renderPlanning === 'function') renderPlanning();
         return;
     }
     var sleep = document.getElementById('sleepModal');
@@ -364,7 +382,7 @@ function appliquerHabitudes(data) {
     habitudesBrouillon = null;
 }
 
-function validateHabits() {
+function validateHabits(rester) {
     if (!habitudesBrouillon) habitudesBrouillon = habitudesBrouillonInitial();
     var matinDebut = document.getElementById('prepMatinDebutInput');
     var matinFin = document.getElementById('prepMatinFinInput');
@@ -401,6 +419,14 @@ function validateHabits() {
     habitudesOublierCorrections();
     if (typeof memoireSauvegarder === 'function') {
         try { memoireSauvegarder(); } catch (e) {}
+    }
+    if (rester === true && habitudesSuiteEffective() === 'planning') {
+        habitudesBrouillon = habitudesBrouillonInitial();
+        habitudesErreur('');
+        renderHabitudes();
+        var statut = document.getElementById('habitsSaved');
+        if (statut) statut.textContent = 'Tes habitudes sont enregistrées et ton planning est à jour.';
+        return;
     }
     var modal = document.getElementById('habitsModal');
     if (modal) modal.classList.remove('active');

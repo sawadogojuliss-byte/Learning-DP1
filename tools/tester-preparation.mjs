@@ -699,13 +699,13 @@ if (feriesE2E.demainIdx > 6) {
     }
 }
 
-/* 9. le bouton Continuer de la page Emploi du temps mène vraiment au
-   planning (la page se ferme), et le Retour y ramène depuis le menu */
+/* 9. le Retour de la page Emploi du temps mène vraiment au planning.
+   L'ancien bouton Continuer reste seulement dans le parcours d'inscription. */
 await page.evaluate(() => { showEmploiPage(); });
 if (!await page.evaluate(() => document.getElementById('emploiModal').classList.contains('active'))) {
     echec("la page Emploi du temps ne s'ouvre pas");
 }
-await page.click('#emploiModal .btn-continue');
+await page.click('#emploiModal .btn-back');
 await page.waitForFunction(() =>
     !document.getElementById('emploiModal').classList.contains('active') &&
     document.getElementById('planningModal').classList.contains('active'), null, { timeout: 15000 });
@@ -839,8 +839,11 @@ const gardeSeances = await page.evaluate(() => {
     focusEntrerPiece(true);
     resultat.blocageLibre = document.getElementById('panelSeances').classList.contains('active');
     focusEntrerPiece();
+    if (document.getElementById('focusChoixSeance').open) focusConfirmerChoixSeance();
     resultat.ouvertureActuelle = document.getElementById('panelPomodoro').classList.contains('active') &&
         !!sessionStorage.getItem('studyPlanIB_focusSeanceEnCours');
+    // L'entrée démarre le minuteur ; vérifier le garde-fou au redémarrage.
+    if (focusEtat.running) focusPause();
     focusMinutesMaintenant = () => 12 * 60 + 30;
     focusBasculer();
     resultat.blocageMinuteur = !focusEtat.running && document.getElementById('panelSeances').classList.contains('active');

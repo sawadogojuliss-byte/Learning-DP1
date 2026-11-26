@@ -50,7 +50,11 @@
 #panelEmplois .emploi-atelier-badge { font-size:.66rem;font-weight:800;border-radius:999px;padding:.38rem .52rem;white-space:nowrap; }
 #panelEmplois .emploi-atelier-badge.recu { color:#256444;background:#e1f3e8; }
 #panelEmplois .emploi-atelier-badge.absent { color:#986b32;background:#f9eee1; }
-#panelEmplois .emploi-atelier-note { margin:1rem .45rem .25rem;padding-top:.8rem;border-top:1px solid #ecf1e9;color:#829587;font-size:.68rem;line-height:1.5; }
+#panelEmplois .emploi-atelier-flamme { display:inline-flex;align-items:center;justify-content:center;gap:.28rem;flex:none;min-width:3.25rem;padding:.32rem .55rem .32rem .38rem;border:1px solid #f6d3ab;border-radius:999px;background:linear-gradient(135deg,#fff8ea,#ffecd6);color:#a44718;box-shadow:0 2px 6px rgba(167,77,22,.08),inset 0 1px rgba(255,255,255,.85);font-size:.76rem;line-height:1;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap; }
+#panelEmplois .emploi-atelier-flamme-icone { display:grid;place-items:center;width:1.45rem;height:1.45rem;border-radius:50%;background:rgba(255,255,255,.75);font-size:.94rem; }
+#panelEmplois .emploi-atelier-flamme-nombre { padding-right:.08rem; }
+#panelEmplois .emploi-atelier-flamme-unite { font-size:.66rem;font-weight:700;color:#98633f; }
+#panelEmplois .emploi-atelier-flamme.indisponible { color:#788c7c;background:#f1f5ef;border-color:#e1eae0;box-shadow:none;font-weight:700; }
 #panelEmplois .emploi-atelier-fiche { padding:clamp(1rem,2.2vw,2rem); }
 #panelEmplois .emploi-atelier-fiche-entete { display:flex;justify-content:space-between;align-items:flex-start;gap:.7rem; }
 #panelEmplois .emploi-atelier-fiche-eyebrow { text-transform:uppercase;color:#619477;font-size:.66rem;letter-spacing:.16em;font-weight:800;margin:0; }

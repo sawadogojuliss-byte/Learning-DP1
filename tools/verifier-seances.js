@@ -81,7 +81,7 @@ ok(blocSeances.indexOf("page.hidden = true") !== -1,
     'revenir sur les séances doit cacher le minuteur');
 ok(script.indexOf("if (typeof memoireAller === 'function') memoireAller('planning')") !== -1,
     'la maison du minuteur doit ramener au planning, pas aux séances');
-ok(memoire.indexOf("hash === 'seances') etape = 'seances'") !== -1,
+ok(memoire.indexOf("if (memoireEtapeConnue(hash)) etape = hash") !== -1,
     'un lien direct #seances doit rouvrir la page des séances');
 
 /* ── Le menu ─────────────────────────────────────────────────────── */

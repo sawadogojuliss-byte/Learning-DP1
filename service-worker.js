@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261104ay';
+const VERSION = '20261222-salons-gratuits';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -11,13 +11,25 @@ const FICHIERS = [
     "style_v2.css",
     "style_v3.css",
     "css/pages/planning-panels.css",
+    "livrables/publication-eeia/design.css",
+    "livrables/publication-entetes/entetes.css",
+    "css/pages/soutien-aide-feedback.css",
+    "css/pages/legende-design.css",
+    "css/pages/feries-design.css",
+    "css/pages/organisation-personnelle.css",
+    "css/pages/exercices.css",
     "css/pages/planning-semaines.css",
     "css/pages/retours.css",
     "css/pages/emplois-atelier.css",
     "css/pages/admin-atelier.css",
     "css/pages/focus-parametres.css",
+    "css/pages/salon-focus.css",
+    "css/pages/salons-planifies.css",
+    "livrables/publication-pomodoro/mobile.css",
+    "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
     "css/accessibilite.css",
+    "css/curseur-stable.css",
     "js/accessibilite.js",
     "images/logo.png",
     "app.webmanifest",
@@ -76,6 +88,70 @@ const FICHIERS = [
     "js/pages/emploi-temps-moteur.js",
     "js/pages/planning-moteur.js",
     "js/pages/chrono-voix.js",
+    "livrables/publication-voix/essai-feminine/harmonise/01.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/02.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/03.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/04.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/05.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/06.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/07.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/08.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/09.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/10.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/11.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/12.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/13.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/14.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/15.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/16-sese.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/17.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/18.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/19.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/20.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/21.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/22.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/23.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/24.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/25.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/26.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/27.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/28.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/29.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/30.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/31.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/32.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/33.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/34.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/35.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/36.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/37.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/38.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/39.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/40.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/41.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/42-nouvelle.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/43-nouvelle.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/44.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/45.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/46.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/47.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/48.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/49.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/50.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/51-cinquante-tiret-une.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/52.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/53.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/54.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/55.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/56-nouvelle.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/57-nouvelle.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/58.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/59.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/60.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/fin-une.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/fin-plusieurs.mp3",
+    "livrables/publication-voix/essai-feminine/harmonise/reprise.mp3",
+    "livrables/stock-voix/messages/fin-une-seance.wav",
     "js/pages/planning-interface.js",
     "js/pages/planning-export.js",
     "js/pages/musique.js",
@@ -90,7 +166,12 @@ const FICHIERS = [
     "js/pages/statistiques.js",
     "js/pages/minuteur-compteurs.js",
     "js/pages/pomodoro-page.js",
-    "js/pages/pomodoro-parametres.js"
+    "js/pages/pomodoro-parametres.js",
+    "js/pages/salon-focus-coeur.js",
+    "js/pages/salon-focus-firebase.js",
+    "js/pages/salon-voix.js",
+    "js/pages/salon-focus.js",
+    "js/pages/salons-planifies.js"
 ];
 function urlDuSite(fichier) {
     var url = new URL(fichier || './', self.registration.scope);
@@ -125,11 +206,14 @@ self.addEventListener('fetch', function (event) {
         !url.pathname.startsWith(new URL('./', self.registration.scope).pathname)) return;
     if (url.pathname.includes('/data/') || url.pathname.includes('/api/') ||
         url.pathname.endsWith('.json') || url.pathname.includes('/lib/') ||
-        url.pathname.includes('/audio/')) return;
+        url.pathname.includes('/audio/') ||
+        /* Le navigateur gère les requêtes Range de la vidéo ; Cache API ne
+           sait pas stocker une réponse partielle 206. Le poster reste affiché. */
+        url.pathname.endsWith('/images/pomodoro/chalet-neige-anime.mp4')) return;
     var navigation = req.mode === 'navigate';
     var versionCheck = url.pathname.endsWith('/js/boot.js') && !url.search;
     if (navigation || versionCheck) {
-        event.respondWith(fetch(req).catch(function () {
+        event.respondWith(fetch(req, { cache: 'no-store' }).catch(function () {
             return caches.match(navigation ? urlDuSite('index.html') : urlDuSite('js/boot.js'));
         }));
         return;

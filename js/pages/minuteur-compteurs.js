@@ -79,7 +79,7 @@ function focusPauseApres(serie) {
    la concentration en cours si elle a démarré (elle compte dès le départ).
    Hors série, ou série finie : les séances terminées de la série, sans plus. */
 function focusCompteurEtat() {
-    var n = typeof focusDurees === 'function' ? focusDurees().seances : 4;
+    var n = focusEtat.run && focusEtat.objectif ? focusEtat.objectif : (typeof focusDurees === 'function' ? focusDurees().seances : 4);
     var serie = Math.min(n, Math.max(0, Math.floor(Number(focusEtat.serie) || 0)));
     var enCours = !!focusEtat.run && focusEtat.mode === 'focus' &&
         (focusEtat.running || focusEtat.restant < focusEtat.total);

@@ -1,0 +1,134 @@
+{
+  "fichier": "grille-fictive-003.pdf",
+  "langue": "en",
+  "annee": null,
+  "mois": "octobre",
+  "options": {
+    "mat": [
+      [
+        "History",
+        "Maths",
+        "ESS",
+        "Chemistry",
+        "Physics"
+      ],
+      [
+        "Maths",
+        "ESS",
+        "Chemistry",
+        "Physics",
+        "History"
+      ]
+    ],
+    "fr": false,
+    "font": "Georgia",
+    "header": 10,
+    "subjectSize": 13,
+    "green": "#408b20",
+    "dark": "#6a4828",
+    "quality": 0.55,
+    "blur": 0
+  },
+  "cellules": [
+    {
+      "jour": "Monday",
+      "quantieme": 20,
+      "matiere_originale": "History",
+      "matiere": "Histoire",
+      "plage_session": [
+        "08:15",
+        "10:30"
+      ]
+    },
+    {
+      "jour": "Tuesday",
+      "quantieme": 21,
+      "matiere_originale": "Maths",
+      "matiere": "Mathématiques AA",
+      "plage_session": [
+        "08:15",
+        "10:30"
+      ]
+    },
+    {
+      "jour": "Wednesday",
+      "quantieme": 22,
+      "matiere_originale": "ESS",
+      "matiere": "ESS",
+      "plage_session": [
+        "08:15",
+        "10:30"
+      ]
+    },
+    {
+      "jour": "Thursday",
+      "quantieme": 23,
+      "matiere_originale": "Chemistry",
+      "matiere": "Chimie",
+      "plage_session": [
+        "08:15",
+        "10:30"
+      ]
+    },
+    {
+      "jour": "Friday",
+      "quantieme": 24,
+      "matiere_originale": "Physics",
+      "matiere": "Physique",
+      "plage_session": [
+        "08:15",
+        "10:30"
+      ]
+    },
+    {
+      "jour": "Monday",
+      "quantieme": 20,
+      "matiere_originale": "Maths",
+      "matiere": "Mathématiques AA",
+      "plage_session": [
+        "11:00",
+        "13:00"
+      ]
+    },
+    {
+      "jour": "Tuesday",
+      "quantieme": 21,
+      "matiere_originale": "ESS",
+      "matiere": "ESS",
+      "plage_session": [
+        "11:00",
+        "13:00"
+      ]
+    },
+    {
+      "jour": "Wednesday",
+      "quantieme": 22,
+      "matiere_originale": "Chemistry",
+      "matiere": "Chimie",
+      "plage_session": [
+        "11:00",
+        "13:00"
+      ]
+    },
+    {
+      "jour": "Thursday",
+      "quantieme": 23,
+      "matiere_originale": "Physics",
+      "matiere": "Physique",
+      "plage_session": [
+        "11:00",
+        "13:00"
+      ]
+    },
+    {
+      "jour": "Friday",
+      "quantieme": 24,
+      "matiere_originale": "History",
+      "matiere": "Histoire",
+      "plage_session": [
+        "11:00",
+        "13:00"
+      ]
+    }
+  ]
+}

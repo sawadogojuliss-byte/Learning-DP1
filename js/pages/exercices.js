@@ -32,7 +32,10 @@ function exoLireDate(value) {
     return result.getFullYear() === y && result.getMonth() === m - 1 && result.getDate() === d ? result : null;
 }
 function exoSujets() {
-    const list = typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [];
+    const bacActif = typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsFaitBac === 'function' && devoirsFaitBac();
+    // Une ancienne matière importée ne doit pas contourner le choix « Non ».
+    const list = (typeof subjects !== 'undefined' ? [...subjects, ...(typeof optionalSubjects !== 'undefined' ? optionalSubjects : [])] : [])
+        .filter(s => s && (bacActif || String(s.name || '').trim().toLocaleLowerCase('fr') !== 'bac national'));
     if (typeof ibYear !== 'undefined' && ibYear === 'DP2' && typeof devoirsFaitBac === 'function' && devoirsFaitBac() &&
         !list.some(s => s.name === 'Bac national')) list.push({ name: 'Bac national', icon: '🎓' });
     return list;
@@ -84,8 +87,25 @@ function exoBrancherActions() {
 function exoRestants() { return exercices.filter(e => !e.done); }
 function exoMajBadge() {
     const restant = exoRestants().length;
+    const faits = exercices.length - restant;
     const badge = document.getElementById('exoCountBadge');
-    if (badge) badge.textContent = restant + ' exercice' + (restant > 1 ? 's' : '') + ' à faire';
+    if (badge) {
+        badge.textContent = restant + ' exercice' + (restant > 1 ? 's' : '') + ' à faire';
+        badge.classList.toggle('exo-badge-vide', restant === 0);
+    }
+    /* Progression du jour : visible seulement quand il y a des exercices.
+       Une page vide garde son état d'accueil, sans fausse statistique. */
+    const resume = document.getElementById('exoResume');
+    if (!resume) return;
+    resume.hidden = exercices.length === 0;
+    if (resume.hidden) return;
+    const pourcentage = Math.round((faits / exercices.length) * 100);
+    const texte = document.getElementById('exoResumeTexte');
+    if (texte) texte.textContent = faits + ' fait' + (faits > 1 ? 's' : '') + ' · ' + restant + ' à faire';
+    const remplissage = document.getElementById('exoResumeRemplissage');
+    if (remplissage) remplissage.style.width = pourcentage + '%';
+    const barre = document.getElementById('exoResumeBarre');
+    if (barre) barre.setAttribute('aria-valuenow', String(pourcentage));
 }
 
 /* Le filtre ne modifie jamais les exercices : on peut toujours revenir
@@ -165,9 +185,18 @@ function buildExoSubjectGrid() {
     const allSubj = exoSujets();
     const grid = document.getElementById('exoSubjectGrid');
     if (!grid) return;
+    if (!allSubj.length) {
+        /* Sans matière choisie (profil repris d'un autre appareil), la page
+           doit le dire et proposer la suite : jamais une grille vide. */
+        grid.innerHTML = '<div class="exo-empty" style="padding:1.2rem .9rem;text-align:left;">' +
+            '<p class="exo-empty-title" style="font-size:.86rem;">Aucune matière dans ton profil</p>' +
+            '<p class="exo-empty-text" style="margin:0 0 .7rem;">Ajoute tes matières pour pouvoir classer tes exercices.</p>' +
+            '<button type="button" class="exo-empty-action" onclick="if(typeof showSubjectsPage===\'function\')showSubjectsPage();else navigateTo(\'planning\');">Choisir mes matières</button></div>';
+        return;
+    }
     grid.innerHTML = allSubj.map((s, i) =>
-        '<button type="button" onclick="selectExoSubject(' + i + ')" data-exo-idx="' + i + '" aria-pressed="' + (selectedExoSubject?.name === s.name) + '" style="display:flex;align-items:center;gap:0.375rem;padding:0.5rem 0.875rem;min-height:44px;border-radius:9999px;border:2px solid ' + (selectedExoSubject?.name === s.name ? '#047857' : '#e5e7eb') + ';background:' + (selectedExoSubject?.name === s.name ? '#ecfdf5' : 'white') + ';cursor:pointer;font-size:0.8rem;font-weight:600;color:#374151;">' +
-        '<span>' + iconeHtml(s.icon, '1.15rem') + '</span><span>' + exoEscape(s.name) + '</span></button>'
+        '<button type="button" onclick="selectExoSubject(' + i + ')" data-exo-idx="' + i + '" aria-pressed="' + (selectedExoSubject?.name === s.name) + '" class="exo-sujet' + (selectedExoSubject?.name === s.name ? ' selectionne' : '') + '">' +
+        '<span aria-hidden="true">' + iconeHtml(s.icon, '1.15rem') + '</span><span>' + exoEscape(s.name) + '</span></button>'
     ).join('');
 }
 
@@ -182,7 +211,7 @@ function setExoDuration(dur) {
     exoDuration = dur;
     document.getElementById('exoDurationSlider').value = dur;
     document.getElementById('exoDurationLabel').textContent = dur >= 60 ? Math.floor(dur/60)+'h'+(dur%60?dur%60+'min':'') : dur+'min';
-    document.querySelectorAll('.dur-btn').forEach(btn => {
+    document.querySelectorAll('.exo-preset').forEach(btn => {
         const isSel = btn.textContent.trim() === (dur===30?'30 min':dur===45?'45 min':dur===60?'1h':'1h30');
         btn.style.borderColor = isSel ? '#10b981' : '#e5e7eb';
         btn.style.background = isSel ? '#ecfdf5' : 'white';
@@ -195,7 +224,7 @@ function updateExoDurationFromSlider(val) {
     exoDuration = parseInt(val);
     const dur = exoDuration;
     document.getElementById('exoDurationLabel').textContent = dur >= 60 ? Math.floor(dur/60)+'h'+(dur%60?dur%60+'min':'') : dur+'min';
-    document.querySelectorAll('.dur-btn').forEach(btn => {
+    document.querySelectorAll('.exo-preset').forEach(btn => {
         const isSel = (dur===30&&btn.textContent.trim()==='30 min')||(dur===45&&btn.textContent.trim()==='45 min')||(dur===60&&btn.textContent.trim()==='1h')||(dur===90&&btn.textContent.trim()==='1h30');
         btn.style.borderColor = isSel ? '#10b981' : '#e5e7eb';
         btn.style.background = isSel ? '#ecfdf5' : 'white';
@@ -293,15 +322,24 @@ function renderExoList() {
     exoMajBadge();
 
     if (exercices.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#56665e;"><div style="font-size:3rem;margin-bottom:1rem;">📝</div><p style="font-weight:600;">Aucun exercice pour l\'instant</p><p style="font-size:0.85rem;margin-top:0.5rem;">Ajoute ton premier exercice dans l\'onglet ➕</p></div>';
+        container.innerHTML = '<div class="exo-empty">' +
+            '<div class="exo-empty-icon" aria-hidden="true">📝</div>' +
+            '<h3 class="exo-empty-title">Aucun exercice pour l\'instant</h3>' +
+            '<p class="exo-empty-text">Ajoute ton premier exercice : il apparaîtra ici, puis dans ton planning.</p>' +
+            '<button type="button" class="exo-empty-action" onclick="switchExoTab(\'ajouter\')">➕ Ajouter mon premier exercice</button>' +
+            '</div>';
         return;
     }
 
     // Trier par deadline sans masquer les exercices faits par défaut.
     const visibles = exercices.filter(e => exoFiltre === 'tous' || (exoFiltre === 'faits' ? !!e.done : !e.done));
     if (!visibles.length) {
-        container.innerHTML = '<p style="text-align:center;padding:2rem 1rem;color:#6b7280;">' +
-            (exoFiltre === 'faits' ? 'Aucun exercice fait pour l’instant.' : 'Aucun exercice à faire.') + '</p>';
+        container.innerHTML = '<div class="exo-empty">' +
+            '<div class="exo-empty-icon" aria-hidden="true">' + (exoFiltre === 'faits' ? '🌱' : '🎉') + '</div>' +
+            '<h3 class="exo-empty-title">' + (exoFiltre === 'faits' ? 'Aucun exercice fait pour l’instant' : 'Aucun exercice à faire') + '</h3>' +
+            '<p class="exo-empty-text">' + (exoFiltre === 'faits' ? 'Coche « Fait » sur un exercice terminé.' : 'Tout est fait. Tu peux souffler.') + '</p>' +
+            '<button type="button" class="exo-empty-action" onclick="filtrerExos(\'tous\')">Voir tous les exercices</button>' +
+            '</div>';
         return;
     }
     const sorted = visibles.slice().sort((a, b) =>
@@ -311,34 +349,37 @@ function renderExoList() {
     container.innerHTML = sorted.map(exo => {
         const dl = exoLireDate(exo.deadline);
         const days = dl ? Math.round((dl - exoLireDate(today)) / 86400000) : NaN;
-        const urgency = days < 0 ? '#dc2626' : days <= 1 ? '#dc2626' : days <= 3 ? '#d97706' : '#059669';
-        const urgencyBg = days <= 1 ? '#fef2f2' : days <= 3 ? '#fffbeb' : '#ecfdf5';
-        const urgencyLabel = !dl ? 'Date à vérifier' : days < 0 ? '⚠️ En retard depuis ' + (-days) + 'j' : days === 0 ? '⚠️ Aujourd’hui' : days === 1 ? '⏰ Demain' : 'Dans ' + days + 'j';
+        const urgence = days <= 1 ? 'urgent' : days <= 3 ? 'proche' : 'calme';
+        const dateLabel = !dl ? 'Date à vérifier' : days < 0 ? 'En retard de ' + (-days) + ' j' : days === 0 ? 'Aujourd’hui' : days === 1 ? 'Demain' : 'Dans ' + days + ' j';
         const dur = exo.duration >= 60 ? Math.floor(exo.duration/60)+'h'+(exo.duration%60?exo.duration%60+'min':'') : exo.duration+'min';
         const id = exoEscape(exo.id);
         const legacy = !exo.done && exo.scheduledSlot && typeof customEvents !== 'undefined' &&
             customEvents.some(e => e && e.exoId === exo.id && !e.date);
-        const note = exo.filename ? '📎 Référence : ' + exo.filename + ' (fichier non conservé)' : String(exo.text || '').substring(0, 85);
-        return '<div class="exo-card" style="margin-bottom:0.875rem;' + (exo.done ? 'background:#f0fdf4;border-color:#a7f3d0;' : '') + '">' +
-            '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.75rem;gap:0.5rem;">' +
-            '<div style="display:flex;align-items:center;gap:0.625rem;min-width:0;">' +
-            '<span style="font-size:1.5rem;">' + iconeHtml(exo.subjectIcon, '1.5rem') + '</span>' +
-            '<div style="min-width:0;"><p style="font-weight:700;color:#111827;font-size:0.9rem;overflow-wrap:anywhere;">' + exoEscape(exo.subject) + '</p>' +
-            '<p style="font-size:0.75rem;color:#6b7280;overflow-wrap:anywhere;">' + exoEscape(note) + '</p></div></div>' +
-            '<button type="button" data-exo-action="supprimer" data-exo-id="' + id + '" aria-label="Supprimer cet exercice (annulation possible)" style="background:#fef2f2;border:none;border-radius:0.5rem;min-width:44px;min-height:44px;cursor:pointer;color:#dc2626;">✕</button>' +
+        const note = exo.filename ? '📎 ' + exo.filename + ' (référence)' : String(exo.text || '');
+        return '<article class="exo-liste-carte' + (exo.done ? ' exo-faite' : '') + '">' +
+            '<div class="exo-liste-tete">' +
+                '<span class="exo-liste-icone" aria-hidden="true">' + iconeHtml(exo.subjectIcon, '1.35rem') + '</span>' +
+                '<div class="exo-liste-titres">' +
+                    '<h3 class="exo-liste-matiere">' + exoEscape(exo.subject) + '</h3>' +
+                    '<p class="exo-liste-note">' + exoEscape(note) + '</p>' +
+                '</div>' +
+                '<button type="button" data-exo-action="supprimer" data-exo-id="' + id + '" class="exo-liste-supprimer" aria-label="Supprimer cet exercice (annulation possible)">✕</button>' +
             '</div>' +
-            '<div style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">' +
-            '<div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">' +
-            '<span style="background:#f3f4f6;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;color:#374151;">⏱️ ' + exoEscape(dur) + '</span>' +
-            (exo.done ? '<span style="background:#dcfce7;color:#166534;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">✓ Fait</span>' : '<span style="background:' + urgencyBg + ';color:' + urgency + ';border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:700;">' + exoEscape(urgencyLabel) + '</span>') +
-            (!exo.done && exo.scheduledSlot && !legacy ? '<span style="background:#ecfdf5;color:#059669;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;font-weight:600;">✓ Planifié</span>' : '') +
-            (legacy ? '<span style="background:#fffbeb;color:#92400e;border-radius:9999px;padding:0.25rem 0.625rem;font-size:0.75rem;">Ancien créneau à dater : replanifie</span>' : '') +
+            '<div class="exo-liste-pied">' +
+                '<div class="exo-liste-etiquettes">' +
+                    '<span class="exo-chip exo-chip-duree">⏱️ ' + exoEscape(dur) + '</span>' +
+                    (exo.done
+                        ? '<span class="exo-chip exo-chip-fait">✓ Fait</span>'
+                        : '<span class="exo-chip exo-chip-date exo-chip-' + urgence + '">' + exoEscape(dateLabel) + '</span>') +
+                    (!exo.done && exo.scheduledSlot && !legacy ? '<span class="exo-chip exo-chip-planifie">✓ Planifié</span>' : '') +
+                    (legacy ? '<span class="exo-chip exo-chip-date exo-chip-proche">Ancien créneau : replanifie</span>' : '') +
+                '</div>' +
+                '<div class="exo-liste-actions">' +
+                    '<button type="button" data-exo-action="fait" data-exo-id="' + id + '" data-exo-fait="' + id + '" class="exo-liste-bouton" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre cet exercice à faire' : 'Marquer cet exercice comme fait') + '">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +
+                    (exo.done ? '' : '<button type="button" data-exo-action="planifier" data-exo-id="' + id + '" class="exo-liste-bouton exo-liste-bouton-plein">' + (exo.scheduledSlot ? '📅 Replanifier' : '+ Planifier') + '</button>') +
+                '</div>' +
             '</div>' +
-            '<div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">' +
-            '<button type="button" data-exo-action="fait" data-exo-id="' + id + '" data-exo-fait="' + id + '" aria-pressed="' + !!exo.done + '" aria-label="' + (exo.done ? 'Remettre cet exercice à faire' : 'Marquer cet exercice comme fait') + '" style="background:' + (exo.done ? 'white' : '#ecfdf5') + ';color:#047857;border:1px solid #a7f3d0;border-radius:0.625rem;padding:0.375rem 0.75rem;min-height:44px;font-size:0.75rem;font-weight:700;cursor:pointer;">' + (exo.done ? '↩ À faire' : '✓ Fait') + '</button>' +
-            (exo.done ? '' : '<button type="button" data-exo-action="planifier" data-exo-id="' + id + '" style="background:linear-gradient(to right,#10b981,#059669);color:white;border:none;border-radius:0.625rem;padding:0.375rem 0.75rem;min-height:44px;font-size:0.75rem;font-weight:700;cursor:pointer;">' +
-            (exo.scheduledSlot ? '📅 Replanifier' : '+ Planifier') + '</button>') +
-            '</div></div></div>';
+        '</article>';
     }).join('');
 }
 
@@ -381,7 +422,12 @@ function renderPlanifier() {
     const container = document.getElementById('planifierContent');
     if (!container) return;
     if (exercices.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:3rem 1rem;color:#56665e;"><div style="font-size:3rem;margin-bottom:1rem;">📅</div><p style="font-weight:600;">Ajoute d\'abord des exercices</p><p style="font-size:0.85rem;margin-top:0.5rem;">Va dans l\'onglet ➕ pour commencer</p></div>';
+        container.innerHTML = '<div class="exo-empty">' +
+            '<div class="exo-empty-icon" aria-hidden="true">📅</div>' +
+            '<h3 class="exo-empty-title">Ajoute d\'abord des exercices</h3>' +
+            '<p class="exo-empty-text">Les créneaux libres de ton planning s\'afficheront ici pour chaque exercice.</p>' +
+            '<button type="button" class="exo-empty-action" onclick="switchExoTab(\'ajouter\')">➕ Ajouter un exercice</button>' +
+            '</div>';
         return;
     }
 
@@ -391,13 +437,14 @@ function renderPlanifier() {
     const totalH = Math.floor(totalMins / 60), totalM = totalMins % 60;
     const totalLabel = totalH > 0 ? totalH + 'h' + (totalM > 0 ? totalM + 'min' : '') : totalM + 'min';
 
-    let html = '<div style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1.5px solid #a7f3d0;border-radius:1rem;padding:1.25rem;margin-bottom:1.25rem;">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;">' +
-        '<h4 style="font-weight:700;color:#064e3b;font-size:0.9rem;">📊 Résumé global</h4>' +
+    let html = '<div class="exo-resume-plan">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:0.75rem;">' +
+        '<h3 class="exo-label" style="margin:0;">📊 Résumé global</h3>' +
+        '<span class="exo-chip exo-chip-planifie">' + restants.length + ' à planifier</span>' +
         '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">' +
-        '<div style="background:white;border-radius:0.75rem;padding:0.75rem;text-align:center;"><p style="font-size:1.25rem;font-weight:800;color:#059669;">' + totalLabel + '</p><p style="font-size:0.7rem;color:#6b7280;">temps minimum total</p></div>' +
-        '<div style="background:white;border-radius:0.75rem;padding:0.75rem;text-align:center;"><p style="font-size:1.25rem;font-weight:800;color:#3b82f6;">' + restants.length + '</p><p style="font-size:0.7rem;color:#6b7280;">exercice(s) restant(s)</p></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">' +
+        '<div style="background:#fff;border:1px solid #d7f2e3;border-radius:0.9rem;padding:0.75rem;text-align:center;"><p style="margin:0;font-size:1.25rem;font-weight:800;color:#059669;font-variant-numeric:tabular-nums;">' + totalLabel + '</p><p style="margin:.15rem 0 0;font-size:.7rem;font-weight:600;color:#63736b;">temps minimum total</p></div>' +
+        '<div style="background:#fff;border:1px solid #d7f2e3;border-radius:0.9rem;padding:0.75rem;text-align:center;"><p style="margin:0;font-size:1.25rem;font-weight:800;color:#0f766e;font-variant-numeric:tabular-nums;">' + restants.length + '</p><p style="margin:.15rem 0 0;font-size:.7rem;font-weight:600;color:#63736b;">exercice(s) restant(s)</p></div>' +
         '</div></div>';
 
     // Individual planifier
@@ -410,12 +457,15 @@ function renderPlanifier() {
         const dur = exo.duration >= 60 ? Math.floor(exo.duration/60)+'h'+(exo.duration%60?exo.duration%60+'min':'') : exo.duration+'min';
         const slots = findAvailableSlots(exo);
 
-        html += '<div style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:1.25rem;margin-bottom:1rem;">' +
-            '<div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:1rem;">' +
-            '<span style="font-size:1.25rem;">' + iconeHtml(exo.subjectIcon, '1.25rem') + '</span>' +
-            '<div><p style="font-weight:700;color:#111827;font-size:0.875rem;">' + exoEscape(exo.subject) + ' · ' + exoEscape(exo.filename || String(exo.text || '').substring(0,30)) + '</p>' +
-            '<p style="font-size:0.75rem;color:' + urgency + ';font-weight:600;">⏱️ ' + dur + ' · Deadline : ' + (dl ? dl.toLocaleDateString('fr-FR', {day:'numeric',month:'long'}) : 'date à vérifier') + '</p></div></div>' +
-            '<p style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.625rem;">Créneaux disponibles :</p>';
+        html += '<div class="exo-liste-carte">' +
+            '<div class="exo-liste-tete">' +
+            '<span class="exo-liste-icone" aria-hidden="true">' + iconeHtml(exo.subjectIcon, '1.35rem') + '</span>' +
+            '<div class="exo-liste-titres"><h3 class="exo-liste-matiere">' + exoEscape(exo.subject) + '</h3>' +
+            '<p class="exo-liste-note">' + exoEscape(exo.filename || String(exo.text || '')) + '</p></div>' +
+            '<span class="exo-chip exo-chip-date" style="color:' + urgency + '">⏱️ ' + exoEscape(dur) + '</span>' +
+            '</div>' +
+            '<p class="exo-liste-note" style="margin:0 0 .5rem;">Deadline : ' + (dl ? dl.toLocaleDateString('fr-FR', {day:'numeric',month:'long'}) : 'date à vérifier') + '</p>' +
+            '<p class="exo-liste-etiquettes-titre">Créneaux disponibles</p>';
 
         if (slots.length === 0) {
             html += '<div style="background:#fef2f2;border-radius:0.75rem;padding:0.875rem;font-size:0.8rem;color:#dc2626;text-align:center;">⚠️ Aucun créneau complet disponible avant la date limite (recherche sur 14 jours). Modifie ton planning ou la date limite : rien n’a été changé.</div>';

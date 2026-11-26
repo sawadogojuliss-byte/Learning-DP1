@@ -1,0 +1,46 @@
+name: Vérification du transport des salons
+
+on:
+  push:
+    branches:
+      - arena/f4de29cb-learning-dp1
+    paths:
+      - '.github/workflows/transport-salons.yml'
+      - 'tools/tester-transport-salons-public.cjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Préparer un navigateur isolé
+        run: |
+          npm install --prefix /tmp/salons-transport playwright
+          /tmp/salons-transport/node_modules/.bin/playwright install --with-deps chromium
+      - name: Tester le transport réel sans compte ni mail
+        shell: bash
+        env:
+          STUDY_TEST_MODULES: /tmp/salons-transport/node_modules
+          STUDY_PLAYWRIGHT_SYSTEM: '1'
+        run: |
+          set -o pipefail
+          journal=$(mktemp)
+          if node tools/tester-transport-salons-public.cjs 2>&1 | tee "$journal"; then
+            rm -f "$journal"
+          else
+            detail=$(tail -n 20 "$journal")
+            detail=${detail//'%'/'%25'}
+            detail=${detail//$'\r'/'%0D'}
+            detail=${detail//$'\n'/'%0A'}
+            echo "::error title=Transport salons::$detail"
+            rm -f "$journal"
+            exit 1
+          fi

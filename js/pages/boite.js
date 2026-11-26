@@ -447,11 +447,12 @@ function boiteMessageDepuisFirestore(collection, data, identifiant) {
     var type = collection === 'questions' ? 'question' : 'feedback';
     if (technique.type !== type) return null;
     var cleTexte = type === 'question' ? '04_question' : '04_feedback';
+    var contenu = boiteImagesDecoder(String(data[cleTexte] || ''));
     return {
         type: type, id: String(technique.id || identifiant || ''),
         at: String(technique.at || ''),
         nom: String(data['02_nom_utilisateur'] || ''),
-        texte: String(data[cleTexte] || ''),
+        texte: contenu.texte, images: contenu.images,
         email: String(technique.email_reponse || ''),
         google: String(technique.google_connecte || ''),
         googleNom: String(technique.google_nom || '')
@@ -858,6 +859,7 @@ function boiteGarderVu() { boiteMemoriserVus(); }
 
 function boiteNettoyerSession() {
     boiteSessionGeneration++;
+    boiteReponsesEnCours = Object.create(null);
     /* Les brouillons d’annonce appartiennent à un seul compte Google. */
     if (typeof annonceBrouillons !== 'undefined') annonceBrouillons = [];
     if (typeof annonceBrouillonCourant !== 'undefined') annonceBrouillonCourant = '';
@@ -874,6 +876,7 @@ function boiteNettoyerSession() {
     boiteErreurEmplois = '';
     boiteErreurFeedbacks = '';
     boiteLectureEnCours = null;
+    boiteFlammesCache = Object.create(null);
     boiteReceptionPresente = {};
     boiteControleReceptionEnCours = {};
     boiteAdminVerifie = false;
@@ -1445,6 +1448,57 @@ function boiteFusionner(items) {
     };
 }
 
+/* Seul un emploi authentifié à l'adresse emplois_du_temps/{uid} prouve
+   l'association. Une adresse, un nom ou une archive ne sont pas une preuve. */
+var boiteFlammesCache = Object.create(null);
+function boiteFlammesLire(fusion, generation) {
+    var panneau = document.getElementById('panelEmplois');
+    if (!boiteEstAdmin() || !panneau || !panneau.classList.contains('active')) return Promise.resolve(fusion);
+    var permis = Object.create(null);
+    boiteBruts.forEach(function (brut) {
+        var item = boiteEmploiDepuisDocument(brut);
+        if (item && item.type === 'emploi' && item.docColl === 'emplois_du_temps' &&
+            item.firebaseUid && item.docId === item.firebaseUid) permis[item.firebaseUid] = true;
+    });
+    var uids = Object.create(null);
+    boitePersonnes(fusion).forEach(function (item) {
+        if (item.firebaseUid && permis[item.firebaseUid]) uids[item.firebaseUid] = true;
+    });
+    return Promise.all(Object.keys(uids).map(function (uid) {
+        var existant = boiteFlammesCache[uid];
+        if (existant && Date.now() - existant.luLe < 60000) return Promise.resolve();
+        return firebase.firestore().collection('documents').doc(uid).get({ source: 'server' }).then(function (snap) {
+            if (generation !== boiteSessionGeneration) return;
+            var data = snap && snap.exists ? snap.data() || {} : {};
+            var valable = (!data.uid || data.uid === uid) && Number.isInteger(data.flammes) &&
+                data.flammes >= 0 && data.flammes <= 100000 && /^\d{4}-\d{2}-\d{2}$/.test(String(data.flammeJour || ''));
+            boiteFlammesCache[uid] = valable
+                ? { nombre: data.flammes, jour: data.flammeJour, luLe: Date.now() }
+                : { luLe: Date.now() };
+        }, function () {
+            if (generation === boiteSessionGeneration) boiteFlammesCache[uid] = { luLe: Date.now() };
+        });
+    })).then(function () {
+        var resultats = Object.create(null);
+        if (generation === boiteSessionGeneration) Object.keys(uids).forEach(function (uid) {
+            resultats[uid] = boiteFlammesCache[uid];
+        });
+        fusion.flammesComptes = resultats;
+        return fusion;
+    });
+}
+
+function boiteBadgeFlammes(item, fusion) {
+    var valeur = item.firebaseUid && fusion.flammesComptes && fusion.flammesComptes[item.firebaseUid];
+    if (!valeur || typeof valeur.nombre !== 'number') {
+        return '<span class="emploi-atelier-flamme indisponible" aria-label="Flammes indisponibles" title="Flammes indisponibles : compte non vérifié ou données non accessibles"><span aria-hidden="true">✧</span> <span>—</span></span>';
+    }
+    var nombre = valeur.nombre.toLocaleString('fr-FR');
+    var unite = 'jour' + (valeur.nombre > 1 ? 's' : '');
+    var texte = nombre + ' ' + unite + ' de flammes';
+    return '<span class="emploi-atelier-flamme" aria-label="' + boiteEchap(texte) + '" title="' + boiteEchap(texte) + ' · dernière série enregistrée"><span class="emploi-atelier-flamme-icone" aria-hidden="true">🔥</span><span class="emploi-atelier-flamme-nombre">' + boiteEchap(nombre) + '</span><span class="emploi-atelier-flamme-unite">' + unite + '</span></span>';
+}
+
 /* Relit la boîte : Firestore pour tout le monde (partie publique), et
    la partie privée pour les quatre admins seulement. Le fichier local
    ne sert plus qu'à garder les envois pas encore partis. */
@@ -1471,9 +1525,12 @@ function boiteChargerListes(force) {
         /* Un admin dont la session Firebase a expiré doit le savoir :
            sinon la boîte paraît vide sans raison. */
         fusion.reconnecter = !!(boiteEstAdmin() && boiteErreurLecture);
-        boiteListesCache = fusion;
-        boiteMemoriserVus();
-        return fusion;
+        return boiteFlammesLire(fusion, generation).then(function () {
+            if (generation !== boiteSessionGeneration) return boiteFusionner([]);
+            boiteListesCache = fusion;
+            boiteMemoriserVus();
+            return fusion;
+        });
     });
     boiteLectureEnCours = { generation: generation, promise: lecture };
     lecture.then(function () {
@@ -1484,18 +1541,66 @@ function boiteChargerListes(force) {
     return lecture;
 }
 
-function boiteCarte(titre, meta, corps) {
+function boiteCarte(titre, meta, corps, images) {
     return '<article style="background:white;border:1.5px solid #e5e7eb;border-radius:1rem;padding:0.9rem 1rem;margin-bottom:0.75rem;">'
         + '<p style="font-weight:800;color:#111827;">' + titre + '</p>'
         + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + meta + '</p>'
         + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + corps + '</p>'
+        + boiteImagesAdmin(images)
         + '</article>';
+}
+
+/* Les deux listes contiennent chacune leurs propres éditeurs. Conserver les
+   cartes actives pendant un rafraîchissement, y compris leurs contrôles et les
+   références utilisées par une vérification ou un envoi en cours. Rien n'est
+   stocké sur l'appareil : la déconnexion efface les données privées. */
+function boiteGarderEditeurs(liste) {
+    if (!liste.querySelectorAll) return [];
+    var actif = document.activeElement;
+    return Array.prototype.map.call(liste.querySelectorAll('[data-reponse-texte]'), function (champ) {
+        var article = champ.closest('article');
+        var bouton = article && article.querySelector('[data-repondre]');
+        var statut = article && article.querySelector('[data-reponse-statut]');
+        var analyse = article && article.querySelector('[data-reponse-analyse]');
+        if (!article || !(champ.value || article.contains(actif) || (bouton && bouton.disabled) ||
+            (statut && statut.textContent) || (analyse && analyse.childNodes.length))) return null;
+        return { id: champ.getAttribute('data-reponse-texte'), article: article,
+            actif: article.contains(actif) ? actif : null,
+            debut: actif === champ ? champ.selectionStart : null,
+            fin: actif === champ ? champ.selectionEnd : null,
+            direction: actif === champ ? champ.selectionDirection : null };
+    }).filter(Boolean);
+}
+
+function boiteRestaurerEditeurs(liste, gardes) {
+    if (!liste.querySelectorAll) return;
+    var champs = liste.querySelectorAll('[data-reponse-texte]');
+    gardes.forEach(function (garde) {
+        var nouveau = Array.prototype.find.call(champs, function (champ) {
+            return champ.getAttribute('data-reponse-texte') === garde.id;
+        });
+        if (nouveau) nouveau.closest('article').replaceWith(garde.article);
+        else {
+            /* Une lecture partielle ou une réponse sur un autre appareil ne
+               doit pas détruire le texte : prévenir avant un éventuel envoi. */
+            var bouton = garde.article.querySelector('[data-repondre]');
+            if (bouton) bouton.disabled = true;
+            boiteDireDans(garde.article.querySelector('[data-reponse-statut]'),
+                'Question modifiée ou indisponible. Copie ton texte avant de quitter et vérifie son état.', true);
+            liste.appendChild(garde.article);
+        }
+        if (garde.actif && garde.actif.focus) {
+            garde.actif.focus({ preventScroll: true });
+            if (garde.debut !== null && garde.actif.setSelectionRange) garde.actif.setSelectionRange(garde.debut, garde.fin, garde.direction);
+        }
+    });
 }
 
 function boiteRendreRetours(fusion) {
     var liste = document.getElementById('retoursListe');
     var statut = document.getElementById('retoursStatut');
     if (!liste) return;
+    var editeurs = boiteGarderEditeurs(liste);
     var cartes = [];
     fusion.feedbacks.forEach(function (item) {
         var qui = boiteNomExpediteur(item);
@@ -1508,7 +1613,7 @@ function boiteRendreRetours(fusion) {
             html: boiteCarte(
                 'Suggestion · ' + boiteEchap(qui.nom),
                 meta,
-                boiteEchap(item.texte || '')
+                boiteEchap(item.texte || ''), item.images
             )
         });
     });
@@ -1530,6 +1635,7 @@ function boiteRendreRetours(fusion) {
             : fusion.partiel ? 'Une partie des messages n\'a pas pu être rechargée.'
             : (cartes.length + ' message' + (cartes.length > 1 ? 's' : ''));
     }
+    boiteRestaurerEditeurs(liste, editeurs);
     boiteMajConnexion(fusion);
 }
 
@@ -1624,7 +1730,8 @@ function boiteCarteQuestion(item, reponses) {
         + '<div style="flex:1;min-width:0;">'
         + '<p style="font-weight:800;color:#111827;">' + boiteEchap(item.nom || 'Sans nom') + '</p>'
         + '<p style="font-size:0.78rem;color:#6b7280;margin:0.2rem 0 0.55rem;">' + boiteEchap(boiteDate(item.at)) + ' · Compte Google : ' + compte + '</p>'
-        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>';
+        + '<p style="font-size:0.92rem;color:#1f2937;line-height:1.45;white-space:pre-wrap;">' + boiteEchap(item.texte || '') + '</p>'
+        + boiteImagesAdmin(item.images);
     reponses.forEach(function (rep) {
         if (!String(rep.texte || '').trim()) return;
         var ok = boiteMailConfirme(rep) || cochee;
@@ -1658,6 +1765,7 @@ function boiteRendreQuestions(fusion) {
     var liste = document.getElementById('questionsListe');
     var statut = document.getElementById('questionsStatut');
     if (!liste) return;
+    var editeurs = boiteGarderEditeurs(liste);
     var attente = [];
     var repondues = [];
     (fusion.questions || []).forEach(function (item) {
@@ -1687,6 +1795,7 @@ function boiteRendreQuestions(fusion) {
             ? 'Une partie des questions n\'a pas pu être rechargée.'
             : (attente.length + ' en attente · ' + repondues.length + ' répondue' + (repondues.length > 1 ? 's' : ''));
     }
+    boiteRestaurerEditeurs(liste, editeurs);
 }
 
 function boiteOctets(str) {
@@ -1822,6 +1931,14 @@ function boiteMessageEchecMail(err, data) {
     var api = data && data.error ? String(data.error.message || data.error.status || '') : '';
     if (type === 'salutation') return 'Le mail doit commencer par Bonjour ou Bonsoir, avec le nom sur la même ligne. Il n\'est pas parti.';
     if (type === 'script') return 'L\'envoi au nom de l\'équipe Studyplan n\'est pas encore activé. La question reste en attente.';
+    if (type === 'mail_session') return 'La connexion Google admin à Firebase est absente ou a changé. Reconnecte ton compte puis réessaie ; le mail n’est pas parti.';
+    if (type === 'mail_acces') return 'Accès refusé à la configuration privée du mail. Vérifie les droits admin et les règles Firestore ; le mail n’est pas parti.';
+    if (type === 'mail_configuration') return 'Configuration privée du mail absente ou invalide (config/mail). Le mail n’est pas parti.';
+    if (type === 'mail_adresse') return 'Adresse du service mail invalide ou introuvable dans la configuration du site. Le mail n’est pas parti.';
+    if (type === 'mail_reseau') return 'Impossible de lire la configuration du mail. Vérifie la connexion et réessaie ; le mail n’est pas parti.';
+    if (type === 'incertain') return 'Envoi non confirmé : le mail a peut-être été envoyé. Vérifie les messages envoyés avant de réessayer.';
+    if (type === 'refus' && err.raison === 'secret') return 'Le service mail a refusé la configuration : le secret du script ne correspond pas. Le mail n’est pas parti.';
+    if (type === 'refus') return 'Le service mail signale un échec. Vérifie les messages envoyés et les autorisations du script avant de réessayer.';
     if (type === 'compte') return 'Le mail doit partir de ibstudyplan@gmail.com. La question reste en attente.';
     if (type === 'popup_failed_to_open') return 'Autorise la fenêtre Google, puis réessaie. La question reste en attente.';
     if (type === 'popup_closed') return 'La fenêtre Google a été fermée. La question reste en attente.';
@@ -1876,18 +1993,17 @@ function boiteNonce() {
 }
 
 function boiteMailAccepte(data, nonce) {
-    return !!(data && nonce && String(data.id || '') === String(nonce));
+    return !!(data && data.success === true && nonce && String(data.id || '') === String(nonce));
 }
 
 function boiteUrlScript() {
     return boiteFetch('data/mail-script.json?t=' + Date.now(), { cache: 'no-store' }, 8000).then(function (res) {
-        return res.ok ? res.json() : {};
-    }).catch(function () {
-        return {};
-    }).then(function (data) {
+        if (!res.ok) throw new Error('mail_adresse');
+        return res.json().catch(function () { throw new Error('mail_adresse'); });
+    }, function () { throw new Error('mail_reseau'); }).then(function (data) {
         var url = String((data && data.url) || '').trim();
         if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url)) {
-            throw new Error('script');
+            throw new Error('mail_adresse');
         }
         return url;
     });
@@ -1902,16 +2018,22 @@ function boiteSecretMail() {
     var generation = boiteSessionGeneration;
     if (boiteSecretCache && boiteEstAdmin() && window.firebase && firebase.auth().currentUser) return Promise.resolve(boiteSecretCache);
     return boiteFirebasePret().then(function (user) {
-        if (!user || !boiteEstAdmin()) throw new Error('script');
-        return firebase.firestore().collection('config').doc('mail').get();
+        if (!user || !boiteEstAdmin() || generation !== boiteSessionGeneration) throw new Error('mail_session');
+        /* Une copie locale périmée ne prouve pas que la configuration existe
+           encore. Lire le serveur et ne jamais exposer la valeur du secret. */
+        return firebase.firestore().collection('config').doc('mail').get({ source: 'server' });
     }).then(function (snap) {
+        if (generation !== boiteSessionGeneration) throw new Error('mail_session');
         var data = snap && snap.exists ? snap.data() : null;
-        var secret = data && data.secret ? String(data.secret) : '';
-        if (!secret || generation !== boiteSessionGeneration) throw new Error('script');
+        var secret = data && typeof data.secret === 'string' ? data.secret : '';
+        if (!secret.trim()) throw new Error('mail_configuration');
         boiteSecretCache = secret;
         return secret;
-    }).catch(function () {
-        throw new Error('script');
+    }).catch(function (err) {
+        if (generation !== boiteSessionGeneration) throw new Error('mail_session');
+        if (err && (err.message === 'mail_session' || err.message === 'mail_configuration')) throw err;
+        if (err && err.code === 'permission-denied') throw new Error('mail_acces');
+        throw new Error('mail_reseau');
     });
 }
 
@@ -1936,9 +2058,9 @@ function boiteMailCommenceBien(payload) {
     var ligne = String(payload && payload.salutation || '');
     var texte = String(payload && payload.text || '');
     var html = String(payload && payload.html || '');
-    if (!/^(Bonjour|Bonsoir) [^,\n]+,$/.test(ligne)) return false;
+    if (!/^(Bonjour|Bonsoir)(?: [^,\n]+)?,$/.test(ligne)) return false;
     if (texte.indexOf(ligne + '\n') !== 0) return false;
-    if (html.indexOf('>' + ligne + '<') === -1) return false;
+    if (html.indexOf('>' + boiteEchap(ligne) + '<') === -1) return false;
     return true;
 }
 
@@ -1986,24 +2108,30 @@ function boiteEnvoyerMail(destinataire, message, question, nom, quand) {
     var email = String(destinataire || '').trim();
     if (!boiteEmailValide(email)) return Promise.reject(new Error('email'));
     var nonce = boiteNonce();
+    var generation = boiteSessionGeneration;
     var moment = quand instanceof Date ? quand : new Date();
     return Promise.all([boiteUrlScript(), boiteSecretMail()]).then(function (prets) {
+        if (generation !== boiteSessionGeneration || !boiteEstAdmin()) throw new Error('mail_session');
         var url = prets[0];
         var payload = boitePayloadMail(email, message, question, nonce, nom, moment, prets[1]);
         if (!boiteMailCommenceBien(payload)) return Promise.reject(new Error('salutation'));
-        return fetch(url, {
-            method: 'POST',
-            redirect: 'follow',
+        /* Ne pas réémettre après une réponse illisible : le serveur a peut-être
+           déjà envoyé le message. Une erreur explicite reste distinguable. */
+        return boiteFetch(url, {
+            method: 'POST', redirect: 'follow',
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
-        }).then(function (res) {
+        }, 30000).then(function (res) {
             return res.json().catch(function () { return {}; }).then(function (data) {
                 if (res.ok && boiteMailAccepte(data, nonce)) return data;
-                return boitePosterChamps(url, payload);
+                if (data && data.success === false && data.error) {
+                    var erreur = new Error('refus');
+                    erreur.raison = String(data.error);
+                    throw erreur;
+                }
+                throw new Error('incertain');
             });
-        }).catch(function () {
-            return boitePosterChamps(url, payload);
-        });
+        }, function () { throw new Error('incertain'); });
     });
 }
 
@@ -2036,6 +2164,8 @@ function boiteMontrerAnalyse(questionId, article, texte, erreurs) {
     if (zone.scrollIntoView) zone.scrollIntoView({ block: 'nearest' });
 }
 
+var boiteReponsesEnCours = Object.create(null);
+
 function boiteRepondre(questionId, origine, forcer) {
     if (!boiteEstAdmin() || !boiteListesCache) return;
     var question = null;
@@ -2059,12 +2189,23 @@ function boiteRepondre(questionId, origine, forcer) {
         return;
     }
     if (bouton && bouton.disabled) return;
+    if (boiteReponsesEnCours[questionId]) { boiteDireDans(zone, 'Une réponse est déjà en cours pour cette question.', true); return; }
+    var generation = boiteSessionGeneration;
+    boiteReponsesEnCours[questionId] = true;
     if (bouton) bouton.disabled = true;
     function envoyer() {
+        if (generation !== boiteSessionGeneration) return;
+        if (champ && champ.value.trim() !== texte) {
+            delete boiteReponsesEnCours[questionId];
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le texte a changé. Vérifie-le puis relance l’envoi.', true);
+            return;
+        }
         boiteMontrerAnalyse(questionId, article, texte, []);
         var nomMail = boiteNomPourMail(question);
         var quand = new Date();
         var ligneMail = boiteSalutation(nomMail, quand);
+        if (champ) champ.readOnly = true;
         boiteDireDans(zone, 'Envoi vers ' + email + ' — ' + ligneMail, false);
         boiteEnvoyerMail(email, texte.slice(0, 800), question.texte || '', nomMail, quand).then(function (data) {
             var gmailId = String(data && data.id || '');
@@ -2083,12 +2224,26 @@ function boiteRepondre(questionId, origine, forcer) {
                 gmailId: gmailId.length >= 16 ? gmailId : '',
                 partage: true
             };
-            boiteGarderVu(record);
-            boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
-            boiteRendreQuestions(boiteListesCache);
-            boiteRendreRetours(boiteListesCache);
-            boiteEnvoyer(record).catch(function () {});
+            if (generation !== boiteSessionGeneration) return;
+            /* La confirmation Gmail ne garantit pas l'écriture de l'historique.
+               Ne jamais relancer le mail si cette seconde opération échoue. */
+            boiteDireDans(zone, 'Mail accepté. Enregistrement de la réponse…', false);
+            boiteEcrireBoite(record).then(function () {
+                if (generation !== boiteSessionGeneration) return;
+                delete boiteReponsesEnCours[questionId];
+                if (article && article.remove) article.remove();
+                if (!boiteListesCache) return;
+                boiteListesCache.reponses = (boiteListesCache.reponses || []).concat([record]);
+                boiteRendreQuestions(boiteListesCache);
+                boiteRendreRetours(boiteListesCache);
+            }).catch(function () {
+                if (generation !== boiteSessionGeneration) return;
+                boiteDireDans(zone, 'Mail accepté, mais historique non enregistré. Ne renvoie pas le mail ; copie ce message et contacte l’administrateur.', true);
+            });
         }).catch(function (err) {
+            if (generation !== boiteSessionGeneration) return;
+            delete boiteReponsesEnCours[questionId];
+            if (champ) champ.readOnly = false;
             if (bouton) bouton.disabled = false;
             boiteDireDans(zone, boiteMessageEchecMail(err, err && err.api), true);
         });
@@ -2099,7 +2254,15 @@ function boiteRepondre(questionId, origine, forcer) {
     }
     boiteDireDans(zone, 'Vérification de l\'orthographe, de la grammaire et de la conjugaison…', false);
     langueAnalyser(texte.slice(0, 800)).then(function (erreurs) {
+        if (generation !== boiteSessionGeneration) return;
+        if (champ && champ.value.trim() !== texte) {
+            delete boiteReponsesEnCours[questionId];
+            if (bouton) bouton.disabled = false;
+            boiteDireDans(zone, 'Le texte a changé. Vérifie-le puis relance l’envoi.', true);
+            return;
+        }
         if (erreurs && erreurs.length) {
+            delete boiteReponsesEnCours[questionId];
             if (bouton) bouton.disabled = false;
             boiteDireDans(zone, 'Le message n\'a pas été envoyé. Les erreurs sont indiquées ci-dessus.', true);
             boiteMontrerAnalyse(questionId, article, texte.slice(0, 800), erreurs);
@@ -2217,12 +2380,11 @@ function boiteRendreEmplois(fusion) {
         liste.innerHTML = rows.map(function (item, index) {
             var nom = item.nom || item.googleNom || 'Sans nom';
             var initiales = nom.trim().split(/\s+/).slice(0, 2).map(function (partie) { return partie.charAt(0).toUpperCase(); }).join('');
-            var recu = boiteEmploiRecu(item);
             return '<button type="button" class="emploi-atelier-personne" data-emploi-personne="' + index + '" aria-current="'
                 + (boiteCleAfficheEmploi(item) === boiteEmploiSelection ? 'true' : 'false') + '">'
                 + '<span class="emploi-atelier-avatar" aria-hidden="true">' + boiteEchap(initiales) + '</span>'
                 + '<span class="emploi-atelier-identite"><strong>' + boiteEchap(nom) + '</strong><small>' + boiteEchap(item.classe || 'Classe non indiquée') + '</small></span>'
-                + '<span class="emploi-atelier-badge ' + (recu ? 'recu' : 'absent') + '">' + (recu ? 'Reçu' : 'Absent') + '</span></button>';
+                + boiteBadgeFlammes(item, fusion) + '</button>';
         }).join('');
         var choix = rows.filter(function (item) { return boiteCleAfficheEmploi(item) === boiteEmploiSelection; })[0] || rows[0];
         var versions = boiteVersionsPourEmploi(choix, fusion);
@@ -2274,6 +2436,7 @@ function boiteSignatureEmplois(fusion) {
     return JSON.stringify({
         partiel: !!(fusion && fusion.partiel),
         erreurEmplois: fusion && fusion.erreurEmplois || '',
+        flammes: fusion && fusion.flammesComptes || {},
         personnes: boitePersonnes(fusion).map(function (item) {
             return [item.id || '', item.nom || '', item.classe || '', item.google || item.email || '', item.at || '', item.jours || []];
         }),
@@ -2342,6 +2505,7 @@ function boiteRafraichirAdmin() {
         if (el) el.textContent = 'Chargement…';
     });
     boiteListesCache = null;
+    boiteFlammesCache = Object.create(null);
     boiteChargerListes(true).then(function (fusion) {
         boiteRendreRetours(fusion);
         boiteRendreQuestions(fusion);
@@ -2466,6 +2630,37 @@ function boiteLierGoogle() {
     return Promise.resolve(boiteSession());
 }
 
+/* Un mot est une suite de caractères séparée par des espaces, retours ou tabulations. */
+var BOITE_MOTS_MAX = 1000;
+var BOITE_TEXTE_MAX = 100000; /* garde-fou technique, distinct de la limite de mots */
+function boiteNombreMots(texte) {
+    var propre = String(texte || '').trim();
+    return propre ? propre.split(/\s+/u).length : 0;
+}
+function boiteVerifierTexte(type, texte) {
+    if (boiteNombreMots(texte) > BOITE_MOTS_MAX) {
+        boiteDire(type + 'Statut', 'Ton message dépasse 1 000 mots. Réduis-le avant de l’envoyer.', true);
+        return false;
+    }
+    if (texte.length > BOITE_TEXTE_MAX) {
+        boiteDire(type + 'Statut', 'Ton message dépasse 100 000 caractères. Réduis-le avant de l’envoyer.', true);
+        return false;
+    }
+    return true;
+}
+function boiteCompteurMots(type) {
+    var champ = document.getElementById(type + 'Texte');
+    var compteur = document.getElementById(type + 'Compteur');
+    if (!champ || !compteur) return;
+    function actualiser() {
+        var n = boiteNombreMots(champ.value);
+        compteur.textContent = n.toLocaleString('fr-FR') + ' / 1 000 mots · 100 000 caractères maximum';
+        compteur.style.color = n > BOITE_MOTS_MAX ? '#b42318' : '';
+    }
+    if (!champ._compteurMots) { champ.addEventListener('input', actualiser); champ._compteurMots = true; }
+    actualiser();
+}
+
 function boiteQuestion(session) {
     var texte = document.getElementById('aideTexte');
     var valeur = texte ? texte.value.trim() : '';
@@ -2473,6 +2668,7 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'Écris ta question avant de l\'envoyer.', true);
         return;
     }
+    if (!boiteVerifierTexte('aide', valeur)) return;
     if (boiteEnvoiEnCours) return;
     boiteEnvoiEnCours = true;
     boiteDire('aideStatut', 'Envoi…', false);
@@ -2503,7 +2699,7 @@ function boiteQuestion(session) {
                 hour: '2-digit', minute: '2-digit', hour12: false
             }) + ' (Ouagadougou)',
             '02_nom_utilisateur': boiteNom() || 'Sans nom',
-            '04_question': valeur.slice(0, 800),
+            '04_question': valeur,
             z_email_reponse: email
         };
         if (gmail) record['03_compte_gmail'] = gmail;
@@ -2516,8 +2712,9 @@ function boiteQuestion(session) {
         boiteDire('aideStatut', 'L\'envoi n\'a pas abouti. Ta question est encore là : réessaie.', true);
         return;
     }
-    boiteEnvoyer(record).then(function () {
+    boiteEnvoyerAvecImages(record, 'aide').then(function () {
         if (texte) texte.value = '';
+        boiteCompteurMots('aide');
         var choix = document.getElementById('aideChoix');
         if (choix) choix.style.display = 'none';
         boiteDire('aideStatut', 'Question envoyée.', false);
@@ -2529,8 +2726,10 @@ function boiteQuestion(session) {
 }
 
 function initAide() {
+    boiteCompteurMots('aide');
     boiteMajMenu();
     boiteReessayerUneFois();
+    boiteImagesMonter('aide');
     var nom = document.getElementById('aideNom');
     if (nom) nom.textContent = boiteNom() || 'Ton prénom';
     var mailAide = document.getElementById('aideEmail');
@@ -2558,7 +2757,9 @@ function initAide() {
 }
 
 function initFeedback() {
+    boiteCompteurMots('feedback');
     boiteMajMenu();
+    boiteImagesMonter('feedback');
     var nom = document.getElementById('feedbackNom');
     if (nom) nom.textContent = boiteNom() || 'toi';
     var email = document.getElementById('feedbackEmail');
@@ -2581,6 +2782,7 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'Écris ta suggestion avant de l\'envoyer.', true);
             return;
         }
+        if (!boiteVerifierTexte('feedback', texte)) return;
         if (boiteEnvoiEnCours) return;
         boiteEnvoiEnCours = true;
         boiteDire('feedbackStatut', 'Envoi…', false);
@@ -2603,7 +2805,7 @@ function initFeedback() {
                     hour: '2-digit', minute: '2-digit', hour12: false
                 }) + ' (Ouagadougou)',
                 '02_nom_utilisateur': boiteNom() || 'Sans nom',
-                '04_feedback': texte.slice(0, 800),
+                '04_feedback': texte,
                 z_email_reponse: adresse.slice(0, 120)
             };
             if (gmail) record['03_compte_gmail'] = gmail;
@@ -2615,8 +2817,9 @@ function initFeedback() {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
             return;
         }
-        boiteEnvoyer(record).then(function () {
+        boiteEnvoyerAvecImages(record, 'feedback').then(function () {
             if (champ) champ.value = '';
+            boiteCompteurMots('feedback');
             boiteDire('feedbackStatut', 'Suggestion envoyée.', false);
         }).catch(function () {
             boiteDire('feedbackStatut', 'L\'envoi n\'a pas abouti. Ta suggestion est encore là : réessaie.', true);
@@ -3405,5 +3608,123 @@ if (typeof document !== 'undefined') {
                 if (questions && questions.classList.contains('active')) boiteRendreQuestions(fusion);
             }).catch(function () {});
         }
+    });
+}
+/* Images jointes aux messages : elles restent privées dans le même document
+   Firestore que le message, dont la lecture est réservée aux administrateurs.
+   Un format borné permet de conserver les règles et les anciens messages. */
+var BOITE_IMAGE_MARQUE = '[studyplan-images-v1]\n';
+var BOITE_IMAGE_LIMITE = 200000; /* caractères base64 par image */
+var boiteImagesEtat = { aide: {images: [], charge: false, revision: 0}, feedback: {images: [], charge: false, revision: 0} };
+function boiteImageValide(src) {
+    return typeof src === 'string' && src.length <= BOITE_IMAGE_LIMITE && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/.test(src);
+}
+function boiteImagesDecoder(valeur) {
+    var texte = String(valeur || '');
+    if (texte.indexOf(BOITE_IMAGE_MARQUE) !== 0) return { texte: texte, images: [] };
+    if (texte.length > 1000000) return { texte: 'Message avec pièce jointe illisible.', images: [] };
+    try {
+        var data = JSON.parse(texte.slice(BOITE_IMAGE_MARQUE.length));
+        if (!data || typeof data.texte !== 'string' || data.texte.length > BOITE_TEXTE_MAX || !Array.isArray(data.images) || data.images.length > 2 || !data.images.every(boiteImageValide)) throw new Error('format');
+        return { texte: data.texte, images: data.images };
+    } catch (e) { return { texte: texte.slice(0, 800), images: [] }; }
+}
+function boiteImagesAdmin(images) {
+    var valides = Array.isArray(images) ? images.slice(0, 2).filter(boiteImageValide) : [];
+    if (!valides.length) return '';
+    return '<div class="boite-images-recues"><p>Images jointes</p><div>' + valides.map(function (src, index) {
+        return '<a href="' + src + '" target="_blank" rel="noopener noreferrer" download="studyplan-image-' + (index + 1) + '.jpg" aria-label="Télécharger l’image jointe ' + (index + 1) + '"><img src="' + src + '" alt="Image jointe ' + (index + 1) + '" loading="lazy"></a>';
+    }).join('') + '</div></div>';
+}
+function boiteImagesMonter(type) {
+    var envoyer = document.getElementById(type + 'Envoi');
+    if (!envoyer || !envoyer.parentElement || document.getElementById(type + 'Images')) return;
+    var bloc = document.createElement('section');
+    bloc.id = type + 'Images'; bloc.className = 'boite-images';
+    bloc.innerHTML = '<div class="boite-images-intro"><div class="boite-images-icone" aria-hidden="true"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9" r="1.4"/><path d="M4 17l5-5 3 3 3-3 5 5"/></svg></div><div><strong>Ajouter une image</strong><p>Une capture d’écran peut nous aider à comprendre.</p></div></div>'
+        + '<label class="boite-images-selection"><span>+ Choisir des images</span><input type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="Choisir jusqu’à deux images"></label>'
+        + '<p class="boite-images-conseil">JPG, PNG ou WebP · 2 images maximum · 10 Mo chacune. Elles seront réduites pour l’envoi. Évite les informations sensibles.</p>'
+        + '<div class="boite-images-apercus"></div><p class="boite-images-statut" role="status" aria-live="polite"></p>';
+    envoyer.parentElement.insertBefore(bloc, envoyer);
+    bloc.querySelector('input').addEventListener('change', function () {
+        var fichiers = Array.from(this.files || []); this.value = '';
+        if (!fichiers.length) return;
+        boiteImagesAjouter(type, fichiers);
+    });
+    boiteImagesPeindre(type);
+}
+function boiteImagesPeindre(type, statut) {
+    var bloc = document.getElementById(type + 'Images'), state = boiteImagesEtat[type];
+    if (!bloc || !state) return;
+    var liste = bloc.querySelector('.boite-images-apercus'); liste.textContent = '';
+    state.images.forEach(function (image, index) {
+        var carte = document.createElement('div'); carte.className = 'boite-images-apercu';
+        var img = document.createElement('img'); img.src = image.src; img.alt = 'Aperçu de l’image ' + (index + 1);
+        var nom = document.createElement('span'); nom.textContent = image.nom;
+        var bouton = document.createElement('button'); bouton.type = 'button'; bouton.textContent = 'Retirer'; bouton.setAttribute('aria-label', 'Retirer ' + image.nom);
+        bouton.addEventListener('click', function () { state.images.splice(index, 1); boiteImagesPeindre(type, 'Image retirée.'); });
+        carte.appendChild(img); carte.appendChild(nom); carte.appendChild(bouton); liste.appendChild(carte);
+    });
+    bloc.querySelector('.boite-images-statut').textContent = statut || (state.images.length ? state.images.length + ' image' + (state.images.length > 1 ? 's' : '') + ' prête' + (state.images.length > 1 ? 's' : '') + ' à envoyer.' : '');
+    var boutonEnvoi = document.getElementById(type + 'Envoi');
+    if (boutonEnvoi) boutonEnvoi.disabled = !!state.charge;
+    bloc.querySelector('input').disabled = !!state.charge;
+}
+function boiteImageCompresser(file) {
+    return new Promise(function (resolve, reject) {
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size > 10 * 1024 * 1024 || !file.size) return reject(new Error('Choisis une image JPG, PNG ou WebP de 10 Mo maximum.'));
+        var url = URL.createObjectURL(file), img = new Image();
+        img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Cette image ne peut pas être ouverte.')); };
+        img.onload = function () {
+            URL.revokeObjectURL(url);
+            if (!img.naturalWidth || !img.naturalHeight || img.naturalWidth * img.naturalHeight > 24000000) return reject(new Error('Cette image est trop grande. Choisis une image de 24 mégapixels maximum.'));
+            try {
+                var taille = 1600, src = '';
+                while (taille >= 800) {
+                    var ratio = Math.min(1, taille / Math.max(img.naturalWidth, img.naturalHeight));
+                    var canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio)); canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+                    var ctx = canvas.getContext('2d'); if (!ctx) throw new Error('Canvas indisponible');
+                    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    for (var q = 0.86; q >= 0.46; q -= 0.1) { src = canvas.toDataURL('image/jpeg', q); if (boiteImageValide(src)) return resolve({src: src, nom: String(file.name || 'Image').slice(0, 80)}); }
+                    taille -= 200;
+                }
+                reject(new Error('Cette image est trop détaillée pour être envoyée. Essaie une capture plus petite.'));
+            } catch (e) { reject(new Error('Cette image ne peut pas être préparée.')); }
+        };
+        img.src = url;
+    });
+}
+async function boiteImagesAjouter(type, fichiers) {
+    var state = boiteImagesEtat[type]; if (!state || state.charge) return;
+    if (state.images.length + fichiers.length > 2) { boiteImagesPeindre(type, 'Tu peux joindre deux images maximum.'); return; }
+    var revision = ++state.revision; state.charge = true; boiteImagesPeindre(type, 'Préparation des images…');
+    try {
+        var nouvelles = [];
+        for (var i = 0; i < fichiers.length; i++) nouvelles.push(await boiteImageCompresser(fichiers[i]));
+        if (revision === state.revision) { state.images = state.images.concat(nouvelles); boiteImagesPeindre(type); }
+    } catch (e) { if (revision === state.revision) boiteImagesPeindre(type, e.message || 'Image indisponible.'); }
+    finally { if (revision === state.revision) { state.charge = false; var b = document.getElementById(type + 'Envoi'); if (b) b.disabled = false; var input = document.querySelector('#' + type + 'Images input'); if (input) input.disabled = false; } }
+}
+function boiteEnvoyerAvecImages(record, type) {
+    var state = boiteImagesEtat[type];
+    if (!state || !state.images.length) return boiteEnvoyer(record);
+    if (state.charge) return Promise.reject(new Error('images_en_preparation'));
+    var champ = record.type === 'question' ? '04_question' : '04_feedback';
+    var copie = Object.assign({}, record);
+    copie[champ] = BOITE_IMAGE_MARQUE + JSON.stringify({texte: String(record[champ] || ''), images: state.images.map(function (a) { return a.src; })});
+    /* Ne pas conserver d'image privée dans une file locale partagée par les
+       comptes de cet appareil. Un échec conserve le formulaire pour réessayer. */
+    return boiteEcrireBoite(copie).then(function () {
+        state.images = []; state.revision++; boiteImagesPeindre(type, ''); return true;
+    });
+}
+
+/* Prévenir avant un rechargement : les brouillons privés restent en mémoire
+   uniquement et ne sont jamais écrits dans le stockage du navigateur. */
+if (typeof window !== 'undefined' && window.addEventListener) {
+    window.addEventListener('beforeunload', function (event) {
+        if (!document.querySelectorAll) return;
+        var brouillon = Array.prototype.some.call(document.querySelectorAll('[data-reponse-texte]'), function (champ) { return !!champ.value.trim(); });
+        if (brouillon) { event.preventDefault(); event.returnValue = ''; }
     });
 }

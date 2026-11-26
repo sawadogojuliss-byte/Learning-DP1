@@ -1,5 +1,5 @@
 /**
- * Envoi des réponses Studyplan. Version 4 (accepte encore l'ancien nom pendant la transition).
+ * Envoi des réponses Studyplan. Version 8, avec annuaire automatique des salons.
  * Méthode utilisée par les formulaires statiques : les champs arrivent dans e.parameter.
  * GmailApp, pas MailApp : MailApp part d'un serveur partagé et est rejeté.
  * Déployer > Gérer les déploiements > crayon > Nouvelle version > Déployer.
@@ -81,11 +81,20 @@ function assurerSalutation(data) {
 }
 
 function doGet() {
-  return reponse({ success: false, service: 'study-plan-ib', version: 3 });
+  /* Diagnostic public sans clé : une version active et la présence d'une
+     configuration ne confirment ni l'égalité des clés ni la livraison. */
+  var configure = !!PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
+  return reponse({ success: false, service: 'study-plan-ib', version: 8, secretConfigure: configure, salonsPlanifies: typeof spApi === 'function', salonsAcceptation: typeof spRepondre === 'function', salonsHistorique: typeof spParticiper === 'function', salonsAnnuaireAuto: typeof spAnnuaireComptes === 'function' });
 }
 
 function doPost(e) {
   var data = lire(e);
+  // La planification gratuite a sa propre authentification Firebase ; elle ne
+  // doit jamais exiger ni exposer le secret de l'expéditeur dans le navigateur.
+  if (data.actionSalons) {
+    if (typeof spApi !== 'function') return reponse({success:false,error:'service-indisponible'});
+    return spApi(data);
+  }
   var secret = PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
   if (!secret || !data.secret || data.secret !== secret) return reponse({ success: false, error: 'secret' });
   var nonce = String(data.nonce || '');

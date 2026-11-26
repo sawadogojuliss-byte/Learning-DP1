@@ -1,0 +1,93 @@
+/* EE & IA — mêmes repères visuels que les autres espaces Studyplan. */
+#panelEEia.eeia-page { color:#18392f; background:#f5f8f4 !important; font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+#panelEEia.eeia-page.active::before { background:#f5f8f4 !important; }
+#panelEEia * { box-sizing:border-box; }
+#panelEEia button, #panelEEia input { font:inherit; }
+#panelEEia button { cursor:pointer; }
+#panelEEia :is(button,input):focus-visible { outline:3px solid #54af8c; outline-offset:3px; }
+#panelEEia .eeia-topbar { background:rgba(255,255,255,.96); border-bottom:1px solid #e4ece7; }
+#panelEEia .eeia-topbar-inner { max-width:1176px; min-height:75px; padding:0 28px; margin:auto; display:flex; align-items:center; gap:18px; }
+#panelEEia .eeia-back { display:grid; place-items:center; flex:none; width:40px; height:40px; border:1px solid #e2ebe5; border-radius:12px; background:#fff; color:#345a4b; }
+#panelEEia .eeia-back:hover { background:#edf7f0; }
+#panelEEia .eeia-back svg { width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+#panelEEia .eeia-brand { display:flex; gap:10px; align-items:center; }
+#panelEEia .eeia-brand-mark { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:#1d7656; color:#fff; font-family:Georgia,serif; font-size:25px; font-weight:700; }
+#panelEEia .eeia-brand strong { display:block; color:#173b2d; line-height:1.1; font-size:15px; letter-spacing:-.04em; }
+#panelEEia .eeia-brand small { display:block; color:#819789; font-size:8px; font-weight:800; letter-spacing:.12em; margin-top:4px; }
+#panelEEia .eeia-top-note { margin-left:auto; color:#819589; font-size:12px; font-weight:600; }
+#panelEEia .eeia-shell { max-width:1176px; margin:0 auto; padding:47px 28px 70px; }
+#panelEEia .eeia-hero { display:flex; justify-content:space-between; align-items:center; gap:30px; margin-bottom:32px; }
+#panelEEia .eeia-eyebrow { display:flex; align-items:center; gap:9px; margin:0 0 13px; color:#459675; font-size:10px; font-weight:800; letter-spacing:.16em; }
+#panelEEia .eeia-eyebrow span { width:7px; height:7px; background:#56b992; border-radius:50%; box-shadow:0 0 0 4px #e2f3e9; }
+#panelEEia .eeia-hero h1 { margin:0; color:#173d2f; font-size:clamp(34px,4vw,50px); letter-spacing:-.055em; line-height:1.12; font-weight:750; }
+#panelEEia .eeia-hero h1 em { color:#479b77; font-style:normal; }
+#panelEEia .eeia-hero > div > p:last-child { max-width:560px; margin:14px 0 0; color:#687e70; font-size:14px; line-height:1.7; }
+#panelEEia .eeia-hero-note { display:flex; align-items:center; gap:14px; min-width:270px; padding:19px; border:1px solid #d7e8dc; border-radius:18px; background:linear-gradient(115deg,#ecf7ef,#f6faf3); }
+#panelEEia .eeia-note-icon { width:44px; height:44px; border-radius:14px; display:grid; place-items:center; background:#fff; color:#58a781; font-size:23px; }
+#panelEEia .eeia-hero-note small { display:block; color:#70917e; font-size:9px; font-weight:800; letter-spacing:.1em; margin-bottom:5px; }
+#panelEEia .eeia-hero-note strong { display:block; font-size:15px; color:#24533e; }
+#panelEEia .eeia-hero-note div>span { display:block; font-size:11px; color:#789587; margin-top:4px; }
+#panelEEia .eeia-intro { display:flex; align-items:center; gap:12px; margin:0 0 35px; padding:15px 18px; color:#436955; background:#edf7ef; border:1px solid #d8ecdd; border-radius:14px; }
+#panelEEia .eeia-intro span { font-size:18px; color:#469775; }
+#panelEEia .eeia-intro p { margin:0; font-size:13px; line-height:1.55; }
+#panelEEia .eeia-section { margin-top:32px; }
+#panelEEia .eeia-section-head { display:flex; align-items:end; justify-content:space-between; gap:10px; margin-bottom:15px; }
+#panelEEia .eeia-section-head p { margin:0 0 5px; color:#668e77; font-size:10px; font-weight:800; letter-spacing:.12em; }
+#panelEEia .eeia-section-head h2 { margin:0; color:#1d3e2f; font-size:22px; letter-spacing:-.035em; }
+#panelEEia .eeia-section-head > span { color:#6f9980; background:#e8f3e9; border:1px solid #d7e9db; border-radius:999px; padding:5px 10px; font-size:10px; font-weight:800; }
+#panelEEia .eeia-grille { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; align-items:start; }
+#panelEEia .eeia-carte { min-width:0; padding:22px; background:#fff; border:1px solid #e2ece4; border-radius:18px; box-shadow:0 8px 30px #325b3d0b; }
+#panelEEia .is-memoire { background:linear-gradient(120deg,#fff,#f8fcf8); }
+#panelEEia .eeia-carte-head, #panelEEia .eeia-carte-identite { display:flex; align-items:center; gap:12px; min-width:0; }
+#panelEEia .eeia-carte-head { justify-content:space-between; gap:8px; }
+#panelEEia .eeia-carte-identite > div { min-width:0; }
+#panelEEia .eeia-carte-icon { flex:none; display:grid; place-items:center; width:45px; height:45px; border-radius:14px; background:#edf7ee; color:#20815c; font-size:22px; }
+#panelEEia .eeia-carte-kicker { margin:0 0 4px; color:#69907a; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; }
+#panelEEia .eeia-carte h3 { margin:0; color:#1b3c2d; font-size:17px; line-height:1.25; overflow-wrap:anywhere; }
+#panelEEia .eeia-statut { flex:none; padding:6px 9px; border-radius:999px; background:#f0f6f0; color:#56816a; font-size:10px; font-weight:750; }
+#panelEEia .eeia-progress-head { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:24px; color:#688074; font-size:12px; font-weight:650; }
+#panelEEia .eeia-progress-head strong { color:#23865f; font-size:17px; }
+#panelEEia .eeia-progress { height:7px; overflow:hidden; border-radius:999px; background:#e9f0e9; margin-top:8px; }
+#panelEEia .eeia-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#58b884,#16815d); transition:width .25s ease; }
+#panelEEia .eeia-progress-caption { margin:7px 0 18px; color:#788c7e; font-size:11px; line-height:1.5; }
+#panelEEia .eeia-stage-label, #panelEEia .eeia-plan > label { display:block; margin:0 0 9px; color:#365a47; font-size:12px; font-weight:750; }
+#panelEEia .eeia-stages { display:flex; flex-wrap:wrap; gap:7px; }
+#panelEEia .eeia-stage { min-height:40px; padding:8px 12px; border:1px solid #dfeae1; border-radius:10px; background:#fff; color:#668073; font-size:12px; font-weight:700; }
+#panelEEia .eeia-stage span { display:inline-grid; place-items:center; width:16px; height:16px; margin-right:6px; border-radius:50%; background:#eef4ee; color:#749181; }
+#panelEEia .eeia-stage.is-active { border-color:#8bc8a1; color:#176a4b; background:#edf8f0; }
+#panelEEia .eeia-stage.is-active span { background:#278a61; color:white; }
+#panelEEia .eeia-stage:hover { border-color:#8bc8a1; }
+#panelEEia .eeia-solutions, #panelEEia .eeia-plan { margin-top:18px; padding:16px; border:1px solid #e2eee4; border-radius:14px; background:#f8fbf8; }
+#panelEEia .eeia-solutions strong { color:#315841; font-size:13px; }
+#panelEEia .eeia-solutions ol { padding-left:20px; margin:10px 0; color:#536c5c; font-size:12px; line-height:1.65; }
+#panelEEia .eeia-solutions p, #panelEEia .eeia-plan-info, #panelEEia .eeia-plan-vide { margin:10px 0 0; color:#6d8374; font-size:12px; line-height:1.55; }
+#panelEEia .eeia-ajout { display:flex; gap:8px; }
+#panelEEia .eeia-ajout input { width:100%; min-width:0; min-height:43px; padding:10px 12px; border:1px solid #d8e7da; border-radius:10px; background:white; color:#284838; font-size:13px; }
+#panelEEia .eeia-ajout button { min-height:43px; padding:0 15px; border:0; border-radius:10px; background:#18815c; color:#fff; font-size:12px; font-weight:800; }
+#panelEEia .eeia-ajout button:hover { background:#116c4b; }
+#panelEEia .eeia-parties { display:grid; gap:6px; margin-top:10px; }
+#panelEEia .eeia-partie { display:flex; gap:5px; }
+#panelEEia .eeia-partie-action { flex:1; min-width:0; min-height:43px; display:flex; align-items:center; gap:9px; padding:9px 10px; text-align:left; border:1px solid #e0eae1; border-radius:10px; background:#fff; color:#345644; font-size:13px; }
+#panelEEia .eeia-partie-action.is-done { background:#eef8f0; border-color:#b9dec2; }
+#panelEEia .eeia-check { flex:none; display:grid; place-items:center; width:19px; height:19px; border:1px solid #c8dbcd; border-radius:6px; color:#fff; font-size:11px; }
+#panelEEia .is-done .eeia-check { background:#238a60; border-color:#238a60; }
+#panelEEia .eeia-partie-texte { flex:1; min-width:0; overflow-wrap:anywhere; }
+#panelEEia .eeia-partie-action strong { flex:none; color:#398260; font-size:11px; }
+#panelEEia .eeia-supprimer { flex:none; width:38px; min-height:43px; border:0; border-radius:10px; background:transparent; color:#789385; font-size:21px; }
+#panelEEia .eeia-supprimer:hover { background:#f5ebe9; color:#9c4e43; }
+#panelEEia .eeia-vide { padding:24px; border:1px dashed #c8ddcc; border-radius:16px; background:#fbfdfb; color:#496b56; }
+#panelEEia .eeia-vide strong { font-size:14px; }
+#panelEEia .eeia-vide p { margin:7px 0 0; font-size:13px; line-height:1.5; }
+/* Les messages de finalisation sont attachés au body, au-dessus des panneaux. */
+#eeRetourModal { z-index:100001 !important; }
+@media(max-width:700px) {
+  #panelEEia .eeia-topbar-inner { padding:0 18px; min-height:68px; gap:12px; }
+  #panelEEia .eeia-top-note, #panelEEia .eeia-hero-note { display:none; }
+  #panelEEia .eeia-shell { padding:30px 18px 50px; }
+  #panelEEia .eeia-hero { margin-bottom:25px; }
+  #panelEEia .eeia-grille { grid-template-columns:minmax(0,1fr); }
+  #panelEEia .eeia-carte { padding:18px; }
+  #panelEEia .eeia-carte-head { align-items:flex-start; }
+  #panelEEia .eeia-section-head h2 { font-size:20px; }
+}
+@media(prefers-reduced-motion:reduce) { #panelEEia .eeia-progress span { transition:none; } }

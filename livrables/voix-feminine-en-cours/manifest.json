@@ -1,0 +1,389 @@
+{
+  "18": {
+    "crete_dbtp": -6.0,
+    "duree_source_s": 5.33,
+    "gain_db": -2.1,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "a757072f825de531896495b9ce80249c20e0ab43b371b781ec98ec75d09da54f",
+    "source_sha256": "0c048b9c5d1b574820e4f94b6da789ffb0b5a9691a40e80e206d42e237fec67e",
+    "tempo": 1.08
+  },
+  "19": {
+    "crete_dbtp": -4.3,
+    "duree_source_s": 4.6,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "9acf2345f426eaceb2c67289f575575cd6af2010754b3cebf668c906ddd0ca1d",
+    "source_sha256": "7e5c8e21ee73822af73f1c5d743e8c7bf76fc2a208fe8265647cdb5ee3561223",
+    "tempo": 0.93889
+  },
+  "20": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 3.96,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "cfebbc2dbc2dd8b38dac9986f558a944b2e04dfbfa35ae7885b251d415746d97",
+    "source_sha256": "aacefc97e362f2e9710135c8b92e798262b2a8d82a0701bc12c64df159e9d3d7",
+    "tempo": 0.92
+  },
+  "21": {
+    "crete_dbtp": -6.5,
+    "duree_source_s": 4.34,
+    "gain_db": -2.7,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "43a56c10f0793f85f250a9d4de278712f342055ed38df4df4060e1da0de026b8",
+    "source_sha256": "c746f408f9e5af9d540e016508a27316d3449a5fcfd682e8f6a1e7dab379df69",
+    "tempo": 0.92
+  },
+  "22": {
+    "crete_dbtp": -5.0,
+    "duree_source_s": 3.58,
+    "gain_db": -2.0,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "7211cfad203c45416feb2f9e99cb10a7450e631813f5e593344406d4cce9e380",
+    "source_sha256": "1bfaedd3aabd0b85b2ee78c436f88067e02ea3303e6696fa7b6ea69c18cbd965",
+    "tempo": 0.92
+  },
+  "23": {
+    "crete_dbtp": -4.4,
+    "duree_source_s": 4.9,
+    "gain_db": -2.0,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "90c279a979cf0a611ca1aa1f190d72d8d32b429dd11a64c4e6999d6fe141c835",
+    "source_sha256": "d9850dfa1b2f31bcd9f3ef6fcab26e8246f483447ab20decaa231493c00db4ec",
+    "tempo": 1.00012
+  },
+  "24": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 4.01,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "a6e125e1c9903661fd8cf8990e2958c42f2f5f6298b41af69b5c12ce2045868e",
+    "source_sha256": "86f3c78eb221b7e98092a7085c8e70c41ffecf8bfe9678057d8797b52f446d8c",
+    "tempo": 0.92
+  },
+  "25": {
+    "crete_dbtp": -4.2,
+    "duree_source_s": 5.41,
+    "gain_db": -1.8,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "f1ebe66dea25351d8ca883ad8eaf955caafc3128ca651c1042a0d1de0f9c9c37",
+    "source_sha256": "6d4a8e1592c95df42a875e3952c6db123de542ec1cafdb1fc93546c42ab1c59a",
+    "tempo": 1.08
+  },
+  "26": {
+    "crete_dbtp": -4.3,
+    "duree_source_s": 4.6,
+    "gain_db": -2.1,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "b9e958a0ee0e4d96084fa34bbf11927789abf84bb7c89f13a69d11f804163fcc",
+    "source_sha256": "1a20e2db9a9694d01f558282e16f5b64db681df84949b28a0505647fd6bbef9d",
+    "tempo": 0.93889
+  },
+  "27": {
+    "crete_dbtp": -4.4,
+    "duree_source_s": 4.56,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "54b42ab0232815561d7d0fac80376fc964396a6a9537de7af4f07e003e9c7742",
+    "source_sha256": "6f1874c5c6d673ef4325e2d21cee3db78a9bb5ba801f73767c5e490a444cb75b",
+    "tempo": 0.93072
+  },
+  "28": {
+    "crete_dbtp": -4.5,
+    "duree_source_s": 4.9,
+    "gain_db": -2.1,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "e697f9a4dbb678131d7fde3b8b3d8b1a2b11487d017e3471d05d98fd90d18023",
+    "source_sha256": "3e9b170f232f9c89a3c215ddd3ff14f25901182e9b0870ceaf0b3228b3f04aa0",
+    "tempo": 1.00012
+  },
+  "29": {
+    "crete_dbtp": -5.4,
+    "duree_source_s": 4.9,
+    "gain_db": -2.6,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "ef62a7632c1ac113c86fa7cc58f246576c38b4c240f562411e4c8990301cce6f",
+    "source_sha256": "e5a461c6bf184e7a01e408e43aaaf4695349a834a341f80655e5bad16af5c514",
+    "tempo": 1.00012
+  },
+  "30": {
+    "crete_dbtp": -4.6,
+    "duree_source_s": 4.13,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "954c505db0a13feb0f7a40c68a0a6cf593aa8c2b1cbc4ce402d0b9a61fdd0826",
+    "source_sha256": "604612f1fe27551f374b9cb661b74540a390100be6130bac4ecfb35a8be2dc9e",
+    "tempo": 0.92
+  },
+  "31": {
+    "crete_dbtp": -4.6,
+    "duree_source_s": 4.31,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "ec405b3c7d4804f0912bb18cba24f4687604242b89ea203cf9e0af7e62f5821e",
+    "source_sha256": "d8f91ffa3fe0f74d332a491cda10d1ec3140e1c02d03350050afd868bf77c71a",
+    "tempo": 0.92
+  },
+  "32": {
+    "crete_dbtp": -5.3,
+    "duree_source_s": 4.52,
+    "gain_db": -2.4,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "24f8ab2d62b0134d968dbb0cb02ff472052dacd5b4cf7bc3cd413f8f3c34c6f5",
+    "source_sha256": "ee3ce5f8c62019d184384baa60332ea7ec1a8d11c685f4dbc0cdaf2a71383bdf",
+    "tempo": 0.92256
+  },
+  "33": {
+    "crete_dbtp": -5.1,
+    "duree_source_s": 5.41,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "c4356018d0ac250ed2ba9510b6e9f494a735a375acb6433f689b398f24c2edd0",
+    "source_sha256": "3cf436d7d80b507f77e6b403a168533fb8386df9d2431a8c30daabfc4b2bf27d",
+    "tempo": 1.08
+  },
+  "34": {
+    "crete_dbtp": -5.2,
+    "duree_source_s": 4.73,
+    "gain_db": -2.6,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "df1e74e9bb0282c81e07f794679ace4478737e4607e6b88c5d86792919cc9582",
+    "source_sha256": "82353609d68dbf7803328b679bedfa599f431bc53f09a11b2b8a2647624eb606",
+    "tempo": 0.96542
+  },
+  "35": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 4.52,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "0dda004d995ca7823c7999f1d1d95f8a5e83230ffa503143bc459d438abba2e1",
+    "source_sha256": "db16d870819fef216e6a5a03dc1827318e643989ac7506a556f6c029cf2d519e",
+    "tempo": 0.92256
+  },
+  "36": {
+    "crete_dbtp": -5.4,
+    "duree_source_s": 4.44,
+    "gain_db": -2.7,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "76d395e54b048081b41dcfc0c1f6c9255da369147725f704f41b799ba81c100c",
+    "source_sha256": "6211a7ed2195123641fde907bb5ae1a09b0ab84c776dec3017f1502d70e648da",
+    "tempo": 0.92
+  },
+  "37": {
+    "crete_dbtp": -4.4,
+    "duree_source_s": 4.05,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "6fac59aa02a33bc97416eb440dd9fca04f28905d582f2f55d1b477e6dc55f41c",
+    "source_sha256": "5d3998b13ff2b61ce910a218025fd80040347680a5d299d4f2825fb6a099911b",
+    "tempo": 0.92
+  },
+  "38": {
+    "crete_dbtp": -4.6,
+    "duree_source_s": 4.31,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "78e0815f7c422da6056ce652c649f0e672b39aaf57e7ed30628e8339bf26bf6f",
+    "source_sha256": "ba5cfe7b7b7c41214c2759bcdb36106b210ac77879456f52dd955d12ce4ef673",
+    "tempo": 0.92
+  },
+  "39": {
+    "crete_dbtp": -5.2,
+    "duree_source_s": 5.41,
+    "gain_db": -2.0,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "e6e22c9b950f5a2668f9d6170c52c5948c6f87b6aafd94dccb57c2b3fa678055",
+    "source_sha256": "afb8b163c2e13e4964fbb31ea5f26de5716a7f4d50ccd19e4c9c747113710385",
+    "tempo": 1.08
+  },
+  "40": {
+    "crete_dbtp": -4.5,
+    "duree_source_s": 4.6,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "902fd8fe48f0534b1eb52fbac4041e802303cb181adaa04b848288efdda16e90",
+    "source_sha256": "6273782181a06af9e9fbeee57dacf962d7bddb7de5c31ce1e1b8d6beb26b4ddf",
+    "tempo": 0.93889
+  },
+  "41": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 4.31,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "bde8561e8e7faaa02fd3cfa9add53e398bbb2baf107c9437af108d631b017e9b",
+    "source_sha256": "bc776b0e6491528ac9cfc3154b153aeffb80ea10ebf76916104532042feaa3b0",
+    "tempo": 0.92
+  },
+  "42": {
+    "crete_dbtp": -6.0,
+    "duree_source_s": 5.79,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "f61e5dc4feaa66716b726d0a89aa80a4bf3c676b3ea1e8a6790fba06955662da",
+    "source_sha256": "8d278109959e23718314ce4f13c254c7edd8ff3f83b03b30c43b0bfc49c0ada5",
+    "tempo": 1.08
+  },
+  "43": {
+    "crete_dbtp": -4.3,
+    "duree_source_s": 5.41,
+    "gain_db": -2.1,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "6d9d17faf734f1277aac709117383b09728289951d45789d99b9ce961cb22b60",
+    "source_sha256": "edeb6754efe070a72ee6664089449bcf70335ef6b7b177dfd3f0466149d39aed",
+    "tempo": 1.08
+  },
+  "44": {
+    "crete_dbtp": -5.2,
+    "duree_source_s": 4.95,
+    "gain_db": -2.4,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "07f1c0737e9271380390f55838f9b7467e290c6f41613c8b201b6f6419af3cdf",
+    "source_sha256": "55b8b3a1c3724a53a170ab5de2bfb3a5c94ee38f1964cc83b5294b562eb14d5f",
+    "tempo": 1.01033
+  },
+  "45": {
+    "crete_dbtp": -5.2,
+    "duree_source_s": 4.95,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "7a6925fb5260c47f6bfa670a2563eeed7f8c0c51063129a64d204f53dbe5309d",
+    "source_sha256": "1df33a7261eec55f8080776f840ee9628f0f1aaa4781d39270f20992f407c257",
+    "tempo": 1.01033
+  },
+  "46": {
+    "crete_dbtp": -4.5,
+    "duree_source_s": 4.73,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "b35aaa215bb0693dc1bfd30a55ed52a97e68afa12519a23285f1db0843fdfca2",
+    "source_sha256": "034c1bd070894dc4ca007e0f64e4aa2fe105fbb0a6e50a343ad582a119fcf447",
+    "tempo": 0.96542
+  },
+  "47": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 4.52,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "887cd8efebcc23baf6a03e0b672f556197d774ee874e8ac4e88514cf99759d05",
+    "source_sha256": "177ae1cc31efa19fcdf383d30df2d007492b57741d66ee6d5f40cdbeb06f4475",
+    "tempo": 0.92256
+  },
+  "48": {
+    "crete_dbtp": -7.0,
+    "duree_source_s": 4.73,
+    "gain_db": -2.7,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "6baee85a864dd8a373aa520bb1f1f1b8ee8045c45fd6f05273c5d41dbc3e7dea",
+    "source_sha256": "bbecca53f77fc5552121bd49584f88b160dabd33d64c5f0a80fe07f051e17f3c",
+    "tempo": 0.96542
+  },
+  "49": {
+    "crete_dbtp": -4.4,
+    "duree_source_s": 4.85,
+    "gain_db": -2.1,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "7dce626024346b63b260f7fa323cf41e35fe9c3b9566ad9d416650fe11ce7825",
+    "source_sha256": "1d097a5408d57b7181cf6468bf55022fa919567162b9602eb939e92a8c5ec6d4",
+    "tempo": 0.98992
+  },
+  "50": {
+    "crete_dbtp": -4.3,
+    "duree_source_s": 4.6,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "7170571afdd826456e553f72ab1c7f89d206bb0ddae9d2667561ce60b1fe4150",
+    "source_sha256": "9f75670cceca87b152b49b570752ff6d90914f5117a13d69359a0a1233306a23",
+    "tempo": 0.93889
+  },
+  "51": {
+    "crete_dbtp": -6.4,
+    "duree_source_s": 5.2,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "0fd9984fbe9730dd3a32e705feafa26d50be72253ae1cd4148894cfdea8705fd",
+    "source_sha256": "40568dc4d68935f8a66483391aba264aea53f5a891ac32c236e1570dd3c5ebe7",
+    "tempo": 1.06135
+  },
+  "52": {
+    "crete_dbtp": -4.6,
+    "duree_source_s": 4.52,
+    "gain_db": -2.3,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "87d40cb1373e0543c395ae79d559e43a3d79b43ee6c21352a9611e0e135bac00",
+    "source_sha256": "8f456e1135751724097b95bce61c76e14ba17155736da0917731e782121e2c90",
+    "tempo": 0.92256
+  },
+  "53": {
+    "crete_dbtp": -4.9,
+    "duree_source_s": 4.73,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "a25d3d52814b693e02ab96f90d9e07a57986fec6f5c2e23f077e915401a21cc6",
+    "source_sha256": "efa742ed4fb64db7fb3daf12b1a04e3ce4448b1b26b20480c40e9f2f7d80ea0d",
+    "tempo": 0.96542
+  },
+  "54": {
+    "crete_dbtp": -4.5,
+    "duree_source_s": 4.39,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "ce96238162cbf62c5735bba191621d03994d04e3f7aa0699516d89f619352b36",
+    "source_sha256": "a471947e403472221ae6c24cd459725a20389ec608dfeb533dd4a386aa2fa11c",
+    "tempo": 0.92
+  },
+  "55": {
+    "crete_dbtp": -5.0,
+    "duree_source_s": 4.82,
+    "gain_db": -2.3,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "b9b0c0bd45782114b015f786014ef55489a55570bc64d2a16484881cab831624",
+    "source_sha256": "ecb8421897c65969522a5a761f9d14b20e0ecd3285b4e48879ef566f881ada9c",
+    "tempo": 0.98379
+  },
+  "56": {
+    "crete_dbtp": -5.7,
+    "duree_source_s": 5.41,
+    "gain_db": -2.6,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "d45478ff04b43edaba68f7b28c9c3745cc1a9cd9a212a57cbf308ecd0cca0403",
+    "source_sha256": "44c416d734ff18755e85f4bb04b2165c6ab50c28e4d3234faa8da956755a48ef",
+    "tempo": 1.08
+  },
+  "57": {
+    "crete_dbtp": -4.3,
+    "duree_source_s": 5.12,
+    "gain_db": -2.0,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "a21a3fe75073684249269ad69272c332636760b218c69d331b02de9f5810621a",
+    "source_sha256": "23da91de0a6d720748ee2f7dfd24745bd76a245b90ef6be767a4d0480f3c549b",
+    "tempo": 1.04502
+  },
+  "58": {
+    "crete_dbtp": -4.6,
+    "duree_source_s": 4.85,
+    "gain_db": -2.2,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "8f27976f4e502a54ed936bb0afdede0b8c632160ccf6bfed2cb7f6762fc2e344",
+    "source_sha256": "83551a0c720f959f6e49009b40d7981c08b1901ef30d8070b569dface5d608b0",
+    "tempo": 0.98992
+  },
+  "59": {
+    "crete_dbtp": -4.4,
+    "duree_source_s": 5.07,
+    "gain_db": -2.1,
+    "lufs_mesure": -21.9,
+    "sortie_sha256": "6ccdd3f068a6ee1a7e53dace22ca16713519c093f9568b81b91229aaf1a4f302",
+    "source_sha256": "d6d5f015e271126836701dcaa6a732582a2116831d37aebc3ce4ff8b8ed49556",
+    "tempo": 1.03482
+  },
+  "60": {
+    "crete_dbtp": -4.7,
+    "duree_source_s": 5.2,
+    "gain_db": -2.2,
+    "lufs_mesure": -22.0,
+    "sortie_sha256": "8903ecaf0f08c408d380a5bc7b64056da6f194817795e478316b9e431c705709",
+    "source_sha256": "76750bf48e14f3237a762d2fba1de3e8b907ca7fb1797c0b0587203e087cc75a",
+    "tempo": 1.06135
+  }
+}
