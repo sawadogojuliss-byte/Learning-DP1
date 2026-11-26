@@ -10,7 +10,7 @@ Le propriétaire a demandé une solution **sans forfait payant**. La variante Cl
 
 La variante utilise les propriétés **privées** du script pour les inscriptions consenties et les séances, Firebase Authentication REST pour vérifier le jeton Google, les règles Firestore pour lire la classe de l'utilisateur connecté, et OAuth/IAM de l'exécutant Apps Script pour créer et fermer les salons Firestore. Elle n'exige aucun secret côté navigateur ni fichier de clé de service. Le jeton Firebase est placé dans le corps HTTPS, jamais dans une URL ou un journal. La valeur `MAIL_SECRET` reste dans les propriétés du script ; elle sert aussi à dériver des identifiants de salon imprévisibles.
 
-La création d'un salon exige que le compte exécutant Apps Script possède les droits IAM Firestore nécessaires. **Ce droit n'est pas encore vérifié.** Le diagnostic `tools/salons-diagnostic-gratuit.gs` vérifie uniquement la lecture, sans mail ni écriture. Son résultat positif ne prouve pas le droit d'écriture. Pour une vérification d'écriture, il faudra une autorisation explicite et un test isolé, puis une suppression confirmée du document de test.
+La création d'un salon exige que le compte exécutant Apps Script possède les droits IAM Firestore nécessaires. Le propriétaire a exécuté un diagnostic : lecture autorisée, puis création et suppression confirmées d'un document isolé, sous le compte `ibstudyplan@gmail.com`. Aucun mail n'a été envoyé. Cela ne vérifie pas encore la création réelle d'un salon, l'authentification des utilisateurs ou la livraison des rappels.
 
 ## Limites à communiquer
 

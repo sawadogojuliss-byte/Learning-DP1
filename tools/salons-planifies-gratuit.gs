@@ -214,5 +214,10 @@ function spInstallerRappels() {
   // Fonction à lancer manuellement UNE fois dans l'éditeur, après autorisation.
   // Ne touche pas aux autres déclencheurs du projet.
   var existants=ScriptApp.getProjectTriggers().filter(function(t){return t.getHandlerFunction()==='spRappelsSalons';});
-  if(!existants.length)ScriptApp.newTrigger('spRappelsSalons').timeBased().everyMinutes(1).create();
+  if(!existants.length) {
+    ScriptApp.newTrigger('spRappelsSalons').timeBased().everyMinutes(1).create();
+    Logger.log('Déclencheur des rappels installé. Aucun mail envoyé.');
+  } else {
+    Logger.log('Le déclencheur des rappels existe déjà. Aucun mail envoyé.');
+  }
 }

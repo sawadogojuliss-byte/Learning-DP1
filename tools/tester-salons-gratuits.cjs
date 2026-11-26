@@ -27,6 +27,7 @@ const context={Date:DateTest,Set,JSON,Math,Number,String,Array,Object,RegExp,Err
  }}
 };
 vm.createContext(context);vm.runInContext(fs.readFileSync('tools/envoi-mail.gs','utf8'),context);vm.runInContext(fs.readFileSync('tools/salons-planifies-gratuit.gs','utf8'),context);
+assert.equal(JSON.parse(context.doGet().texte).salonsPlanifies,true);
 function api(id,action,data={}){return JSON.parse(context.doPost({postData:{contents:JSON.stringify({...data,actionSalons:action,jeton:token(id)})}}).texte);}
 let x=api('anon','membres');assert.equal(x.error,'google-requis');
 assert.equal(api('invite','inscription',{visible:true}).success,true);assert.equal(api('hote','inscription',{visible:true}).success,true);

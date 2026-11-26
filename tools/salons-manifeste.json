@@ -1,8 +1,12 @@
 {
-  "timeZone": "Africa/Ouagadougou",
+  "timeZone": "Africa/Sao_Tome",
   "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
+  "webapp": {
+    "executeAs": "USER_DEPLOYING",
+    "access": "ANYONE_ANONYMOUS"
+  },
   "oauthScopes": [
     "https://mail.google.com/",
     "https://www.googleapis.com/auth/datastore",
