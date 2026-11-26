@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261221-salons-planifies';
+var version = '20261222-salons-gratuits';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

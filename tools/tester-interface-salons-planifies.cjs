@@ -14,13 +14,13 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
     const user={uid:'hote',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'jeton-fictif'};
     window.firebase={auth:()=>({currentUser:user,onAuthStateChanged:cb=>cb(user)})};
     window.fetch=async(url,opt)=>{
-     if(url==='data/salons-planifies.json')return {ok:true,json:async()=>({url:'https://europe-west1-study-plan-ib.cloudfunctions.net/salonsPlanifies'})};
+     if(url==='data/salons-planifies.json')return {ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})};
      const d=JSON.parse(opt.body);window.__calls.push(d);let data={};
-     if(d.action==='membres')data={visible:window.__visible,eleves:[{id:'u1',nom:'Élève DP1',classe:'DP1'},{id:'u2',nom:'Élève DP2',classe:'DP2'}]};
-     if(d.action==='inscription'){window.__visible=d.visible;data={visible:d.visible};}
-     if(d.action==='creer'){window.__created=true;data={id:'abc'};}
-     if(d.action==='liste')data={salons:window.__created?[{id:'abc',nom:'Séance test',debut:Date.now()+3600000,fuseau:'UTC',role:'organisateur',annule:false,lien:''}]:[]};
-     return {ok:true,json:async()=>data};
+     if(d.actionSalons==='membres')data={visible:window.__visible,eleves:[{id:'u1',nom:'Élève DP1',classe:'DP1'},{id:'u2',nom:'Élève DP2',classe:'DP2'}]};
+     if(d.actionSalons==='inscription'){window.__visible=d.visible;data={visible:d.visible};}
+     if(d.actionSalons==='creer'){window.__created=true;data={id:'abc'};}
+     if(d.actionSalons==='liste')data={salons:window.__created?[{id:'abc',nom:'Séance test',debut:Date.now()+3600000,fuseau:'UTC',role:'organisateur',annule:false,lien:''}]:[]};
+     return {ok:true,json:async()=>({success:true,resultat:data})};
     };
    });
    await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
@@ -34,7 +34,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForFunction(()=>window.__created===true);
    await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');
    assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Séance test')),true);
-   const appels=await page.evaluate(()=>window.__calls);const cree=appels.find(x=>x.action==='creer');assert.deepEqual(cree.invites,['u2']);assert.match(cree.demandeId,/^[a-f0-9]{32}$/);
+   const appels=await page.evaluate(()=>window.__calls);const cree=appels.find(x=>x.actionSalons==='creer');assert.deepEqual(cree.invites,['u2']);assert.equal(cree.jeton,'jeton-fictif');assert.match(cree.demandeId,/^[a-f0-9]{32}$/);
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'pas de débordement');
    await page.close();
   }

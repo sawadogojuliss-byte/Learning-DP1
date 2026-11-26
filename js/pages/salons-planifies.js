@@ -18,11 +18,12 @@
     async function appeler(action, donnees) {
         if(!endpoint)throw new Error('indisponible');
         var user=utilisateur(), token=await user.getIdToken();
-        var res=await fetch(endpoint,{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},donnees||{})),cache:'no-store',credentials:'omit',redirect:'error'});
+        // Apps Script reçoit le jeton uniquement dans le corps, jamais dans l'URL.
+        var res=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({actionSalons:action,jeton:token},donnees||{})),cache:'no-store',credentials:'omit',redirect:'follow',referrerPolicy:'no-referrer'});
         var data=await res.json().catch(function(){return {};});
         if(!firebase.auth().currentUser || firebase.auth().currentUser.uid!==user.uid)throw new Error('auth-requise');
-        if(!res.ok)throw new Error(data.erreur || 'indisponible');
-        return data;
+        if(!res.ok || data.success!==true)throw new Error(data.error || 'indisponible');
+        return data.resultat;
     }
     function dateLisible(ms, zone) { try {return new Intl.DateTimeFormat('fr-FR',{timeZone:zone,weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit',timeZoneName:'short'}).format(new Date(ms));} catch(e){return new Date(ms).toLocaleString('fr-FR');} }
     function carteSalon(salon) {
@@ -96,7 +97,7 @@
         $('salonsPlanifiesOuvrir').addEventListener('click',ouvrir);$('salonsPlanifiesVisible').addEventListener('change',sauvegarderVisibilite);$('salonsPlanifiesForm').addEventListener('submit',programmer);
         fetch('data/salons-planifies.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(config){
             // Ne jamais envoyer un jeton Google à une adresse arbitraire.
-            if(config.url==='https://europe-west1-study-plan-ib.cloudfunctions.net/salonsPlanifies')endpoint=config.url;
+            if(config.url==='https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec')endpoint=config.url;
             if(endpoint){actualiser();setInterval(actualiser,60000);if(window.firebase && firebase.auth)firebase.auth().onAuthStateChanged(function(){
                 $('salonsPlanifiesListe').textContent='';$('salonsPlanifiesBandeau').hidden=true;
                 $('salonsPlanifiesEleves').textContent='';$('salonsPlanifiesForm').hidden=true;

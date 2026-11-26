@@ -89,6 +89,12 @@ function doGet() {
 
 function doPost(e) {
   var data = lire(e);
+  // La planification gratuite a sa propre authentification Firebase ; elle ne
+  // doit jamais exiger ni exposer le secret de l'expéditeur dans le navigateur.
+  if (data.actionSalons) {
+    if (typeof spApi !== 'function') return reponse({success:false,error:'service-indisponible'});
+    return spApi(data);
+  }
   var secret = PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
   if (!secret || !data.secret || data.secret !== secret) return reponse({ success: false, error: 'secret' });
   var nonce = String(data.nonce || '');
