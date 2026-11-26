@@ -2,7 +2,7 @@
    L'adresse du service est configurée uniquement après son déploiement. */
 (function () {
     'use strict';
-    var endpoint = '', rafraichit = false, rafraichirEncore = false, annuaire = [], demandeId = '', signature = '', invitationsVues = {};
+    var endpoint = '', rafraichit = false, rafraichirEncore = false, annuaire = [], demandeId = '', signature = '', invitationsVues = {}, configCharge = null;
     function $(id) { return document.getElementById(id); }
     function el(tag, classe, texte) { var e=document.createElement(tag);if(classe)e.className=classe;if(texte!==undefined)e.textContent=texte;return e; }
     function statut(texte, erreur) { var e=$('salonsPlanifiesStatut');if(e){e.textContent=texte;e.classList.toggle('erreur',!!erreur);} }
@@ -55,6 +55,40 @@
         }
         return carte;
     }
+    function carteHistorique(salon) {
+        var carte=el('article','salons-programme-histoire');
+        carte.appendChild(el('span','salons-programme-histoire-icone','✦'));
+        var texte=el('div','salons-programme-histoire-texte');
+        texte.appendChild(el('span','salons-programme-surtexte',salon.role==='organisateur'?'ORGANISÉ PAR TOI':'SALON REJOINT'));
+        texte.appendChild(el('strong','salons-programme-nom',salon.nom));
+        texte.appendChild(el('span','salons-programme-date',dateLisible(salon.debut,salon.fuseau)+(salon.fin?' → '+dateLisible(salon.fin,salon.fuseau):'')));
+        if(salon.role!=='organisateur')texte.appendChild(el('span','salons-programme-date','Avec '+(salon.organisateurNom || 'un camarade')));
+        carte.appendChild(texte);return carte;
+    }
+    function onglet(nom) {
+        ['avenir','histoire'].forEach(function(x){var bouton=$('salonsOnglet'+x);bouton.setAttribute('aria-selected',String(nom===x));$(x==='avenir'?'salonsPlanifiesListe':'salonsPlanifiesHistorique').hidden=nom!==x;});
+    }
+    function ouvrirAnnonces(ouvrir) {
+        $('salonsPlanifiesBandeau').hidden=!ouvrir;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded',String(ouvrir));
+        if(ouvrir){$('salonsFermerAnnonces').focus();}else {$('salonsPlanifiesAnnonce').focus();}
+    }
+    async function noterParticipation(detail) {
+        if(!detail || !/^[a-f0-9]{48}$/.test(detail.id) || !window.firebase || !firebase.auth)return;
+        try {
+            if(configCharge)await configCharge;if(!endpoint)return;
+            var authPrincipale=firebase.auth(), principal=authPrincipale.currentUser;
+            if(!principal && typeof authPrincipale.onAuthStateChanged==='function')principal=await new Promise(function(resolve){
+                var termine=false, retirer=null, timer=setTimeout(function(){fin(null);},12000);
+                function fin(user){if(termine)return;termine=true;clearTimeout(timer);if(retirer)retirer();resolve(user);}
+                retirer=authPrincipale.onAuthStateChanged(fin,function(){fin(null);});if(termine && retirer)retirer();
+            });
+            var authSalon=detail.identite==='invite'?firebase.app('salon-focus-invite').auth():firebase.auth();
+            var personne=authSalon.currentUser;
+            if(!principal || principal.isAnonymous || !personne || personne.uid!==detail.uid)return;
+            var jetonSalon=await personne.getIdToken();
+            await appeler('participer',{salonId:detail.id,jetonSalon:jetonSalon});
+        } catch(e) { /* La séance continue même si l'historique est indisponible. */ }
+    }
     function afficherAnnuaire(data) {
         annuaire=data.eleves||[];var cont=$('salonsPlanifiesEleves');cont.textContent='';
         ['DP1','DP2'].forEach(function(classe){
@@ -69,15 +103,22 @@
     async function actualiser() {
         if(!endpoint)return;if(rafraichit){rafraichirEncore=true;return;}rafraichit=true;
         try {
-            var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), bandeau=$('salonsPlanifiesBandeau'), bouton=$('salonsPlanifiesAnnonce');zone.textContent='';
-            var enAttente=data.salons.filter(function(s){return s.role==='invite' && !s.annule && s.debut>Date.now() && (!s.reponse || s.reponse==='attente');});
+            var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), historique=$('salonsPlanifiesHistoriqueListe'), bouton=$('salonsPlanifiesAnnonce');zone.textContent='';historique.textContent='';
+            var salons=data.salons.filter(function(s){return (s.fin || s.debut)>Date.now();});
+            var passes=(data.historique || []).filter(function(s){return (s.fin || s.debut)<=Date.now();}).sort(function(a,b){return b.debut-a.debut;});
+            var enAttente=salons.filter(function(s){return s.role==='invite' && !s.annule && s.debut>Date.now() && (!s.reponse || s.reponse==='attente');});
             var nouveau=enAttente.some(function(s){return !invitationsVues[s.id];});
             enAttente.forEach(function(s){invitationsVues[s.id]=true;});
             bouton.hidden=false; bouton.textContent='✉ Invitations'+(enAttente.length?' · '+enAttente.length:'');
             bouton.setAttribute('aria-label',enAttente.length+' invitation(s) en attente');
-            if(nouveau){bandeau.hidden=false;bouton.setAttribute('aria-expanded','true');}
-            if(data.salons.length)data.salons.forEach(function(s){zone.appendChild(carteSalon(s));});
-            else zone.appendChild(el('p','salons-programme-attente','Aucune séance pour le moment.'));
+            $('salonsCompteAvenir').textContent=salons.length; $('salonsCompteHistoire').textContent=passes.length;
+            $('salonsOngletavenir').textContent='À venir · '+salons.length;$('salonsOnglethistoire').textContent='Mon histoire · '+passes.length;
+            if(nouveau){onglet('avenir');ouvrirAnnonces(true);}
+            if(salons.length)salons.forEach(function(s){zone.appendChild(carteSalon(s));});
+            else zone.appendChild(el('p','salons-programme-vide-clair','Rien de prévu pour le moment. Une belle séance t’attend peut-être bientôt.'));
+            if(passes.length)passes.forEach(function(s){historique.appendChild(carteHistorique(s));});
+            else historique.appendChild(el('p','salons-programme-vide-clair','Les salons planifiés que tu rejoins apparaîtront ici après leur fin.'));
+            $('salonsEffacerHistoire').hidden=!passes.length;
             if(data.limiteAtteinte)zone.appendChild(el('p','salons-programme-attente','La liste atteint sa limite : certaines séances ne sont pas affichées.'));
             $('salonsPlanifiesErreur').textContent='';
         } catch(e) {
@@ -117,10 +158,23 @@
         var section=el('section','salons-planification');section.innerHTML='<button type="button" id="salonsPlanifiesOuvrir" class="salons-programme-ouvrir">✦ Planifier une séance à l’avance <span>↗</span></button><p id="salonsPlanifiesStatut" class="salons-programme-statut" role="status" aria-live="polite"></p><form id="salonsPlanifiesForm" hidden><p class="salons-programme-intro">Un rendez-vous pour avancer ensemble. Ton lien arrive 10 minutes avant et celui de tes invités qui acceptent 5 minutes avant. Un léger retard est possible.</p><label for="salonsPlanifiesNom">Nom de la séance</label><input id="salonsPlanifiesNom" type="text" maxlength="60" required placeholder="Ex. Révisions de mathématiques"><label for="salonsPlanifiesDate">Date et heure locales</label><input id="salonsPlanifiesDate" type="datetime-local" required><label for="salonsPlanifiesFin">Fin de la séance</label><input id="salonsPlanifiesFin" type="datetime-local" required><label class="salons-programme-visibilite"><input id="salonsPlanifiesVisible" type="checkbox"><span>Je souhaite apparaître dans la liste et recevoir des invitations. Mon adresse reste privée.</span></label><p class="salons-programme-liste-titre">Inviter des camarades <small>· 20 maximum</small></p><div id="salonsPlanifiesEleves" class="salons-programme-eleves"></div><p id="salonsPlanifiesLimite" hidden>La liste atteint sa limite : tous les membres ne sont pas affichés.</p><button class="salons-programme-valider" id="salonsPlanifiesValider" type="submit">Planifier ma séance ↗</button></form>';
         racine.insertAdjacentElement('afterend',section);
         var boutonAnnonce=el('button','salons-programme-notification','✉ Invitations');boutonAnnonce.type='button';boutonAnnonce.id='salonsPlanifiesAnnonce';boutonAnnonce.hidden=true;boutonAnnonce.setAttribute('aria-expanded','false');boutonAnnonce.setAttribute('aria-controls','salonsPlanifiesBandeau');flamme.insertAdjacentElement('beforebegin',boutonAnnonce);
-        var bandeau=el('section','salons-programme-bandeau');bandeau.id='salonsPlanifiesBandeau';bandeau.hidden=true;bandeau.innerHTML='<div class="salons-programme-bandeau-inner"><p class="salons-programme-surtexte">ENSEMBLE, À VOTRE RYTHME</p><h2>Invitations & séances</h2><p id="salonsPlanifiesErreur" role="status"></p><div id="salonsPlanifiesListe" class="salons-programme-liste"></div></div>';header.insertAdjacentElement('afterend',bandeau);
-        boutonAnnonce.addEventListener('click',function(){bandeau.hidden=!bandeau.hidden;boutonAnnonce.setAttribute('aria-expanded',String(!bandeau.hidden));if(!bandeau.hidden)actualiser();});
+        var bandeau=el('section','salons-programme-bandeau');bandeau.id='salonsPlanifiesBandeau';bandeau.hidden=true;bandeau.setAttribute('role','dialog');bandeau.setAttribute('aria-modal','true');bandeau.setAttribute('aria-label','Invitations et séances');bandeau.innerHTML='<div class="salons-programme-bandeau-inner"><header class="salons-annonces-hero"><div class="salons-annonces-haut"><span class="salons-annonces-marque">✦ STUDYPLAN · ENSEMBLE</span><button type="button" id="salonsFermerAnnonces" class="salons-annonces-fermer" aria-label="Fermer les invitations">✕</button></div><p class="salons-annonces-kicker">UNE PLACE POUR SE RETROUVER</p><h2>Les beaux moments<br>commencent ensemble<span>.</span></h2><p class="salons-annonces-intro">Tes invitations, tes prochaines séances et les moments partagés, réunis au même endroit.</p><div class="salons-annonces-stats"><div><strong id="salonsCompteAvenir">0</strong><span>à venir</span></div><div><strong id="salonsCompteHistoire">0</strong><span>dans ton histoire</span></div></div></header><div class="salons-annonces-contenu"><div class="salons-annonces-tabs" role="tablist" aria-label="Séances"><button type="button" id="salonsOngletavenir" role="tab" aria-selected="true" aria-controls="salonsPlanifiesListe">À venir</button><button type="button" id="salonsOnglethistoire" role="tab" aria-selected="false" aria-controls="salonsPlanifiesHistorique">Mon histoire</button></div><p id="salonsPlanifiesErreur" role="status"></p><div id="salonsPlanifiesListe" class="salons-programme-liste" role="tabpanel"></div><div id="salonsPlanifiesHistorique" role="tabpanel" hidden><p class="salons-annonces-explication">Tes salons planifiés rejoints, après leur fin. L’historique est personnel et peut être incomplet si la connexion échoue.</p><div id="salonsPlanifiesHistoriqueListe" class="salons-programme-liste"></div><button type="button" id="salonsEffacerHistoire" class="salons-effacer-histoire" hidden>Effacer mon historique</button></div></div></div>';header.insertAdjacentElement('afterend',bandeau);
+        boutonAnnonce.addEventListener('click',function(){ouvrirAnnonces(bandeau.hidden);if(!bandeau.hidden)actualiser();});
+        $('salonsFermerAnnonces').addEventListener('click',function(){ouvrirAnnonces(false);});
+        bandeau.addEventListener('keydown',function(e){
+            if(e.key==='Escape'){e.preventDefault();ouvrirAnnonces(false);return;}
+            if(e.key!=='Tab')return;
+            var focusables=Array.prototype.filter.call(bandeau.querySelectorAll('button:not([disabled]),a[href]'),function(x){return x.getClientRects().length>0;});
+            if(!focusables.length)return;
+            var premier=focusables[0], dernier=focusables[focusables.length-1];
+            if(e.shiftKey && document.activeElement===premier){e.preventDefault();dernier.focus();}
+            else if(!e.shiftKey && document.activeElement===dernier){e.preventDefault();premier.focus();}
+        });
+        $('salonsOngletavenir').addEventListener('click',function(){onglet('avenir');});$('salonsOnglethistoire').addEventListener('click',function(){onglet('histoire');});
+        $('salonsEffacerHistoire').addEventListener('click',async function(){if(!window.confirm('Effacer ton historique personnel des salons planifiés ?'))return;try{await appeler('effacer-historique');await actualiser();}catch(e){$('salonsPlanifiesErreur').textContent=message(e.message);}});
+        window.addEventListener('studyplan:salon-rejoint',function(e){noterParticipation(e.detail);});
         $('salonsPlanifiesOuvrir').addEventListener('click',ouvrir);$('salonsPlanifiesVisible').addEventListener('change',sauvegarderVisibilite);$('salonsPlanifiesForm').addEventListener('submit',programmer);
-        fetch('data/salons-planifies.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(config){
+        configCharge=fetch('data/salons-planifies.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(config){
             // Ne jamais envoyer un jeton Google à une adresse arbitraire.
             if(config.url==='https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec')endpoint=config.url;
             if(endpoint){actualiser();setInterval(actualiser,60000);if(window.firebase && firebase.auth)firebase.auth().onAuthStateChanged(function(){

@@ -33,6 +33,13 @@ function spUtilisateur(jeton) {
   spAssert(u && !u.disabled && u.emailVerified === true && google && typeof u.localId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(u.localId) && typeof u.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u.email), 'google-requis');
   return {uid:u.localId, email:u.email, nom:String(u.displayName || 'Membre Studyplan').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,80)};
 }
+function spIdentiteSalon(jeton) {
+  spAssert(typeof jeton==='string' && jeton.length>50 && jeton.length<10000,'auth-requise');
+  var r=spHttp('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key='+encodeURIComponent(SP_CLE_API),{method:'post',contentType:'application/json',payload:JSON.stringify({idToken:jeton})});
+  var compte=r.code===200 && r.data.users && r.data.users[0];
+  spAssert(compte && !compte.disabled && typeof compte.localId==='string' && /^[A-Za-z0-9_-]{1,128}$/.test(compte.localId),'auth-requise');
+  return compte.localId;
+}
 function spClasse(uid, jeton) {
   // Lecture au nom de l'élève : les règles Firestore doivent autoriser
   // uniquement sa propre fiche. Le jeton n'est jamais enregistré.
@@ -152,7 +159,31 @@ function spListe(u) {
       liste.push({id:p.id,nom:p.nom,debut:p.debut,fin:p.fin || null,fuseau:p.fuseau,organisateurNom:p.organisateurNom || 'Un camarade',role:hote?'organisateur':'invite',reponse:reponse,annule:p.annule,
         lien:!p.annule && (hote || reponse==='accepte' && !!props['SP_U_'+u.uid]) && now>=p.debut-(hote?10:5)*SP_MIN && now<p.debut+12*3600000 ? SP_SITE+'#salon='+p.salonId : ''});
     });
-    liste.sort(function(a,b){return a.debut-b.debut;});return {salons:liste.slice(0,200),limiteAtteinte:liste.length>200};
+    liste.sort(function(a,b){return a.debut-b.debut;});return {salons:liste.slice(0,200),historique:spLire('SP_H_'+u.uid) || [],limiteAtteinte:liste.length>200};
+  });
+}
+// Historique personnel : enregistré uniquement après une entrée confirmée
+// dans le salon. Le jeton de l'identité utilisée dans le salon peut être
+// anonyme, séparé du compte Google. Il n'est jamais conservé.
+function spParticiper(u,salonId,jetonSalon) {
+  spAssert(typeof salonId==='string' && /^[a-f0-9]{48}$/.test(salonId),'demande-invalide');
+  var uidSalon=spIdentiteSalon(jetonSalon);
+  return spSousVerrou(function(){
+    var props=PropertiesService.getScriptProperties().getProperties(), programme=null;
+    Object.keys(props).some(function(k){if(k.indexOf('SP_P_')!==0)return false;var p=JSON.parse(props[k]);if(p.salonId===salonId){programme=p;return true;}return false;});
+    spAssert(programme && !programme.annule,'acces-refuse');
+    var hote=programme.organisateurUid===u.uid;
+    spAssert(hote || programme.invites.indexOf(u.uid)>=0 && programme.reponses && programme.reponses[u.uid]==='accepte' && !!props['SP_U_'+u.uid],'acces-refuse');
+    var now=Date.now();spAssert(now>=programme.debut-(hote?10:5)*SP_MIN && now<programme.debut+12*60*SP_MIN,'acces-refuse');
+    var membre=spFirestore('get','/salons_focus/'+salonId+'/membres/'+encodeURIComponent(uidSalon));
+    spAssert(membre.code===200,'acces-refuse');
+    var cle='SP_H_'+u.uid, historique=spLire(cle) || [];
+    if(historique.some(function(x){return x.id===programme.id;}))return {enregistre:true};
+    historique.unshift({id:programme.id,nom:programme.nom,debut:programme.debut,fin:programme.fin || null,fuseau:programme.fuseau,organisateurNom:programme.organisateurNom || 'Un camarade',role:hote?'organisateur':'invite'});
+    historique=historique.slice(0,50);
+    while(historique.length>1 && Utilities.newBlob(JSON.stringify(historique)).getBytes().length>7500)historique.pop();
+    spEcrire(cle,historique);
+    return {enregistre:true};
   });
 }
 function spRepondre(u,id,reponse) {
@@ -191,6 +222,8 @@ function spApi(d) {
     else if(action==='membres')resultat=spMembres(u,d.jeton);
     else if(action==='creer')resultat=spCreer(u,d.jeton,d);
     else if(action==='liste')resultat=spListe(u);
+    else if(action==='effacer-historique')resultat=spSousVerrou(function(){PropertiesService.getScriptProperties().deleteProperty('SP_H_'+u.uid);return {efface:true};});
+    else if(action==='participer')resultat=spParticiper(u,d.salonId,d.jetonSalon);
     else if(action==='repondre')resultat=spRepondre(u,d.id,d.reponse);
     else if(action==='annuler')resultat=spAnnuler(u,d.id);
     else spErreur('action-invalide');

@@ -1,5 +1,5 @@
 /**
- * Envoi des réponses Studyplan. Version 6, avec acceptation des invitations.
+ * Envoi des réponses Studyplan. Version 7, avec historique des salons rejoints.
  * Méthode utilisée par les formulaires statiques : les champs arrivent dans e.parameter.
  * GmailApp, pas MailApp : MailApp part d'un serveur partagé et est rejeté.
  * Déployer > Gérer les déploiements > crayon > Nouvelle version > Déployer.
@@ -84,7 +84,7 @@ function doGet() {
   /* Diagnostic public sans clé : une version active et la présence d'une
      configuration ne confirment ni l'égalité des clés ni la livraison. */
   var configure = !!PropertiesService.getScriptProperties().getProperty('MAIL_SECRET');
-  return reponse({ success: false, service: 'study-plan-ib', version: 6, secretConfigure: configure, salonsPlanifies: typeof spApi === 'function', salonsAcceptation: typeof spRepondre === 'function' });
+  return reponse({ success: false, service: 'study-plan-ib', version: 7, secretConfigure: configure, salonsPlanifies: typeof spApi === 'function', salonsAcceptation: typeof spRepondre === 'function', salonsHistorique: typeof spParticiper === 'function' });
 }
 
 function doPost(e) {

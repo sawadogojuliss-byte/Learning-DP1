@@ -535,6 +535,8 @@
         if (!s || !/^[a-f0-9]{48}$/.test(s.id) || ['hote','invite'].indexOf(s.role) < 0 || typeof s.maintenant !== 'function' || typeof s.observer !== 'function' || typeof s.modifier !== 'function' || typeof s.quitter !== 'function' || typeof s.fermer !== 'function') throw new Error('Session invalide');
         var reglagesDepart=focusLireReglages(), localDepart=initial || etatPersonnel(), listesDepart=focusLireListes(), voixDepart={active:chronoVoixActive(),volume:chronoVoixVolume()};
         session = s;
+        // L'historique des salons planifiés ne doit jamais gêner l'entrée.
+        window.dispatchEvent(new CustomEvent('studyplan:salon-rejoint',{detail:{id:s.id,uid:s.uid,identite:s.identite}}));
         reglagesSalon=focusNormaliserReglages(reglagesDepart);voixSalon=voixDepart;prioritesSalon={};volumesSalon={};listesSalon=listesDepart.slice();porteeSalon=null;filePortee=[];enAttentePartage={};envoiPartage=false;clearTimeout(timerPartage);
         try { var memoSalon=JSON.parse(sessionStorage.getItem('studyPlanIB_salon_local_'+s.id+'_'+(s.uid||''))||'null');if(memoSalon){if(memoSalon.local)localDepart=memoSalon.local;if(memoSalon.reglages)reglagesSalon=focusNormaliserReglages(memoSalon.reglages);if(memoSalon.voix)voixSalon=memoSalon.voix;prioritesSalon=memoSalon.priorites||{};volumesSalon=memoSalon.volumes||{};if(Array.isArray(memoSalon.listes))listesSalon=memoSalon.listes;porteeSalon=typeof memoSalon.portee==='boolean'?memoSalon.portee:null;}} catch(e) {}
         if(s.role==='hote')try {localStorage.setItem('studyPlanIB_salon_hote',JSON.stringify({id:s.id,jusqua:Date.now()+12*60*60*1000}));} catch(e) {}
