@@ -664,6 +664,15 @@ function pickSubject(idx) {
     document.getElementById('studyStartInput').value = suggested;
     document.getElementById('studyEndInput').value = addMinutes(suggested, dur);
     setStudyType('revision');
+    // Afficher les options qui viennent d'apparaître sans faire défiler le planning derrière.
+    requestAnimationFrame(function () {
+        const modal = document.getElementById('addEventModal');
+        const ligne = document.getElementById('studyTypeRow');
+        if (!modal || !ligne || ligne.style.display === 'none') return;
+        const destination = modal.scrollTop + ligne.getBoundingClientRect().top - modal.getBoundingClientRect().top - 24;
+        const reduire = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        modal.scrollTo({ top: Math.max(0, destination), behavior: reduire ? 'auto' : 'smooth' });
+    });
 }
 
 function setStudyType(type) {

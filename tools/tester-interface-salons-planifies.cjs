@@ -8,6 +8,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
   for(const largeur of [375,1100]){
    const page=await browser.newPage({viewport:{width:largeur,height:850}});
    await page.setContent('<div id="planningModal"><header><div style="display:flex;justify-content:space-between;align-items:center"><div>Studyplan</div><div style="display:flex;gap:7px"><span id="joursFlamme">🔥 47</span><button>☰</button></div></div></header><div id="iaRappel"></div></div><div class="salon-formulaire"><button id="salonCreer">Créer</button></div>');
+   await page.addStyleTag({content:fs.readFileSync('css/pages/planning-panels.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/pages/salon-focus.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/accessibilite.css','utf8')});
@@ -31,7 +32,8 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1');
    assert.equal(await page.locator('#salonsPlanifiesBandeau').isHidden(),true,'ne pas marquer comme lu avant ouverture');
    assert.equal(await page.locator('#salonsPlanifiesAnnonce svg').count(),1);
-   await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');
+   await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau.active');
+   if(process.env.SALONS_PAGE_MOCK_CAPTURE)await page.screenshot({path:process.env.SALONS_PAGE_MOCK_CAPTURE+'-'+largeur+'.png'});
    assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
    assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Awa veut faire une séance')),true);
    assert.match(await page.locator('#salonsOngletavenir').innerText(),/^Séances de pomodoro/);assert.match(await page.locator('#salonsOnglethistoire').innerText(),/^Mon historique/);
@@ -84,7 +86,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForFunction(()=>window.__created===true && document.querySelector('#salonsPlanifiesForm').hidden);
    await page.click('#salonsPlanifiesOuvrir');await page.waitForSelector('#salonsPlanifiesForm:not([hidden])');
    assert.equal(await page.locator('#salonsPlanifiesRecherche').inputValue(),'');assert.equal(await page.locator('input[name=salonsInvite][value=u2]').isChecked(),false,'une nouvelle séance repart sans sélection');
-   await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');
+   await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau.active');
    await page.waitForFunction(()=>document.querySelector('#salonsPlanifiesBandeau').textContent.includes('Séance test'));
    assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Séance test')),true);
    const appels=await page.evaluate(()=>window.__calls);const cree=appels.find(x=>x.actionSalons==='creer');assert.deepEqual(cree.invites,['u2']);assert.ok(cree.fin>cree.debut);assert.equal(cree.jeton,'jeton-fictif');assert.match(cree.demandeId,/^[a-f0-9]{32}$/);

@@ -506,6 +506,12 @@ debut = text.index('/* ── Nettoyage au chargement / rechargement')
 fonction = text.index('function nettoyerPanneauxEtHash()', debut)
 fin = text.index('/* Dès que le DOM est prêt, on nettoie. */', fonction)
 text = text[:debut] + '/* Nettoyage explicite : la restauration conserve la page affichée. */\n' + text[fonction:fin]
+# N'ajouter que la route des invitations ; les autres travaux locaux de
+# navigation et d'Exercices ne font pas partie de cette publication.
+route_annonce = "    } else if (page === 'annonce') {"
+if text.count(route_annonce) != 1:
+    raise SystemExit('Route Annonce publique inattendue')
+text = text.replace(route_annonce, "    } else if (page === 'invitations') {\n        if (typeof window.salonsOuvrirPage === 'function') window.salonsOuvrirPage();\n" + route_annonce, 1)
 path.write_text(text, encoding='utf-8')
 pages_retour = ['soutien', 'exercices', 'devoirs', 'legende', 'ee-ia', 'feries', 'tutoriel', 'aide', 'feedback', 'annonce', 'boite']
 for nom in pages_retour:

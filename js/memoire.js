@@ -30,6 +30,7 @@ var MEMOIRE_PAGES = {
     panelAide: 'aide',
     panelFeedback: 'feedback',
     panelAnnonce: 'annonce',
+    salonsPlanifiesBandeau: 'invitations',
     panelRetours: 'retours',
     panelQuestions: 'questions',
     panelEmplois: 'emplois',
@@ -658,7 +659,7 @@ function memoireAller(etape, modeRoutine) {
         showEmploiPage('profil');
         return;
     }
-    if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
+    if ((etape !== 'feries' || window.__profilComplet) && (etape === 'planning' || etape === 'seances' || etape === 'pomodoro' || etape === 'devoirs' || etape === 'emploi' || etape === 'soutien' || etape === 'exercices' || etape === 'legende' || etape === 'eeia' || etape === 'feries' || etape === 'tutoriel' || etape === 'aide' || etape === 'feedback' || etape === 'annonce' || etape === 'invitations' || etape === 'retours' || etape === 'questions' || etape === 'emplois' || etape === 'admin')) {
         /* Le minuteur Pomodoro et la page des séances sont ouverts à tous :
            l'écran de classe ne doit jamais barrer leur route. */
         if (etape !== 'seances' && etape !== 'pomodoro' &&
@@ -729,7 +730,7 @@ function memoireEtapeConnue(etape) {
         accueil: 1, prenom: 1, objectif: 1, sommeil: 1, habitudes: 1, classe: 1, matieres: 1,
         travaux: 1, transport: 1, voiture: 1, moto: 1, activites: 1, feries: 1,
         libre: 1, ecran: 1, planning: 1, soutien: 1, exercices: 1, devoirs: 1, emploi: 1, legende: 1,
-        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, retours: 1, questions: 1, emplois: 1, admin: 1,
+        eeia: 1, tutoriel: 1, aide: 1, feedback: 1, annonce: 1, invitations: 1, retours: 1, questions: 1, emplois: 1, admin: 1,
         seances: 1, pomodoro: 1
     };
     return !!connues[etape];
@@ -824,6 +825,7 @@ function memoirePagePrecedente(etape) {
         aide: 'planning',
         feedback: 'planning',
         annonce: 'planning',
+        invitations: 'planning',
         admin: 'planning',
         retours: 'planning',
         questions: 'planning',
@@ -1059,6 +1061,9 @@ function memoireDemarrer() {
         } catch (e) {}
         if (etape === 'pomodoro') {
             window.__memoirePomodoroEnAttente = true;
+        } else if (etape === 'invitations') {
+            // Le module des salons est chargé plus tard dans le registre.
+            window.__memoireInvitationsEnAttente = true;
         } else {
             try { memoireAller(etape, memoireModeRoutineHistorique(etape) || memoireModeRoutineLocal(etape)); } catch (e) { console.error(e); }
         }

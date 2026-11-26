@@ -92,10 +92,18 @@
         try {if(cleNotifications())localStorage.setItem(cleNotifications(),JSON.stringify(Object.keys(invitationsVues).slice(-500)));}catch(_){}
         majNotification();
     }
-    function ouvrirAnnonces(ouvrir) {
-        $('salonsPlanifiesBandeau').hidden=!ouvrir;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded',String(ouvrir));
-        if(ouvrir){onglet('avenir');marquerVues();$('salonsFermerAnnonces').focus();}else {$('salonsPlanifiesAnnonce').focus();}
+    function pageOuverte() {return $('salonsPlanifiesBandeau').classList.contains('active');}
+    function fermerPage() {
+        if(typeof memoireRetour==='function')memoireRetour();
+        else if(typeof navigateTo==='function')navigateTo('planning');
+        else $('salonsPlanifiesBandeau').classList.remove('active');
+        $('salonsPlanifiesAnnonce').focus();
     }
+    window.salonsOuvrirPage=function() {
+        var page=$('salonsPlanifiesBandeau');if(!page)return;
+        page.classList.add('active');page.scrollTop=0;onglet('avenir');marquerVues();actualiser();
+        $('salonsPageTitre').focus({preventScroll:true});
+    };
     async function noterParticipation(detail) {
         if(!detail || !/^[a-f0-9]{48}$/.test(detail.id) || !window.firebase || !firebase.auth)return;
         try {
@@ -170,7 +178,7 @@
         $('salonsPlanifiesLimite').hidden=!data.limiteAtteinte;
     }
     async function actualiser() {
-        if(essaiActif && Date.now()>=essaiActif.fin){endpoint='';essaiActif=null;try{sessionStorage.removeItem(cleEssai);}catch(_){}$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesBandeau').hidden=true;statut('L’essai est terminé sur cet onglet.',false);return;}
+        if(essaiActif && Date.now()>=essaiActif.fin){endpoint='';essaiActif=null;try{sessionStorage.removeItem(cleEssai);}catch(_){}$('salonsPlanifiesAnnonce').hidden=true;if(pageOuverte())fermerPage();statut('L’essai est terminé sur cet onglet.',false);return;}
         if(!endpoint)return;if(rafraichit){rafraichirEncore=true;return;}rafraichit=true;
         try {
             var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), historique=$('salonsPlanifiesHistoriqueListe'), bouton=$('salonsPlanifiesAnnonce');zone.textContent='';historique.textContent='';
@@ -179,7 +187,7 @@
             var enAttente=salons.filter(function(s){return s.role==='invite' && !s.annule && s.debut>Date.now() && (!s.reponse || s.reponse==='attente');});
             demandesEnAttente=enAttente;
             bouton.hidden=false;
-            if(!$('salonsPlanifiesBandeau').hidden && !$('salonsPlanifiesListe').hidden)marquerVues();else majNotification();
+            if(pageOuverte() && !$('salonsPlanifiesListe').hidden)marquerVues();else majNotification();
             $('salonsCompteAvenir').textContent=salons.length; $('salonsCompteHistoire').textContent=passes.length;
             $('salonsOngletavenir').textContent='Séances de pomodoro · '+salons.length;$('salonsOnglethistoire').textContent='Mon historique · '+passes.length;
             if(salons.length)salons.forEach(function(s){zone.appendChild(carteSalon(s));});
@@ -250,18 +258,14 @@
 
         racine.insertAdjacentElement('afterend',section);
         var boutonAnnonce=el('button','salons-programme-notification');boutonAnnonce.type='button';boutonAnnonce.id='salonsPlanifiesAnnonce';boutonAnnonce.hidden=true;boutonAnnonce.setAttribute('aria-label','Séances : aucune demande non lue');boutonAnnonce.setAttribute('aria-expanded','false');boutonAnnonce.setAttribute('aria-controls','salonsPlanifiesBandeau');boutonAnnonce.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="m4.5 7 6.1 4.6a2.3 2.3 0 0 0 2.8 0L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="salonsPlanifiesBadge" class="salons-programme-badge" aria-hidden="true" hidden></span>';flamme.insertAdjacentElement('beforebegin',boutonAnnonce);
-        var bandeau=el('section','salons-programme-bandeau');bandeau.id='salonsPlanifiesBandeau';bandeau.hidden=true;bandeau.setAttribute('role','dialog');bandeau.setAttribute('aria-modal','true');bandeau.setAttribute('aria-label','Séances');bandeau.innerHTML='<div class="salons-programme-bandeau-inner"><header class="salons-annonces-hero"><div class="salons-annonces-haut"><span class="salons-annonces-marque">✦ STUDYPLAN · ENSEMBLE</span><button type="button" id="salonsFermerAnnonces" class="salons-annonces-fermer" aria-label="Fermer les séances">✕</button></div><p class="salons-annonces-kicker">UNE PLACE POUR SE RETROUVER</p><h2>Les beaux moments<br>commencent ensemble<span>.</span></h2><p class="salons-annonces-intro">Tes demandes, tes prochaines séances et les moments partagés. Fonction en test : les rappels peuvent être retardés ou ne pas arriver.</p><div class="salons-annonces-stats"><div><strong id="salonsCompteAvenir">0</strong><span>à venir</span></div><div><strong id="salonsCompteHistoire">0</strong><span>dans ton histoire</span></div></div></header><div class="salons-annonces-contenu"><div class="salons-annonces-tabs" role="tablist" aria-label="Séances"><button type="button" id="salonsOngletavenir" role="tab" aria-selected="true" aria-controls="salonsPlanifiesListe">Séances de pomodoro</button><button type="button" id="salonsOnglethistoire" role="tab" aria-selected="false" aria-controls="salonsPlanifiesHistorique">Mon historique</button></div><p id="salonsPlanifiesErreur" role="status"></p><div id="salonsPlanifiesListe" class="salons-programme-liste" role="tabpanel"></div><div id="salonsPlanifiesHistorique" role="tabpanel" hidden><p class="salons-annonces-explication">Tes salons planifiés rejoints, après leur fin. L’historique est personnel et peut être incomplet si la connexion échoue.</p><div id="salonsPlanifiesHistoriqueListe" class="salons-programme-liste"></div><button type="button" id="salonsEffacerHistoire" class="salons-effacer-histoire" hidden>Effacer mon historique</button></div></div></div>';header.insertAdjacentElement('afterend',bandeau);
-        boutonAnnonce.addEventListener('click',function(){ouvrirAnnonces(bandeau.hidden);if(!bandeau.hidden)actualiser();});
-        $('salonsFermerAnnonces').addEventListener('click',function(){ouvrirAnnonces(false);});
-        bandeau.addEventListener('keydown',function(e){
-            if(e.key==='Escape'){e.preventDefault();ouvrirAnnonces(false);return;}
-            if(e.key!=='Tab')return;
-            var focusables=Array.prototype.filter.call(bandeau.querySelectorAll('button:not([disabled]),a[href]'),function(x){return x.getClientRects().length>0;});
-            if(!focusables.length)return;
-            var premier=focusables[0], dernier=focusables[focusables.length-1];
-            if(e.shiftKey && document.activeElement===premier){e.preventDefault();dernier.focus();}
-            else if(!e.shiftKey && document.activeElement===dernier){e.preventDefault();premier.focus();}
-        });
+        var bandeau=el('section','app-panel salons-programme-bandeau');bandeau.id='salonsPlanifiesBandeau';bandeau.setAttribute('aria-labelledby','salonsPageTitre');
+        bandeau.innerHTML='<div class="salons-page-layout">'+
+            '<aside class="salons-page-rail" aria-label="Navigation"><span class="salons-page-logo" aria-hidden="true">S</span><button type="button" id="salonsFermerAnnonces" class="salons-page-retour" aria-label="Retour à la page précédente" title="Retour"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="salons-page-rail-icone" aria-hidden="true">✉</span></aside>'+
+            '<main class="salons-programme-bandeau-inner"><header class="salons-annonces-hero"><p class="salons-page-chemin">STUDYPLAN / SÉANCES</p><p class="salons-annonces-kicker">BIEN MIEUX ENSEMBLE</p><h1 id="salonsPageTitre" tabindex="-1">Des moments pour <em>avancer ensemble.</em></h1><p class="salons-annonces-intro">Retrouve tes demandes, tes prochaines séances et les moments partagés. Les rappels peuvent être retardés ou ne pas arriver.</p><div class="salons-annonces-stats"><div><strong id="salonsCompteAvenir">0</strong><span>à venir</span></div><div><strong id="salonsCompteHistoire">0</strong><span>dans ton histoire</span></div></div></header><div class="salons-annonces-contenu"><div class="salons-annonces-tabs" role="tablist" aria-label="Séances"><button type="button" id="salonsOngletavenir" role="tab" aria-selected="true" aria-controls="salonsPlanifiesListe">Séances de pomodoro</button><button type="button" id="salonsOnglethistoire" role="tab" aria-selected="false" aria-controls="salonsPlanifiesHistorique">Mon historique</button></div><p id="salonsPlanifiesErreur" role="status"></p><div id="salonsPlanifiesListe" class="salons-programme-liste" role="tabpanel" aria-labelledby="salonsOngletavenir"><p class="salons-programme-vide-clair">Tes séances apparaîtront ici après connexion.</p></div><div id="salonsPlanifiesHistorique" role="tabpanel" aria-labelledby="salonsOnglethistoire" hidden><p class="salons-annonces-explication">Tes salons planifiés rejoints, après leur fin. L’historique est personnel et peut être incomplet si la connexion échoue.</p><div id="salonsPlanifiesHistoriqueListe" class="salons-programme-liste"></div><button type="button" id="salonsEffacerHistoire" class="salons-effacer-histoire" hidden>Effacer mon historique</button></div></div></main></div>';
+        ($('app-pages')||document.body).appendChild(bandeau);
+        boutonAnnonce.addEventListener('click',function(){if(typeof navigateTo==='function')navigateTo('invitations');else window.salonsOuvrirPage();});
+        $('salonsFermerAnnonces').addEventListener('click',fermerPage);
+        new MutationObserver(function(){boutonAnnonce.setAttribute('aria-expanded',String(pageOuverte()));}).observe(bandeau,{attributes:true,attributeFilter:['class']});
         $('salonsOngletavenir').addEventListener('click',function(){onglet('avenir');marquerVues();});$('salonsOnglethistoire').addEventListener('click',function(){onglet('histoire');});
         $('salonsEffacerHistoire').addEventListener('click',async function(){if(!window.confirm('Effacer ton historique personnel des salons planifiés ?'))return;try{await appeler('effacer-historique');await actualiser();}catch(e){$('salonsPlanifiesErreur').textContent=message(e.message);}});
         window.addEventListener('studyplan:salon-rejoint',function(e){noterParticipation(e.detail);});
@@ -309,7 +313,7 @@
                     if(!window.firebase || typeof firebase.auth!=='function' || (firebase.apps && !firebase.apps.length))return false;
                     firebase.auth().onAuthStateChanged(function(user){
                         var uid=user && user.uid || '';
-                        if(uidCourant!==uid){generationCompte++;$('salonsPlanifiesListe').textContent='';$('salonsPlanifiesHistoriqueListe').textContent='';$('salonsPlanifiesErreur').textContent='';$('salonsCompteAvenir').textContent='0';$('salonsCompteHistoire').textContent='0';$('salonsEffacerHistoire').hidden=true;$('salonsPlanifiesBandeau').hidden=true;$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');compteNotifications=uid;invitationsVues=uid?lireVues():Object.create(null);demandesEnAttente=[];majNotification();$('salonsPlanifiesRecherche').value='';$('salonsPlanifiesEleves').textContent='';majSelection();$('salonsPlanifiesForm').hidden=true;statut('',false);}
+                        if(uidCourant!==uid){generationCompte++;$('salonsPlanifiesListe').textContent='';$('salonsPlanifiesHistoriqueListe').textContent='';$('salonsPlanifiesErreur').textContent='';$('salonsCompteAvenir').textContent='0';$('salonsCompteHistoire').textContent='0';$('salonsEffacerHistoire').hidden=true;if(uidCourant && pageOuverte())fermerPage();$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');compteNotifications=uid;invitationsVues=uid?lireVues():Object.create(null);demandesEnAttente=[];majNotification();$('salonsPlanifiesRecherche').value='';$('salonsPlanifiesEleves').textContent='';majSelection();$('salonsPlanifiesForm').hidden=true;statut('',false);}
                         uidCourant=uid;demarrer(user);
                     });
                     authBranchee=true;return true;
@@ -331,6 +335,7 @@
             return configCharge;
         };
         chargerConfiguration();
+        if(window.__memoireInvitationsEnAttente && typeof memoireAller==='function'){window.__memoireInvitationsEnAttente=false;memoireAller('invitations');}
     }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();

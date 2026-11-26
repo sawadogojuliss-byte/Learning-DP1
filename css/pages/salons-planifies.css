@@ -106,3 +106,24 @@
 /* S'adapte à la largeur réelle du tiroir, pas uniquement à l'écran. */
 .salons-horaires{grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr))}
 .salons-programme-eleves{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))}
+
+/* Invitations : une vraie page, dans l'esprit du journal des annonces. */
+#salonsPlanifiesBandeau.app-panel{inset:0;z-index:99999;overflow-y:auto;overscroll-behavior:contain;padding:0;border:0;background:#f6f7f1!important;backdrop-filter:none;color:#1c3028}
+#salonsPlanifiesBandeau.app-panel.active::before{background:#f6f7f1!important}
+#salonsPlanifiesBandeau *{box-sizing:border-box}
+.salons-page-layout{display:flex;min-height:100%;background:#f6f7f1}
+.salons-page-rail{position:sticky;top:0;display:flex;align-items:center;flex-direction:column;gap:1rem;flex:none;width:5.25rem;height:100vh;padding:1.4rem .7rem;background:#173f31;color:#e8fff0}
+.salons-page-logo{display:grid;place-items:center;width:2.7rem;height:2.7rem;border-radius:.85rem;background:#e3f5e7;color:#276b49;font-family:Georgia,serif;font-weight:700;font-size:1.55rem}
+.salons-page-retour,.salons-page-rail-icone{display:grid;place-items:center;width:2.7rem;height:2.7rem;border:0;border-radius:.85rem;background:#ffffff14;color:#e8fff0}
+.salons-page-retour{cursor:pointer}.salons-page-retour:hover{background:#317255}.salons-page-retour svg{width:1.2rem;height:1.2rem}.salons-page-rail-icone{background:#a3e2b82e;font-size:1.2rem}
+#salonsPlanifiesBandeau .salons-programme-bandeau-inner{flex:1;max-width:85rem;min-width:0;min-height:100vh;margin:0 auto;padding:clamp(1.5rem,5vw,4.5rem);border:0;border-radius:0;background:transparent;box-shadow:none;overflow:visible}
+.salons-annonces-hero{padding:0 0 2rem;overflow:visible;background:none;color:#1c3028;border-bottom:1px solid #d9e3d9}
+.salons-annonces-hero::after{content:none}.salons-page-chemin{margin:0 0 2.5rem;color:#83968a;font-size:.67rem;letter-spacing:.14em;font-weight:800}
+.salons-annonces-kicker{margin:0 0 .8rem;color:#5e9778}.salons-annonces-hero h1{max-width:48rem;margin:0;color:#20372b;font-family:Georgia,serif;font-size:clamp(2.2rem,5vw,4.4rem);font-weight:400;line-height:1.08;letter-spacing:-.04em}.salons-annonces-hero h1 em{color:#5e9778;font-weight:400}
+.salons-annonces-intro{max-width:38rem;margin:1rem 0 0;color:#6b8173;line-height:1.65}.salons-annonces-stats{gap:.7rem;flex-wrap:wrap;margin-top:1.7rem}.salons-annonces-stats div{padding:.75rem 1rem;gap:.55rem;border:1px solid #dbe8dd;border-radius:.85rem;background:#fff}.salons-annonces-stats strong{color:#327856;font-size:1.15rem}.salons-annonces-stats span{color:#718a78}
+.salons-annonces-contenu{max-width:65rem;padding:2rem 0}.salons-annonces-tabs{background:#eaf1e9;border-color:#dce8dc}.salons-annonces-tabs button[aria-selected=true]{color:#286b4b}.salons-programme-carte,.salons-programme-histoire{padding:1.1rem 1.2rem;border-color:#e0ebe0;box-shadow:0 6px 22px #173d2910}.salons-programme-liste{gap:.8rem}.salons-programme-vide-clair{padding:3.5rem 1.5rem;border-radius:1.1rem;background:#fff;color:#6a8874}
+@media(max-width:600px){#salonsPlanifiesBandeau.app-panel{padding:0}.salons-page-layout{display:block}.salons-page-rail{position:relative;top:auto;width:100%;height:auto;min-height:4.6rem;padding:.7rem 1rem;flex-direction:row;gap:.7rem}.salons-page-rail-icone{margin-left:auto}#salonsPlanifiesBandeau .salons-programme-bandeau-inner{min-height:calc(100vh - 4.6rem);padding:1.5rem 1rem 3rem}.salons-page-chemin{margin-bottom:1.8rem}.salons-annonces-kicker{margin:0 0 .7rem}.salons-annonces-contenu{padding:1.5rem 0}.salons-annonces-hero h1{font-size:2.35rem}.salons-annonces-stats{gap:.55rem}}
+#salonsPlanifiesBandeau.app-panel:not(.active){display:none}
+/* Le titre est une destination programmatique pour les lecteurs d'écran, pas un contrôle. */
+#salonsPageTitre:focus{outline:none!important;box-shadow:none!important}
+@media(max-width:600px){#salonsPlanifiesBandeau .salons-programme-carte .salons-programme-texte{flex-basis:100%}}

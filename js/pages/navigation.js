@@ -92,6 +92,8 @@ function navigateTo(page) {
         if (typeof boiteEstAdmin !== 'function' || !boiteEstAdmin()) return;
         var espaceAdmin = document.getElementById('panelAdmin');
         if (espaceAdmin) espaceAdmin.classList.add('active');
+    } else if (page === 'invitations') {
+        if (typeof window.salonsOuvrirPage === 'function') window.salonsOuvrirPage();
     } else if (page === 'annonce') {
         var annonce = document.getElementById('panelAnnonce');
         if (typeof initAnnonce === 'function') initAnnonce();
