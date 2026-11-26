@@ -268,6 +268,8 @@
         window.addEventListener('storage',function(e){if(cleNotifications() && e.key===cleNotifications()){invitationsVues=lireVues();majNotification();}});
         $('salonsPlanifiesOuvrir').addEventListener('click',ouvrir);$('salonsPlanifiesVisible').addEventListener('change',sauvegarderVisibilite);$('salonsPlanifiesForm').addEventListener('submit',programmer);
         $('salonsPlanifiesRecherche').addEventListener('input',filtrerAnnuaire);
+        // Entrée valide la recherche, jamais la création d'une séance.
+        $('salonsPlanifiesRecherche').addEventListener('keydown',function(e){if(e.key==='Enter' && !e.isComposing)e.preventDefault();});
         $('salonsPlanifiesEffacerRecherche').addEventListener('click',function(){$('salonsPlanifiesRecherche').value='';filtrerAnnuaire();$('salonsPlanifiesRecherche').focus();});
         var configurationPrete=false;
         chargerConfiguration=function(){

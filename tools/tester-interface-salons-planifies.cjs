@@ -51,7 +51,8 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    const date=await page.evaluate(()=>{const d=new Date(Date.now()+3600000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});
    await page.fill('#salonsPlanifiesDate',date);const fin=await page.evaluate(()=>{const d=new Date(Date.now()+7200000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});await page.fill('#salonsPlanifiesFin',fin);await page.check('input[name=salonsInvite][value=u2]');assert.equal(await page.locator('#salonsPlanifiesSelection').innerText(),'1 / 20 sélectionné');assert.equal(await page.locator('input[name=salonsInvite][value=u2]').locator('..').evaluate(e=>e.classList.contains('selectionnee')),true);
    const membresAvantRecherche=await page.evaluate(()=>window.__calls.filter(c=>c.actionSalons==='membres').length);
-   await page.fill('#salonsPlanifiesRecherche','ELEVE DP1');
+   await page.fill('#salonsPlanifiesRecherche','ELEVE DP1');await page.press('#salonsPlanifiesRecherche','Enter');
+   assert.equal(await page.evaluate(()=>window.__calls.some(c=>c.actionSalons==='creer')),false,'Entrée dans la recherche ne crée pas de séance');
    assert.equal(await page.locator('input[name=salonsInvite][value=u1]').isVisible(),true,'recherche insensible à la casse et aux accents');
    assert.equal(await page.locator('input[name=salonsInvite][value=u2]').isHidden(),true);assert.equal(await page.locator('input[name=salonsInvite][value=u2]').isChecked(),true,'la sélection filtrée reste cochée');
    assert.equal(await page.locator('#salonsPlanifiesResultats').innerText(),'1 camarade trouvé');
