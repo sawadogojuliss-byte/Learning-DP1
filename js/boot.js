@@ -23,7 +23,7 @@
         }
     }
 
-var version = '20261220-diagnostic-mail';
+var version = '20261221-salons-planifies';
 
     /* ── Le site se met à jour tout seul ──────────────────────────────
        Un navigateur garde volontiers l'ancienne page : sans cela, un

@@ -1,6 +1,6 @@
 /* Coquille hors-ligne : uniquement fichiers publics, jamais les comptes,
    les messages, les documents importés ni les bibliothèques audio/OCR. */
-const VERSION = '20261220-diagnostic-mail';
+const VERSION = '20261221-salons-planifies';
 const CACHE = 'study-plan-coquille-' + VERSION;
 const FICHIERS = [
     "index.html",
@@ -24,6 +24,7 @@ const FICHIERS = [
     "css/pages/admin-atelier.css",
     "css/pages/focus-parametres.css",
     "css/pages/salon-focus.css",
+    "css/pages/salons-planifies.css",
     "livrables/publication-pomodoro/mobile.css",
     "livrables/publication-pomodoro/reprise.css",
     "css/compte.css",
@@ -169,7 +170,8 @@ const FICHIERS = [
     "js/pages/salon-focus-coeur.js",
     "js/pages/salon-focus-firebase.js",
     "js/pages/salon-voix.js",
-    "js/pages/salon-focus.js"
+    "js/pages/salon-focus.js",
+    "js/pages/salons-planifies.js"
 ];
 function urlDuSite(fichier) {
     var url = new URL(fichier || './', self.registration.scope);

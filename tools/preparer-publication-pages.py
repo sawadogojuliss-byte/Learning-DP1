@@ -60,6 +60,7 @@ shutil.copytree(base, output)
 
 files = [
     'data/mail-script.json',
+    'data/salons-planifies.json',
     'livrables/generer-cle-mail.html',
     'livrables/propositions-pomodoro/index.html',
     'livrables/publication-voix/vingte-une-minute-essai.mp3',
@@ -142,7 +143,9 @@ files = [
     'js/pages/salon-focus-firebase.js',
     'js/pages/salon-focus.js',
     'js/pages/salon-voix.js',
+    'js/pages/salons-planifies.js',
     'css/pages/salon-focus.css',
+    'css/pages/salons-planifies.css',
     'css/curseur-stable.css',
     'js/pages/musique.js',
     'videos/arbres-au-bord-de-leau-assemblage.mp4',
@@ -422,7 +425,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor_salon_css = '    <link rel="stylesheet" href="css/pages/focus-parametres.css?v=' + version + '">'
         if text.count(anchor_salon_css) != 1:
             raise SystemExit('Styles des paramètres publics inattendus')
-        text = text.replace(anchor_salon_css, anchor_salon_css + '\n    <link rel="stylesheet" href="css/pages/salon-focus.css?v=' + version + '">', 1)
+        text = text.replace(anchor_salon_css, anchor_salon_css + '\n    <link rel="stylesheet" href="css/pages/salon-focus.css?v=' + version + '">\n    <link rel="stylesheet" href="css/pages/salons-planifies.css?v=' + version + '">', 1)
         anchor = '    <link rel="stylesheet" href="css/pages/planning-panels.css?v=' + version + '">'
         if text.count(anchor) != 1:
             raise SystemExit('Chargement des styles public inattendu')
@@ -449,7 +452,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
         anchor = "    'js/pages/pomodoro-parametres.js'\n"
         if text.count(anchor) != 1:
             raise SystemExit('Registre public inattendu')
-        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-voix.js',\n    'js/pages/salon-focus.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
+        text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-voix.js',\n    'js/pages/salon-focus.js',\n    'js/pages/salons-planifies.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
         ancre_voix_une = '    "js/pages/chrono-voix.js",'
         if text.count(ancre_voix_une) != 1:
@@ -460,7 +463,7 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             f'\n    "livrables/publication-voix/essai-feminine/harmonise/{nom}.mp3",'
             for nom in pistes_feminines), 1)
         anchor_salon = '    "css/pages/planning-panels.css",'
-        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-voix.js",\n    "js/pages/salon-focus.js",', 1)
+        text = text.replace(anchor_salon, anchor_salon + '\n    "css/pages/salon-focus.css",\n    "css/pages/salons-planifies.css",\n    "css/curseur-stable.css",\n    "js/pages/salon-focus-coeur.js",\n    "js/pages/salon-focus-firebase.js",\n    "js/pages/salon-voix.js",\n    "js/pages/salon-focus.js",\n    "js/pages/salons-planifies.js",', 1)
         anchor = '    "css/pages/planning-panels.css",'
         if text.count(anchor) != 1:
             raise SystemExit('Liste hors-ligne publique inattendue')

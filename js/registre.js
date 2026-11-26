@@ -81,5 +81,6 @@ window.STUDYPLAN_SCRIPTS = [
     'js/pages/salon-focus-coeur.js',
     'js/pages/salon-focus-firebase.js',
     'js/pages/salon-voix.js',
-    'js/pages/salon-focus.js'
+    'js/pages/salon-focus.js',
+    'js/pages/salons-planifies.js'
 ];

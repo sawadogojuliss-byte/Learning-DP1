@@ -19,6 +19,13 @@ const data=()=>({nom:'Révisions',organisateurUid:'host',revision:1,ferme:false,
   const guest=env.authenticatedContext('guest',{firebase:{sign_in_provider:'anonymous'}}).firestore();
   const intrus=env.authenticatedContext('intrus',{firebase:{sign_in_provider:'anonymous'}}).firestore();
   const anon=env.unauthenticatedContext().firestore();
+  // Les plannings, rappels, quotas et l'annuaire sont accessibles uniquement
+  // au service privilégié, jamais directement aux navigateurs.
+  for (const collectionPrivee of ['salons_annuaire_prive','salons_programmes_prives','salons_rappels_prives','salons_limites_privees','salons_dedoublonnage_prive']) {
+    await assertFails(getDoc(doc(host,collectionPrivee+'/host')));
+    await assertFails(getDocs(collection(host,collectionPrivee)));
+    await assertFails(setDoc(doc(host,collectionPrivee+'/host'),{visible:true}));
+  }
   await assertFails(getDoc(doc(anon,chemin(id))));
   await assertSucceeds(getDoc(doc(host,chemin(id)))); // création transactionnelle d'un identifiant non utilisé
   await assertFails(setDoc(doc(guest,chemin(id)),{...data(),organisateurUid:'guest'}));
