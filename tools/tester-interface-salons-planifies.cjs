@@ -30,7 +30,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    assert.equal(await page.locator('#salonsPlanifiesAnnonce').evaluate(e=>e.parentElement.contains(document.querySelector('#joursFlamme'))),true);
    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('studyplan:salon-rejoint',{detail:{id:'a'.repeat(48),uid:'anon1',identite:'invite'}})));await page.waitForFunction(()=>window.__calls.some(x=>x.actionSalons==='participer' && x.jetonSalon==='jeton-salon-fictif'));
    await page.click('#salonsOnglethistoire');assert.equal(await page.locator('#salonsPlanifiesHistorique').isVisible(),true);assert.equal(await page.locator('#salonsPlanifiesHistorique').textContent().then(t=>t.includes('Histoire partagée')),true);
-   await page.click('#salonsOngletavenir');await page.click('.salons-programme-accepter');await page.waitForFunction(()=>window.__reponse==='accepte');await page.waitForFunction(()=>document.querySelector('#salonsPlanifiesBandeau').textContent.includes('INVITATION ACCEPTÉE'));
+   await page.click('#salonsOngletavenir');await page.click('.salons-programme-accepter');await page.waitForFunction(()=>window.__reponse==='accepte');await page.waitForFunction(()=>document.querySelector('#salonsPlanifiesBandeau').textContent.includes('DEMANDE ACCEPTÉE'));
    await page.click('#salonsFermerAnnonces');await page.click('#salonsPlanifiesOuvrir');
    await page.waitForSelector('#salonsPlanifiesForm:not([hidden])');
    assert.equal(await page.locator('#salonsPlanifiesEleves fieldset').count(),2);
@@ -118,6 +118,28 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForFunction(()=>!document.querySelector('#salonsPlanifiesAnnonce').hidden);
    assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Privé ancien compte')),false);
    assert.equal(await page.locator('#salonsPlanifiesAnnonce').innerText(),'✉ Séances');
+   await page.close();
+  }
+  {
+   // La nouvelle API supprime la case sans casser l'ancienne API v7.
+   const page=await browser.newPage();
+   await page.setContent('<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>');
+   await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});
+   await page.evaluate(()=>{
+    const user={uid:'u',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'faux'};
+    window.firebase={auth:()=>({currentUser:user,onAuthStateChanged:cb=>cb(user)})};window.__calls=[];
+    window.fetch=async(url,opt)=>{
+     if(url==='data/salons-planifies.json')return {ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})};
+     let action=JSON.parse(opt.body).actionSalons;window.__calls.push(action);
+     return {ok:true,json:async()=>({success:true,resultat:action==='membres'?{annuaireAutomatique:true,eleves:[{id:'u1',nom:'Élève DP2',classe:'DP2'}]}:{salons:[],historique:[]}})};
+    };
+   });
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.click('#salonsPlanifiesOuvrir');await page.waitForSelector('#salonsPlanifiesForm:not([hidden])');
+   assert.equal(await page.locator('#salonsPlanifiesVisible').isVisible(),false);
+   assert.equal(await page.locator('#salonsPlanifiesAnnuaireInfo').isVisible(),true);
+   assert.equal(await page.locator('#salonsPlanifiesEleves').textContent().then(t=>t.includes('Élève DP2')),true);
+   assert.equal(await page.evaluate(()=>window.__calls.includes('inscription')),false);
    await page.close();
   }
   console.log('ok interface salons planifiés : desktop et mobile, DP1/DP2, consentement, création et annonce sur le planning (simulation)');

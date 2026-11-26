@@ -30,7 +30,7 @@ function spUtilisateur(jeton) {
   });
   var u = r.code === 200 && r.data.users && r.data.users[0];
   var google = u && (u.providerUserInfo || []).some(function(p){return p.providerId === 'google.com';});
-  spAssert(u && !u.disabled && u.emailVerified === true && google && typeof u.localId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(u.localId) && typeof u.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u.email), 'google-requis');
+  spAssert(u && !u.disabled && u.emailVerified === true && google && typeof u.localId === 'string' && /^[A-Za-z0-9_-]{1,128}$/.test(u.localId) && ['__proto__','constructor','prototype'].indexOf(u.localId)<0 && typeof u.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(u.email), 'google-requis');
   return {uid:u.localId, email:u.email, nom:String(u.displayName || 'Membre Studyplan').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,80)};
 }
 function spIdentiteSalon(jeton) {
@@ -86,14 +86,47 @@ function spEnregistrer(u, jeton, visible) {
     return {visible:true,nom:u.nom,classe:classe};
   });
 }
+// Lecture serveur avec OAuth/IAM et masques minimaux ; aucune règle Firestore
+// n'est ouverte entre utilisateurs et les emails ne sortent pas vers le client.
+function spListerProfils(collection,champs) {
+  var chemin='/'+collection+'?pageSize=250'+champs.map(function(c){return '&mask.fieldPaths='+encodeURIComponent(c);}).join('');
+  var documents=[], page='', nombre=0;
+  do {
+    spAssert(++nombre<=50,'annuaire-limite');
+    var r=spFirestore('get',chemin+(page?'&pageToken='+encodeURIComponent(page):''));
+    spAssert(r.code===200 && r.data && typeof r.data==='object','annuaire-indisponible');
+    if(r.data.documents)spAssert(Array.isArray(r.data.documents),'annuaire-indisponible');
+    documents=documents.concat(r.data.documents || []);
+    page=r.data.nextPageToken || '';
+    spAssert(!page || typeof page==='string' && page.length<4000,'annuaire-indisponible');
+  } while(page);
+  return documents;
+}
+function spAnnuaireComptes() {
+  var profils=spListerProfils('documents',['nom','classe']), comptes=spListerProfils('comptes',['email']);
+  var ayantMail=Object.create(null), eleves=[];
+  comptes.forEach(function(c){
+    var uid=String(c.name || '').split('/').pop(), email=c.fields && c.fields.email && c.fields.email.stringValue;
+    if(/^[A-Za-z0-9_-]{1,128}$/.test(uid) && ['__proto__','constructor','prototype'].indexOf(uid)<0 && typeof email==='string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))ayantMail[uid]=true;
+  });
+  profils.forEach(function(d){
+    var uid=String(d.name || '').split('/').pop(), champs=d.fields || {}, classe=champs.classe && champs.classe.stringValue;
+    if(!ayantMail[uid] || ['DP1','DP2'].indexOf(classe)<0)return;
+    var nom=String(champs.nom && champs.nom.stringValue || 'Membre Studyplan').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,80) || 'Membre Studyplan';
+    eleves.push({id:uid,nom:nom,classe:classe});
+  });
+  eleves.sort(function(a,b){return a.classe.localeCompare(b.classe)||a.nom.localeCompare(b.nom,'fr');});
+  return eleves;
+}
+// Diagnostic manuel : aucun nom, adresse ou identifiant n'est journalisé.
+// Lecture seule ; à lancer par le propriétaire depuis l'éditeur Apps Script.
+function spDiagnosticAnnuaire() {
+  var eleves=spAnnuaireComptes();
+  Logger.log('Annuaire accessible : '+eleves.length+' profil(s) DP1/DP2 avec mail enregistré. Aucun mail ni écriture.');
+}
 function spMembres(u,jeton) {
   spClasse(u.uid,jeton);
-  return spSousVerrou(function(){
-    var props=PropertiesService.getScriptProperties().getProperties(), eleves=[];
-    Object.keys(props).forEach(function(k){if(k.indexOf('SP_U_')!==0)return;var m=JSON.parse(props[k]);if(m.uid!==u.uid && ['DP1','DP2'].indexOf(m.classe)>=0)eleves.push({id:m.uid,nom:m.nom,classe:m.classe});});
-    eleves.sort(function(a,b){return a.classe.localeCompare(b.classe)||a.nom.localeCompare(b.nom,'fr');});
-    return {visible:!!props['SP_U_'+u.uid],eleves:eleves,limiteAtteinte:false};
-  });
+  return {annuaireAutomatique:true,eleves:spAnnuaireComptes().filter(function(m){return m.id!==u.uid;}),limiteAtteinte:false};
 }
 function spValeur(v) {
   if (typeof v==='string')return {stringValue:v};
@@ -133,14 +166,16 @@ function spValider(d,now) {
 }
 function spCreer(u,jeton,body) {
   var d=spValider(body,Date.now());spClasse(u.uid,jeton);spAssert(d.invites.indexOf(u.uid)<0,'invites-invalides');
+  var eleves=d.invites.length?spAnnuaireComptes():[], autorises=Object.create(null);
+  eleves.forEach(function(m){autorises[m.id]=true;});
   var id=spHash(JSON.stringify([u.uid,d.nom,d.debut,d.fin,d.fuseau,d.invites])).slice(0,64), salonId=spHash('salon:'+id).slice(0,48);
   return spSousVerrou(function(){
     var existant=spLire('SP_P_'+id);if(existant)return {id:id,deja:true,annule:!!existant.annule};
     var props=PropertiesService.getScriptProperties().getProperties(), jour=new Date().toISOString().slice(0,10), compteur=0;
     Object.keys(props).forEach(function(k){if(k.indexOf('SP_P_')===0){var p=JSON.parse(props[k]);if(p.organisateurUid===u.uid && p.creeJour===jour)compteur++;}});
     spAssert(compteur<5,'limite-quotidienne');
-    d.invites.forEach(function(uid){spAssert(!!spLire('SP_U_'+uid),'invite-indisponible');var n=0;Object.keys(props).forEach(function(k){if(k.indexOf('SP_P_')===0){var p=JSON.parse(props[k]);if(p.creeJour===jour && p.invites.indexOf(uid)>=0)n++;}});spAssert(n<20,'invite-indisponible');});
-    var programme={id:id,salonId:salonId,nom:d.nom,debut:d.debut,fin:d.fin,fuseau:d.fuseau,organisateurUid:u.uid,organisateurNom:u.nom,organisateurEmail:u.email,invites:d.invites,reponses:{},annule:false,creeJour:jour,etats:{}};
+    d.invites.forEach(function(uid){spAssert(!!autorises[uid],'invite-indisponible');var n=0;Object.keys(props).forEach(function(k){if(k.indexOf('SP_P_')===0){var p=JSON.parse(props[k]);if(p.creeJour===jour && p.invites.indexOf(uid)>=0)n++;}});spAssert(n<20,'invite-indisponible');});
+    var programme={id:id,salonId:salonId,nom:d.nom,debut:d.debut,fin:d.fin,fuseau:d.fuseau,organisateurUid:u.uid,organisateurNom:u.nom,organisateurEmail:u.email,invites:d.invites,reponses:{},courriels:{},annule:false,creeJour:jour,etats:{}};
     // Valider la capacité avant une création Firestore ; une écriture
     // incertaine peut être retrouvée avec le même identifiant déterministe.
     spAssert(Utilities.newBlob(JSON.stringify(programme)).getBytes().length<8000,'capacite');
@@ -157,7 +192,7 @@ function spListe(u) {
       if(!hote && p.invites.indexOf(u.uid)<0 || p.debut<now-86400000)return;
       var reponse=hote?'organisateur':(p.reponses && p.reponses[u.uid] || 'attente');
       liste.push({id:p.id,nom:p.nom,debut:p.debut,fin:p.fin || null,fuseau:p.fuseau,organisateurNom:p.organisateurNom || 'Un camarade',role:hote?'organisateur':'invite',reponse:reponse,annule:p.annule,
-        lien:!p.annule && (hote || reponse==='accepte' && !!props['SP_U_'+u.uid]) && now>=p.debut-(hote?10:5)*SP_MIN && now<p.debut+12*3600000 ? SP_SITE+'#salon='+p.salonId : ''});
+        lien:!p.annule && (hote || reponse==='accepte') && now>=p.debut-(hote?10:5)*SP_MIN && now<p.debut+12*3600000 ? SP_SITE+'#salon='+p.salonId : ''});
     });
     liste.sort(function(a,b){return a.debut-b.debut;});return {salons:liste.slice(0,200),historique:spLire('SP_H_'+u.uid) || [],limiteAtteinte:liste.length>200};
   });
@@ -173,7 +208,7 @@ function spParticiper(u,salonId,jetonSalon) {
     Object.keys(props).some(function(k){if(k.indexOf('SP_P_')!==0)return false;var p=JSON.parse(props[k]);if(p.salonId===salonId){programme=p;return true;}return false;});
     spAssert(programme && !programme.annule,'acces-refuse');
     var hote=programme.organisateurUid===u.uid;
-    spAssert(hote || programme.invites.indexOf(u.uid)>=0 && programme.reponses && programme.reponses[u.uid]==='accepte' && !!props['SP_U_'+u.uid],'acces-refuse');
+    spAssert(hote || programme.invites.indexOf(u.uid)>=0 && programme.reponses && programme.reponses[u.uid]==='accepte','acces-refuse');
     var now=Date.now();spAssert(now>=programme.debut-(hote?10:5)*SP_MIN && now<programme.debut+12*60*SP_MIN,'acces-refuse');
     var membre=spFirestore('get','/salons_focus/'+salonId+'/membres/'+encodeURIComponent(uidSalon));
     spAssert(membre.code===200,'acces-refuse');
@@ -192,8 +227,9 @@ function spRepondre(u,id,reponse) {
     var p=spLire('SP_P_'+id);
     spAssert(p && p.organisateurUid!==u.uid && p.invites.indexOf(u.uid)>=0,'acces-refuse');
     spAssert(!p.annule && Date.now()<p.debut,'invitation-terminee');
-    if(reponse==='accepte')spAssert(!!spLire('SP_U_'+u.uid),'inscription-requise');
-    p.reponses=p.reponses || {};p.reponses[u.uid]=reponse;spEcrire('SP_P_'+id,p);
+    p.reponses=p.reponses || {};p.courriels=p.courriels || {};p.reponses[u.uid]=reponse;
+    if(reponse==='accepte')p.courriels[u.uid]=u.email;else delete p.courriels[u.uid];
+    spEcrire('SP_P_'+id,p);
     return {reponse:reponse};
   });
 }
@@ -255,7 +291,7 @@ function spRappelsSalons() {
         var hote=p.organisateurUid===uid, avant=hote?10:5;
         if(!hote && (!p.reponses || p.reponses[uid]!=='accepte'))return null;
         if(now<p.debut-avant*SP_MIN)return null;
-        var membre=hote?null:spLire('SP_U_'+uid), email=hote?p.organisateurEmail:membre && membre.email;
+        var membre=hote?null:spLire('SP_U_'+uid), email=hote?p.organisateurEmail:(p.courriels && p.courriels[uid] || membre && membre.email);
         if(!email){p.etats[uid]='desinscrit';spEcrire(k,p);return null;}
         // Une seule revendication durable avant l'appel réseau ; une réponse
         // incertaine n'est jamais renvoyée automatiquement.

@@ -7,7 +7,7 @@ const c={JSON,String,Date,RegExp,PropertiesService:{getScriptProperties:()=>({ge
  GmailApp:{sendEmail:()=>{envois++;}}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})},
  CacheService:{getScriptCache:()=>({get:()=>null,put(){},remove(){}})} };
 vm.createContext(c);vm.runInContext(fs.readFileSync('tools/envoi-mail.gs','utf8'),c);
-let data=JSON.parse(c.doGet().texte); assert.equal(data.version,7);assert.equal(data.secretConfigure,false);assert.equal(data.salonsPlanifies,false);
+let data=JSON.parse(c.doGet().texte); assert.equal(data.version,8);assert.equal(data.secretConfigure,false);assert.equal(data.salonsPlanifies,false);
 secret='cle-fictive-privee'; data=JSON.parse(c.doGet().texte);assert.equal(data.secretConfigure,true);assert.ok(!JSON.stringify(data).includes(secret),'aucune clé dans le diagnostic');
 const event=d=>({postData:{contents:JSON.stringify(d)}});
 data=JSON.parse(c.doPost(event({secret:'mauvais'})).texte); assert.equal(data.error,'secret');
