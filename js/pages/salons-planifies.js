@@ -117,30 +117,53 @@
         return String(nom || '').trim().split(/\s+/).filter(Boolean).slice(0,2).map(function(mot){return Array.from(mot)[0] || '';}).join('').toLocaleUpperCase('fr') || '✦';
     }
     function majSelection() {
-        var n=document.querySelectorAll('#salonsPlanifiesEleves input[name=salonsInvite]:checked').length;
+        var coches=document.querySelectorAll('#salonsPlanifiesEleves input[name=salonsInvite]:checked'), n=coches.length, choix=$('salonsPlanifiesChoix');
         $('salonsPlanifiesSelection').textContent=n+' / 20 sélectionné'+(n>1?'s':'');
+        choix.textContent='';choix.hidden=!n;
+        coches.forEach(function(check){
+            var nom=check.closest('label').querySelector('.salons-programme-personne-nom').textContent;
+            var bouton=el('button','salons-choix-personne');bouton.type='button';bouton.setAttribute('aria-label','Retirer '+nom+' de la séance');
+            bouton.appendChild(el('span','',nom));var croix=el('span','salons-choix-croix','×');croix.setAttribute('aria-hidden','true');bouton.appendChild(croix);
+            bouton.addEventListener('click',function(){check.checked=false;check.dispatchEvent(new Event('change',{bubbles:true}));$('salonsPlanifiesRecherche').focus();});choix.appendChild(bouton);
+        });
+    }
+    function normaliserRecherche(texte) {
+        var t=String(texte || '').toLocaleLowerCase('fr').trim();
+        try{return t.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(_){return t;}
+    }
+    function filtrerAnnuaire() {
+        var recherche=$('salonsPlanifiesRecherche'), terme=normaliserRecherche(recherche.value), total=0;
+        $('salonsPlanifiesEffacerRecherche').hidden=!recherche.value;
+        document.querySelectorAll('#salonsPlanifiesEleves .salons-programme-groupe').forEach(function(groupe){
+            var lignes=groupe.querySelectorAll('.salons-programme-personne'), trouves=0;
+            lignes.forEach(function(ligne){var visible=!terme || ligne.dataset.recherche.indexOf(terme)>=0;ligne.hidden=!visible;if(visible)trouves++;});
+            total+=trouves;
+            groupe.querySelector('.salons-programme-groupe-compte').textContent=terme ? trouves+' / '+lignes.length : lignes.length+' '+(lignes.length>1?'élèves':'élève');
+            var vide=groupe.querySelector('.salons-programme-vide');vide.hidden=trouves>0;
+            vide.querySelector('.salons-programme-vide-texte').textContent=terme && lignes.length ? 'Aucun résultat dans cette classe.' : 'Pas encore de camarades à afficher.';
+        });
+        $('salonsPlanifiesResultats').textContent=terme ? total+' '+(total>1?'camarades trouvés':'camarade trouvé') : '';
     }
     function afficherAnnuaire(data) {
-        annuaire=data.eleves||[];var cont=$('salonsPlanifiesEleves');cont.textContent='';
+        annuaire=data.eleves||[];var cont=$('salonsPlanifiesEleves');
+        var selection=new Set(Array.prototype.map.call(cont.querySelectorAll('input[name=salonsInvite]:checked'),function(e){return e.value;}));cont.textContent='';
         ['DP1','DP2'].forEach(function(classe){
             var groupe=annuaire.filter(function(e){return e.classe===classe;});var field=el('fieldset','salons-programme-groupe');
             var legend=el('legend','salons-programme-classe',classe);field.appendChild(legend);
             var entete=el('div','salons-programme-groupe-entete');
             entete.appendChild(el('span','salons-programme-groupe-titre','La promo '+classe));
-            entete.appendChild(el('span','salons-programme-groupe-compte',groupe.length+' '+(groupe.length>1?'élèves':'élève')));field.appendChild(entete);
-            if(!groupe.length){
-                var vide=el('div','salons-programme-vide');vide.appendChild(el('span','salons-programme-vide-icone','✦'));vide.appendChild(el('span','','Pas encore de camarades à afficher.'));field.appendChild(vide);
-            }
+            entete.appendChild(el('span','salons-programme-groupe-compte'));field.appendChild(entete);
+            var vide=el('div','salons-programme-vide');vide.appendChild(el('span','salons-programme-vide-icone','✦'));vide.appendChild(el('span','salons-programme-vide-texte'));field.appendChild(vide);
             groupe.forEach(function(membre){
-                var label=el('label','salons-programme-personne');
-                var check=el('input','salons-programme-personne-check');check.type='checkbox';check.value=membre.id;check.name='salonsInvite';
+                var label=el('label','salons-programme-personne');label.dataset.recherche=normaliserRecherche(membre.nom+' '+classe);
+                var check=el('input','salons-programme-personne-check');check.type='checkbox';check.value=membre.id;check.name='salonsInvite';check.checked=selection.has(String(membre.id));label.classList.toggle('selectionnee',check.checked);
                 var avatar=el('span','salons-programme-avatar',initiales(membre.nom));avatar.setAttribute('aria-hidden','true');
                 var detail=el('span','salons-programme-personne-detail');detail.appendChild(el('strong','salons-programme-personne-nom',membre.nom));detail.appendChild(el('span','salons-programme-personne-promo',classe+' · Studyplan'));
                 label.appendChild(check);label.appendChild(avatar);label.appendChild(detail);
                 check.addEventListener('change',function(){label.classList.toggle('selectionnee',check.checked);majSelection();});field.appendChild(label);
             });cont.appendChild(field);
         });
-        majSelection();
+        majSelection();filtrerAnnuaire();
         $('salonsPlanifiesVisible').checked=!!data.visible;
         $('salonsPlanifiesVisible').closest('label').hidden=!!data.annuaireAutomatique;
         $('salonsPlanifiesAnnuaireInfo').hidden=!data.annuaireAutomatique;
@@ -195,14 +218,36 @@
         bouton.disabled=true;statut('Enregistrement de la séance…',false);
         try {
             var resultat=await appeler('creer',{nom:nom,debut:debut,fin:fin,fuseau:fuseau,invites:invites,demandeId:demandeId});
-            statut(resultat.annule ? 'Cette séance identique a déjà été annulée. Change les détails pour en créer une nouvelle.' : resultat.deja ? 'Cette séance existe déjà : aucun rappel supplémentaire n’a été créé.' : 'Séance enregistrée. Tu recevras le lien environ 10 minutes avant ; les invités qui acceptent, 5 minutes avant.',!!resultat.annule);
-            $('salonsPlanifiesForm').hidden=true;$('salonsPlanifiesNom').value='';$('salonsPlanifiesDate').value='';$('salonsPlanifiesFin').value='';demandeId='';signature='';await actualiser();
+            statut(resultat.annule ? 'Cette séance identique a déjà été annulée. Change les détails pour en créer une nouvelle.' : resultat.deja ? 'Cette séance existe déjà : aucun rappel supplémentaire n’a été créé.' : 'Séance enregistrée. Retrouve-la dans tes séances.',!!resultat.annule);
+            $('salonsPlanifiesForm').hidden=true;$('salonsPlanifiesNom').value='';$('salonsPlanifiesDate').value='';$('salonsPlanifiesFin').value='';$('salonsPlanifiesRecherche').value='';$('salonsPlanifiesEleves').textContent='';majSelection();demandeId='';signature='';await actualiser();
         } catch(e) {statut(message(e.message)+' Si l’enregistrement n’a pas été confirmé, utilise le même formulaire pour réessayer.',true);}
         finally {bouton.disabled=false;}
     }
     function init() {
         var racine=$('salonCreer'), flamme=$('joursFlamme'), header=flamme && flamme.closest('header');if(!racine||!flamme||!header||$('salonsPlanifiesOuvrir'))return;
-        var section=el('section','salons-planification');section.innerHTML='<button type="button" id="salonsPlanifiesOuvrir" class="salons-programme-ouvrir">✦ Planifier une séance à l’avance <span>↗</span></button><p id="salonsPlanifiesStatut" class="salons-programme-statut" role="status" aria-live="polite"></p><form id="salonsPlanifiesForm" hidden><p class="salons-programme-intro">Fonction en test : la livraison des rappels n’est pas encore garantie. Ton lien est prévu 10 minutes avant et celui des invités qui acceptent 5 minutes avant ; retrouve aussi le lien dans tes séances.</p><label for="salonsPlanifiesNom">Nom de la séance</label><input id="salonsPlanifiesNom" type="text" maxlength="60" required placeholder="Ex. Révisions de mathématiques"><label for="salonsPlanifiesDate">Date et heure locales</label><input id="salonsPlanifiesDate" type="datetime-local" required><label for="salonsPlanifiesFin">Fin de la séance</label><input id="salonsPlanifiesFin" type="datetime-local" required><label class="salons-programme-visibilite"><input id="salonsPlanifiesVisible" type="checkbox"><span>Je souhaite apparaître dans la liste et recevoir des demandes de séance. Mon adresse reste privée.</span></label><p id="salonsPlanifiesAnnuaireInfo" class="salons-programme-intro" hidden>Les noms et classes DP1 et DP2 des élèves dont le mail est enregistré sont visibles dans cette liste. Les adresses restent privées.</p><div class="salons-programme-liste-en-tete"><div><span class="salons-programme-surtitre">BIEN MIEUX ENSEMBLE</span><p class="salons-programme-liste-titre">Choisis tes camarades</p></div><span id="salonsPlanifiesSelection" class="salons-programme-selection" aria-live="polite">0 / 20 sélectionné</span></div><p class="salons-programme-liste-aide">Compose ton équipe pour cette séance · 20 personnes maximum</p><div id="salonsPlanifiesEleves" class="salons-programme-eleves"></div><p id="salonsPlanifiesLimite" hidden>La liste atteint sa limite : tous les membres ne sont pas affichés.</p><button class="salons-programme-valider" id="salonsPlanifiesValider" type="submit">Planifier ma séance ↗</button></form>';
+        var section=el('section','salons-planification');
+        section.innerHTML=
+            '<button type="button" id="salonsPlanifiesOuvrir" class="salons-programme-ouvrir">✦ Planifier une séance à l’avance <span>↗</span></button>'+
+            '<p id="salonsPlanifiesStatut" class="salons-programme-statut" role="status" aria-live="polite"></p>'+
+            '<form id="salonsPlanifiesForm" hidden>'+
+                '<div class="salons-rendezvous">'+
+                    '<div class="salons-rendezvous-entete"><span class="salons-rendezvous-icone" aria-hidden="true">✧</span><div><span class="salons-rendezvous-surtitre">UN MOMENT POUR AVANCER</span><h3>Ta prochaine séance<span>.</span></h3></div></div>'+
+                    '<div class="salons-champ"><label for="salonsPlanifiesNom"><span>01</span> Nom de la séance</label><input id="salonsPlanifiesNom" type="text" maxlength="60" required placeholder="Ex. Révisions de mathématiques" autocomplete="off"></div>'+
+                    '<div class="salons-horaires"><div class="salons-champ"><label for="salonsPlanifiesDate"><span>02</span> Début</label><input id="salonsPlanifiesDate" type="datetime-local" required></div>'+
+                    '<div class="salons-champ"><label for="salonsPlanifiesFin"><span>03</span> Fin</label><input id="salonsPlanifiesFin" type="datetime-local" required></div></div>'+
+                    '<p class="salons-fuseau"><span aria-hidden="true">◷</span> Date et heure de ton appareil</p>'+
+                '</div>'+
+                '<label class="salons-programme-visibilite"><input id="salonsPlanifiesVisible" type="checkbox"><span>Je souhaite apparaître dans la liste et recevoir des demandes de séance. Mon adresse reste privée.</span></label>'+
+                '<div class="salons-programme-liste-en-tete"><div><span class="salons-programme-surtitre">BIEN MIEUX ENSEMBLE</span><p class="salons-programme-liste-titre">Choisis tes camarades</p></div><span id="salonsPlanifiesSelection" class="salons-programme-selection" aria-live="polite">0 / 20 sélectionné</span></div>'+
+                '<p class="salons-programme-liste-aide">Compose ton équipe · 20 personnes maximum</p>'+
+                '<div id="salonsPlanifiesChoix" class="salons-choix" role="group" aria-label="Camarades sélectionnés" hidden></div>'+
+                '<div class="salons-recherche"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.3" stroke="currentColor" stroke-width="1.8"/><path d="m15.1 15.1 4.2 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><label for="salonsPlanifiesRecherche" class="salons-accessible-only">Rechercher un camarade</label><input id="salonsPlanifiesRecherche" type="search" maxlength="120" placeholder="Un prénom ou une classe…" autocomplete="off" aria-describedby="salonsPlanifiesResultats"><button type="button" id="salonsPlanifiesEffacerRecherche" aria-label="Effacer la recherche" hidden>✕</button></div>'+
+                '<p id="salonsPlanifiesResultats" class="salons-recherche-resultats" aria-live="polite"></p>'+
+                '<div id="salonsPlanifiesEleves" class="salons-programme-eleves"></div><p id="salonsPlanifiesLimite" hidden>La liste atteint sa limite : tous les membres ne sont pas affichés.</p>'+
+                '<p id="salonsPlanifiesAnnuaireInfo" class="salons-programme-confidentiel" hidden><span aria-hidden="true">✧</span> Noms et classes visibles · adresses e-mail privées</p>'+
+                '<button class="salons-programme-valider" id="salonsPlanifiesValider" type="submit">Planifier ma séance <span aria-hidden="true">↗</span></button>'+
+            '</form>';
+
         racine.insertAdjacentElement('afterend',section);
         var boutonAnnonce=el('button','salons-programme-notification');boutonAnnonce.type='button';boutonAnnonce.id='salonsPlanifiesAnnonce';boutonAnnonce.hidden=true;boutonAnnonce.setAttribute('aria-label','Séances : aucune demande non lue');boutonAnnonce.setAttribute('aria-expanded','false');boutonAnnonce.setAttribute('aria-controls','salonsPlanifiesBandeau');boutonAnnonce.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="m4.5 7 6.1 4.6a2.3 2.3 0 0 0 2.8 0L19.5 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="salonsPlanifiesBadge" class="salons-programme-badge" aria-hidden="true" hidden></span>';flamme.insertAdjacentElement('beforebegin',boutonAnnonce);
         var bandeau=el('section','salons-programme-bandeau');bandeau.id='salonsPlanifiesBandeau';bandeau.hidden=true;bandeau.setAttribute('role','dialog');bandeau.setAttribute('aria-modal','true');bandeau.setAttribute('aria-label','Séances');bandeau.innerHTML='<div class="salons-programme-bandeau-inner"><header class="salons-annonces-hero"><div class="salons-annonces-haut"><span class="salons-annonces-marque">✦ STUDYPLAN · ENSEMBLE</span><button type="button" id="salonsFermerAnnonces" class="salons-annonces-fermer" aria-label="Fermer les séances">✕</button></div><p class="salons-annonces-kicker">UNE PLACE POUR SE RETROUVER</p><h2>Les beaux moments<br>commencent ensemble<span>.</span></h2><p class="salons-annonces-intro">Tes demandes, tes prochaines séances et les moments partagés. Fonction en test : les rappels peuvent être retardés ou ne pas arriver.</p><div class="salons-annonces-stats"><div><strong id="salonsCompteAvenir">0</strong><span>à venir</span></div><div><strong id="salonsCompteHistoire">0</strong><span>dans ton histoire</span></div></div></header><div class="salons-annonces-contenu"><div class="salons-annonces-tabs" role="tablist" aria-label="Séances"><button type="button" id="salonsOngletavenir" role="tab" aria-selected="true" aria-controls="salonsPlanifiesListe">Séances de pomodoro</button><button type="button" id="salonsOnglethistoire" role="tab" aria-selected="false" aria-controls="salonsPlanifiesHistorique">Mon historique</button></div><p id="salonsPlanifiesErreur" role="status"></p><div id="salonsPlanifiesListe" class="salons-programme-liste" role="tabpanel"></div><div id="salonsPlanifiesHistorique" role="tabpanel" hidden><p class="salons-annonces-explication">Tes salons planifiés rejoints, après leur fin. L’historique est personnel et peut être incomplet si la connexion échoue.</p><div id="salonsPlanifiesHistoriqueListe" class="salons-programme-liste"></div><button type="button" id="salonsEffacerHistoire" class="salons-effacer-histoire" hidden>Effacer mon historique</button></div></div></div>';header.insertAdjacentElement('afterend',bandeau);
@@ -222,6 +267,8 @@
         window.addEventListener('studyplan:salon-rejoint',function(e){noterParticipation(e.detail);});
         window.addEventListener('storage',function(e){if(cleNotifications() && e.key===cleNotifications()){invitationsVues=lireVues();majNotification();}});
         $('salonsPlanifiesOuvrir').addEventListener('click',ouvrir);$('salonsPlanifiesVisible').addEventListener('change',sauvegarderVisibilite);$('salonsPlanifiesForm').addEventListener('submit',programmer);
+        $('salonsPlanifiesRecherche').addEventListener('input',filtrerAnnuaire);
+        $('salonsPlanifiesEffacerRecherche').addEventListener('click',function(){$('salonsPlanifiesRecherche').value='';filtrerAnnuaire();$('salonsPlanifiesRecherche').focus();});
         var configurationPrete=false;
         chargerConfiguration=function(){
             if(configurationPrete)return Promise.resolve(true);
@@ -260,7 +307,7 @@
                     if(!window.firebase || typeof firebase.auth!=='function' || (firebase.apps && !firebase.apps.length))return false;
                     firebase.auth().onAuthStateChanged(function(user){
                         var uid=user && user.uid || '';
-                        if(uidCourant!==uid){generationCompte++;$('salonsPlanifiesListe').textContent='';$('salonsPlanifiesHistoriqueListe').textContent='';$('salonsPlanifiesErreur').textContent='';$('salonsCompteAvenir').textContent='0';$('salonsCompteHistoire').textContent='0';$('salonsEffacerHistoire').hidden=true;$('salonsPlanifiesBandeau').hidden=true;$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');compteNotifications=uid;invitationsVues=uid?lireVues():Object.create(null);demandesEnAttente=[];majNotification();$('salonsPlanifiesEleves').textContent='';$('salonsPlanifiesForm').hidden=true;statut('',false);}
+                        if(uidCourant!==uid){generationCompte++;$('salonsPlanifiesListe').textContent='';$('salonsPlanifiesHistoriqueListe').textContent='';$('salonsPlanifiesErreur').textContent='';$('salonsCompteAvenir').textContent='0';$('salonsCompteHistoire').textContent='0';$('salonsEffacerHistoire').hidden=true;$('salonsPlanifiesBandeau').hidden=true;$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');compteNotifications=uid;invitationsVues=uid?lireVues():Object.create(null);demandesEnAttente=[];majNotification();$('salonsPlanifiesRecherche').value='';$('salonsPlanifiesEleves').textContent='';majSelection();$('salonsPlanifiesForm').hidden=true;statut('',false);}
                         uidCourant=uid;demarrer(user);
                     });
                     authBranchee=true;return true;

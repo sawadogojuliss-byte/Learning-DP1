@@ -49,3 +49,57 @@
 .salons-annonces-tabs button{padding:.55rem .7rem;line-height:1.25}
 @media(max-width:400px){.salons-programme-notification{font-size:inherit;padding:0}.salons-programme-liste-en-tete{align-items:flex-start;flex-wrap:wrap}.salons-programme-liste-titre{font-size:1.05rem}.salons-programme-selection{font-size:.67rem}.salons-annonces-tabs button{font-size:.75rem;padding:.55rem .35rem}}
 @media(prefers-reduced-motion:reduce){.salons-programme-personne{transition:none}.salons-programme-personne:hover{transform:none}}
+
+/* Formulaire : un rendez-vous clair et une équipe facile à composer. */
+.salons-planification form{padding-top:1.1rem}
+.salons-rendezvous{padding:clamp(1rem,2.6vw,1.45rem);border:1px solid #8cd3a43d;border-radius:1.15rem;background:radial-gradient(circle at 100% 0%,#4caa6c22,transparent 42%),linear-gradient(150deg,#173e2e,#102c21);box-shadow:inset 0 1px #ffffff0c}
+.salons-rendezvous-entete{display:flex;align-items:center;gap:.8rem;margin-bottom:1.3rem}
+.salons-rendezvous-icone{display:grid;place-items:center;flex:none;width:2.65rem;height:2.65rem;border:1px solid #9dedbc55;border-radius:.85rem;background:#b0f5c91a;color:#bcf9d0;font-size:1.45rem}
+.salons-rendezvous-surtitre{color:#90d6aa;font-size:.61rem;font-weight:850;letter-spacing:.15em}
+#salonsPlanifiesForm .salons-rendezvous-entete h3{margin:.22rem 0 0;color:#f0fff5;font-size:1.18rem;line-height:1.2;letter-spacing:-.03em}
+.salons-rendezvous-entete h3 span{color:#9cf1b9}
+#salonsPlanifiesForm .salons-champ{min-width:0}
+#salonsPlanifiesForm .salons-champ label{display:flex;align-items:center;gap:.5rem;margin:0 0 .5rem;color:#d9f4e3;font-size:.76rem;font-weight:750;line-height:1.3}
+#salonsPlanifiesForm .salons-champ label span{display:grid;place-items:center;width:1.3rem;height:1.3rem;border-radius:.4rem;background:#8ce3aa20;color:#a0edba;font-size:.59rem;letter-spacing:.02em}
+#salonsPlanifiesForm .salons-champ input{box-sizing:border-box;width:100%;min-width:0;min-height:3.15rem;padding:.8rem .85rem;border:1px solid #9ad7ae55;border-radius:.75rem;background:#061e16;color:#f2fff6;font:inherit;font-size:.9rem;color-scheme:dark;transition:border-color .15s,box-shadow .15s}
+#salonsPlanifiesForm .salons-champ input::placeholder{color:#8ba999;opacity:1}
+#salonsPlanifiesForm .salons-champ input:focus{border-color:#8ff0b2;outline:none;box-shadow:0 0 0 3px #88e3a92d}
+.salons-horaires{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin-top:1.15rem}
+.salons-fuseau{display:flex;align-items:center;gap:.4rem;margin:.75rem 0 0;color:#9ec8af;font-size:.69rem;line-height:1.4}
+.salons-fuseau span{font-size:1rem;color:#a7eabe}
+#salonsPlanifiesForm .salons-programme-liste-en-tete{margin-top:1.7rem}
+.salons-recherche{position:relative;display:flex;align-items:center;gap:.65rem;box-sizing:border-box;min-height:3.1rem;margin:.9rem 0 .75rem;padding:0 .75rem;border:1px solid #91d0aa55;border-radius:.8rem;background:#061e16;color:#a6d6b7;transition:border-color .15s,box-shadow .15s}
+.salons-recherche:focus-within{border-color:#8ff0b2;box-shadow:0 0 0 3px #88e3a92d}
+.salons-recherche svg{flex:none;width:1.1rem;height:1.1rem}
+#salonsPlanifiesForm .salons-recherche input{box-sizing:border-box;flex:1;min-width:0;width:100%;height:3rem;margin:0;padding:0;border:0;outline:0;background:transparent;color:#f2fff6;font:inherit;font-size:.86rem;box-shadow:none}
+#salonsPlanifiesForm .salons-recherche input::placeholder{color:#8ba999;opacity:1}
+#salonsPlanifiesForm .salons-recherche input::-webkit-search-cancel-button{display:none}
+#salonsPlanifiesForm .salons-recherche button{display:grid;place-items:center;flex:none;width:1.75rem;height:1.75rem;padding:0;border:0;border-radius:.55rem;background:#a1e4b626;color:#d7f8e3;font-size:.75rem;cursor:pointer}
+#salonsPlanifiesForm .salons-recherche button:hover{background:#a1e4b645}
+#salonsPlanifiesForm .salons-recherche button[hidden]{display:none}
+#salonsPlanifiesForm label.salons-accessible-only{position:absolute;width:1px;height:1px;margin:0;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.salons-recherche-resultats{margin:-.35rem 0 .65rem;color:#b2d6bd;font-size:.72rem;line-height:1.4}
+.salons-recherche-resultats:empty{display:none}
+.salons-programme-personne[hidden],.salons-programme-vide[hidden]{display:none}
+.salons-programme-personne input.salons-programme-personne-check{-webkit-appearance:none;appearance:none;display:grid;place-items:center;box-sizing:border-box;width:1.45rem;height:1.45rem;border:1.5px solid #9dcab0;border-radius:50%;background:#09271c;transition:background .15s,border-color .15s,box-shadow .15s}
+.salons-programme-personne input.salons-programme-personne-check::before{content:'';box-sizing:border-box;width:.55rem;height:.32rem;margin-top:-.12rem;border-left:2px solid #073b25;border-bottom:2px solid #073b25;transform:rotate(-45deg) scale(0)}
+.salons-programme-personne input.salons-programme-personne-check:checked{background:#a7f3c5;border-color:#a7f3c5;box-shadow:0 0 0 3px #8be3ac20}
+.salons-programme-personne input.salons-programme-personne-check:checked::before{transform:rotate(-45deg) scale(1)}
+.salons-programme-confidentiel{display:flex;align-items:center;gap:.4rem;margin:.4rem 0 1rem;color:#a9ceba;font-size:.7rem;line-height:1.45}
+.salons-programme-confidentiel[hidden]{display:none}
+.salons-programme-confidentiel span{color:#a0ebba;font-size:1rem}
+#salonsPlanifiesForm .salons-programme-valider{display:flex;align-items:center;justify-content:center;gap:.6rem;min-height:3.2rem;border-radius:.85rem;background:linear-gradient(100deg,#c0f6d2,#a9eec0);color:#12452f;box-shadow:0 8px 22px #001a0d38}
+#salonsPlanifiesForm .salons-programme-valider:hover{background:linear-gradient(100deg,#ddffe8,#c9f9d9)}
+@media(max-width:480px){.salons-horaires{grid-template-columns:1fr;gap:.95rem}#salonsPlanifiesForm .salons-champ input,#salonsPlanifiesForm .salons-recherche input{font-size:16px}}
+@media(forced-colors:active){.salons-programme-personne input.salons-programme-personne-check{-webkit-appearance:auto;appearance:auto}.salons-programme-personne input.salons-programme-personne-check::before{content:none}}
+@media(prefers-reduced-motion:reduce){.salons-programme-personne input.salons-programme-personne-check,.salons-recherche,#salonsPlanifiesForm .salons-champ input{transition:none}}
+.salons-choix{display:flex;flex-wrap:wrap;gap:.4rem;max-height:8rem;overflow:auto;margin:.7rem 0 .25rem;padding:.1rem}
+.salons-choix[hidden]{display:none}
+#salonsPlanifiesForm .salons-choix-personne{display:inline-flex;align-items:center;gap:.4rem;max-width:100%;padding:.4rem .45rem .4rem .7rem;border:1px solid #92dfac70;border-radius:999px;background:#28734770;color:#e5ffec;font:inherit;font-size:.72rem;font-weight:700;cursor:pointer}
+#salonsPlanifiesForm .salons-choix-personne>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#salonsPlanifiesForm .salons-choix-personne:hover{background:#348d58a0}
+.salons-choix-croix{display:grid;place-items:center;flex:none;width:1.2rem;height:1.2rem;border-radius:50%;background:#b5f2c62a;color:#e0f9e7;font-size:.9rem;line-height:1}
+#salonsPlanifiesForm .salons-choix-personne:focus-visible,#salonsPlanifiesForm .salons-recherche button:focus-visible{outline:3px solid #a1f5bc;outline-offset:2px}
+/* S'adapte à la largeur réelle du tiroir, pas uniquement à l'écran. */
+.salons-horaires{grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr))}
+.salons-programme-eleves{grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))}
