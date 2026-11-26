@@ -8,7 +8,9 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
   for(const largeur of [375,1100]){
    const page=await browser.newPage({viewport:{width:largeur,height:850}});
    await page.setContent('<div id="planningModal"><header><div style="display:flex;justify-content:space-between;align-items:center"><div>Studyplan</div><div style="display:flex;gap:7px"><span id="joursFlamme">🔥 47</span><button>☰</button></div></div></header><div id="iaRappel"></div></div><div class="salon-formulaire"><button id="salonCreer">Créer</button></div>');
+   await page.addStyleTag({content:fs.readFileSync('css/pages/salon-focus.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});
+   await page.addStyleTag({content:fs.readFileSync('css/accessibilite.css','utf8')});
    await page.evaluate(()=>{
     window.__calls=[];window.__visible=false;window.__created=false;window.__reponse='attente';window.__historique=[{id:'ancien',nom:'Histoire partagée',organisateurNom:'Awa',debut:Date.now()-7200000,fin:Date.now()-3600000,fuseau:'UTC',role:'invite'}];
     const user={uid:'hote',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'jeton-fictif'};
@@ -51,7 +53,16 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    const date=await page.evaluate(()=>{const d=new Date(Date.now()+3600000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});
    await page.fill('#salonsPlanifiesDate',date);const fin=await page.evaluate(()=>{const d=new Date(Date.now()+7200000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});await page.fill('#salonsPlanifiesFin',fin);await page.check('input[name=salonsInvite][value=u2]');assert.equal(await page.locator('#salonsPlanifiesSelection').innerText(),'1 / 20 sélectionné');assert.equal(await page.locator('input[name=salonsInvite][value=u2]').locator('..').evaluate(e=>e.classList.contains('selectionnee')),true);
    const membresAvantRecherche=await page.evaluate(()=>window.__calls.filter(c=>c.actionSalons==='membres').length);
-   await page.fill('#salonsPlanifiesRecherche','ELEVE DP1');await page.press('#salonsPlanifiesRecherche','Enter');
+   await page.fill('#salonsPlanifiesRecherche','ELEVE DP1');
+   // La règle globale d'accessibilité ne doit pas dessiner de rectangle blanc dans le champ.
+   async function verifierFocusRecherche(){
+    const styles=await page.locator('#salonsPlanifiesRecherche').evaluate(e=>({focus:document.activeElement===e,outline:getComputedStyle(e).outlineStyle,ombre:getComputedStyle(e).boxShadow,contour:getComputedStyle(e.parentElement).outlineStyle,largeur:getComputedStyle(e.parentElement).outlineWidth}));
+    assert.equal(styles.focus,true);assert.equal(styles.outline,'none');assert.equal(styles.ombre,'none');
+    assert.equal(styles.contour,'solid');assert.notEqual(styles.largeur,'0px','focus visible autour du champ entier');
+   }
+   await verifierFocusRecherche();await page.keyboard.press('Tab');assert.equal(await page.evaluate(()=>document.activeElement.id),'salonsPlanifiesEffacerRecherche');await page.keyboard.press('Shift+Tab');await verifierFocusRecherche();
+   await page.emulateMedia({forcedColors:'active'});await verifierFocusRecherche();await page.emulateMedia({forcedColors:'none'});
+   await page.press('#salonsPlanifiesRecherche','Enter');
    assert.equal(await page.evaluate(()=>window.__calls.some(c=>c.actionSalons==='creer')),false,'Entrée dans la recherche ne crée pas de séance');
    assert.equal(await page.locator('input[name=salonsInvite][value=u1]').isVisible(),true,'recherche insensible à la casse et aux accents');
    assert.equal(await page.locator('input[name=salonsInvite][value=u2]').isHidden(),true);assert.equal(await page.locator('input[name=salonsInvite][value=u2]').isChecked(),true,'la sélection filtrée reste cochée');
