@@ -70,6 +70,56 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    } else assert.equal(await page.locator('#salonsEssaiActiver').count(),0);
    await page.close();
   }
+  {
+   // Une configuration momentanément indisponible se recharge au clic ;
+   // elle ne doit pas produire un faux message de désactivation définitive.
+   const page=await browser.newPage();
+   await page.setContent('<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>');
+   await page.evaluate(()=>{
+    window.__configs=0;window.__membres=0;
+    const user={uid:'u',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'faux'};
+    window.firebase={auth:()=>({currentUser:user,onAuthStateChanged:cb=>cb(user)})};
+    window.fetch=async(url,opt)=>{
+     if(url==='data/salons-planifies.json'){window.__configs++;if(window.__configs===1)throw Error('réseau');return {ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})};}
+     const d=JSON.parse(opt.body);if(d.actionSalons==='membres')window.__membres++;
+     return {ok:true,json:async()=>({success:true,resultat:d.actionSalons==='membres'?{visible:false,eleves:[]}:{salons:[],historique:[]}})};
+    };
+   });
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   assert.equal(await page.locator('#salonsPlanifiesOuvrir').count(),1,'une seule interface même après double chargement');
+   await page.click('#salonsPlanifiesOuvrir');await page.waitForFunction(()=>window.__membres===1);
+   assert.equal(await page.locator('#salonsPlanifiesForm').isVisible(),true);assert.equal(await page.locator('#salonsPlanifiesStatut').innerText(),'');
+   assert.ok(await page.evaluate(()=>window.__configs>=2));await page.close();
+  }
+  {
+   // Firebase peut arriver après le module ; une réponse de l'ancien compte
+   // ne doit jamais être affichée dans la session suivante.
+   const page=await browser.newPage();
+   await page.setContent('<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>');
+   await page.evaluate(()=>{
+    window.__user={uid:'premier',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'ancien'};
+    window.__requetes=[];
+    window.fetch=async(url,opt)=>{
+     if(url==='data/salons-planifies.json')return {ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})};
+     const d=JSON.parse(opt.body);window.__requetes.push(d);
+     if(d.actionSalons==='liste' && d.jeton==='ancien')await new Promise(resolve=>window.__debloquer=resolve);
+     return {ok:true,json:async()=>({success:true,resultat:{salons:d.jeton==='ancien'?[{id:'secret',nom:'Privé ancien compte',debut:Date.now()+3600000,role:'organisateur'}]:[],historique:[]}})};
+    };
+   });
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.evaluate(()=>{
+    const auth={get currentUser(){return window.__user},onAuthStateChanged(cb){window.__authcb=cb;cb(window.__user)}};
+    window.firebase={apps:[{}],auth:()=>auth};window.dispatchEvent(new Event('focus'));
+   });
+   await page.waitForFunction(()=>!!window.__debloquer);
+   await page.evaluate(()=>{window.__user={uid:'second',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'nouveau'};window.__authcb(window.__user);window.__debloquer();});
+   await page.waitForFunction(()=>window.__requetes.some(r=>r.jeton==='nouveau'));
+   await page.waitForFunction(()=>!document.querySelector('#salonsPlanifiesAnnonce').hidden);
+   assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Privé ancien compte')),false);
+   assert.equal(await page.locator('#salonsPlanifiesAnnonce').innerText(),'✉ Séances');
+   await page.close();
+  }
   console.log('ok interface salons planifiés : desktop et mobile, DP1/DP2, consentement, création et annonce sur le planning (simulation)');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

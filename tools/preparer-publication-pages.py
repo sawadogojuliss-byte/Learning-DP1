@@ -454,6 +454,13 @@ for rel in ('index.html', 'js/boot.js', 'js/registre.js', 'service-worker.js'):
             raise SystemExit('Registre public inattendu')
         text = text.replace(anchor, "    'js/pages/pomodoro-parametres.js',\n    'js/pages/salon-focus-coeur.js',\n    'js/pages/salon-focus-firebase.js',\n    'js/pages/salon-voix.js',\n    'js/pages/salon-focus.js',\n    'js/pages/salons-planifies.js',\n    'livrables/publication-rappels/rappels.js'\n", 1)
     if rel == 'service-worker.js':
+        # La navigation doit contourner aussi le cache HTTP du navigateur :
+        # sinon un ancien index peut réapparaître malgré un nouveau service worker.
+        ancienne_navigation = "event.respondWith(fetch(req).catch(function () {\n            return caches.match(navigation ?"
+        nouvelle_navigation = "event.respondWith(fetch(req, { cache: 'no-store' }).catch(function () {\n            return caches.match(navigation ?"
+        if text.count(ancienne_navigation) != 1:
+            raise SystemExit('Navigation hors-ligne publique inattendue')
+        text = text.replace(ancienne_navigation, nouvelle_navigation, 1)
         ancre_voix_une = '    "js/pages/chrono-voix.js",'
         if text.count(ancre_voix_une) != 1:
             raise SystemExit('Cache vocal public inattendu')

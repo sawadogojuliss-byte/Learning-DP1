@@ -213,7 +213,7 @@ self.addEventListener('fetch', function (event) {
     var navigation = req.mode === 'navigate';
     var versionCheck = url.pathname.endsWith('/js/boot.js') && !url.search;
     if (navigation || versionCheck) {
-        event.respondWith(fetch(req).catch(function () {
+        event.respondWith(fetch(req, { cache: 'no-store' }).catch(function () {
             return caches.match(navigation ? urlDuSite('index.html') : urlDuSite('js/boot.js'));
         }));
         return;

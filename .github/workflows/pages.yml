@@ -178,7 +178,7 @@ jobs:
           executer_test travail/tools/tester-parcours-messages.mjs
           executer_test travail/tools/tester-reponses-brouillons.mjs
           executer_test travail/tools/tester-generateur-cle.mjs
-          (cd travail && executer_test tools/tester-salons-gratuits.cjs && executer_test tools/tester-interface-salons-planifies.cjs)
+          (cd travail && executer_test tools/tester-salons-gratuits.cjs && executer_test tools/tester-interface-salons-planifies.cjs && executer_test tools/tester-cache-navigation.cjs)
           executer_test travail/tools/tester-import-planning-voix.mjs
           executer_test travail/tools/tester-ocr-formats.mjs
           executer_test travail/tools/tester-corpus-ocr.mjs
