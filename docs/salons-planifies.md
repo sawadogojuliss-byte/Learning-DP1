@@ -23,6 +23,10 @@ La création d'un salon exige que le compte exécutant Apps Script possède les 
 - L'utilisateur choisit d'apparaître dans l'annuaire et peut se retirer ; son adresse est conservée côté script pour l'envoi mais n'est pas affichée aux autres. L'annuaire ne couvre donc pas les personnes qui n'ont pas accepté. Le lien est un secret partageable : toute personne qui le possède peut entrer. Annuler, refuser ou se retirer empêche les prochains rappels concernés, mais un envoi déjà en cours ne peut pas toujours être arrêté. Accepter après l’échéance de cinq minutes mais avant le début déclenche l’envoi au prochain passage, si possible ; après le début, l’acceptation est refusée.
 - Firebase Spark a lui aussi des quotas et peut refuser des opérations ; cette approche évite l'activation d'une facturation mais ne garantit pas de fonctionner au-delà des quotas gratuits.
 
+## Essai volontaire limité au navigateur
+
+Tant que la configuration reste vide, `?essai-salons=1` affiche un bouton d'essai. Il demande une confirmation avant le premier appel, fonctionne avec un compte Google sur l'onglet concerné pendant six heures, et ne transmet le jeton qu'à l'URL Apps Script approuvée. Une déconnexion ou un changement de compte suspend l'essai ; l'activation peut être reprise après consentement. Les créations, les invitations et les mails de cet essai sont **réels**. Le paramètre n'est pas une protection côté serveur : toute personne connaissant le lien peut demander l'essai sur son propre compte ; il ne faut pas le présenter comme une liste d'accès privée. Fermer l'onglet supprime normalement l'activation de session ; l'inscription volontaire à l'annuaire doit être retirée séparément.
+
 ## Avant activation réelle
 
 1. Faire relire le code et le tester avec des comptes et un projet de test. Tester notamment les règles actuellement en production, OAuth/IAM, les écritures Firestore, les limites, l'annulation, la conservation et les doubles déclenchements. Ne jamais utiliser le secret compromis.

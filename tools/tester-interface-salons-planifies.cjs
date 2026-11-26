@@ -47,6 +47,29 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    if(process.env.SALONS_CAPTURE)await page.screenshot({path:process.env.SALONS_CAPTURE+'-'+largeur+'.png'});
    await page.close();
   }
+  // L'essai est explicite, limité à l'onglet et au compte, sans activation générale.
+  for(const essai of [false,true]){
+   const page=await browser.newPage({viewport:{width:390,height:850}});
+   await page.route('https://studyplan.test/**',r=>r.fulfill({status:200,contentType:'text/html',body:'<div id="planningModal"><header><span id="joursFlamme">🔥</span></header></div><button id="salonCreer">Créer</button>'}));
+   await page.goto('https://studyplan.test/'+(essai?'?essai-salons=1':''));
+   await page.evaluate(()=>{
+    window.__calls=[];window.__user={uid:'hote',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'jeton-fictif'};
+    const auth={get currentUser(){return window.__user},onAuthStateChanged:cb=>{window.__authcb=cb;cb(window.__user)}};window.firebase={auth:()=>auth};
+    window.fetch=async(url,opt)=>{if(url==='data/salons-planifies.json')return {ok:true,json:async()=>({url:''})};window.__calls.push(JSON.parse(opt.body));return {ok:true,json:async()=>({success:true,resultat:{salons:[],historique:[]}})}};
+   });
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.waitForTimeout(75);assert.equal(await page.evaluate(()=>window.__calls.length),0,'aucun appel avant accord');
+   if(essai){
+    await page.waitForSelector('#salonsEssaiActiver');page.once('dialog',d=>d.accept());await page.click('#salonsEssaiActiver');
+    await page.waitForFunction(()=>window.__calls.some(x=>x.actionSalons==='liste'));
+    assert.equal(await page.locator('#salonsEssaiStatut').innerText(),' Essai actif sur cet onglet.');
+    const avant=await page.evaluate(()=>window.__calls.length);
+    await page.evaluate(()=>{window.__user={uid:'autre',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'autre'};window.__authcb(window.__user);});
+    await page.waitForTimeout(75);assert.equal(await page.evaluate(()=>window.__calls.length),avant,'pas de transfert à un autre compte');
+    assert.equal(await page.locator('#salonsPlanifiesAnnonce').isHidden(),true);
+   } else assert.equal(await page.locator('#salonsEssaiActiver').count(),0);
+   await page.close();
+  }
   console.log('ok interface salons planifiés : desktop et mobile, DP1/DP2, consentement, création et annonce sur le planning (simulation)');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -2,6 +2,7 @@
    L'adresse du service est configurée uniquement après son déploiement. */
 (function () {
     'use strict';
+    var URL_SERVICE = 'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec', cleEssai = 'studyPlanIB_essaiSalons', essaiActif = null;
     var endpoint = '', rafraichit = false, rafraichirEncore = false, annuaire = [], demandeId = '', signature = '', invitationsVues = {}, configCharge = null;
     function $(id) { return document.getElementById(id); }
     function el(tag, classe, texte) { var e=document.createElement(tag);if(classe)e.className=classe;if(texte!==undefined)e.textContent=texte;return e; }
@@ -101,6 +102,7 @@
         $('salonsPlanifiesLimite').hidden=!data.limiteAtteinte;
     }
     async function actualiser() {
+        if(essaiActif && Date.now()>=essaiActif.fin){endpoint='';essaiActif=null;try{sessionStorage.removeItem(cleEssai);}catch(_){}$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesBandeau').hidden=true;statut('L’essai est terminé sur cet onglet.',false);return;}
         if(!endpoint)return;if(rafraichit){rafraichirEncore=true;return;}rafraichit=true;
         try {
             var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), historique=$('salonsPlanifiesHistoriqueListe'), bouton=$('salonsPlanifiesAnnonce');zone.textContent='';historique.textContent='';
@@ -122,7 +124,7 @@
             if(data.limiteAtteinte)zone.appendChild(el('p','salons-programme-attente','La liste atteint sa limite : certaines séances ne sont pas affichées.'));
             $('salonsPlanifiesErreur').textContent='';
         } catch(e) {
-            if(window.firebase && firebase.auth && firebase.auth().currentUser){$('salonsPlanifiesAnnonce').hidden=false;$('salonsPlanifiesErreur').textContent='Impossible de charger les invitations pour le moment.';}
+            if(endpoint && window.firebase && firebase.auth && firebase.auth().currentUser){$('salonsPlanifiesAnnonce').hidden=false;$('salonsPlanifiesErreur').textContent='Impossible de charger les invitations pour le moment.';}
         } finally {rafraichit=false;if(rafraichirEncore){rafraichirEncore=false;actualiser();}}
     }
     async function ouvrir() {
@@ -175,13 +177,36 @@
         window.addEventListener('studyplan:salon-rejoint',function(e){noterParticipation(e.detail);});
         $('salonsPlanifiesOuvrir').addEventListener('click',ouvrir);$('salonsPlanifiesVisible').addEventListener('change',sauvegarderVisibilite);$('salonsPlanifiesForm').addEventListener('submit',programmer);
         configCharge=fetch('data/salons-planifies.json',{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error();return r.json();}).then(function(config){
-            // Ne jamais envoyer un jeton Google à une adresse arbitraire.
-            if(config.url==='https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec')endpoint=config.url;
-            if(endpoint){actualiser();setInterval(actualiser,60000);if(window.firebase && firebase.auth)firebase.auth().onAuthStateChanged(function(){
-                $('salonsPlanifiesListe').textContent='';$('salonsPlanifiesBandeau').hidden=true;$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');invitationsVues={};
-                $('salonsPlanifiesEleves').textContent='';$('salonsPlanifiesForm').hidden=true;
-                actualiser();
-            });}
+            // Aucun jeton ne peut partir vers une URL autre que celle contrôlée.
+            var publicActive=config.url===URL_SERVICE, minuterie=null, uidCourant='';
+            var panneauEssai=null;
+            try {
+                if(!publicActive && new URL(location.href).searchParams.get('essai-salons')==='1') {
+                    panneauEssai=el('div','salons-essai');panneauEssai.innerHTML='<strong>Essai privé des salons planifiés</strong><p>Sur cet onglet et ce compte uniquement. Les séances et mails de test sont réels. Les élèves ne sont pas invités automatiquement.</p><button type="button" id="salonsEssaiActiver">Activer l’essai pour mon compte</button><span id="salonsEssaiStatut" role="status"></span>';
+                    header.insertAdjacentElement('afterend',panneauEssai);
+                }
+            } catch(_) {}
+            function lireEssai(user){
+                try{var e=JSON.parse(sessionStorage.getItem(cleEssai)||'null');return e && user && !user.isAnonymous && e.uid===user.uid && Number.isFinite(e.fin) && e.fin>Date.now() && e.fin<=Date.now()+6*3600000 ? e : null;}catch(_){return null;}
+            }
+            function demarrer(user) {
+                var e=publicActive?null:lireEssai(user);essaiActif=e;
+                endpoint=publicActive||e?URL_SERVICE:'';
+                if(endpoint){if(!minuterie)minuterie=setInterval(actualiser,60000);actualiser();}
+                if(panneauEssai)$('salonsEssaiStatut').textContent=e?' Essai actif sur cet onglet.':'';
+            }
+            if(panneauEssai)$('salonsEssaiActiver').addEventListener('click',function(){
+                var user;
+                try {user=utilisateur();}catch(_){$('salonsEssaiStatut').textContent=' Connecte-toi d’abord avec Google.';return;}
+                if(!window.confirm('Activer l’essai pour ton compte dans cet onglet ? Les séances créées et les éventuels rappels seront réels.'))return;
+                try {sessionStorage.setItem(cleEssai,JSON.stringify({uid:user.uid,fin:Date.now()+6*3600000}));}catch(_){$('salonsEssaiStatut').textContent=' Impossible d’activer l’essai dans ce navigateur.';return;}
+                demarrer(user);
+            });
+            if(window.firebase && firebase.auth)firebase.auth().onAuthStateChanged(function(user){
+                var uid=user && user.uid || '';
+                if(uidCourant!==uid){$('salonsPlanifiesListe').textContent='';$('salonsPlanifiesBandeau').hidden=true;$('salonsPlanifiesAnnonce').hidden=true;$('salonsPlanifiesAnnonce').setAttribute('aria-expanded','false');invitationsVues={};$('salonsPlanifiesEleves').textContent='';$('salonsPlanifiesForm').hidden=true;}
+                uidCourant=uid;demarrer(user);
+            }); else if(publicActive)demarrer(null);
         }).catch(function(){});
     }
     if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
