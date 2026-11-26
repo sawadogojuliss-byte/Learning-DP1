@@ -227,6 +227,40 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1');
    await page.close();
   }
+  {
+   // Une longue liste ne doit pas sauter lors du rafraîchissement en remontant.
+   const page=await browser.newPage({viewport:{width:1280,height:720},reducedMotion:'reduce'});
+   await page.setContent('<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>');
+   for(const css of ['css/pages/planning-panels.css','css/pages/salon-focus.css','css/pages/salons-planifies.css','css/accessibilite.css'])await page.addStyleTag({content:fs.readFileSync(css,'utf8')});
+   await page.evaluate(()=>{
+    const u={uid:'fictif',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'faux'};
+    window.firebase={auth:()=>({currentUser:u,onAuthStateChanged:cb=>cb(u)})};
+    const now=Date.now();window.__salons=Array.from({length:30},(_,i)=>({id:'futur'+i,nom:'Révision '+i,organisateurNom:'Awa',role:'invite',reponse:'attente',debut:now+3600000,fin:now+7200000}));
+    window.__passes=Array.from({length:20},(_,i)=>({id:'passe'+i,nom:'Ancien '+i,role:'organisateur',debut:now-3600000-i*60000,fin:now-1800000-i*60000}));window.__lectures=0;
+    const interval=window.setInterval;window.setInterval=(fn,ms)=>{if(ms===60000){window.__rafraichir=fn;return 1;}return interval(fn,ms);};
+    window.fetch=async url=>url==='data/salons-planifies.json'?{ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})}:{ok:true,json:async()=>{window.__lectures++;return {success:true,resultat:{salons:window.__salons,historique:window.__passes}}}};
+   });
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');
+   await page.click('#salonsPlanifiesAnnonce');await page.waitForFunction(()=>document.querySelectorAll('#salonsPlanifiesListe article').length===30);
+   await page.locator('#salonsPlanifiesBandeau').evaluate(e=>e.scrollTop=1700);await page.waitForTimeout(60);
+   await page.evaluate(()=>{let p=document.querySelector('#salonsPlanifiesBandeau');window.__repere=[...p.querySelectorAll('#salonsPlanifiesListe article')].find(e=>e.getBoundingClientRect().bottom>0);window.__haut=window.__repere.getBoundingClientRect().top;window.__repere.querySelector('button').focus({preventScroll:true});window.__focus=document.activeElement;window.__avant=window.__lectures;window.__rafraichir();});
+   await page.waitForFunction(()=>window.__lectures>window.__avant);await page.waitForTimeout(60);
+   assert.equal(await page.evaluate(()=>window.__repere.isConnected&&document.activeElement===window.__focus),true,'une liste inchangée conserve carte et focus');
+   assert.ok(await page.evaluate(()=>Math.abs(window.__repere.getBoundingClientRect().top-window.__haut)<2),'pas de saut sur une liste inchangée');
+   await page.evaluate(()=>{window.__salons.shift();window.__rafraichir();});await page.waitForFunction(()=>document.querySelectorAll('#salonsPlanifiesListe article').length===29);
+   assert.equal(await page.evaluate(()=>window.__repere.isConnected),true);
+   assert.ok(await page.evaluate(()=>Math.abs(window.__repere.getBoundingClientRect().top-window.__haut)<2),'une séance supprimée plus haut ne fait pas sauter le contenu visible');
+   await page.evaluate(()=>{window.__repereId=window.__repere.dataset.salonId;window.__salons.find(s=>s.id===window.__repereId).nom='Révision modifiée';window.__salons.shift();window.__rafraichir();});
+   await page.waitForFunction(()=>document.querySelectorAll('#salonsPlanifiesListe article').length===28);
+   assert.ok(await page.evaluate(()=>{const c=[...document.querySelectorAll('#salonsPlanifiesListe article')].find(e=>e.dataset.salonId===window.__repereId);return c.textContent.includes('Révision modifiée')&&Math.abs(c.getBoundingClientRect().top-window.__haut)<2;}),'la carte visible peut changer sans sauter');
+   await page.mouse.move(800,360);const bas=await page.locator('#salonsPlanifiesBandeau').evaluate(e=>e.scrollTop);await page.mouse.wheel(0,-400);await page.waitForTimeout(120);
+   assert.ok(await page.locator('#salonsPlanifiesBandeau').evaluate((e,n)=>e.scrollTop<n,bas),'la roulette remonte normalement');
+   await page.click('#salonsOnglethistoire');await page.locator('#salonsPlanifiesBandeau').evaluate(e=>e.scrollTop=1100);await page.waitForTimeout(60);
+   await page.evaluate(()=>{let p=document.querySelector('#salonsPlanifiesBandeau');window.__repere=[...p.querySelectorAll('#salonsPlanifiesHistoriqueListe article')].find(e=>e.getBoundingClientRect().bottom>0);window.__haut=window.__repere.getBoundingClientRect().top;window.__passes.shift();window.__rafraichir();});
+   await page.waitForFunction(()=>document.querySelectorAll('#salonsPlanifiesHistoriqueListe article').length===19);
+   assert.ok(await page.evaluate(()=>window.__repere.isConnected&&Math.abs(window.__repere.getBoundingClientRect().top-window.__haut)<2),'le défilement de l’historique reste stable aussi');
+   await page.close();
+  }
   console.log('ok interface salons planifiés : desktop et mobile, DP1/DP2, consentement, création et annonce sur le planning (simulation)');
  }finally{await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -177,11 +177,39 @@
         $('salonsPlanifiesAnnuaireInfo').hidden=!data.annuaireAutomatique;
         $('salonsPlanifiesLimite').hidden=!data.limiteAtteinte;
     }
+    // Conserver les cartes inchangées (et le focus) pendant les rafraîchissements.
+    function synchroniserCartes(zone, nouvelles) {
+        var anciennes=new Map();
+        Array.prototype.forEach.call(zone.children,function(carte){if(carte.dataset.salonId)anciennes.set(carte.dataset.salonId,carte);});
+        var resultat=nouvelles.map(function(carte,i){
+            var ancienne=carte.dataset.salonId ? anciennes.get(carte.dataset.salonId) : zone.children[i];
+            return ancienne && ancienne.isEqualNode(carte) ? ancienne : carte;
+        });
+        resultat.forEach(function(carte,i){if(zone.children[i]!==carte)zone.insertBefore(carte,zone.children[i] || null);});
+        while(zone.children.length>resultat.length)zone.lastElementChild.remove();
+    }
+    function repereDefilement() {
+        if(!pageOuverte())return null;
+        var page=$('salonsPlanifiesBandeau'), haut=page.getBoundingClientRect().top;
+        var cartes=page.querySelectorAll('.salons-programme-carte, .salons-programme-histoire');
+        for(var i=0;i<cartes.length;i++){
+            var r=cartes[i].getBoundingClientRect();
+            if(r.height && r.bottom>haut && r.top<page.getBoundingClientRect().bottom)return {page:page,carte:cartes[i],zone:cartes[i].parentElement,id:cartes[i].dataset.salonId,haut:r.top};
+        }
+        return null;
+    }
+    function conserverDefilement(repere) {
+        if(!repere || !pageOuverte())return;
+        var carte=repere.carte.isConnected ? repere.carte : Array.prototype.find.call(repere.zone.children,function(e){return e.dataset.salonId===repere.id;});
+        if(!carte)return;
+        var ecart=carte.getBoundingClientRect().top-repere.haut;
+        if(Math.abs(ecart)>1)repere.page.scrollTop+=ecart;
+    }
     async function actualiser() {
         if(essaiActif && Date.now()>=essaiActif.fin){endpoint='';essaiActif=null;try{sessionStorage.removeItem(cleEssai);}catch(_){}$('salonsPlanifiesAnnonce').hidden=true;if(pageOuverte())fermerPage();statut('L’essai est terminé sur cet onglet.',false);return;}
         if(!endpoint)return;if(rafraichit){rafraichirEncore=true;return;}rafraichit=true;
         try {
-            var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), historique=$('salonsPlanifiesHistoriqueListe'), bouton=$('salonsPlanifiesAnnonce');zone.textContent='';historique.textContent='';
+            var data=await appeler('liste'), zone=$('salonsPlanifiesListe'), historique=$('salonsPlanifiesHistoriqueListe'), bouton=$('salonsPlanifiesAnnonce'), repere=repereDefilement();
             var salons=data.salons.filter(function(s){return (s.fin || s.debut)>Date.now();});
             var passes=(data.historique || []).filter(function(s){return (s.fin || s.debut)<=Date.now();}).sort(function(a,b){return b.debut-a.debut;});
             var enAttente=salons.filter(function(s){return s.role==='invite' && !s.annule && s.debut>Date.now() && (!s.reponse || s.reponse==='attente');});
@@ -190,13 +218,15 @@
             if(pageOuverte() && !$('salonsPlanifiesListe').hidden)marquerVues();else majNotification();
             $('salonsCompteAvenir').textContent=salons.length; $('salonsCompteHistoire').textContent=passes.length;
             $('salonsOngletavenir').textContent='Séances de pomodoro · '+salons.length;$('salonsOnglethistoire').textContent='Mon historique · '+passes.length;
-            if(salons.length)salons.forEach(function(s){zone.appendChild(carteSalon(s));});
-            else zone.appendChild(el('p','salons-programme-vide-clair','Rien de prévu pour le moment. Une belle séance t’attend peut-être bientôt.'));
-            if(passes.length)passes.forEach(function(s){historique.appendChild(carteHistorique(s));});
-            else historique.appendChild(el('p','salons-programme-vide-clair','Les salons planifiés que tu rejoins apparaîtront ici après leur fin.'));
+            var cartes=salons.map(function(s){var c=carteSalon(s);c.dataset.salonId=String(s.id);return c;});
+            if(!cartes.length)cartes.push(el('p','salons-programme-vide-clair','Rien de prévu pour le moment. Une belle séance t’attend peut-être bientôt.'));
+            if(data.limiteAtteinte)cartes.push(el('p','salons-programme-attente','La liste atteint sa limite : certaines séances ne sont pas affichées.'));
+            var souvenirs=passes.map(function(s){var c=carteHistorique(s);c.dataset.salonId=String(s.id);return c;});
+            if(!souvenirs.length)souvenirs.push(el('p','salons-programme-vide-clair','Les salons planifiés que tu rejoins apparaîtront ici après leur fin.'));
+            synchroniserCartes(zone,cartes);synchroniserCartes(historique,souvenirs);
             $('salonsEffacerHistoire').hidden=!passes.length;
-            if(data.limiteAtteinte)zone.appendChild(el('p','salons-programme-attente','La liste atteint sa limite : certaines séances ne sont pas affichées.'));
             $('salonsPlanifiesErreur').textContent='';
+            conserverDefilement(repere);
         } catch(e) {
             if(e.message!=='compte-change' && endpoint && window.firebase && firebase.auth && firebase.auth().currentUser){$('salonsPlanifiesAnnonce').hidden=false;$('salonsPlanifiesErreur').textContent='Impossible de charger les séances pour le moment.';}
         } finally {rafraichit=false;if(rafraichirEncore){rafraichirEncore=false;actualiser();}}
