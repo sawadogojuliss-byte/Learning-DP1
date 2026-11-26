@@ -15,3 +15,37 @@
 .salons-essai{max-width:54rem;margin:.8rem auto;padding:.9rem 1rem;border:1px solid #b9dec4;border-radius:1rem;background:#f1fbf4;color:#174a33;font-size:.82rem;line-height:1.5}.salons-essai p{margin:.35rem 0}.salons-essai button{padding:.55rem .8rem;border:0;border-radius:.65rem;background:#087e57;color:white;font:inherit;font-weight:800;cursor:pointer}.salons-essai span{display:inline-block;margin-left:.4rem;color:#456b54}
 
 .salons-programme-visibilite[hidden]{display:none}
+
+/* Annuaire : une petite équipe à composer, sans exposer les adresses. */
+.salons-programme-liste-en-tete{display:flex;align-items:flex-end;justify-content:space-between;gap:.75rem;margin:1.6rem 0 .25rem}
+.salons-programme-surtitre{display:block;color:#8edeb0;font-size:.65rem;font-weight:800;letter-spacing:.16em}
+.salons-programme-liste-titre{margin:.32rem 0 0;color:#f0fff5;font-size:1.13rem;line-height:1.2;letter-spacing:-.025em}
+.salons-programme-selection{flex:none;padding:.4rem .65rem;border:1px solid #8ad6a955;border-radius:999px;background:#ffffff0c;color:#c7f6d6;font-size:.7rem;font-weight:700;white-space:nowrap}
+.salons-programme-liste-aide{margin:.45rem 0 1.05rem;color:#a8cdb7;font-size:.78rem;line-height:1.5}
+.salons-programme-eleves{gap:.85rem}
+.salons-programme-groupe{padding:.85rem;border:1px solid #8ccba83d;border-radius:1.1rem;background:linear-gradient(150deg,#163c2e,#102c22);box-shadow:inset 0 1px #ffffff08}
+.salons-programme-groupe legend.salons-programme-classe{padding:.28rem .65rem;border:1px solid #8ee1ad55;border-radius:999px;background:#1e573d;color:#d4ffe3;font-size:.68rem;letter-spacing:.08em}
+.salons-programme-groupe-entete{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin:.15rem .1rem .7rem}
+.salons-programme-groupe-titre{color:#ddf8e7;font-size:.78rem;font-weight:800}
+.salons-programme-groupe-compte{color:#a7d2b7;font-size:.7rem}
+.salons-programme-personne{box-sizing:border-box;display:flex;align-items:center;gap:.7rem;min-height:3.9rem;margin:.42rem 0 0;padding:.55rem .65rem;border:1px solid #a5dfba25;border-radius:.8rem;background:#ffffff08;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.salons-programme-personne:hover{background:#ffffff12;border-color:#96e2b76b;transform:translateY(-1px)}
+.salons-programme-personne.selectionnee{border-color:#7ee3a5;background:#2e9d5d35;box-shadow:0 0 0 1px #7ee3a52c}
+.salons-programme-personne input.salons-programme-personne-check{order:3;flex:none;width:1.22rem;height:1.22rem;margin:0 0 0 auto;accent-color:#78e7a0;cursor:pointer}
+.salons-programme-personne input:focus-visible{outline:3px solid #a1f5bc;outline-offset:3px}
+.salons-programme-avatar{display:grid;place-items:center;flex:none;width:2.45rem;height:2.45rem;border-radius:.78rem;background:linear-gradient(145deg,#b5ebc7,#6cc89a);color:#144733;font-size:.76rem;font-weight:900;letter-spacing:.02em}
+.salons-programme-groupe:nth-child(2) .salons-programme-avatar{background:linear-gradient(145deg,#d6eebe,#a4d88c);color:#355333}
+.salons-programme-personne-detail{display:flex;min-width:0;flex:1;flex-direction:column;gap:.2rem}
+.salons-programme-personne-nom{color:#f0fff5;font-size:.82rem;line-height:1.25;overflow-wrap:anywhere}
+.salons-programme-personne-promo{color:#a8ccb5;font-size:.66rem;line-height:1.25}
+.salons-programme-vide{display:flex;align-items:center;gap:.7rem;min-height:3.9rem;box-sizing:border-box;margin:0;padding:.7rem;border:1px dashed #97d9b43a;border-radius:.8rem;color:#aacbb6;font-size:.75rem;line-height:1.4}
+.salons-programme-vide-icone{display:grid;place-items:center;flex:none;width:2.25rem;height:2.25rem;border-radius:.72rem;background:#ffffff0d;color:#91d5a9;font-size:1rem}
+/* Une seule icône pour l'accès aux séances, même sur grand écran. */
+.salons-programme-notification{display:grid;place-items:center;width:2.5rem;height:2.5rem;min-height:2.5rem;padding:0;border:1.5px solid #a7f3d0;border-radius:.75rem;background:#ecfdf5;color:#047857}
+.salons-programme-notification svg{display:block;width:1.2rem;height:1.2rem}
+.salons-programme-notification::before,.salons-programme-notification::after{content:none!important}
+.salons-programme-notification .salons-programme-badge{position:absolute;top:-.42rem;right:-.4rem;display:grid;place-items:center;box-sizing:border-box;min-width:1.2rem;height:1.2rem;padding:0 .2rem;border:2px solid #fff;border-radius:999px;background:#dc2626;color:#fff;font-size:.62rem;font-weight:900;line-height:1;box-shadow:0 2px 6px #7f1d1d45}
+.salons-programme-notification .salons-programme-badge[hidden]{display:none}
+.salons-annonces-tabs button{padding:.55rem .7rem;line-height:1.25}
+@media(max-width:400px){.salons-programme-notification{font-size:inherit;padding:0}.salons-programme-liste-en-tete{align-items:flex-start;flex-wrap:wrap}.salons-programme-liste-titre{font-size:1.05rem}.salons-programme-selection{font-size:.67rem}.salons-annonces-tabs button{font-size:.75rem;padding:.55rem .35rem}}
+@media(prefers-reduced-motion:reduce){.salons-programme-personne{transition:none}.salons-programme-personne:hover{transform:none}}

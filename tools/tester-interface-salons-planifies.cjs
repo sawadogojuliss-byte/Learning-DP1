@@ -26,7 +26,13 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
     };
    });
    await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
-   await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Awa veut faire une séance')),true);
+   await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1');
+   assert.equal(await page.locator('#salonsPlanifiesBandeau').isHidden(),true,'ne pas marquer comme lu avant ouverture');
+   assert.equal(await page.locator('#salonsPlanifiesAnnonce svg').count(),1);
+   await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');
+   assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
+   assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Awa veut faire une séance')),true);
+   assert.match(await page.locator('#salonsOngletavenir').innerText(),/^Séances de pomodoro/);assert.match(await page.locator('#salonsOnglethistoire').innerText(),/^Mon historique/);
    assert.equal(await page.locator('#salonsPlanifiesAnnonce').evaluate(e=>e.parentElement.contains(document.querySelector('#joursFlamme'))),true);
    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('studyplan:salon-rejoint',{detail:{id:'a'.repeat(48),uid:'anon1',identite:'invite'}})));await page.waitForFunction(()=>window.__calls.some(x=>x.actionSalons==='participer' && x.jetonSalon==='jeton-salon-fictif'));
    await page.click('#salonsOnglethistoire');assert.equal(await page.locator('#salonsPlanifiesHistorique').isVisible(),true);assert.equal(await page.locator('#salonsPlanifiesHistorique').textContent().then(t=>t.includes('Histoire partagée')),true);
@@ -37,7 +43,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.check('#salonsPlanifiesVisible');await page.waitForFunction(()=>window.__visible===true);
    await page.fill('#salonsPlanifiesNom','Séance test');
    const date=await page.evaluate(()=>{const d=new Date(Date.now()+3600000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});
-   await page.fill('#salonsPlanifiesDate',date);const fin=await page.evaluate(()=>{const d=new Date(Date.now()+7200000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});await page.fill('#salonsPlanifiesFin',fin);await page.check('input[name=salonsInvite][value=u2]');await page.click('#salonsPlanifiesValider');
+   await page.fill('#salonsPlanifiesDate',date);const fin=await page.evaluate(()=>{const d=new Date(Date.now()+7200000);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);});await page.fill('#salonsPlanifiesFin',fin);await page.check('input[name=salonsInvite][value=u2]');assert.equal(await page.locator('#salonsPlanifiesSelection').innerText(),'1 / 20 sélectionné');assert.equal(await page.locator('input[name=salonsInvite][value=u2]').locator('..').evaluate(e=>e.classList.contains('selectionnee')),true);await page.click('#salonsPlanifiesValider');
    await page.waitForFunction(()=>window.__created===true);
    await page.click('#salonsPlanifiesAnnonce');await page.waitForSelector('#salonsPlanifiesBandeau:not([hidden])');
    await page.waitForFunction(()=>document.querySelector('#salonsPlanifiesBandeau').textContent.includes('Séance test'));
@@ -117,7 +123,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.waitForFunction(()=>window.__requetes.some(r=>r.jeton==='nouveau'));
    await page.waitForFunction(()=>!document.querySelector('#salonsPlanifiesAnnonce').hidden);
    assert.equal(await page.locator('#salonsPlanifiesBandeau').textContent().then(t=>t.includes('Privé ancien compte')),false);
-   assert.equal(await page.locator('#salonsPlanifiesAnnonce').innerText(),'✉ Séances');
+   assert.equal(await page.locator('#salonsPlanifiesAnnonce svg').count(),1);assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
    await page.close();
   }
   {
@@ -140,6 +146,44 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    assert.equal(await page.locator('#salonsPlanifiesAnnuaireInfo').isVisible(),true);
    assert.equal(await page.locator('#salonsPlanifiesEleves').textContent().then(t=>t.includes('Élève DP2')),true);
    assert.equal(await page.evaluate(()=>window.__calls.includes('inscription')),false);
+   await page.close();
+  }
+  {
+   // Les demandes lues ne redeviennent pas non lues au rechargement :
+   // la marque est locale à ce navigateur et isolée par compte.
+   const page=await browser.newPage({viewport:{width:390,height:850}});
+   await page.route('https://studyplan.test/**',r=>r.fulfill({status:200,contentType:'text/html',body:'<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>'}));
+   await page.addInitScript(()=>{
+    window.__user={uid:'compteA',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'faux'};
+    const auth={get currentUser(){return window.__user},onAuthStateChanged(cb){window.__authcb=cb;cb(window.__user)}};window.firebase={apps:[{}],auth:()=>auth};
+    window.__salons=[{id:'demande1',nom:'Séance fictive',organisateurNom:'Lina',debut:Date.now()+3600000,fin:Date.now()+7200000,role:'invite',reponse:'attente'}];
+    window.fetch=async url=>url==='data/salons-planifies.json'?{ok:true,json:async()=>({url:'https://script.google.com/macros/s/AKfycbyj9XN-o0AJa34uk7e98ZTcVNGovwWVcZSeKIitj9iOGPQmjnCCd3_hwApgJXlYAmAqjA/exec'})}:{ok:true,json:async()=>({success:true,resultat:{salons:window.__salons,historique:[]}})};
+   });
+   await page.goto('https://studyplan.test/');await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});
+   await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');
+   assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1');
+   assert.equal(await page.locator('#salonsPlanifiesBadge').evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(220, 38, 38)');
+   assert.match(await page.locator('#salonsPlanifiesAnnonce').getAttribute('aria-label'),/1 demande non lue/);
+   await page.click('#salonsPlanifiesAnnonce');assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
+   await page.reload();await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});await page.addScriptTag({content:fs.readFileSync('js/pages/salons-planifies.js','utf8')});
+   await page.waitForSelector('#salonsPlanifiesAnnonce:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true,'une demande lue reste lue');
+   await page.evaluate(()=>{window.__salons.push({...window.__salons[0],id:'demande2'});window.__authcb(window.__user);});
+   await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1','seule la nouvelle demande est non lue');
+   await page.evaluate(()=>{window.__user={uid:'compteB',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'autre'};window.__authcb(window.__user);});
+   await page.waitForFunction(()=>document.querySelector('#salonsPlanifiesBadge').textContent==='2');
+   assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'2','les vues du premier compte ne sont pas transférées');
+   await page.click('#salonsPlanifiesAnnonce');assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
+   await page.evaluate(()=>{window.__salons.push({...window.__salons[0],id:'demande3'});window.__authcb(window.__user);});
+   await page.waitForFunction(()=>document.querySelector('#salonsOngletavenir').textContent.endsWith('3'));
+   assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true,'les nouvelles demandes affichées sont lues');
+   await page.click('#salonsOnglethistoire');
+   await page.evaluate(()=>{window.__salons.push({...window.__salons[0],id:'demande4'});window.__authcb(window.__user);});
+   await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1','l’historique ne marque pas les nouvelles demandes comme lues');
+   await page.click('#salonsOngletavenir');assert.equal(await page.locator('#salonsPlanifiesBadge').isHidden(),true);
+   await page.click('#salonsFermerAnnonces');
+   await page.evaluate(()=>{window.__salons.push({...window.__salons[0],id:'demande5'});window.__authcb(window.__user);});
+   await page.waitForSelector('#salonsPlanifiesBadge:not([hidden])');assert.equal(await page.locator('#salonsPlanifiesBadge').innerText(),'1');
    await page.close();
   }
   console.log('ok interface salons planifiés : desktop et mobile, DP1/DP2, consentement, création et annonce sur le planning (simulation)');
