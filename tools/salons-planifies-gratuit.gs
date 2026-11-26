@@ -60,7 +60,19 @@ function spEnregistrer(u, jeton, visible) {
   var classe=visible ? spClasse(u.uid,jeton) : '';
   return spSousVerrou(function(){
     var p=PropertiesService.getScriptProperties(), cle='SP_U_'+u.uid;
-    if(!visible){p.deleteProperty(cle);return {visible:false};}
+    if(!visible){
+      // Retirer aussi les acceptations en cours pour qu'une réinscription
+      // ultérieure ne réactive pas silencieusement de vieux rappels.
+      var existantes=p.getProperties();
+      Object.keys(existantes).forEach(function(k){
+        if(k.indexOf('SP_P_')!==0)return;
+        var seance=spLire(k);
+        if(seance && seance.reponses && seance.reponses[u.uid]==='accepte'){
+          seance.reponses[u.uid]='refuse';spEcrire(k,seance);
+        }
+      });
+      p.deleteProperty(cle);return {visible:false};
+    }
     var toutes=p.getProperties();
     spAssert(toutes[cle] || Object.keys(toutes).filter(function(k){return k.indexOf('SP_U_')===0;}).length < 500,'capacite');
     spEcrire(cle,{uid:u.uid,nom:u.nom,email:u.email,classe:classe});
@@ -103,24 +115,25 @@ function spCreerSalon(id,u,nom,debut) {
 }
 function spValider(d,now) {
   var nom=typeof d.nom==='string'?d.nom.replace(/[\u0000-\u001f\u007f]/g,' ').trim():'';
-  var debut=Number(d.debut);
+  var debut=Number(d.debut), fin=Number(d.fin);
   spAssert(nom && nom.length<=60,'nom-invalide');
   spAssert(Number.isSafeInteger(debut) && debut>=now+15*SP_MIN && debut<=now+30*86400000,'date-invalide');
+  spAssert(Number.isSafeInteger(fin) && fin>debut && fin<=debut+12*60*SP_MIN,'fin-invalide');
   spAssert(typeof d.fuseau==='string' && d.fuseau.length<=80,'fuseau-invalide');
   try{Utilities.formatDate(new Date(debut),d.fuseau,'yyyy');}catch(_){spErreur('fuseau-invalide');}
   spAssert(Array.isArray(d.invites) && d.invites.length<=20 && d.invites.every(function(x){return typeof x==='string' && /^[A-Za-z0-9_-]{1,128}$/.test(x);}) && new Set(d.invites).size===d.invites.length,'invites-invalides');
-  return {nom:nom,debut:debut,fuseau:d.fuseau,invites:d.invites.slice().sort()};
+  return {nom:nom,debut:debut,fin:fin,fuseau:d.fuseau,invites:d.invites.slice().sort()};
 }
 function spCreer(u,jeton,body) {
   var d=spValider(body,Date.now());spClasse(u.uid,jeton);spAssert(d.invites.indexOf(u.uid)<0,'invites-invalides');
-  var id=spHash(JSON.stringify([u.uid,d.nom,d.debut,d.fuseau,d.invites])).slice(0,64), salonId=spHash('salon:'+id).slice(0,48);
+  var id=spHash(JSON.stringify([u.uid,d.nom,d.debut,d.fin,d.fuseau,d.invites])).slice(0,64), salonId=spHash('salon:'+id).slice(0,48);
   return spSousVerrou(function(){
     var existant=spLire('SP_P_'+id);if(existant)return {id:id,deja:true,annule:!!existant.annule};
     var props=PropertiesService.getScriptProperties().getProperties(), jour=new Date().toISOString().slice(0,10), compteur=0;
     Object.keys(props).forEach(function(k){if(k.indexOf('SP_P_')===0){var p=JSON.parse(props[k]);if(p.organisateurUid===u.uid && p.creeJour===jour)compteur++;}});
     spAssert(compteur<5,'limite-quotidienne');
     d.invites.forEach(function(uid){spAssert(!!spLire('SP_U_'+uid),'invite-indisponible');var n=0;Object.keys(props).forEach(function(k){if(k.indexOf('SP_P_')===0){var p=JSON.parse(props[k]);if(p.creeJour===jour && p.invites.indexOf(uid)>=0)n++;}});spAssert(n<20,'invite-indisponible');});
-    var programme={id:id,salonId:salonId,nom:d.nom,debut:d.debut,fuseau:d.fuseau,organisateurUid:u.uid,organisateurEmail:u.email,invites:d.invites,annule:false,creeJour:jour,etats:{}};
+    var programme={id:id,salonId:salonId,nom:d.nom,debut:d.debut,fin:d.fin,fuseau:d.fuseau,organisateurUid:u.uid,organisateurNom:u.nom,organisateurEmail:u.email,invites:d.invites,reponses:{},annule:false,creeJour:jour,etats:{}};
     // Valider la capacité avant une création Firestore ; une écriture
     // incertaine peut être retrouvée avec le même identifiant déterministe.
     spAssert(Utilities.newBlob(JSON.stringify(programme)).getBytes().length<8000,'capacite');
@@ -135,10 +148,22 @@ function spListe(u) {
     Object.keys(props).forEach(function(k){
       if(k.indexOf('SP_P_')!==0)return;var p=JSON.parse(props[k]), hote=p.organisateurUid===u.uid;
       if(!hote && p.invites.indexOf(u.uid)<0 || p.debut<now-86400000)return;
-      liste.push({id:p.id,nom:p.nom,debut:p.debut,fuseau:p.fuseau,role:hote?'organisateur':'invite',annule:p.annule,
-        lien:!p.annule && now>=p.debut-(hote?10:5)*SP_MIN && now<p.debut+12*3600000 ? SP_SITE+'#salon='+p.salonId : ''});
+      var reponse=hote?'organisateur':(p.reponses && p.reponses[u.uid] || 'attente');
+      liste.push({id:p.id,nom:p.nom,debut:p.debut,fin:p.fin || null,fuseau:p.fuseau,organisateurNom:p.organisateurNom || 'Un camarade',role:hote?'organisateur':'invite',reponse:reponse,annule:p.annule,
+        lien:!p.annule && (hote || reponse==='accepte' && !!props['SP_U_'+u.uid]) && now>=p.debut-(hote?10:5)*SP_MIN && now<p.debut+12*3600000 ? SP_SITE+'#salon='+p.salonId : ''});
     });
     liste.sort(function(a,b){return a.debut-b.debut;});return {salons:liste.slice(0,200),limiteAtteinte:liste.length>200};
+  });
+}
+function spRepondre(u,id,reponse) {
+  spAssert(typeof id==='string' && /^[a-f0-9]{64}$/.test(id) && ['accepte','refuse'].indexOf(reponse)>=0,'demande-invalide');
+  return spSousVerrou(function(){
+    var p=spLire('SP_P_'+id);
+    spAssert(p && p.organisateurUid!==u.uid && p.invites.indexOf(u.uid)>=0,'acces-refuse');
+    spAssert(!p.annule && Date.now()<p.debut,'invitation-terminee');
+    if(reponse==='accepte')spAssert(!!spLire('SP_U_'+u.uid),'inscription-requise');
+    p.reponses=p.reponses || {};p.reponses[u.uid]=reponse;spEcrire('SP_P_'+id,p);
+    return {reponse:reponse};
   });
 }
 function spFermerSalon(id) {
@@ -166,6 +191,7 @@ function spApi(d) {
     else if(action==='membres')resultat=spMembres(u,d.jeton);
     else if(action==='creer')resultat=spCreer(u,d.jeton,d);
     else if(action==='liste')resultat=spListe(u);
+    else if(action==='repondre')resultat=spRepondre(u,d.id,d.reponse);
     else if(action==='annuler')resultat=spAnnuler(u,d.id);
     else spErreur('action-invalide');
     return reponse({success:true,resultat:resultat});
@@ -173,7 +199,7 @@ function spApi(d) {
 }
 function spEchap(v){return String(v || '').replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function spCourrier(p,role) {
-  var date=Utilities.formatDate(new Date(p.debut),p.fuseau,'dd/MM/yyyy HH:mm')+' ('+p.fuseau+')', lien=SP_SITE+'#salon='+p.salonId, delai=role==='organisateur'?'10 minutes':'5 minutes';
+  var date=Utilities.formatDate(new Date(p.debut),p.fuseau,'dd/MM/yyyy HH:mm')+(p.fin?' → '+Utilities.formatDate(new Date(p.fin),p.fuseau,'dd/MM/yyyy HH:mm'):'')+' ('+p.fuseau+')', lien=SP_SITE+'#salon='+p.salonId, delai=role==='organisateur'?'10 minutes':'5 minutes';
   var text='Bonjour,\n\nStudyplan — Ton salon commence bientôt\n\n'+p.nom+'\n'+date+'\n\nLa séance commence dans environ '+delai+'.\nRejoindre le salon : '+lien+'\n\nCe lien donne accès au salon : partage-le seulement avec les personnes invitées.\nL’équipe Studyplan';
   var html='<html><body style="margin:0;padding:0;background:#eef7f1;color:#173b2d;font-family:Arial,Helvetica,sans-serif"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eef7f1"><tr><td align="center" style="padding:32px 14px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:white;border-radius:24px;overflow:hidden"><tr><td style="padding:34px 32px;background:#087c57;color:white"><p style="font-size:12px;font-weight:700;letter-spacing:2px;color:#c4f7dc">STUDYPLAN · SALON FOCUS</p><p>Bonjour,</p><h1 style="font-size:30px;line-height:1.2">Un beau moment<br>pour avancer ensemble.</h1><p style="color:#dcfce7">Ta séance commence dans environ '+delai+'.</p></td></tr><tr><td style="padding:30px 32px"><p style="font-size:12px;color:#488164;font-weight:700;letter-spacing:1px">TON RENDEZ-VOUS</p><h2 style="font-size:23px;color:#123e2e">'+spEchap(p.nom)+'</h2><p style="color:#4b6e5c">'+spEchap(date)+'</p><a href="'+spEchap(lien)+'" style="display:inline-block;padding:15px 22px;border-radius:12px;background:#059669;color:white;text-decoration:none;font-weight:700">Rejoindre le salon →</a><p style="margin-top:28px;font-size:13px;color:#6b8175">Ce lien donne accès au salon. Partage-le seulement avec les personnes invitées.</p></td></tr><tr><td style="padding:20px 32px;background:#f6fbf8;color:#59816c;font-size:13px">Avec toi à chaque étape · L’équipe Studyplan</td></tr></table></td></tr></table></body></html>';
   return {text:text,html:html};
@@ -194,6 +220,7 @@ function spRappelsSalons() {
         var p=spLire(k), now=Date.now();
         if(!p || p.annule || now>=p.debut || p.etats[uid])return null;
         var hote=p.organisateurUid===uid, avant=hote?10:5;
+        if(!hote && (!p.reponses || p.reponses[uid]!=='accepte'))return null;
         if(now<p.debut-avant*SP_MIN)return null;
         var membre=hote?null:spLire('SP_U_'+uid), email=hote?p.organisateurEmail:membre && membre.email;
         if(!email){p.etats[uid]='desinscrit';spEcrire(k,p);return null;}
