@@ -38,6 +38,27 @@ const context={Date:DateTest,Set,JSON,Math,Number,String,Array,Object,RegExp,Err
  }}
 };
 vm.createContext(context);vm.runInContext(fs.readFileSync('tools/envoi-mail.gs','utf8'),context);vm.runInContext(fs.readFileSync('tools/salons-planifies-gratuit.gs','utf8'),context);
+// Contenu transactionnel : pas d'envoi réel, les deux rôles et les anciens
+// programmes sont couverts, y compris les valeurs contenant du HTML.
+const exemple={nom:'Révisions <maths>\nBilan',organisateurNom:'Alice & <Bob>',debut:now+600000,fin:now+3600000,fuseau:'UTC',salonId:'a'.repeat(48)};
+const courrierHote=context.spCourrier(exemple,'organisateur'), courrierInvite=context.spCourrier(exemple,'invite');
+assert.equal(courrierHote.subject,'Ta séance « Révisions <maths> Bilan » commence bientôt | Studyplan');
+assert.ok(!/[\r\n]/.test(courrierHote.subject),'aucun retour à la ligne dans l’objet');
+for (const c of [courrierHote,courrierInvite]) {
+  // L'URL dépend de la configuration du script : les deux versions doivent
+  // porter exactement le même lien et le HTML doit échapper les données.
+  const url=context.SP_SITE+'#salon='+exemple.salonId;
+  assert.ok(c.text.includes(url));assert.ok(c.html.includes('href="'+url+'"'));
+  assert.ok(c.html.includes('Révisions &lt;maths&gt; Bilan'));
+  assert.ok(c.html.includes('Alice &amp; &lt;Bob&gt;'));assert.ok(!c.html.includes('<maths>'));
+  assert.ok(c.text.includes('Date et heure :'));assert.ok(c.text.includes('Organisée par :'));
+  assert.ok(c.text.includes('partage-le seulement avec les personnes invitées'));
+  assert.ok(c.html.includes('Un temps pour se concentrer, ensemble'));
+}
+assert.ok(courrierHote.text.includes('tu as organisé cette séance'));
+assert.ok(courrierInvite.text.includes('tu as accepté cette séance'));
+const ancien=context.spCourrier({...exemple,fin:null,organisateurNom:''},'invite');
+assert.ok(ancien.text.includes('Un membre Studyplan'));assert.ok(!ancien.text.includes(' → '));
 const diag=JSON.parse(context.doGet().texte);assert.equal(diag.salonsPlanifies,true);assert.equal(diag.version,8);assert.equal(diag.salonsAnnuaireAuto,true);
 function api(id,action,data={}){return JSON.parse(context.doPost({postData:{contents:JSON.stringify({...data,actionSalons:action,jeton:token(id)})}}).texte);}
 let x=api('anon','membres');assert.equal(x.error,'google-requis');
@@ -49,12 +70,12 @@ assert.equal(api('hote','creer',{...data,invites:['sansmail']}).error,'invite-in
 x=api('hote','creer',data);assert.equal(x.success,true);let id=x.resultat.id;assert.equal(rooms.size,1);assert.equal(api('hote','creer',data).resultat.deja,true);assert.equal(rooms.size,1);
 assert.equal(api('invite','annuler',{id}).error,'acces-refuse');assert.equal(api('hote','repondre',{id,reponse:'accepte'}).error,'acces-refuse');assert.equal(api('invite','repondre',{id,reponse:'autre'}).error,'demande-invalide');
 assert.equal(api('invite','liste').resultat.salons[0].lien,'');assert.equal(api('invite','liste').resultat.salons[0].organisateurNom,'Alice');assert.equal(api('invite','liste').resultat.salons[0].fin,data.fin);
-context.spRappelsSalons();assert.equal(envois.length,0);now+=10*60000;context.spRappelsSalons();assert.equal(envois.length,1);assert.equal(envois[0][0],'alice@example.test');assert.ok(envois[0][3].htmlBody.includes('Maths &lt;script&gt;'));assert.ok(!envois[0][3].htmlBody.includes('<script>'));assert.match(envois[0][3].htmlBody,/#salon=[a-f0-9]{48}/);
+context.spRappelsSalons();assert.equal(envois.length,0);now+=10*60000;context.spRappelsSalons();assert.equal(envois.length,1);assert.equal(envois[0][0],'alice@example.test');assert.match(envois[0][1],/^Ta séance « Maths <script> » commence bientôt/);assert.ok(envois[0][2].includes('tu as organisé cette séance'));assert.ok(envois[0][3].htmlBody.includes('Maths &lt;script&gt;'));assert.ok(!envois[0][3].htmlBody.includes('<script>'));assert.match(envois[0][3].htmlBody,/#salon=[a-f0-9]{48}/);
 context.spRappelsSalons();assert.equal(envois.length,1);now+=5*60000;context.spRappelsSalons();assert.equal(envois.length,1,'aucun mail sans acceptation');assert.equal(api('invite','liste').resultat.salons[0].lien,'');
 assert.equal(api('invite','repondre',{id,reponse:'accepte'}).success,true);assert.equal(api('invite','repondre',{id,reponse:'accepte'}).success,true);assert.ok(!JSON.stringify(api('invite','liste')).includes('@example.test'),'les adresses ne sortent pas de la liste');
 const sid=JSON.parse(props.get('SP_P_'+id)).salonId;assert.equal(api('invite','liste').resultat.historique.length,0,'accepter ne vaut pas participation');
 assert.equal(api('invite','participer',{salonId:sid,jetonSalon:token('inconnu')}).error,'auth-requise');assert.equal(api('invite','participer',{salonId:sid,jetonSalon:token('anon')}).error,'acces-refuse');assert.equal(api('invite','participer',{salonId:sid,jetonSalon:token('invite')}).success,true);assert.equal(api('invite','participer',{salonId:sid,jetonSalon:token('invite')}).success,true);assert.equal(api('invite','liste').resultat.historique.length,1);assert.equal(api('hote','liste').resultat.historique.length,0);
-context.spRappelsSalons();assert.equal(envois.length,2);assert.equal(envois[1][0],'binta@example.test');assert.ok(api('invite','liste').resultat.salons[0].lien.includes('#salon='));context.spRappelsSalons();assert.equal(envois.length,2);
+context.spRappelsSalons();assert.equal(envois.length,2);assert.equal(envois[1][0],'binta@example.test');assert.ok(envois[1][2].includes('tu as accepté cette séance'));assert.ok(api('invite','liste').resultat.salons[0].lien.includes('#salon='));context.spRappelsSalons();assert.equal(envois.length,2);
 data={...data,debut:now+20*60000,fin:now+80*60000};x=api('hote','creer',data);let id2=x.resultat.id;assert.equal(api('invite','repondre',{id:id2,reponse:'refuse'}).success,true);assert.equal(api('invite','participer',{salonId:JSON.parse(props.get('SP_P_'+id2)).salonId,jetonSalon:token('invite')}).error,'acces-refuse');assert.equal(api('invite','repondre',{id:id2,reponse:'accepte'}).success,true);now+=10*60000;perdre=true;context.spRappelsSalons();const n=envois.length;context.spRappelsSalons();assert.equal(envois.length,n,'pas de doublon après erreur');perdre=false;assert.equal(api('invite','repondre',{id:id2,reponse:'refuse'}).success,true);assert.equal(api('invite','liste').resultat.salons.find(s=>s.id===id2).reponse,'refuse');now+=5*60000;context.spRappelsSalons();assert.equal(envois.length,n,'pas de mail après refus');
 data={...data,invites:[],debut:now+20*60000,fin:now+80*60000};x=api('hote','creer',data);const p=JSON.parse(props.get('SP_P_'+x.resultat.id));assert.equal(api('hote','annuler',{id:x.resultat.id}).success,true);assert.equal(rooms.get(p.salonId).fields.ferme.booleanValue,true);now+=10*60000;context.spRappelsSalons();assert.equal(envois.length,n);
 assert.equal(api('hote','creer',{...data,debut:now+20*60000,fin:now+20*60000}).error,'fin-invalide');props.delete('SP_P_'+id);assert.equal(api('invite','liste').resultat.historique.length,1,'historique conservé après nettoyage de la séance');assert.equal(api('invite','effacer-historique').success,true);assert.equal(api('invite','liste').resultat.historique.length,0);assert.ok([...props.keys()].includes('MAIL_SECRET'));assert.ok(!JSON.stringify(api('hote','liste')).includes('secret-fictif'));
