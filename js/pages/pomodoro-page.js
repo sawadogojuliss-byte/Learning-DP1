@@ -1427,6 +1427,7 @@ function focusBasculerTaches() {
         focusMenuTache = null;
         focusSousCible = null;
         focusEditionTache = null;
+        focusAdapterClavier();
     }
     var bouton = document.getElementById('focusBtnTaches');
     if (bouton) bouton.classList.toggle('is-on', !panneau.hidden);
@@ -1464,6 +1465,7 @@ function focusFermer(id) {
     if (el) el.hidden = true;
     if (id === 'focusTaches') {
         focusEditionTache = null;
+        focusAdapterClavier();
         var bouton = document.getElementById('focusBtnTaches');
         if (bouton) bouton.classList.remove('is-on');
     }
@@ -1742,6 +1744,7 @@ function focusLigneTache(tache, parent) {
             champ.type = 'text';
             champ.maxLength = 120;
             champ.placeholder = 'Nouvelle sous-tâche';
+            champ.setAttribute('aria-label', 'Nouvelle sous-tâche');
             champ.autocomplete = 'off';
             form.appendChild(champ);
             li.appendChild(form);
@@ -2444,7 +2447,58 @@ function focusNotifier(titre, corps) {
     } catch (e) {}
 }
 
+// Sur un écran tactile le clavier peut recouvrir le bas de la page sans
+// redimensionner le viewport de mise en page (notamment sur tablette).
+function focusAdapterClavier() {
+    var page = document.getElementById('focusPage');
+    var panneau = document.getElementById('focusTaches');
+    if (!page || !panneau) return;
+    var champ = document.activeElement;
+    var tactile = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0;
+    var dansPanneau = tactile && !panneau.hidden && champ && panneau.contains(champ);
+    var tache = dansPanneau && champ.tagName === 'INPUT';
+    // Un clic sur « Ajouter » ne doit pas déplacer le panneau entre le
+    // changement de focus et le clic, sinon la tâche ne s'enregistre pas.
+    var garderPanneau = dansPanneau && panneau.classList.contains('focus-saisie-clavier');
+    var objectif = tactile && champ && champ.id === 'focusTache' && document.getElementById('panelPomodoro').classList.contains('active');
+    panneau.classList.toggle('focus-saisie-clavier', !!(tache || garderPanneau));
+    page.classList.toggle('focus-objectif-saisie', !!objectif);
+    if (!tache && !garderPanneau && !objectif) {
+        page.style.removeProperty('--focus-saisie-haut');
+        page.style.removeProperty('--focus-saisie-hauteur');
+        return;
+    }
+    var vue = window.visualViewport;
+    var haut = vue ? Math.max(0, vue.offsetTop) : 0;
+    var hauteur = vue ? vue.height : window.innerHeight;
+    page.style.setProperty('--focus-saisie-haut', Math.round(haut + 8) + 'px');
+    page.style.setProperty('--focus-saisie-hauteur', Math.max(48, Math.floor(hauteur - 16)) + 'px');
+    if (!tache) return;
+    // Dans une liste longue, l'éditeur peut être dans un défileur imbriqué.
+    requestAnimationFrame(function () {
+        if (document.activeElement !== champ || panneau.hidden) return;
+        [document.getElementById('focusListe'), panneau].forEach(function (zone) {
+            if (!zone || !zone.contains(champ)) return;
+            var c = champ.getBoundingClientRect(), z = zone.getBoundingClientRect();
+            if (c.bottom > z.bottom - 8) zone.scrollTop += c.bottom - z.bottom + 8;
+            else if (c.top < z.top + 8) zone.scrollTop -= z.top + 8 - c.top;
+        });
+    });
+}
+
 function focusBrancher() {
+    if (!window.__focusClavierTaches) {
+        window.__focusClavierTaches = true;
+        document.addEventListener('focusin', focusAdapterClavier);
+        document.addEventListener('focusout', function () { requestAnimationFrame(focusAdapterClavier); });
+        window.addEventListener('resize', focusAdapterClavier);
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener('resize', focusAdapterClavier);
+            window.visualViewport.addEventListener('scroll', focusAdapterClavier);
+        }
+    }
+    var nouvelle = document.getElementById('focusNouvelle');
+    if (nouvelle) nouvelle.setAttribute('aria-label', 'Nouvelle tâche');
     var champ = document.getElementById('focusTache');
     if (champ && !champ.__focus) {
         champ.__focus = true;

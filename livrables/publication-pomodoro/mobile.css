@@ -51,3 +51,32 @@
 
 /* Le crayon reste visible, y compris sur écran tactile sans survol. */
 .focus-tache-modifier { opacity: 0.9; }
+
+/* Les zones de saisie restent lisibles et éditables, contrairement aux
+   éléments décoratifs du minuteur qui masquent le curseur. */
+#panelPomodoro #focusTaches input,
+#panelPomodoro #focusTache {
+    -webkit-user-select: text; user-select: text; caret-color: #a7f3d0; cursor: text;
+}
+#panelPomodoro #focusTaches input {
+    box-sizing: border-box; min-width: 0; color: #f5fff8; background: #182d26;
+    border: 1px solid #81b89a; font-size: 16px;
+}
+#panelPomodoro #focusTaches input::placeholder { color: #c3d9cb; opacity: 1; }
+#panelPomodoro #focusTache:focus {
+    box-sizing: border-box; padding: .5rem .75rem; border-radius: .7rem;
+    background: rgba(4, 26, 18, .94); color: #fff;
+}
+/* Une liste longue reste défilable sur un écran court, même sans clavier. */
+#panelPomodoro #focusTaches.focus-panneau { max-height: calc(100dvh - 5.8rem); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+/* Sur tablette/téléphone, placer la saisie dans la zone réellement visible
+   quand le clavier recouvre une partie du viewport. */
+#panelPomodoro #focusTaches.focus-saisie-clavier {
+    position: fixed; top: var(--focus-saisie-haut, 8px); bottom: auto;
+    max-height: var(--focus-saisie-hauteur, calc(100dvh - 16px));
+}
+#panelPomodoro #focusPage.focus-objectif-saisie #focusTache {
+    position: fixed; z-index: 90; top: var(--focus-saisie-haut, 8px); left: 50%;
+    transform: translateX(-50%); width: min(38rem, calc(100% - 1.5rem));
+    font-size: 16px;
+}
