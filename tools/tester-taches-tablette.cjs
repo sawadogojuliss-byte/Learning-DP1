@@ -6,7 +6,7 @@ const base=process.env.STUDY_SITE||'http://127.0.0.1:8765/';
 (async()=>{
  const browser=await chromium.launch(process.env.STUDY_PLAYWRIGHT_SYSTEM?{headless:true}:{executablePath:process.env.STUDY_CHROMIUM_PATH||'/tmp/chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
  try{
-  for(const viewport of [{width:768,height:1024},{width:1024,height:768},{width:390,height:844}]){
+  for(const viewport of [{width:768,height:1024},{width:1024,height:768}]){
    const ctx=await browser.newContext({viewport,hasTouch:true,serviceWorkers:'block'}),page=await ctx.newPage(),errors=[];
    page.on('pageerror',e=>errors.push(String(e)));
    await page.route('**/*',r=>r.request().url().startsWith(base)?r.continue():r.abort());
@@ -45,6 +45,20 @@ const base=process.env.STUDY_SITE||'http://127.0.0.1:8765/';
    await testerChamp(nouvelle);assert.equal(await nouvelle.evaluate(e=>{const r=e.getBoundingClientRect();return document.elementFromPoint(r.left+r.width/2,r.top+r.height/2)===e;}),true,'champ accessible au-dessus du salon');
    await nouvelle.fill('Tâche en salon');await page.locator('.focus-ajout-centre').click();assert.ok(await page.evaluate(()=>focusTaches.some(t=>t.texte==='Tâche en salon')));
    assert.deepEqual(errors,[]);console.log('OK clavier simulé : tâches, modification, sous-tâche et objectif '+viewport.width+'×'+viewport.height);await ctx.close();
+  }
+  // Les téléphones et les ordinateurs gardent leur placement d'origine.
+  for(const cfg of [{viewport:{width:390,height:844},hasTouch:true,isMobile:true},{viewport:{width:844,height:390},screen:{width:390,height:844},hasTouch:true,isMobile:true},{viewport:{width:1280,height:800},hasTouch:false}]){
+   const ctx=await browser.newContext({...cfg,serviceWorkers:'block'}),page=await ctx.newPage();
+   await page.route('**/*',r=>r.request().url().startsWith(base)?r.continue():r.abort());
+   await page.addInitScript(()=>{window.__STUDYPLAN_E2E=true;});
+   await page.goto(base,{waitUntil:'domcontentloaded'});await page.waitForFunction(()=>window.__STUDYPLAN_READY&&!document.body.classList.contains('booting'),null,{timeout:60000});
+   await page.evaluate(()=>{document.querySelectorAll('.context-modal.active').forEach(e=>e.classList.remove('active'));document.getElementById('planningModal').classList.add('active');navigateTo('pomodoro');focusBasculerTaches();});
+   await page.locator('#focusNouvelle').focus();await page.waitForTimeout(100);
+   assert.equal(await page.locator('#focusTaches').evaluate(e=>e.classList.contains('focus-saisie-clavier')),false,'aucun déplacement sur téléphone ou ordinateur');
+   await page.locator('#focusTache').focus();await page.waitForTimeout(100);
+   assert.equal(await page.locator('#focusPage').evaluate(e=>e.classList.contains('focus-objectif-saisie')),false);
+   if(!cfg.hasTouch)assert.notEqual(await page.locator('#focusTache').evaluate(e=>getComputedStyle(e).caretColor),'rgba(0, 0, 0, 0)','curseur ordinateur visible');
+   console.log('OK position inchangée '+cfg.viewport.width+'×'+cfg.viewport.height);await ctx.close();
   }
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exitCode=1});

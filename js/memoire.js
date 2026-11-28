@@ -349,8 +349,17 @@ function memoireRestaurerFlamme(data) {
         var choisie = typeof compteFlammeChoisie === 'function' ? compteFlammeChoisie([local, donnee]) : donnee;
         if (!choisie) return;
         if (choisie.flammeJour === local.flammeJour && choisie.flammes === local.flammes) return;
+        var vueAvant = typeof compteFlammeVueAvant === 'function' ? compteFlammeVueAvant() : null;
         localStorage.setItem('studyPlanIB_flammeJour', choisie.flammeJour);
         localStorage.setItem('studyPlanIB_flamme', String(choisie.flammes));
+        if (typeof compteFlammeVueApres === 'function') compteFlammeVueApres(vueAvant);
+        // Après une interaction réelle, une copie du nuage plus récente peut
+        // arriver tard ; la journée déjà validée doit partir de cette copie.
+        if (typeof boiteJourCle === 'function' && typeof boiteFlammes === 'function' &&
+            window.__flammeActiviteJour === boiteJourCle(new Date())) {
+            boiteFlammes(true);
+        }
+        if (typeof compterJourConnecte === 'function') compterJourConnecte();
     } catch (e) {}
 }
 

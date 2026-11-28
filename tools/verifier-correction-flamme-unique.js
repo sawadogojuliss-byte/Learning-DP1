@@ -58,7 +58,7 @@ function appareil(cloud, opts = {}) {
   assert.strictEqual(a.ctx.boiteFlammes(), 18);
   const writes = n.writes;
   jour += 86400000;
-  assert.strictEqual(a.ctx.boiteFlammes(), 19);
+  assert.strictEqual(a.ctx.boiteFlammes(true), 19);
   assert.strictEqual(await a.ctx.compteCorrectionFlammeUnique(a.ctx.compteSession, a.user), false);
   assert.strictEqual(a.store.studyPlanIB_flamme, '19'); assert.strictEqual(n.writes, writes);
   p.flammes = 19; p.flammeJour = '2026-11-06'; n.docs['progressions/u'].progression = JSON.stringify(p);
@@ -67,7 +67,7 @@ function appareil(cloud, opts = {}) {
   assert.strictEqual(b.store.studyPlanIB_flamme, '19');
   assert.strictEqual(n.writes, writes);
   jour += 4 * 86400000;
-  assert.strictEqual(b.ctx.boiteFlammes(), 0, 'interruption : cycle normal');
+  assert.strictEqual(b.ctx.boiteFlammes(true), 0, 'interruption : cycle normal');
   n = nuage(); a = appareil(n, { user: { email: 'other@example.test' } });
   assert.strictEqual(await a.ctx.compteCorrectionFlammeUnique(a.ctx.compteSession, a.user), false); assert.strictEqual(n.writes, 0);
   a = appareil(n, { user: { emailVerified: false } });

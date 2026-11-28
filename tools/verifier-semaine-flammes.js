@@ -267,11 +267,11 @@ async function scenarioFlammesOuvert() {
   await envoyer(x); await attendre(300); figer(x);
   /* Téléphone ouvert, jour suivant : sa copie locale est restée à 9 (avant-hier). */
   lire(x, "localStorage.setItem('studyPlanIB_flamme', '9'); localStorage.setItem('studyPlanIB_flammeJour', '" + avantHier + "');");
-  lire(x, 'boiteFlammes()');
+  lire(x, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
   await attendre(4500); figer(x);
   const distant = JSON.parse(nuage.docs['progressions/UID-FARID'].progression);
-  verif('ouvert : le nuage a la série du jour (10, daté d\'aujourd\'hui)', [distant.flammeJour, distant.flammes], [jour, 10]);
-  verif('ouvert : le téléphone affiche 10', Number(lire(x, "localStorage.getItem('studyPlanIB_flamme')")), 10);
+  verif('ouvert : le nuage a la série du jour (11, daté d\'aujourd\'hui)', [distant.flammeJour, distant.flammes], [jour, 11]);
+  verif('ouvert : le téléphone affiche 11', Number(lire(x, "localStorage.getItem('studyPlanIB_flamme')")), 11);
 }
 
 /* ── Scénario 3 : la semaine n'est reportée qu'une fois, pour tout le compte ─ */

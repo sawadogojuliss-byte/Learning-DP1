@@ -157,6 +157,7 @@ jobs:
           executer_test travail/tools/tester-jours-bac.mjs
           executer_test travail/tools/tester-modifier-taches.mjs
           executer_test travail/tools/tester-taches-tablette.cjs
+          executer_test travail/tools/tester-flammes-activite.cjs
           executer_test travail/tools/tester-chevauchement.mjs
           executer_test travail/tools/tester-chevauchement-usage.mjs
           executer_test travail/tools/tester-alerte-chevauchement.mjs
@@ -335,6 +336,7 @@ jobs:
           executer_test tools/tester-jours-bac.mjs
           executer_test tools/tester-modifier-taches.mjs
           executer_test tools/tester-taches-tablette.cjs
+          executer_test tools/tester-flammes-activite.cjs
           executer_test tools/tester-chevauchement.mjs
           executer_test tools/tester-chevauchement-usage.mjs
           executer_test tools/tester-alerte-chevauchement.mjs

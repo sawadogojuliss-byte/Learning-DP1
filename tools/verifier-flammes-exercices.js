@@ -2,7 +2,7 @@
    d'un même compte :
    - un exercice ajouté ou supprimé sur un téléphone arrive sur l'autre (en direct et au rechargement) ;
    - la série de flammes est la même partout : 10 un jour, 11 le lendemain sur un autre téléphone ;
-   - un changement de flammes arrive dans le nuage sans action de l'élève.
+   - seule une activité de l’élève fait progresser les flammes.
 
    Même harnais que verifier-synchro-deux-telephones.js : vrais fichiers, faux Firestore partagé,
    horloge décalée pour simuler le lendemain. */
@@ -294,9 +294,11 @@ const fiche = (nuage) => nuage.docs['documents/' + SUB] || nuage.docs['documents
   c.compteOnCredential({ credential });
   await attendre(3500);
   figer(c);
-  lire(c, 'boiteFlammes()');
+  verif('aucune progression sans activité', lire(c, 'boiteFlammes()'), 10);
+  lire(c, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
+  await attendre(1500);
   verif('F2 lendemain, autre téléphone : 11 flammes', lire(c, "localStorage.getItem('studyPlanIB_flamme')"), '11');
-  verif('F3 lendemain : la nouvelle valeur est dans le nuage sans action de l\'élève', fiche(nuage).flammes, 11);
+  verif('F3 lendemain : la nouvelle valeur est dans le nuage après activité', fiche(nuage).flammes, 11);
   verif('F3b fiche admin : date et série du lendemain', fiche(nuage).flammeJour, cleJour(new Date(Date.now() + 86400000)));
   await attendre(800);
   verif('F4 lendemain : le téléphone resté ouvert (A) affiche 11', lire(a, "localStorage.getItem('studyPlanIB_flamme')"), '11');
@@ -322,9 +324,9 @@ const fiche = (nuage) => nuage.docs['documents/' + SUB] || nuage.docs['documents
     studyPlanIB_flammeJour: ancienJour
   }, 1);
   await attendre(4500);
-  lire(ancienneSerie, 'boiteFlammes()');
+  lire(ancienneSerie, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
   await attendre(3500);
-  verif('R6 réouverture : le nuage reçoit 11 sans action de l\'élève', fiche(nuage2).flammes, 11);
+  verif('R6 réouverture : le nuage reçoit 11 après activité', fiche(nuage2).flammes, 11);
   figer(ancienneSerie);
   verif('R5 réouverture le lendemain, série ancienne sur le téléphone : 11 flammes', lire(ancienneSerie, "localStorage.getItem('studyPlanIB_flamme')"), '11');
 

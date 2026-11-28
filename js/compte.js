@@ -1665,6 +1665,24 @@ function compteLocalModifie(data) {
     if (!vue || !vue.local) return true;
     return compteEmpreinteLocale(data) !== vue.local && compteEmpreinteAvecHorodatages(data) !== vue.local;
 }
+// Une flamme synchronisée séparément ne doit pas faire croire que le profil
+// entier a été édité : sinon les changements d'un autre appareil sont ignorés.
+function compteFlammeVueAvant() {
+    try {
+        if (typeof memoireLireEtat !== 'function') return null;
+        var vue = compteVueLire();
+        return vue && !compteLocalModifie(memoireLireEtat()) ? vue : null;
+    } catch (e) { return null; }
+}
+function compteFlammeVueApres(vue) {
+    try {
+        if (!vue || typeof memoireLireEtat !== 'function') return;
+        var actuelle = compteVueLire();
+        if (!actuelle || actuelle.local !== vue.local || actuelle.nuage !== vue.nuage || actuelle.sub !== vue.sub) return;
+        actuelle.local = compteEmpreinteLocale(memoireLireEtat());
+        localStorage.setItem('studyPlanIB_progressionVue', JSON.stringify(actuelle));
+    } catch (e) {}
+}
 function compteTexteProgression(doc) {
     if (!doc || doc.progression === undefined || doc.progression === null) return '';
     return typeof doc.progression === 'string' ? doc.progression : JSON.stringify(doc.progression);
@@ -1785,6 +1803,7 @@ function compteFlammesPousser() {
     var db = firebase.firestore();
     var ref = db.collection('progressions').doc(user.uid);
     var locale = { flammeJour: localStorage.getItem('studyPlanIB_flammeJour') || '', flammes: parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10) || 0 };
+    var jourActif = window.__flammeActiviteJour === locale.flammeJour ? locale.flammeJour : '';
     return db.runTransaction(function (tx) {
         return tx.get(ref).then(function (snap) {
             var distant = snap && snap.exists ? snap.data() : null;
@@ -1792,7 +1811,15 @@ function compteFlammesPousser() {
             var texte;
             try { texte = JSON.parse(distant.progression); } catch (e) { return null; }
             if (!texte || typeof texte !== 'object') return null;
-            var choisie = compteFlammeChoisie([{ flammeJour: texte.flammeJour, flammes: texte.flammes }, locale]);
+            var copies = [{ flammeJour: texte.flammeJour, flammes: texte.flammes }, locale];
+            // Si l'appareil avait une copie en retard, appliquer le geste du
+            // jour à la série du nuage avant de départager les deux copies.
+            // Une transaction concurrente déjà datée d'aujourd'hui ne compte pas deux fois.
+            if (jourActif && /^\d{4}-\d{2}-\d{2}$/.test(String(texte.flammeJour || '')) && texte.flammeJour < jourActif) {
+                var ecart = compteEcartJours(texte.flammeJour, jourActif);
+                if (ecart > 0) copies.push({ flammeJour: jourActif, flammes: ecart <= 3 ? Math.max(0, Number(texte.flammes) || 0) + 1 : 0 });
+            }
+            var choisie = compteFlammeChoisie(copies);
             if (choisie && String(choisie.flammeJour) >= String(texte.flammeJour || '') &&
                 (choisie.flammeJour !== texte.flammeJour || choisie.flammes !== texte.flammes)) {
                 texte.flammeJour = choisie.flammeJour;

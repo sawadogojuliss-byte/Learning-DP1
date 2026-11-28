@@ -2447,20 +2447,23 @@ function focusNotifier(titre, corps) {
     } catch (e) {}
 }
 
-// Sur un écran tactile le clavier peut recouvrir le bas de la page sans
-// redimensionner le viewport de mise en page (notamment sur tablette).
+// Sur tablette, le clavier peut recouvrir le bas du viewport de mise en page.
+// La taille physique courte reste stable lors de la rotation et du clavier ;
+// elle exclut les téléphones même en mode paysage.
 function focusAdapterClavier() {
     var page = document.getElementById('focusPage');
     var panneau = document.getElementById('focusTaches');
     if (!page || !panneau) return;
     var champ = document.activeElement;
-    var tactile = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0;
-    var dansPanneau = tactile && !panneau.hidden && champ && panneau.contains(champ);
+    var tailleCourte = Math.min(window.screen.width, window.screen.height);
+    var tablette = tailleCourte >= 600 && tailleCourte <= 1366 &&
+        window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    var dansPanneau = tablette && !panneau.hidden && champ && panneau.contains(champ);
     var tache = dansPanneau && champ.tagName === 'INPUT';
     // Un clic sur « Ajouter » ne doit pas déplacer le panneau entre le
     // changement de focus et le clic, sinon la tâche ne s'enregistre pas.
     var garderPanneau = dansPanneau && panneau.classList.contains('focus-saisie-clavier');
-    var objectif = tactile && champ && champ.id === 'focusTache' && document.getElementById('panelPomodoro').classList.contains('active');
+    var objectif = tablette && champ && champ.id === 'focusTache' && document.getElementById('panelPomodoro').classList.contains('active');
     panneau.classList.toggle('focus-saisie-clavier', !!(tache || garderPanneau));
     page.classList.toggle('focus-objectif-saisie', !!objectif);
     if (!tache && !garderPanneau && !objectif) {

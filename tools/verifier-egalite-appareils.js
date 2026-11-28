@@ -263,6 +263,9 @@ function comparer(etape, appareils) {
   const storeA = Object.assign({}, a.__store);
   const c = nouvelAppareilAJour(nuage, { studyPlanIB_exercices: '[]' }, 1);
   await connecter(c);
+  verif('J+1 sans activité : série inchangée', apercu(c).flammes, 10);
+  lire(c, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
+  await attendre(2000);
   const a1 = nouvelAppareilAJour(nuage, storeA, 1);
   await attendre(4000); figer(a1);
   const b1 = nouvelAppareilAJour(nuage, storeB, 1);
@@ -279,6 +282,8 @@ function comparer(etape, appareils) {
   const storeC = Object.assign({}, c.__store);
   const a2 = nouvelAppareilAJour(nuage, Object.assign({}, a1.__store), 2);
   await attendre(4000); figer(a2);
+  lire(a2, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
+  await attendre(2000);
   const b2 = nouvelAppareilAJour(nuage, Object.assign({}, b1.__store), 2);
   await attendre(4000); figer(b2);
   const c2 = nouvelAppareilAJour(nuage, storeC, 2);
@@ -310,6 +315,8 @@ function comparer(etape, appareils) {
   await connecter(sain);
   const sain1 = nouvelAppareilAJour(nuage3, Object.assign({}, sain.__store), 1);
   await attendre(4000); figer(sain1);
+  lire(sain1, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
+  await attendre(2000);
   comparer("H1 téléphone déjà à 10 hier, réouvert demain", [["téléphone sain", sain1]]);
   verif("H1 téléphone déjà à 10 hier, réouvert demain : 11", apercu(sain1).flammes, 11);
   await attendre(3500);

@@ -3313,12 +3313,15 @@ function boiteJourAvant(cle) {
     return boiteJourCle(d);
 }
 
-function boiteFlammes() {
+function boiteFlammes(activite) {
     var aujourd = boiteJourCle(new Date());
     var n = 1;
     try {
         n = parseInt(localStorage.getItem('studyPlanIB_flamme') || '0', 10);
         if (!isFinite(n) || n < 0) n = 0;
+        // Un simple affichage, minuteur ou synchronisation ne compte pas comme visite.
+        if (activite !== true) return n;
+        var vueAvant = typeof compteFlammeVueAvant === 'function' ? compteFlammeVueAvant() : null;
         var dernier = localStorage.getItem('studyPlanIB_flammeJour') || '';
         if (!dernier) {
             var ancien = localStorage.getItem('studyPlanIB_dernierJour') || '';
@@ -3347,6 +3350,7 @@ function boiteFlammes() {
         var changement = localStorage.getItem('studyPlanIB_flamme') !== String(n) || (localStorage.getItem('studyPlanIB_flammeJour') || '') < aujourd;
         localStorage.setItem('studyPlanIB_flamme', String(n));
         localStorage.setItem('studyPlanIB_flammeJour', aujourd);
+        if (changement && typeof compteFlammeVueApres === 'function') compteFlammeVueApres(vueAvant);
         /* Un nouveau jour (ou une valeur recalculée) doit atteindre le nuage, sinon les autres
            téléphones gardent l'ancienne série. Seule la série est envoyée (voir compteFlammesPousser). */
         if (changement && typeof compteFlammesPousser === 'function') compteFlammesPousser();
@@ -3575,7 +3579,9 @@ if (typeof document !== 'undefined') {
     boiteMajMenu();
     /* Les scripts du planning se chargent avant celui de la boîte : rafraîchir
        les trois compteurs avec la vraie série, distincte des jours cumulés. */
-    if (typeof compterJourConnecte === 'function') compterJourConnecte();
+    if (typeof compterJourConnecte === 'function') {
+        compterJourConnecte(window.__flammeActiviteJour === boiteJourCle(new Date()));
+    }
     /* Un envoi raté reste dans la file : on le retente tant que la page
        est ouverte, pas seulement à son ouverture. */
     setInterval(function () {

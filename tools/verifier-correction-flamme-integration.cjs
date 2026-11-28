@@ -24,7 +24,9 @@ return (async function () {
   if(apercu(c).flammes!==18) throw Error('réouverture');
   lire(c,'compteEcouterArreter()');
   c=creer({...c.__store},1); await attendre(5000); figer(c);
-  if(apercu(c).flammes!==19) throw Error('lendemain');
+  if(apercu(c).flammes!==18) throw Error('lendemain sans activité');
+  lire(c, 'window.__flammeActiviteJour = boiteJourCle(new Date()); boiteFlammes(true)');
+  if(apercu(c).flammes!==19) throw Error('lendemain avec activité');
   await envoyer(c); await attendre(300); if (JSON.parse(n.docs['progressions/UID-K'].progression).flammes!==19) throw Error('synchronisation lendemain');
   lire(c,'compteEcouterArreter()');
   console.log('Démarrage, réouverture et lendemain : OK (nuage simulé, réseau et mails bloqués)');

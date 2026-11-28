@@ -425,7 +425,9 @@ function selectDay(index) {
     renderPlanning();
 }
 
-function compterJourConnecte() {
+function compterJourConnecte(activite) {
+    // Lire l'ancienne date avant de modifier le compteur de visites (migration).
+    var serie = typeof boiteFlammes === 'function' ? boiteFlammes(activite === true) : null;
     var n = 1;
     try {
         var cleN = 'studyPlanIB_joursConnectes';
@@ -439,22 +441,23 @@ function compterJourConnecte() {
         }
         var dernier = localStorage.getItem(cleD) || '';
         if (!dernier && localStorage.getItem('studyPlanIB_lastVisit') === aujourd && n > 0) dernier = aujourd;
-        if (dernier !== aujourd) {
+        if (activite === true && dernier !== aujourd) {
             n += 1;
             localStorage.setItem(cleN, String(n));
             localStorage.setItem(cleD, aujourd);
         }
-        if (!n) n = 1;
     } catch (e) {
         n = 1;
     }
     var el = document.getElementById('joursCompte');
-    var serie = typeof boiteFlammes === 'function' ? boiteFlammes() : n;
+    if (serie === null) serie = n;
     if (el) el.textContent = String(serie);
     var flamme = document.getElementById('joursFlamme');
     if (flamme) flamme.style.display = 'inline-flex';
     var soutien = document.getElementById('streakCount');
     if (soutien) soutien.textContent = serie + ' jour' + (serie > 1 ? 's' : '');
+    var focus = document.getElementById('focusFlamme');
+    if (focus) focus.textContent = String(serie);
     return n;
 }
 
@@ -928,5 +931,24 @@ function goBackToActivities() {
     document.getElementById('activitiesModal').classList.add('active');
 }
 
+// Seule une interaction humaine dans l'onglet visible valide l'activité du jour.
+// Ne pas compter les reprises, minuteries, changements de visibilité ou événements synthétiques.
+if (typeof document !== 'undefined' && !window.__activiteFlammeBranchee) {
+    window.__activiteFlammeBranchee = true;
+    ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (type) {
+        document.addEventListener(type, function (event) {
+            if (!event.isTrusted || document.hidden) return;
+            var date = new Date();
+            var jour = typeof boiteJourCle === 'function' ? boiteJourCle(date) :
+                date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+            try {
+                if (window.__flammeActiviteJour === jour && localStorage.getItem('studyPlanIB_flammeJour') >= jour &&
+                    localStorage.getItem('studyPlanIB_dernierJour') === date.toDateString()) return;
+            } catch (e) {}
+            window.__flammeActiviteJour = jour;
+            compterJourConnecte(true);
+        }, { capture: true, passive: true });
+    });
+}
 if (typeof compterJourConnecte === 'function') compterJourConnecte();
  
