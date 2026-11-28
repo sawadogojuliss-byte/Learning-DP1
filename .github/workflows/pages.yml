@@ -154,6 +154,7 @@ jobs:
           trap 'kill "$serveur"' EXIT
           executer_test travail/tools/tester-nouveau-design.mjs
           executer_test travail/tools/tester-chargement-avec-barre.mjs
+          executer_test travail/tools/tester-chargement-reprise.cjs
           executer_test travail/tools/tester-jours-bac.mjs
           executer_test travail/tools/tester-modifier-taches.mjs
           executer_test travail/tools/tester-taches-tablette.cjs
@@ -212,6 +213,7 @@ jobs:
           executer_test travail/tools/tester-salon-courses.mjs
           executer_test travail/tools/tester-salon-messagerie.mjs
           executer_test travail/tools/tester-curseur-stable.mjs
+          executer_test travail/tools/tester-saisie-verte.cjs
           executer_test travail/tools/tester-foret-adaptive.mjs
           executer_test travail/tools/tester-images-feedback.mjs
           (cd travail && node tools/tester-script-mail.cjs && node tools/tester-configuration-mail.cjs && node tools/tester-reponses-transport.cjs && node tools/verifier-reponse-mail.js && node tools/verifier-feedback-reception.js && node tools/verifier-securite.js && node tools/verifier-flammes-admin.cjs)
@@ -311,6 +313,7 @@ jobs:
           executer_test tools/tester-salon-courses.mjs
           executer_test tools/tester-salon-messagerie.mjs
           executer_test tools/tester-curseur-stable.mjs
+          executer_test tools/tester-saisie-verte.cjs
           executer_test tools/tester-foret-adaptive.mjs
           executer_test tools/tester-images-feedback.mjs
           executer_test tools/tester-pomodoro-reprise.mjs
@@ -333,6 +336,7 @@ jobs:
           executer_test tools/tester-rappels-activites.mjs
           executer_test tools/tester-nouveau-design.mjs
           executer_test tools/tester-chargement-avec-barre.mjs
+          executer_test tools/tester-chargement-reprise.cjs
           executer_test tools/tester-jours-bac.mjs
           executer_test tools/tester-modifier-taches.mjs
           executer_test tools/tester-taches-tablette.cjs

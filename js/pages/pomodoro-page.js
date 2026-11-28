@@ -1028,6 +1028,10 @@ function focusPoserFond(index, immediat) {
     if (FOCUS_FONDS[index].remplacePar) index = focusIndexParId(FOCUS_FONDS[index].remplacePar);
     focusEtat.fond = index;
     var fond = FOCUS_FONDS[index];
+    // Le voile flou de l'accueil rendait les photos personnelles peu nettes,
+    // alors que le fichier lui-même est conservé sans compression.
+    var accueil = document.getElementById('focusAccueil');
+    if (accueil) accueil.classList.toggle('focus-photo-personnelle', fond.id === 'personnel-local');
     if (fond.id === 'personnel-local') {
         try { localStorage.setItem('studyPlanIB_themePersonnelActif', '1'); } catch (e) {}
     } else {

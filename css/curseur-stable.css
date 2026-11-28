@@ -6,3 +6,22 @@
 :is(button:not(:disabled),a[href],[role="button"]:not([aria-disabled="true"]),summary) {cursor:pointer;}
 :is(button,a[href],[role="button"],summary) :is(svg,svg *,img,span,strong,em,i) {cursor:inherit;}
 #eventsContainer [data-v3-idx]:hover {transform:none!important;}
+
+/* Zones où l'on écrit : repère vert au clic comme au clavier et curseur
+   de texte. Les commandes (cases, curseurs, fichiers) restent inchangées. */
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]),textarea,[contenteditable]:not([contenteditable=false])) {
+    caret-color: #047857 !important; cursor: text; -webkit-user-select: text; user-select: text;
+}
+:is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]),textarea,[contenteditable]:not([contenteditable=false])):focus {
+    outline: 2px solid #047857 !important; outline-offset: 2px !important; box-shadow: none !important;
+}
+/* Sur les panneaux sombres du Pomodoro et des salons : même menthe que les tâches. */
+:is(#panelPomodoro,#panelSeances,#salonEcran,#salonsPlanifiesForm) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]),textarea,[contenteditable]:not([contenteditable=false])) { caret-color: #a7f3d0 !important; cursor: text; -webkit-user-select: text; user-select: text; }
+:is(#panelPomodoro,#panelSeances,#salonEcran,#salonsPlanifiesForm) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=hidden]),textarea,[contenteditable]:not([contenteditable=false])):focus { outline-color: #6ee7b7 !important; }
+/* La recherche a déjà son contour autour du composant entier : pas de cadre intérieur. */
+#salonsPlanifiesForm .salons-recherche input:focus { outline: none !important; box-shadow: none !important; }
+@media (forced-colors: active) {
+    :is(input,textarea,[contenteditable]:not([contenteditable=false])):focus { outline-color: Highlight !important; caret-color: auto !important; }
+    :is(#panelPomodoro,#panelSeances,#salonEcran,#salonsPlanifiesForm) :is(input,textarea,[contenteditable]:not([contenteditable=false])):focus { outline-color: Highlight !important; caret-color: auto !important; }
+    #salonsPlanifiesForm .salons-recherche:focus-within { outline: 2px solid Highlight !important; }
+}

@@ -12,6 +12,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    await page.addStyleTag({content:fs.readFileSync('css/pages/salon-focus.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/pages/salons-planifies.css','utf8')});
    await page.addStyleTag({content:fs.readFileSync('css/accessibilite.css','utf8')});
+   await page.addStyleTag({content:fs.readFileSync('css/curseur-stable.css','utf8')});
    await page.evaluate(()=>{
     window.__calls=[];window.__visible=false;window.__created=false;window.__reponse='attente';window.__historique=[{id:'ancien',nom:'Histoire partagée',organisateurNom:'Awa',debut:Date.now()-7200000,fin:Date.now()-3600000,fuseau:'UTC',role:'invite'}];
     const user={uid:'hote',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'jeton-fictif'};
@@ -231,7 +232,7 @@ const {chromium}=require((process.env.STUDY_TEST_MODULES || '/home/user/studio-t
    // Une longue liste ne doit pas sauter lors du rafraîchissement en remontant.
    const page=await browser.newPage({viewport:{width:1280,height:720},reducedMotion:'reduce'});
    await page.setContent('<header><span id="joursFlamme">🔥</span></header><button id="salonCreer">Créer</button>');
-   for(const css of ['css/pages/planning-panels.css','css/pages/salon-focus.css','css/pages/salons-planifies.css','css/accessibilite.css'])await page.addStyleTag({content:fs.readFileSync(css,'utf8')});
+   for(const css of ['css/pages/planning-panels.css','css/pages/salon-focus.css','css/pages/salons-planifies.css','css/accessibilite.css','css/curseur-stable.css'])await page.addStyleTag({content:fs.readFileSync(css,'utf8')});
    await page.evaluate(()=>{
     const u={uid:'fictif',isAnonymous:false,providerData:[{providerId:'google.com'}],getIdToken:async()=> 'faux'};
     window.firebase={auth:()=>({currentUser:u,onAuthStateChanged:cb=>cb(u)})};

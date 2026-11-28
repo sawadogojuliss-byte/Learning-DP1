@@ -51,14 +51,19 @@ try {
     assert.match(await page.locator('#focusPersonnelErreurTexte').innerText(), /ne peut pas être lue/); await page.locator('.focus-perso-dialog-fermer').click();
     await fichier(page, 'usurpation.png', 'image/png', Buffer.from('GIF89a')); await dialog.waitFor({ state: 'visible' });
     assert.match(await page.locator('#focusPersonnelErreurTexte').innerText(), /format/); await page.locator('.focus-perso-dialog-fermer').click();
-    await fichier(page, 'grande.jpg', 'image/jpeg', Buffer.alloc(10 * 1024 * 1024 + 1)); await dialog.waitFor({ state: 'visible' });
+    await page.evaluate(() => { const input = document.getElementById('focusPersonnelFichier'), transfert = new DataTransfer(); transfert.items.add(new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'grande.jpg', {type:'image/jpeg'})); input.files = transfert.files; input.dispatchEvent(new Event('change', {bubbles:true})); }); await dialog.waitFor({ state: 'visible' });
     assert.match(await page.locator('#focusPersonnelErreurTexte').innerText(), /taille/); await page.locator('.focus-perso-dialog-fermer').click();
     for (const [mime, ext] of [['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp']]) {
-      await fichier(page, `paysage.${ext}`, mime, await image(page, 160, 90, mime));
+      const original = await image(page, 160, 90, mime);
+      await fichier(page, `paysage.${ext}`, mime, original);
       await page.waitForFunction(() => FOCUS_FONDS[focusEtat.fond].id === 'personnel-local' && document.getElementById('focusPersonnelImporter').disabled === false, null, { timeout: 20000 });
       assert.equal(await dialog.evaluate(el => el.open), false, mime + ' accepté sans popup');
       assert.equal(await page.locator('#focusPersonnelSecondaires').isVisible(), true);
       assert.equal(await page.locator('#focusPersonnelUtiliser').isDisabled(), true);
+      const stockee = await page.evaluate(async () => Array.from(new Uint8Array(await (await focusPersonnelStocker('lire')).arrayBuffer())));
+      assert.deepEqual(Buffer.from(stockee), original, 'fichier original conservé sans recompression ni redimensionnement');
+      assert.equal(await page.locator('#focusAccueil').evaluate(el => el.classList.contains('focus-photo-personnelle')), true);
+      assert.equal(await page.locator('.focus-accueil-voile').evaluate(el => getComputedStyle(el).backdropFilter), 'none', 'pas de flou sur le décor personnel');
       assert.ok((await page.locator('#focusBg').evaluate(el => el.style.backgroundImage)).includes('blob:'), 'fond du minuteur');
       assert.ok((await page.locator('#focusAccueilFond').evaluate(el => el.style.backgroundImage)).includes('blob:'), 'fond des séances');
     }
@@ -74,6 +79,7 @@ try {
     assert.ok((await page.locator('#focusBg').evaluate(el => el.style.backgroundImage)).includes('blob:'));
     // Choisir un thème prédéfini puis revenir à sa photo sans la réimporter.
     await page.evaluate(() => focusPoserFond(focusIndexParId('lumiere')));
+    assert.equal(await page.locator('#focusAccueil').evaluate(el => el.classList.contains('focus-photo-personnelle')), false);
     await page.locator('#focusThemePersonnel').scrollIntoViewIfNeeded();
     assert.equal(await page.locator('#focusPersonnelUtiliser').isEnabled(), true);
     await page.locator('#focusPersonnelUtiliser').click();

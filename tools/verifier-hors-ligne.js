@@ -10,7 +10,7 @@ assert(sw.includes("const VERSION = '" + version + "'"));
 assert(index.includes('style_v3.css?v=' + version));
 assert(index.includes('app.webmanifest'));
 assert(index.includes('<script defer src="js/boot.js'));
-assert(boot.includes('s.async = false') && boot.includes('Promise.all(scripts.map'));
+assert(boot.includes('s.async = false') && boot.includes('scripts.reduce') && boot.includes("lien.rel = 'preload'"));
 assert(boot.includes("service-worker.js?v=' + version"));
 assert(sw.includes('url.origin !== self.location.origin'));
 assert(sw.includes("!url.pathname.startsWith(new URL('./', self.registration.scope).pathname)"));

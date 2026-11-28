@@ -51,13 +51,17 @@ var version = '20261222-salons-gratuits';
         } catch (e) {}
     })();
 
-    function loadScript(src) {
+    function loadScript(src, essai) {
         return new Promise(function (resolve, reject) {
             var s = document.createElement('script');
-            s.async = false; /* téléchargés ensemble, exécutés dans l'ordre du registre */
+            s.async = false;
             s.src = src + '?v=' + version;
             s.onload = function () { resolve(); };
-            s.onerror = function () { reject(new Error('Script introuvable : ' + src)); };
+            s.onerror = function () {
+                s.remove();
+                if (essai >= 2) { reject(new Error('Script indisponible : ' + src)); return; }
+                setTimeout(function () { loadScript(src, essai + 1).then(resolve, reject); }, 250 * (essai + 1));
+            };
             document.body.appendChild(s);
         });
     }
@@ -90,14 +94,21 @@ var version = '20261222-salons-gratuits';
     })).then(function (parts) {
         root.innerHTML = parts.join('\n');
         var erreurs = [];
-        return Promise.all(scripts.map(function (src) {
-            return loadScript(src).catch(function (e) {
+        // Précharger en parallèle mais exécuter dans l'ordre. Ainsi, si un
+        // téléchargement échoue, ses dépendants attendent les nouvelles tentatives.
+        scripts.forEach(function (src) {
+            var lien = document.createElement('link');
+            lien.rel = 'preload'; lien.as = 'script'; lien.href = src + '?v=' + version;
+            document.head.appendChild(lien);
+        });
+        return scripts.reduce(function (precedent, src) {
+            return precedent.then(function () { return loadScript(src, 0); }).catch(function (e) {
                 erreurs.push(src);
                 console.error('Module indisponible', src, e);
             }).then(function () {
                 etapesFaites++; avancer(etapesFaites, etapesTotales);
             });
-        })).then(function () {
+        }, Promise.resolve()).then(function () {
             if (erreurs.length) {
                 /* Le reste du site reste utilisable, sans page blanche. */
                 var alerte = document.createElement('p');
